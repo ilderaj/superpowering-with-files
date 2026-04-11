@@ -23,7 +23,8 @@
 2. 梳理已存在的软链接、全局规则、skills、plugins、hooks、安装方式
 3. 基于事实提出 2-3 个模板化方案并给出推荐
 4. 与用户逐段确认设计
-5. 已进入 spec 文档沉淀阶段
+5. 已进入 implementation plan 分解与执行阶段
+6. 当前执行 Task 5: Add Core Metadata
 
 ## 已产出
 
@@ -39,6 +40,13 @@
   - `docs/superpowers/plans/2026-04-11-harness-installer-cli-plan.md`
   - `docs/superpowers/plans/2026-04-11-harness-adapters-projection-plan.md`
   - `docs/superpowers/plans/2026-04-11-harness-docs-verification-release-plan.md`
+
+## 当前子任务
+
+- Task 5: Add Core Metadata
+- 目标文件：
+  - `harness/core/metadata/platforms.json`
+  - `harness/core/state-schema/state.schema.json`
 
 ## 已确认设计前提
 

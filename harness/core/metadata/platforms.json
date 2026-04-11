@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "defaultScope": "workspace",
+  "supportedScopes": ["workspace", "user-global", "both"],
+  "platforms": {
+    "codex": {
+      "displayName": "Codex",
+      "entryFiles": ["AGENTS.md"],
+      "supportsGlobal": true,
+      "supportsWorkspace": true,
+      "skillsStrategy": "link-preferred"
+    },
+    "copilot": {
+      "displayName": "GitHub Copilot",
+      "entryFiles": ["copilot-instructions.md"],
+      "supportsGlobal": true,
+      "supportsWorkspace": true,
+      "skillsStrategy": "mixed"
+    },
+    "cursor": {
+      "displayName": "Cursor",
+      "entryFiles": [".cursor/rules/harness.mdc"],
+      "supportsGlobal": true,
+      "supportsWorkspace": true,
+      "skillsStrategy": "mixed"
+    },
+    "claude-code": {
+      "displayName": "Claude Code",
+      "entryFiles": ["CLAUDE.md"],
+      "supportsGlobal": true,
+      "supportsWorkspace": true,
+      "skillsStrategy": "link-preferred"
+    }
+  }
+}

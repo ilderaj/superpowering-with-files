@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Harness local state",
+  "type": "object",
+  "required": ["schemaVersion", "scope", "targets", "projectionMode"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "scope": { "type": "string", "enum": ["workspace", "user-global", "both"] },
+    "projectionMode": { "type": "string", "enum": ["link", "portable"] },
+    "targets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["enabled", "paths"],
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "paths": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "upstream": { "type": "object" },
+    "lastSync": { "type": "string" },
+    "lastFetch": { "type": "string" },
+    "lastUpdate": { "type": "string" }
+  }
+}

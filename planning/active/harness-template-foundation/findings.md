@@ -121,3 +121,8 @@
 - 最新全局 policy 已包含 planning lifecycle/archive guard，抽取到 core policy 时必须保留，不能只抽取 superpowers/planning 协同规则
 - superpowers plans path 被项目 policy 覆盖：长期计划必须回写 active task 的三份 planning 文件，除非用户明确要求写入 `docs/superpowers/plans/`
 - Task 3 的 `base.md` 使用平台中立表述，保留完整硬约束；shell/token guidance 单独拆为 snippet，并同步在 base policy 中保留
+
+## Task 5 记录
+
+- Task 5 仅涉及静态元数据与本地状态 schema，文件内容必须严格按 plan 中的 JSON 结构落地
+- `platforms.json` 需要保持平台键与入口文件列表的顺序，避免后续导出和测试出现不必要差异
