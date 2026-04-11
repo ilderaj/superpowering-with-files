@@ -57,3 +57,4 @@
 - Task 4 已完成：新增四个平台 overrides，`npm run test:core` 通过，commit `ee96d24`
 - Task 5 已开始：按计划创建 `harness/core/metadata/` 与 `harness/core/state-schema/`
 - Task 5 将只落地核心元数据与状态 schema，不扩展到 Task 6
+- Task 5 schema review 发现 `state.schema.json` 需要收紧顶层与 target 结构，正在按 reviewer 指示修复
