@@ -26,7 +26,7 @@
 5. 已进入 implementation plan 分解与执行阶段
 6. 已完成 core-policy-upstream 子计划
 7. 已完成 installer-cli 子计划
-8. 下一步优先进入 adapters-projection 或 docs-verification-release 子计划
+8. 当前执行 adapters-projection 子计划 Task 4: Implement Sync Projection
 
 ## 已产出
 
@@ -45,11 +45,10 @@
 
 ## 当前子任务
 
-- 下一阶段候选
+- Adapters Task 4: Implement Sync Projection
 - 目标文件：
-  - `harness/adapters/*`
-  - `docs/*`
-  - `reports/verification/*`
+  - `harness/installer/commands/sync.mjs`
+  - `tests/adapters/sync.test.mjs`
 
 ## 已确认设计前提
 

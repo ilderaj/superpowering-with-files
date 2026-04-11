@@ -6,6 +6,6 @@
   "scripts": {
     "test": "node --test",
     "test:core": "node --test tests/core/*.test.mjs",
-    "verify": "node --test tests/core/*.test.mjs tests/installer/*.test.mjs"
+    "verify": "node --test tests/core/*.test.mjs tests/installer/*.test.mjs tests/adapters/*.test.mjs"
   }
 }

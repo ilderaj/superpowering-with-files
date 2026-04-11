@@ -153,9 +153,37 @@
   - `4228095` `feat: add installer command contracts`
   - `b53fa32` `fix: stabilize installer verify and doctor scan`
 - installer-cli 子计划已完成
-- 下一步待执行：
-  - adapters-projection 子计划
-  - docs-verification-release 子计划
+- 当前转入 adapters-projection 子计划 Task 1：添加四个平台 render templates
+- Adapters Task 1 已完成：新增四个平台 render templates
+- Adapters Task 1 commit：`5407b49` `feat: add platform render templates`
+- Adapters Task 2 已完成：新增四个平台 adapter manifests
+- Adapters Task 2 commit：`f8fbed8` `feat: add adapter manifests`
+- Adapters Task 3 已完成：新增 adapter loader 与模板渲染测试
+- Adapters Task 3 初版通过 spec review，但 code quality review 指出一个问题：
+  - `entriesForScope` 不能直接依赖 adapter manifest 的 entry arrays 作为 runtime 路径真源
+- 已完成 follow-up 修复：
+  - `entriesForScope` 改为委托给 `paths.mjs`
+  - 新增测试确保 runtime path resolution 只认 installer path metadata
+- Adapters Task 3 最终验证通过：
+  - `node --test tests/adapters/templates.test.mjs` -> 2 tests pass
+- Adapters Task 3 相关 commits：
+  - `88065ef` `feat: add adapter rendering helpers`
+  - `5e96566` `fix: delegate adapter scope resolution`
+- 当前转入 Adapters Task 4：实现 sync projection
+- Adapters Task 4 已完成：`sync` 现在会渲染启用 target 的入口文件
+- Adapters Task 4 初版实现后发现测试隔离问题：
+  - `tests/adapters/sync.test.mjs` 会在 repo 根目录生成 `AGENTS.md`
+  - 还会写入本地 `.harness/state.json`
+- 已完成 follow-up 修正：
+  - sync 测试备份并恢复/删除 `AGENTS.md`
+  - sync 测试备份并恢复本地 `.harness/state.json`
+  - `.harness/state.json` 从 Git tracking 中移除，保持为 ignored local state
+  - `package.json` 的 `verify` 纳入 `tests/adapters/*.test.mjs`
+- Adapters Task 4 验证通过：
+  - `node --test tests/adapters/sync.test.mjs`
+  - `npm run verify` -> 21 tests pass
+- Adapters Task 4 相关 commits：
+  - `7bf3baf` `feat: render platform entries on sync`
 - Task 4 已完成：新增四个平台 overrides，`npm run test:core` 通过，commit `ee96d24`
 - Task 5 已开始：按计划创建 `harness/core/metadata/` 与 `harness/core/state-schema/`
 - Task 5 将只落地核心元数据与状态 schema，不扩展到 Task 6

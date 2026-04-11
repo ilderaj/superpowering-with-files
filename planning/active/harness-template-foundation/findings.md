@@ -204,6 +204,37 @@
   - `/home/<name>/`
   - `C:\\Users\\<name>\\`
 
+## Adapters Task 1 记录
+
+- 四个平台入口模板现在都只保留：
+  - 模板标题
+  - `{{basePolicy}}`
+  - `{{platformOverride}}`
+- 这保证 adapter 层不复制 policy 正文，只负责投影外壳
+
+## Adapters Task 2 记录
+
+- manifest 现在是每个平台投影规则的第一层事实源，明确了：
+  - 模板路径
+  - platform override 路径
+  - workspace/global entries
+  - skill projection strategy
+- Copilot 的 `planning-with-files` 已按设计固化为 `materialize`，其余当前保持 `link`
+
+## Adapters Task 3 记录
+
+- adapter manifest 可以保留 `workspaceEntries` / `globalEntries` 作为描述性配置，但 runtime path resolution 不能把它们当成第二真源
+- 当前 `entriesForScope` 已改为直接委托给 `paths.mjs`
+- 当前 `tests/adapters/templates.test.mjs` 已覆盖：
+  - renderEntry combines base policy and platform override
+  - entriesForScope uses installer path metadata instead of adapter entry arrays
+
+## Adapters Task 4 记录
+
+- `sync` 测试不能永久污染 repo 根目录；即使测试必须用 `process.cwd()` 作为 root，也必须恢复 `AGENTS.md` 和本地 state
+- `.harness/state.json` 必须保持 ignored local state；如果它被 Git tracking，任何一次 sync/install 测试都会把机器路径重新带回模板历史
+- `verify` 必须包含 adapters tests，否则 adapters-projection 阶段的回归不会被默认验证覆盖
+
 ## Task 5 记录
 
 - Task 5 仅涉及静态元数据与本地状态 schema，文件内容必须严格按 plan 中的 JSON 结构落地
