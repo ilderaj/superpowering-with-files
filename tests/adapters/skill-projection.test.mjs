@@ -13,3 +13,10 @@ test('projectionForSkill returns link for Codex superpowers', async () => {
   assert.equal(result.strategy, 'link');
   assert.match(result.source, /harness\/upstream\/superpowers\/skills/);
 });
+
+test('projectionForSkill rejects unknown targets', async () => {
+  await assert.rejects(
+    projectionForSkill(process.cwd(), 'superpowers', 'unknown'),
+    /Unknown target/
+  );
+});

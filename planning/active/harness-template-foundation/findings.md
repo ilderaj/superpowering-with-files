@@ -235,6 +235,15 @@
 - `.harness/state.json` 必须保持 ignored local state；如果它被 Git tracking，任何一次 sync/install 测试都会把机器路径重新带回模板历史
 - `verify` 必须包含 adapters tests，否则 adapters-projection 阶段的回归不会被默认验证覆盖
 
+## Adapters Task 5 记录
+
+- skill projection lookup 必须 fail-closed：
+  - unknown skill 抛错
+  - unknown target 抛错
+  - unsupported strategy 抛错
+- `projection.default` 只能作为已知 target 的显式默认策略，不能掩盖拼写错误或平台配置漂移
+- 当前 Copilot `planning-with-files` 返回 `materialize`，Codex `superpowers` 返回 `link`
+
 ## Task 5 记录
 
 - Task 5 仅涉及静态元数据与本地状态 schema，文件内容必须严格按 plan 中的 JSON 结构落地

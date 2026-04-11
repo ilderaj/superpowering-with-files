@@ -184,6 +184,22 @@
   - `npm run verify` -> 21 tests pass
 - Adapters Task 4 相关 commits：
   - `7bf3baf` `feat: render platform entries on sync`
+  - `d1301c0` `fix: isolate sync projection tests`
+- 当前转入 Adapters Task 5：新增 skill projection lookup contract
+- Adapters Task 5 已完成：新增 skill projection lookup
+- Adapters Task 5 初版通过 spec review，但 code quality review 指出一个问题：
+  - 未知 target 不能静默 fallback 到 default strategy
+- 已完成 follow-up 修复：
+  - `projectionForSkill` 校验 target 必须存在于 `platforms.json`
+  - projection strategy 必须是支持值
+  - 新增 unknown target 负向测试
+- Adapters Task 5 最终验证通过：
+  - `node --test tests/adapters/skill-projection.test.mjs` -> 3 tests pass
+  - `npm run verify` -> 24 tests pass
+- Adapters Task 5 相关 commits：
+  - `ce16f63` `feat: add skill projection lookup`
+- adapters-projection 子计划已完成
+- 下一步待执行：docs-verification-release 子计划
 - Task 4 已完成：新增四个平台 overrides，`npm run test:core` 通过，commit `ee96d24`
 - Task 5 已开始：按计划创建 `harness/core/metadata/` 与 `harness/core/state-schema/`
 - Task 5 将只落地核心元数据与状态 schema，不扩展到 Task 6
