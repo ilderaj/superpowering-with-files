@@ -5,6 +5,7 @@ import { sync } from './sync.mjs';
 import { status } from './status.mjs';
 import { fetchCommand } from './fetch.mjs';
 import { updateCommand } from './update.mjs';
+import { verify } from './verify.mjs';
 
 const commands = {
   install,
@@ -12,7 +13,8 @@ const commands = {
   sync,
   status,
   fetch: fetchCommand,
-  update: updateCommand
+  update: updateCommand,
+  verify
 };
 
 function usage() {
@@ -25,7 +27,8 @@ function usage() {
     '  sync     Reproject core into installed targets',
     '  status   Show local Harness state',
     '  fetch    Fetch upstream candidates',
-    '  update   Apply fetched upstream candidates'
+    '  update   Apply fetched upstream candidates',
+    '  verify   Write verification reports'
   ].join('\n');
 }
 
