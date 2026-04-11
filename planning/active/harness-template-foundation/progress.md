@@ -39,3 +39,9 @@
 - 已创建并切换到 `dev` 分支开始 implementation
 - 派发 Core plan Task 1：添加 Node test harness
 - Task 1 已完成：新增 `package.json`，并通过 `npm test` 验证无测试时为 0 tests / pass
+- Task 1 code quality review 发现 `verify` 过早引用未来 `doctor.mjs`
+- 已修复计划和实现：Task 1 先保持 `verify = node --test`，后续 installer plan Task 7 再加入 doctor check
+- Task 1 spec compliance 和 code quality 复审均通过
+- Task 2 已完成：新增 depersonalization test `tests/core/no-personal-paths.test.mjs`
+- 初版扫描命中 `planning/active/...` 中的研究路径，已按计划把 `planning` 加入忽略目录
+- `npm run test:core` 已通过

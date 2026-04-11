@@ -110,3 +110,8 @@
 - Cursor / Copilot / Claude Code 侧的目录结构、软链接关系、可复用程度
 - 各工具对全局规则、项目级规则、skills、plugins、hooks 的支持差异
 - 哪些能力可以模板内固化，哪些只能通过安装器或软链接投影
+
+## Task 2 记录
+
+- depersonalization 测试必须忽略 `planning` 目录，否则会把保留的本机研究证据误判成模板泄漏
+- 当前测试仅约束模板与实现文件中的作者专属绝对路径字符串
