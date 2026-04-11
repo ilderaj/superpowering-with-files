@@ -10,19 +10,25 @@ export function renderTemplate(template, values) {
   });
 }
 
+async function replaceTargetPath(targetPath) {
+  await rm(targetPath, { recursive: true, force: true });
+}
+
 export async function writeRenderedFile(targetPath, content) {
+  await replaceTargetPath(targetPath);
   await mkdir(path.dirname(targetPath), { recursive: true });
   await writeFile(targetPath, content);
 }
 
 export async function materializeFile(sourcePath, targetPath) {
+  await replaceTargetPath(targetPath);
   await mkdir(path.dirname(targetPath), { recursive: true });
   await copyFile(sourcePath, targetPath);
 }
 
 export async function linkPath(sourcePath, targetPath) {
+  await replaceTargetPath(targetPath);
   await mkdir(path.dirname(targetPath), { recursive: true });
-  await rm(targetPath, { recursive: true, force: true });
   await symlink(sourcePath, targetPath);
 }
 
