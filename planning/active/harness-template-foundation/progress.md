@@ -216,6 +216,14 @@
 - Docs Task 5 已完成：release doc 增加 GitHub repository setup
 - Release flow 已从 `npm test` / `doctor` 调整为 `npm run verify` / `./scripts/harness verify`
 - docs-verification-release 子计划已完成
+- 本地 `main` 已 fast-forward 到 `dev`
+- 已创建 GitHub repository：`https://github.com/ilderaj/HarnessTemplate`
+- 已推送并设置 tracking：
+  - `dev` -> `origin/dev`
+  - `main` -> `origin/main`
+- GitHub repository 已设置：
+  - default branch: `main`
+  - template repository: enabled
 - Task 4 已完成：新增四个平台 overrides，`npm run test:core` 通过，commit `ee96d24`
 - Task 5 已开始：按计划创建 `harness/core/metadata/` 与 `harness/core/state-schema/`
 - Task 5 将只落地核心元数据与状态 schema，不扩展到 Task 6

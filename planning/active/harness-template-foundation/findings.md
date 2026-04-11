@@ -249,6 +249,8 @@
 - Release flow 不能用 `npm test`，因为 vendored upstream 目录可能带有自己的测试依赖，模板仓库验证应使用 repo-scoped `npm run verify`
 - Release flow 也不应强依赖 `doctor`，因为 `doctor` 是本地安装健康检查，结果取决于 `.harness/state.json`
 - `./scripts/harness verify` 负责生成 verification report，但 `latest.md/json` 是生成物，不进入 Git
+- GitHub repository 创建时当前分支是 `dev`，所以 `gh repo create --push` 首先推送了 `dev`
+- 后续已显式推送 `main`，并用 `gh repo edit --default-branch main --template` 设置默认分支和模板仓库属性
 
 ## Task 5 记录
 

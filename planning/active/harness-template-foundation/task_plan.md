@@ -28,7 +28,7 @@
 7. 已完成 installer-cli 子计划
 8. 已完成 adapters-projection 子计划
 9. 已完成 docs-verification-release 子计划
-10. 下一步执行本地 GitHub repo / main-dev-origin 发布准备
+10. 已完成本地 GitHub repo / main-dev-origin 发布准备
 
 ## 已产出
 
@@ -47,10 +47,11 @@
 
 ## 当前子任务
 
-- 发布准备
-- 目标文件：
-  - Git branches: `main`, `dev`
-  - GitHub repo: `HarnessTemplate`
+- 当前收尾
+- 目标：
+  - 记录发布状态
+  - 确认验证结果
+  - 保持 `main` / `dev` / `origin` 对齐
 
 ## 已确认设计前提
 
