@@ -24,7 +24,9 @@
 3. 基于事实提出 2-3 个模板化方案并给出推荐
 4. 与用户逐段确认设计
 5. 已进入 implementation plan 分解与执行阶段
-6. 当前执行 Task 5: Add Core Metadata
+6. 已完成 core-policy-upstream 子计划
+7. 已完成 installer-cli 子计划
+8. 下一步优先进入 adapters-projection 或 docs-verification-release 子计划
 
 ## 已产出
 
@@ -43,10 +45,11 @@
 
 ## 当前子任务
 
-- Task 5: Add Core Metadata
+- 下一阶段候选
 - 目标文件：
-  - `harness/core/metadata/platforms.json`
-  - `harness/core/state-schema/state.schema.json`
+  - `harness/adapters/*`
+  - `docs/*`
+  - `reports/verification/*`
 
 ## 已确认设计前提
 
@@ -63,12 +66,7 @@
   - 不能依赖 `/Users/jared/...` 这类个人绝对路径
   - 其他用户拿到 GitHub template 后应可直接安装
 
-## 暂不执行
-
-- 不做实现
-- 不初始化 GitHub 仓库
-- 不创建代码脚手架
-- 不写安装脚本
-- 不执行 implementation plans
-
-以上内容待设计确认后进入下一阶段
+## Current State
+Status: active
+Archive Eligible: no
+Close Reason:

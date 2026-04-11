@@ -135,6 +135,75 @@
 - `harness/upstream/planning-with-files` 已从本机共享 skill 目录复制初始 baseline
 - 当前 core tests 在 vendored baselines 存在的情况下仍保持通过
 
+## Installer Task 1 记录
+
+- `scripts/harness` 采用 repo-root 解析后直接 `exec node .../harness.mjs`，满足后续命令扩展需要
+- dispatcher 目前只做命令选择与统一错误出口，没有提前引入 metadata/state 依赖，避免给 Task 2-7 造成返工
+- 两层 review 都确认当前 CLI skeleton 与 plan 一致，且不会明显阻碍后续 `install/doctor/sync/status/fetch/update` 实现
+
+## Installer Task 2 记录
+
+- 仅有 roundtrip 测试不够，state helper 必须在这一层就拒绝非法 state；否则 `install/doctor/sync/status` 都会各自补一遍校验
+- `writeState` 的原子写不能只做到 “temp + rename”，temp 文件名还必须避免同进程同毫秒并发碰撞
+- 当前 `state.mjs` 已补齐三层保障：
+  - state shape validation
+  - atomic write with temp file + rename
+  - collision-resistant temp filename with `randomUUID()`
+- 当前 `tests/installer/state.test.mjs` 已覆盖：
+  - default state
+  - roundtrip
+  - invalid stored state
+  - invalid write payload
+  - constant timestamp 下的 concurrent write regression
+
+## Installer Task 3 记录
+
+- `metadata.mjs` 当前保持最小职责：只读取 `platforms.json` 并做 scope / target 归一化，不提前掺入路径解析和安装逻辑
+- code quality review 认为当前测试仍偏 happy path，但这不阻塞 Task 3；schema drift 或非 repo-root 场景可在后续 installer 集成阶段补
+
+## Installer Task 4 记录
+
+- 路径 resolver 不能维护一份独立的 entry file 真源；否则后续 `platforms.json`、resolver、tests 会一起漂移
+- 当前 `paths.mjs` 已改成：
+  - 从 `harness/core/metadata/platforms.json` 读取 `entryFiles`
+  - 仅保留最小 scope root 规则
+  - 对 unknown target 直接抛错
+- 当前 `tests/installer/paths.test.mjs` 已覆盖：
+  - workspace path
+  - user-global path
+  - both path
+  - unknown target rejection
+
+## Installer Task 5 记录
+
+- `fs-ops` 这一层必须安全处理“旧 target 已经是 symlink”的场景；否则从 `link` 切换到 `portable` 时会静默污染源文件
+- 当前 `fs-ops.mjs` 已在 render / materialize / link 前统一 `replaceTargetPath`
+- 当前 `tests/installer/fs-ops.test.mjs` 已覆盖：
+  - template render
+  - materialize copy
+  - writeRenderedFile replaces symlink target
+  - materializeFile replaces symlink target
+
+## Installer Task 6 记录
+
+- `install.mjs` / `status.mjs` 本身没有问题；真正冲突的是计划里要求把 `.harness/state.json` 提交进仓库
+- `.harness/state.json` 是本地机器状态，内容天然包含 workspace / home 绝对路径，不能进 template Git 历史
+- 当前仓库修正策略：
+  - `.harness/` 加入 `.gitignore`
+  - `tests/core/no-personal-paths.test.mjs` 忽略 `.harness`
+  - 允许 `install` 在本地生成 state，但不把它视为模板内容
+
+## Installer Task 7 记录
+
+- `verify` 不能依赖 `doctor --check-only`，因为 `doctor` 检查的是本地安装状态，不是仓库自身可重复验证面
+- 当前稳定做法是：
+  - `verify` 只跑 repo-scoped tests
+  - `doctor` 保持为独立的安装健康检查命令
+- `doctor` 的个人路径检测必须是泛化规则，不能只匹配单一用户名；当前已覆盖：
+  - `/Users/<name>/`
+  - `/home/<name>/`
+  - `C:\\Users\\<name>\\`
+
 ## Task 5 记录
 
 - Task 5 仅涉及静态元数据与本地状态 schema，文件内容必须严格按 plan 中的 JSON 结构落地

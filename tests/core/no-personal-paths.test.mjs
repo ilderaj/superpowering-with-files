@@ -4,7 +4,7 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const root = process.cwd();
-const ignoredDirs = new Set(['.git', 'node_modules', 'planning']);
+const ignoredDirs = new Set(['.git', '.harness', 'node_modules', 'planning']);
 const scannedExtensions = new Set(['.md', '.json', '.mjs', '.js', '.sh']);
 const authorUser = 'jared';
 const forbidden = [
