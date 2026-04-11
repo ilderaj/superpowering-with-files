@@ -72,7 +72,7 @@ Archive constraints:
 - archive only when `Status: closed` and `Archive Eligible: yes`
 - completed-looking legacy tasks without the lifecycle block are stale candidates, not archive targets
 - never auto-archive historical active directories from another project or thread unless they are explicitly closed and archive eligible
-- use `planning-with-files` helper scripts for status checks; do not rely on hooks being available across Codex, Claude, Cursor, or Copilot
+- use `planning-with-files` helper scripts for status checks; do not rely on hooks being available in every environment
 
 ## Hard Constraints
 
