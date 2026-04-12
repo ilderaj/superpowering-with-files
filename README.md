@@ -203,10 +203,10 @@ Harness keeps its governance flow separate from vendored skill baselines. `fetch
 ./scripts/harness update --source=superpowers
 ```
 
-`planning-with-files` currently uses a local initial import source, so provide the local source explicitly:
+`planning-with-files` also tracks its Git source directly:
 
 ```bash
-./scripts/harness fetch --source=planning-with-files --from=/path/to/planning-with-files
+./scripts/harness fetch --source=planning-with-files
 ./scripts/harness update --source=planning-with-files
 ```
 
