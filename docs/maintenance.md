@@ -20,3 +20,29 @@ When changing orchestration policy:
 2. Keep platform overrides limited to platform-specific caveats.
 3. Run adapter rendering tests to confirm every supported target receives the rule.
 4. Run repository verification before reporting completion.
+
+## Upstream Skill Updates
+
+Upstream updates are staged before they are applied:
+
+```bash
+./scripts/harness fetch --source=superpowers
+./scripts/harness update --source=superpowers
+```
+
+`planning-with-files` currently uses a local initial import source, so provide the local source explicitly:
+
+```bash
+./scripts/harness fetch --source=planning-with-files --from=/path/to/planning-with-files
+./scripts/harness update --source=planning-with-files
+```
+
+The update command may only write into `harness/upstream/<source-name>`. It must not modify `harness/core`, `harness/adapters`, `harness/installer`, or `planning/active`.
+
+After any upstream update, run:
+
+```bash
+npm run verify
+./scripts/harness sync
+./scripts/harness doctor
+```
