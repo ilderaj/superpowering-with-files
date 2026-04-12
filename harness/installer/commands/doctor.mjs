@@ -1,5 +1,6 @@
-import { access, readFile } from 'node:fs/promises';
-import { readState } from '../lib/state.mjs';
+import os from 'node:os';
+import { readFile } from 'node:fs/promises';
+import { readHarnessHealth } from '../lib/health.mjs';
 
 const HOME_PATH_PATTERNS = [
   /(?:^|[^A-Za-z0-9])\/Users\/[^/\n\r]+\/(?:[^ \n\r\t"'`<>]|$)/,
@@ -13,19 +14,16 @@ function containsHomePath(text) {
 
 export async function doctor(args = []) {
   const checkOnly = args.includes('--check-only');
-  const state = await readState(process.cwd());
+  const health = await readHarnessHealth(process.cwd(), os.homedir());
   const problems = [];
 
-  for (const [target, config] of Object.entries(state.targets)) {
-    for (const filePath of config.paths) {
-      try {
-        await access(filePath);
-        const text = await readFile(filePath, 'utf8').catch(() => '');
-        if (containsHomePath(text)) {
-          problems.push(`${target}: personal path found in ${filePath}`);
-        }
-      } catch {
-        problems.push(`${target}: missing ${filePath}`);
+  problems.push(...health.problems);
+
+  for (const [target, targetHealth] of Object.entries(health.targets)) {
+    for (const entry of targetHealth.entries) {
+      const text = await readFile(entry.path, 'utf8').catch(() => '');
+      if (containsHomePath(text)) {
+        problems.push(`${target}: personal path found in ${entry.path}`);
       }
     }
   }

@@ -95,6 +95,29 @@ test('updateCommand applies candidate only to harness upstream path', async () =
   }
 });
 
+test('updateCommand leaves IDE projections to later sync', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-sync-boundary-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
+  try {
+    await writeSources(root, source);
+    await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
+    await mkdir(path.join(root, '.github/skills/planning-with-files'), { recursive: true });
+    await writeFile(path.join(root, '.github/skills/planning-with-files/SKILL.md'), 'old projected skill');
+    await createGitSource(source, 'new upstream skill');
+
+    await withCwd(root, async () => {
+      await fetchCommand(['--source=planning-with-files']);
+      await updateCommand(['--source=planning-with-files']);
+    });
+
+    assert.equal(await readFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'utf8'), 'new upstream skill');
+    assert.equal(await readFile(path.join(root, '.github/skills/planning-with-files/SKILL.md'), 'utf8'), 'old projected skill');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});
+
 test('updateCommand rejects source metadata that targets harness core', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-guard-'));
   try {

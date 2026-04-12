@@ -89,3 +89,10 @@
   - 默认拒绝覆盖并报错；
   - 支持显式 `--conflict=backup` 时先重命名为 `<name>.harness-backup-<timestamp>`，再写入新投影。
 - 不应继续使用无条件 `rm -rf` 作为默认写入策略。
+
+## 执行 worktree
+
+- 执行前重新运行 `./scripts/harness worktree-preflight`，当前 base 更新为 `dev @ 7c5bcfe4eb61f3b23ab82bc21bec78c7a727bfe4`。
+- 创建隔离 worktree：`/Users/jared/.config/superpowers/worktrees/HarnessTemplate/codex-entry-skills-governance`。
+- 执行分支：`codex/entry-skills-governance`。
+- Baseline verification：`npm run verify` 通过，38 tests passed。

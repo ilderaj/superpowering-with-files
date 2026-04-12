@@ -184,7 +184,7 @@ flowchart LR
   Skills -. "link/materialize strategy metadata" .-> Planning
 ```
 
-Current implementation note: `sync` renders instruction entry files as real files. Skill projection strategies are modeled and tested, but skill filesystem projection is not wired into `sync` yet. There is no hard-link implementation; the filesystem helpers support real files and symlinks.
+Current implementation note: `sync` renders entry files and projects supported skills into each enabled IDE's configured skill directory. Link projections use symlinks; materialized projections create real directory copies. Existing non-Harness-owned files are never overwritten by default. Use `./scripts/harness sync --conflict=backup` when you explicitly want Harness to preserve a local backup and write the projection.
 
 ## Entry Files
 
@@ -202,7 +202,16 @@ Skill projection metadata:
 | `harness/upstream/superpowers/skills` | `link` | `link` | `link` | `link` |
 | `harness/upstream/planning-with-files` | `link` | `materialize` | `link` | `link` |
 
-Copilot uses `materialize` for `planning-with-files` because its skill and hook behavior differs from Codex and Claude Code. Other targets prefer symlink-compatible projections when skill projection is implemented.
+Copilot uses `materialize` for `planning-with-files` because its skill and hook behavior differs from Codex and Claude Code. Other targets prefer symlink-compatible projections. If install state uses `projectionMode: "portable"`, `sync` materializes link-preferred skill projections too.
+
+Skill target roots:
+
+| Target | Workspace skill root | User-global skill root |
+| --- | --- | --- |
+| Codex | `.codex/skills` | `~/.codex/skills` |
+| GitHub Copilot | `.github/skills` | `~/.copilot/skills` |
+| Cursor | `.cursor/skills` | `~/.cursor/skills` |
+| Claude Code | `.claude/skills` | `~/.claude/skills` |
 
 ## Upstream Updates
 

@@ -4,6 +4,7 @@
     "superpowers": {
       "source": "https://github.com/obra/superpowers",
       "baselinePath": "harness/upstream/superpowers/skills",
+      "layout": "collection",
       "projection": {
         "default": "link",
         "copilot": "link",
@@ -15,6 +16,8 @@
     "planning-with-files": {
       "source": "https://github.com/OthmanAdi/planning-with-files",
       "baselinePath": "harness/upstream/planning-with-files",
+      "layout": "single",
+      "targetName": "planning-with-files",
       "projection": {
         "default": "link",
         "copilot": "materialize",
@@ -23,7 +26,10 @@
         "claude-code": "link"
       },
       "patches": {
-        "copilot": "harness/core/skills/patches/copilot-planning-with-files.patch.md"
+        "copilot": {
+          "type": "copilot-planning-with-files",
+          "marker": "Harness Copilot planning-with-files patch"
+        }
       }
     }
   }

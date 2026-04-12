@@ -1,6 +1,7 @@
-import { readState } from '../lib/state.mjs';
+import os from 'node:os';
+import { readHarnessHealth } from '../lib/health.mjs';
 
 export async function status() {
-  const state = await readState(process.cwd());
-  console.log(JSON.stringify(state, null, 2));
+  const health = await readHarnessHealth(process.cwd(), os.homedir());
+  console.log(JSON.stringify(health, null, 2));
 }
