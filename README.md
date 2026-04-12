@@ -1,15 +1,22 @@
 # HarnessTemplate
 
-HarnessTemplate is a reusable workflow template for agents and humans working in the same repository. It gives Codex, GitHub Copilot, Cursor, and Claude Code one shared governance policy while preserving each tool's native instruction entrypoint.
+HarnessTemplate is a higher-level governance harness for humans and agents working in local projects. It turns one shared policy into the native instruction entry files used by Codex, GitHub Copilot, Cursor, and Claude Code.
 
-The core model is simple:
+Use it at workspace scope when a single project should carry its own rules. Use it at user-global scope when you want the same Harness baseline across local projects. Use `both` when a project needs local entry files and a user-level baseline.
 
-- `planning-with-files` is the durable task memory.
-- `superpowers` is optional, temporary reasoning support.
-- Rendered entry files carry the same Harness policy into each IDE or agent.
-- Workspace, user-global, and combined installation scopes are supported.
+## What It Gives You
+
+- `planning-with-files` as durable task memory under `planning/active/<task-id>/`.
+- `superpowers` as temporary reasoning support for complex planning, debugging, execution, review, and verification.
+- Rendered governance entry files for Codex, GitHub Copilot, Cursor, and Claude Code.
+- Workspace, user-global, and combined installation scopes.
+- Staged upstream updates for vendored `superpowers` and `planning-with-files` baselines.
+
+Harness is the top-level local integration layer. Lower-level skills, project rules, or local routers such as Carnival can stay in place, but Harness should decide when and how those lower-level capabilities are used.
 
 ## Quick Start
+
+New workspace:
 
 ```bash
 ./scripts/harness install --scope=workspace --targets=all --projection=link
@@ -17,16 +24,48 @@ The core model is simple:
 ./scripts/harness doctor
 ```
 
-`workspace` is the default scope. Use `both` when you want a user-level Harness policy plus repository-local entrypoints.
+New user-global baseline:
+
+```bash
+./scripts/harness install --scope=user-global --targets=all --projection=link
+./scripts/harness sync
+./scripts/harness doctor
+```
+
+Workspace scope is the default and safest starting point because it keeps Harness local to the repository. Use user-global scope when you want new local projects to inherit the same baseline. Use `both` when you want shared user-level rules plus repository-local entry files:
+
+```bash
+./scripts/harness install --scope=both --targets=all --projection=link
+./scripts/harness sync
+./scripts/harness doctor
+```
+
+For an existing setup, inspect the current workspace and user-global entry files before syncing. `sync` writes rendered entry files to the configured target paths, so choose whether Harness should replace, update, enhance, or wrap what is already there.
+
+## Integration Modes
+
+| Mode | Use when | Result |
+| --- | --- | --- |
+| Replace | Existing workspace or user-global rules should be retired. | Harness-rendered entry files become the rule source for the selected scope. |
+| Update | A previous Harness install already owns the selected scope. | `sync` refreshes the rendered entry files from the current HarnessTemplate policy. |
+| Enhance | Existing lower-level skills or rules are still useful. | Harness becomes the higher-level policy and routes into those capabilities when appropriate. |
+| Wrap | A local router or framework already coordinates lower-level behavior. | Harness stays above it, sets governance, and calls into that router only as a scoped capability. |
+
+Recommended path:
+
+1. Start with `workspace` scope for a single project.
+2. Move to `user-global` only when the same Harness baseline should apply across projects.
+3. Use `both` when the global baseline should exist, but this repository still needs explicit local entry files.
+4. Before replacing user-global files, preserve any local rules that should become lower-level capabilities under Harness.
 
 ## Workflow
 
-Harness routes work through one global governance policy before any tool-specific behavior matters. The default path is lightweight: do the work directly, keep the active planning files current, and verify before reporting back. Superpowers are reserved for cases where their extra structure is worth the cost.
+Harness routes work through one governance policy before tool-specific behavior matters. The default path is lightweight: do the work directly, keep the active planning files current, and verify before reporting back. Superpowers are reserved for cases where their extra structure is worth the cost.
 
 ```mermaid
 flowchart TD
-  A["Task arrives"] --> B["Agent reads its Harness entry file"]
-  B --> C["Apply global governance rules"]
+  A["Task arrives"] --> B["Agent reads the nearest Harness entry file"]
+  B --> C["Apply Harness governance rules"]
   C --> D{"Is the task simple and clear?"}
 
   D -- "Yes" --> E["Execute directly"]
@@ -111,6 +150,8 @@ flowchart LR
   Adapters --> Manifests["target manifest.json files"]
   Installer --> Install["install writes .harness/state.json"]
   Installer --> Sync["sync renders entry files"]
+  Installer --> Fetch["fetch stages upstream candidates"]
+  Installer --> Update["update applies allowlisted upstream changes"]
   Installer --> FsOps["fs-ops can write, copy, or symlink"]
 
   Policy --> Entry["Rendered governance entry file"]
@@ -126,6 +167,9 @@ flowchart LR
 
   Upstream --> Superpowers["superpowers skills baseline"]
   Upstream --> Planning["planning-with-files baseline"]
+  Fetch --> Candidates[".harness/upstream-candidates/<source>"]
+  Candidates --> Update
+  Update --> Upstream
   Skills -. "link/materialize strategy metadata" .-> Superpowers
   Skills -. "link/materialize strategy metadata" .-> Planning
 ```
@@ -141,7 +185,7 @@ Current implementation note: `sync` renders instruction entry files as real file
 | Cursor | `.cursor/rules/harness.mdc` | `~/.cursor/rules/harness.mdc` | Rendered real file |
 | Claude Code | `CLAUDE.md` | `~/.claude/CLAUDE.md` | Rendered real file |
 
-## Skill Projection Metadata
+Skill projection metadata:
 
 | Skill baseline | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
@@ -150,7 +194,31 @@ Current implementation note: `sync` renders instruction entry files as real file
 
 Copilot uses `materialize` for `planning-with-files` because its skill and hook behavior differs from Codex and Claude Code. Other targets prefer symlink-compatible projections when skill projection is implemented.
 
-## Common Commands
+## Upstream Updates
+
+Harness keeps its governance flow separate from vendored skill baselines. `fetch` stages upstream candidates under local ignored state, and `update` applies only into the configured `harness/upstream/<source-name>` path. The update path is guarded so upstream refreshes cannot target `harness/core`, `harness/adapters`, `harness/installer`, or `planning/active`.
+
+```bash
+./scripts/harness fetch --source=superpowers
+./scripts/harness update --source=superpowers
+```
+
+`planning-with-files` currently uses a local initial import source, so provide the local source explicitly:
+
+```bash
+./scripts/harness fetch --source=planning-with-files --from=/path/to/planning-with-files
+./scripts/harness update --source=planning-with-files
+```
+
+After updating upstream baselines, rerun repository verification before syncing installed projections:
+
+```bash
+npm run verify
+./scripts/harness sync
+./scripts/harness doctor
+```
+
+## Commands and Docs
 
 ```bash
 ./scripts/harness install
@@ -160,8 +228,6 @@ Copilot uses `materialize` for `planning-with-files` because its skill and hook 
 ./scripts/harness fetch
 ./scripts/harness update
 ```
-
-## Documentation
 
 - [Architecture](docs/architecture.md)
 - [Maintenance](docs/maintenance.md)
