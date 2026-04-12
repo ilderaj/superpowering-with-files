@@ -74,6 +74,26 @@ Archive constraints:
 - never auto-archive historical active directories from another project or thread unless they are explicitly closed and archive eligible
 - use `planning-with-files` helper scripts for status checks; do not rely on hooks being available in every environment
 
+## Complex Task Orchestration
+
+For broad or mixed requests, use this order:
+
+1. Create or reuse one task-scoped `planning/active/<task-id>/` directory.
+2. Group the request into phases with explicit dependencies and finishing criteria.
+3. Decide whether worktree or branch isolation is needed before implementation.
+4. Use Superpowers only for the phase that needs deeper reasoning, then sync durable decisions back to Planning with Files.
+5. Assign subagents only to independent scopes with clear file ownership, constraints, verification commands, and return format.
+6. Let the main agent review, integrate, verify, and update Planning with Files.
+
+Planning with Files is the source of truth. Superpowers can generate temporary construction plans, but it must not own durable task memory.
+Git worktrees and branches provide isolation. Superpowers may describe how to use them, but it does not replace version control.
+
+## Cross-IDE Portability
+
+Codex, GitHub Copilot, Cursor, and Claude Code do not consume instructions, skills, hooks, or global configuration in the same way. Do not rely on hooks, implicit skill discovery, or Codex-only configuration for core workflow behavior.
+
+Keep durable rules in the rendered Harness entry files. Platform overrides should describe only platform-specific caveats, not fork the workflow.
+
 ## Hard Constraints
 
 - Do not create duplicate planning systems.
