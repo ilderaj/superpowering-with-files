@@ -115,7 +115,8 @@ For broad requests with mixed bug fixes, UI changes, product strategy, release c
 
 ```text
 Planning with Files master orchestration
--> worktree/branch isolation when risk or parallelism requires it
+-> worktree base preflight when isolation is needed
+-> worktree/branch isolation with an explicit base ref
 -> per-phase Superpowers reasoning only when justified
 -> scoped subagent execution
 -> main-agent review and verification
@@ -125,6 +126,15 @@ Planning with Files master orchestration
 Rendered entry files carry this mode into Codex, GitHub Copilot, Cursor, and Claude Code. The main agent remains responsible for file ownership boundaries, integration, verification, and syncing durable decisions back to the active Planning with Files task.
 
 Use Superpowers only when the architecture is unclear, requirements are ambiguous, debugging is complex, the root cause is not obvious, or deep structured reasoning is explicitly requested. If Superpowers are used, durable decisions must be copied back into the task's three Planning with Files documents.
+
+Before creating an isolated worktree, run the Harness-owned preflight command and use its explicit start point:
+
+```bash
+./scripts/harness worktree-preflight
+git worktree add <path> -b <new-branch> <base-ref>
+```
+
+Record the reported `Worktree base: <base-ref> @ <base-sha>` in the active task's Planning with Files documents. This keeps simple `dev` or feature-branch sessions from accidentally forking work from `main`, while still allowing clean trunk-based work when the current context is intentionally `main` or `master`.
 
 ## Installation Structure
 
@@ -198,6 +208,8 @@ Copilot uses `materialize` for `planning-with-files` because its skill and hook 
 
 Harness keeps governance separate from vendored skill baselines. `fetch` stages candidates under `.harness/upstream-candidates/<source>`, and `update` applies them only to the configured `harness/upstream/<source>` path. Guards prevent upstream refreshes from targeting `harness/core`, `harness/adapters`, `harness/installer`, or `planning/active`.
 
+Workflow guardrails such as worktree base preflight live in `harness/core` and `harness/installer`, not in vendored `superpowers` or `planning-with-files` sources. Updating upstream baselines should refresh only the vendored source copies; it should not change the Harness-owned base-selection mechanism.
+
 ```bash
 ./scripts/harness fetch
 ./scripts/harness update
@@ -229,6 +241,7 @@ npm run verify
 ./scripts/harness status
 ./scripts/harness fetch
 ./scripts/harness update
+./scripts/harness worktree-preflight
 ```
 
 - [Architecture](docs/architecture.md)

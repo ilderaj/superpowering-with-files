@@ -17,6 +17,9 @@ test('renderEntry includes complex orchestration policy for every supported targ
     assert.match(rendered, /Complex Task Orchestration/, target);
     assert.match(rendered, /Planning with Files is the source of truth/, target);
     assert.match(rendered, /Git worktrees and branches provide isolation/, target);
+    assert.match(rendered, /Worktree Base Preflight/, target);
+    assert.match(rendered, /worktree-preflight/, target);
+    assert.match(rendered, /Worktree base: <base-ref> @ <base-sha>/, target);
     assert.match(rendered, /Cross-IDE Portability/, target);
   }
 });
