@@ -37,9 +37,21 @@ test('committed template files do not contain author-specific absolute paths', a
   const offenders = [];
 
   for (const file of files) {
-    const info = await stat(file);
+    let info;
+    try {
+      info = await stat(file);
+    } catch (error) {
+      if (error && error.code === 'ENOENT') continue;
+      throw error;
+    }
     if (!info.isFile()) continue;
-    const text = await readFile(file, 'utf8');
+    let text;
+    try {
+      text = await readFile(file, 'utf8');
+    } catch (error) {
+      if (error && error.code === 'ENOENT') continue;
+      throw error;
+    }
     for (const token of forbidden) {
       if (text.includes(token)) {
         offenders.push(`${path.relative(root, file)} contains ${token}`);
