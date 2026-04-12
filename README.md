@@ -7,6 +7,7 @@ The core model is simple:
 - `planning-with-files` is the durable task memory.
 - `superpowers` is optional, temporary reasoning support.
 - Rendered entry files carry the same Harness policy into each IDE or agent.
+- Upstream skill baselines update through staged candidates before they are applied.
 - Workspace, user-global, and combined installation scopes are supported.
 
 ## Quick Start
@@ -111,6 +112,8 @@ flowchart LR
   Adapters --> Manifests["target manifest.json files"]
   Installer --> Install["install writes .harness/state.json"]
   Installer --> Sync["sync renders entry files"]
+  Installer --> Fetch["fetch stages upstream candidates"]
+  Installer --> Update["update applies allowlisted upstream changes"]
   Installer --> FsOps["fs-ops can write, copy, or symlink"]
 
   Policy --> Entry["Rendered governance entry file"]
@@ -126,6 +129,9 @@ flowchart LR
 
   Upstream --> Superpowers["superpowers skills baseline"]
   Upstream --> Planning["planning-with-files baseline"]
+  Fetch --> Candidates[".harness/upstream-candidates/<source>"]
+  Candidates --> Update
+  Update --> Upstream
   Skills -. "link/materialize strategy metadata" .-> Superpowers
   Skills -. "link/materialize strategy metadata" .-> Planning
 ```
@@ -149,6 +155,30 @@ Current implementation note: `sync` renders instruction entry files as real file
 | `harness/upstream/planning-with-files` | `link` | `materialize` | `link` | `link` |
 
 Copilot uses `materialize` for `planning-with-files` because its skill and hook behavior differs from Codex and Claude Code. Other targets prefer symlink-compatible projections when skill projection is implemented.
+
+## Upstream Updates
+
+Harness keeps its governance flow separate from vendored skill baselines. `fetch` stages upstream candidates under local ignored state, and `update` applies only into the configured `harness/upstream/<source-name>` path. The update path is guarded so upstream refreshes cannot target `harness/core`, `harness/adapters`, `harness/installer`, or `planning/active`.
+
+```bash
+./scripts/harness fetch --source=superpowers
+./scripts/harness update --source=superpowers
+```
+
+`planning-with-files` currently uses a local initial import source, so provide the local source explicitly:
+
+```bash
+./scripts/harness fetch --source=planning-with-files --from=/path/to/planning-with-files
+./scripts/harness update --source=planning-with-files
+```
+
+After updating upstream baselines, rerun repository verification before syncing installed projections:
+
+```bash
+npm run verify
+./scripts/harness sync
+./scripts/harness doctor
+```
 
 ## Common Commands
 
