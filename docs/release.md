@@ -9,6 +9,7 @@ Release flow:
 
 ```bash
 git switch dev
+./scripts/harness worktree-preflight
 npm run verify
 ./scripts/harness verify
 git switch main
@@ -17,6 +18,8 @@ git push origin main
 ```
 
 Only promote to `main` after verification passes.
+
+For feature or Superpowers worktrees, run `./scripts/harness worktree-preflight` while still on the intended source branch. In this repository, ongoing implementation starts from `dev` unless a task explicitly says it should start from `main`.
 
 ## GitHub Repository Setup
 

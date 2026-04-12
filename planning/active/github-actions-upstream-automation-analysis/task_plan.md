@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 3
+Phase 4
 
 ## Phases
 
@@ -31,6 +31,11 @@ Phase 3
 - [x] 更新 planning 文件并向用户汇报
 - **Status:** complete
 
+### Phase 4: README 精简同步
+- [x] 根据已确认的 Git source 状态，精简 README 的 upstream 更新说明
+- [x] 确认 README 不再出现旧的本地 `--from` 指令
+- **Status:** complete
+
 ## Key Questions
 1. GitHub Actions 是否能定期检测两个 upstream 主源的变更？
 2. Actions 是否能安全触发本项目已有 `fetch` / `update` 流程？
@@ -45,7 +50,7 @@ Phase 3
 | 不自动归档旧任务 | 仓库规则要求不要自动移动历史 active 目录，除非明确要求 |
 | 推荐使用 PR + required checks + auto-merge，而不是直接推默认分支 | upstream 更新属于供应链变更，必须保留审查面和分支保护 |
 | 推荐用 GitHub App token 处理推分支/开 PR | `GITHUB_TOKEN` 触发的 push/pull_request 事件不会创建新的 workflow run，容易让 PR 检查链断掉 |
-| `planning-with-files` 自动监测前需先定义远端主源 | 当前配置是 `local-initial-import`，无法从 GitHub Actions 中独立判断主源更新 |
+| `planning-with-files` 已具备自动监测前提 | 已确认并配置 Git source：`https://github.com/OthmanAdi/planning-with-files` |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |

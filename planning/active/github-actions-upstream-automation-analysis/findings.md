@@ -9,8 +9,8 @@
 ## Research Findings
 - 本项目已有 `planning/active/harness-upstream-smooth-update/` 任务，但已标记 `Status: closed` 和 `Archive Eligible: yes`。
 - 旧任务结论显示项目已经实现了分离式 upstream 更新能力：`fetch` 将候选更新写入 `.harness/upstream-candidates/<source-name>/`，`update` 只允许写入 allowlisted `harness/upstream/<source-name>`。
-- `harness/upstream/sources.json` 已将 `superpowers` 配置为 git source：`https://github.com/obra/superpowers`；`planning-with-files` 当前是 `local-initial-import`，自动化前需要确定真正主源 URL 或更新方式。
-- 2026-04-12 复核：全局 `/Users/jared/.agents/.skill-lock.json` 中 `planning-with-files` 记录为 GitHub 来源 `https://github.com/OthmanAdi/planning-with-files.git`，但这不是 HarnessTemplate 的 upstream 自动化源清单；HarnessTemplate 仍以 `harness/upstream/sources.json` 为准，当前类型仍是 `local-initial-import`。
+- `harness/upstream/sources.json` 已将 `superpowers` 配置为 git source：`https://github.com/obra/superpowers`；`planning-with-files` 已配置为 git source：`https://github.com/OthmanAdi/planning-with-files`。
+- 2026-04-12 复核：全局 `/Users/jared/.agents/.skill-lock.json` 中 `planning-with-files` 记录为 GitHub 来源 `https://github.com/OthmanAdi/planning-with-files.git`；用户已确认该仓库为主源，HarnessTemplate 现在也以 `harness/upstream/sources.json` 跟踪该 Git source。
 - 2026-04-12 复核：本地 `/Users/jared/.agents/skills/planning-with-files` 不是 Git 仓库；`/Users/jared/.agents/skills/superpowers` 是指向 `/Users/jared/.codex/superpowers/skills` 的 symlink，后者是跟踪 `origin/main` 的 Git 仓库。
 - planning-with-files active 扫描显示多个旧任务已 `ARCHIVE_OK`，但本次未自动归档。
 - GitHub Actions `schedule` 可以定期触发 workflow，但只会在默认分支运行；定时任务可能在高负载时延迟或被丢弃，因此不应把它当成精确时钟。
@@ -30,7 +30,7 @@
 | 先基于本地已有 updater 能力和 GitHub 官方文档分析 | 用户问的是可行性与设计，不需要实现 |
 | 自动化拆成“探测/更新 PR”和“PR 验证/合并”两条链路 | 避免 `GITHUB_TOKEN` 递归触发限制导致 PR required checks 缺失 |
 | 更新 PR 只允许变更 `harness/upstream/**` 和必要 metadata/docs | 本仓库已有 upstream path guard；CI 还应做 diff allowlist 二次校验 |
-| 对 `planning-with-files` 暂定为半自动 | 没有远端主源前，Actions 无法定期拉取可信源，只能接收本地源路径或先改 source metadata |
+| 对 `planning-with-files` 按 Git source 自动化处理 | 已确认远端主源并更新 source metadata，Actions 可独立拉取候选更新 |
 
 ## Issues Encountered
 | Issue | Resolution |

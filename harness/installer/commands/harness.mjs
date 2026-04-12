@@ -6,6 +6,7 @@ import { status } from './status.mjs';
 import { fetchCommand } from './fetch.mjs';
 import { updateCommand } from './update.mjs';
 import { verify } from './verify.mjs';
+import { worktreePreflight } from './worktree-preflight.mjs';
 
 const commands = {
   install,
@@ -14,7 +15,8 @@ const commands = {
   status,
   fetch: fetchCommand,
   update: updateCommand,
-  verify
+  verify,
+  'worktree-preflight': worktreePreflight
 };
 
 function usage() {
@@ -28,7 +30,8 @@ function usage() {
     '  status   Show local Harness state',
     '  fetch    Fetch upstream candidates',
     '  update   Apply fetched upstream candidates',
-    '  verify   Write verification reports'
+    '  verify   Write verification reports',
+    '  worktree-preflight  Recommend an explicit base before creating a Git worktree'
   ].join('\n');
 }
 
