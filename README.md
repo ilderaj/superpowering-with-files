@@ -196,17 +196,19 @@ Copilot uses `materialize` for `planning-with-files` because its skill and hook 
 
 ## Upstream Updates
 
-Harness keeps its governance flow separate from vendored skill baselines. `fetch` stages upstream candidates under local ignored state, and `update` applies only into the configured `harness/upstream/<source-name>` path. The update path is guarded so upstream refreshes cannot target `harness/core`, `harness/adapters`, `harness/installer`, or `planning/active`.
+Harness keeps governance separate from vendored skill baselines. `fetch` stages candidates under `.harness/upstream-candidates/<source>`, and `update` applies them only to the configured `harness/upstream/<source>` path. Guards prevent upstream refreshes from targeting `harness/core`, `harness/adapters`, `harness/installer`, or `planning/active`.
+
+```bash
+./scripts/harness fetch
+./scripts/harness update
+```
+
+Both baselines are Git-backed. To update one baseline, pass its source name:
 
 ```bash
 ./scripts/harness fetch --source=superpowers
-./scripts/harness update --source=superpowers
-```
-
-`planning-with-files` also tracks its Git source directly:
-
-```bash
 ./scripts/harness fetch --source=planning-with-files
+./scripts/harness update --source=superpowers
 ./scripts/harness update --source=planning-with-files
 ```
 

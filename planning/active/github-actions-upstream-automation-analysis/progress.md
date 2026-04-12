@@ -39,13 +39,26 @@
   - `planning/active/github-actions-upstream-automation-analysis/findings.md` (updated)
   - `planning/active/github-actions-upstream-automation-analysis/progress.md` (updated)
 
+### Phase 4: README 精简同步
+- **Status:** complete
+- Actions taken:
+  - 将 README 的 upstream 更新说明收紧为默认 `fetch`/`update` 全部 source，以及用 `--source` 更新单个 baseline。
+  - 确认 README 不再包含 `--from=/path/to/planning-with-files` 或本地 initial import 表述。
+  - 同步本 planning 任务中过时的 `planning-with-files` 主源判断。
+- Files created/modified:
+  - `README.md` (modified)
+  - `planning/active/github-actions-upstream-automation-analysis/task_plan.md` (updated)
+  - `planning/active/github-actions-upstream-automation-analysis/findings.md` (updated)
+  - `planning/active/github-actions-upstream-automation-analysis/progress.md` (updated)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
 | 本次不运行实现验证 | 分析任务 | 不改源码 | 仅创建 planning 文件 | 通过 |
 | 本地来源检查 | `git -C /Users/jared/.agents/skills/planning-with-files remote -v` | 判断是否为 git 主源 | 不是 git repo | 通过 |
 | 本地来源检查 | `git -C /Users/jared/.codex/superpowers remote -v` | 判断 superpowers 主源 | `https://github.com/obra/superpowers.git` | 通过 |
-| HarnessTemplate 源清单检查 | `harness/upstream/sources.json` | 判断自动化源类型 | `planning-with-files` 是 `local-initial-import`，`superpowers` 是 `git` | 通过 |
+| HarnessTemplate 源清单检查 | `harness/upstream/sources.json` | 判断自动化源类型 | `planning-with-files` 和 `superpowers` 都是 `git` | 通过 |
+| README 精简检查 | `rg -n "local initial import|--from=/path/to/planning-with-files" README.md` | 无旧说明 | 无匹配 | 通过 |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -56,8 +69,8 @@
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 3：分析结论交付已完成 |
-| Where am I going? | 向用户汇报 GitHub Actions 自动化的可行性、推荐架构、风险与限制 |
+| Where am I? | Phase 4：README 精简同步已完成 |
+| Where am I going? | 向用户汇报 README 更新和检查结果 |
 | What's the goal? | 分析是否能自动监测 upstream、更新、审查、验证、合并和处理 PR |
-| What have I learned? | 本项目已有安全 upstream staging/update 基础；GitHub Actions 可行但需 GitHub App token/PR checks/auto-merge；planning-with-files 主源仍需明确 |
+| What have I learned? | 本项目已有安全 upstream staging/update 基础；GitHub Actions 可行但需 GitHub App token/PR checks/auto-merge；planning-with-files 主源已配置为 Git source |
 | What have I done? | 读取相关 planning 任务、项目代码和 GitHub 官方文档，并更新本次分析 planning 文件 |
