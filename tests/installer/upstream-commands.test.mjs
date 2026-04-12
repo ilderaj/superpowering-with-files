@@ -1,10 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { fetchCommand } from '../../harness/installer/commands/fetch.mjs';
 import { updateCommand } from '../../harness/installer/commands/update.mjs';
+
+const execFileAsync = promisify(execFile);
 
 async function withCwd(dir, fn) {
   const previous = process.cwd();
@@ -16,7 +20,19 @@ async function withCwd(dir, fn) {
   }
 }
 
-async function writeSources(root) {
+async function createGitSource(root, content) {
+  await mkdir(root, { recursive: true });
+  await execFileAsync('git', ['init'], { cwd: root });
+  await writeFile(path.join(root, 'SKILL.md'), content);
+  await execFileAsync('git', ['add', 'SKILL.md'], { cwd: root });
+  await execFileAsync(
+    'git',
+    ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'commit', '-m', 'initial'],
+    { cwd: root }
+  );
+}
+
+async function writeSources(root, source) {
   await mkdir(path.join(root, 'harness/upstream'), { recursive: true });
   await writeFile(
     path.join(root, 'harness/upstream/sources.json'),
@@ -24,7 +40,8 @@ async function writeSources(root) {
       schemaVersion: 1,
       sources: {
         'planning-with-files': {
-          type: 'local-initial-import',
+          type: 'git',
+          url: source,
           path: 'harness/upstream/planning-with-files'
         }
       }
@@ -32,16 +49,16 @@ async function writeSources(root) {
   );
 }
 
-test('fetchCommand stages local planning-with-files candidate without touching core', async () => {
+test('fetchCommand stages git planning-with-files candidate without touching core', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fetch-'));
   const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
   try {
-    await writeSources(root);
+    await writeSources(root, source);
     await mkdir(path.join(root, 'harness/core/policy'), { recursive: true });
     await writeFile(path.join(root, 'harness/core/policy/base.md'), 'core policy');
-    await writeFile(path.join(source, 'SKILL.md'), '# Planning With Files\n');
+    await createGitSource(source, '# Planning With Files\n');
 
-    await withCwd(root, () => fetchCommand(['--source=planning-with-files', `--from=${source}`]));
+    await withCwd(root, () => fetchCommand(['--source=planning-with-files']));
 
     assert.equal(
       await readFile(path.join(root, '.harness/upstream-candidates/planning-with-files/SKILL.md'), 'utf8'),
@@ -58,15 +75,15 @@ test('updateCommand applies candidate only to harness upstream path', async () =
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-'));
   const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
   try {
-    await writeSources(root);
+    await writeSources(root, source);
     await mkdir(path.join(root, 'harness/core/policy'), { recursive: true });
     await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
     await writeFile(path.join(root, 'harness/core/policy/base.md'), 'core policy');
     await writeFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'old skill');
-    await writeFile(path.join(source, 'SKILL.md'), 'new skill');
+    await createGitSource(source, 'new skill');
 
     await withCwd(root, async () => {
-      await fetchCommand(['--source=planning-with-files', `--from=${source}`]);
+      await fetchCommand(['--source=planning-with-files']);
       await updateCommand(['--source=planning-with-files']);
     });
 

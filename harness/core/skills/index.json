@@ -13,7 +13,7 @@
       }
     },
     "planning-with-files": {
-      "source": "local-initial-import",
+      "source": "https://github.com/OthmanAdi/planning-with-files",
       "baselinePath": "harness/upstream/planning-with-files",
       "projection": {
         "default": "link",
