@@ -9,6 +9,18 @@ test('renderEntry combines base policy and platform override', async () => {
   assert.match(rendered, /Codex Platform Notes/);
 });
 
+test('renderEntry includes complex orchestration policy for every supported target', async () => {
+  const targets = ['codex', 'copilot', 'cursor', 'claude-code'];
+
+  for (const target of targets) {
+    const rendered = await renderEntry(process.cwd(), target);
+    assert.match(rendered, /Complex Task Orchestration/, target);
+    assert.match(rendered, /Planning with Files is the source of truth/, target);
+    assert.match(rendered, /Git worktrees and branches provide isolation/, target);
+    assert.match(rendered, /Cross-IDE Portability/, target);
+  }
+});
+
 test('entriesForScope uses installer path metadata instead of adapter entry arrays', () => {
   const adapter = {
     target: 'codex',

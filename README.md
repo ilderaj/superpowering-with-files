@@ -70,6 +70,21 @@ flowchart TD
   V -- "Yes" --> X["Move to planning/archive/<timestamp>-<task-id>/"]
 ```
 
+## Complex Request Mode
+
+For broad requests with mixed bug fixes, UI changes, product strategy, release checks, or App Store preparation, use this order:
+
+```text
+Planning with Files master orchestration
+-> worktree/branch isolation when risk or parallelism requires it
+-> per-phase Superpowers reasoning only when justified
+-> scoped subagent execution
+-> main-agent review and verification
+-> sync back to Planning with Files
+```
+
+Rendered entry files carry this mode into Codex, GitHub Copilot, Cursor, and Claude Code. The main agent remains responsible for file ownership boundaries, integration, verification, and syncing durable decisions back to the active Planning with Files task.
+
 Use Superpowers only when the architecture is unclear, requirements are ambiguous, debugging is complex, the root cause is not obvious, or deep structured reasoning is explicitly requested. If Superpowers are used, durable decisions must be copied back into the task's three Planning with Files documents.
 
 ## Installation Structure
