@@ -28,16 +28,16 @@ Unsupported means Harness has no verified adapter for that target's hook schema.
 | Codex | Not projected | Not projected |
 | GitHub Copilot | `.github/hooks/planning-with-files.json`, `.github/hooks/task-scoped-hook.sh` | `~/.copilot/hooks/planning-with-files.json`, `~/.copilot/hooks/task-scoped-hook.sh` |
 | Cursor | `.cursor/hooks.json`, `.cursor/hooks/*` | `~/.cursor/hooks.json`, `~/.cursor/hooks/*` |
-| Claude Code | `.claude/hooks.json`, `.claude/hooks/*` | `~/.claude/hooks.json`, `~/.claude/hooks/*` |
+| Claude Code | `.claude/settings.json`, `.claude/hooks/*` | `~/.claude/settings.json`, `~/.claude/hooks/*` |
 
 ## Merge Rules
 
-Harness merges hook config files conservatively:
+Harness merges hook config files conservatively. Claude Code hook entries are merged into the `hooks` field of its settings JSON files.
 
 - Harness-managed entries include a `Harness-managed ... hook` description.
 - `sync` replaces the previous Harness-managed entry for the same skill.
 - User-managed hook entries are preserved.
-- Malformed hook config files are not modified unless `sync --conflict=backup` is used.
+- Malformed hook config or settings JSON files are not modified unless `sync --conflict=backup` is used.
 
 ## Planning-With-Files Hook Behavior
 

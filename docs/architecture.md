@@ -14,7 +14,7 @@ Projection operations:
 - `render`: generate entry files from templates.
 - `link`: link compatible skills or directories.
 - `materialize`: copy files when a platform needs a real local copy or patched content.
-- `hook-config`: merge verified Harness-managed hook entries into a target hook config file.
+- `hook-config`: merge verified Harness-managed hook entries into a target adapter-specific config file.
 - `hook-script`: copy hook helper scripts into the target hook script root.
 
 `sync` records Harness-owned paths in `.harness/projections.json`. A later sync may replace paths recorded in that manifest. If a target path exists but is not owned by Harness, sync refuses to overwrite it unless `--conflict=backup` is used.
@@ -30,7 +30,7 @@ Hook support is adapter-based:
 
 Unsupported hook adapters are modeled explicitly and reported by `status` and `doctor`, but they are not treated as health failures. This keeps cross-IDE behavior honest instead of pretending every platform consumes the same hook schema.
 
-Hook config files are merged rather than blindly overwritten. Harness marks each managed hook entry with a `Harness-managed ... hook` description, removes the previous managed entry for that same skill, and preserves unrelated user hook entries. If an existing hook config is malformed JSON or does not contain a `hooks` object, `sync` refuses to modify it unless `--conflict=backup` is used.
+Hook config/settings JSON files are merged rather than blindly overwritten. Harness marks each managed hook entry with a `Harness-managed ... hook` description, removes the previous managed entry for that same skill, and preserves unrelated user hook entries. The target-specific hook container must be mergeable; Claude Code settings JSON can preserve non-hook fields while Harness updates only the `hooks` field. If an existing hook config or settings JSON is malformed, `sync` refuses to modify it unless `--conflict=backup` is used.
 
 Hook roots are platform metadata, not command-local constants:
 
@@ -40,6 +40,8 @@ Hook roots are platform metadata, not command-local constants:
 | GitHub Copilot | `.github/hooks` | `~/.copilot/hooks` |
 | Cursor | `.cursor` | `~/.cursor` |
 | Claude Code | `.claude` | `~/.claude` |
+
+Claude Code stores hook configuration in `.claude/settings.json` and `~/.claude/settings.json`; helper scripts live under `.claude/hooks/*` and `~/.claude/hooks/*`.
 
 The planning-with-files hook helper reads only task-scoped active plans under `planning/active/<task-id>/`. It does not read or create project-root planning files, and it does not archive tasks. Stop-style hooks only remind the agent to update `progress.md` and confirm the task lifecycle block.
 
@@ -52,4 +54,4 @@ Skill roots are platform metadata, not command-local constants:
 | Cursor | `.cursor/skills` | `~/.cursor/skills` |
 | Claude Code | `.claude/skills` | `~/.claude/skills` |
 
-`update` refreshes only `harness/upstream/*`. It does not mutate IDE directories directly. The next `sync` reads the refreshed upstream baseline and updates Harness-owned projections.
+`fetch` and `update` operate on known upstream source names from `harness/upstream/sources.json`. `update` refreshes only `harness/upstream/*`. It does not mutate IDE directories directly. The next `sync` reads the refreshed upstream baseline and updates Harness-owned projections.

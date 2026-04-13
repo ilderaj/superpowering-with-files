@@ -2,6 +2,7 @@ import { access, lstat, readFile, readlink, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { entriesForScope, loadAdapter } from './adapters.mjs';
 import { COPILOT_PLANNING_PATCH_MARKER } from './copilot-planning-patch.mjs';
+import { hookEntryMarker } from './hook-config.mjs';
 import { planHookProjections } from './hook-projection.mjs';
 import { planSkillProjections } from './skill-projection.mjs';
 import { readState } from './state.mjs';
@@ -13,6 +14,10 @@ async function exists(filePath) {
   } catch {
     return false;
   }
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function effectiveStrategy(projection, projectionMode) {
@@ -74,6 +79,30 @@ async function inspectSkill(projection, projectionMode) {
   return { ...projection, status: 'problem', message: `Unsupported projection strategy: ${strategy}` };
 }
 
+function hookConfigHasMarker(config, marker) {
+  if (!isPlainObject(config) || !isPlainObject(config.hooks)) return false;
+
+  return Object.values(config.hooks).some(
+    (entries) => Array.isArray(entries) && entries.some((entry) => hookEntryMarker(entry) === marker)
+  );
+}
+
+function publicUpstreamStatus(upstream = {}) {
+  const result = {};
+  for (const [sourceName, sourceState] of Object.entries(upstream)) {
+    if (!isPlainObject(sourceState)) continue;
+
+    const publicState = {};
+    for (const key of ['candidatePath', 'appliedPath', 'lastFetch', 'lastUpdate']) {
+      if (typeof sourceState[key] === 'string') {
+        publicState[key] = sourceState[key];
+      }
+    }
+    result[sourceName] = publicState;
+  }
+  return result;
+}
+
 async function inspectHook(projection) {
   if (projection.status === 'unsupported') {
     return projection;
@@ -81,6 +110,28 @@ async function inspectHook(projection) {
 
   if (!(await exists(projection.configTarget))) {
     return { ...projection, status: 'missing', message: 'Hook config is missing.' };
+  }
+
+  let configText;
+  try {
+    configText = await readFile(projection.configTarget, 'utf8');
+  } catch {
+    return { ...projection, status: 'problem', message: 'Hook config is unreadable.' };
+  }
+
+  let config;
+  try {
+    config = JSON.parse(configText);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) {
+      return { ...projection, status: 'problem', message: 'Hook config is unreadable.' };
+    }
+    return { ...projection, status: 'problem', message: 'Hook config is malformed JSON.' };
+  }
+
+  const marker = `Harness-managed ${projection.parentSkillName} hook`;
+  if (!hookConfigHasMarker(config, marker)) {
+    return { ...projection, status: 'problem', message: `Hook config is missing ${marker}.` };
   }
 
   for (const sourcePath of projection.scriptSourcePaths) {
@@ -141,6 +192,10 @@ export async function readHarnessHealth(rootDir, homeDir) {
     scope: state.scope,
     projectionMode: state.projectionMode,
     hookMode: state.hookMode,
+    lastSync: state.lastSync,
+    lastFetch: state.lastFetch,
+    lastUpdate: state.lastUpdate,
+    upstream: publicUpstreamStatus(state.upstream),
     targets,
     problems
   };

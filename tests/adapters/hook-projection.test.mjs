@@ -52,6 +52,38 @@ test('planHookProjections returns copilot planning hook config under .github/hoo
   assert.equal(planning.scriptTargetRoot, path.join(process.cwd(), '.github/hooks'));
 });
 
+test('planHookProjections returns claude workspace hook config in settings with scripts under hooks', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'claude-code',
+    hookMode: 'on'
+  });
+  const planning = plans.find((plan) => plan.parentSkillName === 'planning-with-files');
+
+  assert.equal(planning.status, 'planned');
+  assert.equal(planning.configTarget, path.join(process.cwd(), '.claude/settings.json'));
+  assert.equal(planning.configFormat, 'settings');
+  assert.equal(planning.scriptTargetRoot, path.join(process.cwd(), '.claude/hooks'));
+});
+
+test('planHookProjections returns claude user-global hook config in settings with scripts under hooks', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'user-global',
+    target: 'claude-code',
+    hookMode: 'on'
+  });
+  const planning = plans.find((plan) => plan.parentSkillName === 'planning-with-files');
+
+  assert.equal(planning.status, 'planned');
+  assert.equal(planning.configTarget, '/home/user/.claude/settings.json');
+  assert.equal(planning.configFormat, 'settings');
+  assert.equal(planning.scriptTargetRoot, '/home/user/.claude/hooks');
+});
+
 test('planHookProjections models unsupported superpowers target explicitly', async () => {
   const plans = await planHookProjections({
     rootDir: process.cwd(),

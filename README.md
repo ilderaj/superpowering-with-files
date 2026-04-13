@@ -162,7 +162,7 @@ flowchart LR
   Installer --> Install["install writes .harness/state.json"]
   Installer --> Sync["sync projects entries + skills"]
   Installer --> Fetch["fetch stages upstream candidates"]
-  Installer --> Update["update applies allowlisted upstream changes"]
+  Installer --> Update["update applies known upstream sources"]
   Installer --> FsOps["fs-ops can write, copy, or symlink"]
 
   Policy --> Entry["Rendered governance entry file"]
@@ -181,7 +181,7 @@ flowchart LR
 
   GlobalEntries --> CodexGlobal["Codex: ~/.codex/AGENTS.md"]
   GlobalEntries --> CopilotGlobal["Copilot: ~/.copilot/instructions/harness.instructions.md"]
-  GlobalEntries --> CursorGlobal["Cursor: ~/.cursor/rules/harness.mdc"]
+  GlobalEntries --> CursorGlobal["Cursor: User Rules in settings; user-global skills only"]
   GlobalEntries --> ClaudeGlobal["Claude Code: ~/.claude/CLAUDE.md"]
 
   Upstream --> Superpowers["superpowers skills baseline"]
@@ -201,7 +201,7 @@ flowchart LR
 | --- | --- | --- | --- |
 | Codex | `AGENTS.md` | `~/.codex/AGENTS.md` | Rendered file |
 | GitHub Copilot | `.github/copilot-instructions.md` | `~/.copilot/instructions/harness.instructions.md` | Rendered file |
-| Cursor | `.cursor/rules/harness.mdc` | `~/.cursor/rules/harness.mdc` | Rendered file |
+| Cursor | `.cursor/rules/harness.mdc` | User Rules in Cursor Settings; no rendered file-system entry | Workspace rendered file; user-global skills only |
 | Claude Code | `CLAUDE.md` | `~/.claude/CLAUDE.md` | Rendered file |
 
 GitHub Copilot follows VS Code's default instruction file locations: workspace instructions live under `.github`, while user profile instructions live under `~/.copilot/instructions` as `*.instructions.md` files. Harness renders the Copilot user-global file with `applyTo: "**"` frontmatter so it is applied automatically across workspaces. The legacy `~/.copilot/copilot-instructions.md` path is not used.
@@ -254,9 +254,9 @@ Hook targets:
 | Codex | Not projected | Not projected |
 | GitHub Copilot | `.github/hooks/planning-with-files.json`, `.github/hooks/task-scoped-hook.sh` | `~/.copilot/hooks/planning-with-files.json`, `~/.copilot/hooks/task-scoped-hook.sh` |
 | Cursor | `.cursor/hooks.json`, `.cursor/hooks/*` | `~/.cursor/hooks.json`, `~/.cursor/hooks/*` |
-| Claude Code | `.claude/hooks.json`, `.claude/hooks/*` | `~/.claude/hooks.json`, `~/.claude/hooks/*` |
+| Claude Code | `.claude/settings.json`, `.claude/hooks/*` | `~/.claude/settings.json`, `~/.claude/hooks/*` |
 
-Hook config merge is conservative. Harness-managed hook entries are marked with `Harness-managed ... hook`; `sync` replaces prior Harness-managed entries for the same skill and preserves unrelated user hook entries. Malformed hook config files require `./scripts/harness sync --conflict=backup`.
+Hook config/settings JSON merge is conservative. Harness-managed hook entries are marked with `Harness-managed ... hook`; `sync` replaces prior Harness-managed entries for the same skill and preserves unrelated user hook entries. Malformed hook config or settings JSON files require `./scripts/harness sync --conflict=backup`.
 
 ## Upstream Updates
 
