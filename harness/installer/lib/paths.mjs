@@ -7,7 +7,7 @@ const platforms = JSON.parse(
 
 const targetRoots = {
   codex: { workspace: '', global: '.codex' },
-  copilot: { workspace: '.copilot', global: '.copilot' },
+  copilot: { workspace: '.github', global: '.copilot' },
   cursor: { workspace: '', global: '' },
   'claude-code': { workspace: '', global: '.claude' }
 };

@@ -5,7 +5,7 @@ Copilot receives rendered `copilot-instructions.md` files.
 Workspace scope writes:
 
 ```text
-.copilot/copilot-instructions.md
+.github/copilot-instructions.md
 ```
 
 User-global scope writes:

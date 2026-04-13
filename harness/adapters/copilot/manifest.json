@@ -2,7 +2,7 @@
   "target": "copilot",
   "template": "harness/core/templates/copilot-instructions.md.hbs",
   "override": "harness/core/policy/platform-overrides/copilot.md",
-  "workspaceEntries": [".copilot/copilot-instructions.md"],
+  "workspaceEntries": [".github/copilot-instructions.md"],
   "globalEntries": [".copilot/copilot-instructions.md"],
   "skills": {
     "superpowers": "link",

@@ -192,7 +192,7 @@ flowchart LR
 | Target | Workspace entry | User-global entry | Behavior |
 | --- | --- | --- | --- |
 | Codex | `AGENTS.md` | `~/.codex/AGENTS.md` | Rendered file |
-| GitHub Copilot | `.copilot/copilot-instructions.md` | `~/.copilot/copilot-instructions.md` | Rendered file |
+| GitHub Copilot | `.github/copilot-instructions.md` | `~/.copilot/copilot-instructions.md` | Rendered file |
 | Cursor | `.cursor/rules/harness.mdc` | `~/.cursor/rules/harness.mdc` | Rendered file |
 | Claude Code | `CLAUDE.md` | `~/.claude/CLAUDE.md` | Rendered file |
 

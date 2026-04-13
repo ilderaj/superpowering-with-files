@@ -12,6 +12,11 @@ test('resolveTargetPaths returns workspace paths', () => {
   assert.deepEqual(paths, ['/repo/AGENTS.md']);
 });
 
+test('resolveTargetPaths returns Copilot workspace path under .github', () => {
+  const paths = resolveTargetPaths('/repo', '/home/user', 'workspace', 'copilot');
+  assert.deepEqual(paths, ['/repo/.github/copilot-instructions.md']);
+});
+
 test('resolveTargetPaths returns user-global paths', () => {
   const paths = resolveTargetPaths('/repo', '/home/user', 'user-global', 'copilot');
   assert.deepEqual(paths, ['/home/user/.copilot/copilot-instructions.md']);
