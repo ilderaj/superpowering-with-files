@@ -171,11 +171,18 @@ flowchart LR
   Manifests --> Entry
   Sync --> Entry
 
-  Entry --> Codex["Codex: AGENTS.md"]
-  Entry --> CopilotWs["Copilot workspace: .github/copilot-instructions.md"]
-  Entry --> CopilotGlobal["Copilot user-global: ~/.copilot/instructions/harness.instructions.md"]
-  Entry --> Cursor["Cursor: .cursor/rules/harness.mdc"]
-  Entry --> Claude["Claude Code: CLAUDE.md"]
+  Entry --> WorkspaceEntries["Workspace entries"]
+  Entry --> GlobalEntries["User-global entries"]
+
+  WorkspaceEntries --> CodexWs["Codex: AGENTS.md"]
+  WorkspaceEntries --> CopilotWs["Copilot: .github/copilot-instructions.md"]
+  WorkspaceEntries --> CursorWs["Cursor: .cursor/rules/harness.mdc"]
+  WorkspaceEntries --> ClaudeWs["Claude Code: CLAUDE.md"]
+
+  GlobalEntries --> CodexGlobal["Codex: ~/.codex/AGENTS.md"]
+  GlobalEntries --> CopilotGlobal["Copilot: ~/.copilot/instructions/harness.instructions.md"]
+  GlobalEntries --> CursorGlobal["Cursor: ~/.cursor/rules/harness.mdc"]
+  GlobalEntries --> ClaudeGlobal["Claude Code: ~/.claude/CLAUDE.md"]
 
   Upstream --> Superpowers["superpowers skills baseline"]
   Upstream --> Planning["planning-with-files baseline"]
