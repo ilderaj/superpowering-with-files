@@ -203,7 +203,7 @@ flowchart LR
 | `harness/upstream/superpowers/skills` | `link` | `link` | `link` | `link` |
 | `harness/upstream/planning-with-files` | `link` | `materialize` | `link` | `link` |
 
-Copilot materializes `planning-with-files`; other default projections use symlinks. `projectionMode: "portable"` materializes link-preferred skills too.
+GitHub Copilot materializes `planning-with-files` because it is the durable task-state system and must remain visible in environments where symlinked external skill directories may not be indexed reliably. Other skill baselines use links to preserve a single upstream source. `projectionMode: "portable"` materializes link-preferred skills too.
 
 Skill target roots:
 
