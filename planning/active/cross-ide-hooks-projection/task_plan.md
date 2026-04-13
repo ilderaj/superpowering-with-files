@@ -41,6 +41,11 @@ Close Reason: Implementation complete in isolated worktree; awaiting review and 
   - Merge commit: `d1cfce2`.
   - Post-merge `npm run verify` passed with 74 tests.
 
+## 2026-04-13 README Projection Rationale Update
+
+- 按用户要求补充 README 中 skills projection 表后的说明。
+- 决策：保留 Copilot `planning-with-files` 使用 `materialize`、其它默认 projection 使用 `link` 的混合策略，并明确原因是 Copilot 必须能稳定读取 durable task-state system。
+
 ## Worktree Context
 
 - Worktree base: `dev @ 7c5bcfe4eb61f3b23ab82bc21bec78c7a727bfe4`

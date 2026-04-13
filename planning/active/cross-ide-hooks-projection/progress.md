@@ -190,3 +190,8 @@
   - Command: `git merge --no-ff codex/hooks-projection -m "Merge branch 'codex/hooks-projection' into dev"`
 - Merge 后主工作区验证：
   - `npm run verify` 通过，74 tests passed。
+
+## 2026-04-13 README projection rationale
+
+- 按用户要求，在 README skills projection 表后补充 GitHub Copilot materializes `planning-with-files` 的原因。
+- 本次只修改文档说明，不改变 projection 行为。

@@ -135,3 +135,9 @@
 - planning-with-files hook 只读取 `planning/active/<task-id>/task_plan.md` 和 `progress.md` 的有限上下文，不读取项目根 planning 文件，也不在 stop/error hook 中执行归档。
 - Hook config merge 使用 `Harness-managed ... hook` 描述作为 managed marker；同 skill 的旧 Harness-managed hook 会被替换，用户自定义 hook entry 会保留。
 - `doctor`/`status` 报告 unsupported hook adapter，但 unsupported 不进入 health problems，不阻塞 `doctor --check-only`。
+
+## 2026-04-13 README materialize/link 说明
+
+- `planning-with-files` 是 Harness 的 durable task-state system；GitHub Copilot 这一份 materialized copy 是为了避免 symlinked external skill directories 在 Copilot/VS Code/GitHub/远程环境里无法稳定索引。
+- 其它 skill baselines 默认继续使用 link，以保留单一 upstream source 并降低维护成本。
+- README 应明确该差异是平台可靠性取舍，不是投影表配置遗漏。
