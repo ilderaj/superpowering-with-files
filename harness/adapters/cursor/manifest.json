@@ -3,7 +3,7 @@
   "template": "harness/core/templates/cursor-rule.mdc.hbs",
   "override": "harness/core/policy/platform-overrides/cursor.md",
   "workspaceEntries": [".cursor/rules/harness.mdc"],
-  "globalEntries": [".cursor/rules/harness.mdc"],
+  "globalEntries": [],
   "skills": {
     "superpowers": "link",
     "planning-with-files": "link"

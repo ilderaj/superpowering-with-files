@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { defaultState, readState, writeState } from '../../harness/installer/lib/state.mjs';
+import { defaultState, readState, updateState, writeState } from '../../harness/installer/lib/state.mjs';
 
 test('defaultState creates v1 workspace state', () => {
   assert.deepEqual(defaultState(), {
@@ -30,6 +30,29 @@ test('writeState and readState roundtrip local state', async () => {
 
     await writeState(dir, state);
     assert.deepEqual(await readState(dir), state);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('updateState persists state returned by updater', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
+  try {
+    await writeState(dir, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await updateState(dir, (state) => ({
+      ...state,
+      lastSync: '2026-04-13T00:00:00.000Z'
+    }));
+
+    assert.equal((await readState(dir)).lastSync, '2026-04-13T00:00:00.000Z');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

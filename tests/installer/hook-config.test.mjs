@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mergeHookConfig } from '../../harness/installer/lib/hook-config.mjs';
+import { mergeHookConfig, mergeHookSettings } from '../../harness/installer/lib/hook-config.mjs';
 
 test('mergeHookConfig preserves unrelated user hook entries', () => {
   const merged = mergeHookConfig(
@@ -79,3 +79,88 @@ test('mergeHookConfig rejects missing hooks objects', () => {
   );
 });
 
+test('mergeHookSettings preserves non-hook Claude settings', () => {
+  const merged = mergeHookSettings(
+    {
+      permissions: {
+        allow: ['Bash(node --test)']
+      }
+    },
+    {
+      hooks: {
+        SessionStart: [
+          {
+            description: 'Harness-managed superpowers hook',
+            matcher: 'startup',
+            hooks: [{ type: 'command', command: 'sh .claude/hooks/run-hook.cmd session-start' }]
+          }
+        ]
+      }
+    },
+    'claude-code'
+  );
+
+  assert.deepEqual(merged.permissions, {
+    allow: ['Bash(node --test)']
+  });
+  assert.deepEqual(
+    merged.hooks.SessionStart.map((entry) => entry.description),
+    ['Harness-managed superpowers hook']
+  );
+});
+
+test('mergeHookSettings replaces prior Harness-managed entry while preserving unrelated user hook entry', () => {
+  const merged = mergeHookSettings(
+    {
+      hooks: {
+        SessionStart: [
+          {
+            description: 'Harness-managed superpowers hook',
+            matcher: 'startup',
+            hooks: [{ type: 'command', command: 'old-command' }]
+          },
+          {
+            description: 'User hook',
+            matcher: 'startup',
+            hooks: [{ type: 'command', command: 'user-command' }]
+          }
+        ]
+      },
+      permissions: {
+        allow: ['Bash(node --test)']
+      }
+    },
+    {
+      hooks: {
+        SessionStart: [
+          {
+            description: 'Harness-managed superpowers hook',
+            matcher: 'startup',
+            hooks: [{ type: 'command', command: 'new-command' }]
+          }
+        ]
+      }
+    },
+    'claude-code'
+  );
+
+  assert.deepEqual(
+    merged.hooks.SessionStart.map((entry) => entry.hooks[0].command),
+    ['user-command', 'new-command']
+  );
+  assert.deepEqual(merged.permissions, {
+    allow: ['Bash(node --test)']
+  });
+});
+
+test('mergeHookSettings rejects non-object existing hooks field', () => {
+  assert.throws(
+    () =>
+      mergeHookSettings(
+        { hooks: [{ description: 'User hook' }] },
+        { hooks: { SessionStart: [] } },
+        'claude-code'
+      ),
+    /settings hooks must be an object/
+  );
+});

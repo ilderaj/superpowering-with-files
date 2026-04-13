@@ -9,7 +9,7 @@ import {
   materializeFileProjection,
   writeRenderedProjection
 } from '../lib/fs-ops.mjs';
-import { mergeHookConfig } from '../lib/hook-config.mjs';
+import { mergeHookConfig, mergeHookSettings } from '../lib/hook-config.mjs';
 import { planHookProjections } from '../lib/hook-projection.mjs';
 import {
   ownedTargetSet,
@@ -18,7 +18,7 @@ import {
   writeProjectionManifest
 } from '../lib/projection-manifest.mjs';
 import { planSkillProjections } from '../lib/skill-projection.mjs';
-import { readState } from '../lib/state.mjs';
+import { readState, updateState } from '../lib/state.mjs';
 
 function readOption(args, name, fallback) {
   const prefix = `--${name}=`;
@@ -112,7 +112,9 @@ async function writeHookConfigProjection({ projection, ownedTargets, conflictMod
 
   try {
     const existing = await readJsonIfExists(projection.configTarget);
-    if (existing) {
+    if (projection.configFormat === 'settings') {
+      merged = mergeHookSettings(existing ?? {}, incoming, projection.target);
+    } else if (existing) {
       merged = mergeHookConfig(existing, incoming, projection.target);
     }
   } catch (error) {
@@ -242,5 +244,9 @@ export async function sync(args = []) {
   }
 
   await writeProjectionManifest(rootDir, manifest);
+  await updateState(rootDir, (currentState) => ({
+    ...currentState,
+    lastSync: new Date().toISOString()
+  }));
   console.log(`Synced ${targets.length} target(s): ${targets.join(', ')}`);
 }

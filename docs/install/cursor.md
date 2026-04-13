@@ -8,10 +8,12 @@ Workspace scope writes:
 .cursor/rules/harness.mdc
 ```
 
-User-global scope writes:
+Cursor User Rules live in Cursor Settings. Harness does not write a user-global rules file-system entry for Cursor.
+
+User-global scope projects skills only.
 
 ```text
-~/.cursor/rules/harness.mdc
+~/.cursor/skills
 ```
 
 Cursor uses both rules and skills when available.

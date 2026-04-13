@@ -40,6 +40,10 @@
     "cursor": {
       "displayName": "Cursor",
       "entryFiles": [".cursor/rules/harness.mdc"],
+      "entryFilesByScope": {
+        "workspace": [".cursor/rules/harness.mdc"],
+        "global": []
+      },
       "skillRoots": {
         "workspace": [".cursor/skills"],
         "global": [".cursor/skills"]

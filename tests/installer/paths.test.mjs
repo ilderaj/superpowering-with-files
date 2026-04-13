@@ -30,9 +30,19 @@ test('resolveTargetPaths returns both Copilot entry scopes', () => {
   ]);
 });
 
-test('resolveTargetPaths returns both paths', () => {
+test('resolveTargetPaths returns Cursor workspace rule only for workspace scope', () => {
+  const paths = resolveTargetPaths('/repo', '/home/user', 'workspace', 'cursor');
+  assert.deepEqual(paths, ['/repo/.cursor/rules/harness.mdc']);
+});
+
+test('resolveTargetPaths returns no Cursor user-global rendered entry', () => {
+  const paths = resolveTargetPaths('/repo', '/home/user', 'user-global', 'cursor');
+  assert.deepEqual(paths, []);
+});
+
+test('resolveTargetPaths returns Cursor workspace rule only when scope is both', () => {
   const paths = resolveTargetPaths('/repo', '/home/user', 'both', 'cursor');
-  assert.deepEqual(paths, ['/repo/.cursor/rules/harness.mdc', '/home/user/.cursor/rules/harness.mdc']);
+  assert.deepEqual(paths, ['/repo/.cursor/rules/harness.mdc']);
 });
 
 test('resolveTargetPaths rejects unknown targets', () => {

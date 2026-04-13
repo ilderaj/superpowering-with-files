@@ -13,6 +13,10 @@ function hookConfigTarget(root, target, parentSkillName) {
     return path.join(root, `${parentSkillName}.json`);
   }
 
+  if (target === 'claude-code') {
+    return path.join(root, 'settings.json');
+  }
+
   return path.join(root, 'hooks.json');
 }
 
@@ -44,6 +48,7 @@ function taskScopedPlanningProjection({ rootDir, root, target, parentSkillName, 
     eventNames: [],
     configSource: path.join(sourceRoot, configName),
     configTarget: hookConfigTarget(root, target, parentSkillName),
+    configFormat: target === 'claude-code' ? 'settings' : 'hooks',
     scriptSourcePaths: [path.join(sourceRoot, 'scripts/task-scoped-hook.sh')],
     scriptTargetRoot: scriptTargetRoot(root, target),
     status: 'planned'
@@ -69,6 +74,7 @@ function configuredHookProjection({ rootDir, root, target, parentSkillName, hook
     eventNames: hookConfig.events ?? [],
     configSource: path.join(sourceRoot, hookConfig.config),
     configTarget: hookConfigTarget(root, target, parentSkillName),
+    configFormat: target === 'claude-code' ? 'settings' : 'hooks',
     scriptSourcePaths: [
       path.join(sourceRoot, 'session-start'),
       path.join(sourceRoot, 'run-hook.cmd')

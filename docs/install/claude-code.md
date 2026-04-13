@@ -26,13 +26,15 @@ Skill roots:
 Optional hooks:
 
 ```text
-.claude/hooks.json
+.claude/settings.json
 .claude/hooks/run-hook.cmd
 .claude/hooks/task-scoped-hook.sh
-~/.claude/hooks.json
+~/.claude/settings.json
 ~/.claude/hooks/run-hook.cmd
 ~/.claude/hooks/task-scoped-hook.sh
 ```
+
+Hook definitions are merged into the `hooks` field of the Claude Code settings JSON files.
 
 Claude Code receives the Harness planning-with-files task-scoped hook and the vendored superpowers session-start hook when hooks are enabled.
 

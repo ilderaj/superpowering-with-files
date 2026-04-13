@@ -14,7 +14,7 @@ User-global scope writes:
 ~/.codex/AGENTS.md
 ```
 
-Skills prefer link projection when symlinks are available.
+Harness currently projects Codex skills to these roots in the Codex app environment. Skills prefer link projection when symlinks are available.
 
 Skill roots:
 

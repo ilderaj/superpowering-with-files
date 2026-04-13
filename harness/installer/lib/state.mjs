@@ -144,3 +144,10 @@ export async function writeState(rootDir, state) {
     throw error;
   }
 }
+
+export async function updateState(rootDir, updater) {
+  const currentState = await readState(rootDir);
+  const nextState = updater(currentState);
+  await writeState(rootDir, nextState);
+  return nextState;
+}
