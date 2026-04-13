@@ -96,3 +96,42 @@
 - 创建隔离 worktree：`/Users/jared/.config/superpowers/worktrees/HarnessTemplate/codex-entry-skills-governance`。
 - 执行分支：`codex/entry-skills-governance`。
 - Baseline verification：`npm run verify` 通过，38 tests passed。
+
+## 2026-04-13 更新后计划复核
+
+- 当前分支：`dev @ d7dfcf86f952545a026ea26f4965e35e78a261cc`。
+- 新增提交：
+  - `8587b66 feat: project skills through harness sync`
+  - `d7dfcf8 Refine README projection docs`
+- 当前工作区干净，无未提交源码改动。
+- 已落地能力：
+  - `sync` 现在渲染 entry files 后执行 `planSkillProjections`。
+  - `sync` 使用 `.harness/projections.json` 记录 Harness-owned paths。
+  - `sync --conflict=backup` 支持备份非 Harness-owned path。
+  - `planning-with-files` 在 Copilot 下 materialize 并执行 `Harness Copilot planning-with-files patch`。
+  - `doctor/status` 已基于 `readHarnessHealth` 展示 entries + skills 健康状态。
+- 尚未落地能力：
+  - state 里没有 `hookMode`。
+  - platform metadata 里没有 `hookRoots`。
+  - skill index 里没有 hook descriptors。
+  - installer 里没有 `hook-projection.mjs` 或 hook config merge 逻辑。
+  - `sync` 不安装 hook configs/scripts。
+  - `doctor/status` 不报告 hooks 状态。
+- 计划结论：
+  - 原 Task 1-9 已经是完成历史，不应重复执行。
+  - 需要从 Task 10 开始追加 hooks projection addendum。
+  - hooks 实现必须复用现有 projection manifest 和 conflict policy，不能新增第二套 ownership 系统。
+  - 因为 `superpowers` 和 `planning-with-files` 可能写入同一个 IDE hook config，必须先设计结构化 merge，不能简单 materialize 覆盖。
+
+## 2026-04-13 hooks execution findings
+
+- Codex hook adapter 保持 `unsupported`：当前仓库没有可验证的 Codex hook config schema 或 upstream hook 文件，因此不伪造 Codex hook 安装。
+- 最终 hook 支持矩阵：
+  - `planning-with-files`: Copilot、Cursor、Claude Code supported；Codex unsupported。
+  - `superpowers`: Cursor、Claude Code supported；Codex、Copilot unsupported。
+- Copilot 的 hook root 本身是 `.github/hooks`，因此 planning hook script 目标路径应为 `.github/hooks/task-scoped-hook.sh`，不是 `.github/hooks/hooks/task-scoped-hook.sh`。
+- `task-scoped-hook.sh` 不能使用 Bash 4+ 的 `mapfile`。macOS 自带 `/bin/bash` 3.2 不支持该内建；脚本已改为临时文件计数方式，兼容 macOS 默认 Bash。
+- `task-scoped-hook.sh` 使用 Node 做 JSON escaping，而不是额外依赖 `python3`。Harness 本身已经要求 Node，因此该运行时假设更小。
+- planning-with-files hook 只读取 `planning/active/<task-id>/task_plan.md` 和 `progress.md` 的有限上下文，不读取项目根 planning 文件，也不在 stop/error hook 中执行归档。
+- Hook config merge 使用 `Harness-managed ... hook` 描述作为 managed marker；同 skill 的旧 Harness-managed hook 会被替换，用户自定义 hook entry 会保留。
+- `doctor`/`status` 报告 unsupported hook adapter，但 unsupported 不进入 health problems，不阻塞 `doctor --check-only`。

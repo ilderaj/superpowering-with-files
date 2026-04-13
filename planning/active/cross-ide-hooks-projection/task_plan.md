@@ -12,9 +12,34 @@
 
 ## Current State
 
-Status: waiting_review
+Status: active
 Archive Eligible: no
-Close Reason:
+Close Reason: Implementation complete in isolated worktree; awaiting review and integration.
+
+## 2026-04-13 Plan Review Update
+
+- Current codebase already includes the previous entry + skills projection implementation from commits `8587b66` and `d7dfcf8`.
+- Do not re-execute Tasks 1-9 below unless a regression is found; they now describe completed work and verification history.
+- The remaining user goal is cross-IDE hook projection for `superpowers` and `planning-with-files`.
+- New implementation work starts at Task 10 in the "Hooks Projection Addendum" section.
+- Plan review base: `dev @ d7dfcf86f952545a026ea26f4965e35e78a261cc`.
+- Current plan state: waiting for human review before any implementation.
+
+## 2026-04-13 Hooks Execution Result
+
+- Implementation complete on branch `codex/hooks-projection`.
+- Execution worktree: `/Users/jared/.config/superpowers/worktrees/HarnessTemplate/codex-hooks-projection`.
+- Worktree base: `dev @ d7dfcf86f952545a026ea26f4965e35e78a261cc`.
+- Critical design correction: Codex hook config format is not verified in this repository, so Codex hooks are reported as `unsupported` instead of being fake-installed.
+- Verification complete:
+  - `npm run verify` passed with 74 tests.
+  - Hook-on temporary installation smoke passed for Codex, Copilot, Cursor, and Claude Code; supported adapters were installed and unsupported adapters did not fail `doctor`.
+  - Hook-off temporary installation smoke passed; default Cursor install did not create hook config or hook script paths.
+  - Manual planning hook smoke passed for zero active tasks, one active task, and multiple active tasks.
+- Merged back to local `dev`:
+  - Implementation commit: `d8da24d feat: add optional cross-IDE hook projection`.
+  - Merge commit: `d1cfce2`.
+  - Post-merge `npm run verify` passed with 74 tests.
 
 ## Worktree Context
 
@@ -1540,3 +1565,459 @@ git commit -m "fix: stabilize skills projection verification"
   - No `TBD`, no unspecified edge handling, no empty “write tests” steps.
 - Type consistency:
   - `layout`, `targetName`, `strategy`, `patch.type`, `targetPath`, and `sourcePath` are used consistently across metadata, planner, sync, health, and tests.
+
+## Hooks Projection Addendum
+
+**Goal:** 在已经完成 entry + skills projection 的基础上，新增显式 opt-in 的 cross-IDE hook projection，使 `superpowers` 和 `planning-with-files` 的 hook 行为能安装、转换并适配到 Harness 支持的 IDE。
+
+**Architecture:** Hooks 使用 Harness-owned descriptor 和 adapter 层，不直接改写 `harness/upstream/*`。`sync` 继续通过 `.harness/projections.json` 追踪 Harness-owned paths；hook configs 必须支持 merge，因为 `superpowers` 和 `planning-with-files` 可能写入同一个 IDE hook config。`planning-with-files` hook scripts 必须读取 `planning/active/<task-id>/...`，不能恢复上游 root-level `task_plan.md` 假设。
+
+**Non-Goals For This Addendum:**
+- 不改变默认安装行为；hooks 默认仍关闭。
+- 不把 `.harness/upstream-candidates/*` 直接复制到 IDE hook 目录。
+- 不为尚未确认 hook config 格式的平台硬编码不可验证格式；如果某 target 没有可用 hook format，`doctor/status` 必须显示 unsupported，而不是假装成功。
+
+### Hooks Finishing Criteria
+
+- `./scripts/harness install --targets=<target> --hooks=on` 会把 state 写为 hooks enabled。
+- 默认 install 或 `--hooks=off` 不安装任何 hook config 或 hook scripts。
+- `sync` 能在 hook enabled 时投射 hooks，并把 hook config/script paths 写入 `.harness/projections.json`。
+- Claude Code 和 Cursor 至少安装 `superpowers` upstream `SessionStart` hook。
+- `planning-with-files` 安装 Harness-owned task-scoped hooks，事件覆盖 session/user prompt、pre tool、post tool、stop/error 中各 IDE 可支持的子集。
+- 多个 hook source 写入同一 config 时执行结构化 merge，不互相覆盖。
+- `doctor` 和 `status` 显示 hooks enabled/disabled、installed/missing/unsupported 状态。
+- README、`docs/compatibility/hooks.md`、各 install docs 更新 hook opt-in、支持矩阵、限制和验证方式。
+- `npm run verify` 通过，并新增 hook planner/sync/health tests。
+
+### Hook Support Matrix
+
+| Source | Codex | GitHub Copilot | Cursor | Claude Code |
+| --- | --- | --- | --- | --- |
+| `superpowers` | unsupported | unsupported | upstream `sessionStart` via `hooks-cursor.json` | upstream `SessionStart` via `hooks.json` |
+| `planning-with-files` | unsupported | Harness task-scoped adapter using `.github/hooks` conventions | Harness task-scoped adapter using `.cursor/hooks.json` | Harness task-scoped adapter using Claude-style hooks |
+
+The implementation must make unsupported cells explicit in health output if the current target lacks a verified hook config format.
+
+### Task 10: Hook State And Metadata
+
+**Files:**
+- Modify: `harness/installer/lib/state.mjs`
+- Modify: `harness/installer/commands/install.mjs`
+- Modify: `harness/core/metadata/platforms.json`
+- Modify: `harness/core/skills/index.json`
+- Modify: `harness/core/state-schema/state.schema.json`
+- Test: `tests/installer/state.test.mjs`
+- Test: `tests/core/skill-index.test.mjs`
+
+- [x] **Step 1: Add state tests for hook mode**
+
+Add tests proving:
+
+```js
+defaultState().hookMode === 'off'
+```
+
+and:
+
+```js
+await writeState(root, {
+  schemaVersion: 1,
+  scope: 'workspace',
+  projectionMode: 'link',
+  hookMode: 'on',
+  targets: { cursor: { enabled: true, paths: ['.cursor/rules/harness.mdc'] } },
+  upstream: {}
+});
+```
+
+roundtrips successfully.
+
+- [x] **Step 2: Preserve v1 compatibility**
+
+`readState` must treat old state files without `hookMode` as:
+
+```js
+hookMode: 'off'
+```
+
+Expected failure before implementation: invalid or missing field handling fails the new tests.
+
+- [x] **Step 3: Implement `--hooks=off|on`**
+
+Extend `install.mjs` parsing:
+
+```js
+const hookMode = readOption(args, 'hooks', 'off');
+if (!['off', 'on'].includes(hookMode)) {
+  throw new Error(`Invalid hooks mode: ${hookMode}`);
+}
+```
+
+Store `hookMode` in `.harness/state.json`.
+
+- [x] **Step 4: Add hook path metadata**
+
+Extend each target in `harness/core/metadata/platforms.json` with `hookRoots`.
+
+Expected workspace/global roots:
+
+```json
+{
+  "codex": { "workspace": [".codex"], "global": [".codex"] },
+  "copilot": { "workspace": [".github/hooks"], "global": [".copilot/hooks"] },
+  "cursor": { "workspace": [".cursor"], "global": [".cursor"] },
+  "claude-code": { "workspace": [".claude"], "global": [".claude"] }
+}
+```
+
+If implementation discovers a target reads hooks from a different path, update this metadata and record the evidence in `findings.md`.
+
+- [x] **Step 5: Add hook metadata to skill index**
+
+Add hook descriptors without source mutation:
+
+```json
+"hooks": {
+  "cursor": {
+    "source": "harness/upstream/superpowers/hooks",
+    "config": "hooks-cursor.json",
+    "events": ["sessionStart"]
+  },
+  "claude-code": {
+    "source": "harness/upstream/superpowers/hooks",
+    "config": "hooks.json",
+    "events": ["SessionStart"]
+  }
+}
+```
+
+For `planning-with-files`, point to Harness-owned hook assets:
+
+```json
+"hooks": {
+  "default": {
+    "source": "harness/core/hooks/planning-with-files",
+    "adapter": "task-scoped-planning"
+  }
+}
+```
+
+### Task 11: Hook Path Resolution And Projection Planning
+
+**Files:**
+- Modify: `harness/installer/lib/paths.mjs`
+- Create: `harness/installer/lib/hook-projection.mjs`
+- Test: `tests/installer/paths.test.mjs`
+- Create: `tests/adapters/hook-projection.test.mjs`
+
+- [x] **Step 1: Add hook root resolver**
+
+Add:
+
+```js
+resolveHookRoots(rootDir, homeDir, scope, target)
+```
+
+Expected examples:
+
+```js
+resolveHookRoots('/repo', '/home/user', 'workspace', 'cursor')
+// ['/repo/.cursor']
+
+resolveHookRoots('/repo', '/home/user', 'workspace', 'copilot')
+// ['/repo/.github/hooks']
+```
+
+- [x] **Step 2: Add hook projection planner**
+
+Create `planHookProjections({ rootDir, homeDir, scope, target, hookMode })`.
+
+Required behavior:
+
+```js
+await planHookProjections({ hookMode: 'off', ...context })
+// []
+```
+
+When hooks are on, each projection entry includes:
+
+```js
+{
+  kind: 'hook',
+  parentSkillName,
+  target,
+  eventNames,
+  configSource,
+  configTarget,
+  scriptSourcePaths,
+  scriptTargetRoot,
+  status: 'planned'
+}
+```
+
+- [x] **Step 3: Model unsupported hooks explicitly**
+
+If a skill has no hook descriptor for a target, planner returns a non-installing capability record for health/status:
+
+```js
+{
+  kind: 'hook',
+  parentSkillName: 'superpowers',
+  target: 'codex',
+  status: 'unsupported',
+  message: 'No verified superpowers hook adapter for codex.'
+}
+```
+
+`sync` must ignore unsupported records; `status` must display them.
+
+### Task 12: Hook Config Merge And Filesystem Safety
+
+**Files:**
+- Modify: `harness/installer/lib/fs-ops.mjs`
+- Create: `harness/installer/lib/hook-config.mjs`
+- Modify: `harness/installer/lib/projection-manifest.mjs`
+- Test: `tests/installer/fs-ops.test.mjs`
+- Create: `tests/installer/hook-config.test.mjs`
+
+- [x] **Step 1: Add structured JSON hook merge helper**
+
+Create:
+
+```js
+mergeHookConfig(existingConfig, incomingConfig, target)
+```
+
+Rules:
+
+- Preserve unrelated user hook entries.
+- Append Harness hook entries for different events.
+- Replace prior Harness-owned entries for the same skill/event.
+- Reject malformed JSON unless `--conflict=backup` backs it up first.
+
+- [x] **Step 2: Mark Harness-owned hook entries**
+
+Every generated hook entry must include a stable marker:
+
+```json
+{
+  "description": "Harness-managed planning-with-files hook"
+}
+```
+
+or the closest supported field for that IDE format.
+
+- [x] **Step 3: Extend projection manifest kinds**
+
+Manifest entries must support:
+
+```js
+kind: 'hook-config'
+kind: 'hook-script'
+```
+
+and use the same conflict policy as entry/skill projections.
+
+### Task 13: Planning-With-Files Task-Scoped Hook Assets
+
+**Files:**
+- Create: `harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh`
+- Create: `harness/core/hooks/planning-with-files/cursor-hooks.json`
+- Create: `harness/core/hooks/planning-with-files/copilot-hooks.json`
+- Create: `harness/core/hooks/planning-with-files/claude-hooks.json`
+- Create: `harness/core/hooks/planning-with-files/codex-hooks.json` if Codex hook format is verified
+- Test: `tests/adapters/hook-projection.test.mjs`
+- Test: `tests/installer/hook-config.test.mjs`
+
+- [x] **Step 1: Implement task-scoped resolver script**
+
+The script must resolve the active task under:
+
+```text
+planning/active/<task-id>/
+```
+
+Selection rules:
+
+- Prefer a task whose `task_plan.md` has `Status: active`.
+- If multiple active tasks exist, emit a short message asking the agent to inspect `planning/active/`; do not guess.
+- Never read or write project-root `task_plan.md`.
+
+- [x] **Step 2: Implement event subcommands**
+
+Required subcommands:
+
+```bash
+task-scoped-hook.sh session-start
+task-scoped-hook.sh user-prompt-submit
+task-scoped-hook.sh pre-tool-use
+task-scoped-hook.sh post-tool-use
+task-scoped-hook.sh stop
+task-scoped-hook.sh error-occurred
+```
+
+Each subcommand emits valid JSON for the target adapter or plain text only where the target hook format requires it.
+
+- [x] **Step 3: Keep untrusted content boundary**
+
+The pre-tool hook may read only the plan header/current state. External research and web content belongs in `findings.md`; do not inject arbitrary findings content into every tool call.
+
+### Task 14: Sync Hooks Projection
+
+**Files:**
+- Modify: `harness/installer/commands/sync.mjs`
+- Modify: `harness/installer/lib/health.mjs`
+- Modify: `harness/installer/commands/doctor.mjs`
+- Modify: `harness/installer/commands/status.mjs`
+- Create: `tests/adapters/sync-hooks.test.mjs`
+- Modify: `tests/installer/health.test.mjs`
+
+- [x] **Step 1: Keep default hooks off**
+
+Add a sync test:
+
+```bash
+./scripts/harness install --targets=cursor --scope=workspace
+./scripts/harness sync
+test ! -f .cursor/hooks.json
+```
+
+- [x] **Step 2: Install hooks when enabled**
+
+Add a sync test:
+
+```bash
+./scripts/harness install --targets=cursor --scope=workspace --hooks=on
+./scripts/harness sync
+test -f .cursor/hooks.json
+test -f .cursor/hooks/task-scoped-hook.sh
+```
+
+- [x] **Step 3: Merge superpowers and planning hooks**
+
+For Cursor and Claude Code, verify the final hook config contains both:
+
+```text
+superpowers session start
+planning-with-files task-scoped hooks
+```
+
+without one overwriting the other.
+
+- [x] **Step 4: Extend health output**
+
+`readHarnessHealth` returns:
+
+```js
+{
+  hookMode: 'on',
+  targets: {
+    cursor: {
+      hooks: [
+        { parentSkillName: 'superpowers', status: 'ok' },
+        { parentSkillName: 'planning-with-files', status: 'ok' }
+      ]
+    }
+  }
+}
+```
+
+Unsupported hook adapters should appear as `status: 'unsupported'`, not as failures.
+
+### Task 15: Documentation And Review Artifacts
+
+**Files:**
+- Modify: `README.md`
+- Modify: `docs/architecture.md`
+- Modify: `docs/compatibility/hooks.md`
+- Modify: `docs/install/codex.md`
+- Modify: `docs/install/copilot.md`
+- Modify: `docs/install/cursor.md`
+- Modify: `docs/install/claude-code.md`
+- Modify: `planning/active/cross-ide-hooks-projection/findings.md`
+- Modify: `planning/active/cross-ide-hooks-projection/progress.md`
+
+- [x] **Step 1: Update README support matrix**
+
+README must include:
+
+```md
+Hooks are opt-in. Use `--hooks=on` during install, then run `sync`.
+```
+
+and a matrix showing installed, adapted, or unsupported hook sources per target.
+
+- [x] **Step 2: Update compatibility hooks doc**
+
+`docs/compatibility/hooks.md` must explain:
+
+- default hooks off
+- hook config merge behavior
+- task-scoped planning hook behavior
+- unsupported target behavior
+- how `doctor` reports hook problems
+
+- [x] **Step 3: Update install docs**
+
+Each install doc must show target-specific hook paths and a smoke command. Example for Cursor:
+
+```bash
+./scripts/harness install --targets=cursor --scope=workspace --hooks=on
+./scripts/harness sync
+./scripts/harness doctor --check-only
+```
+
+### Task 16: Verification Only
+
+**Files:**
+- No source edits unless verification exposes a defect.
+
+- [x] **Step 1: Run full tests**
+
+```bash
+npm run verify
+```
+
+Expected: PASS.
+
+- [x] **Step 2: Run hook smoke tests in a temporary root**
+
+```bash
+tmpdir="$(mktemp -d)"
+cp -R harness scripts package.json "$tmpdir/"
+(
+  cd "$tmpdir"
+  ./scripts/harness install --targets=codex,copilot,cursor,claude-code --scope=workspace --hooks=on
+  ./scripts/harness sync
+  ./scripts/harness doctor --check-only
+  ./scripts/harness status
+)
+rm -rf "$tmpdir"
+```
+
+Expected: supported hook adapters are installed; unsupported adapters are visible in status and do not fail doctor.
+
+- [x] **Step 3: Run hook-off smoke test**
+
+```bash
+tmpdir="$(mktemp -d)"
+cp -R harness scripts package.json "$tmpdir/"
+(
+  cd "$tmpdir"
+  ./scripts/harness install --targets=cursor --scope=workspace
+  ./scripts/harness sync
+  test ! -f .cursor/hooks.json
+)
+rm -rf "$tmpdir"
+```
+
+Expected: hooks are not installed by default.
+
+- [x] **Step 4: Update planning state**
+
+Record final verification results in:
+
+```text
+planning/active/cross-ide-hooks-projection/findings.md
+planning/active/cross-ide-hooks-projection/progress.md
+```

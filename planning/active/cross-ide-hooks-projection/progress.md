@@ -102,3 +102,91 @@
   - diagram 中 `sync` 改为 `sync projects entries + skills`。
   - entry/skills/upstream 说明去掉冗长解释。
 - Verification：`rg` 旧表述扫描无匹配；`git diff --check` 通过。
+
+## 2026-04-13 hooks plan review
+
+- 使用 `using-superpowers`；按用户要求只检查更新并修订 plan，没有开始实现。
+- 检查当前 git 状态：
+  - 当前分支 `dev`
+  - 当前 HEAD `d7dfcf86f952545a026ea26f4965e35e78a261cc`
+  - 工作区干净
+- 读取并对照：
+  - `harness/installer/commands/sync.mjs`
+  - `harness/installer/lib/skill-projection.mjs`
+  - `harness/installer/lib/paths.mjs`
+  - `harness/installer/lib/state.mjs`
+  - `harness/installer/lib/health.mjs`
+  - `harness/installer/lib/projection-manifest.mjs`
+  - `harness/core/metadata/platforms.json`
+  - `harness/core/skills/index.json`
+  - `README.md`
+  - `docs/compatibility/hooks.md`
+- 结论：entry + skills projection 已完成；hooks projection 尚未实现，原 plan 需要追加新的 hooks addendum。
+- 已更新 `task_plan.md`：
+  - 增加 `2026-04-13 Plan Review Update`
+  - 增加 `Hooks Projection Addendum`
+  - 新增 Task 10-16，覆盖 hook state/metadata、planner、merge、安全写入、task-scoped planning hook assets、sync/doctor/status/docs/verification。
+- 已更新 `findings.md` 记录当前源码状态和计划变更依据。
+
+## 2026-04-13 hooks execution
+
+- 使用 `executing-plans` 执行 Task 10-16，并按要求使用 `using-git-worktrees` 创建隔离工作区。
+- Worktree base: `dev @ d7dfcf86f952545a026ea26f4965e35e78a261cc`。
+- Worktree path: `/Users/jared/.config/superpowers/worktrees/HarnessTemplate/codex-hooks-projection`。
+- Branch: `codex/hooks-projection`。
+- Baseline verification：在隔离 worktree 运行 `npm run verify`，56 tests passed。
+- Critical review 修正：Codex hook config 格式当前仓库没有可验证来源，因此实现时 Codex hooks 显示 `unsupported`，不伪造 hook adapter。
+- Task 10 complete:
+  - `state` 新增 `hookMode`，默认 `off`，旧 v1 state 缺失该字段时兼容为 `off`。
+  - `install` 支持 `--hooks=off|on`。
+  - platform metadata 新增 `hookRoots`。
+  - skill index 新增 `superpowers` 与 `planning-with-files` hook descriptors。
+  - Verification：`npm run test -- tests/installer/state.test.mjs tests/core/skill-index.test.mjs` 通过，11 tests passed。
+- Task 11 complete:
+  - 新增 `resolveHookRoots`。
+  - 新增 `planHookProjections`，`hookMode: off` 时返回空计划。
+  - unsupported adapters 进入 projection/health 模型，但不会被 `sync` 安装。
+  - Verification：`npm run test -- tests/installer/paths.test.mjs tests/adapters/hook-projection.test.mjs` 通过，15 tests passed。
+- Task 12 complete:
+  - 新增 `mergeHookConfig`，保留用户 hook，替换同 skill 的 Harness-managed hook。
+  - `fs-ops` 新增 file projection materialize helper。
+  - Verification：`npm run test -- tests/installer/hook-config.test.mjs tests/installer/fs-ops.test.mjs` 通过。
+- Task 13 complete:
+  - 新增 Harness-owned planning-with-files hook assets：
+    - `harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh`
+    - `harness/core/hooks/planning-with-files/cursor-hooks.json`
+    - `harness/core/hooks/planning-with-files/copilot-hooks.json`
+    - `harness/core/hooks/planning-with-files/claude-hooks.json`
+  - 修正 macOS Bash 3.2 不支持 `mapfile` 的兼容性问题。
+  - 去掉 `python3` JSON escaping 依赖，改用 Node stdin 处理。
+  - 手工 smoke 通过：无 active task 返回 `{}`；单 active task 注入计划上下文；多个 active task 发出检查提示。
+- Task 14 complete:
+  - `sync` 在 `hookMode: on` 时投射 hook config 和 hook scripts，并写入 `.harness/projections.json`。
+  - Cursor/Claude Code 可合并 `superpowers` 与 `planning-with-files` hooks。
+  - `health` 输出 `hookMode` 和每个 target 的 hooks 状态；unsupported 不作为 failure。
+  - Verification：hook projection/sync/config/health/path focused suite 通过，23 tests passed。
+- Task 15 complete:
+  - README 增加 hook opt-in、支持矩阵、hook target paths 和 merge 行为。
+  - `docs/architecture.md` 增加 hook projection 架构、manifest kinds、unsupported 语义和 task-scoped hook 边界。
+  - `docs/compatibility/hooks.md` 增加支持矩阵、merge rules、projected files 和 smoke commands。
+  - 四个 install docs 增加 target-specific hook paths 和 hook smoke command。
+- Task 16 complete:
+  - Full verification：`npm run verify` 通过，74 tests passed。
+  - Hook-on temporary install smoke 通过：
+    - `install --targets=codex,copilot,cursor,claude-code --scope=workspace --hooks=on`
+    - `sync`
+    - `doctor --check-only`
+    - supported hook config/scripts 存在。
+    - planning hook scripts for Copilot/Cursor/Claude Code 均返回预期 JSON。
+  - Hook-off temporary install smoke 通过：默认 Cursor install/sync 不创建 `.cursor/hooks.json` 或 `.cursor/hooks/`。
+
+## 2026-04-13 merge to local dev
+
+- 已在隔离 worktree 提交实现：
+  - Commit: `d8da24d feat: add optional cross-IDE hook projection`
+  - Branch: `codex/hooks-projection`
+- 已在主工作区 `dev` 执行 merge：
+  - Merge commit: `d1cfce2`
+  - Command: `git merge --no-ff codex/hooks-projection -m "Merge branch 'codex/hooks-projection' into dev"`
+- Merge 后主工作区验证：
+  - `npm run verify` 通过，74 tests passed。
