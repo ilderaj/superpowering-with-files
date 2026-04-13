@@ -1,0 +1,50 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "description": "Harness-managed planning-with-files hook",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .claude/hooks/task-scoped-hook.sh ] && bash .claude/hooks/task-scoped-hook.sh claude-code user-prompt-submit || bash \"$HOME/.claude/hooks/task-scoped-hook.sh\" claude-code user-prompt-submit'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|Bash|Read|Glob|Grep",
+        "description": "Harness-managed planning-with-files hook",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .claude/hooks/task-scoped-hook.sh ] && bash .claude/hooks/task-scoped-hook.sh claude-code pre-tool-use || bash \"$HOME/.claude/hooks/task-scoped-hook.sh\" claude-code pre-tool-use'"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "description": "Harness-managed planning-with-files hook",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .claude/hooks/task-scoped-hook.sh ] && bash .claude/hooks/task-scoped-hook.sh claude-code post-tool-use || bash \"$HOME/.claude/hooks/task-scoped-hook.sh\" claude-code post-tool-use'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "description": "Harness-managed planning-with-files hook",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .claude/hooks/task-scoped-hook.sh ] && bash .claude/hooks/task-scoped-hook.sh claude-code stop || bash \"$HOME/.claude/hooks/task-scoped-hook.sh\" claude-code stop'"
+          }
+        ]
+      }
+    ]
+  }
+}

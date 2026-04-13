@@ -2,6 +2,7 @@ import { access, lstat, readFile, readlink, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { entriesForScope, loadAdapter } from './adapters.mjs';
 import { COPILOT_PLANNING_PATCH_MARKER } from './copilot-planning-patch.mjs';
+import { planHookProjections } from './hook-projection.mjs';
 import { planSkillProjections } from './skill-projection.mjs';
 import { readState } from './state.mjs';
 
@@ -73,6 +74,25 @@ async function inspectSkill(projection, projectionMode) {
   return { ...projection, status: 'problem', message: `Unsupported projection strategy: ${strategy}` };
 }
 
+async function inspectHook(projection) {
+  if (projection.status === 'unsupported') {
+    return projection;
+  }
+
+  if (!(await exists(projection.configTarget))) {
+    return { ...projection, status: 'missing', message: 'Hook config is missing.' };
+  }
+
+  for (const sourcePath of projection.scriptSourcePaths) {
+    const targetPath = path.join(projection.scriptTargetRoot, path.basename(sourcePath));
+    if (!(await exists(targetPath))) {
+      return { ...projection, status: 'missing', message: `Hook script is missing: ${targetPath}` };
+    }
+  }
+
+  return { ...projection, status: 'ok' };
+}
+
 export async function readHarnessHealth(rootDir, homeDir) {
   const state = await readState(rootDir);
   const targets = {};
@@ -99,12 +119,28 @@ export async function readHarnessHealth(rootDir, homeDir) {
       }
     }
 
-    targets[target] = { entries, skills };
+    const hooks = [];
+    for (const projection of await planHookProjections({
+      rootDir,
+      homeDir,
+      scope: state.scope,
+      target,
+      hookMode: state.hookMode
+    })) {
+      const inspected = await inspectHook(projection);
+      hooks.push(inspected);
+      if (!['ok', 'unsupported'].includes(inspected.status)) {
+        problems.push(`${target}: ${inspected.parentSkillName}: ${inspected.message}`);
+      }
+    }
+
+    targets[target] = { entries, skills, hooks };
   }
 
   return {
     scope: state.scope,
     projectionMode: state.projectionMode,
+    hookMode: state.hookMode,
     targets,
     problems
   };

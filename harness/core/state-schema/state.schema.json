@@ -8,6 +8,7 @@
     "schemaVersion": { "type": "integer", "const": 1 },
     "scope": { "type": "string", "enum": ["workspace", "user-global", "both"] },
     "projectionMode": { "type": "string", "enum": ["link", "portable"] },
+    "hookMode": { "type": "string", "enum": ["off", "on"] },
     "targets": {
       "type": "object",
       "propertyNames": {

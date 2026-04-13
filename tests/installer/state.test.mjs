@@ -10,6 +10,7 @@ test('defaultState creates v1 workspace state', () => {
     schemaVersion: 1,
     scope: 'workspace',
     projectionMode: 'link',
+    hookMode: 'off',
     targets: {},
     upstream: {}
   });
@@ -22,12 +23,74 @@ test('writeState and readState roundtrip local state', async () => {
       schemaVersion: 1,
       scope: 'both',
       projectionMode: 'portable',
+      hookMode: 'off',
       targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
       upstream: {}
     };
 
     await writeState(dir, state);
     assert.deepEqual(await readState(dir), state);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('writeState and readState roundtrip enabled hook mode', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
+  try {
+    const state = {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: { cursor: { enabled: true, paths: ['.cursor/rules/harness.mdc'] } },
+      upstream: {}
+    };
+
+    await writeState(dir, state);
+    assert.deepEqual(await readState(dir), state);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('readState treats missing hookMode as off for v1 compatibility', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
+  try {
+    const stateFile = path.join(dir, '.harness', 'state.json');
+    await mkdir(path.dirname(stateFile), { recursive: true });
+    await writeFile(
+      stateFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        scope: 'workspace',
+        projectionMode: 'link',
+        targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
+        upstream: {}
+      })
+    );
+
+    const state = await readState(dir);
+    assert.equal(state.hookMode, 'off');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('writeState rejects invalid hook mode', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
+  try {
+    await assert.rejects(
+      writeState(dir, {
+        schemaVersion: 1,
+        scope: 'workspace',
+        projectionMode: 'link',
+        hookMode: 'always',
+        targets: {},
+        upstream: {}
+      }),
+      /hookMode must be off or on/
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -44,6 +107,7 @@ test('readState rejects invalid stored state shape', async () => {
         schemaVersion: 1,
         scope: 'workspace',
         projectionMode: 'link',
+        hookMode: 'off',
         targets: { codex: { enabled: 'yes', paths: ['AGENTS.md'] } },
         upstream: {}
       })
@@ -63,6 +127,7 @@ test('writeState rejects invalid state shape', async () => {
         schemaVersion: 1,
         scope: 'workspace',
         projectionMode: 'link',
+        hookMode: 'off',
         targets: { codex: { enabled: true, paths: ['AGENTS.md'], extra: true } },
         upstream: {}
       }),
@@ -82,6 +147,7 @@ test('writeState survives concurrent writes with a constant timestamp', async ()
       schemaVersion: 1,
       scope: index % 2 === 0 ? 'workspace' : 'both',
       projectionMode: index % 3 === 0 ? 'link' : 'portable',
+      hookMode: 'off',
       targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
       upstream: {}
     }));

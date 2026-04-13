@@ -14,8 +14,34 @@ Projection operations:
 - `render`: generate entry files from templates.
 - `link`: link compatible skills or directories.
 - `materialize`: copy files when a platform needs a real local copy or patched content.
+- `hook-config`: merge verified Harness-managed hook entries into a target hook config file.
+- `hook-script`: copy hook helper scripts into the target hook script root.
 
 `sync` records Harness-owned paths in `.harness/projections.json`. A later sync may replace paths recorded in that manifest. If a target path exists but is not owned by Harness, sync refuses to overwrite it unless `--conflict=backup` is used.
+
+Hook projection is disabled by default. `install --hooks=on` records `hookMode: "on"` in `.harness/state.json`; later `sync` reads that state and plans hook projections from `harness/core/skills/index.json`.
+
+Hook support is adapter-based:
+
+| Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
+| --- | --- | --- | --- | --- |
+| `planning-with-files` task-scoped hook | Unsupported | Supported | Supported | Supported |
+| `superpowers` upstream hooks | Unsupported | Unsupported | Supported | Supported |
+
+Unsupported hook adapters are modeled explicitly and reported by `status` and `doctor`, but they are not treated as health failures. This keeps cross-IDE behavior honest instead of pretending every platform consumes the same hook schema.
+
+Hook config files are merged rather than blindly overwritten. Harness marks each managed hook entry with a `Harness-managed ... hook` description, removes the previous managed entry for that same skill, and preserves unrelated user hook entries. If an existing hook config is malformed JSON or does not contain a `hooks` object, `sync` refuses to modify it unless `--conflict=backup` is used.
+
+Hook roots are platform metadata, not command-local constants:
+
+| Target | Workspace hook root | User-global hook root |
+| --- | --- | --- |
+| Codex | `.codex` | `~/.codex` |
+| GitHub Copilot | `.github/hooks` | `~/.copilot/hooks` |
+| Cursor | `.cursor` | `~/.cursor` |
+| Claude Code | `.claude` | `~/.claude` |
+
+The planning-with-files hook helper reads only task-scoped active plans under `planning/active/<task-id>/`. It does not read or create project-root planning files, and it does not archive tasks. Stop-style hooks only remind the agent to update `progress.md` and confirm the task lifecycle block.
 
 Skill roots are platform metadata, not command-local constants:
 

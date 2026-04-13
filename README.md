@@ -10,6 +10,7 @@ Use it at workspace scope when a single project should carry its own rules. Use 
 - `superpowers` as temporary reasoning support for complex planning, debugging, execution, review, and verification.
 - Rendered governance entry files for Codex, GitHub Copilot, Cursor, and Claude Code.
 - Workspace, user-global, and combined installation scopes.
+- Optional hook projection for verified target adapters.
 - Staged upstream updates for vendored `superpowers` and `planning-with-files` baselines.
 
 Harness is the top-level local integration layer. Lower-level skills, project rules, or local routers such as Carnival can stay in place, but Harness should decide when and how those lower-level capabilities are used.
@@ -212,6 +213,40 @@ Skill target roots:
 | GitHub Copilot | `.github/skills` | `~/.copilot/skills` |
 | Cursor | `.cursor/skills` | `~/.cursor/skills` |
 | Claude Code | `.claude/skills` | `~/.claude/skills` |
+
+## Hooks
+
+Hooks are opt-in. The default install keeps hook mode off and projects entry files plus skills only:
+
+```bash
+./scripts/harness install --scope=workspace --targets=all --projection=link
+```
+
+Enable hook projection explicitly:
+
+```bash
+./scripts/harness install --scope=workspace --targets=all --projection=link --hooks=on
+./scripts/harness sync
+./scripts/harness doctor --check-only
+```
+
+Harness installs only verified hook adapters. Unsupported adapters appear in `status` and `doctor` output as unsupported, but they do not fail health checks.
+
+| Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
+| --- | --- | --- | --- | --- |
+| `planning-with-files` task-scoped hook | Unsupported | Supported | Supported | Supported |
+| `superpowers` upstream hooks | Unsupported | Unsupported | Supported | Supported |
+
+Hook targets:
+
+| Target | Workspace hook files | User-global hook files |
+| --- | --- | --- |
+| Codex | Not projected | Not projected |
+| GitHub Copilot | `.github/hooks/planning-with-files.json`, `.github/hooks/task-scoped-hook.sh` | `~/.copilot/hooks/planning-with-files.json`, `~/.copilot/hooks/task-scoped-hook.sh` |
+| Cursor | `.cursor/hooks.json`, `.cursor/hooks/*` | `~/.cursor/hooks.json`, `~/.cursor/hooks/*` |
+| Claude Code | `.claude/hooks.json`, `.claude/hooks/*` | `~/.claude/hooks.json`, `~/.claude/hooks/*` |
+
+Hook config merge is conservative. Harness-managed hook entries are marked with `Harness-managed ... hook`; `sync` replaces prior Harness-managed entries for the same skill and preserves unrelated user hook entries. Malformed hook config files require `./scripts/harness sync --conflict=backup`.
 
 ## Upstream Updates
 

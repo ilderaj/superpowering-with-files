@@ -14,6 +14,7 @@ export async function install(args = []) {
   const metadata = await loadPlatforms(rootDir);
   const scope = normalizeScope(readOption(args, 'scope', metadata.defaultScope));
   const projectionMode = readOption(args, 'projection', 'link');
+  const hookMode = readOption(args, 'hooks', 'off');
   const targetArg = readOption(args, 'targets', 'all');
   const targets = normalizeTargets(metadata, targetArg.split(',').filter(Boolean));
 
@@ -21,10 +22,15 @@ export async function install(args = []) {
     throw new Error(`Invalid projection mode: ${projectionMode}`);
   }
 
+  if (!['off', 'on'].includes(hookMode)) {
+    throw new Error(`Invalid hooks mode: ${hookMode}`);
+  }
+
   const state = {
     schemaVersion: 1,
     scope,
     projectionMode,
+    hookMode,
     targets: {},
     upstream: {}
   };

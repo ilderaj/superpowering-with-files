@@ -6,6 +6,7 @@ const STATE_KEYS = new Set([
   'schemaVersion',
   'scope',
   'projectionMode',
+  'hookMode',
   'targets',
   'upstream',
   'lastSync',
@@ -20,6 +21,7 @@ export function defaultState() {
     schemaVersion: 1,
     scope: 'workspace',
     projectionMode: 'link',
+    hookMode: 'off',
     targets: {},
     upstream: {}
   };
@@ -54,6 +56,10 @@ function validateStateShape(state) {
 
   if (!['link', 'portable'].includes(state.projectionMode)) {
     throw new TypeError('Harness state projectionMode must be link or portable.');
+  }
+
+  if (!['off', 'on'].includes(state.hookMode)) {
+    throw new TypeError('Harness state hookMode must be off or on.');
   }
 
   if (!isPlainObject(state.targets)) {
@@ -95,9 +101,16 @@ function validateStateShape(state) {
   }
 }
 
+function normalizeStateShape(state) {
+  return {
+    ...state,
+    hookMode: state.hookMode ?? 'off'
+  };
+}
+
 export async function readState(rootDir) {
   try {
-    const state = JSON.parse(await readFile(statePath(rootDir), 'utf8'));
+    const state = normalizeStateShape(JSON.parse(await readFile(statePath(rootDir), 'utf8')));
     validateStateShape(state);
     return state;
   } catch (error) {
@@ -107,7 +120,8 @@ export async function readState(rootDir) {
 }
 
 export async function writeState(rootDir, state) {
-  validateStateShape(state);
+  const normalizedState = normalizeStateShape(state);
+  validateStateShape(normalizedState);
 
   const stateFile = statePath(rootDir);
   const stateDir = path.dirname(stateFile);
@@ -118,7 +132,7 @@ export async function writeState(rootDir, state) {
     `${path.basename(stateFile)}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`
   );
   try {
-    await writeFile(tempFile, `${JSON.stringify(state, null, 2)}\n`);
+    await writeFile(tempFile, `${JSON.stringify(normalizedState, null, 2)}\n`);
     await rename(tempFile, stateFile);
   } catch (error) {
     try {

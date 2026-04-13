@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  resolveHookRoots,
   resolveSkillRoots,
   resolveSkillTargetPaths,
   resolveTargetPaths
@@ -61,4 +62,23 @@ test('resolveSkillTargetPaths maps collection children into the skill root', () 
       '/repo/.claude/skills/writing-plans'
     ]
   );
+});
+
+test('resolveHookRoots returns workspace hook root for Cursor', () => {
+  assert.deepEqual(resolveHookRoots('/repo', '/home/user', 'workspace', 'cursor'), [
+    '/repo/.cursor'
+  ]);
+});
+
+test('resolveHookRoots returns workspace hook root for Copilot', () => {
+  assert.deepEqual(resolveHookRoots('/repo', '/home/user', 'workspace', 'copilot'), [
+    '/repo/.github/hooks'
+  ]);
+});
+
+test('resolveHookRoots returns both hook roots for Claude Code', () => {
+  assert.deepEqual(resolveHookRoots('/repo', '/home/user', 'both', 'claude-code'), [
+    '/repo/.claude',
+    '/home/user/.claude'
+  ]);
 });

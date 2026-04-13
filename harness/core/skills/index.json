@@ -11,6 +11,18 @@
         "cursor": "link",
         "codex": "link",
         "claude-code": "link"
+      },
+      "hooks": {
+        "cursor": {
+          "source": "harness/upstream/superpowers/hooks",
+          "config": "hooks-cursor.json",
+          "events": ["sessionStart"]
+        },
+        "claude-code": {
+          "source": "harness/upstream/superpowers/hooks",
+          "config": "hooks.json",
+          "events": ["SessionStart"]
+        }
       }
     },
     "planning-with-files": {
@@ -29,6 +41,12 @@
         "copilot": {
           "type": "copilot-planning-with-files",
           "marker": "Harness Copilot planning-with-files patch"
+        }
+      },
+      "hooks": {
+        "default": {
+          "source": "harness/core/hooks/planning-with-files",
+          "adapter": "task-scoped-planning"
         }
       }
     }

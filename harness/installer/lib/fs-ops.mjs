@@ -64,6 +64,12 @@ export async function materializeDirectoryProjection(options) {
   return result;
 }
 
+export async function materializeFileProjection(options) {
+  const result = await prepareProjectionTarget(options);
+  await copyFile(options.sourcePath, options.targetPath);
+  return result;
+}
+
 export async function linkDirectoryProjection(options) {
   const result = await prepareProjectionTarget(options);
   const type = process.platform === 'win32' ? 'junction' : 'dir';

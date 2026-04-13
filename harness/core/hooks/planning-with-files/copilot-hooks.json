@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot session-start || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot session-start'",
+        "timeout": 15,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot pre-tool-use || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot pre-tool-use'",
+        "timeout": 5,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot post-tool-use || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot post-tool-use'",
+        "timeout": 5,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "agentStop": [
+      {
+        "type": "command",
+        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot agent-stop || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot agent-stop'",
+        "timeout": 10,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "errorOccurred": [
+      {
+        "type": "command",
+        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot error-occurred || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot error-occurred'",
+        "timeout": 5,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ]
+  }
+}

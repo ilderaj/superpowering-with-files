@@ -10,6 +10,10 @@
         "workspace": [".codex/skills"],
         "global": [".codex/skills"]
       },
+      "hookRoots": {
+        "workspace": [".codex"],
+        "global": [".codex"]
+      },
       "supportsGlobal": true,
       "supportsWorkspace": true,
       "skillsStrategy": "link-preferred"
@@ -20,6 +24,10 @@
       "skillRoots": {
         "workspace": [".github/skills"],
         "global": [".copilot/skills"]
+      },
+      "hookRoots": {
+        "workspace": [".github/hooks"],
+        "global": [".copilot/hooks"]
       },
       "supportsGlobal": true,
       "supportsWorkspace": true,
@@ -32,6 +40,10 @@
         "workspace": [".cursor/skills"],
         "global": [".cursor/skills"]
       },
+      "hookRoots": {
+        "workspace": [".cursor"],
+        "global": [".cursor"]
+      },
       "supportsGlobal": true,
       "supportsWorkspace": true,
       "skillsStrategy": "mixed"
@@ -42,6 +54,10 @@
       "skillRoots": {
         "workspace": [".claude/skills"],
         "global": [".claude/skills"]
+      },
+      "hookRoots": {
+        "workspace": [".claude"],
+        "global": [".claude"]
       },
       "supportsGlobal": true,
       "supportsWorkspace": true,

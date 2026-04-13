@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "hooks": {
+    "userPromptSubmit": [
+      {
+        "command": "sh -c '[ -f .cursor/hooks/task-scoped-hook.sh ] && bash .cursor/hooks/task-scoped-hook.sh cursor user-prompt-submit || bash \"$HOME/.cursor/hooks/task-scoped-hook.sh\" cursor user-prompt-submit'",
+        "timeout": 5,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "sh -c '[ -f .cursor/hooks/task-scoped-hook.sh ] && bash .cursor/hooks/task-scoped-hook.sh cursor pre-tool-use || bash \"$HOME/.cursor/hooks/task-scoped-hook.sh\" cursor pre-tool-use'",
+        "matcher": "Write|Edit|Shell|Read",
+        "timeout": 5,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "sh -c '[ -f .cursor/hooks/task-scoped-hook.sh ] && bash .cursor/hooks/task-scoped-hook.sh cursor post-tool-use || bash \"$HOME/.cursor/hooks/task-scoped-hook.sh\" cursor post-tool-use'",
+        "matcher": "Write|Edit",
+        "timeout": 5,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "stop": [
+      {
+        "command": "sh -c '[ -f .cursor/hooks/task-scoped-hook.sh ] && bash .cursor/hooks/task-scoped-hook.sh cursor stop || bash \"$HOME/.cursor/hooks/task-scoped-hook.sh\" cursor stop'",
+        "timeout": 10,
+        "loop_limit": 3,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ]
+  }
+}
+
