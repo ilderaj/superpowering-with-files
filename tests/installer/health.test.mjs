@@ -19,7 +19,7 @@ test('readHarnessHealth reports entry and skill status per target', async () => 
       projectionMode: 'link',
       targets: {
         codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] },
-        copilot: { enabled: true, paths: [path.join(root, '.copilot/copilot-instructions.md')] }
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
       },
       upstream: {}
     });

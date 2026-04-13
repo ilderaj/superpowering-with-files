@@ -7,7 +7,7 @@ const platforms = JSON.parse(
 
 const targetRoots = {
   codex: { workspace: '', global: '.codex' },
-  copilot: { workspace: '.copilot', global: '.copilot' },
+  copilot: { workspace: '.github', global: '.copilot' },
   cursor: { workspace: '', global: '' },
   'claude-code': { workspace: '', global: '.claude' }
 };
@@ -16,10 +16,14 @@ function expand(base, values) {
   return values.map((value) => path.join(base, value));
 }
 
-function resolveEntryFiles(target) {
+function resolveEntryFiles(target, scopeKey) {
   const platform = platforms[target];
   if (!platform) {
     throw new Error(`Unknown target: ${target}`);
+  }
+
+  if (platform.entryFilesByScope?.[scopeKey]) {
+    return platform.entryFilesByScope[scopeKey];
   }
 
   return platform.entryFiles ?? [];
@@ -57,7 +61,7 @@ function resolveScopedPaths(baseDir, target, scopeKey) {
     throw new Error(`Unknown target: ${target}`);
   }
 
-  const entries = resolveEntryFiles(target);
+  const entries = resolveEntryFiles(target, scopeKey);
   const paths = entries.map((entry) => (root ? path.join(root, entry) : entry));
   return expand(baseDir, paths);
 }

@@ -192,9 +192,11 @@ flowchart LR
 | Target | Workspace entry | User-global entry | Behavior |
 | --- | --- | --- | --- |
 | Codex | `AGENTS.md` | `~/.codex/AGENTS.md` | Rendered file |
-| GitHub Copilot | `.copilot/copilot-instructions.md` | `~/.copilot/copilot-instructions.md` | Rendered file |
+| GitHub Copilot | `.github/copilot-instructions.md` | `~/.copilot/instructions/harness.instructions.md` | Rendered file |
 | Cursor | `.cursor/rules/harness.mdc` | `~/.cursor/rules/harness.mdc` | Rendered file |
 | Claude Code | `CLAUDE.md` | `~/.claude/CLAUDE.md` | Rendered file |
+
+GitHub Copilot follows VS Code's default instruction file locations: workspace instructions live under `.github`, while user profile instructions live under `~/.copilot/instructions` as `*.instructions.md` files. Harness renders the Copilot user-global file with `applyTo: "**"` frontmatter so it is applied automatically across workspaces. The legacy `~/.copilot/copilot-instructions.md` path is not used.
 
 ## Skills
 

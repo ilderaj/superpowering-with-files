@@ -21,6 +21,10 @@
     "copilot": {
       "displayName": "GitHub Copilot",
       "entryFiles": ["copilot-instructions.md"],
+      "entryFilesByScope": {
+        "workspace": ["copilot-instructions.md"],
+        "global": ["instructions/harness.instructions.md"]
+      },
       "skillRoots": {
         "workspace": [".github/skills"],
         "global": [".copilot/skills"]

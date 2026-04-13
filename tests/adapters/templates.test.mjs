@@ -24,6 +24,11 @@ test('renderEntry includes complex orchestration policy for every supported targ
   }
 });
 
+test('renderEntry emits Copilot instructions frontmatter for file-based user profile instructions', async () => {
+  const rendered = await renderEntry(process.cwd(), 'copilot');
+  assert.match(rendered, /^---\napplyTo: "\*\*"\n---\n/);
+});
+
 test('entriesForScope uses installer path metadata instead of adapter entry arrays', () => {
   const adapter = {
     target: 'codex',

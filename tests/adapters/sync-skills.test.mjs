@@ -19,7 +19,7 @@ test('sync projects workspace entries and skills', async () => {
       projectionMode: 'link',
       targets: {
         codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] },
-        copilot: { enabled: true, paths: [path.join(root, '.copilot/copilot-instructions.md')] }
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
       },
       upstream: {}
     });
@@ -48,7 +48,7 @@ test('sync rejects non-owned skill target by default', async () => {
       scope: 'workspace',
       projectionMode: 'link',
       targets: {
-        copilot: { enabled: true, paths: [path.join(root, '.copilot/copilot-instructions.md')] }
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
       },
       upstream: {}
     });
@@ -69,7 +69,7 @@ test('sync backs up non-owned skill target when requested', async () => {
       scope: 'workspace',
       projectionMode: 'link',
       targets: {
-        copilot: { enabled: true, paths: [path.join(root, '.copilot/copilot-instructions.md')] }
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
       },
       upstream: {}
     });
@@ -93,7 +93,7 @@ test('sync refreshes materialized Copilot skill after upstream changes', async (
       scope: 'workspace',
       projectionMode: 'link',
       targets: {
-        copilot: { enabled: true, paths: [path.join(root, '.copilot/copilot-instructions.md')] }
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
       },
       upstream: {}
     });
