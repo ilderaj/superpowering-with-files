@@ -18,9 +18,13 @@ export function normalizeScope(scope = 'workspace') {
 
 export function normalizeTargets(metadata, targets) {
   const available = Object.keys(metadata.platforms);
+  const unsupported = metadata.unsupportedPlatforms ?? {};
   if (!targets.length || targets.includes('all')) return available;
 
   for (const target of targets) {
+    if (unsupported[target]) {
+      throw new Error(`Unsupported target: ${target}. ${unsupported[target].reason}`);
+    }
     if (!available.includes(target)) {
       throw new Error(`Unknown target: ${target}`);
     }

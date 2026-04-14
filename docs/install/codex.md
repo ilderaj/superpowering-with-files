@@ -46,3 +46,5 @@ By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a b
 ```bash
 ./scripts/harness sync --conflict=backup
 ```
+
+Gemini CLI is not currently a supported Harness installer target. Harness does not create installer-managed Gemini entry files or user-global state.

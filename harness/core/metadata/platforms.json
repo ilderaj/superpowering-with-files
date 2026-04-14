@@ -2,6 +2,13 @@
   "schemaVersion": 1,
   "defaultScope": "workspace",
   "supportedScopes": ["workspace", "user-global", "both"],
+  "unsupportedPlatforms": {
+    "gemini": {
+      "displayName": "Gemini CLI",
+      "status": "unsupported",
+      "reason": "HarnessTemplate does not currently project Gemini rendered entry files, skill roots, or installer-managed user-global state."
+    }
+  },
   "platforms": {
     "codex": {
       "displayName": "Codex",
@@ -63,6 +70,7 @@
         "workspace": [".claude/skills"],
         "global": [".claude/skills"]
       },
+      "sharedSkillRootSupported": false,
       "hookRoots": {
         "workspace": [".claude"],
         "global": [".claude"]

@@ -59,3 +59,10 @@ By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a b
 ```bash
 ./scripts/harness sync --conflict=backup
 ```
+
+Preview projection changes safely with:
+
+```bash
+./scripts/harness sync --dry-run
+./scripts/harness sync --check
+```

@@ -17,7 +17,7 @@ Projection operations:
 - `hook-config`: merge verified Harness-managed hook entries into a target adapter-specific config file.
 - `hook-script`: copy hook helper scripts into the target hook script root.
 
-`sync` records Harness-owned paths in `.harness/projections.json`. A later sync may replace paths recorded in that manifest. If a target path exists but is not owned by Harness, sync refuses to overwrite it unless `--conflict=backup` is used.
+`sync` records Harness-owned paths in `.harness/projections.json`. A later sync may replace paths recorded in that manifest and garbage-collect stale Harness-managed projections that are no longer part of the desired set. If a target path exists but is not owned by Harness, sync refuses to overwrite it unless `--conflict=backup` is used.
 
 Hook projection is disabled by default. `install --hooks=on` records `hookMode: "on"` in `.harness/state.json`; later `sync` reads that state and plans hook projections from `harness/core/skills/index.json`.
 
@@ -53,5 +53,9 @@ Skill roots are platform metadata, not command-local constants:
 | GitHub Copilot | `.github/skills` | `~/.copilot/skills` |
 | Cursor | `.cursor/skills` | `~/.cursor/skills` |
 | Claude Code | `.claude/skills` | `~/.claude/skills` |
+
+Claude Code shared skill-root symlinks are intentionally unsupported. Harness expects each Claude skill target path to be projected individually under `.claude/skills` or `~/.claude/skills`; directory-level sharing such as `.claude/skills -> ~/.codex/skills` is reported as unhealthy.
+
+Platform metadata also records unsupported installer targets. Gemini CLI is currently metadata-listed as unsupported so the installer can fail explicitly instead of pretending partial projection exists.
 
 `fetch` and `update` operate on known upstream source names from `harness/upstream/sources.json`. `update` refreshes only `harness/upstream/*`. It does not mutate IDE directories directly. The next `sync` reads the refreshed upstream baseline and updates Harness-owned projections.

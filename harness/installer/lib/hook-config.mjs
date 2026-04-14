@@ -41,6 +41,10 @@ function mergeHookEntries(existingEntries = [], incomingEntries = []) {
   return [...preserved, ...incomingEntries];
 }
 
+function pruneHookEntries(entries = [], marker) {
+  return entries.filter((entry) => hookEntryMarker(entry) !== marker);
+}
+
 export function mergeHookConfig(existingConfig, incomingConfig, target) {
   assertHookConfig(existingConfig, target);
   assertHookConfig(incomingConfig, target);
@@ -86,5 +90,68 @@ export function mergeHookSettings(existingSettings = {}, incomingConfig, target)
   return {
     ...existingSettings,
     hooks: mergedConfig.hooks
+  };
+}
+
+export function removeManagedHookConfig(existingConfig, marker, target) {
+  assertHookConfig(existingConfig, target);
+
+  let changed = false;
+  const hooks = {};
+
+  for (const [eventName, existingEntries] of Object.entries(existingConfig.hooks)) {
+    if (!Array.isArray(existingEntries)) {
+      throw new TypeError(`Hook config for ${target} event ${eventName} must be an array.`);
+    }
+
+    const filteredEntries = pruneHookEntries(existingEntries, marker);
+    if (filteredEntries.length !== existingEntries.length) {
+      changed = true;
+    }
+    if (filteredEntries.length > 0) {
+      hooks[eventName] = filteredEntries;
+    }
+  }
+
+  return {
+    changed,
+    config: {
+      ...existingConfig,
+      hooks
+    },
+    removeFile: Object.keys(hooks).length === 0
+  };
+}
+
+export function removeManagedHookSettings(existingSettings = {}, marker, target) {
+  if (!isPlainObject(existingSettings)) {
+    throw new TypeError(`Hook settings for ${target} must be a JSON object.`);
+  }
+
+  if (existingSettings.hooks === undefined) {
+    return {
+      changed: false,
+      settings: existingSettings,
+      removeFile: Object.keys(existingSettings).length === 0
+    };
+  }
+
+  if (!isPlainObject(existingSettings.hooks)) {
+    throw new TypeError(`Hook settings for ${target} settings hooks must be an object.`);
+  }
+
+  const { changed, config } = removeManagedHookConfig({ hooks: existingSettings.hooks }, marker, target);
+  const settings = { ...existingSettings };
+
+  if (Object.keys(config.hooks).length === 0) {
+    delete settings.hooks;
+  } else {
+    settings.hooks = config.hooks;
+  }
+
+  return {
+    changed,
+    settings,
+    removeFile: Object.keys(settings).length === 0
   };
 }

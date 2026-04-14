@@ -1,5 +1,5 @@
 import os from 'node:os';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { entriesForScope, loadAdapter, renderEntry } from '../lib/adapters.mjs';
 import { applyCopilotPlanningPatch } from '../lib/copilot-planning-patch.mjs';
@@ -12,18 +12,36 @@ import {
 import { mergeHookConfig, mergeHookSettings } from '../lib/hook-config.mjs';
 import { planHookProjections } from '../lib/hook-projection.mjs';
 import {
+  createProjectionManifest,
+  diffProjectionManifest,
   ownedTargetSet,
   readProjectionManifest,
-  upsertProjectionEntry,
   writeProjectionManifest
 } from '../lib/projection-manifest.mjs';
 import { planSkillProjections } from '../lib/skill-projection.mjs';
 import { readState, updateState } from '../lib/state.mjs';
+import { removeManagedHookConfig, removeManagedHookSettings } from '../lib/hook-config.mjs';
 
 function readOption(args, name, fallback) {
   const prefix = `--${name}=`;
   const value = args.find((arg) => arg.startsWith(prefix));
   return value ? value.slice(prefix.length) : fallback;
+}
+
+function hasFlag(args, ...names) {
+  return names.some((name) => args.includes(name));
+}
+
+function usage() {
+  return [
+    'Usage: ./scripts/harness sync [--conflict=reject|backup] [--dry-run] [--check]',
+    '',
+    'Options:',
+    '  --conflict=reject|backup  Refuse or back up non-Harness-owned paths before writing',
+    '  --dry-run                 Print the desired projection diff without writing files',
+    '  --check                   Exit non-zero when sync would make changes',
+    '  --help, -h                Show this help message'
+  ].join('\n');
 }
 
 async function applySkillProjection(projection, ownedTargets, conflictMode, projectionMode) {
@@ -155,18 +173,12 @@ async function applyHookProjection(projection, ownedTargets, conflictMode) {
   return true;
 }
 
-export async function sync(args = []) {
-  const rootDir = process.cwd();
-  const homeDir = os.homedir();
-  const state = await readState(rootDir);
-  const conflictMode = readOption(args, 'conflict', 'reject');
-  if (!['reject', 'backup'].includes(conflictMode)) {
-    throw new Error(`Invalid conflict mode: ${conflictMode}`);
-  }
-
-  let manifest = await readProjectionManifest(rootDir);
-  const ownedTargets = ownedTargetSet(manifest);
+async function planSyncOperations({ rootDir, homeDir, state }) {
   const targets = Object.keys(state.targets).filter((target) => state.targets[target].enabled);
+  const entryWrites = [];
+  const skillWrites = [];
+  const hookWrites = [];
+  const manifestEntries = [];
 
   for (const target of targets) {
     const adapter = await loadAdapter(rootDir, target);
@@ -174,20 +186,14 @@ export async function sync(args = []) {
     const entries = entriesForScope(rootDir, homeDir, adapter, state.scope);
 
     for (const entry of entries) {
-      await writeRenderedProjection({
-        targetPath: entry,
-        content,
-        ownedTargets,
-        conflictMode
-      });
-      manifest = upsertProjectionEntry(manifest, {
+      entryWrites.push({ targetPath: entry, content });
+      manifestEntries.push({
         kind: 'entry',
         target,
         strategy: 'render',
         sourcePath: adapter.template,
         targetPath: entry
       });
-      ownedTargets.add(path.resolve(entry));
     }
 
     const skillProjections = await planSkillProjections({
@@ -198,17 +204,15 @@ export async function sync(args = []) {
     });
 
     for (const projection of skillProjections) {
-      const effectiveStrategy = await applySkillProjection(
-        projection,
-        ownedTargets,
-        conflictMode,
-        state.projectionMode
-      );
-      manifest = upsertProjectionEntry(manifest, {
+      const strategy =
+        projection.strategy === 'link' && state.projectionMode === 'portable'
+          ? 'materialize'
+          : projection.strategy;
+      skillWrites.push(projection);
+      manifestEntries.push({
         ...projection,
-        strategy: effectiveStrategy
+        strategy
       });
-      ownedTargets.add(path.resolve(projection.targetPath));
     }
 
     const hookProjections = await planHookProjections({
@@ -220,10 +224,9 @@ export async function sync(args = []) {
     });
 
     for (const projection of hookProjections) {
-      const installed = await applyHookProjection(projection, ownedTargets, conflictMode);
-      if (!installed) continue;
-
-      manifest = upsertProjectionEntry(manifest, {
+      if (projection.status === 'unsupported') continue;
+      hookWrites.push(projection);
+      manifestEntries.push({
         ...projection,
         kind: 'hook-config',
         strategy: 'merge',
@@ -232,7 +235,7 @@ export async function sync(args = []) {
       });
 
       for (const sourcePath of projection.scriptSourcePaths) {
-        manifest = upsertProjectionEntry(manifest, {
+        manifestEntries.push({
           ...projection,
           kind: 'hook-script',
           strategy: 'materialize',
@@ -243,10 +246,156 @@ export async function sync(args = []) {
     }
   }
 
-  await writeProjectionManifest(rootDir, manifest);
+  return {
+    targets,
+    entryWrites,
+    skillWrites,
+    hookWrites,
+    manifest: createProjectionManifest(manifestEntries)
+  };
+}
+
+function formatDiff(diff) {
+  return {
+    create: diff.create.length,
+    update: diff.update.length,
+    stale: diff.stale.length,
+    unchanged: diff.unchanged.length
+  };
+}
+
+async function readJsonIfPresent(filePath) {
+  try {
+    return JSON.parse(await readFile(filePath, 'utf8'));
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
+
+async function cleanupStaleHookConfig(entry) {
+  const config = await readJsonIfPresent(entry.targetPath);
+  if (!config) return;
+
+  const marker = `Harness-managed ${entry.parentSkillName} hook`;
+  if (entry.configFormat === 'settings') {
+    const { changed, settings, removeFile } = removeManagedHookSettings(
+      config,
+      marker,
+      entry.target
+    );
+    if (!changed) return;
+    if (removeFile) {
+      await rm(entry.targetPath, { force: true });
+      return;
+    }
+    await writeFile(entry.targetPath, `${JSON.stringify(settings, null, 2)}\n`);
+    return;
+  }
+
+  const { changed, config: nextConfig, removeFile } = removeManagedHookConfig(config, marker, entry.target);
+  if (!changed) return;
+  if (removeFile) {
+    await rm(entry.targetPath, { force: true });
+    return;
+  }
+  await writeFile(entry.targetPath, `${JSON.stringify(nextConfig, null, 2)}\n`);
+}
+
+async function cleanupStaleProjection(entry) {
+  if (entry.kind === 'hook-config') {
+    await cleanupStaleHookConfig(entry);
+    return;
+  }
+
+  await rm(entry.targetPath, { recursive: true, force: true });
+}
+
+export async function sync(args = []) {
+  if (hasFlag(args, '--help', '-h')) {
+    console.log(usage());
+    return;
+  }
+
+  const rootDir = process.cwd();
+  const homeDir = os.homedir();
+  const state = await readState(rootDir);
+  const conflictMode = readOption(args, 'conflict', 'reject');
+  const dryRun = hasFlag(args, '--dry-run');
+  const check = hasFlag(args, '--check');
+  if (!['reject', 'backup'].includes(conflictMode)) {
+    throw new Error(`Invalid conflict mode: ${conflictMode}`);
+  }
+
+  const currentManifest = await readProjectionManifest(rootDir);
+  const plan = await planSyncOperations({ rootDir, homeDir, state });
+  const diff = diffProjectionManifest(currentManifest, plan.manifest);
+  const summary = formatDiff(diff);
+
+  if (dryRun || check) {
+    console.log(
+      JSON.stringify(
+        {
+          mode: check ? 'check' : 'dry-run',
+          targets: plan.targets,
+          summary,
+          diff
+        },
+        null,
+        2
+      )
+    );
+    if (check && (summary.create > 0 || summary.update > 0 || summary.stale > 0)) {
+      throw new Error('Harness sync check failed: projections are out of sync.');
+    }
+    return;
+  }
+
+  const ownedTargets = ownedTargetSet(currentManifest);
+
+  for (const entry of diff.stale) {
+    await cleanupStaleProjection(entry);
+  }
+
+  for (const entry of plan.entryWrites) {
+    await writeRenderedProjection({
+      targetPath: entry.targetPath,
+      content: entry.content,
+      ownedTargets,
+      conflictMode
+    });
+    ownedTargets.add(path.resolve(entry.targetPath));
+  }
+
+  for (const projection of plan.skillWrites) {
+    const effectiveStrategy = await applySkillProjection(
+      projection,
+      ownedTargets,
+      conflictMode,
+      state.projectionMode
+    );
+    if (!['link', 'materialize'].includes(effectiveStrategy)) {
+      throw new Error(`Unsupported projection strategy: ${effectiveStrategy}`);
+    }
+    ownedTargets.add(path.resolve(projection.targetPath));
+  }
+
+  for (const projection of plan.hookWrites) {
+    const installed = await applyHookProjection(projection, ownedTargets, conflictMode);
+    if (!installed) continue;
+
+    ownedTargets.add(path.resolve(projection.configTarget));
+    for (const sourcePath of projection.scriptSourcePaths) {
+      ownedTargets.add(path.resolve(path.join(projection.scriptTargetRoot, path.basename(sourcePath))));
+    }
+  }
+
+  await writeProjectionManifest(rootDir, plan.manifest);
   await updateState(rootDir, (currentState) => ({
     ...currentState,
     lastSync: new Date().toISOString()
   }));
-  console.log(`Synced ${targets.length} target(s): ${targets.join(', ')}`);
+  console.log(
+    `Synced ${plan.targets.length} target(s): ${plan.targets.join(', ')} (create=${summary.create}, update=${summary.update}, stale=${summary.stale})`
+  );
 }

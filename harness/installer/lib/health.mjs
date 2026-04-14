@@ -28,6 +28,16 @@ function effectiveStrategy(projection, projectionMode) {
 }
 
 async function inspectLinkedSkill(projection) {
+  const rootStat = await lstat(path.dirname(projection.targetPath)).catch(() => null);
+  if (projection.target === 'claude-code' && rootStat?.isSymbolicLink()) {
+    return {
+      ...projection,
+      status: 'problem',
+      message:
+        'Claude Code shared skill root symlinks are not supported; project each skill into .claude/skills individually.'
+    };
+  }
+
   const stat = await lstat(projection.targetPath);
   if (!stat.isSymbolicLink()) {
     return { ...projection, status: 'problem', message: 'Expected a symlink.' };

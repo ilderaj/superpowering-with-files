@@ -23,6 +23,8 @@ Skill roots:
 ~/.claude/skills
 ```
 
+Claude Code skill projection is per-skill. Directory-level shared roots such as `.claude/skills -> ~/.codex/skills` are not supported and are reported as unhealthy by `./scripts/harness status` and `./scripts/harness doctor`.
+
 Optional hooks:
 
 ```text

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { readHarnessHealth } from '../../harness/installer/lib/health.mjs';
 import { sync } from '../../harness/installer/commands/sync.mjs';
@@ -275,6 +275,38 @@ test('readHarnessHealth validates Claude Code settings hooks after sync', async 
 
     assert.equal(planning.status, 'ok');
     assert.equal(health.problems.length, 0);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports Claude shared skill root symlink as unsupported layout', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] },
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    await rm(path.join(root, '.claude/skills'), { recursive: true, force: true });
+    await mkdir(path.join(root, '.claude'), { recursive: true });
+    await symlink(path.join(root, '.codex/skills'), path.join(root, '.claude/skills'), 'dir');
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const skill = health.targets['claude-code'].skills.find(
+      (entry) => entry.skillName === 'using-superpowers'
+    );
+
+    assert.equal(skill.status, 'problem');
+    assert.match(skill.message, /shared skill root symlinks are not supported/i);
   } finally {
     await removeHarnessFixture(root);
   }

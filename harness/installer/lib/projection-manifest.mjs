@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
+import { isDeepStrictEqual } from 'node:util';
 import path from 'node:path';
 
 export const PROJECTION_MANIFEST_RELATIVE_PATH = '.harness/projections.json';
@@ -45,13 +46,87 @@ export function ownedTargetSet(manifest) {
   return new Set(manifest.entries.map((entry) => path.resolve(entry.targetPath)));
 }
 
-export function upsertProjectionEntry(manifest, entry) {
+function projectionEntryKey(entry) {
   const targetPath = path.resolve(entry.targetPath);
+  const parts = [entry.kind ?? 'projection', targetPath];
+
+  if (typeof entry.parentSkillName === 'string') {
+    parts.push(entry.parentSkillName);
+  }
+
+  return parts.join('::');
+}
+
+function normalizeProjectionEntry(entry) {
+  return {
+    ...entry,
+    targetPath: path.resolve(entry.targetPath)
+  };
+}
+
+function sortProjectionEntries(entries) {
+  return [...entries].sort((left, right) => {
+    const leftKey = projectionEntryKey(left);
+    const rightKey = projectionEntryKey(right);
+    return leftKey.localeCompare(rightKey);
+  });
+}
+
+export function createProjectionManifest(entries = []) {
+  const byKey = new Map();
+  for (const entry of entries.map(normalizeProjectionEntry)) {
+    byKey.set(projectionEntryKey(entry), entry);
+  }
+
   return {
     schemaVersion: 1,
-    entries: [
-      ...manifest.entries.filter((existing) => path.resolve(existing.targetPath) !== targetPath),
-      { ...entry, targetPath }
-    ].sort((left, right) => left.targetPath.localeCompare(right.targetPath))
+    entries: sortProjectionEntries([...byKey.values()])
   };
+}
+
+export function diffProjectionManifest(currentManifest, desiredManifest) {
+  const currentByKey = new Map(
+    currentManifest.entries.map((entry) => [projectionEntryKey(entry), normalizeProjectionEntry(entry)])
+  );
+  const desiredByKey = new Map(
+    desiredManifest.entries.map((entry) => [projectionEntryKey(entry), normalizeProjectionEntry(entry)])
+  );
+
+  const create = [];
+  const update = [];
+  const unchanged = [];
+  const stale = [];
+
+  for (const [key, desiredEntry] of desiredByKey) {
+    const currentEntry = currentByKey.get(key);
+    if (!currentEntry) {
+      create.push(desiredEntry);
+      continue;
+    }
+
+    if (isDeepStrictEqual(currentEntry, desiredEntry)) {
+      unchanged.push(desiredEntry);
+      continue;
+    }
+
+    update.push({ before: currentEntry, after: desiredEntry });
+  }
+
+  for (const [key, currentEntry] of currentByKey) {
+    if (!desiredByKey.has(key)) {
+      stale.push(currentEntry);
+    }
+  }
+
+  return { create, update, unchanged, stale };
+}
+
+export function upsertProjectionEntry(manifest, entry) {
+  const nextEntries = [
+    ...manifest.entries.filter(
+      (existing) => projectionEntryKey(existing) !== projectionEntryKey(entry)
+    ),
+    normalizeProjectionEntry(entry)
+  ];
+  return createProjectionManifest(nextEntries);
 }

@@ -6,11 +6,20 @@ Maintenance flow:
 ./scripts/harness status
 ./scripts/harness fetch
 ./scripts/harness update
+./scripts/harness sync --dry-run
 ./scripts/harness sync
 ./scripts/harness doctor
 ```
 
-`fetch` retrieves upstream candidates. `update` applies accepted candidates. `sync` regenerates installed projections.
+`fetch` retrieves upstream candidates. `update` applies accepted candidates. `sync` regenerates installed projections and garbage-collects stale Harness-managed paths that are no longer desired.
+
+Use `sync --dry-run` to inspect the desired projection diff without writing files. Use `sync --check` when you want a non-zero exit code if projections are out of sync.
+
+`verify` prints its report to stdout by default. Write files only when you ask for them explicitly:
+
+```bash
+./scripts/harness verify --output=.harness/verification
+```
 
 Before policy extraction, reread the current global policy source and compare it with `harness/core/policy/base.md`.
 
@@ -59,6 +68,7 @@ After any upstream update, run:
 ```bash
 npm run verify
 ./scripts/harness worktree-preflight
+./scripts/harness sync --dry-run
 ./scripts/harness sync
 ./scripts/harness doctor
 ```

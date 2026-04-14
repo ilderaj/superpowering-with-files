@@ -2,6 +2,8 @@
 
 HarnessTemplate is a higher-level governance harness for humans and agents working in local projects. It turns one shared policy into the native instruction entry files used by Codex, GitHub Copilot, Cursor, and Claude Code.
 
+Gemini CLI is not currently a supported Harness installer target. HarnessTemplate does not create installer-managed Gemini rendered entries, skill roots, or user-global state.
+
 Use it at workspace scope when a single project should carry its own rules. Use it at user-global scope when you want the same Harness baseline across local projects. Use `both` when a project needs local entry files and a user-level baseline.
 
 ## What It Gives You
@@ -193,7 +195,7 @@ flowchart LR
   Skills -. "link/materialize strategy metadata" .-> Planning
 ```
 
-`sync` now projects both entry files and skills. Link projections use symlinks; materialized projections copy directories. Existing non-Harness-owned files are not overwritten unless `./scripts/harness sync --conflict=backup` is used.
+`sync` now projects both entry files and skills. Link projections use symlinks; materialized projections copy directories. Existing non-Harness-owned files are not overwritten unless `./scripts/harness sync --conflict=backup` is used. When the desired projection set shrinks, `sync` garbage-collects stale Harness-managed projections instead of leaving stale entries in `.harness/projections.json`.
 
 ## Entry Files
 
@@ -214,6 +216,8 @@ GitHub Copilot follows VS Code's default instruction file locations: workspace i
 | `harness/upstream/planning-with-files` | `link` | `materialize` | `link` | `link` |
 
 GitHub Copilot materializes `planning-with-files` because it is the durable task-state system and must remain visible in environments where symlinked external skill directories may not be indexed reliably. Other skill baselines use links to preserve a single upstream source. `projectionMode: "portable"` materializes link-preferred skills too.
+
+Claude Code uses per-skill projection under `.claude/skills` and `~/.claude/skills`. Directory-level shared roots such as `.claude/skills -> ~/.codex/skills` are not supported; `status` and `doctor` treat that layout as unhealthy.
 
 Skill target roots:
 
@@ -280,8 +284,15 @@ After updating upstream baselines, rerun repository verification before syncing 
 
 ```bash
 npm run verify
+./scripts/harness sync --dry-run
 ./scripts/harness sync
 ./scripts/harness doctor
+```
+
+`verify` now prints the report to stdout by default. To write report files explicitly:
+
+```bash
+./scripts/harness verify --output=.harness/verification
 ```
 
 ## Commands and Docs
@@ -293,12 +304,14 @@ npm run verify
 ./scripts/harness status
 ./scripts/harness fetch
 ./scripts/harness update
+./scripts/harness verify --output=.harness/verification
 ./scripts/harness worktree-preflight
 ```
 
 - [Architecture](docs/architecture.md)
 - [Maintenance](docs/maintenance.md)
 - [Release](docs/release.md)
+- [Platform support](docs/install/platform-support.md)
 - [Codex installation](docs/install/codex.md)
 - [GitHub Copilot installation](docs/install/copilot.md)
 - [Cursor installation](docs/install/cursor.md)

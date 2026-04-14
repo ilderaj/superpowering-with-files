@@ -30,7 +30,7 @@ function usage() {
     '  status   Show local Harness state',
     '  fetch    Fetch upstream candidates',
     '  update   Apply fetched upstream candidates',
-    '  verify   Write verification reports',
+    '  verify   Print or write verification reports',
     '  worktree-preflight  Recommend an explicit base before creating a Git worktree'
   ].join('\n');
 }
