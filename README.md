@@ -212,18 +212,18 @@ GitHub Copilot follows VS Code's default instruction file locations: workspace i
 
 | Skill baseline | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
-| `harness/upstream/superpowers/skills` | `link` | `link` | `link` | `link` |
-| `harness/upstream/planning-with-files` | `link` | `materialize` | `link` | `link` |
+| `harness/upstream/superpowers/skills` | `materialize` | `materialize` | `materialize` | `materialize` |
+| `harness/upstream/planning-with-files` | `materialize` | `materialize` | `materialize` | `materialize` |
 
-GitHub Copilot materializes `planning-with-files` because it is the durable task-state system and must remain visible in environments where symlinked external skill directories may not be indexed reliably. Other skill baselines use links to preserve a single upstream source. `projectionMode: "portable"` materializes link-preferred skills too.
+Harness materializes projected skills for all supported targets to keep IDE discovery stable and avoid symlink-specific candidate duplication. GitHub Copilot still receives the patched `planning-with-files` copy because its skill and hook behavior differs from the other adapters. `projectionMode: "portable"` remains valid and produces the same effective layout for skills.
 
-Claude Code uses per-skill projection under `.claude/skills` and `~/.claude/skills`. Directory-level shared roots such as `.claude/skills -> ~/.codex/skills` are not supported; `status` and `doctor` treat that layout as unhealthy.
+Claude Code uses per-skill projection under `.claude/skills` and `~/.claude/skills`. Directory-level shared roots such as `.claude/skills -> ~/.agents/skills` are not supported; `status` and `doctor` treat that layout as unhealthy.
 
 Skill target roots:
 
 | Target | Workspace skill root | User-global skill root |
 | --- | --- | --- |
-| Codex | `.codex/skills` | `~/.codex/skills` |
+| Codex | `.agents/skills` | `~/.agents/skills` |
 | GitHub Copilot | `.github/skills` | `~/.copilot/skills` |
 | Cursor | `.cursor/skills` | `~/.cursor/skills` |
 | Claude Code | `.claude/skills` | `~/.claude/skills` |

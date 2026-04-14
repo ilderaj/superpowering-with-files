@@ -5,7 +5,7 @@
   "workspaceEntries": ["AGENTS.md"],
   "globalEntries": [".codex/AGENTS.md"],
   "skills": {
-    "superpowers": "link",
-    "planning-with-files": "link"
+    "superpowers": "materialize",
+    "planning-with-files": "materialize"
   }
 }

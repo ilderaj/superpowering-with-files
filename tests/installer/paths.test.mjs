@@ -57,7 +57,7 @@ test('resolveSkillRoots returns workspace skill root for Copilot', () => {
 
 test('resolveSkillRoots returns global skill root for Codex', () => {
   assert.deepEqual(resolveSkillRoots('/repo', '/home/user', 'user-global', 'codex'), [
-    '/home/user/.codex/skills'
+    '/home/user/.agents/skills'
   ]);
 });
 

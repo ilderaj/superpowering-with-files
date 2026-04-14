@@ -16,9 +16,9 @@ test('projectionForSkill returns Copilot materialize for planning-with-files', a
   assert.match(result.source, /harness\/upstream\/planning-with-files/);
 });
 
-test('projectionForSkill returns link for Codex superpowers', async () => {
+test('projectionForSkill returns materialize for Codex superpowers', async () => {
   const result = await projectionForSkill(process.cwd(), 'superpowers', 'codex');
-  assert.equal(result.strategy, 'link');
+  assert.equal(result.strategy, 'materialize');
   assert.match(result.source, /harness\/upstream\/superpowers\/skills/);
 });
 
@@ -40,9 +40,9 @@ test('planSkillProjections expands superpowers collection children', async () =>
   const usingSuperpowers = plan.find((entry) => entry.skillName === 'using-superpowers');
   assert.ok(usingSuperpowers);
   assert.equal(usingSuperpowers.parentSkillName, 'superpowers');
-  assert.equal(usingSuperpowers.strategy, 'link');
+  assert.equal(usingSuperpowers.strategy, 'materialize');
   assert.match(usingSuperpowers.sourcePath, /harness\/upstream\/superpowers\/skills\/using-superpowers$/);
-  assert.match(usingSuperpowers.targetPath, /\.codex\/skills\/using-superpowers$/);
+  assert.match(usingSuperpowers.targetPath, /\.agents\/skills\/using-superpowers$/);
 });
 
 test('planSkillProjections materializes Copilot planning-with-files', async () => {

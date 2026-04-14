@@ -5,7 +5,7 @@
   "workspaceEntries": [".github/copilot-instructions.md"],
   "globalEntries": [".copilot/instructions/harness.instructions.md"],
   "skills": {
-    "superpowers": "link",
+    "superpowers": "materialize",
     "planning-with-files": "materialize"
   }
 }

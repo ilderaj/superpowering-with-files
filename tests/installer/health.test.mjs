@@ -298,7 +298,7 @@ test('readHarnessHealth reports Claude shared skill root symlink as unsupported 
     await withCwd(root, () => sync([]));
     await rm(path.join(root, '.claude/skills'), { recursive: true, force: true });
     await mkdir(path.join(root, '.claude'), { recursive: true });
-    await symlink(path.join(root, '.codex/skills'), path.join(root, '.claude/skills'), 'dir');
+    await symlink(path.join(root, '.agents/skills'), path.join(root, '.claude/skills'), 'dir');
 
     const health = await readHarnessHealth(root, '/home/user');
     const skill = health.targets['claude-code'].skills.find(
