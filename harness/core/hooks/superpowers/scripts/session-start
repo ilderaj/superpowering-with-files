@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="${HARNESS_PROJECT_ROOT:-$(pwd)}"
+skill_path="$root/harness/upstream/superpowers/skills/using-superpowers/SKILL.md"
+
+json_escape() {
+  node -e 'let input = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", chunk => { input += chunk; }); process.stdin.on("end", () => { process.stdout.write(JSON.stringify(input)); });'
+}
+
+using_superpowers_content="$(cat "$skill_path" 2>&1 || printf 'Error reading using-superpowers skill')"
+context="$(printf '<EXTREMELY_IMPORTANT>\nYou have superpowers.\n\n%s\n</EXTREMELY_IMPORTANT>' "$using_superpowers_content")"
+escaped="$(printf '%s' "$context" | json_escape)"
+
+printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":%s}}\n' "$escaped"

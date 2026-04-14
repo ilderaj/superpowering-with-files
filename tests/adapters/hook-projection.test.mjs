@@ -84,7 +84,23 @@ test('planHookProjections returns claude user-global hook config in settings wit
   assert.equal(planning.scriptTargetRoot, '/home/user/.claude/hooks');
 });
 
-test('planHookProjections models unsupported superpowers target explicitly', async () => {
+test('planHookProjections returns codex planning hook config under .codex', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex',
+    hookMode: 'on'
+  });
+  const planning = plans.find((plan) => plan.parentSkillName === 'planning-with-files');
+
+  assert.equal(planning.status, 'planned');
+  assert.equal(planning.configTarget, path.join(process.cwd(), '.codex/hooks.json'));
+  assert.equal(planning.configFormat, 'hooks');
+  assert.equal(planning.scriptTargetRoot, path.join(process.cwd(), '.codex/hooks'));
+});
+
+test('planHookProjections returns codex superpowers hook config under .codex', async () => {
   const plans = await planHookProjections({
     rootDir: process.cwd(),
     homeDir: '/home/user',
@@ -94,6 +110,25 @@ test('planHookProjections models unsupported superpowers target explicitly', asy
   });
   const superpowers = plans.find((plan) => plan.parentSkillName === 'superpowers');
 
+  assert.equal(superpowers.status, 'planned');
+  assert.equal(superpowers.configTarget, path.join(process.cwd(), '.codex/hooks.json'));
+  assert.deepEqual(superpowers.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/session-start'),
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/run-hook.cmd')
+  ]);
+  assert.equal(superpowers.scriptTargetRoot, path.join(process.cwd(), '.codex/hooks'));
+});
+
+test('planHookProjections models unsupported superpowers target explicitly', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'copilot',
+    hookMode: 'on'
+  });
+  const superpowers = plans.find((plan) => plan.parentSkillName === 'superpowers');
+
   assert.equal(superpowers.status, 'unsupported');
-  assert.match(superpowers.message, /No verified superpowers hook adapter for codex/);
+  assert.match(superpowers.message, /No verified superpowers hook adapter for copilot/);
 });

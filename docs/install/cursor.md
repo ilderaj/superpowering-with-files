@@ -36,7 +36,7 @@ Optional hooks:
 ~/.cursor/hooks/task-scoped-hook.sh
 ```
 
-Cursor receives the Harness planning-with-files task-scoped hook and the vendored superpowers session-start hook when hooks are enabled.
+Cursor receives the Harness planning-with-files task-scoped hook and the vendored superpowers session-start hook when hooks are enabled. This projection is currently provisional: this repository does not cite a Cursor official hooks documentation page that verifies the path/schema contract.
 
 Run:
 

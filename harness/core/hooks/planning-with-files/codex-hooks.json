@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .codex/hooks/task-scoped-hook.sh ] && bash .codex/hooks/task-scoped-hook.sh codex session-start || bash \"$HOME/.codex/hooks/task-scoped-hook.sh\" codex session-start'"
+          }
+        ],
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .codex/hooks/task-scoped-hook.sh ] && bash .codex/hooks/task-scoped-hook.sh codex user-prompt-submit || bash \"$HOME/.codex/hooks/task-scoped-hook.sh\" codex user-prompt-submit'"
+          }
+        ],
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .codex/hooks/task-scoped-hook.sh ] && bash .codex/hooks/task-scoped-hook.sh codex stop || bash \"$HOME/.codex/hooks/task-scoped-hook.sh\" codex stop'"
+          }
+        ],
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ]
+  }
+}

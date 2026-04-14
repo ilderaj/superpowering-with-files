@@ -23,7 +23,19 @@ Skill roots:
 ~/.agents/skills
 ```
 
-Hooks are not projected for Codex because Harness does not have a verified Codex hook adapter. If `--hooks=on` is used with `--targets=codex`, `status` and `doctor` report the Codex hook entries as unsupported without failing the health check.
+Codex hooks are experimental and require `codex_hooks = true` in Codex `config.toml`.
+Harness projects Codex hooks only when `--hooks=on` is selected.
+
+Hook files:
+
+```text
+.codex/hooks.json
+.codex/hooks/*
+~/.codex/hooks.json
+~/.codex/hooks/*
+```
+
+The Codex adapter uses official Codex hook config locations and events. Script filenames under `.codex/hooks/*` are Harness-owned adapter choices.
 
 Run:
 
@@ -32,7 +44,7 @@ Run:
 ./scripts/harness sync
 ```
 
-Run with hook reporting enabled:
+Run with hooks:
 
 ```bash
 ./scripts/harness install --targets=codex --scope=workspace --hooks=on

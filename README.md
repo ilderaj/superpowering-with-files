@@ -244,18 +244,18 @@ Enable hook projection explicitly:
 ./scripts/harness doctor --check-only
 ```
 
-Harness installs only verified hook adapters. Unsupported adapters appear in `status` and `doctor` output as unsupported, but they do not fail health checks.
+Harness installs only adapters with an explicit target contract. Unsupported adapters appear in `status` and `doctor` output as unsupported, and provisional adapters are marked as provisional, but neither state fails health checks when the projected files are healthy.
 
 | Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
-| `planning-with-files` task-scoped hook | Unsupported | Supported | Supported | Supported |
-| `superpowers` upstream hooks | Unsupported | Unsupported | Supported | Supported |
+| `planning-with-files` task-scoped hook | Supported with Codex event limits | Supported | Provisional | Supported |
+| `superpowers` session-start hook | Supported via Harness wrapper | Unsupported | Provisional | Supported |
 
 Hook targets:
 
 | Target | Workspace hook files | User-global hook files |
 | --- | --- | --- |
-| Codex | Not projected | Not projected |
+| Codex | `.codex/hooks.json`, `.codex/hooks/*` | `~/.codex/hooks.json`, `~/.codex/hooks/*` |
 | GitHub Copilot | `.github/hooks/planning-with-files.json`, `.github/hooks/task-scoped-hook.sh` | `~/.copilot/hooks/planning-with-files.json`, `~/.copilot/hooks/task-scoped-hook.sh` |
 | Cursor | `.cursor/hooks.json`, `.cursor/hooks/*` | `~/.cursor/hooks.json`, `~/.cursor/hooks/*` |
 | Claude Code | `.claude/settings.json`, `.claude/hooks/*` | `~/.claude/settings.json`, `~/.claude/hooks/*` |

@@ -143,9 +143,84 @@ test('readHarnessHealth reports hook status without failing unsupported adapters
     );
     assert.equal(
       health.targets.codex.hooks.find((hook) => hook.parentSkillName === 'superpowers').status,
-      'unsupported'
+      'ok'
     );
     assert.equal(health.problems.length, 0);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports a problem when Codex hook config is missing a required event', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    await writeFile(
+      path.join(root, '.codex/hooks.json'),
+      `${JSON.stringify(
+        {
+          hooks: {
+            SessionStart: [
+              {
+                description: 'Harness-managed planning-with-files hook',
+                hooks: [{ type: 'command', command: 'echo ok' }]
+              }
+            ],
+            UserPromptSubmit: [
+              {
+                description: 'Harness-managed planning-with-files hook',
+                hooks: [{ type: 'command', command: 'echo ok' }]
+              }
+            ]
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const planning = health.targets.codex.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
+
+    assert.equal(planning.status, 'problem');
+    assert.match(planning.message, /missing required event Stop/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('Cursor hooks are marked provisional when official hook docs are not cited', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        cursor: { enabled: true, paths: [path.join(root, '.cursor/rules/harness.mdc')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+    const planning = health.targets.cursor.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
+
+    assert.equal(planning.status, 'ok');
+    assert.equal(planning.evidenceLevel, 'provisional');
+    assert.match(planning.message, /official Cursor hook documentation has not been verified/);
   } finally {
     await removeHarnessFixture(root);
   }

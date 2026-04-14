@@ -23,3 +23,18 @@
 - 根据用户追加要求，计划需要再收紧一次：
   - 只允许使用官方文档中的 hooks 事实作为设计前提；
   - Cursor 因缺少可直接引用的官方 docs 级 hooks 细节，后续计划不能再默认沿用现有路径/事件/schema 假设。
+- 2026-04-15 执行前复读发现计划有执行缺口，已修正：
+  - 任务级 `git commit` 改为 checkpoint，避免与最终提交重复。
+  - Cursor evidence gate 改为可验证的 `evidenceLevel: "provisional"` 断言。
+  - 记录 worktree base 和主工作区计划文件迁移要求。
+- Worktree base: `dev @ c4297b928f6e0e0d9d7825c123d008b60d59637e`。
+- 实现执行结果：
+  - Codex `planning-with-files` hook adapter 已接入 `.codex/hooks.json` 和 `.codex/hooks/*`。
+  - Codex `superpowers` session-start hook 已通过 Harness-owned wrapper 接入。
+  - Cursor hook projection 保持现有行为，但 health 输出标记为 `evidenceLevel: "provisional"`。
+  - Hook health 新增 required event 校验。
+- 验证：
+  - Targeted hook suite 通过。
+  - `node --test tests/hooks/*.test.mjs` 通过。
+  - `npm run verify` 通过，111 tests passed。
+  - `git diff --check` 通过。

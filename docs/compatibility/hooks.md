@@ -16,16 +16,16 @@ Hook installation must be explicit:
 
 | Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
-| `planning-with-files` task-scoped hook | Unsupported | Supported | Supported | Supported |
-| `superpowers` upstream hooks | Unsupported | Unsupported | Supported | Supported |
+| `planning-with-files` task-scoped hook | Supported with Codex event limits | Supported | Provisional | Supported |
+| `superpowers` session-start hook | Supported via Harness wrapper | Unsupported | Provisional | Supported |
 
-Unsupported means Harness has no verified adapter for that target's hook schema. Unsupported hooks are reported by `./scripts/harness status` and `./scripts/harness doctor --check-only`, but they do not fail health checks.
+Unsupported means Harness has no verified adapter for that target's hook schema. Provisional means Harness can project the hook, but this repository does not currently cite an official hooks documentation page for that target's path/schema contract. Unsupported and provisional hooks are reported by `./scripts/harness status` and `./scripts/harness doctor --check-only`, but they do not fail health checks when projection itself is healthy.
 
 ## Projected Files
 
 | Target | Workspace hook files | User-global hook files |
 | --- | --- | --- |
-| Codex | Not projected | Not projected |
+| Codex | `.codex/hooks.json`, `.codex/hooks/*` | `~/.codex/hooks.json`, `~/.codex/hooks/*` |
 | GitHub Copilot | `.github/hooks/planning-with-files.json`, `.github/hooks/task-scoped-hook.sh` | `~/.copilot/hooks/planning-with-files.json`, `~/.copilot/hooks/task-scoped-hook.sh` |
 | Cursor | `.cursor/hooks.json`, `.cursor/hooks/*` | `~/.cursor/hooks.json`, `~/.cursor/hooks/*` |
 | Claude Code | `.claude/settings.json`, `.claude/hooks/*` | `~/.claude/settings.json`, `~/.claude/hooks/*` |
@@ -48,6 +48,7 @@ It does not create a second planning system. It does not read root-level `task_p
 Smoke test after `sync`:
 
 ```bash
+bash .codex/hooks/task-scoped-hook.sh codex session-start
 bash .cursor/hooks/task-scoped-hook.sh cursor session-start
 bash .github/hooks/task-scoped-hook.sh copilot session-start
 bash .claude/hooks/task-scoped-hook.sh claude-code user-prompt-submit

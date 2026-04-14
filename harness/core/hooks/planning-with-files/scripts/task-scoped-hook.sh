@@ -35,6 +35,9 @@ emit_context() {
 
   escaped="$(printf '%s' "$context" | json_escape)"
   case "$target" in
+    codex)
+      printf '{"hookSpecificOutput":{"hookEventName":"%s","additionalContext":%s}}\n' "$hook_event" "$escaped"
+      ;;
     cursor)
       if [ "$event" = "pre-tool-use" ]; then
         printf '%s\n' "$context" >&2
@@ -79,9 +82,13 @@ plan="$task_dir/task_plan.md"
 progress="$task_dir/progress.md"
 
 case "$event" in
-  session-start|user-prompt-submit)
+  session-start)
     context="$(printf '[planning-with-files] ACTIVE PLAN\n'; sed -n '1,80p' "$plan"; printf '\n=== recent progress ===\n'; tail -20 "$progress" 2>/dev/null || true)"
-    emit_context "$context" "$event"
+    emit_context "$context" "SessionStart"
+    ;;
+  user-prompt-submit)
+    context="$(printf '[planning-with-files] ACTIVE PLAN\n'; sed -n '1,80p' "$plan"; printf '\n=== recent progress ===\n'; tail -20 "$progress" 2>/dev/null || true)"
+    emit_context "$context" "UserPromptSubmit"
     ;;
   pre-tool-use)
     context="$(sed -n '1,40p' "$plan" 2>/dev/null || true)"
@@ -90,7 +97,10 @@ case "$event" in
   post-tool-use)
     emit_context "[planning-with-files] Update $progress with what you just did. If the phase changed, update $plan." "PostToolUse"
     ;;
-  stop|agent-stop|session-end)
+  stop)
+    emit_context "[planning-with-files] Before stopping, update $progress and confirm $plan lifecycle state." "Stop"
+    ;;
+  agent-stop|session-end)
     emit_context "[planning-with-files] Before stopping, update $progress and confirm $plan lifecycle state." "$event"
     ;;
   error-occurred)

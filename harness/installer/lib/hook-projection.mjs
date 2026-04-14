@@ -2,7 +2,14 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { resolveHookRoots } from './paths.mjs';
 
-const PLANNING_SUPPORTED_TARGETS = new Set(['copilot', 'cursor', 'claude-code']);
+const PLANNING_SUPPORTED_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
+
+const PLANNING_EVENTS_BY_TARGET = {
+  codex: ['SessionStart', 'UserPromptSubmit', 'Stop'],
+  copilot: ['sessionStart', 'preToolUse', 'postToolUse', 'agentStop', 'errorOccurred'],
+  cursor: ['userPromptSubmit', 'preToolUse', 'postToolUse', 'stop'],
+  'claude-code': ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop']
+};
 
 async function loadSkillIndex(rootDir) {
   return JSON.parse(await readFile(path.join(rootDir, 'harness/core/skills/index.json'), 'utf8'));
@@ -45,7 +52,7 @@ function taskScopedPlanningProjection({ rootDir, root, target, parentSkillName, 
     kind: 'hook',
     parentSkillName,
     target,
-    eventNames: [],
+    eventNames: PLANNING_EVENTS_BY_TARGET[target] ?? [],
     configSource: path.join(sourceRoot, configName),
     configTarget: hookConfigTarget(root, target, parentSkillName),
     configFormat: target === 'claude-code' ? 'settings' : 'hooks',
@@ -67,6 +74,10 @@ function configuredHookProjection({ rootDir, root, target, parentSkillName, hook
   }
 
   const sourceRoot = path.join(rootDir, hookConfig.source);
+  const scriptRoot = hookConfig.scriptRoot
+    ? path.join(sourceRoot, hookConfig.scriptRoot)
+    : sourceRoot;
+  const scripts = hookConfig.scripts ?? ['session-start', 'run-hook.cmd'];
   return {
     kind: 'hook',
     parentSkillName,
@@ -75,10 +86,7 @@ function configuredHookProjection({ rootDir, root, target, parentSkillName, hook
     configSource: path.join(sourceRoot, hookConfig.config),
     configTarget: hookConfigTarget(root, target, parentSkillName),
     configFormat: target === 'claude-code' ? 'settings' : 'hooks',
-    scriptSourcePaths: [
-      path.join(sourceRoot, 'session-start'),
-      path.join(sourceRoot, 'run-hook.cmd')
-    ],
+    scriptSourcePaths: scripts.map((script) => path.join(scriptRoot, script)),
     scriptTargetRoot: scriptTargetRoot(root, target),
     status: 'planned'
   };

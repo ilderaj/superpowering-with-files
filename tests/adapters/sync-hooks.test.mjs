@@ -50,6 +50,33 @@ test('sync installs cursor planning hooks when hookMode is on', async () => {
   }
 });
 
+test('sync installs codex planning hooks when hookMode is on', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: { codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] } },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const hooks = JSON.parse(await readFile(path.join(root, '.codex/hooks.json'), 'utf8'));
+
+    assert.ok(hooks.hooks.SessionStart);
+    assert.ok(hooks.hooks.UserPromptSubmit);
+    assert.ok(hooks.hooks.Stop);
+    assert.match(JSON.stringify(hooks), /Harness-managed planning-with-files hook/);
+    assert.match(await readFile(path.join(root, '.codex/hooks/task-scoped-hook.sh'), 'utf8'), /planning\/active/);
+    assert.match(JSON.stringify(hooks), /Harness-managed superpowers hook/);
+    assert.match(await readFile(path.join(root, '.codex/hooks/session-start'), 'utf8'), /using-superpowers/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('sync installs claude hooks into settings while preserving settings fields', async () => {
   const root = await createHarnessFixture();
   try {

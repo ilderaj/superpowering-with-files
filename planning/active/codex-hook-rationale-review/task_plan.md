@@ -27,6 +27,13 @@ Close Reason:
   - 文档、矩阵、测试、installer metadata 一致化。
 - 不修改 `harness/upstream/*` 的 vendor baseline 语义；如需针对 Codex 输出适配，优先新增 Harness-owned wrapper。
 
+## Execution Controls
+
+- Worktree base: `dev @ c4297b928f6e0e0d9d7825c123d008b60d59637e`.
+- 主工作区当前包含本计划文件的未提交改动；执行前必须把 `planning/active/codex-hook-rationale-review/` 的最新文件同步到隔离 worktree。
+- 本计划中的任务级 commit 步骤已改为 checkpoint。执行时只在 Task 7 通过全部验证后创建一个实现提交，避免中间提交和最终提交重复。
+- Cursor hooks 不得在没有官方 docs 级依据时继续扩展实现。若证据缺口仍存在，只更新 docs/status 的支持声明，不改变 Cursor hook adapter 的行为。
+
 ## File Structure
 
 - Modify: `harness/core/metadata/platforms.json`
@@ -133,11 +140,10 @@ Expected:
 Only doc-backed statements remain as implementation premises.
 ```
 
-- [ ] **Step 3: Commit the evidence baseline**
+- [ ] **Step 3: Checkpoint**
 
 ```bash
-git add planning/active/codex-hook-rationale-review/findings.md planning/active/codex-hook-rationale-review/progress.md docs/architecture.md
-git commit -m "docs: record official hooks fact matrix"
+git diff -- planning/active/codex-hook-rationale-review/findings.md planning/active/codex-hook-rationale-review/progress.md docs/architecture.md
 ```
 
 ### Task 1: Codex Contract And Failing Tests
@@ -241,11 +247,10 @@ PASS ... planHookProjections returns planned Codex planning hook config
 PASS ... sync projects workspace entries and skills
 ```
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Checkpoint**
 
 ```bash
-git add harness/core/metadata/platforms.json harness/core/skills/index.json tests/installer/paths.test.mjs tests/adapters/hook-projection.test.mjs tests/adapters/sync-skills.test.mjs
-git commit -m "test: codify codex hook and skill path contract"
+git diff -- harness/core/metadata/platforms.json harness/core/skills/index.json tests/installer/paths.test.mjs tests/adapters/hook-projection.test.mjs tests/adapters/sync-skills.test.mjs
 ```
 
 ### Task 2: Add The planning-with-files Codex Adapter
@@ -417,11 +422,10 @@ PASS ... sync installs codex planning hooks when hookMode is on
 PASS ... task-scoped-hook emits Codex hookSpecificOutput payload
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Checkpoint**
 
 ```bash
-git add harness/core/hooks/planning-with-files/codex-hooks.json harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh harness/installer/lib/hook-projection.mjs tests/adapters/hook-projection.test.mjs tests/adapters/sync-hooks.test.mjs tests/hooks/task-scoped-hook.test.mjs
-git commit -m "feat: add codex planning hook adapter"
+git diff -- harness/core/hooks/planning-with-files/codex-hooks.json harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh harness/installer/lib/hook-projection.mjs tests/adapters/hook-projection.test.mjs tests/adapters/sync-hooks.test.mjs tests/hooks/task-scoped-hook.test.mjs
 ```
 
 ### Task 3: Add The superpowers Codex Adapter
@@ -529,11 +533,10 @@ PASS ... sync installs codex superpowers hook alongside planning hook
 PASS ... superpowers codex session-start emits hookSpecificOutput payload
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Checkpoint**
 
 ```bash
-git add harness/core/hooks/superpowers/codex-hooks.json harness/core/hooks/superpowers/scripts/session-start harness/core/hooks/superpowers/scripts/run-hook.cmd harness/core/skills/index.json harness/installer/commands/sync.mjs tests/adapters/sync-hooks.test.mjs tests/hooks/superpowers-codex-hook.test.mjs
-git commit -m "feat: add codex superpowers hook adapter"
+git diff -- harness/core/hooks/superpowers/codex-hooks.json harness/core/hooks/superpowers/scripts/session-start harness/core/hooks/superpowers/scripts/run-hook.cmd harness/core/skills/index.json harness/installer/commands/sync.mjs tests/adapters/sync-hooks.test.mjs tests/hooks/superpowers-codex-hook.test.mjs
 ```
 
 ### Task 4: Harden Copilot And Claude Hook Health And Adaptation
@@ -637,11 +640,10 @@ PASS ... readHarnessHealth reports problem when Codex hook config is missing Sto
 PASS ... existing copilot and claude hook sync tests remain green
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 6: Checkpoint**
 
 ```bash
-git add harness/installer/lib/health.mjs harness/installer/lib/hook-config.mjs tests/installer/health.test.mjs tests/installer/hook-config.test.mjs tests/adapters/sync-hooks.test.mjs
-git commit -m "test: harden codex copilot and claude hook health validation"
+git diff -- harness/installer/lib/health.mjs harness/installer/lib/hook-config.mjs tests/installer/health.test.mjs tests/installer/hook-config.test.mjs tests/adapters/sync-hooks.test.mjs
 ```
 
 ### Task 5: Cursor Evidence Gate And Support Decision
@@ -656,21 +658,22 @@ git commit -m "test: harden codex copilot and claude hook health validation"
 
 Use only official docs search results already captured for this task. If no Cursor docs page with hook path/schema/event details is available, treat that as an evidence gap instead of filling gaps from current implementation.
 
-- [ ] **Step 2: Add a failing expectation that unsupported evidence must be visible**
+- [ ] **Step 2: Add a failing expectation that Cursor evidence level is explicit**
 
 ```js
-test('health/status can surface Cursor hook evidence gap without claiming verified support', async () => {
+test('Cursor hooks are marked provisional when official hook docs are not cited', async () => {
   const health = await readHarnessHealth(root, '/home/user');
-  assert.ok(
-    health.targets.cursor.hooks.every((hook) => ['ok', 'unsupported', 'problem', 'missing'].includes(hook.status))
-  );
+  const planning = health.targets.cursor.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
+
+  assert.equal(planning.evidenceLevel, 'provisional');
+  assert.match(planning.message, /official Cursor hook documentation has not been verified/);
 });
 ```
 
 The implementation choice may end up being:
 
-- keep current Cursor adapter but mark docs/support claims as provisional, or
-- downgrade Cursor hook support in docs/status until official docs are available.
+- keep current Cursor adapter behavior but mark its hook projections as `evidenceLevel: "provisional"`, or
+- downgrade Cursor hook support to `unsupported` until official docs are available.
 
 - [ ] **Step 3: Update docs and support matrix according to evidence**
 
@@ -680,11 +683,10 @@ If official docs are still unavailable, the docs must stop presenting Cursor hoo
 Cursor hook projection exists in Harness, but this repository does not currently cite a Cursor official hooks documentation page that verifies the path/schema contract. Treat it as provisional until verified.
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Checkpoint**
 
 ```bash
-git add docs/install/cursor.md docs/compatibility/hooks.md docs/architecture.md tests/installer/health.test.mjs
-git commit -m "docs: gate cursor hook claims on official documentation"
+git diff -- docs/install/cursor.md docs/compatibility/hooks.md docs/architecture.md tests/installer/health.test.mjs
 ```
 
 ### Task 6: Reconcile Docs, Matrix, And Installer Narratives
@@ -756,11 +758,10 @@ Expected:
 no matches
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Checkpoint**
 
 ```bash
-git add docs/install/codex.md docs/install/copilot.md docs/install/cursor.md docs/compatibility/hooks.md docs/architecture.md README.md
-git commit -m "docs: align hook support claims with official sources"
+git diff -- docs/install/codex.md docs/install/copilot.md docs/install/cursor.md docs/compatibility/hooks.md docs/architecture.md README.md
 ```
 
 ### Task 7: Final Verification
@@ -821,7 +822,7 @@ no output
 - [ ] **Step 4: Final commit**
 
 ```bash
-git add harness/core/metadata/platforms.json harness/core/skills/index.json harness/core/hooks/planning-with-files/codex-hooks.json harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh harness/core/hooks/superpowers/codex-hooks.json harness/core/hooks/superpowers/scripts/session-start harness/core/hooks/superpowers/scripts/run-hook.cmd harness/installer/lib/hook-projection.mjs harness/installer/commands/sync.mjs harness/installer/lib/health.mjs harness/installer/lib/hook-config.mjs docs/install/codex.md docs/install/copilot.md docs/compatibility/hooks.md docs/architecture.md README.md tests/adapters/hook-projection.test.mjs tests/adapters/sync-hooks.test.mjs tests/installer/health.test.mjs tests/installer/hook-config.test.mjs tests/installer/paths.test.mjs tests/adapters/sync-skills.test.mjs tests/hooks/task-scoped-hook.test.mjs tests/hooks/superpowers-codex-hook.test.mjs
+git add harness/core/metadata/platforms.json harness/core/skills/index.json harness/core/hooks/planning-with-files/codex-hooks.json harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh harness/core/hooks/superpowers/codex-hooks.json harness/core/hooks/superpowers/scripts/session-start harness/core/hooks/superpowers/scripts/run-hook.cmd harness/installer/lib/hook-projection.mjs harness/installer/commands/sync.mjs harness/installer/lib/health.mjs harness/installer/lib/hook-config.mjs docs/install/codex.md docs/install/copilot.md docs/install/cursor.md docs/compatibility/hooks.md docs/architecture.md README.md tests/adapters/hook-projection.test.mjs tests/adapters/sync-hooks.test.mjs tests/installer/health.test.mjs tests/installer/hook-config.test.mjs tests/installer/paths.test.mjs tests/adapters/sync-skills.test.mjs tests/hooks/task-scoped-hook.test.mjs tests/hooks/superpowers-codex-hook.test.mjs
 git commit -m "feat: add codex hooks and harden cross-ide hook projection"
 ```
 

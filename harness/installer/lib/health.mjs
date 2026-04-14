@@ -122,6 +122,24 @@ function hookConfigHasMarker(config, marker) {
   );
 }
 
+function hookConfigHasEvent(config, eventName) {
+  return Array.isArray(config?.hooks?.[eventName]) && config.hooks[eventName].length > 0;
+}
+
+function hookEvidence(projection) {
+  if (projection.target === 'cursor') {
+    return {
+      evidenceLevel: 'provisional',
+      message:
+        'The official Cursor hook documentation has not been verified for this path/schema contract.'
+    };
+  }
+
+  return {
+    evidenceLevel: 'verified'
+  };
+}
+
 function publicUpstreamStatus(upstream = {}) {
   const result = {};
   for (const [sourceName, sourceState] of Object.entries(upstream)) {
@@ -169,6 +187,12 @@ async function inspectHook(projection) {
     return { ...projection, status: 'problem', message: `Hook config is missing ${marker}.` };
   }
 
+  for (const eventName of projection.eventNames ?? []) {
+    if (!hookConfigHasEvent(config, eventName)) {
+      return { ...projection, status: 'problem', message: `Hook config is missing required event ${eventName}.` };
+    }
+  }
+
   for (const sourcePath of projection.scriptSourcePaths) {
     const targetPath = path.join(projection.scriptTargetRoot, path.basename(sourcePath));
     if (!(await exists(targetPath))) {
@@ -176,7 +200,7 @@ async function inspectHook(projection) {
     }
   }
 
-  return { ...projection, status: 'ok' };
+  return { ...projection, ...hookEvidence(projection), status: 'ok' };
 }
 
 export async function readHarnessHealth(rootDir, homeDir) {

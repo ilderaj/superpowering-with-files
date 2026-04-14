@@ -61,6 +61,12 @@ test('resolveSkillRoots returns global skill root for Codex', () => {
   ]);
 });
 
+test('resolveSkillRoots returns workspace skill root for Codex', () => {
+  assert.deepEqual(resolveSkillRoots('/repo', '/home/user', 'workspace', 'codex'), [
+    '/repo/.agents/skills'
+  ]);
+});
+
 test('resolveSkillTargetPaths maps a single skill into each selected root', () => {
   assert.deepEqual(
     resolveSkillTargetPaths('/repo', '/home/user', 'both', 'cursor', {
