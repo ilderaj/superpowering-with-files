@@ -77,7 +77,7 @@ test('sync garbage-collects stale entry and skill projections', async () => {
     await withCwd(root, () => sync([]));
 
     await assert.rejects(lstat(path.join(root, 'AGENTS.md')), /ENOENT/);
-    await assert.rejects(lstat(path.join(root, '.codex/skills/using-superpowers')), /ENOENT/);
+    await assert.rejects(lstat(path.join(root, '.agents/skills/using-superpowers')), /ENOENT/);
     assert.deepEqual((await readProjectionManifest(root)).entries, []);
   } finally {
     await removeHarnessFixture(root);

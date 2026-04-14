@@ -10,7 +10,10 @@ test('skill index defines required v1 skills and projections', async () => {
   assert.ok(index.skills['planning-with-files']);
   assert.equal(index.skills['planning-with-files'].source, 'https://github.com/OthmanAdi/planning-with-files');
   assert.equal(index.skills['planning-with-files'].projection.copilot, 'materialize');
-  assert.equal(index.skills.superpowers.projection.codex, 'link');
+  assert.equal(index.skills['planning-with-files'].projection.codex, 'materialize');
+  assert.equal(index.skills.superpowers.projection.codex, 'materialize');
+  assert.equal(index.skills.superpowers.projection.cursor, 'materialize');
+  assert.equal(index.skills.superpowers.projection['claude-code'], 'materialize');
 });
 
 test('skill index declares layouts required for filesystem projection', async () => {

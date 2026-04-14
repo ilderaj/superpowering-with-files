@@ -49,12 +49,12 @@ Skill roots are platform metadata, not command-local constants:
 
 | Target | Workspace skill root | User-global skill root |
 | --- | --- | --- |
-| Codex | `.codex/skills` | `~/.codex/skills` |
+| Codex | `.agents/skills` | `~/.agents/skills` |
 | GitHub Copilot | `.github/skills` | `~/.copilot/skills` |
 | Cursor | `.cursor/skills` | `~/.cursor/skills` |
 | Claude Code | `.claude/skills` | `~/.claude/skills` |
 
-Claude Code shared skill-root symlinks are intentionally unsupported. Harness expects each Claude skill target path to be projected individually under `.claude/skills` or `~/.claude/skills`; directory-level sharing such as `.claude/skills -> ~/.codex/skills` is reported as unhealthy.
+Harness materializes skill projections by default so the projected directory is the only discovery source each IDE sees during fresh install. Claude Code shared skill-root symlinks are intentionally unsupported. Harness expects each Claude skill target path to be projected individually under `.claude/skills` or `~/.claude/skills`; directory-level sharing such as `.claude/skills -> ~/.agents/skills` is reported as unhealthy.
 
 Platform metadata also records unsupported installer targets. Gemini CLI is currently metadata-listed as unsupported so the installer can fail explicitly instead of pretending partial projection exists.
 
