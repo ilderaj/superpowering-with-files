@@ -14,13 +14,13 @@ User-global scope writes:
 ~/.codex/AGENTS.md
 ```
 
-Harness currently projects Codex skills to these roots in the Codex app environment. Skills prefer link projection when symlinks are available.
+Harness currently projects Codex skills into the official Codex skill roots and materializes them there to keep discovery stable and avoid symlink-specific duplication.
 
 Skill roots:
 
 ```text
-.codex/skills
-~/.codex/skills
+.agents/skills
+~/.agents/skills
 ```
 
 Hooks are not projected for Codex because Harness does not have a verified Codex hook adapter. If `--hooks=on` is used with `--targets=codex`, `status` and `doctor` report the Codex hook entries as unsupported without failing the health check.

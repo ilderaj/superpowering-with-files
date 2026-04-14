@@ -27,7 +27,7 @@ function effectiveStrategy(projection, projectionMode) {
   return projection.strategy;
 }
 
-async function inspectLinkedSkill(projection) {
+async function inspectSharedSkillRoot(projection) {
   const rootStat = await lstat(path.dirname(projection.targetPath)).catch(() => null);
   if (projection.target === 'claude-code' && rootStat?.isSymbolicLink()) {
     return {
@@ -37,7 +37,10 @@ async function inspectLinkedSkill(projection) {
         'Claude Code shared skill root symlinks are not supported; project each skill into .claude/skills individually.'
     };
   }
+  return null;
+}
 
+async function inspectLinkedSkill(projection) {
   const stat = await lstat(projection.targetPath);
   if (!stat.isSymbolicLink()) {
     return { ...projection, status: 'problem', message: 'Expected a symlink.' };
@@ -53,6 +56,23 @@ async function inspectLinkedSkill(projection) {
 }
 
 async function inspectMaterializedSkill(projection) {
+  const stat = await lstat(projection.targetPath).catch(() => null);
+  if (stat?.isSymbolicLink()) {
+    return {
+      ...projection,
+      status: 'problem',
+      message: 'Expected a materialized directory, but found a symlink.'
+    };
+  }
+
+  if (!stat?.isDirectory()) {
+    return {
+      ...projection,
+      status: 'problem',
+      message: 'Materialized skill must be a directory.'
+    };
+  }
+
   const skillFile = path.join(projection.targetPath, 'SKILL.md');
   if (!(await exists(skillFile))) {
     return { ...projection, status: 'problem', message: 'Materialized skill is missing SKILL.md.' };
@@ -75,6 +95,11 @@ async function inspectMaterializedSkill(projection) {
 async function inspectSkill(projection, projectionMode) {
   if (!(await exists(projection.targetPath))) {
     return { ...projection, status: 'missing', message: 'Skill projection is missing.' };
+  }
+
+  const sharedRootProblem = await inspectSharedSkillRoot(projection);
+  if (sharedRootProblem) {
+    return sharedRootProblem;
   }
 
   const strategy = effectiveStrategy(projection, projectionMode);

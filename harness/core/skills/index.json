@@ -6,11 +6,11 @@
       "baselinePath": "harness/upstream/superpowers/skills",
       "layout": "collection",
       "projection": {
-        "default": "link",
-        "copilot": "link",
-        "cursor": "link",
-        "codex": "link",
-        "claude-code": "link"
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
       },
       "hooks": {
         "cursor": {
@@ -31,11 +31,11 @@
       "layout": "single",
       "targetName": "planning-with-files",
       "projection": {
-        "default": "link",
+        "default": "materialize",
         "copilot": "materialize",
-        "cursor": "link",
-        "codex": "link",
-        "claude-code": "link"
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
       },
       "patches": {
         "copilot": {
