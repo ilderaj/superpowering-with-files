@@ -1,8 +1,8 @@
-# HarnessTemplate
+# superpowering-with-files
 
-HarnessTemplate is a higher-level governance harness for humans and agents working in local projects. It turns one shared policy into the native instruction entry files used by Codex, GitHub Copilot, Cursor, and Claude Code.
+superpowering-with-files is a higher-level governance harness for humans and agents working in local projects. It turns one shared policy into the native instruction entry files used by Codex, GitHub Copilot, Cursor, and Claude Code.
 
-Gemini CLI is not currently a supported Harness installer target. HarnessTemplate does not create installer-managed Gemini rendered entries, skill roots, or user-global state.
+Gemini CLI is not currently a supported Harness installer target. superpowering-with-files does not create installer-managed Gemini rendered entries, skill roots, or user-global state.
 
 Use it at workspace scope when a single project should carry its own rules. Use it at user-global scope when you want the same Harness baseline across local projects. Use `both` when a project needs local entry files and a user-level baseline.
 
@@ -50,7 +50,7 @@ For an existing setup, inspect the current workspace and user-global entry files
 | Mode | Use when | Result |
 | --- | --- | --- |
 | Replace | Existing workspace or user-global rules should be retired. | Harness-rendered entry files become the rule source for the selected scope. |
-| Update | A previous Harness install already owns the selected scope. | `sync` refreshes the rendered entry files from the current HarnessTemplate policy. |
+| Update | A previous Harness install already owns the selected scope. | `sync` refreshes the rendered entry files from the current superpowering-with-files policy. |
 | Enhance | Existing lower-level skills or rules are still useful. | Harness becomes the higher-level policy and routes into those capabilities when appropriate. |
 | Wrap | A local router or framework already coordinates lower-level behavior. | Harness stays above it, sets governance, and calls into that router only as a scoped capability. |
 
@@ -165,7 +165,7 @@ Harness has four layers:
 
 ```mermaid
 flowchart LR
-  Repo["HarnessTemplate"] --> Core["harness/core"]
+  Repo["superpowering-with-files"] --> Core["harness/core"]
   Repo --> Adapters["harness/adapters"]
   Repo --> Installer["harness/installer"]
   Repo --> Upstream["harness/upstream"]

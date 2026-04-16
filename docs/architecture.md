@@ -1,6 +1,6 @@
 # Architecture
 
-HarnessTemplate uses four layers:
+superpowering-with-files uses four layers:
 
 - `harness/core`: platform-neutral policy, skills metadata, templates, and schemas.
 - `harness/adapters`: platform-specific projection manifests.

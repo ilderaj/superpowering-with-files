@@ -6,7 +6,7 @@
     "gemini": {
       "displayName": "Gemini CLI",
       "status": "unsupported",
-      "reason": "HarnessTemplate does not currently project Gemini rendered entry files, skill roots, or installer-managed user-global state."
+      "reason": "superpowering-with-files does not currently project Gemini rendered entry files, skill roots, or installer-managed user-global state."
     }
   },
   "platforms": {

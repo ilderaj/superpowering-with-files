@@ -26,7 +26,7 @@ For feature or Superpowers worktrees, run `./scripts/harness worktree-preflight`
 Create the GitHub repository with:
 
 ```bash
-gh repo create HarnessTemplate --public --source=. --remote=origin --push
+gh repo create superpowering-with-files --public --source=. --remote=origin --push
 ```
 
 Create and push `dev`:

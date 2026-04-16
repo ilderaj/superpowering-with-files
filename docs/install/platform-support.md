@@ -1,13 +1,13 @@
 # Platform Support
 
-HarnessTemplate currently supports installer-managed projections for:
+superpowering-with-files currently supports installer-managed projections for:
 
 - Codex
 - GitHub Copilot
 - Cursor
 - Claude Code
 
-HarnessTemplate does not currently support installer-managed Gemini CLI projections.
+superpowering-with-files does not currently support installer-managed Gemini CLI projections.
 
 That means:
 
