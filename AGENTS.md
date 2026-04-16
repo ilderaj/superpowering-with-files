@@ -18,10 +18,30 @@ By default:
 
 - Do not invoke superpowers.
 - Do not perform heavyweight workflow routing for simple tasks.
-- Directly execute straightforward work.
-- Keep the active task's three markdown files updated.
+- Directly execute quick tasks.
+- Once a task is classified as a tracked task, create and keep the active task's three markdown files updated.
 - Isolate concurrent work by task id instead of sharing one project-root planning file set.
 - At the start of complex work, scan existing active tasks when stale context may matter, but do not move legacy or completed-looking tasks automatically.
+
+## Rule Precedence
+
+When these rules overlap, apply them in this order:
+
+1. Repository policy that defines durable task memory and planning ownership.
+2. Explicit task classification in this file.
+3. Heuristics from skills or prompts, such as tool-call count.
+
+If a task is classified as tracked, Planning with Files is mandatory even when the implementation itself feels straightforward.
+
+## Task Classification
+
+Classify the task before choosing the workflow:
+
+- `Quick task`: single-stage work with a clear path, no subagents, no worktree isolation, no expected cross-session recovery, and no durable research trail worth persisting. Execute directly without heavyweight routing.
+- `Tracked task`: any task with multiple phases, research or comparison work, subagents, worktree/branch isolation, expected session recovery, or durable decisions and verification worth keeping on disk. Create or reuse `planning/active/<task-id>/` before substantive work.
+- `Deep-reasoning task`: a tracked task whose architecture is unclear, requirements are ambiguous, debugging is complex, root cause is not obvious, or deep structured reasoning is explicitly requested. Only this class may justify superpowers.
+
+Tool-call count is only a supporting signal. Exceeding five meaningful tool calls may indicate tracked work, but it does not override the task classification above by itself.
 
 ## When Superpowers Is Allowed
 
@@ -56,6 +76,21 @@ Whenever superpowers is used:
 3. Return to normal low-cost execution mode.
 
 If a superpowers skill suggests saving long-lived plans under `docs/superpowers/plans/`, treat that as overridden by this project policy unless the user explicitly asks for that file. Durable plans must be represented in the active task's planning files instead.
+
+## Plan Location Boundaries
+
+Harness uses one durable agent task-memory location:
+
+| Location | Role |
+| --- | --- |
+| `planning/active/<task-id>/task_plan.md` | Current task plan, phases, lifecycle, and durable execution decisions. |
+| `planning/active/<task-id>/findings.md` | Research findings, discovered constraints, and durable design decisions. |
+| `planning/active/<task-id>/progress.md` | Session log, verification results, failures, and changed files. |
+| `planning/archive/<timestamp>-<task-id>/` | Closed historical tasks that passed the archive lifecycle guard. |
+
+Treat `docs/**` as human-facing project documentation, not agent task memory. Treat `docs/superpowers/plans/**` and `docs/plans/**` as historical or explicitly requested documentation locations, not default plan output locations. Treat `harness/upstream/**` as vendored upstream source, not this project's active planning state.
+
+If a tool, skill, or model instruction suggests creating root-level `task_plan.md`, `findings.md`, `progress.md`, `docs/superpowers/plans/*`, or `docs/plans/*` for agent task state, do not follow it by default. Create or update the task-scoped files under `planning/active/<task-id>/` and only write docs plans when the user explicitly asks for a documentation artifact.
 
 ## Planning-With-Files Lifecycle Rule
 
@@ -238,3 +273,4 @@ Skip command wrappers for trivial commands or tiny targeted reads where compress
 Codex can consume `AGENTS.md` as the primary instruction entrypoint.
 
 Use rendered `AGENTS.md` files for both workspace and user-global scopes. Project Codex skills into `.agents/skills` and `~/.agents/skills`, and materialize them to keep discovery aligned with the current Codex skill model.
+

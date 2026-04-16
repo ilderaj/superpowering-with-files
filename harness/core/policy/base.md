@@ -16,10 +16,30 @@ By default:
 
 - Do not invoke superpowers.
 - Do not perform heavyweight workflow routing for simple tasks.
-- Directly execute straightforward work.
-- Keep the active task's three markdown files updated.
+- Directly execute quick tasks.
+- Once a task is classified as a tracked task, create and keep the active task's three markdown files updated.
 - Isolate concurrent work by task id instead of sharing one project-root planning file set.
 - At the start of complex work, scan existing active tasks when stale context may matter, but do not move legacy or completed-looking tasks automatically.
+
+## Rule Precedence
+
+When these rules overlap, apply them in this order:
+
+1. Repository policy that defines durable task memory and planning ownership.
+2. Explicit task classification in this file.
+3. Heuristics from skills or prompts, such as tool-call count.
+
+If a task is classified as tracked, Planning with Files is mandatory even when the implementation itself feels straightforward.
+
+## Task Classification
+
+Classify the task before choosing the workflow:
+
+- `Quick task`: single-stage work with a clear path, no subagents, no worktree isolation, no expected cross-session recovery, and no durable research trail worth persisting. Execute directly without heavyweight routing.
+- `Tracked task`: any task with multiple phases, research or comparison work, subagents, worktree/branch isolation, expected session recovery, or durable decisions and verification worth keeping on disk. Create or reuse `planning/active/<task-id>/` before substantive work.
+- `Deep-reasoning task`: a tracked task whose architecture is unclear, requirements are ambiguous, debugging is complex, root cause is not obvious, or deep structured reasoning is explicitly requested. Only this class may justify superpowers.
+
+Tool-call count is only a supporting signal. Exceeding five meaningful tool calls may indicate tracked work, but it does not override the task classification above by itself.
 
 ## When Superpowers Is Allowed
 

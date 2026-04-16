@@ -1,6 +1,6 @@
 ---
 name: planning-with-files
-description: Implements Manus-style file-based planning to organize and track progress on complex tasks. Creates task-scoped task_plan.md, findings.md, and progress.md under planning/active/<task-id>/. Use when asked to plan out, break down, or organize a multi-step project, research task, or any work requiring >5 tool calls. Supports automatic session recovery after /clear.
+description: Implements Manus-style file-based planning to organize and track progress on tracked tasks. Creates task-scoped task_plan.md, findings.md, and progress.md under planning/active/<task-id>/. Use when asked to plan out, break down, or organize a multi-step project, research task, or any repo-defined tracked task. Tool-call count is only a hint, not a standalone trigger. Supports automatic session recovery after /clear.
 user-invocable: true
 allowed-tools: "Read, Write, Edit, Bash, Glob, Grep"
 metadata:
@@ -225,7 +225,8 @@ If you can answer these, your context management is solid:
 - Multi-step tasks (3+ steps)
 - Research tasks
 - Building/creating projects
-- Tasks spanning many tool calls
+- Tasks that the repo policy classifies as tracked work
+- Tasks spanning many meaningful tool calls when that is evidence of tracked work
 - Anything requiring organization
 
 **Skip for:**

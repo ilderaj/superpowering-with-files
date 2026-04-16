@@ -35,6 +35,8 @@ test('sync projects workspace entries and skills', async () => {
 
     const copilotPlanning = await readFile(path.join(root, '.github/skills/planning-with-files/SKILL.md'), 'utf8');
     assert.match(copilotPlanning, /Harness Copilot planning-with-files patch/);
+    assert.match(copilotPlanning, /tracked tasks/);
+    assert.match(copilotPlanning, /Tool-call count is only a hint/);
 
     const writingPlans = await readFile(path.join(root, '.agents/skills/writing-plans/SKILL.md'), 'utf8');
     assert.match(writingPlans, /Harness Superpowers writing-plans location patch/);

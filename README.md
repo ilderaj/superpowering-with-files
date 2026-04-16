@@ -40,8 +40,26 @@ Rules:
 
 1. `planning-with-files` is the only durable task-memory system.
 2. `docs/**`, `docs/superpowers/plans/**`, and `docs/plans/**` are documentation, not active task memory.
-3. `superpowers` is phase-scoped; durable outputs must be synced back into the active planning files.
-4. Worktree creation starts with:
+3. **Default mode stays lightweight**
+   - Do direct execution only for quick tasks.
+   - Once work becomes a tracked task, create or reuse `planning/active/<task-id>/` and keep its three planning files updated.
+   - Use `superpowers` only when architecture is unclear, requirements are ambiguous, debugging is complex, root cause is not obvious, or deep structured reasoning is explicitly needed.
+
+4. **Task classification comes before workflow choice**
+   - `Quick task`: single-stage work with a clear path and no durable planning needs.
+   - `Tracked task`: multi-phase, research-heavy, isolated, parallel, or cross-session work that needs durable state.
+   - `Deep-reasoning task`: a tracked task that also justifies `superpowers`.
+   - Tool-call count is only a hint; it does not override the classification above by itself.
+
+5. **Complex-mode order is fixed**
+   - create or reuse one task under `planning/active/<task-id>/`
+   - group work into phases with finishing criteria
+   - run worktree preflight before isolation when needed
+   - use `superpowers` only for the phase that justifies it
+   - sync durable decisions back into Planning with Files
+   - let the main agent review, verify, and integrate
+
+6. **Worktree base must be explicit**
 
 ```bash
 ./scripts/harness worktree-preflight

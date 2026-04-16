@@ -7,6 +7,9 @@ test('renderEntry combines base policy and platform override', async () => {
   assert.match(rendered, /# Harness Policy For Codex/);
   assert.match(rendered, /Hybrid Workflow Policy/);
   assert.match(rendered, /Codex Platform Notes/);
+  assert.match(rendered, /Rule Precedence/);
+  assert.match(rendered, /Quick task/);
+  assert.match(rendered, /Tracked task/);
 });
 
 test('renderEntry includes complex orchestration policy for every supported target', async () => {
