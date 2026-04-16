@@ -6,10 +6,10 @@
 ## Current State
 Status: closed
 Archive Eligible: yes
-Close Reason: README 重构、上游授权与 credit 补充，以及 GitHub release 1.0.3 已完成并验证。
+Close Reason: README 收口、GitHub About 更新、分支推送与 PR #15 已完成。
 
 ## Current Phase
-Phase 3
+Phase 6
 
 ## Phases
 
@@ -31,12 +31,36 @@ Phase 3
 - [x] 创建提交、tag 和 GitHub release
 - **Status:** complete
 
+### Phase 4: README 二次重塑
+- [x] 保留结构图和来源到投影的对比关系
+- [x] 恢复 entry files、skills、hooks 等路径矩阵，但压缩冗余说明
+- [x] 统一规则、结构、来源、credits、授权的叙述顺序
+- [x] 重新验证 README 改动
+- **Status:** complete
+
+### Phase 5: README 三次收口
+- [x] 继续压缩重复句和解释句
+- [x] 统一标题和表格术语
+- [x] 保留信息面不再扩张
+- [x] 重新验证 README 改动
+- **Status:** complete
+
+### Phase 6: 提交、推送、PR 与 About 更新
+- [x] 创建独立分支承载本轮 README 收口
+- [x] 更新 GitHub repository About 描述
+- [x] 提交并推送分支
+- [x] 创建 PR
+- **Status:** complete
+
 ## Decisions Made
 | Decision | Rationale |
 |----------|-----------|
 | 为本次 README/release 工作单独开新 task | 这次工作是新的发布与文档收敛任务，不复用仓库更名任务，避免 planning 记录混杂 |
 | README 首页只保留规则、上游继承、安装入口和文档导航 | 首页应该先解释行为模型，而不是穷举投影细节 |
 | release 说明只覆盖 `1.0.2..HEAD` 的真实差异 | 避免把历史已发布内容重复写进新 release note |
+| 同一用户继续要求优化 README 时，复用此 task 并新增 phase | 属于同一文档收敛任务，不应再新开 planning 目录 |
+| README 恢复结构图和路径矩阵，但放在规则与来源之后 | 对比关系仍然重要，只是不应打断首页对行为模型的解释 |
+| About 描述只写一句英文短句 | GitHub About 需要极简、直接、可扫描 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |

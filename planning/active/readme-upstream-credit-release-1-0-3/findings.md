@@ -5,6 +5,7 @@
 - README 需要列出 `superpowers` 与 `planning-with-files` 的授权、使用方式、使用范围，以及本项目如何继承它们。
 - README 需要明确致谢与 credit。
 - 需要发布一个比上一个版本高 `0.0.1` 的 GitHub release。
+- README 继续优化时，需要保留原来有用的结构图、安装路径和来源到投影的对比关系，而不是全部下沉到 docs。
 
 ## Research Findings
 - 最新 Git tag 与 GitHub release 都是 `1.0.2`。
@@ -27,7 +28,22 @@
 - GitHub release `1.0.3` 已创建：
   - tag: `1.0.3`
   - URL: `https://github.com/ilderaj/superpowering-with-files/releases/tag/1.0.3`
+- GitHub repository About 已更新为：
+  - `Governance harness for local coding agents with durable planning and optional reasoning workflows.`
 - 发布过程中第一次 `gh release create` 因 shell 反引号转义导致 release body 被错误截断，但 release 本身已创建；随后通过 `gh release edit --notes-file -` 修正为目标文案。
+- 用户后续反馈表明：首页不应只有规则摘要；结构图、entry files、skill roots、hook roots 这些“来源到投影”的关系本身也是 README 的核心价值。
+- 新版 README 已调整为以下顺序：
+  - Core Model
+  - Upstream, License, Credit
+  - Quick Start
+  - Repository Structure
+  - Source-to-Target Projection
+  - Upstream Updates / Commands / Docs
+- 第三轮收口后又进一步压短了：
+  - `Durable Task State` -> `Task State`
+  - `Source-to-Target Projection` -> `Projection Map`
+  - Quick Start 合并成一个代码块
+  - 删除或压短了重复解释句，不再重复说明同一层含义
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -37,6 +53,10 @@
 | 将上游继承信息写成单独一节 | 便于明确 license、usage model、inheritance mode 与 credit |
 | GitHub release 使用 `1.0.3` | 按 `1.0.2 + 0.0.1` 计算 |
 | release notes 控制在三条以内 | 用户要求精炼、明确、克制 |
+| README 保留结构图和投影矩阵 | 这些内容对 agents 和 humans 都有高信息密度，应该留在首页 |
+| README 不再恢复旧版全部长说明 | 保留对比关系，去掉重复解释，避免再次膨胀 |
+| 第三轮只做减法，不再增加新段落 | 避免 README 再次变胖 |
+| GitHub About 使用一句英文短句 | 与 upstream 风格一致，适合 GitHub 首页快速扫描 |
 
 ## Resources
 - `https://github.com/obra/superpowers`

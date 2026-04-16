@@ -44,6 +44,40 @@
   - GitHub tag `1.0.3`
   - GitHub release `1.0.3`
 
+### Phase 4: README 二次重塑
+- **Status:** complete
+- Actions taken:
+  - 回读旧版 README、`docs/architecture.md` 和 `docs/compatibility/hooks.md`，筛选仍有价值的结构图和路径矩阵。
+  - 重写 `README.md`，把结构图和来源到投影的对比关系恢复到首页。
+  - 保持规则层前置，不把 “Plan File Locations” 和 “Complex Mode” 混回结构说明中间。
+  - 保留 entry files、skill roots、hooks support/hook roots 四类高价值矩阵。
+  - 再次运行 `git diff --check`，确认文档格式正常。
+- Files created/modified:
+  - `README.md`
+
+### Phase 5: README 三次收口
+- **Status:** complete
+- Actions taken:
+  - 继续压缩开头说明和章节内重复解释。
+  - 统一部分标题和表格术语，减少“同义不同名”。
+  - 保留结构图、路径矩阵和来源对比，不新增新的信息块。
+  - 再次运行 `git diff --check`，通过。
+- Files created/modified:
+  - `README.md`
+
+### Phase 6: 提交、推送、PR 与 About 更新
+- **Status:** complete
+- Actions taken:
+  - 从 `dev` 创建分支 `codex/readme-final-polish`。
+  - 更新 GitHub repository About 为 `Governance harness for local coding agents with durable planning and optional reasoning workflows.`。
+  - 提交改动：`58f8690 docs: polish readme and repo about`。
+  - 推送分支到 `origin/codex/readme-final-polish`。
+  - 创建 PR #15：`https://github.com/ilderaj/superpowering-with-files/pull/15`。
+- Files created/modified:
+  - Git branch `codex/readme-final-polish`
+  - GitHub repository About / description
+  - PR `https://github.com/ilderaj/superpowering-with-files/pull/15`
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
@@ -54,6 +88,10 @@
 | Harness verification | `npm run verify` | Test suite passes | 113 passed, 0 failed | pass |
 | Harness doctor | `./scripts/harness doctor` | Healthy installation | Healthy; only warns about historical `docs/superpowers/plans` | pass |
 | Release check | `gh release view 1.0.3 --json ...` | Release exists with expected body | Release published at target URL with corrected notes | pass |
+| README format check | `git diff --check` | No diff formatting issues after second rewrite | No output | pass |
+| README format check (round 3) | `git diff --check` | No diff formatting issues after third rewrite | No output | pass |
+| GitHub About check | `gh repo view ilderaj/superpowering-with-files --json description` | About updated to target text | Description matches expected sentence | pass |
+| PR creation | `gh pr create --base dev --head codex/readme-final-polish ...` | PR opens successfully | PR #15 created | pass |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -64,7 +102,7 @@
 | Question | Answer |
 |----------|--------|
 | Where am I? | All phases complete; task closed |
-| Where am I going? | 等待用户 review，必要时再决定是否归档 |
+| Where am I going? | 等待用户 review 或 PR 后续处理 |
 | What's the goal? | 让 README 更清晰，并发布包含这些调整的新 release |
 | What have I learned? | 见 `findings.md` |
-| What have I done? | 已完成上游核对、README 重构、验证以及 `1.0.3` release 发布 |
+| What have I done? | 已完成上游核对、README 三轮收口、验证、`1.0.3` release 发布，以及 PR #15 创建 |
