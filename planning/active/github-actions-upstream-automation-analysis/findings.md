@@ -22,6 +22,13 @@
 - 分支保护可以要求 PR、审批和 required status checks；required checks 必须在 PR 最新 commit SHA 上成功。
 - GitHub Copilot code review 可以配置为自动 review PR；这是“自动代码审查”的一种 GitHub 原生路径，但依赖 Copilot 计划/仓库或组织规则集配置。
 - Dependency review 可在 PR 中展示依赖变化与漏洞信息，Dependency Review Action 可作为 required check 阻断有漏洞的依赖变更；本仓库更新的是 vendored skill baseline，仍应配合普通测试和差异 allowlist。
+- 2026-04-17 复核：当前仓库 git remote 只有 `origin`，没有名为 `upstream` 的 remote；真正的上游来源来自 `harness/upstream/sources.json` 中的两个 Git source。
+- 2026-04-17 复核：GitHub 远端 `ilderaj/superpowering-with-files` 默认分支是 `main`，不是 `dev`。
+- 2026-04-17 复核：仓库当前没有 `.github/workflows/`，说明 GitHub Actions 自动化尚未开始落地。
+- 2026-04-17 复核：`dev` 和 `main` 当前都没有 branch protection；`gh api repos/ilderaj/superpowering-with-files/branches/<branch>/protection` 返回 `404 Branch not protected`。
+- 2026-04-17 复核：仓库当前 `.harness/state.json` 为 `scope: "user-global"`，target 指向用户目录，不是 CI 可直接复用的 workspace 安装状态。
+- 2026-04-17 复核：`package.json` 提供的仓库级验证命令是 `npm run verify`；维护文档要求 upstream update 后继续跑 `./scripts/harness worktree-preflight`、`./scripts/harness sync --dry-run`、`./scripts/harness sync`、`./scripts/harness doctor`。
+- 2026-04-17 复核：当前没有以 `dev` 为 base 的 open PR，说明计划若要“最终落到 origin dev”，需自行定义 PR 分支命名、合并策略和去重逻辑。
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -31,6 +38,11 @@
 | 自动化拆成“探测/更新 PR”和“PR 验证/合并”两条链路 | 避免 `GITHUB_TOKEN` 递归触发限制导致 PR required checks 缺失 |
 | 更新 PR 只允许变更 `harness/upstream/**` 和必要 metadata/docs | 本仓库已有 upstream path guard；CI 还应做 diff allowlist 二次校验 |
 | 对 `planning-with-files` 按 Git source 自动化处理 | 已确认远端主源并更新 source metadata，Actions 可独立拉取候选更新 |
+| 本轮用户计划可以做，但原始描述缺少分支入口、CI 初始化和冲突分流设计 | 直接写成“每周五拉取 upstream 并落到 dev”会忽略 `schedule` 只跑默认分支、CI 没有 workspace state、以及冲突无法在无人值守下自动解决 |
+| 冲突处理应分成“无冲突自动 PR”与“有冲突开 issue/失败告警”两条路径 | upstream baseline 更新可能触发 patch/projection/test 失败，不能默认靠 bot 自动 rebase 或强推修复 |
+| 如果目标是保留审查面，第一阶段不要自动直推 `dev` | 当前 `dev` 未受保护，若 workflow 直接 push 到 `dev`，等同绕过代码审查与 required checks 设计 |
+| 若后续需要 auto-merge，先补 `dev` 分支保护与 required checks，再决定是否启用 | 当前远端无保护规则，auto-merge 的治理前提尚未建立 |
+| 若 workflow 需要触发后续 PR 检查链，优先准备 GitHub App token；否则至少把验证全部放在同一个 workflow 内完成 | 这是现有 GitHub token 触发行为的硬边界，不是实现细节偏好 |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -50,6 +62,9 @@
 - GitHub branch protection 文档：`https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule`
 - GitHub Copilot automatic code review 文档：`https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-automatic-review`
 - GitHub dependency review 文档：`https://docs.github.com/en/code-security/concepts/supply-chain-security/about-dependency-review`
+- 远端仓库信息：`gh repo view ilderaj/superpowering-with-files --json nameWithOwner,defaultBranchRef,mergeCommitAllowed,rebaseMergeAllowed,squashMergeAllowed,isPrivate,viewerPermission,deleteBranchOnMerge`
+- 分支保护检查：`gh api repos/ilderaj/superpowering-with-files/branches/dev/protection`
+- 分支保护检查：`gh api repos/ilderaj/superpowering-with-files/branches/main/protection`
 
 ## Visual/Browser Findings
 - GitHub 官方文档确认了定时触发、token 递归触发限制、GitHub App token、自动 PR review、auto-merge 与 required checks 的行为边界。
