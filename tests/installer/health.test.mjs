@@ -387,7 +387,7 @@ test('readHarnessHealth reports Claude shared skill root symlink as unsupported 
   }
 });
 
-test('readHarnessHealth warns about non-canonical plan locations without failing health', async () => {
+test('readHarnessHealth keeps referenced companion plans out of warnings', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -399,8 +399,129 @@ test('readHarnessHealth warns about non-canonical plan locations without failing
       upstream: {}
     });
 
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/task-a/task_plan.md'),
+      'Companion plan path: docs/superpowers/plans/feature-plan.md\n'
+    );
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
     await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
-    await writeFile(path.join(root, 'docs/superpowers/plans/feature-plan.md'), '# Historical plan\n');
+    await writeFile(path.join(root, 'docs/superpowers/plans/feature-plan.md'), '# Companion plan\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.equal(health.warnings.length, 0);
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'companion-plan' &&
+          location.path === 'docs/superpowers/plans/feature-plan.md' &&
+          location.referencedBy.includes('planning/active/task-a/task_plan.md')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth warns about orphan companion plans', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(path.join(root, 'docs/superpowers/plans/orphan.md'), '# Orphan companion\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes('docs/superpowers/plans/orphan.md: Companion plan is not referenced by any active task planning file')
+      )
+    );
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'orphan-companion-plan' &&
+          location.path === 'docs/superpowers/plans/orphan.md'
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports unreadable canonical planning paths as problems', async () => {
+  const root = await createHarnessFixture();
+  const unreadablePath = path.join(root, 'planning/active/task-a/findings.md');
+
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await mkdir(unreadablePath, { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(path.join(root, 'docs/superpowers/plans/orphan.md'), '# Orphan companion\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.ok(
+      health.problems.some((problem) =>
+        problem.includes('planning/active/task-a/findings.md: Canonical planning file exists but could not be read')
+      )
+    );
+    assert.ok(
+      health.problems.some((problem) =>
+        problem.includes(
+          'docs/superpowers/plans/orphan.md: Companion plan reference status could not be determined because one or more canonical planning files are unreadable.'
+        )
+      )
+    );
+    assert.ok(
+      !health.warnings.some((warning) => warning.includes('docs/superpowers/plans/orphan.md'))
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth keeps root-level planning files and docs/plans as warnings', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'docs/plans'), { recursive: true });
+    await writeFile(path.join(root, 'docs/plans/feature-doc.md'), '# Human-facing plan\n');
     await writeFile(path.join(root, 'task_plan.md'), '# Root plan\n');
 
     const health = await readHarnessHealth(root, '/home/user');
@@ -408,15 +529,14 @@ test('readHarnessHealth warns about non-canonical plan locations without failing
     assert.equal(health.problems.length, 0);
     assert.ok(
       health.warnings.some((warning) =>
-        warning.includes('docs/superpowers/plans contains plan files outside planning/active')
+        warning.includes('task_plan.md: task_plan.md is outside planning/active/<task-id>/')
       )
     );
     assert.ok(
       health.warnings.some((warning) =>
-        warning.includes('task_plan.md is outside planning/active/<task-id>/')
+        warning.includes('docs/plans: docs/plans contains plan files outside planning/active/<task-id>/')
       )
     );
-    assert.equal(health.planLocations.length, 2);
   } finally {
     await removeHarnessFixture(root);
   }

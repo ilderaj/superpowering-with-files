@@ -39,32 +39,11 @@ flowchart TD
 Rules:
 
 1. `planning-with-files` is the only durable task-memory system.
-2. `docs/**`, `docs/superpowers/plans/**`, and `docs/plans/**` are documentation, not active task memory.
-3. **Default mode stays lightweight**
-   - Do direct execution only for quick tasks.
-   - Once work becomes a tracked task, create or reuse `planning/active/<task-id>/` and keep its three planning files updated.
-   - Use `superpowers` only when architecture is unclear, requirements are ambiguous, debugging is complex, root cause is not obvious, or deep structured reasoning is explicitly needed.
+2. `docs/**` and `docs/plans/**` are documentation, not active task memory.
+3. Deep-reasoning tasks may also create a secondary companion plan under `docs/superpowers/plans/<date>-<task-id>.md`.
+4. Companion plans are secondary artifacts only; active task memory stays in `planning/active/<task-id>/`.
 
-4. **Task classification comes before workflow choice**
-   - `Quick task`: single-stage work with a clear path and no durable planning needs.
-   - `Tracked task`: multi-phase, research-heavy, isolated, parallel, or cross-session work that needs durable state.
-   - `Deep-reasoning task`: a tracked task that also justifies `superpowers`.
-   - Tool-call count is only a hint; it does not override the classification above by itself.
-
-5. **Complex-mode order is fixed**
-   - create or reuse one task under `planning/active/<task-id>/`
-   - group work into phases with finishing criteria
-   - run worktree preflight before isolation when needed
-   - use `superpowers` only for the phase that justifies it
-   - sync durable decisions back into Planning with Files
-   - let the main agent review, verify, and integrate
-
-6. **Worktree base must be explicit**
-
-```bash
-./scripts/harness worktree-preflight
-git worktree add <path> -b <new-branch> <base-ref>
-```
+Recommended companion-plan name: `docs/superpowers/plans/<date>-<task-id>.md`.
 
 ## Upstream, License, Credit
 
@@ -72,10 +51,8 @@ Harness vendors two upstream systems and applies stricter local governance on to
 
 | Upstream | Original role | Upstream license | Harness usage |
 | --- | --- | --- | --- |
-| [`superpowers`](https://github.com/obra/superpowers) | agentic skills framework and software-development workflow | MIT | optional reasoning layer for complex planning, debugging, execution, and review phases |
+| [`superpowers`](https://github.com/obra/superpowers) | agentic skills framework and software-development workflow | MIT | optional reasoning layer for complex planning, debugging, execution, and review phases; deep-reasoning tasks may emit `docs/superpowers/plans/<date>-<task-id>.md` as a secondary companion artifact |
 | [`planning-with-files`](https://github.com/OthmanAdi/planning-with-files) | persistent markdown planning and session-recovery skill | MIT | the only durable task-memory system, rooted in `planning/active/<task-id>/` |
-
-Harness keeps vendored sources under `harness/upstream/**` and patches only projected copies when local governance requires different output paths, such as redirecting `writing-plans` from `docs/superpowers/plans/**` to `planning/active/<task-id>/`.
 
 Thanks to the upstream authors and communities whose work this repository builds on:
 

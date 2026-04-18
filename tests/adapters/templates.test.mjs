@@ -26,6 +26,21 @@ test('renderEntry includes complex orchestration policy for every supported targ
     assert.match(rendered, /worktree-preflight/, target);
     assert.match(rendered, /Worktree base: <base-ref> @ <base-sha>/, target);
     assert.match(rendered, /Cross-IDE Portability/, target);
+    assert.match(rendered, /Companion Plan Model/, target);
+    assert.match(rendered, /planning\/active\/<task-id>\/` is the only authoritative task memory/, target);
+    assert.match(rendered, /docs\/superpowers\/plans\/\*\*` is a deep-reasoning companion artifact path only/, target);
+    assert.match(rendered, /Companion plans may be created only for Deep-reasoning tasks/, target);
+    assert.match(rendered, /record the companion plan path, a short summary, and the current sync-back status/, target);
+    assert.match(
+      rendered,
+      /never treat the companion plan as a replacement for active task memory/,
+      target
+    );
+    assert.doesNotMatch(
+      rendered,
+      /If a tool, skill, or model instruction suggests creating[\s\S]*docs\/superpowers\/plans[\s\S]*do not follow it by default\./,
+      target
+    );
   }
 });
 

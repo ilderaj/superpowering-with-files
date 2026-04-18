@@ -40,6 +40,11 @@ test('sync projects workspace entries and skills', async () => {
 
     const writingPlans = await readFile(path.join(root, '.agents/skills/writing-plans/SKILL.md'), 'utf8');
     assert.match(writingPlans, /Harness Superpowers writing-plans location patch/);
+    assert.match(writingPlans, /planning\/active\/<task-id>\/` as the primary task-memory location/);
+    assert.match(writingPlans, /\*\*Save durable task state to:\*\* `planning\/active\/<task-id>\/task_plan\.md`/);
+    assert.match(writingPlans, /For Deep-reasoning tasks, you may additionally create a companion plan/);
+    assert.match(writingPlans, /secondary artifact for reasoning and review, not the primary task-memory record/);
+    assert.match(writingPlans, /write its path, a short summary, and the current sync-back status/);
     assert.doesNotMatch(writingPlans, /\*\*Save plans to:\*\* `docs\/superpowers\/plans/);
   } finally {
     await removeHarnessFixture(root);

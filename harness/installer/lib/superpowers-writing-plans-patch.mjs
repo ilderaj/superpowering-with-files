@@ -11,12 +11,16 @@ const UPSTREAM_SAVE_BLOCK = [
 const HARNESS_SAVE_BLOCK = [
   `## ${MARKER}`,
   '',
-  'Harness overrides the upstream Superpowers plan location.',
+  'Harness keeps `planning/active/<task-id>/` as the primary task-memory location.',
   '',
   '**Save durable task state to:** `planning/active/<task-id>/task_plan.md`',
   '',
   'Also keep `planning/active/<task-id>/findings.md` and `planning/active/<task-id>/progress.md` updated.',
-  'Do not create long-lived files under `docs/superpowers/plans/` unless the user explicitly asks for that artifact.'
+  '',
+  'For Deep-reasoning tasks, you may additionally create a companion plan at `docs/superpowers/plans/<date>-<task-id>.md`.',
+  'That companion plan is a secondary artifact for reasoning and review, not the primary task-memory record.',
+  '',
+  'Whenever a companion plan exists, write its path, a short summary, and the current sync-back status into the task-scoped planning files under `planning/active/<task-id>/`.'
 ].join('\n');
 
 export async function applySuperpowersWritingPlansPatch(targetDir) {

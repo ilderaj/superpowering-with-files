@@ -211,7 +211,14 @@ export async function readHarnessHealth(rootDir, homeDir) {
   const planLocations = await inspectPlanLocations(rootDir);
 
   for (const location of planLocations) {
-    warnings.push(`${location.path}: ${location.message}`);
+    if (location.severity === 'warning') {
+      warnings.push(`${location.path}: ${location.message}`);
+      continue;
+    }
+
+    if (location.severity === 'problem') {
+      problems.push(`plan-locations: ${location.path}: ${location.message}`);
+    }
   }
 
   for (const target of Object.keys(state.targets).filter((name) => state.targets[name].enabled)) {

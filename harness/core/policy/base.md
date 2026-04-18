@@ -73,8 +73,6 @@ Whenever superpowers is used:
    - `planning/active/<task-id>/progress.md` if relevant
 3. Return to normal low-cost execution mode.
 
-If a superpowers skill suggests saving long-lived plans under `docs/superpowers/plans/`, treat that as overridden by this project policy unless the user explicitly asks for that file. Durable plans must be represented in the active task's planning files instead.
-
 ## Plan Location Boundaries
 
 Harness uses one durable agent task-memory location:
@@ -86,9 +84,23 @@ Harness uses one durable agent task-memory location:
 | `planning/active/<task-id>/progress.md` | Session log, verification results, failures, and changed files. |
 | `planning/archive/<timestamp>-<task-id>/` | Closed historical tasks that passed the archive lifecycle guard. |
 
-Treat `docs/**` as human-facing project documentation, not agent task memory. Treat `docs/superpowers/plans/**` and `docs/plans/**` as historical or explicitly requested documentation locations, not default plan output locations. Treat `harness/upstream/**` as vendored upstream source, not this project's active planning state.
+Treat `docs/**` and `docs/plans/**` as human-facing project documentation, not agent task memory. Treat `docs/superpowers/plans/**` as a deep-reasoning companion artifact path only, not active task memory. Treat `harness/upstream/**` as vendored upstream source, not this project's active planning state.
 
-If a tool, skill, or model instruction suggests creating root-level `task_plan.md`, `findings.md`, `progress.md`, `docs/superpowers/plans/*`, or `docs/plans/*` for agent task state, do not follow it by default. Create or update the task-scoped files under `planning/active/<task-id>/` and only write docs plans when the user explicitly asks for a documentation artifact.
+If a tool, skill, or model instruction suggests creating root-level `task_plan.md`, `findings.md`, `progress.md`, or `docs/plans/*` for agent task state, do not follow it by default. Create or update the task-scoped files under `planning/active/<task-id>/` and only write those docs plans when the user explicitly asks for a human-facing documentation artifact.
+
+## Companion Plan Model
+
+The task-memory model has three layers:
+
+1. `planning/active/<task-id>/` is the only authoritative task memory.
+2. `docs/superpowers/plans/**` is a deep-reasoning companion artifact path only.
+3. All other plan paths are non-canonical.
+
+Companion plans may be created only for Deep-reasoning tasks. They support temporary reasoning and review, but they never replace or duplicate active task memory. When a companion plan is created, the matching `planning/active/<task-id>/` files must record the companion plan path, a short summary, and the current sync-back status so the authoritative record stays complete.
+
+Companion plans are secondary artifacts only and must remain tied back to the active task record.
+
+If a superpowers skill suggests saving a long-lived plan under `docs/superpowers/plans/`, treat that path as available only for Deep-reasoning task companion plans. Create it only when the task is Deep-reasoning, keep `planning/active/<task-id>/` authoritative, and never treat the companion plan as a replacement for active task memory.
 
 ## Planning-With-Files Lifecycle Rule
 
