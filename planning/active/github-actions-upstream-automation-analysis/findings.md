@@ -34,6 +34,9 @@
 - 2026-04-18 复核：当前 policy 明确要求 `sync-back is summary-only`，并强调 detailed implementation checklist 不应继续直接塞进 `planning/active/<task-id>/task_plan.md`。
 - 2026-04-18 复核：旧计划中的 refresh runner 使用 `git status --porcelain --untracked-files=no` 收集变更；这会漏掉首次由 `sync` 生成的 untracked projection files，导致自动 PR 可能缺失 repo-owned 新文件。
 - 2026-04-18 复核：旧计划没有为 GitHub runner 上的自动 commit 配置 `git user.name` / `git user.email`，commit 步骤存在失败风险。
+- 2026-04-19 复核：远端仓库 `ilderaj/superpowering-with-files` 默认分支仍是 `main`，`dev`/`main` 仍未启用 branch protection，且当前没有 base 为 `dev` 的 open PR；4 月 17 日的外部前提到今天仍然成立。
+- 2026-04-19 复核：用户这次口头计划只指定了“每周五”，但没有指定具体时刻；GitHub Actions `schedule` 使用 UTC，若不先确定时区与时间点，就无法写出稳定且可 review 的 cron 表达式。
+- 2026-04-19 复核：用户要求“处理冲突”，但当前仓库并没有可支撑 bot 自动解冲突的既有机制；v1 应把冲突、verify 失败、allowlist 失败都视为“停止开 PR/停止合并并告警”的人工分流条件，而不是自动修复条件。
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -57,6 +60,9 @@
 | 修订版 refresh 逻辑必须纳入 untracked repo-owned files | 否则首次自动刷新时可能遗漏新生成的 projection files |
 | 修订版 PR 流程必须显式配置 bot git identity | 避免 GitHub runner 上的 `git commit` 因身份未配置而失败 |
 | 修订版计划应把 `task_plan.md` 恢复为摘要级状态记录 | 与最新 companion-plan / summary-only sync-back 边界保持一致 |
+| “每周五拉取”在实现前必须补全为“某时区下的明确时刻” | GitHub Actions cron 只接受 UTC；没有时刻就没有可验证的 schedule |
+| v1 的“冲突处理”定义为 fail-fast + 通知，而不是自动解冲突 | upstream baseline 更新涉及供应链输入和投影结果，自动解冲突风险过高 |
+| 只有在 `dev` 完成保护后，计划里的“最终落到 origin dev”才适合自动化推进 | 否则 workflow 结果实际会绕过代码审查与 required checks 治理目标 |
 
 ## Issues Encountered
 | Issue | Resolution |

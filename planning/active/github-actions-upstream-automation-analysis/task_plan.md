@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 7
+Phase 8
 
 ## Phases
 
@@ -54,6 +54,12 @@ Phase 7
 - [x] 产出一版修订后的可执行计划供 review
 - **Status:** complete
 
+### Phase 8: 计划 review 收口
+- [x] 复核当前 GitHub 远端前提是否仍与旧 review 一致
+- [x] 基于用户这次的三点目标给出可执行与不可直接执行的边界
+- [x] 把最新 review 结论写回 task-scoped planning 文件
+- **Status:** complete
+
 ## Key Questions
 1. GitHub Actions 是否能定期检测两个 upstream 主源的变更？
 2. Actions 是否能安全触发本项目已有 `fetch` / `update` 流程？
@@ -73,6 +79,7 @@ Phase 7
 | 计划必须以默认分支 `main` 上的 schedule workflow 为入口，再通过 PR 落到 `dev` | GitHub `schedule` 仅在默认分支运行；远端默认分支已核实为 `main` |
 | 计划中的“拉 upstream 更新”应映射为 Harness `fetch/update/sync/verify/doctor` 链路，而不是仓库 remote `upstream` pull | 当前仓库只配置了 `origin` remote；真正的 upstream 来源定义在 `harness/upstream/sources.json` |
 | 在 Actions 中必须先显式安装 workspace state，再跑 `sync/verify/doctor` | 当前仓库 `.harness/state.json` 为 `user-global` scope，不适合作为 CI 的隐式前提 |
+| 2026-04-19 的 plan review 继续维持 `usable as architecture, not usable as-is for implementation` | 远端前提未变化，但用户这版三点计划仍缺少 UTC 时间、冲突分流和 branch protection 前置条件 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -92,6 +99,11 @@ Phase 7
   2. 旧计划用 `git status --porcelain --untracked-files=no` 收集变化，会漏掉首次生成的 untracked projection files，因此首轮自动 PR 可能拿不到完整 diff。
   3. 旧计划没有显式配置 bot commit identity，GitHub runner 上执行 `git commit` 存在直接失败风险。
 - 因此，本 task 的旧计划结论更新为：`usable as architecture, not usable as-is for implementation`。
+- 2026-04-19 review 追加确认：在开始实现前，还必须补上 4 个执行前置项：
+  1. 明确 schedule 的实际触发时刻，并换算成 GitHub Actions 使用的 UTC cron。
+  2. 明确“处理冲突”的定义是自动失败并告警，还是进入人工 PR/issue 分流；v1 不应承诺 bot 自动解冲突。
+  3. 至少为 `dev` 建立 branch protection / required checks，再讨论后续是否启用 auto-merge。
+  4. 将详细执行清单从 task-scoped `task_plan.md` 收敛回 companion plan 或独立实现文档，避免继续违反 summary-only sync-back 边界。
 
 ## Revised Execution Plan Summary
 
