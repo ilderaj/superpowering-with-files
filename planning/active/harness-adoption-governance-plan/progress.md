@@ -22,3 +22,22 @@
   - Jared user-global/shared projected `writing-plans` 仍旧
   - Copilot 的 `planning-with-files` 仍旧
   - 多个 workspace 仍保留历史 `docs/superpowers/plans/**` 执行输入
+- 用户已确认 Copilot `planning-with-files` 的 source patch 现已修复，本任务从治理规划切换为 adoption 执行。
+- 执行边界：
+  - 只刷新 Jared user-global entries / skills
+  - 不修改 `HarnessTemplate` 源码
+  - 不对 `TypeMint`、`BabyCry`、`lullabyApp`、`Agent Plugin` 做 workspace 覆盖式变更
+- 执行命令：
+  - `./scripts/harness status`
+  - `./scripts/harness doctor --check-only`
+  - `./scripts/harness sync`
+  - `./scripts/harness doctor --check-only`
+- 执行结果：
+  - `sync`: `Synced 4 target(s): codex, copilot, cursor, claude-code (create=0, update=60, stale=0)`
+  - `doctor`: `Harness check passed.`
+- 抽查结果：
+  - `/Users/jared/.codex/AGENTS.md`、`/Users/jared/.copilot/instructions/harness.instructions.md`、`/Users/jared/.claude/CLAUDE.md` 已出现 `Preserve the detailed Superpowers implementation plan...`、`Companion Plan Model` 等新语义
+  - `/Users/jared/.agents/skills/writing-plans/SKILL.md` 等四个副本已出现 `If a Deep-reasoning task actually uses Superpowers...` 与 `current sync-back status`
+  - 四个平台的 `planning-with-files` 副本都已出现 `Harness planning-with-files companion-plan patch`
+- 残余：
+  - `writing-plans` 末尾 `Plan complete and saved to docs/superpowers/plans/<filename>.md` 仍存在，但这是当前 source 本身残余，不在本轮 user-global adoption 范围内单独手修

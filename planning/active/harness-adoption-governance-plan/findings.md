@@ -21,7 +21,7 @@
 
 - `HarnessTemplate` source policy 和 tests 已支持新的 companion-plan 模型。
 - Jared user-global rendered entries 与 projected skills 仍大量停留在旧模型。
-- Copilot 的 `planning-with-files` 还存在源码级 companion-plan 语义裂缝。
+- 该任务开始时 Copilot 的 `planning-with-files` 曾存在源码级 companion-plan 语义裂缝；用户现已明确说明这一点已经修复，需要基于当前 `HarnessTemplate` 状态执行 adoption。
 
 ## Workspace Classification
 
@@ -57,16 +57,16 @@
 
 ### User-global stale baseline
 
-- 以下 user-global 入口仍是旧 Harness 规则：
+- 执行前，以下 user-global 入口仍是旧 Harness 规则：
   - `/Users/jared/.codex/AGENTS.md`
   - `/Users/jared/.copilot/instructions/harness.instructions.md`
   - `/Users/jared/.claude/CLAUDE.md`
-- 以下 user-global/shared skills 仍是旧 `writing-plans` patch：
+- 执行前，以下 user-global/shared skills 仍是旧 `writing-plans` patch：
   - `/Users/jared/.agents/skills/writing-plans/SKILL.md`
   - `/Users/jared/.copilot/skills/writing-plans/SKILL.md`
   - `/Users/jared/.claude/skills/writing-plans/SKILL.md`
   - `/Users/jared/.cursor/skills/writing-plans/SKILL.md`
-- `/Users/jared/.copilot/skills/planning-with-files/SKILL.md` 仍保留旧的 “不要创建 parallel long-lived superpowers plan” 语义。
+- 执行前，`/Users/jared/.copilot/skills/planning-with-files/SKILL.md` 仍保留旧的 “不要创建 parallel long-lived superpowers plan” 语义。
 
 ### Focus workspaces do not currently ship local duplicated skills
 
@@ -88,3 +88,41 @@
 - `LullabyApp` 可以在全局对齐后做最小增量清理，因为它本来就声明“继承全局 baseline”。
 - `TypeMint` / `BabyCry` 只能做 selective adoption：吸收新的 Harness 主路径与 companion-plan 边界，但不能覆盖其项目自治规则体系。
 - `Agent Plugin` 暂不适合纳入第一批规则入口对齐，更适合作为后续内容仓库治理对象。
+
+## Execution Outcome
+
+### Executed now
+
+- 已在 `/Users/jared/HarnessTemplate` 上按现有 user-global state 执行 `./scripts/harness sync`。
+- 刷新范围仅限 Jared user-global targets：
+  - `codex`
+  - `copilot`
+  - `cursor`
+  - `claude-code`
+- 没有对 `TypeMint`、`BabyCry`、`lullabyApp`、`Agent Plugin` 做 workspace 覆盖式修改。
+
+### Verified now
+
+- `./scripts/harness doctor --check-only` 返回 `Harness check passed.`  
+  仍存在的 warning 只来自 `HarnessTemplate` 仓库内历史 companion plan 缺 back-reference，与本轮 user-global adoption 无关。
+- 以下 user-global entry 已确认切到新模型：
+  - `/Users/jared/.codex/AGENTS.md`
+  - `/Users/jared/.copilot/instructions/harness.instructions.md`
+  - `/Users/jared/.claude/CLAUDE.md`
+- 以下 user-global/shared `writing-plans` 已确认切到新 companion-plan patch：
+  - `/Users/jared/.agents/skills/writing-plans/SKILL.md`
+  - `/Users/jared/.copilot/skills/writing-plans/SKILL.md`
+  - `/Users/jared/.claude/skills/writing-plans/SKILL.md`
+  - `/Users/jared/.cursor/skills/writing-plans/SKILL.md`
+- 以下 `planning-with-files` 已确认包含 companion-plan patch marker：
+  - `/Users/jared/.agents/skills/planning-with-files/SKILL.md`
+  - `/Users/jared/.copilot/skills/planning-with-files/SKILL.md`
+  - `/Users/jared/.claude/skills/planning-with-files/SKILL.md`
+  - `/Users/jared/.cursor/skills/planning-with-files/SKILL.md`
+
+## Residuals After Adoption
+
+- `writing-plans` 末尾仍保留：
+  - `Plan complete and saved to docs/superpowers/plans/<filename>.md`
+- 这是当前 `HarnessTemplate` upstream/patched source 自身仍保留的文案残余，不是本轮 user-global adoption 漏同步。
+- 按本轮边界，不对全局 consumer 做 source-divergent 手工修补；后续如果要消除这条残余，应在 `HarnessTemplate` source 里修，再重新 sync。

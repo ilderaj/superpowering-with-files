@@ -39,6 +39,12 @@ Complete
 - [x] 在 planning 文件中记录 durable decisions
 - **Status:** complete
 
+### Phase 5: 全局 Adoption 执行
+- [x] 仅对 Jared user-global targets 执行 Harness sync
+- [x] 验证 `.codex` / `.copilot` / `.claude` / `.cursor` 下入口与 skills 已刷新
+- [x] 保持 workspace 分层策略，不对重点 workspace 做全覆盖修改
+- **Status:** complete
+
 ## Key Questions
 
 1. Jared 全局入口与 skill 投影是否应该优先对齐，优先级是否高于单个 workspace？
@@ -53,3 +59,4 @@ Complete
 | 本轮只输出治理方案，不实施修改 | 用户明确要求先出 plan，且不要修改 `HarnessTemplate` 代码 |
 | 优先区分“全局 baseline”与“workspace delta” | 这决定哪些重复是坏重复，哪些是合理分层 |
 | 对存量 workspace 采取兼容优先 | 用户明确要求不要影响现有存量 workspace |
+| 用户已确认 Copilot `planning-with-files` companion-plan patch 已修复，可进入 adoption 执行 | 现在可以执行“先全局、后分层 workspace”的方案，而不是停留在治理建议 |
