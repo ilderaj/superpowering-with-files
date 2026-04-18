@@ -43,6 +43,11 @@
 | 如果目标是保留审查面，第一阶段不要自动直推 `dev` | 当前 `dev` 未受保护，若 workflow 直接 push 到 `dev`，等同绕过代码审查与 required checks 设计 |
 | 若后续需要 auto-merge，先补 `dev` 分支保护与 required checks，再决定是否启用 | 当前远端无保护规则，auto-merge 的治理前提尚未建立 |
 | 若 workflow 需要触发后续 PR 检查链，优先准备 GitHub App token；否则至少把验证全部放在同一个 workflow 内完成 | 这是现有 GitHub token 触发行为的硬边界，不是实现细节偏好 |
+| 可执行 v1 采用“单 workflow 完成 refresh + validate + PR create/update” | 这样可以先避开 `GITHUB_TOKEN` 的递归触发限制，不必在第一版就引入 GitHub App token |
+| workflow 文件放在默认分支 `main`，但实际工作分支从 `origin/dev` 派生 | `schedule` 必须从默认分支触发，但用户目标是最终把更新落到 `dev` |
+| 自动化分支名固定为 `automation/upstream-refresh` | 固定分支便于 PR 去重与更新，也让 reviewer 能稳定识别自动更新来源 |
+| v1 的 commit allowlist 只接受 `harness/upstream/**`、repo-local projection paths 和 `docs/maintenance.md` | 需要把供应链变更面收窄到 Harness-owned 文件，避免 CI 意外改动其他路径 |
+| `.harness/projections.json` 视为运行态文件，不进入 commit | `sync` 会写入该文件，但它不属于本次 PR 应提交的 repo-owned baseline/projection 结果 |
 
 ## Issues Encountered
 | Issue | Resolution |

@@ -118,3 +118,27 @@
 | What's the goal? | 审核“每周五自动拉 upstream 更新、处理冲突、验证、最终落到 origin dev”的落地计划 |
 | What have I learned? | 当前必须从 `main` 上 schedule 触发、不能把 upstream 理解成 git remote、CI 需先安装 workspace state、branch protection 目前为空 |
 | What have I done? | 复核了本地命令链、测试约束、GitHub 远端设置，并把结论写回 planning 文件 |
+
+### Phase 6: 可执行实现计划编写
+- **Status:** complete
+- Actions taken:
+  - 读取 `writing-plans` 与 `planning-with-files` 技能内容，确认本轮输出必须写回当前 active task 的 planning 文件。
+  - 追加复核 GitHub 官方文档，确认 `schedule` 仅在默认分支运行、默认使用 UTC，以及 `GITHUB_TOKEN` 触发事件的递归限制仍成立。
+  - 复核 `sync` 实现，确认 `.harness/projections.json` 会在 `sync` 后写入，因此计划中将其定义为运行态文件并排除出 commit allowlist。
+  - 按 v1 范围产出详细实现计划：单 workflow、从 `origin/dev` 派生 automation branch、执行 Harness refresh chain、仅在 repo-owned diff 存在时开或更新 PR、暂不自动合并。
+  - 将 task lifecycle 更新为 `waiting_review`，等待用户 review 计划后再进入实现。
+- Files created/modified:
+  - `planning/active/github-actions-upstream-automation-analysis/task_plan.md` (updated)
+  - `planning/active/github-actions-upstream-automation-analysis/findings.md` (updated)
+  - `planning/active/github-actions-upstream-automation-analysis/progress.md` (updated)
+
+## Additional Test Results
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| `sync` 运行态文件检查 | `rg -n "projections\\.json" harness tests -S` | 判断 `.harness/projections.json` 是否会在 sync 时写入 | 会写入，但应排除出 commit | 通过 |
+| GitHub 文档复核 | GitHub Docs `events-that-trigger-workflows`, `GITHUB_TOKEN` | 判断默认分支、UTC、递归触发限制是否仍成立 | 结论成立 | 通过 |
+
+## Additional Error Log
+| Timestamp | Error | Attempt | Resolution |
+|-----------|-------|---------|------------|
+| 2026-04-17 | `gh repo view` 请求了不存在的 JSON field `autoMergeAllowed` | 1 | 改用 CLI 支持字段重新查询 |
