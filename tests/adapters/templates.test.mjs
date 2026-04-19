@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { entriesForScope, renderEntry } from '../../harness/installer/lib/adapters.mjs';
 
-test('renderEntry combines base policy and platform override', async () => {
+test('renderEntry combines always-on core policy and platform override', async () => {
   const rendered = await renderEntry(process.cwd(), 'codex');
   assert.match(rendered, /# Harness Policy For Codex/);
   assert.match(rendered, /Hybrid Workflow Policy/);
@@ -12,47 +12,15 @@ test('renderEntry combines base policy and platform override', async () => {
   assert.match(rendered, /Tracked task/);
 });
 
-test('renderEntry includes complex orchestration policy for every supported target', async () => {
+test('renderEntry keeps the always-on core profile thin across supported targets', async () => {
   const targets = ['codex', 'copilot', 'cursor', 'claude-code'];
 
   for (const target of targets) {
     const rendered = await renderEntry(process.cwd(), target);
-    assert.match(rendered, /Complex Task Orchestration/, target);
-    assert.match(rendered, /Planning with Files is the source of truth/, target);
-    assert.match(rendered, /Plan Location Boundaries/, target);
-    assert.match(rendered, /docs\/superpowers\/plans/, target);
-    assert.match(rendered, /Git worktrees and branches provide isolation/, target);
-    assert.match(rendered, /Worktree Base Preflight/, target);
-    assert.match(rendered, /worktree-preflight/, target);
-    assert.match(rendered, /Worktree base: <base-ref> @ <base-sha>/, target);
-    assert.match(rendered, /Cross-IDE Portability/, target);
-    assert.match(rendered, /Companion Plan Model/, target);
-    assert.match(rendered, /planning\/active\/<task-id>\/` is the only authoritative task memory/, target);
-    assert.match(
-      rendered,
-      /docs\/superpowers\/plans\/\*\*` is the required companion artifact path whenever Superpowers is used on a Deep-reasoning task/,
-      target
-    );
-    assert.match(
-      rendered,
-      /Companion plans are required whenever Superpowers is actually used for a Deep-reasoning task/,
-      target
-    );
-    assert.match(rendered, /record the companion plan path, a short summary, and the current sync-back status/, target);
-    assert.match(rendered, /companion plan must also point back to `planning\/active\/<task-id>\/`/, target);
-    assert.match(rendered, /Do not paste the full Superpowers implementation plan into/, target);
-    assert.match(rendered, /Detailed implementation checklists belong in the companion plan/, target);
-    assert.match(
-      rendered,
-      /never treat the companion plan as a replacement for active task memory/,
-      target
-    );
-    assert.doesNotMatch(rendered, /Companion plans may be created only for Deep-reasoning tasks/, target);
-    assert.doesNotMatch(
-      rendered,
-      /If a tool, skill, or model instruction suggests creating[\s\S]*docs\/superpowers\/plans[\s\S]*do not follow it by default\./,
-      target
-    );
+    assert.match(rendered, /Rule Precedence/, target);
+    assert.match(rendered, /Task Classification/, target);
+    assert.doesNotMatch(rendered, /Complex Task Orchestration/, target);
+    assert.doesNotMatch(rendered, /Companion Plan Model/, target);
   }
 });
 

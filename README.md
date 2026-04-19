@@ -9,6 +9,7 @@ Gemini CLI is not currently a supported installer target.
 - `planning-with-files` owns durable task state
 - `superpowers` is optional and temporary
 - Harness projects both into each supported IDE's native shape
+- Rendered entry files are intentionally thinner than the canonical policy source.
 
 ```mermaid
 flowchart TD
@@ -45,6 +46,7 @@ Rules:
 5. Companion plans are secondary artifacts only; active task memory stays in `planning/active/<task-id>/`.
 6. Keep detailed Superpowers implementation plans and execution checklists in the companion artifact; sync only durable summaries, references, and status back into `planning/active/<task-id>/`.
 7. The active task files must point to the companion plan, and the companion plan must point back to `planning/active/<task-id>/`.
+8. `harness/core/policy/base.md` remains the canonical policy source, while entry files render only the selected always-on profile sections plus the preamble.
 
 Recommended companion-plan name: `docs/superpowers/plans/<date>-<task-id>.md`.
 
@@ -77,6 +79,8 @@ Thanks to the upstream authors and communities whose work this repository builds
 ```
 
 Use `--scope=both` when you want a shared user-global baseline plus repository-local entry files.
+
+Rendered entry files use the `always-on-core` profile by default. That keeps session-start payloads small and leaves tracked-task and deep-reasoning detail in the canonical source for profile-based rendering when needed.
 
 ### Integration Modes
 
