@@ -388,6 +388,84 @@ test('readHarnessHealth records measured hook payloads in context', async () => 
   }
 });
 
+test('readHarnessHealth records hook payload warnings in context warnings', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await writeFile(
+      path.join(root, 'harness/core/context-budgets.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          budgets: {
+            entry: {
+              warn: { chars: 30000, lines: 500, tokens: 7500 },
+              problem: { chars: 45000, lines: 750, tokens: 11250 }
+            },
+            hookPayload: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 100000, lines: 100000, tokens: 100000 }
+            },
+            planningHotContext: {
+              warn: { chars: 16000, lines: 240, tokens: 4000 },
+              problem: { chars: 24000, lines: 360, tokens: 6000 }
+            },
+            skillProfile: {
+              warn: { chars: 22000, lines: 320, tokens: 5500 },
+              problem: { chars: 32000, lines: 480, tokens: 8000 }
+            }
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      [
+        '# Compact Task',
+        '',
+        '## 任务目标',
+        '- Keep hook payload warnings visible.',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.ok(
+      health.context.warnings.some((warning) =>
+        warning.includes('context hook payload codex superpowers SessionStart warning')
+      )
+    );
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes('context hook payload codex superpowers SessionStart warning')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth reports a problem when Codex hook config is missing a required event', async () => {
   const root = await createHarnessFixture();
   try {

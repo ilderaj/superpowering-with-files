@@ -199,6 +199,12 @@ function toBudgetEvaluation(evaluation, budget) {
   };
 }
 
+function addUniqueMessage(collection, message) {
+  if (!collection.includes(message)) {
+    collection.push(message);
+  }
+}
+
 async function inspectHook(projection) {
   if (projection.status === 'unsupported') {
     return projection;
@@ -259,7 +265,14 @@ async function runHookPayloadScript(rootDir, scriptPath, args = []) {
   return stdout;
 }
 
-async function inspectLocalHookPayloads(rootDir, hookPayloadBudget, hookMode, warnings, problems) {
+async function inspectLocalHookPayloads(
+  rootDir,
+  hookPayloadBudget,
+  hookMode,
+  contextWarnings,
+  warnings,
+  problems
+) {
   if (hookMode !== 'on' || !hookPayloadBudget) {
     return [];
   }
@@ -313,9 +326,10 @@ async function inspectLocalHookPayloads(rootDir, hookPayloadBudget, hookMode, wa
         hookPayloadBudget,
         evaluation.verdict
       );
-      warnings.push(message);
+      addUniqueMessage(contextWarnings, message);
+      addUniqueMessage(warnings, message);
       if (evaluation.verdict === 'problem') {
-        problems.push(message);
+        addUniqueMessage(problems, message);
       }
     }
   }
@@ -382,9 +396,9 @@ export async function readHarnessHealth(rootDir, homeDir) {
 
           if (evaluation.verdict !== 'ok') {
             const message = formatBudgetMessage(`entry ${target} ${entryPath}`, measurement, entryBudget, evaluation.verdict);
-            context.warnings.push(message);
+            addUniqueMessage(context.warnings, message);
             if (evaluation.verdict === 'problem') {
-              problems.push(message);
+              addUniqueMessage(problems, message);
             }
           }
         }
@@ -424,6 +438,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     rootDir,
     budgets?.budgets?.hookPayload,
     state.hookMode,
+    context.warnings,
     warnings,
     problems
   );
@@ -435,7 +450,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
 
     if (evaluation.verdict !== 'ok') {
       const message = formatBudgetMessage('entry summary', context.summary.entries, entryBudget, evaluation.verdict);
-      context.warnings.push(message);
+      addUniqueMessage(context.warnings, message);
     }
   } else {
     context.summary.entries.verdict = 'unknown';
