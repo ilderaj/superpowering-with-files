@@ -70,6 +70,10 @@ test('sync installs codex planning hooks when hookMode is on', async () => {
     assert.ok(hooks.hooks.Stop);
     assert.match(JSON.stringify(hooks), /Harness-managed planning-with-files hook/);
     assert.match(await readFile(path.join(root, '.codex/hooks/task-scoped-hook.sh'), 'utf8'), /planning\/active/);
+    assert.match(
+      await readFile(path.join(root, '.codex/hooks/planning-hot-context.mjs'), 'utf8'),
+      /buildPlanningHotContext/
+    );
     assert.match(JSON.stringify(hooks), /Harness-managed superpowers hook/);
     assert.match(await readFile(path.join(root, '.codex/hooks/session-start'), 'utf8'), /using-superpowers/);
   } finally {

@@ -7,22 +7,11 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
-const sourcePlanningHotContextPath = path.join(
-  process.cwd(),
-  'harness/installer/lib/planning-hot-context.mjs'
-);
-
-async function seedRepositoryFixture(root) {
-  const targetPath = path.join(root, 'harness/installer/lib/planning-hot-context.mjs');
-  await mkdir(path.dirname(targetPath), { recursive: true });
-  await copyFile(sourcePlanningHotContextPath, targetPath);
-}
 
 test('task-scoped-hook emits Codex hookSpecificOutput payload', async () => {
   const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), 'harness-hook-'));
   try {
     const taskRoot = path.join(fixtureRoot, 'planning/active/codex-hooks');
-    await seedRepositoryFixture(fixtureRoot);
     await mkdir(taskRoot, { recursive: true });
     await writeFile(
       path.join(taskRoot, 'task_plan.md'),
@@ -63,10 +52,10 @@ test('task-scoped-hook emits Codex hookSpecificOutput payload', async () => {
 
 test('task-scoped-hook still works after projection to the target hook root', async () => {
   const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), 'harness-hook-projected-'));
+  const commandCwd = await mkdtemp(path.join(os.tmpdir(), 'harness-hook-cwd-'));
   try {
     const taskRoot = path.join(fixtureRoot, 'planning/active/codex-hooks');
     const projectedHookRoot = path.join(fixtureRoot, '.codex/hooks');
-    await seedRepositoryFixture(fixtureRoot);
     await mkdir(taskRoot, { recursive: true });
     await mkdir(projectedHookRoot, { recursive: true });
     await writeFile(
@@ -100,12 +89,16 @@ test('task-scoped-hook still works after projection to the target hook root', as
       path.join(sourceHookRoot, 'render-hot-context.mjs'),
       path.join(projectedHookRoot, 'render-hot-context.mjs')
     );
+    await copyFile(
+      path.join(sourceHookRoot, 'planning-hot-context.mjs'),
+      path.join(projectedHookRoot, 'planning-hot-context.mjs')
+    );
 
     const { stdout } = await execFileAsync(
       'bash',
       [path.join(projectedHookRoot, 'task-scoped-hook.sh'), 'codex', 'user-prompt-submit'],
       {
-        cwd: fixtureRoot,
+        cwd: commandCwd,
         env: {
           ...process.env,
           HARNESS_PROJECT_ROOT: fixtureRoot
@@ -120,5 +113,6 @@ test('task-scoped-hook still works after projection to the target hook root', as
     assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /Archive Eligible/);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
+    await rm(commandCwd, { recursive: true, force: true });
   }
 });

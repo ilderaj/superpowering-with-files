@@ -48,22 +48,23 @@ function taskScopedPlanningProjection({ rootDir, root, target, parentSkillName, 
 
   const sourceRoot = path.join(rootDir, hookConfig.source);
   const configName = target === 'claude-code' ? 'claude-hooks.json' : `${target}-hooks.json`;
-    return {
-      kind: 'hook',
-      parentSkillName,
-      target,
-      eventNames: PLANNING_EVENTS_BY_TARGET[target] ?? [],
-      configSource: path.join(sourceRoot, configName),
-      configTarget: hookConfigTarget(root, target, parentSkillName),
-      configFormat: target === 'claude-code' ? 'settings' : 'hooks',
-      scriptSourcePaths: [
-        path.join(sourceRoot, 'scripts/task-scoped-hook.sh'),
-        path.join(sourceRoot, 'scripts/render-hot-context.mjs')
-      ],
-      scriptTargetRoot: scriptTargetRoot(root, target),
-      status: 'planned'
-    };
-  }
+  return {
+    kind: 'hook',
+    parentSkillName,
+    target,
+    eventNames: PLANNING_EVENTS_BY_TARGET[target] ?? [],
+    configSource: path.join(sourceRoot, configName),
+    configTarget: hookConfigTarget(root, target, parentSkillName),
+    configFormat: target === 'claude-code' ? 'settings' : 'hooks',
+    scriptSourcePaths: [
+      path.join(sourceRoot, 'scripts/task-scoped-hook.sh'),
+      path.join(sourceRoot, 'scripts/render-hot-context.mjs'),
+      path.join(sourceRoot, 'scripts/planning-hot-context.mjs')
+    ],
+    scriptTargetRoot: scriptTargetRoot(root, target),
+    status: 'planned'
+  };
+}
 
 function configuredHookProjection({ rootDir, root, target, parentSkillName, hookConfig }) {
   if (!hookConfig) {
