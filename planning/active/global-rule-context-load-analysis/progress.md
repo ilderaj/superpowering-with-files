@@ -24,3 +24,58 @@
   - 模板与 override 的体积贡献极小
   - Codex 场景下 global + workspace 两份高度重复文本并存，是最明显的重复加载风险
 - 本轮无代码修改，仅新增 planning 记录文件
+
+## 2026-04-19
+
+- 用户将任务范围升级为：
+  - 结合 TypeMint 的 `local-context-overhead-analysis/analysis-summary.md`
+  - 只从 global harness 层审计 HarnessTemplate 是否存在相同问题
+  - 给出详尽分析报告与整改 plan
+  - plan 必须包含官方文档 research、详细测试/校准/验证流程
+- 已补读：
+  - `/Users/jared/TypeMint/planning/active/local-context-overhead-analysis/analysis-summary.md`
+  - `/Users/jared/.agents/skills/writing-plans/SKILL.md`
+  - 现有相关 planning 任务：`cross-ide-projection-audit`、`harness-adoption-governance-plan`、`workflow-constraints-audit`
+- 已核查 Claude Code 官方文档：
+  - `CLAUDE.md` / `CLAUDE.local.md` 的层级与启动加载规则
+  - skills 的来源、自动发现、按需加载与 `disable-model-invocation`
+  - hooks 的 settings 配置入口与 `disableAllHooks`
+  - settings 的用户/项目/local/managed 分层
+  - subagents 的独立 context window 与按需委派机制
+- 已收到其余官方 research 结论：
+  - Codex / OpenAI：原生支持分层 `AGENTS.md`、byte budget、skills 按需加载、auto compaction
+  - GitHub Copilot / VS Code：instructions 有作用域分层，skills 明确 progressive loading
+  - Cursor：rules 静态、skills 动态、hooks 运行时控制，且 `AGENTS.md` 被定位为简化入口
+- 当前执行策略：
+  - 复用 `global-rule-context-load-analysis`，避免新建重复 planning 目录
+  - 主线本地审计 HarnessTemplate 当前 global 架构
+  - 并行分派各 IDE 官方文档研究子任务
+  - 最终只输出报告与计划，不改实现
+- 本地新增审计：
+  - 统计当前 user-global entries：
+    - `~/.codex/AGENTS.md`
+    - `~/.copilot/instructions/harness.instructions.md`
+    - `~/.claude/CLAUDE.md`
+  - 统计各 global skill root 中 Harness 核心技能的体积
+  - 读取：
+    - `harness/core/skills/index.json`
+    - `harness/installer/lib/{skill-projection,plan-locations,health,paths}.mjs`
+    - `harness/installer/commands/{doctor,verify}.mjs`
+    - `harness/core/hooks/superpowers/scripts/session-start`
+    - `harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh`
+    - 对应 hook tests
+- 当前新增结论：
+  - entry 全量内联 `base.md`，没有分层装配
+  - skills 投影层本身规模不小
+  - hooks 是明显的上下文注入放大器
+  - tests / doctor / verify 尚未把“上下文预算”和“负担约束”作为一等验证对象
+- 已创建 companion plan：
+  - `docs/superpowers/plans/2026-04-19-global-harness-context-remediation-plan.md`
+- 本轮计划内容覆盖：
+  - context budget primitives
+  - thin always-on policy rendering
+  - compact planning hot-context extraction
+  - hook payload slimming and budgets
+  - opt-in minimal global skill profile
+  - full verification / calibration / rollout gates
+- 本轮仍未改业务实现；只新增/更新 planning 与 companion plan 文档。
