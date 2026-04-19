@@ -28,8 +28,9 @@ test('evaluateBudget returns warning and problem verdicts across budget dimensio
   );
 });
 
-test('approxTokenCount is deterministic for the same input', () => {
-  const text = 'Deterministic token approximation';
-
-  assert.equal(approxTokenCount(text), approxTokenCount(text));
+test('approxTokenCount respects boundary transitions', () => {
+  assert.equal(approxTokenCount(''), 0);
+  assert.equal(approxTokenCount('a'), 1);
+  assert.equal(approxTokenCount('abcd'), 1);
+  assert.equal(approxTokenCount('abcde'), 2);
 });

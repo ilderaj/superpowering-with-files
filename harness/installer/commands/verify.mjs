@@ -26,6 +26,7 @@ function usage() {
 
 function renderMarkdown(report) {
   const context = report.health?.context;
+  const summary = context?.summary?.entries;
   return [
     '# Harness Verification Report',
     '',
@@ -34,8 +35,9 @@ function renderMarkdown(report) {
     `Projection mode: ${report.checks.projectionMode}`,
     `Targets: ${report.checks.selectedTargets.join(', ') || 'none'}`,
     '',
-    `Context entry verdict: ${context?.entry?.verdict ?? 'unknown'}`,
-    `Context entry size: ${context?.entry?.chars ?? 0} chars, ${context?.entry?.lines ?? 0} lines, ${context?.entry?.approxTokens ?? 0} approx tokens`,
+    `Context entries: ${context?.entries?.length ?? 0}`,
+    `Context entry verdict: ${summary?.verdict ?? 'unknown'}`,
+    `Context entry size: ${summary?.chars ?? 0} chars, ${summary?.lines ?? 0} lines, ${summary?.approxTokens ?? 0} approx tokens`,
     `Context warnings: ${context?.warnings?.length ?? 0}`
   ].join('\n') + '\n';
 }

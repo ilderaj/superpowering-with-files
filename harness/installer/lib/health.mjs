@@ -157,12 +157,42 @@ function publicUpstreamStatus(upstream = {}) {
   return result;
 }
 
+function createEmptyContextTotals() {
+  return {
+    chars: 0,
+    lines: 0,
+    approxTokens: 0,
+    verdict: 'ok',
+    evaluation: null
+  };
+}
+
+function createEmptyContext() {
+  return {
+    entries: [],
+    hooks: [],
+    planning: [],
+    skillProfiles: [],
+    summary: {
+      entries: createEmptyContextTotals()
+    },
+    warnings: []
+  };
+}
+
 function formatBudgetThresholds(budget) {
   return `warn ${budget.warn.chars} chars, ${budget.warn.lines} lines, ${budget.warn.tokens} tokens; problem ${budget.problem.chars} chars, ${budget.problem.lines} lines, ${budget.problem.tokens} tokens`;
 }
 
 function formatBudgetMessage(scopeName, measurement, budget, verdict) {
   return `context ${scopeName} ${verdict}: ${measurement.chars} chars, ${measurement.lines} lines, ${measurement.approxTokens} approx tokens (${formatBudgetThresholds(budget)})`;
+}
+
+function toBudgetEvaluation(evaluation, budget) {
+  return {
+    ...evaluation,
+    thresholds: budget
+  };
 }
 
 async function inspectHook(projection) {
@@ -214,20 +244,24 @@ async function inspectHook(projection) {
 
 export async function readHarnessHealth(rootDir, homeDir) {
   const state = await readState(rootDir);
-  const budgets = await loadContextBudgets(rootDir);
+  let budgets = null;
   const targets = {};
   const problems = [];
   const warnings = [];
   const planLocations = await inspectPlanLocations(rootDir);
-  const context = {
-    entry: {
-      chars: 0,
-      lines: 0,
-      approxTokens: 0,
-      verdict: 'ok'
-    },
-    warnings: []
-  };
+  const context = createEmptyContext();
+  let budgetLoadProblem = null;
+
+  try {
+    budgets = await loadContextBudgets(rootDir);
+  } catch (error) {
+    const message =
+      error instanceof SyntaxError
+        ? `context-budgets.json is malformed JSON.`
+        : `context-budgets.json could not be read: ${error instanceof Error ? error.message : String(error)}`;
+    budgetLoadProblem = `context-budgets: ${message}`;
+    problems.push(budgetLoadProblem);
+  }
 
   for (const location of planLocations) {
     if (location.severity === 'warning') {
@@ -240,6 +274,8 @@ export async function readHarnessHealth(rootDir, homeDir) {
     }
   }
 
+  const entryBudget = budgets?.budgets?.entry;
+
   for (const target of Object.keys(state.targets).filter((name) => state.targets[name].enabled)) {
     const adapter = await loadAdapter(rootDir, target);
     const entries = [];
@@ -251,9 +287,31 @@ export async function readHarnessHealth(rootDir, homeDir) {
         problems.push(`${target}: missing entry ${entryPath}`);
       } else {
         const measurement = measureText(await readFile(entryPath, 'utf8').catch(() => ''));
-        context.entry.chars += measurement.chars;
-        context.entry.lines += measurement.lines;
-        context.entry.approxTokens += measurement.approxTokens;
+        const entryContext = {
+          target,
+          path: entryPath,
+          measurement,
+          evaluation: null
+        };
+
+        context.summary.entries.chars += measurement.chars;
+        context.summary.entries.lines += measurement.lines;
+        context.summary.entries.approxTokens += measurement.approxTokens;
+
+        if (entryBudget) {
+          const evaluation = evaluateBudget(measurement, entryBudget);
+          entryContext.evaluation = toBudgetEvaluation(evaluation, entryBudget);
+
+          if (evaluation.verdict !== 'ok') {
+            const message = formatBudgetMessage(`entry ${target} ${entryPath}`, measurement, entryBudget, evaluation.verdict);
+            context.warnings.push(message);
+            if (evaluation.verdict === 'problem') {
+              problems.push(message);
+            }
+          }
+        }
+
+        context.entries.push(entryContext);
       }
     }
 
@@ -284,18 +342,17 @@ export async function readHarnessHealth(rootDir, homeDir) {
     targets[target] = { entries, skills, hooks };
   }
 
-  const entryBudget = budgets?.budgets?.entry;
   if (entryBudget) {
-    const evaluation = evaluateBudget(context.entry, entryBudget);
-    context.entry.verdict = evaluation.verdict;
+    const evaluation = evaluateBudget(context.summary.entries, entryBudget);
+    context.summary.entries.verdict = evaluation.verdict;
+    context.summary.entries.evaluation = toBudgetEvaluation(evaluation, entryBudget);
 
     if (evaluation.verdict !== 'ok') {
-      const message = formatBudgetMessage('entry budget', context.entry, entryBudget, evaluation.verdict);
+      const message = formatBudgetMessage('entry summary', context.summary.entries, entryBudget, evaluation.verdict);
       context.warnings.push(message);
-      if (evaluation.verdict === 'problem') {
-        problems.push(message);
-      }
     }
+  } else {
+    context.summary.entries.verdict = 'unknown';
   }
 
   return {

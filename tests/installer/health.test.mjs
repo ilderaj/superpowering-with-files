@@ -88,13 +88,49 @@ test('readHarnessHealth includes entry context measurements and warning verdicts
 
     const health = await readHarnessHealth(root, '/home/user');
 
-    assert.equal(health.context.entry.verdict, 'warning');
-    assert.ok(health.context.entry.chars > 0);
-    assert.ok(health.context.entry.lines > 0);
-    assert.ok(
-      health.context.warnings.some((warning) => warning.includes('context entry budget warning'))
-    );
+    assert.equal(health.context.entries.length, 1);
+    assert.equal(health.context.entries[0].target, 'codex');
+    assert.equal(health.context.entries[0].path, path.join(root, 'AGENTS.md'));
+    assert.ok(health.context.entries[0].measurement.chars > 0);
+    assert.ok(health.context.entries[0].measurement.lines > 0);
+    assert.equal(health.context.entries[0].evaluation.verdict, 'warning');
+    assert.equal(health.context.entries[0].evaluation.checks.length, 3);
+    assert.equal(health.context.summary.entries.verdict, 'warning');
+    assert.ok(health.context.summary.entries.evaluation);
+    assert.ok(health.context.warnings.some((warning) => warning.includes('context entry codex')));
     assert.equal(health.problems.length, 0);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth degrades gracefully when context budgets are malformed', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    await writeFile(path.join(root, 'harness/core/context-budgets.json'), '{\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.ok(
+      health.problems.some((problem) => problem.includes('context-budgets.json is malformed JSON'))
+    );
+    assert.equal(health.context.entries.length, 1);
+    assert.equal(health.context.hooks.length, 0);
+    assert.equal(health.context.planning.length, 0);
+    assert.equal(health.context.skillProfiles.length, 0);
+    assert.equal(health.context.summary.entries.verdict, 'unknown');
+    assert.equal(health.context.summary.entries.evaluation, null);
   } finally {
     await removeHarnessFixture(root);
   }

@@ -33,12 +33,17 @@ export async function doctor(args = []) {
     warnings.push(...health.context.warnings);
   }
 
-  if (warnings.length) {
-    console.error(warnings.join('\n'));
+  const uniqueProblems = [...new Set(problems)];
+  const uniqueWarnings = warnings.filter((warning, index) => {
+    return !uniqueProblems.includes(warning) && warnings.indexOf(warning) === index;
+  });
+
+  if (uniqueWarnings.length) {
+    console.error(uniqueWarnings.join('\n'));
   }
 
-  if (problems.length) {
-    console.error(problems.join('\n'));
+  if (uniqueProblems.length) {
+    console.error(uniqueProblems.join('\n'));
     process.exitCode = 1;
     return;
   }
