@@ -43,6 +43,63 @@ test('readHarnessHealth reports entry and skill status per target', async () => 
   }
 });
 
+test('readHarnessHealth includes entry context measurements and warning verdicts', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    await writeFile(
+      path.join(root, 'harness/core/context-budgets.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          budgets: {
+            entry: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 100000, lines: 100000, tokens: 100000 }
+            },
+            hookPayload: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            },
+            planningHotContext: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            },
+            skillProfile: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            }
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.context.entry.verdict, 'warning');
+    assert.ok(health.context.entry.chars > 0);
+    assert.ok(health.context.entry.lines > 0);
+    assert.ok(
+      health.context.warnings.some((warning) => warning.includes('context entry budget warning'))
+    );
+    assert.equal(health.problems.length, 0);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth reports a problem when the planning-with-files companion-plan patch marker is missing', async () => {
   const root = await createHarnessFixture();
   try {

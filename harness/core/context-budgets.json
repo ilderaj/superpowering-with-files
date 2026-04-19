@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "budgets": {
+    "entry": {
+      "warn": {
+        "chars": 30000,
+        "lines": 500,
+        "tokens": 7500
+      },
+      "problem": {
+        "chars": 45000,
+        "lines": 750,
+        "tokens": 11250
+      }
+    },
+    "hookPayload": {
+      "warn": {
+        "chars": 12000,
+        "lines": 160,
+        "tokens": 3000
+      },
+      "problem": {
+        "chars": 18000,
+        "lines": 240,
+        "tokens": 4500
+      }
+    },
+    "planningHotContext": {
+      "warn": {
+        "chars": 16000,
+        "lines": 240,
+        "tokens": 4000
+      },
+      "problem": {
+        "chars": 24000,
+        "lines": 360,
+        "tokens": 6000
+      }
+    },
+    "skillProfile": {
+      "warn": {
+        "chars": 22000,
+        "lines": 320,
+        "tokens": 5500
+      },
+      "problem": {
+        "chars": 32000,
+        "lines": 480,
+        "tokens": 8000
+      }
+    }
+  }
+}

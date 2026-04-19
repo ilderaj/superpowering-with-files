@@ -1,6 +1,7 @@
 import { access, lstat, readFile, readlink, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { entriesForScope, loadAdapter } from './adapters.mjs';
+import { evaluateBudget, loadContextBudgets, measureText } from './context-budget.mjs';
 import { hookEntryMarker } from './hook-config.mjs';
 import { planHookProjections } from './hook-projection.mjs';
 import { inspectPlanLocations } from './plan-locations.mjs';
@@ -156,6 +157,14 @@ function publicUpstreamStatus(upstream = {}) {
   return result;
 }
 
+function formatBudgetThresholds(budget) {
+  return `warn ${budget.warn.chars} chars, ${budget.warn.lines} lines, ${budget.warn.tokens} tokens; problem ${budget.problem.chars} chars, ${budget.problem.lines} lines, ${budget.problem.tokens} tokens`;
+}
+
+function formatBudgetMessage(scopeName, measurement, budget, verdict) {
+  return `context ${scopeName} ${verdict}: ${measurement.chars} chars, ${measurement.lines} lines, ${measurement.approxTokens} approx tokens (${formatBudgetThresholds(budget)})`;
+}
+
 async function inspectHook(projection) {
   if (projection.status === 'unsupported') {
     return projection;
@@ -205,10 +214,20 @@ async function inspectHook(projection) {
 
 export async function readHarnessHealth(rootDir, homeDir) {
   const state = await readState(rootDir);
+  const budgets = await loadContextBudgets(rootDir);
   const targets = {};
   const problems = [];
   const warnings = [];
   const planLocations = await inspectPlanLocations(rootDir);
+  const context = {
+    entry: {
+      chars: 0,
+      lines: 0,
+      approxTokens: 0,
+      verdict: 'ok'
+    },
+    warnings: []
+  };
 
   for (const location of planLocations) {
     if (location.severity === 'warning') {
@@ -230,6 +249,11 @@ export async function readHarnessHealth(rootDir, homeDir) {
       entries.push({ path: entryPath, status });
       if (status !== 'ok') {
         problems.push(`${target}: missing entry ${entryPath}`);
+      } else {
+        const measurement = measureText(await readFile(entryPath, 'utf8').catch(() => ''));
+        context.entry.chars += measurement.chars;
+        context.entry.lines += measurement.lines;
+        context.entry.approxTokens += measurement.approxTokens;
       }
     }
 
@@ -260,6 +284,20 @@ export async function readHarnessHealth(rootDir, homeDir) {
     targets[target] = { entries, skills, hooks };
   }
 
+  const entryBudget = budgets?.budgets?.entry;
+  if (entryBudget) {
+    const evaluation = evaluateBudget(context.entry, entryBudget);
+    context.entry.verdict = evaluation.verdict;
+
+    if (evaluation.verdict !== 'ok') {
+      const message = formatBudgetMessage('entry budget', context.entry, entryBudget, evaluation.verdict);
+      context.warnings.push(message);
+      if (evaluation.verdict === 'problem') {
+        problems.push(message);
+      }
+    }
+  }
+
   return {
     scope: state.scope,
     projectionMode: state.projectionMode,
@@ -270,6 +308,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     upstream: publicUpstreamStatus(state.upstream),
     planLocations,
     warnings,
+    context,
     targets,
     problems
   };

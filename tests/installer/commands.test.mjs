@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { access } from 'node:fs/promises';
+import { access, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { readState, writeState } from '../../harness/installer/lib/state.mjs';
@@ -116,6 +116,7 @@ test('verify prints to stdout by default without writing reports', async () => {
 
     const { stdout } = await harnessCommand(root, 'verify');
     assert.match(stdout, /# Harness Verification Report/);
+    assert.match(stdout, /Context entry verdict:/);
     await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
@@ -136,9 +137,67 @@ test('verify --output writes report files only to the requested directory', asyn
 
     await harnessCommand(root, 'verify', '--output=.harness/custom-verification');
 
-    await access(path.join(root, '.harness/custom-verification/latest.md'));
-    await access(path.join(root, '.harness/custom-verification/latest.json'));
+    const markdown = await readFile(path.join(root, '.harness/custom-verification/latest.md'), 'utf8');
+    const report = JSON.parse(
+      await readFile(path.join(root, '.harness/custom-verification/latest.json'), 'utf8')
+    );
+
+    assert.match(markdown, /Context entry verdict:/);
+    assert.equal(report.health.context.entry.verdict, 'ok');
+    assert.ok(Array.isArray(report.health.context.warnings));
     await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('doctor prints context warnings without failing the installation', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+    await writeFile(
+      path.join(root, 'harness/core/context-budgets.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          budgets: {
+            entry: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 100000, lines: 100000, tokens: 100000 }
+            },
+            hookPayload: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            },
+            planningHotContext: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            },
+            skillProfile: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            }
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const { stdout, stderr } = await harnessCommand(root, 'doctor', '--check-only');
+    assert.match(stderr, /context entry budget warning/i);
+    assert.match(stdout, /Harness check passed\./);
   } finally {
     await removeHarnessFixture(root);
   }

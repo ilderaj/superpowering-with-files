@@ -1,5 +1,7 @@
+import os from 'node:os';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { readHarnessHealth } from '../lib/health.mjs';
 import { readState } from '../lib/state.mjs';
 
 function readOption(args, name, fallback) {
@@ -23,13 +25,18 @@ function usage() {
 }
 
 function renderMarkdown(report) {
+  const context = report.health?.context;
   return [
     '# Harness Verification Report',
     '',
     `Generated: ${report.generatedAt}`,
     `Scope: ${report.checks.scope}`,
     `Projection mode: ${report.checks.projectionMode}`,
-    `Targets: ${report.checks.selectedTargets.join(', ') || 'none'}`
+    `Targets: ${report.checks.selectedTargets.join(', ') || 'none'}`,
+    '',
+    `Context entry verdict: ${context?.entry?.verdict ?? 'unknown'}`,
+    `Context entry size: ${context?.entry?.chars ?? 0} chars, ${context?.entry?.lines ?? 0} lines, ${context?.entry?.approxTokens ?? 0} approx tokens`,
+    `Context warnings: ${context?.warnings?.length ?? 0}`
   ].join('\n') + '\n';
 }
 
@@ -41,6 +48,7 @@ export async function verify(args = []) {
 
   const rootDir = process.cwd();
   const state = await readState(rootDir);
+  const health = await readHarnessHealth(rootDir, os.homedir());
   const report = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
@@ -49,7 +57,8 @@ export async function verify(args = []) {
       selectedTargets: Object.keys(state.targets),
       scope: state.scope,
       projectionMode: state.projectionMode
-    }
+    },
+    health
   };
 
   const output = readOption(args, 'output', 'stdout');
