@@ -186,6 +186,64 @@ test('verify tolerates malformed context budgets and records a problem', async (
   }
 });
 
+test('verify tolerates structurally invalid context budgets and records a problem', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+    await writeFile(
+      path.join(root, 'harness/core/context-budgets.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          budgets: {
+            entry: {
+              warn: { chars: 1, lines: 1, tokens: 1 }
+            },
+            hookPayload: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            },
+            planningHotContext: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            },
+            skillProfile: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            }
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    await harnessCommand(root, 'verify', '--output=.harness/invalid-shape-verification');
+
+    const report = JSON.parse(
+      await readFile(path.join(root, '.harness/invalid-shape-verification/latest.json'), 'utf8')
+    );
+
+    assert.ok(
+      report.health.problems.some((problem) => problem.includes('context-budgets.json is invalid'))
+    );
+    assert.equal(report.health.context.summary.entries.verdict, 'unknown');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('doctor prints a budget problem only once', async () => {
   const root = await createHarnessFixture();
   try {

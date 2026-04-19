@@ -136,6 +136,64 @@ test('readHarnessHealth degrades gracefully when context budgets are malformed',
   }
 });
 
+test('readHarnessHealth degrades gracefully when context budgets have an invalid shape', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    await writeFile(
+      path.join(root, 'harness/core/context-budgets.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          budgets: {
+            entry: {
+              warn: { chars: 1, lines: 1, tokens: 1 }
+            },
+            hookPayload: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            },
+            planningHotContext: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            },
+            skillProfile: {
+              warn: { chars: 1, lines: 1, tokens: 1 },
+              problem: { chars: 2, lines: 2, tokens: 2 }
+            }
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.ok(
+      health.problems.some((problem) => problem.includes('context-budgets.json is invalid'))
+    );
+    assert.ok(
+      health.problems.some((problem) => problem.includes('budgets.entry.problem must be a JSON object'))
+    );
+    assert.equal(health.context.entries.length, 1);
+    assert.equal(health.context.summary.entries.verdict, 'unknown');
+    assert.equal(health.context.summary.entries.evaluation, null);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth reports a problem when the planning-with-files companion-plan patch marker is missing', async () => {
   const root = await createHarnessFixture();
   try {

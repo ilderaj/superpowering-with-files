@@ -255,10 +255,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
   try {
     budgets = await loadContextBudgets(rootDir);
   } catch (error) {
-    const message =
-      error instanceof SyntaxError
-        ? `context-budgets.json is malformed JSON.`
-        : `context-budgets.json could not be read: ${error instanceof Error ? error.message : String(error)}`;
+    const message = error instanceof Error ? error.message : String(error);
     budgetLoadProblem = `context-budgets: ${message}`;
     problems.push(budgetLoadProblem);
   }
