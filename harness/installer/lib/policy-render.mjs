@@ -1,12 +1,37 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+function isFenceLine(line) {
+  const match = line.match(/^(\s*)(`{3,}|~{3,})(.*)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    marker: match[2][0],
+    length: match[2].length
+  };
+}
+
 function splitSections(markdown) {
   const sections = [];
   let current = { title: '__preamble__', lines: [] };
+  let activeFence = null;
 
   for (const line of markdown.split('\n')) {
-    if (line.startsWith('## ')) {
+    const fence = isFenceLine(line);
+    if (fence) {
+      if (activeFence && activeFence.marker === fence.marker && fence.length >= activeFence.length) {
+        activeFence = null;
+      } else if (!activeFence) {
+        activeFence = fence;
+      }
+
+      current.lines.push(line);
+      continue;
+    }
+
+    if (!activeFence && line.startsWith('## ')) {
       sections.push({
         title: current.title,
         body: current.lines.join('\n').trimEnd()
@@ -34,18 +59,35 @@ function renderSection(section) {
   return `## ${section.title}\n\n${section.body}`;
 }
 
-export async function renderPolicyProfile(rootDir, profileName) {
+function normalizeProfileNames(profileNames, defaultProfile) {
+  if (profileNames === undefined) {
+    return [defaultProfile];
+  }
+
+  if (Array.isArray(profileNames)) {
+    return profileNames;
+  }
+
+  return [profileNames];
+}
+
+export async function renderPolicyProfile(rootDir, profileNames) {
   const [basePolicy, entryProfilesJson] = await Promise.all([
     readFile(path.join(rootDir, 'harness/core/policy/base.md'), 'utf8'),
     readFile(path.join(rootDir, 'harness/core/policy/entry-profiles.json'), 'utf8')
   ]);
 
   const entryProfiles = JSON.parse(entryProfilesJson);
-  const resolvedProfileName = profileName ?? entryProfiles.defaultProfile;
-  const profileSections = entryProfiles.profiles[resolvedProfileName];
+  const resolvedProfileNames = normalizeProfileNames(profileNames, entryProfiles.defaultProfile);
+  const profileSections = [];
 
-  if (!profileSections) {
-    throw new Error(`Unknown policy profile: ${resolvedProfileName}`);
+  for (const profileName of resolvedProfileNames) {
+    const sections = entryProfiles.profiles[profileName];
+    if (!sections) {
+      throw new Error(`Unknown policy profile: ${profileName}`);
+    }
+
+    profileSections.push(...sections);
   }
 
   const sections = splitSections(basePolicy);
@@ -59,7 +101,7 @@ export async function renderPolicyProfile(rootDir, profileName) {
 
   if (missingSections.length > 0) {
     throw new Error(
-      `Policy profile ${resolvedProfileName} references missing sections: ${missingSections.join(', ')}`
+      `Policy profile ${resolvedProfileNames.join(', ')} references missing sections: ${missingSections.join(', ')}`
     );
   }
 
