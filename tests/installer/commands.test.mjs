@@ -51,6 +51,38 @@ test('verify --help prints usage without writing reports', async () => {
   }
 });
 
+test('install stores the selected skills profile in state', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await harnessCommand(
+      root,
+      'install',
+      '--scope=workspace',
+      '--targets=codex',
+      '--skills-profile=minimal-global'
+    );
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'minimal-global');
+    assert.equal(state.scope, 'workspace');
+    assert.equal(state.targets.codex.enabled, true);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install rejects an unknown skills profile', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(
+      harnessCommand(root, 'install', '--scope=workspace', '--targets=codex', '--skills-profile=unknown'),
+      /Invalid skills profile/
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('sync --dry-run prints diff without writing files or state', async () => {
   const root = await createHarnessFixture();
   try {

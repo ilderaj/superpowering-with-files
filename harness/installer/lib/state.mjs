@@ -7,6 +7,7 @@ const STATE_KEYS = new Set([
   'scope',
   'projectionMode',
   'hookMode',
+  'skillProfile',
   'targets',
   'upstream',
   'lastSync',
@@ -22,6 +23,7 @@ export function defaultState() {
     scope: 'workspace',
     projectionMode: 'link',
     hookMode: 'off',
+    skillProfile: 'full',
     targets: {},
     upstream: {}
   };
@@ -60,6 +62,10 @@ function validateStateShape(state) {
 
   if (!['off', 'on'].includes(state.hookMode)) {
     throw new TypeError('Harness state hookMode must be off or on.');
+  }
+
+  if (!['full', 'minimal-global'].includes(state.skillProfile)) {
+    throw new TypeError('Harness state skillProfile must be full or minimal-global.');
   }
 
   if (!isPlainObject(state.targets)) {
@@ -104,7 +110,8 @@ function validateStateShape(state) {
 function normalizeStateShape(state) {
   return {
     ...state,
-    hookMode: state.hookMode ?? 'off'
+    hookMode: state.hookMode ?? 'off',
+    skillProfile: state.skillProfile ?? 'full'
   };
 }
 

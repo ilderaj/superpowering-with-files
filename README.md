@@ -82,6 +82,16 @@ Use `--scope=both` when you want a shared user-global baseline plus repository-l
 
 Rendered entry files use the `always-on-core` profile by default. That keeps session-start payloads small and leaves tracked-task and deep-reasoning detail in the canonical source for profile-based rendering when needed.
 
+### Skill Profiles
+
+Skill projections use the `full` profile by default. If you are adopting Harness into an existing user-global setup, `minimal-global` is the opt-in profile that keeps `planning-with-files` plus the allow-listed `superpowers` children:
+
+```bash
+./scripts/harness install --scope=user-global --targets=all --projection=link --skills-profile=minimal-global
+```
+
+The default does not flip to `minimal-global`; omit `--skills-profile` to keep `full`.
+
 ### Integration Modes
 
 | Mode | Use when | Result |

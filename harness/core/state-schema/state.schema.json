@@ -3,12 +3,13 @@
   "title": "Harness local state",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "scope", "targets", "projectionMode"],
+  "required": ["schemaVersion", "scope", "targets", "projectionMode", "skillProfile"],
   "properties": {
     "schemaVersion": { "type": "integer", "const": 1 },
     "scope": { "type": "string", "enum": ["workspace", "user-global", "both"] },
     "projectionMode": { "type": "string", "enum": ["link", "portable"] },
     "hookMode": { "type": "string", "enum": ["off", "on"] },
+    "skillProfile": { "type": "string", "enum": ["full", "minimal-global"] },
     "targets": {
       "type": "object",
       "propertyNames": {

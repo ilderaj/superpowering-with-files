@@ -45,6 +45,13 @@ Run:
 ./scripts/harness sync
 ```
 
+For user-global adoption, keep the default `full` profile unless you explicitly want the smaller `minimal-global` projection:
+
+```bash
+./scripts/harness install --targets=cursor --scope=user-global --skills-profile=minimal-global
+./scripts/harness sync
+```
+
 Run with hooks:
 
 ```bash

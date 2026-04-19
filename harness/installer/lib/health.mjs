@@ -602,7 +602,13 @@ export async function readHarnessHealth(rootDir, homeDir) {
     }
 
     const skills = [];
-    for (const projection of await planSkillProjections({ rootDir, homeDir, scope: state.scope, target })) {
+    for (const projection of await planSkillProjections({
+      rootDir,
+      homeDir,
+      scope: state.scope,
+      target,
+      skillProfile: state.skillProfile
+    })) {
       const inspected = await inspectSkill(projection, state.projectionMode);
       skills.push(inspected);
       if (inspected.status !== 'ok') {
@@ -659,6 +665,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     scope: state.scope,
     projectionMode: state.projectionMode,
     hookMode: state.hookMode,
+    skillProfile: state.skillProfile,
     lastSync: state.lastSync,
     lastFetch: state.lastFetch,
     lastUpdate: state.lastUpdate,
