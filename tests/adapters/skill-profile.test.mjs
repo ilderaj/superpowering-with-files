@@ -16,6 +16,7 @@ test('minimal-global only projects the allow-listed subset for user-global Codex
   });
 
   const keys = plan.map(projectionKey).sort();
+  const allowedGlobalRoot = '/home/user/.agents/skills/';
   assert.deepEqual(keys, [
     'planning-with-files:planning-with-files',
     'superpowers:executing-plans',
@@ -23,7 +24,7 @@ test('minimal-global only projects the allow-listed subset for user-global Codex
     'superpowers:verification-before-completion',
     'superpowers:writing-plans'
   ]);
-  assert.ok(plan.every((projection) => projection.targetPath.startsWith('/home/user/.agents/skills/')));
+  assert.ok(plan.every((projection) => projection.targetPath.startsWith(allowedGlobalRoot)));
   assert.ok(!plan.some((projection) => projection.parentSkillName === 'superpowers' && projection.skillName === 'using-git-worktrees'));
   assert.ok(plan.some((projection) => projection.skillName === 'planning-with-files'));
 });

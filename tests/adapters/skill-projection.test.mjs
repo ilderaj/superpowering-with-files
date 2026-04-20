@@ -62,7 +62,7 @@ test('planSkillProjections marks Superpowers writing-plans for Harness plan-loca
 test('planSkillProjections applies the writing-plans patch for every supported target', async () => {
   const expectations = {
     codex: /\.agents\/skills\/writing-plans$/,
-    copilot: /\.github\/skills\/writing-plans$/,
+    copilot: /\.agents\/skills\/writing-plans$/,
     cursor: /\.cursor\/skills\/writing-plans$/,
     'claude-code': /\.claude\/skills\/writing-plans$/
   };
@@ -100,7 +100,26 @@ test('planSkillProjections materializes Copilot planning-with-files', async () =
     planning.patches.map((patch) => patch.type),
     ['planning-with-files-companion-plan', 'copilot-planning-with-files']
   );
-  assert.match(planning.targetPath, /\.github\/skills\/planning-with-files$/);
+  assert.match(planning.targetPath, /\.agents\/skills\/planning-with-files$/);
+});
+
+test('planSkillProjections materializes Copilot planning-with-files for both scopes', async () => {
+  const plan = await planSkillProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'both',
+    target: 'copilot'
+  });
+
+  const planningTargets = plan
+    .filter((entry) => entry.skillName === 'planning-with-files')
+    .map((entry) => entry.targetPath)
+    .sort();
+
+  assert.deepEqual(planningTargets, [
+    '/home/user/.agents/skills/planning-with-files',
+    `${process.cwd()}/.agents/skills/planning-with-files`
+  ].sort());
 });
 
 test('planSkillProjections applies the planning-with-files companion-plan patch for every supported target', async () => {

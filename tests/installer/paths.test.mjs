@@ -51,7 +51,20 @@ test('resolveTargetPaths rejects unknown targets', () => {
 
 test('resolveSkillRoots returns workspace skill root for Copilot', () => {
   assert.deepEqual(resolveSkillRoots('/repo', '/home/user', 'workspace', 'copilot'), [
-    '/repo/.github/skills'
+    '/repo/.agents/skills'
+  ]);
+});
+
+test('resolveSkillRoots returns user-global skill root for Copilot', () => {
+  assert.deepEqual(resolveSkillRoots('/repo', '/home/user', 'user-global', 'copilot'), [
+    '/home/user/.agents/skills'
+  ]);
+});
+
+test('resolveSkillRoots returns both Copilot skill roots for scope both', () => {
+  assert.deepEqual(resolveSkillRoots('/repo', '/home/user', 'both', 'copilot'), [
+    '/repo/.agents/skills',
+    '/home/user/.agents/skills'
   ]);
 });
 
