@@ -126,6 +126,15 @@
 - `npm run verify`: PASS
 - Decision-path drift check: no change to `harness/core/policy/base.md`, `harness/core/policy/entry-profiles.json`, `harness/installer/lib/hook-projection.mjs`, or `harness/installer/lib/hook-config.mjs`
 
+### Integration and release handoff
+- Feature branch merged back to local `dev` as merge commit `64e4033` with no manual conflict edits required.
+- Post-merge verification on `dev`: `npm run verify` -> 169 pass, 0 fail.
+- Cleaned up feature isolation:
+  - removed worktree `$HOME/.config/superpowers/worktrees/HarnessTemplate/codex-cross-ide-single-source-exec`
+  - deleted branch `codex/cross-ide-single-source-exec`
+- Pushed integrated branch: `origin/dev`
+- Opened review PR: https://github.com/ilderaj/superpowering-with-files/pull/22
+
 ## Errors
 
 | Timestamp | Error | Attempt | Resolution |

@@ -5,9 +5,9 @@
 基于 Codex、GitHub Copilot、Cursor、Claude Code 的官方文档与仓库当前实现，判断 skills、entry files、hooks 及其他 projection 文件是否可以收敛到尽量少的单一同源路径；明确哪些必须保留平台原生路径，哪些可以共享同源，再输出供 review 的基础分析报告与后续执行计划。
 
 ## Current State
-Status: active
+Status: waiting_review
 Archive Eligible: no
-Close Reason:
+Close Reason: Implementation merged into local `dev`, pushed to `origin/dev`, and opened for review as PR #22.
 
 ## Finishing Criteria
 
@@ -41,6 +41,14 @@ Close Reason:
 ### Phase 4: 收敛原则与执行计划
 - [x] 形成单一同源可行性判断
 - [x] 输出治理原则、风险与分阶段执行计划
+- **Status:** complete
+
+### Phase 5: 集成、验证与提审
+- [x] 将 feature worktree 合并回本地 `dev`
+- [x] 在合并后的 `dev` 上重跑全量验证
+- [x] 清理 feature worktree 与 branch
+- [x] 推送 `origin/dev`
+- [x] 创建 `dev -> main` PR
 - **Status:** complete
 
 ## Key Questions
