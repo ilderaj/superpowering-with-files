@@ -225,3 +225,57 @@ test('sync refreshes materialized Codex collection skill after upstream changes'
     await removeHarnessFixture(root);
   }
 });
+
+test('sync trims full-only skills when switching to minimal-global', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      skillProfile: 'full',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    assert.equal((await lstat(path.join(root, '.agents/skills/using-git-worktrees'))).isDirectory(), true);
+
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      skillProfile: 'minimal-global',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+
+    await assert.rejects(lstat(path.join(root, '.agents/skills/using-git-worktrees')), /ENOENT/);
+    await assert.rejects(lstat(path.join(root, '.agents/skills/brainstorming')), /ENOENT/);
+
+    for (const skillName of [
+      'planning-with-files',
+      'using-superpowers',
+      'writing-plans',
+      'executing-plans',
+      'verification-before-completion'
+    ]) {
+      assert.equal(
+        (await lstat(path.join(root, '.agents/skills', skillName))).isDirectory(),
+        true,
+        skillName
+      );
+    }
+
+    const planning = await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8');
+    assert.match(planning, /Harness planning-with-files companion-plan patch/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});

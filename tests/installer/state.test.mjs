@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { defaultState, readState, updateState, writeState } from '../../harness/installer/lib/state.mjs';
@@ -129,6 +129,33 @@ test('readState treats missing skillProfile as full for v1 compatibility', async
   }
 });
 
+test('state schema keeps skillProfile optional and stringly typed', async () => {
+  const schema = JSON.parse(await readFile('harness/core/state-schema/state.schema.json', 'utf8'));
+  assert.ok(!schema.required.includes('skillProfile'));
+  assert.equal(schema.properties.skillProfile.type, 'string');
+  assert.equal(schema.properties.skillProfile.enum, undefined);
+});
+
+test('writeState preserves arbitrary skillProfile strings for loader-based validation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
+  try {
+    const state = {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      skillProfile: 'legacy',
+      targets: {},
+      upstream: {}
+    };
+
+    await writeState(dir, state);
+    assert.deepEqual(await readState(dir), state);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('writeState rejects invalid hook mode', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
   try {
@@ -143,26 +170,6 @@ test('writeState rejects invalid hook mode', async () => {
         upstream: {}
       }),
       /hookMode must be off or on/
-    );
-  } finally {
-    await rm(dir, { recursive: true, force: true });
-  }
-});
-
-test('writeState rejects invalid skill profile', async () => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
-  try {
-    await assert.rejects(
-      writeState(dir, {
-        schemaVersion: 1,
-        scope: 'workspace',
-        projectionMode: 'link',
-        hookMode: 'off',
-        skillProfile: 'legacy',
-        targets: {},
-        upstream: {}
-      }),
-      /skillProfile must be full or minimal-global/
     );
   } finally {
     await rm(dir, { recursive: true, force: true });

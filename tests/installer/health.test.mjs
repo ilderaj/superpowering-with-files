@@ -44,6 +44,41 @@ test('readHarnessHealth reports entry and skill status per target', async () => 
   }
 });
 
+test('readHarnessHealth honors minimal-global selection boundaries', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      skillProfile: 'minimal-global',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    await mkdir(path.join(root, '.agents/skills/using-git-worktrees'), { recursive: true });
+    await writeFile(path.join(root, '.agents/skills/using-git-worktrees/NOT_SELECTED.txt'), 'ignored');
+    await rm(path.join(root, '.agents/skills/using-superpowers'), { recursive: true, force: true });
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.ok(
+      !health.targets.codex.skills.some((skill) => skill.skillName === 'using-git-worktrees'),
+      'minimal-global should not inspect unselected heavy skills'
+    );
+    assert.ok(
+      health.problems.some((problem) => problem.includes('using-superpowers')),
+      'missing allow-listed skill should be reported'
+    );
+    assert.ok(!health.problems.some((problem) => problem.includes('using-git-worktrees')));
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth includes entry context measurements and warning verdicts', async () => {
   const root = await createHarnessFixture();
   try {

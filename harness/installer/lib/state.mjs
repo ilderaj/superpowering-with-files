@@ -64,8 +64,8 @@ function validateStateShape(state) {
     throw new TypeError('Harness state hookMode must be off or on.');
   }
 
-  if (!['full', 'minimal-global'].includes(state.skillProfile)) {
-    throw new TypeError('Harness state skillProfile must be full or minimal-global.');
+  if ('skillProfile' in state && typeof state.skillProfile !== 'string') {
+    throw new TypeError('Harness state skillProfile must be a string.');
   }
 
   if (!isPlainObject(state.targets)) {
