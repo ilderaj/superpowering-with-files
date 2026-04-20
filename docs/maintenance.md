@@ -79,3 +79,30 @@ npm run verify
 ./scripts/harness sync
 ./scripts/harness doctor
 ```
+
+## Context Governance Gates
+
+Context-governance changes must not ship without checking the rendered entry files, projected skills, optional hook payloads, and Harness health output together.
+
+Required checks:
+
+- run `npm run verify`
+- run `./scripts/harness verify --output=.harness/verification` and review `health.context`
+- run `./scripts/harness sync --dry-run`
+- run `./scripts/harness doctor --check-only`
+- confirm rendered entries stay on the always-on core profile unless a target explicitly needs more detail
+- confirm `hookMode: off` remains the low-overhead default
+- if hook files changed, confirm runtime hook payload measurements stay within the configured budgets
+- if skill projection changed, verify both the default `full` profile and the opt-in `minimal-global` profile
+
+User-global calibration must be isolated unless the goal is to intentionally update the operator's real user-global files. Use a disposable clone and a disposable home/profile, then perform an actual sync before verification:
+
+```bash
+export HOME=/path/to/disposable-home
+./scripts/harness install --scope=both --targets=all --projection=portable --hooks=on --skills-profile=minimal-global
+./scripts/harness sync --conflict=backup
+./scripts/harness verify --output=.harness/verification
+./scripts/harness doctor --check-only
+```
+
+Use `sync --dry-run` before the actual sync only as a preview; it is not a substitute for verification because it does not write projection files. Manual inspection should cover the user-global entry files for Codex, GitHub Copilot, and Claude Code, plus Cursor's workspace rule output when `scope=both` is used. Cursor does not currently have a rendered user-global entry. The expected result is thin always-on entry content, no full deep-task policy dump, and no broad skill projection when `minimal-global` is selected.

@@ -11,6 +11,7 @@ const HARNESS_TEXT = [
   '- Keep `planning/active/<task-id>/` authoritative for durable task state, and sync only summaries, companion-plan references, and lifecycle/status updates back there.',
   '- Record the companion plan path, a short summary, and the current sync-back status in the task-scoped planning files.',
   '- The companion plan must also point back to `planning/active/<task-id>/`.',
+  '- Prefer compact hot-context recovery from the authoritative planning files before reading long historical detail.',
   '',
   `## ${MARKER}`,
   '',

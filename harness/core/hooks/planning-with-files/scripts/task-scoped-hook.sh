@@ -4,6 +4,7 @@ set -euo pipefail
 target="${1:-generic}"
 event="${2:-}"
 root="${HARNESS_PROJECT_ROOT:-$(pwd)}"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 active_root="$root/planning/active"
 
 json_escape() {
@@ -79,19 +80,25 @@ fi
 
 task_dir="$(sed -n '1p' "$tasks_file")"
 plan="$task_dir/task_plan.md"
+findings="$task_dir/findings.md"
 progress="$task_dir/progress.md"
+hot_context_helper="$script_dir/render-hot-context.mjs"
+
+render_hot_context() {
+  node "$hot_context_helper" "$plan" "$findings" "$progress"
+}
 
 case "$event" in
   session-start)
-    context="$(printf '[planning-with-files] ACTIVE PLAN\n'; sed -n '1,80p' "$plan"; printf '\n=== recent progress ===\n'; tail -20 "$progress" 2>/dev/null || true)"
+    context="$(render_hot_context)"
     emit_context "$context" "SessionStart"
     ;;
   user-prompt-submit)
-    context="$(printf '[planning-with-files] ACTIVE PLAN\n'; sed -n '1,80p' "$plan"; printf '\n=== recent progress ===\n'; tail -20 "$progress" 2>/dev/null || true)"
+    context="$(render_hot_context)"
     emit_context "$context" "UserPromptSubmit"
     ;;
   pre-tool-use)
-    context="$(sed -n '1,40p' "$plan" 2>/dev/null || true)"
+    context="$(render_hot_context)"
     emit_context "$context" "PreToolUse"
     ;;
   post-tool-use)

@@ -24,3 +24,113 @@
   - 模板与 override 的体积贡献极小
   - Codex 场景下 global + workspace 两份高度重复文本并存，是最明显的重复加载风险
 - 本轮无代码修改，仅新增 planning 记录文件
+
+## 2026-04-19
+
+- 用户将任务范围升级为：
+  - 结合 TypeMint 的 `local-context-overhead-analysis/analysis-summary.md`
+  - 只从 global harness 层审计 HarnessTemplate 是否存在相同问题
+  - 给出详尽分析报告与整改 plan
+  - plan 必须包含官方文档 research、详细测试/校准/验证流程
+- 已补读：
+  - `/Users/jared/TypeMint/planning/active/local-context-overhead-analysis/analysis-summary.md`
+  - `/Users/jared/.agents/skills/writing-plans/SKILL.md`
+  - 现有相关 planning 任务：`cross-ide-projection-audit`、`harness-adoption-governance-plan`、`workflow-constraints-audit`
+- 已核查 Claude Code 官方文档：
+  - `CLAUDE.md` / `CLAUDE.local.md` 的层级与启动加载规则
+  - skills 的来源、自动发现、按需加载与 `disable-model-invocation`
+  - hooks 的 settings 配置入口与 `disableAllHooks`
+  - settings 的用户/项目/local/managed 分层
+  - subagents 的独立 context window 与按需委派机制
+- 已收到其余官方 research 结论：
+  - Codex / OpenAI：原生支持分层 `AGENTS.md`、byte budget、skills 按需加载、auto compaction
+  - GitHub Copilot / VS Code：instructions 有作用域分层，skills 明确 progressive loading
+  - Cursor：rules 静态、skills 动态、hooks 运行时控制，且 `AGENTS.md` 被定位为简化入口
+- 当前执行策略：
+  - 复用 `global-rule-context-load-analysis`，避免新建重复 planning 目录
+  - 主线本地审计 HarnessTemplate 当前 global 架构
+  - 并行分派各 IDE 官方文档研究子任务
+  - 最终只输出报告与计划，不改实现
+- 本地新增审计：
+  - 统计当前 user-global entries：
+    - `~/.codex/AGENTS.md`
+    - `~/.copilot/instructions/harness.instructions.md`
+    - `~/.claude/CLAUDE.md`
+  - 统计各 global skill root 中 Harness 核心技能的体积
+  - 读取：
+    - `harness/core/skills/index.json`
+    - `harness/installer/lib/{skill-projection,plan-locations,health,paths}.mjs`
+    - `harness/installer/commands/{doctor,verify}.mjs`
+    - `harness/core/hooks/superpowers/scripts/session-start`
+    - `harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh`
+    - 对应 hook tests
+- 当前新增结论：
+  - entry 全量内联 `base.md`，没有分层装配
+  - skills 投影层本身规模不小
+  - hooks 是明显的上下文注入放大器
+  - tests / doctor / verify 尚未把“上下文预算”和“负担约束”作为一等验证对象
+- 已创建 companion plan：
+  - `docs/superpowers/plans/2026-04-19-global-harness-context-remediation-plan.md`
+- 本轮计划内容覆盖：
+  - context budget primitives
+  - thin always-on policy rendering
+  - compact planning hot-context extraction
+  - hook payload slimming and budgets
+  - opt-in minimal global skill profile
+  - full verification / calibration / rollout gates
+- 本轮仍未改业务实现；只新增/更新 planning 与 companion plan 文档。
+- 进入执行阶段，按 `subagent-driven-development` + `using-git-worktrees` 工作流在隔离分支开展实施。
+- Worktree: `/Users/jared/HarnessTemplate/.worktrees/global-context-remediation`
+- Branch: `codex/global-context-remediation`
+- Worktree base: `dev @ 5d1bc98a8c9fd6a9734bbd5c16428918daef3f32`
+- Baseline verification:
+  - 运行 `npm run verify`
+  - 结果：`120` 通过，`1` 失败
+  - 现有失败项：`tests/core/no-personal-paths.test.mjs`
+  - 失败原因：`docs/superpowers/plans/2026-04-19-global-harness-context-remediation-plan.md` 仍含 `/Users/jared/` 绝对路径
+- 当前执行约束：
+  - 最终必须完成所有计划项实现
+  - 需要覆盖 Codex / Copilot / Cursor / Claude Code 全量兼容性回归
+  - 合并回本地 `dev` 后必须再做一次回归验证
+- Task 3 hot-context 修复继续推进：
+  - 发现 `render-hot-context.mjs` 不能依赖源码树相对 import，否则投影到 target hook root 后会 `ERR_MODULE_NOT_FOUND`
+  - 需要把 helper 改成基于 `HARNESS_PROJECT_ROOT` / `process.cwd()` 的运行时定位
+  - 还需要补“投影后执行”的测试，不能只覆盖仓库原位执行
+
+## 2026-04-20
+
+- 继续中断的执行阶段，当前隔离分支仍为 `codex/global-context-remediation`。
+- 已完成 Task 1 到 Task 5 的实现、修复和代码审查闭环。
+- Task 6 收尾动作：
+  - 将 companion plan 中的真实 user home 路径改为 `~`，避免触发 no-personal-paths 校验。
+  - 在 `README.md` 增加 context governance 验证入口。
+  - 在 `docs/maintenance.md` 增加 context governance maintenance gates。
+  - 在 `docs/release.md` 增加 context governance release gate。
+- 当前验证入口：
+  - 定向回归：context budget、policy rendering、planning hot context、hook budget、skill profile、adapter sync、health、commands。
+  - 完整回归：`npm run verify`。
+  - Harness 回归：`./scripts/harness verify --output=.harness/verification`、`./scripts/harness sync --dry-run`、`./scripts/harness doctor --check-only`。
+- 待完成：
+  - 运行隔离分支回归。
+  - 提交 Task 6 文档和 planning 更新。
+  - 合并回本地 `dev`。
+  - 在 `dev` 上做最终回归验证并输出报告。
+- 隔离分支回归结果：
+  - 定向整改套件通过：`65` 通过，`0` 失败。
+  - 完整仓库验证通过：`npm run verify`，`154` 通过，`0` 失败。
+  - Harness CLI smoke 通过：`verify --output=stdout`、`sync --dry-run`、`doctor --check-only`。
+  - `doctor --check-only` 仍输出既有历史 companion plan 双向引用警告，但退出通过；这些警告不来自本轮新增 companion plan。
+- 全 IDE 兼容性校准：
+  - 使用临时仓库和临时 HOME，未写真实 user-global 文件。
+  - 覆盖 Codex、GitHub Copilot、Cursor、Claude Code。
+  - 覆盖 `scope=both`、`projection=portable`、默认 `full + hooks off`、`minimal-global + hooks on`。
+  - 所有 workspace/user-global entry、planning-with-files skill roots、hook config 路径均成功生成。
+  - health problems 为 `0`；context warnings 为 `0`。
+- 额外修复：
+  - 发现 `health.context.summary.entries` 曾跨 IDE 累加 entry 体积，导致 `scope=both --targets=all` 被误报为单会话 context problem。
+  - 已改为按 target 聚合 workspace+user-global entry，并以最坏 target session 作为 summary；这样仍能捕获单个 IDE 的 global+workspace 重复加载风险，但不会把互斥 IDE 的上下文相加。
+- 合并前代码审查反馈处理：
+  - summary entry 的 `problem` verdict 现在会进入 `health.problems`，防止真实单 IDE session 超预算通过 doctor/release gate。
+  - 新增 worst-target true positive 回归，覆盖单个 target 的 workspace+user-global 聚合超预算场景。
+  - maintenance 文档改为在 disposable HOME 中实际 `sync` 后再 `verify`，并明确 `sync --dry-run` 只是预览。
+  - release 文档改为写出 `.harness/verification/latest.json`，保证 `health.context` 可审查。

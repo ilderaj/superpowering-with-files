@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { defaultState, readState, updateState, writeState } from '../../harness/installer/lib/state.mjs';
@@ -11,6 +11,7 @@ test('defaultState creates v1 workspace state', () => {
     scope: 'workspace',
     projectionMode: 'link',
     hookMode: 'off',
+    skillProfile: 'full',
     targets: {},
     upstream: {}
   });
@@ -24,6 +25,7 @@ test('writeState and readState roundtrip local state', async () => {
       scope: 'both',
       projectionMode: 'portable',
       hookMode: 'off',
+      skillProfile: 'full',
       targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
       upstream: {}
     };
@@ -43,6 +45,7 @@ test('updateState persists state returned by updater', async () => {
       scope: 'workspace',
       projectionMode: 'link',
       hookMode: 'off',
+      skillProfile: 'full',
       targets: {},
       upstream: {}
     });
@@ -66,6 +69,7 @@ test('writeState and readState roundtrip enabled hook mode', async () => {
       scope: 'workspace',
       projectionMode: 'link',
       hookMode: 'on',
+      skillProfile: 'full',
       targets: { cursor: { enabled: true, paths: ['.cursor/rules/harness.mdc'] } },
       upstream: {}
     };
@@ -88,6 +92,7 @@ test('readState treats missing hookMode as off for v1 compatibility', async () =
         schemaVersion: 1,
         scope: 'workspace',
         projectionMode: 'link',
+        skillProfile: 'full',
         targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
         upstream: {}
       })
@@ -95,6 +100,57 @@ test('readState treats missing hookMode as off for v1 compatibility', async () =
 
     const state = await readState(dir);
     assert.equal(state.hookMode, 'off');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('readState treats missing skillProfile as full for v1 compatibility', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
+  try {
+    const stateFile = path.join(dir, '.harness', 'state.json');
+    await mkdir(path.dirname(stateFile), { recursive: true });
+    await writeFile(
+      stateFile,
+      JSON.stringify({
+        schemaVersion: 1,
+        scope: 'workspace',
+        projectionMode: 'link',
+        hookMode: 'off',
+        targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
+        upstream: {}
+      })
+    );
+
+    const state = await readState(dir);
+    assert.equal(state.skillProfile, 'full');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('state schema keeps skillProfile optional and stringly typed', async () => {
+  const schema = JSON.parse(await readFile('harness/core/state-schema/state.schema.json', 'utf8'));
+  assert.ok(!schema.required.includes('skillProfile'));
+  assert.equal(schema.properties.skillProfile.type, 'string');
+  assert.equal(schema.properties.skillProfile.enum, undefined);
+});
+
+test('writeState preserves arbitrary skillProfile strings for loader-based validation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
+  try {
+    const state = {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      skillProfile: 'legacy',
+      targets: {},
+      upstream: {}
+    };
+
+    await writeState(dir, state);
+    assert.deepEqual(await readState(dir), state);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -109,6 +165,7 @@ test('writeState rejects invalid hook mode', async () => {
         scope: 'workspace',
         projectionMode: 'link',
         hookMode: 'always',
+        skillProfile: 'full',
         targets: {},
         upstream: {}
       }),
@@ -151,6 +208,7 @@ test('writeState rejects invalid state shape', async () => {
         scope: 'workspace',
         projectionMode: 'link',
         hookMode: 'off',
+        skillProfile: 'full',
         targets: { codex: { enabled: true, paths: ['AGENTS.md'], extra: true } },
         upstream: {}
       }),
@@ -171,6 +229,7 @@ test('writeState survives concurrent writes with a constant timestamp', async ()
       scope: index % 2 === 0 ? 'workspace' : 'both',
       projectionMode: index % 3 === 0 ? 'link' : 'portable',
       hookMode: 'off',
+      skillProfile: 'full',
       targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
       upstream: {}
     }));

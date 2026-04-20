@@ -16,6 +16,7 @@ export async function doctor(args = []) {
   const checkOnly = args.includes('--check-only');
   const health = await readHarnessHealth(process.cwd(), os.homedir());
   const problems = [];
+  const warnings = [...health.warnings];
 
   problems.push(...health.problems);
 
@@ -28,14 +29,23 @@ export async function doctor(args = []) {
     }
   }
 
-  if (problems.length) {
-    console.error(problems.join('\n'));
-    process.exitCode = 1;
-    return;
+  if (health.context?.warnings?.length) {
+    warnings.push(...health.context.warnings);
   }
 
-  if (health.warnings.length) {
-    console.error(health.warnings.join('\n'));
+  const uniqueProblems = [...new Set(problems)];
+  const uniqueWarnings = warnings.filter((warning, index) => {
+    return !uniqueProblems.includes(warning) && warnings.indexOf(warning) === index;
+  });
+
+  if (uniqueWarnings.length) {
+    console.error(uniqueWarnings.join('\n'));
+  }
+
+  if (uniqueProblems.length) {
+    console.error(uniqueProblems.join('\n'));
+    process.exitCode = 1;
+    return;
   }
 
   console.log(checkOnly ? 'Harness check passed.' : 'Harness installation is healthy.');

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "defaultProfile": "always-on-core",
+  "profiles": {
+    "always-on-core": [
+      "Default Behavior",
+      "Rule Precedence",
+      "Task Classification",
+      "When Superpowers Is Allowed",
+      "When Superpowers Is Not Allowed",
+      "Communication Guidelines",
+      "Tool Preferences",
+      "Compact Instructions",
+      "Shell And Token-Saving Preferences"
+    ],
+    "tracked-task-extended": [
+      "Plan Location Boundaries",
+      "Planning-With-Files Lifecycle Rule",
+      "Complex Task Orchestration",
+      "Cross-IDE Portability",
+      "Hard Constraints"
+    ],
+    "deep-reasoning-reference": [
+      "Mandatory Sync-Back Rule",
+      "Companion Plan Model"
+    ]
+  }
+}

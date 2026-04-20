@@ -12,5 +12,9 @@ test('superpowers codex session-start emits hookSpecificOutput payload', async (
 
   const payload = JSON.parse(stdout);
   assert.equal(payload.hookSpecificOutput.hookEventName, 'SessionStart');
-  assert.match(payload.hookSpecificOutput.additionalContext, /using-superpowers/);
+  assert.ok(payload.hookSpecificOutput.additionalContext.length < 4000);
+  assert.doesNotMatch(
+    payload.hookSpecificOutput.additionalContext,
+    /description: Use when starting any conversation/
+  );
 });

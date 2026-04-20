@@ -3,6 +3,7 @@ import path from 'node:path';
 import { resolveSkillTargetPaths } from './paths.mjs';
 
 const strategies = new Set(['link', 'materialize']);
+const SKILL_PROFILES_PATH = 'harness/core/skills/profiles.json';
 
 function normalizePatches(value) {
   if (!value) return [];
@@ -15,6 +16,120 @@ function resolvePatches(patchConfig, target) {
     ...normalizePatches(patchConfig.default),
     ...normalizePatches(patchConfig[target])
   ];
+}
+
+function validateSkillProfilesConfig(config) {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    throw new TypeError('Harness skill profiles must be a JSON object.');
+  }
+
+  for (const key of Object.keys(config)) {
+    if (!['schemaVersion', 'defaultProfile', 'profiles'].includes(key)) {
+      throw new TypeError(`Harness skill profiles contains unsupported field: ${key}`);
+    }
+  }
+
+  if (config.schemaVersion !== 1) {
+    throw new TypeError('Harness skill profiles schemaVersion must be 1.');
+  }
+
+  if (typeof config.defaultProfile !== 'string' || !config.defaultProfile) {
+    throw new TypeError('Harness skill profiles defaultProfile must be a string.');
+  }
+
+  if (!config.profiles || typeof config.profiles !== 'object' || Array.isArray(config.profiles)) {
+    throw new TypeError('Harness skill profiles profiles must be a JSON object.');
+  }
+
+  for (const [profileName, entries] of Object.entries(config.profiles)) {
+    if (!Array.isArray(entries) || !entries.every((entry) => typeof entry === 'string' && entry)) {
+      throw new TypeError(`Harness skill profiles profile ${profileName} must be an array of strings.`);
+    }
+  }
+
+  if (!config.profiles[config.defaultProfile]) {
+    throw new TypeError(
+      `Harness skill profiles defaultProfile ${config.defaultProfile} must reference an existing profile.`
+    );
+  }
+}
+
+function validateSkillProfileEntries(profileName, profileEntries, index, childNamesByParent) {
+  for (const entry of profileEntries) {
+    const [parentSkillName, childName] = entry.split(':');
+
+    if (!parentSkillName) {
+      throw new TypeError(`Harness skill profile ${profileName} contains an empty skill entry.`);
+    }
+
+    const skill = index.skills[parentSkillName];
+    if (!skill) {
+      throw new TypeError(`Harness skill profile ${profileName} references unknown skill: ${entry}`);
+    }
+
+    if (childName === undefined) {
+      continue;
+    }
+
+    if (skill.layout !== 'collection') {
+      throw new TypeError(
+        `Harness skill profile ${profileName} references child ${entry} but ${parentSkillName} is not a collection.`
+      );
+    }
+
+    if (!childNamesByParent[parentSkillName]?.includes(childName)) {
+      throw new TypeError(`Harness skill profile ${profileName} references unknown child: ${entry}`);
+    }
+  }
+}
+
+export async function loadSkillProfiles(rootDir) {
+  const config = JSON.parse(await readFile(path.join(rootDir, SKILL_PROFILES_PATH), 'utf8'));
+  validateSkillProfilesConfig(config);
+  return config;
+}
+
+function resolveSkillProfileName(skillProfiles, requestedProfile) {
+  const profileName = requestedProfile ?? skillProfiles.defaultProfile;
+  if (!skillProfiles.profiles[profileName]) {
+    throw new Error(
+      `Invalid skills profile: ${profileName}. Expected one of: ${Object.keys(skillProfiles.profiles).join(', ')}.`
+    );
+  }
+  return profileName;
+}
+
+function buildProfileSelection(profileEntries) {
+  const allowedParents = new Set();
+  const allowedChildren = new Map();
+
+  for (const entry of profileEntries) {
+    const [parentSkillName, childName] = entry.split(':');
+
+    if (childName === undefined) {
+      allowedParents.add(parentSkillName);
+      continue;
+    }
+
+    const children = allowedChildren.get(parentSkillName) ?? new Set();
+    children.add(childName);
+    allowedChildren.set(parentSkillName, children);
+  }
+
+  return { allowedParents, allowedChildren };
+}
+
+function selectedCollectionChildren(profileSelection, parentSkillName, childNames) {
+  if (profileSelection.allowedParents.has(parentSkillName)) {
+    return childNames;
+  }
+
+  const allowedChildren = profileSelection.allowedChildren.get(parentSkillName);
+  if (!allowedChildren) {
+    return [];
+  }
+
+  return childNames.filter((childName) => allowedChildren.has(childName));
 }
 
 async function loadSkillIndex(rootDir) {
@@ -68,16 +183,33 @@ export async function projectionForSkill(rootDir, skillName, target) {
   };
 }
 
-export async function planSkillProjections({ rootDir, homeDir, scope, target }) {
-  const [index, metadata] = await Promise.all([
+export async function planSkillProjections({ rootDir, homeDir, scope, target, skillProfile }) {
+  const [index, metadata, skillProfiles] = await Promise.all([
     loadSkillIndex(rootDir),
-    loadPlatformsMetadata(rootDir)
+    loadPlatformsMetadata(rootDir),
+    loadSkillProfiles(rootDir)
   ]);
 
   if (!metadata.platforms[target]) {
     throw new Error(`Unknown target: ${target}`);
   }
 
+  const profileName = resolveSkillProfileName(skillProfiles, skillProfile);
+  const profileEntries = skillProfiles.profiles[profileName];
+  const collectionChildrenByParent = {};
+
+  for (const [parentSkillName, skill] of Object.entries(index.skills)) {
+    if (skill.layout !== 'collection') {
+      continue;
+    }
+
+    collectionChildrenByParent[parentSkillName] = await collectionChildNames(
+      path.join(rootDir, skill.baselinePath)
+    );
+  }
+
+  validateSkillProfileEntries(profileName, profileEntries, index, collectionChildrenByParent);
+  const profileSelection = buildProfileSelection(profileEntries);
   const projections = [];
 
   for (const [parentSkillName, skill] of Object.entries(index.skills).sort(([left], [right]) =>
@@ -87,7 +219,16 @@ export async function planSkillProjections({ rootDir, homeDir, scope, target }) 
     const strategy = strategyFor(skill, target);
 
     if (skill.layout === 'collection') {
-      const childNames = await collectionChildNames(sourceRoot);
+      const childNames = selectedCollectionChildren(
+        profileSelection,
+        parentSkillName,
+        collectionChildrenByParent[parentSkillName] ?? []
+      );
+
+      if (!childNames.length) {
+        continue;
+      }
+
       const targetPaths = resolveSkillTargetPaths(rootDir, homeDir, scope, target, {
         layout: 'collection',
         childNames
@@ -112,6 +253,10 @@ export async function planSkillProjections({ rootDir, homeDir, scope, target }) 
     }
 
     if (skill.layout === 'single') {
+      if (!profileSelection.allowedParents.has(parentSkillName)) {
+        continue;
+      }
+
       for (const targetPath of resolveSkillTargetPaths(rootDir, homeDir, scope, target, skill)) {
         const patches = resolvePatches(skill.patches, target);
         projections.push({

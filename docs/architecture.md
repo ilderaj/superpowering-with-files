@@ -9,8 +9,10 @@ superpowering-with-files uses four layers:
 
 Core is the source of truth. Adapters translate core into platform-specific entry files. The installer manages state, safe writes, and entry + skills projection.
 
+`harness/core/policy/base.md` remains the canonical policy source. Entry files are rendered from heading-based profiles, so the always-on startup payload is smaller than the full canonical policy. Tracked-task and deep-reasoning detail still lives in `base.md`, but it is not injected into every session start by default.
+
 Planning with Files is the only durable agent task-memory system. Active task state lives under `planning/active/<task-id>/`; closed task state may move to `planning/archive/<timestamp>-<task-id>/` only after the lifecycle guard passes. Documentation directories such as `docs/**`, `docs/superpowers/plans/**`, and `docs/plans/**` are not active task state unless the user explicitly asks for a human-facing documentation artifact.
-All supported IDE entry files render from the same core policy source, so tracked-task precedence and the companion-plan summary-only boundary are intended to stay consistent across Codex, GitHub Copilot, Cursor, and Claude Code.
+All supported IDE entry files render from the same core policy source, but they do so through a thin default profile. That preserves tracked-task precedence in the canonical policy without forcing the tracked-task and deep-reasoning sections into every session start across Codex, GitHub Copilot, Cursor, and Claude Code.
 
 Projection operations:
 

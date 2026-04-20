@@ -221,7 +221,8 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
       rootDir,
       homeDir,
       scope: state.scope,
-      target
+      target,
+      skillProfile: state.skillProfile
     });
 
     for (const projection of skillProjections) {

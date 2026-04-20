@@ -70,8 +70,16 @@ test('sync installs codex planning hooks when hookMode is on', async () => {
     assert.ok(hooks.hooks.Stop);
     assert.match(JSON.stringify(hooks), /Harness-managed planning-with-files hook/);
     assert.match(await readFile(path.join(root, '.codex/hooks/task-scoped-hook.sh'), 'utf8'), /planning\/active/);
+    assert.match(
+      await readFile(path.join(root, '.codex/hooks/planning-hot-context.mjs'), 'utf8'),
+      /buildPlanningHotContext/
+    );
     assert.match(JSON.stringify(hooks), /Harness-managed superpowers hook/);
-    assert.match(await readFile(path.join(root, '.codex/hooks/session-start'), 'utf8'), /using-superpowers/);
+    const sessionStart = await readFile(path.join(root, '.codex/hooks/session-start'), 'utf8');
+    assert.match(sessionStart, /You have superpowers/);
+    assert.match(sessionStart, /projected skill/);
+    assert.match(sessionStart, /planning\/active\/<task-id>\//);
+    assert.doesNotMatch(sessionStart, /description: Use when starting any conversation/);
   } finally {
     await removeHarnessFixture(root);
   }
