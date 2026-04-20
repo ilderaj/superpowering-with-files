@@ -72,13 +72,19 @@ Thanks to the upstream authors and communities whose work this repository builds
 ./scripts/harness sync
 ./scripts/harness doctor
 
-# user-global
-./scripts/harness install --scope=user-global --targets=all --projection=link
-./scripts/harness sync
-./scripts/harness doctor
+# user-global bootstrap / refresh
+./scripts/harness adopt-global
+./scripts/harness adoption-status
 ```
 
 Use `--scope=both` when you want a shared user-global baseline plus repository-local entry files.
+
+If you want a non-default user-global profile, install it once and then reuse `adopt-global`:
+
+```bash
+./scripts/harness install --scope=user-global --targets=all --projection=link --skills-profile=minimal-global
+./scripts/harness adopt-global
+```
 
 Rendered entry files use the `always-on-core` profile by default. That keeps session-start payloads small and leaves tracked-task and deep-reasoning detail in the canonical source for profile-based rendering when needed.
 
@@ -222,6 +228,8 @@ npm run verify
 ./scripts/harness sync --dry-run
 ./scripts/harness sync
 ./scripts/harness doctor
+./scripts/harness adopt-global
+./scripts/harness adoption-status
 ```
 
 ## Commands
@@ -234,6 +242,8 @@ npm run verify
 ./scripts/harness fetch
 ./scripts/harness update
 ./scripts/harness verify --output=.harness/verification
+./scripts/harness adopt-global
+./scripts/harness adoption-status
 ./scripts/harness worktree-preflight
 ```
 

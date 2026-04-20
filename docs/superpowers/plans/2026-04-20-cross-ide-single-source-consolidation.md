@@ -88,7 +88,7 @@ Expected: reports `Recommended base: dev` and `Base SHA: 5873831e48e5dacdd3081a4
 - [ ] Create the implementation worktree from the reported base:
 
 ```bash
-git worktree add /Users/jared/.config/superpowers/worktrees/HarnessTemplate/codex-cross-ide-single-source-exec -b codex/cross-ide-single-source-exec dev
+git worktree add "$HOME/.config/superpowers/worktrees/HarnessTemplate/codex-cross-ide-single-source-exec" -b codex/cross-ide-single-source-exec dev
 ```
 
 Expected: a clean isolated worktree on `codex/cross-ide-single-source-exec`.
