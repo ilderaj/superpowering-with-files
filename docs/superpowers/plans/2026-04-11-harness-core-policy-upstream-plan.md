@@ -721,3 +721,7 @@ git commit -m "feat: vendor initial skill baselines"
 - Spec coverage: 覆盖 core policy、全局规则抽取、platform overrides、skills index、upstream baseline、depersonalization。
 - Placeholder scan: passed; no placeholder markers remain.
 - Type consistency: `scope`、`projectionMode`、`targets` 与后续 installer plan 的状态模型保持一致。
+
+## Task Memory
+
+- Authoritative task state: `planning/active/harness-template-foundation/`

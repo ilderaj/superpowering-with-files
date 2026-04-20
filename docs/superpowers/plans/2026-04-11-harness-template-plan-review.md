@@ -82,3 +82,7 @@ Plan review approved before implementation.
 - Spec coverage: 本 review 文件覆盖计划拆分和执行顺序；具体 spec 实现由四个子计划覆盖。
 - Placeholder scan: passed; no placeholder markers remain.
 - Type consistency: 本文件不定义代码类型。
+
+## Task Memory
+
+- Authoritative task state: `planning/active/harness-template-foundation/`

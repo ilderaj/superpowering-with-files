@@ -482,3 +482,7 @@ git commit -m "feat: add skill projection lookup"
 - Spec coverage: 覆盖四个平台 adapter、template render、workspace/user-global/both scope、sync 幂等、skill projection 策略。
 - Placeholder scan: passed; skill projection lookup is a tested contract.
 - Type consistency: adapter `target`、state `scope`、skill projection `strategy` 与前序计划一致。
+
+## Task Memory
+
+- Authoritative task state: `planning/active/harness-template-foundation/`

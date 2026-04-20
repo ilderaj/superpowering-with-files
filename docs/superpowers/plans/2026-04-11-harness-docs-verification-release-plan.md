@@ -501,3 +501,7 @@ git commit -m "docs: add github repository setup"
 - Spec coverage: 覆盖 README、install docs、compatibility docs、maintenance docs、release docs、verification reports、GitHub setup guidance。
 - Placeholder scan: passed; GitHub setup is documented commands and is not executed in plan review.
 - Type consistency: verify report 使用 state 里的 `scope`、`projectionMode`、`targets`。
+
+## Task Memory
+
+- Authoritative task state: `planning/active/harness-template-foundation/`

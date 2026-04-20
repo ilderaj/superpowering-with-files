@@ -784,3 +784,7 @@ git commit -m "feat: add installer command contracts"
 - Spec coverage: 覆盖 CLI 入口、state、metadata、scope、projection mode、install/status/doctor/sync/fetch/update 命令合同。
 - Placeholder scan: passed; fetch/update are explicit command contracts, not empty placeholders.
 - Type consistency: `scope`、`projectionMode`、`targets` 与 core schema 一致。
+
+## Task Memory
+
+- Authoritative task state: `planning/active/harness-template-foundation/`

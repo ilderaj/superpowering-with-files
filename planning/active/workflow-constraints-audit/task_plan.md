@@ -35,7 +35,7 @@
 - 已完成自检，当前修改未破坏既有测试或健康检查。
 - 2026-04-18 当前复核再次确认：上述约束在 `dev` HEAD 仍然成立，相关 targeted tests、`verify`、`doctor` 全部通过；本轮为只读审计，无代码变更。
 
-## 当前状态
+## Current State
 Status: active
 Archive Eligible: no
 Close Reason:
