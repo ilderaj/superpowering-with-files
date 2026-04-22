@@ -54,3 +54,25 @@
   - `Worktree base: dev @ 536772e56070dbb8dd10556db48edef69d4cbdf8`
 - 说明：
   - 因当前任务 planning 文件和 companion plan 尚未提交，未切新 worktree，避免把活跃任务上下文丢到未提交工作树之外。
+
+## 2026-04-21 真实 user-global 执行
+
+- 执行前检查：
+  - `./scripts/harness adoption-status`
+  - 结果为 `apply_failed`
+  - 原因是既有 user-global projection 漂移，不是本次新引入风险
+- 风险判断：
+  - 当前 `.harness/state.json` 为 `user-global`
+  - 当前工作树干净
+  - 影响范围限定在 Harness 管理的 user-global entry / skills
+  - 风险可控，直接执行
+- 执行：
+  - `./scripts/harness adopt-global`
+  - 输出：`Synced 4 target(s): codex, copilot, cursor, claude-code (create=0, update=45, stale=15)`
+  - 输出：`Verification report written to .harness/adoption/verification/latest.md`
+- 执行后验证：
+  - 顺序重跑 `./scripts/harness adoption-status`
+  - 结果：`in_sync`
+  - `repoHead`: `f7ae5ac1affc048c8cfb84bf4f8baf59fa029913`
+  - `receiptPath`: `.harness/adoption/global.json`
+  - `health.problems`: `[]`
