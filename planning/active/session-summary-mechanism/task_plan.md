@@ -63,6 +63,9 @@ Phase 1
 |       | 1       |            |
 
 ## Notes
-- Companion plan: 不需要（非 Deep-reasoning 任务，单线设计）
-- 详细实施清单见 [implementation_plan.md](./implementation_plan.md)（11 个 Task / TDD 拆解）
+- Companion plan: [docs/superpowers/plans/2026-04-25-session-summary-mechanism.md](../../../docs/superpowers/plans/2026-04-25-session-summary-mechanism.md)
+  - Holds the detailed 11-task TDD checklist that would be too verbose for this file.
+  - Sync-back: durable decisions are mirrored into `findings.md`; phases 2-4 above are the coarse-grained projection of the companion checklist.
+  - Status: drafted, not yet executed.
+  - Note: this task is **not** a Deep-reasoning Superpowers task. The companion plan path under `docs/superpowers/plans/` is reused as a generic companion-artifact location per Harness AGENTS.md "Companion Plan Model". No Superpowers tooling was invoked.
 - 所有 hook 改动需保持 budget 下限并兼容 4 个 adapter（codex/copilot/cursor/claude-code）的 payload 形状

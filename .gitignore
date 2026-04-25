@@ -4,3 +4,4 @@
 .agent-config/logs/
 reports/checkpoints/
 .DS_Store
+.tmp.driveupload/

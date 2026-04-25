@@ -1,5 +1,16 @@
 # Session Summary Mechanism Implementation Plan
 
+> **Companion plan.** Authoritative task memory lives at
+> [planning/active/session-summary-mechanism/](../../../planning/active/session-summary-mechanism/)
+> (`task_plan.md`, `findings.md`, `progress.md`). This file holds the detailed
+> implementation checklist that would be too verbose for `task_plan.md`.
+> Per Harness AGENTS.md "Companion Plan Model": durable decisions and
+> lifecycle status stay in the active task files; this file is a secondary
+> artifact and may be moved/archived without losing task state.
+>
+> Sync-back status: phases 2-4 in `task_plan.md` reflect this checklist's
+> coarse stages; durable decisions are mirrored into `findings.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 让 harness 在一轮 session 收尾时输出一个结构化、精炼的总结，数据源自 planning files（`task_plan.md` / `progress.md` / `findings.md`）和 hook lifecycle 信号，而非模型自由发挥。
@@ -1231,7 +1242,7 @@ git commit -m "chore: close session-summary-mechanism task"
 
 ## Execution Handoff
 
-Plan complete and saved to [planning/active/session-summary-mechanism/implementation_plan.md](planning/active/session-summary-mechanism/implementation_plan.md). Two execution options:
+Plan complete and saved to [docs/superpowers/plans/2026-04-25-session-summary-mechanism.md](../../../docs/superpowers/plans/2026-04-25-session-summary-mechanism.md). Authoritative task memory at [planning/active/session-summary-mechanism/](../../../planning/active/session-summary-mechanism/). Two execution options:
 
 1. **Subagent-Driven (recommended)** — 每个 Task 派发一个独立 subagent，任务间评审，迭代快。
 2. **Inline Execution** — 在当前会话内按 Task 顺序执行，每 2-3 个 Task 设置一个 checkpoint 让你审查。
