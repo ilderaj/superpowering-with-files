@@ -53,11 +53,24 @@
 ### 2026-04-25（完整验证）
 - 运行 focused checkpoint slice，当前结果：33/33 passing
 - 运行 `npm run verify`，当前结果：198/198 passing
-- 运行 `./scripts/harness doctor --check-only`，结果：passed；保留两个既有 orphan companion plan warnings（非本次改动引入）
+- 运行 `./scripts/harness doctor --check-only`，结果：passed；保留既有 orphan companion plan warnings（非本次改动引入）
 - 运行 `./scripts/harness worktree-preflight --safety`，结果：
   - `checkpointPushReady: ok`
   - `riskAssessmentRecorded` 在补填 task risk assessment 前曾提示缺失，现已回填
 - 子代理在 Task 5 期间误把 authoritative planning files 收窄为 docs-only 任务；已手动修复为整个 checkpoint-push 实现任务的真实状态
+
+### 2026-04-25（smoke、merge、push 收口）
+- 已在 disposable worktree `/tmp/checkpoint-push-smoke-Wx62WI` 上创建临时分支 `chore/checkpoint-push-smoke-1777131129` 做 smoke：
+  - `./scripts/harness worktree-preflight --safety` → `checkpointPushReady: ok`
+  - `./scripts/harness checkpoint-push --message="chore: smoke test checkpoint push" --dry-run --json` → `status: success`，默认 `verifyCommand: npm run verify`
+- 已推送功能分支：`git push -u origin copilot/using-subagents-for-plans`
+- 已在主 checkout `/Users/jared/SuperpoweringWithFiles` 将功能分支 merge 到 `dev`：
+  - 先尝试 `git merge --ff-only`，因 `dev` 已有 session-summary 相关提交而无法 fast-forward
+  - 随后执行普通 merge，生成 merge commit `d51a729`
+- 已在 merged `dev` 上重新验证：
+  - `npm run verify` → PASS (198/198)
+  - `./scripts/harness doctor --check-only` → PASS（保留既有 orphan companion plan warnings）
+- 已推送远端开发分支：`git push origin dev`
 
 ## Files Changed
 
@@ -86,6 +99,9 @@
 | Repository verification | `npm run verify` | Full repo verification passes after code/docs changes | Pass; 198/198 tests passed | ✓ |
 | Installer health | `./scripts/harness doctor --check-only` | Health passes | Pass; only existing orphan companion-plan warnings remain | ✓ |
 | Preflight safety | `./scripts/harness worktree-preflight --safety` | Checkpoint push readiness reported as ok | Pass; `checkpointPushReady: ok` | ✓ |
+| Smoke dry-run | `./scripts/harness checkpoint-push --message="chore: smoke test checkpoint push" --dry-run --json` | Success result, resolved verify command, artifact paths emitted, no commit/push | Pass; `status: success`, `verifyCommand: npm run verify`, `headAfter === headBefore` | ✓ |
+| Post-merge repository verification | `npm run verify` on `/Users/jared/SuperpoweringWithFiles` | Merged `dev` still passes | Pass; 198/198 tests passed | ✓ |
+| Post-merge installer health | `./scripts/harness doctor --check-only` on `/Users/jared/SuperpoweringWithFiles` | Health still passes on merged `dev` | Pass; only existing orphan companion-plan warnings remain | ✓ |
 
 ## Error Log
 
@@ -95,6 +111,4 @@
 
 ## Next Step
 
-- 在 disposable worktree 做一次 `checkpoint-push --dry-run --json` smoke
-- 将 `copilot/using-subagents-for-plans` merge 回本地 `dev`
-- 提交并推送 feature branch 与 `dev`
+- 保留为未归档 closed task；如后续需要再扩展 `checkpoint-push`，在同 task 下新增 Phase 10+

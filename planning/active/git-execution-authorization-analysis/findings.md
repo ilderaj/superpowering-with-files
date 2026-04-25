@@ -24,8 +24,7 @@
 
 ## Open Threads
 
-- 还需要在 disposable worktree 做一次 repo 级 dry-run smoke，作为 merge 前的操作层验证。
-- `doctor --check-only` 仍会报告两个既有 orphan companion plan warning（`2026-04-20-global-auto-apply-adoption.md`、`2026-04-25-agent-safety-harness.md`）；它们与本次实现无关，不作为当前 merge blocker。
+- `doctor --check-only` 仍会报告三个既有 orphan companion plan warning（`2026-04-20-global-auto-apply-adoption.md`、`2026-04-25-agent-safety-harness.md`、`2026-04-25-session-summary-mechanism.md`）；它们与本次实现无关，不作为本任务 blocker。
 
 ## Recommended Implementation Scope
 
@@ -45,7 +44,8 @@
 
 | Command | Target | Checkpoint | Rollback |
 |---------|--------|------------|----------|
-| None yet | N/A | N/A | 功能分支仍未 merge 到 `dev`；若后续 smoke/merge 失败，可直接停在当前 feature branch |
+| `git push -u origin copilot/using-subagents-for-plans` | 远端功能分支 | 本地已验证 commit `e61ddd1` | 若后续 `dev` 集成失败，可从该远端功能分支恢复 |
+| `git push origin dev` | 远端开发分支 | 本地 merged `dev` commit `d51a729` | 若后续需要回退，可从远端历史或功能分支重新建立修复分支 |
 
 ## Resources
 

@@ -4,12 +4,12 @@
 分析并落地 Harness 的 controlled `checkpoint-push` 流程：在非 trunk、优先 worktree 的分支上下文里执行 fresh verification、生成 deterministic review evidence、完成 commit/push，并在验证后 merge 回本地 `dev`。
 
 ## Current State
-Status: active
+Status: closed
 Archive Eligible: no
-Close Reason:
+Close Reason: Implemented, verified, smoke-tested, merged to local dev, and pushed.
 
 ## Current Phase
-Phase 8
+Phase 9
 
 ## Phases
 
@@ -56,15 +56,15 @@ Phase 8
 
 ### Phase 8: Verification And Integration
 - [x] 运行 focused tests、repo verify、doctor check-only、worktree-preflight --safety
-- [ ] 在 disposable worktree 里做 dry-run smoke test，并视权限决定是否 live push
-- [ ] 将实现分支 merge 回本地 `dev`
-- **Status:** in_progress
+- [x] 在 disposable worktree 里做 dry-run smoke test，并视权限决定是否 live push
+- [x] 将实现分支 merge 回本地 `dev`
+- **Status:** complete
 
 ### Phase 9: Commit, Push, And Closeout
-- [ ] 整理 planning sync-back、commit history 与 review 结论
-- [ ] push 实现分支与更新后的 `dev`
-- [ ] 关闭当前 task 或切到 waiting_review / waiting_integration
-- **Status:** pending
+- [x] 整理 planning sync-back、commit history 与 review 结论
+- [x] push 实现分支与更新后的 `dev`
+- [x] 关闭当前 task 或切到 waiting_review / waiting_integration
+- **Status:** complete
 
 ## Risk Assessment
 
@@ -88,10 +88,10 @@ Phase 8
 
 ## Notes
 - 当前工作区是隔离 worktree 分支 `copilot/using-subagents-for-plans`，起始基线与本地 `dev` 同 SHA：`a20059fd2a95b2199923b5cc2a1f8cef918c0b02`。
-- 当前已完成 feature 实现与文档同步，待做 disposable smoke、merge back to local `dev`、commit/push 收口。
+- 当前功能分支已推送到 `origin/copilot/using-subagents-for-plans`，并已 merge 回本地与远端 `dev`。
 
 ## Companion Plan Reference
 
 - Companion plan: `docs/superpowers/plans/2026-04-25-checkpoint-push-automation-plan.md`
 - Companion plan role: 保存不含 PR 自动化的详细 implementation tasks、file map、验证命令与 rollout gates。
-- Sync-back status: `2026-04-25` 已同步到执行态，等待最终 merge / push 收口。
+- Sync-back status: `2026-04-25` 已同步到 closeout 状态。
