@@ -9,6 +9,7 @@ import { verify } from './verify.mjs';
 import { worktreePreflight } from './worktree-preflight.mjs';
 import { adoptGlobal } from './adopt-global.mjs';
 import { adoptionStatus } from './adoption-status.mjs';
+import { checkpointCommand } from './checkpoint.mjs';
 
 const commands = {
   install,
@@ -18,6 +19,7 @@ const commands = {
   fetch: fetchCommand,
   update: updateCommand,
   verify,
+  checkpoint: checkpointCommand,
   'worktree-preflight': worktreePreflight,
   'adopt-global': adoptGlobal,
   'adoption-status': adoptionStatus
@@ -35,6 +37,7 @@ function usage() {
     '  fetch    Fetch upstream candidates',
     '  update   Apply fetched upstream candidates',
     '  verify   Print or write verification reports',
+    '  checkpoint  Create a safety checkpoint',
     '  adopt-global     Apply the current repo baseline to the user-global install',
     '  adoption-status  Report user-global adoption drift and health',
     '  worktree-preflight  Recommend an explicit base before creating a Git worktree'

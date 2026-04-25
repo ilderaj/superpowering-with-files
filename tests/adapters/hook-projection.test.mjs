@@ -134,3 +134,36 @@ test('planHookProjections models unsupported superpowers target explicitly', asy
   assert.equal(superpowers.status, 'unsupported');
   assert.match(superpowers.message, /No verified superpowers hook adapter for copilot/);
 });
+
+test('planHookProjections adds safety hooks when the safety policy profile is active', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex',
+    hookMode: 'on',
+    policyProfile: 'safety'
+  });
+  const safety = plans.find((plan) => plan.parentSkillName === 'safety');
+
+  assert.equal(safety.status, 'planned');
+  assert.equal(safety.configTarget, path.join(process.cwd(), '.codex/hooks.json'));
+  assert.deepEqual(safety.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh'),
+    path.join(process.cwd(), 'harness/core/hooks/safety/scripts/session-checkpoint.sh')
+  ]);
+  assert.equal(safety.scriptTargetRoot, path.join(process.cwd(), '.codex/hooks'));
+});
+
+test('planHookProjections skips safety hooks outside safety profiles', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex',
+    hookMode: 'on',
+    policyProfile: 'always-on-core'
+  });
+
+  assert.ok(!plans.some((plan) => plan.parentSkillName === 'safety'));
+});

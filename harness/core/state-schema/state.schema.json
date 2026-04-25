@@ -9,6 +9,7 @@
     "scope": { "type": "string", "enum": ["workspace", "user-global", "both"] },
     "projectionMode": { "type": "string", "enum": ["link", "portable"] },
     "hookMode": { "type": "string", "enum": ["off", "on"] },
+    "policyProfile": { "type": "string" },
     "skillProfile": { "type": "string" },
     "targets": {
       "type": "object",

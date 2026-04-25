@@ -665,7 +665,8 @@ export async function readHarnessHealth(rootDir, homeDir) {
       homeDir,
       scope: state.scope,
       target,
-      hookMode: state.hookMode
+      hookMode: state.hookMode,
+      policyProfile: state.policyProfile
     })) {
       const inspected = await inspectHook(projection);
       hooks.push(inspected);
@@ -739,6 +740,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     scope: state.scope,
     projectionMode: state.projectionMode,
     hookMode: state.hookMode,
+    policyProfile: state.policyProfile,
     skillProfile: state.skillProfile,
     lastSync: state.lastSync,
     lastFetch: state.lastFetch,

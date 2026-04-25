@@ -63,9 +63,11 @@ test('adopt-global bootstraps user-global state, verification output, and receip
     );
 
     assert.equal(state.scope, 'user-global');
+    assert.equal(state.policyProfile, 'always-on-core');
     assert.equal(Object.keys(state.targets).length, 4);
     assert.equal(receipt.status, 'success');
     assert.equal(receipt.scope, 'user-global');
+    assert.equal(receipt.policyProfile, 'always-on-core');
     assert.equal(receipt.repoHead, await currentHead(root));
     assert.equal(verification.health.problems.length, 0);
   } finally {
@@ -85,6 +87,7 @@ test('adopt-global preserves an existing user-global install instead of overwrit
       scope: 'user-global',
       projectionMode: 'portable',
       hookMode: 'on',
+      policyProfile: 'safety',
       skillProfile: 'minimal-global',
       targets: {
         codex: {
@@ -105,8 +108,10 @@ test('adopt-global preserves an existing user-global install instead of overwrit
     assert.equal(state.scope, 'user-global');
     assert.equal(state.projectionMode, 'portable');
     assert.equal(state.hookMode, 'on');
+    assert.equal(state.policyProfile, 'safety');
     assert.equal(state.skillProfile, 'minimal-global');
     assert.deepEqual(Object.keys(state.targets), ['codex']);
+    assert.equal(receipt.policyProfile, 'safety');
     assert.deepEqual(receipt.targets, ['codex']);
   } finally {
     await removeHarnessFixture(root);
@@ -125,6 +130,7 @@ test('adopt-global rejects non-user-global install state to avoid workspace muta
       scope: 'both',
       projectionMode: 'link',
       hookMode: 'off',
+      policyProfile: 'always-on-core',
       skillProfile: 'full',
       targets: {
         codex: {
@@ -193,6 +199,7 @@ test('adoption-status reports state_mismatch when install state drifts after ado
     const state = await readState(root);
     await writeState(root, {
       ...state,
+      policyProfile: 'safety',
       skillProfile: 'minimal-global'
     });
 
@@ -200,6 +207,7 @@ test('adoption-status reports state_mismatch when install state drifts after ado
     const status = JSON.parse(stdout);
 
     assert.equal(status.status, 'state_mismatch');
+    assert.match(status.reasons.join('\n'), /policyProfile/);
     assert.match(status.reasons.join('\n'), /skillProfile/);
   } finally {
     await removeHarnessFixture(root);

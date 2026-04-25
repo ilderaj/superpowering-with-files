@@ -203,7 +203,7 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
 
   for (const target of targets) {
     const adapter = await loadAdapter(rootDir, target);
-    const content = await renderEntry(rootDir, target);
+    const content = await renderEntry(rootDir, target, state.policyProfile);
     const entries = entriesForScope(rootDir, homeDir, adapter, state.scope);
 
     for (const entry of entries) {
@@ -234,7 +234,8 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
       homeDir,
       scope: state.scope,
       target,
-      hookMode: state.hookMode
+      hookMode: state.hookMode,
+      policyProfile: state.policyProfile
     });
 
     for (const projection of hookProjections) {

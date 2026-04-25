@@ -109,3 +109,40 @@ allow:
 - 中文写设计/决策；英文留给代码、commit、UI 字符串。
 - 不动 `harness/upstream/**`（vendored 上游），所有改动落在 `harness/core/**`、`harness/installer/**`、`harness/adapters/**`、`docs/**`、`tests/**`。
 - 完成 implementation 后通过 `./scripts/harness verify --output=reports/verification/...` 留证。
+
+## 6. 2026-04-25 执行前基线与实现修正
+
+- 当前执行位置已经是隔离 worktree：`/Users/jared/SuperpoweringWithFiles.worktrees/copilot-superpowers-implementation-plan`，对应 branch `copilot/superpowers-implementation-plan`，主工作树 branch 为 `dev`，两者当前都在 `58f907ac688a2192baf6331b15e6d609ac89b3c2`。
+- Phase 0 已在当前 worktree 完成：`npm install --ignore-scripts`、`./scripts/harness doctor --check-only`、`./scripts/harness verify --output=reports/verification/2026-04-25-baseline`。其中 npm 因仓库未跟踪 lockfile 自动生成了 `package-lock.json`，已立即删除，不把 incidental artifact 带入后续改动。
+- 基线 `doctor` 结果是 `Harness check passed.`；基线 `verify` 已写到 `reports/verification/2026-04-25-baseline/latest.md`。
+- 关键实现修正 1：当前 `reports/verification/2026-04-25-baseline/latest.md` 显示 `Targets: none`，说明这次 Phase 0 拿到的是 **repo 自测基线**，不是「已安装 projection + hooks/profile」的运行态基线。因此真正的 safety rollout 验证仍需在 Phase 3/9 显式跑 `install --profile=safety` + `doctor`。
+- 关键实现修正 2（已复核）：`harness/core/policy/entry-profiles.json` 实际由 policy renderer 使用，语义就是 **entry/policy profile**；真正的 skills profile 在 `harness/core/skills/profiles.json`。因此 `--profile=safety` 可以直接复用现有 policy profile 渲染链路（`renderEntry(..., profileNames)`），但仍然需要在 installer state 中新增独立 profile 字段，避免和 `--skills-profile` 混用。
+- 关键实现修正 3：当前 hook projection 仍然是 **skill-index 驱动**；如果要让 safety hooks 随 `--profile=safety` 安装，就需要在 hook planning 阶段引入 profile-aware 分支，或把 safety hook bundle 建模为可投影的 profile 资源。优先方向是扩展 hook planner / sync state，而不是伪装成一个新的 skill。
+
+## 7. 2026-04-25 当前实现进展（Phase 1 + 3）
+
+- **policyProfile 已打通**：新增 state 字段 `policyProfile`，默认值 `always-on-core`；`install --profile=<name>`、`sync`、`adopt-global`、receipt/status、health summary 都已携带它，与既有 `skillProfile` 并存而不冲突。
+- **entry renderer 已支持 include-based profile**：`harness/core/policy/entry-profiles.json` 现在既支持旧的“section list” profile，也支持 `{ "include": ["base.md", "safety.md"] }` 这种文件拼接 profile；因此 `safety` / `cloud-safe` 可以落在独立 markdown 文件，不必污染 `base.md`。
+- **safety hooks 的建模结论**：最终没有把 safety 伪装成 skill，而是给 `planHookProjections()` 增加 `policyProfile` 感知；只有 `safety` / `cloud-safe` profile 才会额外投影 `harness/core/hooks/safety/*`。
+- **当前 safety hook bundle**：
+  - `pretool-guard.sh`：覆盖 cwd protected-path deny、absolute target outside workspace deny、safe command allow、dangerous command 在“无 upstream 或无 Risk Assessment”时 ask。
+  - `session-checkpoint.sh`：当前是 best-effort wrapper，优先调用未来的 `scripts/harness checkpoint`；等 Phase 2 落地后自动变成真实 checkpoint 入口。
+- **测试已经锁住的行为**：
+  - `policyProfile` / `install --profile` / render / adopt-global 链路全绿。
+  - profile-aware safety hook projection + codex safety hook sync 全绿。
+  - `pretool-guard` 的 6 个 fixture（HOME deny、safe allow、absolute-path deny、无风险评估 ask、有风险评估+upstream allow、detached HEAD ask）全绿。
+
+## 8. 2026-04-25 当前实现进展（Phase 2）
+
+- **checkpoint 子系统已落地**：
+  - `harness/core/safety/bin/checkpoint`
+  - `harness/installer/commands/checkpoint.mjs`
+  - `harness checkpoint ...` 已注册到主 CLI 与 `--help`
+- **行为边界**：
+  - git repo：产出 `repo.bundle`、`uncommitted.diff`、`staged.diff`、`status.txt`、`untracked.tgz`、`manifest.json`
+  - non-git 目录：产出 `workspace.tgz` + `manifest.json`
+  - `--skip-if-clean`：clean git repo 直接退出 0，不写 checkpoint 目录
+- **实现细节结论**：
+  - 输出目录里的 checkpoint 文件不能提前出现在 `git status` / untracked 列表里，所以脚本必须先采集 repo 状态，再创建 `out_dir`。
+  - macOS 系统 Bash 还是 3.2，不能用 `mapfile`；已改成兼容的 `while read -d ''` 方案。
+  - manifest/sourcePath 在 macOS tmpdir 上可能出现 `/var` 与 `/private/var` 的 canonical 差异；测试使用 realpath 比对，避免假红。

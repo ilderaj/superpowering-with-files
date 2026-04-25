@@ -1,7 +1,7 @@
 # Agent Safety Harness — Task Plan
 
 ## Current State
-Status: waiting_review
+Status: active
 Archive Eligible: no
 Close Reason:
 
@@ -40,10 +40,10 @@ Close Reason:
 
 | # | Phase | Status | 简述 |
 |---|---|---|---|
-| 0 | Recover repo & baseline verify | not-started | `git pull`、`npm i`、`scripts/harness verify`，确认现状 |
-| 1 | Safety policy + hooks 内核 | not-started | `harness/core/policy/safety.md`、`core/hooks/safety/pretool-guard.{sh,test}`、`session-checkpoint.sh`、配置三件套（protected/dangerous/safe） |
-| 2 | Checkpoint 子系统 | not-started | `core/safety/bin/checkpoint`（git bundle + diff + tarball），并接 `harness checkpoint` CLI |
-| 3 | Profile 与 installer 接入 | not-started | 新增 `entry-profiles.json` 中的 `safety` profile；`install --profile=safety` 投影 hooks + 配置；`doctor` 加 safety section |
+| 0 | Recover repo & baseline verify | complete | 已在当前隔离 worktree 完成 `npm install --ignore-scripts`、`./scripts/harness doctor --check-only`、`./scripts/harness verify --output=reports/verification/2026-04-25-baseline`；报告已落盘，顺手清理了 npm 自动生成的 `package-lock.json` |
+| 1 | Safety policy + hooks 内核 | in-progress | 已完成 `harness/core/policy/{safety,cloud-safe}.md`、profile-aware safety hooks、`pretool-guard.sh` + fixture tests；待补 `core/safety/*` 配置文件落盘与真实 checkpoint 集成 |
+| 2 | Checkpoint 子系统 | complete | 已完成 `core/safety/bin/checkpoint`、`harness checkpoint` CLI、git/non-git/skip-if-clean 测试；SessionStart wrapper 现在可调用真实 checkpoint |
+| 3 | Profile 与 installer 接入 | in-progress | 已完成 `policyProfile` state / `install --profile` / entry render / adopt-global receipt 链路；待补 safety config projection 与 doctor safety section |
 | 4 | planning-with-files 风险评估扩展 | not-started | 给 task_plan 模板加 `## Risk Assessment` 块；新 skill `risk-assessment-before-destructive-changes`；hook 检测 active task 中是否存在该块 |
 | 5 | Worktree/branch 工作流强约束 | not-started | hook 规则 + 扩展 `using-git-worktrees` skill；`worktree-preflight` 增 safety 检查；新 skill `safe-bypass-flow` |
 | 6 | Cloud / devcontainer bootstrap | not-started | `harness cloud-bootstrap --target=codespaces` 生成 `.devcontainer/*` + repo-local hooks，profile=cloud-safe |

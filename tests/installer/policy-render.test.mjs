@@ -25,6 +25,15 @@ test('renderEntry accepts a policy profile override', async () => {
   assert.doesNotMatch(rendered, /Task Classification/);
 });
 
+test('renderPolicyProfile supports include-based safety profiles', async () => {
+  const rendered = await renderPolicyProfile(process.cwd(), 'safety');
+
+  assert.match(rendered, /Hybrid Workflow Policy/);
+  assert.match(rendered, /# Safety Policy/);
+  assert.match(rendered, /Never run agents from HOME/);
+  assert.match(rendered, /Companion Plan Model/);
+});
+
 test('renderPolicyProfile does not split on code fences that contain section-like headings', async () => {
   const rendered = await renderPolicyProfile(process.cwd(), 'tracked-task-extended');
   const currentStateMatches = rendered.match(/## Current State/g) ?? [];
