@@ -1,3 +1,6 @@
 .harness/
 .worktrees/
+.agent-config/checkpoints/
+.agent-config/logs/
+reports/checkpoints/
 .DS_Store

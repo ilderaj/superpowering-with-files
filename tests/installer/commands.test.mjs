@@ -23,6 +23,7 @@ test('harness --help prints top-level usage', async () => {
   try {
     const { stdout } = await harnessCommand(root, '--help');
     assert.match(stdout, /Usage: \.\/scripts\/harness <command>/);
+    assert.match(stdout, /checkpoint  Create a safety checkpoint/);
     assert.match(stdout, /verify   Print or write verification reports/);
   } finally {
     await removeHarnessFixture(root);
@@ -51,7 +52,7 @@ test('verify --help prints usage without writing reports', async () => {
   }
 });
 
-test('install stores the selected skills profile in state', async () => {
+test('install stores the selected entry and skills profiles in state', async () => {
   const root = await createHarnessFixture();
   try {
     await harnessCommand(
@@ -59,10 +60,12 @@ test('install stores the selected skills profile in state', async () => {
       'install',
       '--scope=workspace',
       '--targets=codex',
+      '--profile=safety',
       '--skills-profile=minimal-global'
     );
 
     const state = await readState(root);
+    assert.equal(state.policyProfile, 'safety');
     assert.equal(state.skillProfile, 'minimal-global');
     assert.equal(state.scope, 'workspace');
     assert.equal(state.targets.codex.enabled, true);
@@ -78,6 +81,32 @@ test('install rejects an unknown skills profile', async () => {
       harnessCommand(root, 'install', '--scope=workspace', '--targets=codex', '--skills-profile=unknown'),
       /Invalid skills profile/
     );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync uses the stored entry profile when rendering entries', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      policyProfile: 'safety',
+      skillProfile: 'full',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+    const entry = await readFile(path.join(root, 'AGENTS.md'), 'utf8');
+
+    assert.match(entry, /# Safety Policy/);
+    assert.match(entry, /Never run agents from HOME/);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -381,6 +410,33 @@ test('doctor prints context warnings without failing the installation', async ()
 
     const { stdout, stderr } = await harnessCommand(root, 'doctor', '--check-only');
     assert.match(stderr, /context entry codex/i);
+    assert.match(stdout, /Harness check passed\./);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('doctor prints safety checks for safety profile installs', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      policyProfile: 'safety',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+    const { stdout } = await harnessCommand(root, 'doctor', '--check-only');
+
+    assert.match(stdout, /Safety checks:/);
+    assert.match(stdout, /checkpointExecutable: ok/);
+    assert.match(stdout, /riskAssessmentTemplatePatched: ok/);
     assert.match(stdout, /Harness check passed\./);
   } finally {
     await removeHarnessFixture(root);

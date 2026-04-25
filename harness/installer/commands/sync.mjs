@@ -6,6 +6,7 @@ import { applyCopilotPlanningPatch } from '../lib/copilot-planning-patch.mjs';
 import { applyPlanningWithFilesCompanionPlanPatch } from '../lib/planning-with-files-companion-plan-patch.mjs';
 import { applySuperpowersWritingPlansPatch } from '../lib/superpowers-writing-plans-patch.mjs';
 import {
+  ensureDirectoryProjection,
   linkDirectoryProjection,
   materializeDirectoryProjection,
   materializeFileProjection,
@@ -21,8 +22,10 @@ import {
   writeProjectionManifest
 } from '../lib/projection-manifest.mjs';
 import { coalesceSkillProjections, planSkillProjections } from '../lib/skill-projection.mjs';
+import { planSafetyProjections } from '../lib/safety-projection.mjs';
 import { readState, updateState } from '../lib/state.mjs';
 import { removeManagedHookConfig, removeManagedHookSettings } from '../lib/hook-config.mjs';
+import { isUserManagedTarget, readUserManaged } from '../lib/user-managed.mjs';
 
 function readOption(args, name, fallback) {
   const prefix = `--${name}=`;
@@ -194,20 +197,53 @@ async function applyHookProjection(projection, ownedTargets, conflictMode) {
   return true;
 }
 
+async function applyManagedProjection(projection, ownedTargets, conflictMode) {
+  if (projection.kind === 'safety-directory') {
+    await ensureDirectoryProjection({
+      targetPath: projection.targetPath,
+      ownedTargets,
+      conflictMode
+    });
+    return;
+  }
+
+  if (projection.kind === 'safety-file') {
+    await materializeFileProjection({
+      sourcePath: projection.sourcePath,
+      targetPath: projection.targetPath,
+      ownedTargets,
+      conflictMode
+    });
+    return;
+  }
+
+  throw new Error(`Unsupported managed projection kind: ${projection.kind}`);
+}
+
 async function planSyncOperations({ rootDir, homeDir, state }) {
   const targets = Object.keys(state.targets).filter((target) => state.targets[target].enabled);
   const entryWrites = [];
   const rawSkillWrites = [];
   const hookWrites = [];
+  const managedWrites = planSafetyProjections({
+    rootDir,
+    homeDir,
+    scope: state.scope,
+    policyProfile: state.policyProfile
+  });
   const manifestEntries = [];
+  const userManaged = await readUserManaged(homeDir);
 
   for (const target of targets) {
     const adapter = await loadAdapter(rootDir, target);
-    const content = await renderEntry(rootDir, target);
+    const content = await renderEntry(rootDir, target, state.policyProfile);
     const entries = entriesForScope(rootDir, homeDir, adapter, state.scope);
 
     for (const entry of entries) {
       entryWrites.push({ targetPath: entry, content });
+      if (isUserManagedTarget(entry, userManaged)) {
+        continue;
+      }
       manifestEntries.push({
         kind: 'entry',
         target,
@@ -226,6 +262,9 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
     });
 
     for (const projection of skillProjections) {
+      if (isUserManagedTarget(projection.targetPath, userManaged)) {
+        continue;
+      }
       rawSkillWrites.push(projection);
     }
 
@@ -234,11 +273,15 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
       homeDir,
       scope: state.scope,
       target,
-      hookMode: state.hookMode
+      hookMode: state.hookMode,
+      policyProfile: state.policyProfile
     });
 
     for (const projection of hookProjections) {
       if (projection.status === 'unsupported') continue;
+      if (isUserManagedTarget(projection.configTarget, userManaged)) {
+        continue;
+      }
       hookWrites.push(projection);
       manifestEntries.push({
         ...projection,
@@ -273,11 +316,20 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
     });
   }
 
+  for (const projection of managedWrites) {
+    if (isUserManagedTarget(projection.targetPath, userManaged)) {
+      continue;
+    }
+    manifestEntries.push(projection);
+  }
+
   return {
     targets,
     entryWrites,
     skillWrites,
     hookWrites,
+    managedWrites,
+    userManaged,
     manifest: createProjectionManifest(manifestEntries)
   };
 }
@@ -381,10 +433,16 @@ export async function sync(args = []) {
   const ownedTargets = ownedTargetSet(currentManifest);
 
   for (const entry of diff.stale) {
+    if (isUserManagedTarget(entry.targetPath, plan.userManaged)) {
+      continue;
+    }
     await cleanupStaleProjection(entry);
   }
 
   for (const entry of plan.entryWrites) {
+    if (isUserManagedTarget(entry.targetPath, plan.userManaged)) {
+      continue;
+    }
     await writeRenderedProjection({
       targetPath: entry.targetPath,
       content: entry.content,
@@ -395,6 +453,9 @@ export async function sync(args = []) {
   }
 
   for (const projection of plan.skillWrites) {
+    if (isUserManagedTarget(projection.targetPath, plan.userManaged)) {
+      continue;
+    }
     const effectiveStrategy = await applySkillProjection(
       projection,
       ownedTargets,
@@ -408,6 +469,9 @@ export async function sync(args = []) {
   }
 
   for (const projection of plan.hookWrites) {
+    if (isUserManagedTarget(projection.configTarget, plan.userManaged)) {
+      continue;
+    }
     const installed = await applyHookProjection(projection, ownedTargets, conflictMode);
     if (!installed) continue;
 
@@ -415,6 +479,14 @@ export async function sync(args = []) {
     for (const sourcePath of projection.scriptSourcePaths) {
       ownedTargets.add(path.resolve(path.join(projection.scriptTargetRoot, path.basename(sourcePath))));
     }
+  }
+
+  for (const projection of plan.managedWrites) {
+    if (isUserManagedTarget(projection.targetPath, plan.userManaged)) {
+      continue;
+    }
+    await applyManagedProjection(projection, ownedTargets, conflictMode);
+    ownedTargets.add(path.resolve(projection.targetPath));
   }
 
   await writeProjectionManifest(rootDir, plan.manifest);

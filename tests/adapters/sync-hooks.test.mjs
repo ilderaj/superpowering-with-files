@@ -58,6 +58,7 @@ test('sync installs codex planning hooks when hookMode is on', async () => {
       scope: 'workspace',
       projectionMode: 'link',
       hookMode: 'on',
+      policyProfile: 'always-on-core',
       targets: { codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] } },
       upstream: {}
     });
@@ -80,6 +81,32 @@ test('sync installs codex planning hooks when hookMode is on', async () => {
     assert.match(sessionStart, /projected skill/);
     assert.match(sessionStart, /planning\/active\/<task-id>\//);
     assert.doesNotMatch(sessionStart, /description: Use when starting any conversation/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync installs codex safety hooks when the safety profile is active', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      policyProfile: 'safety',
+      skillProfile: 'full',
+      targets: { codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] } },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const hooks = JSON.parse(await readFile(path.join(root, '.codex/hooks.json'), 'utf8'));
+
+    assert.ok(hooks.hooks.PreToolUse);
+    assert.match(JSON.stringify(hooks), /Harness-managed safety hook/);
+    assert.match(await readFile(path.join(root, '.codex/hooks/pretool-guard.sh'), 'utf8'), /policyProfile/);
+    assert.match(await readFile(path.join(root, '.codex/hooks/session-checkpoint.sh'), 'utf8'), /checkpoint/);
   } finally {
     await removeHarnessFixture(root);
   }

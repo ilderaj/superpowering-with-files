@@ -497,6 +497,45 @@ test('readHarnessHealth reports hook status without failing unsupported adapters
   }
 });
 
+test('readHarnessHealth reports safety checks for safety profile installs', async (t) => {
+  const root = await createHarnessFixture();
+  try {
+    const home = path.join(root, 'home');
+    await mkdir(home, { recursive: true });
+    t.mock.method(os, 'homedir', () => home);
+
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'both',
+      projectionMode: 'link',
+      hookMode: 'on',
+      policyProfile: 'safety',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, home);
+
+    assert.equal(health.safety.profile, 'safety');
+    assert.equal(health.safety.enabled, true);
+    assert.equal(health.safety.checks.find((check) => check.name === 'checkpointExecutable').status, 'ok');
+    assert.equal(
+      health.safety.checks.find((check) => check.name === 'protectedPathsConfigured').status,
+      'ok'
+    );
+    assert.equal(
+      health.safety.checks.find((check) => check.name === 'riskAssessmentTemplatePatched').status,
+      'ok'
+    );
+    assert.equal(health.problems.length, 0);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth measures projected hook runtime scripts', async () => {
   const root = await createHarnessFixture();
   try {
@@ -1105,7 +1144,10 @@ test('readHarnessHealth keeps referenced companion plans out of warnings', async
     const health = await readHarnessHealth(root, '/home/user');
 
     assert.equal(health.problems.length, 0);
-    assert.equal(health.warnings.length, 0);
+    assert.ok(
+      !health.warnings.some((warning) => warning.includes('docs/superpowers/plans/feature-plan.md')),
+      'the referenced companion plan should not surface as a warning'
+    );
     assert.ok(
       health.planLocations.some(
         (location) =>

@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "description": "Harness-managed safety hook",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .claude/hooks/session-checkpoint.sh ] && bash .claude/hooks/session-checkpoint.sh claude-code || bash \"$HOME/.claude/hooks/session-checkpoint.sh\" claude-code'"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Shell|Read|Write|Edit|Glob|Grep",
+        "description": "Harness-managed safety hook",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .claude/hooks/pretool-guard.sh ] && bash .claude/hooks/pretool-guard.sh claude-code || bash \"$HOME/.claude/hooks/pretool-guard.sh\" claude-code'"
+          }
+        ]
+      }
+    ]
+  }
+}

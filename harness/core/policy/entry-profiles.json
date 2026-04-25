@@ -23,6 +23,12 @@
     "deep-reasoning-reference": [
       "Mandatory Sync-Back Rule",
       "Companion Plan Model"
-    ]
+    ],
+    "safety": {
+      "include": ["base.md", "safety.md"]
+    },
+    "cloud-safe": {
+      "include": ["base.md", "safety.md", "cloud-safe.md"]
+    }
   }
 }

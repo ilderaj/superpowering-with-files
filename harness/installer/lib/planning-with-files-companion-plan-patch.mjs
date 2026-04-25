@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { applyPlanningWithFilesRiskAssessmentPatch } from './planning-with-files-risk-assessment-patch.mjs';
 
 const MARKER = 'Harness planning-with-files companion-plan patch';
 
@@ -19,6 +20,7 @@ const HARNESS_TEXT = [
 ].join('\n');
 
 export async function applyPlanningWithFilesCompanionPlanPatch(targetDir) {
+  await applyPlanningWithFilesRiskAssessmentPatch(targetDir);
   const skillPath = path.join(targetDir, 'SKILL.md');
   const original = await readFile(skillPath, 'utf8');
 

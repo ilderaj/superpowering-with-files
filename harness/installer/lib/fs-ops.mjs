@@ -1,4 +1,16 @@
-import { copyFile, cp, lstat, mkdir, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import {
+  chmod,
+  copyFile,
+  cp,
+  lstat,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  stat,
+  symlink,
+  writeFile
+} from 'node:fs/promises';
 import path from 'node:path';
 
 export function renderTemplate(template, values) {
@@ -67,6 +79,14 @@ export async function materializeDirectoryProjection(options) {
 export async function materializeFileProjection(options) {
   const result = await prepareProjectionTarget(options);
   await copyFile(options.sourcePath, options.targetPath);
+  const sourceStat = await stat(options.sourcePath);
+  await chmod(options.targetPath, sourceStat.mode);
+  return result;
+}
+
+export async function ensureDirectoryProjection(options) {
+  const result = await prepareProjectionTarget(options);
+  await mkdir(options.targetPath, { recursive: true });
   return result;
 }
 

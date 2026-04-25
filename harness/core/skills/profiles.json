@@ -3,6 +3,8 @@
   "defaultProfile": "full",
   "profiles": {
     "full": [
+      "risk-assessment-before-destructive-changes",
+      "safe-bypass-flow",
       "superpowers",
       "planning-with-files"
     ],

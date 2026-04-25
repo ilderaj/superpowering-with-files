@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "sh -c '[ -f .cursor/hooks/session-checkpoint.sh ] && bash .cursor/hooks/session-checkpoint.sh cursor || bash \"$HOME/.cursor/hooks/session-checkpoint.sh\" cursor'",
+        "timeout": 15,
+        "description": "Harness-managed safety hook"
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "sh -c '[ -f .cursor/hooks/pretool-guard.sh ] && bash .cursor/hooks/pretool-guard.sh cursor || bash \"$HOME/.cursor/hooks/pretool-guard.sh\" cursor'",
+        "matcher": "Shell|Bash|Read|Write|Edit",
+        "timeout": 5,
+        "description": "Harness-managed safety hook"
+      }
+    ]
+  }
+}

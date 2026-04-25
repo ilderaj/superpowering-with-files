@@ -12,6 +12,18 @@ function containsHomePath(text) {
   return HOME_PATH_PATTERNS.some((pattern) => pattern.test(text));
 }
 
+function renderSafetySection(safety) {
+  if (!safety?.enabled) {
+    return '';
+  }
+
+  const lines = ['Safety checks:', `- profile: ${safety.profile}`];
+  for (const check of safety.checks ?? []) {
+    lines.push(`- ${check.name}: ${check.status}`);
+  }
+  return `${lines.join('\n')}\n`;
+}
+
 export async function doctor(args = []) {
   const checkOnly = args.includes('--check-only');
   const health = await readHarnessHealth(process.cwd(), os.homedir());
@@ -43,11 +55,19 @@ export async function doctor(args = []) {
   }
 
   if (uniqueProblems.length) {
+    const safetySection = renderSafetySection(health.safety);
+    if (safetySection) {
+      console.log(safetySection);
+    }
     console.error(uniqueProblems.join('\n'));
     process.exitCode = 1;
     return;
   }
 
+  const safetySection = renderSafetySection(health.safety);
+  if (safetySection) {
+    console.log(safetySection);
+  }
   console.log(checkOnly ? 'Harness check passed.' : 'Harness installation is healthy.');
 }
 

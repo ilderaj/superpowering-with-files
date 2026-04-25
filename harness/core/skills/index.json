@@ -66,6 +66,32 @@
           "adapter": "task-scoped-planning"
         }
       }
+    },
+    "risk-assessment-before-destructive-changes": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/risk-assessment-before-destructive-changes",
+      "layout": "single",
+      "targetName": "risk-assessment-before-destructive-changes",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
+    },
+    "safe-bypass-flow": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/safe-bypass-flow",
+      "layout": "single",
+      "targetName": "safe-bypass-flow",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
     }
   }
 }

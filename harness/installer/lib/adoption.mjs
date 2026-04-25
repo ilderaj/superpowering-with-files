@@ -5,6 +5,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { readHarnessHealth } from './health.mjs';
 import { loadPlatforms, normalizeTargets } from './metadata.mjs';
+import { loadPolicyProfiles } from './policy-render.mjs';
 import { resolveTargetPaths } from './paths.mjs';
 import { loadSkillProfiles } from './skill-projection.mjs';
 import { readState, writeState } from './state.mjs';
@@ -116,6 +117,7 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
   const homeDir = options.homeDir ?? os.homedir();
   const state = await readState(rootDir);
   const metadata = await loadPlatforms(rootDir);
+  const policyProfiles = await loadPolicyProfiles(rootDir);
   const skillProfiles = await loadSkillProfiles(rootDir);
   const mode = options.mode ?? 'ensure';
   validateAdoptionMode(mode);
@@ -129,10 +131,17 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
 
   const projectionMode = options.projectionMode ?? state.projectionMode ?? 'link';
   const hookMode = options.hookMode ?? state.hookMode ?? 'off';
+  const policyProfile = options.policyProfile ?? state.policyProfile ?? policyProfiles.defaultProfile;
   const skillProfile = options.skillProfile ?? state.skillProfile ?? skillProfiles.defaultProfile;
 
   validateProjectionMode(projectionMode);
   validateHookMode(hookMode);
+
+  if (!policyProfiles.profiles[policyProfile]) {
+    throw new Error(
+      `Invalid profile: ${policyProfile}. Expected one of: ${Object.keys(policyProfiles.profiles).join(', ')}.`
+    );
+  }
 
   if (!skillProfiles.profiles[skillProfile]) {
     throw new Error(
@@ -152,6 +161,7 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
           ...state,
           projectionMode: mode === 'force' ? projectionMode : state.projectionMode,
           hookMode: mode === 'force' ? hookMode : state.hookMode,
+          policyProfile: mode === 'force' ? policyProfile : state.policyProfile,
           skillProfile: mode === 'force' ? skillProfile : state.skillProfile,
           targets:
             mode === 'force'
@@ -163,6 +173,7 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
           scope: 'user-global',
           projectionMode,
           hookMode,
+          policyProfile,
           skillProfile,
           targets: buildTargetState(rootDir, homeDir, requestedTargets),
           upstream: state.upstream ?? {}
@@ -187,6 +198,7 @@ export async function createSuccessReceipt(rootDir, state, options = {}) {
     appliedAt: new Date().toISOString(),
     projectionMode: state.projectionMode,
     hookMode: state.hookMode,
+    policyProfile: state.policyProfile,
     skillProfile: state.skillProfile,
     targets: enabledTargetsFromState(state),
     doctorPassed: true,
@@ -230,6 +242,13 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
     if (receipt.scope !== 'user-global') {
       status = 'state_mismatch';
       reasons.push(`Receipt scope ${receipt.scope} does not match user-global.`);
+    }
+
+    if (receipt.policyProfile !== state.policyProfile) {
+      status = 'state_mismatch';
+      reasons.push(
+        `Receipt policyProfile ${receipt.policyProfile} does not match current state ${state.policyProfile}.`
+      );
     }
 
     if (receipt.skillProfile !== state.skillProfile) {

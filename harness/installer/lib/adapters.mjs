@@ -9,7 +9,7 @@ export async function loadAdapter(rootDir, target) {
   return JSON.parse(await readFile(file, 'utf8'));
 }
 
-export async function renderEntry(rootDir, target, profileNames = ['always-on-core']) {
+export async function renderEntry(rootDir, target, profileNames) {
   const adapter = await loadAdapter(rootDir, target);
   const [template, policyProfile, platformOverride] = await Promise.all([
     readFile(path.join(rootDir, adapter.template), 'utf8'),

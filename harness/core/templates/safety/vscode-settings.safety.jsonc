@@ -1,0 +1,5 @@
+{
+  // Suggested safety settings for GitHub Copilot and compatible VS Code agents.
+  "chat.tools.global.autoApprove": false,
+  "chat.tools.terminal.blockDetectedFileWrites": "outsideWorkspace"
+}

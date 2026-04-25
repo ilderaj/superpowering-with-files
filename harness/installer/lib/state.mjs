@@ -7,6 +7,7 @@ const STATE_KEYS = new Set([
   'scope',
   'projectionMode',
   'hookMode',
+  'policyProfile',
   'skillProfile',
   'targets',
   'upstream',
@@ -23,6 +24,7 @@ export function defaultState() {
     scope: 'workspace',
     projectionMode: 'link',
     hookMode: 'off',
+    policyProfile: 'always-on-core',
     skillProfile: 'full',
     targets: {},
     upstream: {}
@@ -62,6 +64,10 @@ function validateStateShape(state) {
 
   if (!['off', 'on'].includes(state.hookMode)) {
     throw new TypeError('Harness state hookMode must be off or on.');
+  }
+
+  if ('policyProfile' in state && typeof state.policyProfile !== 'string') {
+    throw new TypeError('Harness state policyProfile must be a string.');
   }
 
   if ('skillProfile' in state && typeof state.skillProfile !== 'string') {
@@ -111,6 +117,7 @@ function normalizeStateShape(state) {
   return {
     ...state,
     hookMode: state.hookMode ?? 'off',
+    policyProfile: state.policyProfile ?? 'always-on-core',
     skillProfile: state.skillProfile ?? 'full'
   };
 }

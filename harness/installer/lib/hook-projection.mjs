@@ -3,6 +3,8 @@ import path from 'node:path';
 import { resolveHookRoots } from './paths.mjs';
 
 const PLANNING_SUPPORTED_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
+const SAFETY_SUPPORTED_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
+const SAFETY_POLICY_PROFILES = new Set(['safety', 'cloud-safe']);
 
 const PLANNING_EVENTS_BY_TARGET = {
   codex: ['SessionStart', 'UserPromptSubmit', 'Stop'],
@@ -96,7 +98,42 @@ function configuredHookProjection({ rootDir, root, target, parentSkillName, hook
   };
 }
 
-export async function planHookProjections({ rootDir, homeDir, scope, target, hookMode }) {
+function safetyHookProjection({ rootDir, root, target }) {
+  if (!SAFETY_SUPPORTED_TARGETS.has(target)) {
+    return {
+      kind: 'hook',
+      parentSkillName: 'safety',
+      target,
+      status: 'unsupported',
+      message: `No verified safety hook adapter for ${target}.`
+    };
+  }
+
+  const sourceRoot = path.join(rootDir, 'harness/core/hooks/safety');
+  const configName = target === 'claude-code' ? 'claude-hooks.json' : `${target}-hooks.json`;
+  return {
+    kind: 'hook',
+    parentSkillName: 'safety',
+    target,
+    eventNames:
+      target === 'copilot'
+        ? ['sessionStart', 'preToolUse']
+        : target === 'cursor'
+          ? ['sessionStart', 'preToolUse']
+          : ['SessionStart', 'PreToolUse'],
+    configSource: path.join(sourceRoot, configName),
+    configTarget: hookConfigTarget(root, target, 'safety'),
+    configFormat: target === 'claude-code' ? 'settings' : 'hooks',
+    scriptSourcePaths: [
+      path.join(sourceRoot, 'scripts/pretool-guard.sh'),
+      path.join(sourceRoot, 'scripts/session-checkpoint.sh')
+    ],
+    scriptTargetRoot: scriptTargetRoot(root, target),
+    status: 'planned'
+  };
+}
+
+export async function planHookProjections({ rootDir, homeDir, scope, target, hookMode, policyProfile }) {
   if (hookMode !== 'on') return [];
 
   const index = await loadSkillIndex(rootDir);
@@ -130,6 +167,12 @@ export async function planHookProjections({ rootDir, homeDir, scope, target, hoo
           })
         );
       }
+    }
+  }
+
+  if (SAFETY_POLICY_PROFILES.has(policyProfile)) {
+    for (const root of roots) {
+      projections.push(safetyHookProjection({ rootDir, root, target }));
     }
   }
 

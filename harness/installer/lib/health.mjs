@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { access, lstat, readFile, readdir, readlink, realpath } from 'node:fs/promises';
+import { access, lstat, readFile, readdir, readlink, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { entriesForScope, loadAdapter } from './adapters.mjs';
@@ -7,8 +7,14 @@ import { evaluateBudget, loadContextBudgets, measureText } from './context-budge
 import { hookEntryMarker } from './hook-config.mjs';
 import { planHookProjections } from './hook-projection.mjs';
 import { inspectPlanLocations } from './plan-locations.mjs';
+import {
+  PLANNING_WITH_FILES_DESTRUCTIVE_LOG_PATCH_MARKER,
+  PLANNING_WITH_FILES_RISK_ASSESSMENT_PATCH_MARKER
+} from './planning-with-files-risk-assessment-patch.mjs';
 import { planSkillProjections } from './skill-projection.mjs';
+import { isSafetyPolicyProfile, resolveAgentConfigRoots } from './safety-projection.mjs';
 import { readState } from './state.mjs';
+import { readUserManaged } from './user-managed.mjs';
 
 const execFileAsync = promisify(execFile);
 const HOOK_PAYLOAD_TIMEOUT_MS = 2000;
@@ -443,6 +449,189 @@ async function inspectHook(projection) {
   return { ...projection, ...hookEvidence(projection), status: 'ok' };
 }
 
+async function fileHasNonEmptyLines(filePath) {
+  const text = await readFile(filePath, 'utf8').catch(() => null);
+  if (text === null) return false;
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean).length > 0;
+}
+
+async function isExecutable(filePath) {
+  const targetStat = await stat(filePath).catch(() => null);
+  return Boolean(targetStat && (targetStat.mode & 0o111) !== 0);
+}
+
+async function isWritable(targetPath) {
+  try {
+    await access(targetPath, 2);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function inspectPlanningRiskAssessmentTemplates(targets) {
+  const planningRoots = new Set();
+
+  for (const targetHealth of Object.values(targets)) {
+    for (const skill of targetHealth.skills ?? []) {
+      if (skill.parentSkillName === 'planning-with-files' && typeof skill.targetPath === 'string') {
+        planningRoots.add(skill.targetPath);
+      }
+    }
+  }
+
+  if (planningRoots.size === 0) {
+    return {
+      status: 'problem',
+      message: 'planning-with-files is not projected into the active install.'
+    };
+  }
+
+  for (const root of planningRoots) {
+    const [taskPlanTemplate, findingsTemplate] = await Promise.all([
+      readFile(path.join(root, 'templates/task_plan.md'), 'utf8').catch(() => ''),
+      readFile(path.join(root, 'templates/findings.md'), 'utf8').catch(() => '')
+    ]);
+
+    if (!taskPlanTemplate.includes(PLANNING_WITH_FILES_RISK_ASSESSMENT_PATCH_MARKER)) {
+      return {
+        status: 'problem',
+        message: `planning-with-files task_plan.md is missing ${PLANNING_WITH_FILES_RISK_ASSESSMENT_PATCH_MARKER}.`
+      };
+    }
+
+    if (!findingsTemplate.includes(PLANNING_WITH_FILES_DESTRUCTIVE_LOG_PATCH_MARKER)) {
+      return {
+        status: 'problem',
+        message: `planning-with-files findings.md is missing ${PLANNING_WITH_FILES_DESTRUCTIVE_LOG_PATCH_MARKER}.`
+      };
+    }
+  }
+
+  return { status: 'ok' };
+}
+
+async function inspectSafetyHealth(rootDir, homeDir, state, targets) {
+  const enabled = isSafetyPolicyProfile(state.policyProfile);
+  if (!enabled) {
+    return {
+      enabled: false,
+      profile: state.policyProfile,
+      checks: []
+    };
+  }
+
+  const checks = [];
+  const agentConfigRoots = resolveAgentConfigRoots(rootDir, homeDir, state.scope);
+  const safetyHooks = Object.entries(targets).map(([target, targetHealth]) => ({
+    target,
+    hooks: (targetHealth.hooks ?? []).filter((hook) => hook.parentSkillName === 'safety')
+  }));
+
+  const hooksInstalled = safetyHooks.every(({ hooks }) => hooks.every((hook) => hook.status === 'ok'));
+  checks.push({
+    name: 'hooksInstalled',
+    status: hooksInstalled ? 'ok' : 'problem',
+    message: hooksInstalled ? undefined : 'Safety hooks are missing or unhealthy for one or more targets.'
+  });
+
+  const pretoolTargets = [];
+  for (const { hooks } of safetyHooks) {
+    for (const hook of hooks) {
+      for (const sourcePath of hook.scriptSourcePaths ?? []) {
+        if (path.basename(sourcePath) !== 'pretool-guard.sh') continue;
+        pretoolTargets.push(path.join(hook.scriptTargetRoot, path.basename(sourcePath)));
+      }
+    }
+  }
+  const pretoolGuardExecutable =
+    pretoolTargets.length > 0 &&
+    (await Promise.all(pretoolTargets.map((targetPath) => isExecutable(targetPath)))).every(Boolean);
+  checks.push({
+    name: 'pretoolGuardExecutable',
+    status: pretoolGuardExecutable ? 'ok' : 'problem',
+    message: pretoolGuardExecutable ? undefined : 'Projected pretool-guard.sh is missing or not executable.'
+  });
+
+  const checkpointTargets = agentConfigRoots.map(({ root }) => path.join(root, 'bin/checkpoint'));
+  const checkpointExecutable =
+    checkpointTargets.length > 0 &&
+    (await Promise.all(checkpointTargets.map((targetPath) => isExecutable(targetPath)))).every(Boolean);
+  checks.push({
+    name: 'checkpointExecutable',
+    status: checkpointExecutable ? 'ok' : 'problem',
+    message: checkpointExecutable ? undefined : 'Projected checkpoint binary is missing or not executable.'
+  });
+
+  const protectedPathsConfigured =
+    agentConfigRoots.length > 0 &&
+    (await Promise.all(
+      agentConfigRoots.map(({ root }) => fileHasNonEmptyLines(path.join(root, 'safety/protected-paths.txt')))
+    )).every(Boolean);
+  checks.push({
+    name: 'protectedPathsConfigured',
+    status: protectedPathsConfigured ? 'ok' : 'problem',
+    message: protectedPathsConfigured ? undefined : 'protected-paths.txt is missing or empty.'
+  });
+
+  const dangerousPatternsConfigured =
+    agentConfigRoots.length > 0 &&
+    (await Promise.all(
+      agentConfigRoots.map(({ root }) =>
+        fileHasNonEmptyLines(path.join(root, 'safety/dangerous-patterns.txt'))
+      )
+    )).every(Boolean);
+  checks.push({
+    name: 'dangerousPatternsConfigured',
+    status: dangerousPatternsConfigured ? 'ok' : 'problem',
+    message: dangerousPatternsConfigured ? undefined : 'dangerous-patterns.txt is missing or empty.'
+  });
+
+  const logsWritable =
+    agentConfigRoots.length > 0 &&
+    (await Promise.all(agentConfigRoots.map(({ root }) => isWritable(path.join(root, 'logs'))))).every(Boolean);
+  checks.push({
+    name: 'logsWritable',
+    status: logsWritable ? 'ok' : 'problem',
+    message: logsWritable ? undefined : 'Safety logs directory is missing or not writable.'
+  });
+
+  const checkpointDirWritable =
+    agentConfigRoots.length > 0 &&
+    (await Promise.all(agentConfigRoots.map(({ root }) => isWritable(path.join(root, 'checkpoints'))))).every(
+      Boolean
+    );
+  checks.push({
+    name: 'checkpointDirWritable',
+    status: checkpointDirWritable ? 'ok' : 'problem',
+    message: checkpointDirWritable ? undefined : 'Checkpoint directory is missing or not writable.'
+  });
+
+  const riskTemplate = await inspectPlanningRiskAssessmentTemplates(targets);
+  checks.push({
+    name: 'riskAssessmentTemplatePatched',
+    status: riskTemplate.status,
+    message: riskTemplate.message
+  });
+
+  checks.push({
+    name: 'workspaceInICloud',
+    status: /iCloud|Mobile Documents/.test(rootDir) ? 'warning' : 'ok',
+    message: /iCloud|Mobile Documents/.test(rootDir)
+      ? 'Workspace appears to live inside iCloud Drive; checkpoint and destructive operations are riskier there.'
+      : undefined
+  });
+
+  return {
+    enabled,
+    profile: state.policyProfile,
+    checks
+  };
+}
+
 async function inspectLocalHookPayloads(
   rootDir,
   homeDir,
@@ -665,7 +854,8 @@ export async function readHarnessHealth(rootDir, homeDir) {
       homeDir,
       scope: state.scope,
       target,
-      hookMode: state.hookMode
+      hookMode: state.hookMode,
+      policyProfile: state.policyProfile
     })) {
       const inspected = await inspectHook(projection);
       hooks.push(inspected);
@@ -735,10 +925,30 @@ export async function readHarnessHealth(rootDir, homeDir) {
     context.summary.entries.verdict = 'unknown';
   }
 
+  const safety = await inspectSafetyHealth(rootDir, homeDir, state, targets);
+  for (const check of safety.checks) {
+    if (check.status === 'warning' && check.message) {
+      addUniqueMessage(warnings, `safety ${check.name}: ${check.message}`);
+      continue;
+    }
+
+    if (check.status === 'problem' && check.message) {
+      addUniqueMessage(problems, `safety ${check.name}: ${check.message}`);
+    }
+  }
+
+  const userManaged = await readUserManaged(homeDir);
+  for (const managedPath of userManaged.paths ?? []) {
+    if (!(await exists(managedPath))) {
+      addUniqueMessage(problems, `user-managed: missing personal projection ${managedPath}`);
+    }
+  }
+
   return {
     scope: state.scope,
     projectionMode: state.projectionMode,
     hookMode: state.hookMode,
+    policyProfile: state.policyProfile,
     skillProfile: state.skillProfile,
     lastSync: state.lastSync,
     lastFetch: state.lastFetch,
@@ -747,6 +957,8 @@ export async function readHarnessHealth(rootDir, homeDir) {
     planLocations,
     warnings,
     context,
+    safety,
+    userManaged,
     targets,
     problems
   };

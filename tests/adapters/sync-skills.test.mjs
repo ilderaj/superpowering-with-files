@@ -74,6 +74,15 @@ test('sync projects workspace entries and skills', async () => {
     );
     assert.doesNotMatch(writingPlans, /you may additionally create a companion plan/);
     assert.doesNotMatch(writingPlans, /\*\*Save plans to:\*\* `docs\/superpowers\/plans/);
+
+    const riskSkill = await readFile(
+      path.join(root, '.agents/skills/risk-assessment-before-destructive-changes/SKILL.md'),
+      'utf8'
+    );
+    assert.match(riskSkill, /Use when destructive changes/);
+
+    const bypassSkill = await readFile(path.join(root, '.agents/skills/safe-bypass-flow/SKILL.md'), 'utf8');
+    assert.match(bypassSkill, /Use when starting bypass/);
   } finally {
     await removeHarnessFixture(root);
   }

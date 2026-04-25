@@ -2,6 +2,8 @@
 
 superpowering-with-files is a governance harness for local coding-agent workflows. It turns one shared policy into native instruction files, projected skills, and optional hooks for Codex, GitHub Copilot, Cursor, and Claude Code.
 
+An opt-in safety profile adds path-boundary hooks, automatic checkpoints, and a worktree-first flow for bypass / autopilot work. See [Safety](#safety).
+
 Gemini CLI is not currently a supported installer target.
 
 ## Core Model
@@ -207,6 +209,61 @@ Hook roots:
 
 Harness merges only Harness-managed hook entries and preserves unrelated user entries.
 
+## Safety
+
+The `safety` profile is an opt-in layer for users who run agents in bypass / autopilot / long-running modes. It is built on existing hook, policy, and skill projection — no parallel runtime.
+
+```bash
+./scripts/harness install --scope=workspace --profile=safety --hooks=on
+./scripts/harness install --scope=user-global --profile=safety --hooks=on
+./scripts/harness sync
+./scripts/harness doctor --check-only
+```
+
+What the profile adds:
+
+| Component | Purpose |
+| --- | --- |
+| `harness/core/policy/safety.md` | Boundary, checkpoint, and risk-assessment rules injected into rendered entry files |
+| `harness/core/hooks/safety/pretool-guard.sh` | PreToolUse hook with allow / ask / deny decisions on cwd, target paths, and dangerous patterns |
+| `harness/core/hooks/safety/session-checkpoint.sh` | SessionStart hook that runs `harness checkpoint` automatically |
+| `harness/core/safety/{protected-paths,dangerous-patterns,safe-commands,cloud-protected-paths}.txt` | Configurable rule lists |
+| `harness/core/safety/bin/checkpoint` | `git bundle` + diffs + untracked tarball + manifest, or full tarball for non-git workspaces |
+| Skills `risk-assessment-before-destructive-changes`, `safe-bypass-flow` | Force a `## Risk Assessment` block in the active task plan and a worktree → push → merge flow before destructive work |
+| `cloud-safe` profile | Stacks on `safety` for Codespaces and devcontainers |
+
+Checkpoints land in `~/.agent-config/checkpoints/<workspace>/<timestamp>/`. Logs land in `~/.agent-config/logs/`. Both are gitignored when projected into a repo.
+
+### Worktree safety
+
+```bash
+./scripts/harness worktree-preflight --safety
+```
+
+Reports remote status, recommended base ref, checkpoint guidance, and whether the active task plan has a non-placeholder `## Risk Assessment` block. Destructive commands without an upstream branch and without a recorded risk assessment are downgraded to `ask` by the hook.
+
+### Cloud bootstrap
+
+```bash
+./scripts/harness cloud-bootstrap --target=codespaces
+```
+
+Generates `.devcontainer/devcontainer.json` and `.devcontainer/postCreateCommand.sh` (as `*.harness.suggested` when files already exist) and patches `.gitignore` for safety state. The bootstrap installs the `cloud-safe` profile on container create.
+
+### Personal config sync
+
+```bash
+./scripts/harness link-personal --repo=<git-url>
+```
+
+Clones a private personal-config repo into `~/.agent-config/personal/` and projects entries declared in its `manifest.json` into `~/.agents/`, `~/.codex/`, `~/.copilot/`, and `~/.claude/` according to a user-managed allow list. `sync` and `adopt-global` honor `~/.agent-config/user-managed.json` and never overwrite linked personal files. Use this to keep your private AGENTS.md additions, prompts, and skills under Git without entangling them with the harness governance repo.
+
+More detail:
+
+- [Safety architecture](docs/safety/architecture.md)
+- [Vibe coding safety manual](docs/safety/vibe-coding-safety-manual.md)
+- [Recovery playbook](docs/safety/recovery-playbook.md)
+
 ## Upstream Updates
 
 ```bash
@@ -247,6 +304,10 @@ npm run verify
 ./scripts/harness adopt-global
 ./scripts/harness adoption-status
 ./scripts/harness worktree-preflight
+./scripts/harness worktree-preflight --safety
+./scripts/harness checkpoint <path>
+./scripts/harness cloud-bootstrap --target=codespaces
+./scripts/harness link-personal --repo=<git-url>
 ```
 
 ## Docs
@@ -259,3 +320,6 @@ npm run verify
 - [GitHub Copilot installation](docs/install/copilot.md)
 - [Cursor installation](docs/install/cursor.md)
 - [Claude Code installation](docs/install/claude-code.md)
+- [Safety architecture](docs/safety/architecture.md)
+- [Vibe coding safety manual](docs/safety/vibe-coding-safety-manual.md)
+- [Recovery playbook](docs/safety/recovery-playbook.md)

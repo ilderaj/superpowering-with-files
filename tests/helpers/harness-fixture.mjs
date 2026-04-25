@@ -6,6 +6,7 @@ export async function createHarnessFixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fixture-'));
   await mkdir(path.join(root, 'scripts'), { recursive: true });
   await cp(path.join(process.cwd(), 'harness'), path.join(root, 'harness'), { recursive: true });
+  await cp(path.join(process.cwd(), 'docs'), path.join(root, 'docs'), { recursive: true });
   await cp(path.join(process.cwd(), 'scripts'), path.join(root, 'scripts'), { recursive: true });
   await cp(path.join(process.cwd(), 'package.json'), path.join(root, 'package.json'));
   return root;

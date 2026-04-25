@@ -1,6 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 function isFenceLine(line) {
   const match = line.match(/^(\s*)(`{3,}|~{3,})(.*)$/);
   if (!match) {
@@ -71,23 +75,54 @@ function normalizeProfileNames(profileNames, defaultProfile) {
   return [profileNames];
 }
 
-export async function renderPolicyProfile(rootDir, profileNames) {
-  const [basePolicy, entryProfilesJson] = await Promise.all([
-    readFile(path.join(rootDir, 'harness/core/policy/base.md'), 'utf8'),
-    readFile(path.join(rootDir, 'harness/core/policy/entry-profiles.json'), 'utf8')
-  ]);
+export async function loadPolicyProfiles(rootDir) {
+  return JSON.parse(
+    await readFile(path.join(rootDir, 'harness/core/policy/entry-profiles.json'), 'utf8')
+  );
+}
 
-  const entryProfiles = JSON.parse(entryProfilesJson);
+async function renderIncludedPolicyFiles(rootDir, include) {
+  const contents = await Promise.all(
+    include.map((file) => readFile(path.join(rootDir, 'harness/core/policy', file), 'utf8'))
+  );
+  return contents.join('\n\n').trim();
+}
+
+export async function renderPolicyProfile(rootDir, profileNames) {
+  const [basePolicy, entryProfiles] = await Promise.all([
+    readFile(path.join(rootDir, 'harness/core/policy/base.md'), 'utf8'),
+    loadPolicyProfiles(rootDir)
+  ]);
   const resolvedProfileNames = normalizeProfileNames(profileNames, entryProfiles.defaultProfile);
-  const profileSections = [];
+  const sectionProfileNames = [];
+  const includeBlocks = [];
 
   for (const profileName of resolvedProfileNames) {
-    const sections = entryProfiles.profiles[profileName];
-    if (!sections) {
+    const profile = entryProfiles.profiles[profileName];
+    if (!profile) {
       throw new Error(`Unknown policy profile: ${profileName}`);
     }
 
-    profileSections.push(...sections);
+    if (Array.isArray(profile)) {
+      sectionProfileNames.push(profileName);
+      continue;
+    }
+
+    if (isPlainObject(profile) && Array.isArray(profile.include) && profile.include.length > 0) {
+      includeBlocks.push(await renderIncludedPolicyFiles(rootDir, profile.include));
+      continue;
+    }
+
+    throw new Error(`Policy profile ${profileName} must be an array of section names or an include list.`);
+  }
+
+  if (includeBlocks.length > 0 && sectionProfileNames.length === 0) {
+    return includeBlocks.join('\n\n').trim();
+  }
+
+  const profileSections = [];
+  for (const profileName of sectionProfileNames) {
+    profileSections.push(...entryProfiles.profiles[profileName]);
   }
 
   const sections = splitSections(basePolicy);
@@ -101,9 +136,10 @@ export async function renderPolicyProfile(rootDir, profileNames) {
 
   if (missingSections.length > 0) {
     throw new Error(
-      `Policy profile ${resolvedProfileNames.join(', ')} references missing sections: ${missingSections.join(', ')}`
+      `Policy profile ${sectionProfileNames.join(', ')} references missing sections: ${missingSections.join(', ')}`
     );
   }
 
-  return renderedSections.map(renderSection).join('\n\n').trim();
+  const rendered = renderedSections.map(renderSection).join('\n\n').trim();
+  return [...includeBlocks, rendered].filter(Boolean).join('\n\n').trim();
 }
