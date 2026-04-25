@@ -50,6 +50,14 @@ Run this before creating a manual or Superpowers-driven worktree:
 ./scripts/harness worktree-preflight
 ```
 
+When you need a remote recovery point for a risky session, use this operator flow:
+
+1. Run `./scripts/harness worktree-preflight --safety`.
+2. Move the work into a dedicated worktree branch.
+3. Run `./scripts/harness checkpoint-push --message="..."`.
+4. Review the generated review artifact directory, including `review.md` and `result.json`.
+5. Treat PR creation and merge as separate manual actions.
+
 ## Upstream Skill Updates
 
 Upstream updates are staged before they are applied:

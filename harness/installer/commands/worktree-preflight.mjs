@@ -3,6 +3,10 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { collectGitBaseSnapshot, recommendWorktreeBase } from '../lib/git-base.mjs';
+import {
+  collectCheckpointPushSnapshot,
+  evaluateCheckpointPushReadiness
+} from '../lib/checkpoint-push.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -69,15 +73,20 @@ async function findSingleActiveTask(rootDir) {
 }
 
 async function collectSafetyChecks(rootDir, snapshot) {
-  const [remote, activeTask, gitDir, gitCommonDir] = await Promise.all([
+  const [remote, activeTask, gitDir, gitCommonDir, checkpointSnapshot] = await Promise.all([
     gitOutput(rootDir, 'remote', 'get-url', 'origin'),
     findSingleActiveTask(rootDir),
     gitOutput(rootDir, 'rev-parse', '--absolute-git-dir'),
-    gitOutput(rootDir, 'rev-parse', '--path-format=absolute', '--git-common-dir')
+    gitOutput(rootDir, 'rev-parse', '--path-format=absolute', '--git-common-dir'),
+    collectCheckpointPushSnapshot(rootDir)
   ]);
 
   const isWorktree = Boolean(gitDir && gitCommonDir && gitDir !== gitCommonDir);
   const riskAssessmentRecorded = Boolean(activeTask && hasFilledRiskAssessment(activeTask.content));
+  const checkpointReadiness = evaluateCheckpointPushReadiness(checkpointSnapshot);
+  const checkpointMessage = checkpointReadiness.status === 'ok'
+    ? ''
+    : checkpointReadiness.reasons[0] ?? 'checkpoint push is not ready';
 
   return {
     activeTaskDir: activeTask?.taskDir ?? null,
@@ -107,6 +116,11 @@ async function collectSafetyChecks(rootDir, snapshot) {
         message: isWorktree
           ? 'Current checkout is already a worktree.'
           : 'Create a dedicated worktree before risky or long-running execution.'
+      },
+      {
+        name: 'checkpointPushReady',
+        status: checkpointReadiness.status,
+        message: checkpointMessage
       }
     ]
   };

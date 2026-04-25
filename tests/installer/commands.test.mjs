@@ -24,6 +24,10 @@ test('harness --help prints top-level usage', async () => {
     const { stdout } = await harnessCommand(root, '--help');
     assert.match(stdout, /Usage: \.\/scripts\/harness <command>/);
     assert.match(stdout, /checkpoint  Create a safety checkpoint/);
+    assert.match(
+      stdout,
+      /checkpoint-push  Verify, record review evidence, commit, and push a recovery branch/
+    );
     assert.match(stdout, /verify   Print or write verification reports/);
   } finally {
     await removeHarnessFixture(root);

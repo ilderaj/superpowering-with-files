@@ -23,12 +23,20 @@ function harness(root, ...args) {
 }
 
 async function initRepo(root) {
-  await git(root, 'init');
+  await git(root, 'init', '--initial-branch=dev');
   await git(root, 'config', 'user.name', 'Harness Test');
   await git(root, 'config', 'user.email', 'harness@example.com');
   await writeFile(path.join(root, 'README.md'), '# fixture\n');
   await git(root, 'add', '.');
   await git(root, 'commit', '-m', 'init');
+}
+
+async function createLinkedWorktree(root, branch) {
+  const worktree = await mkdtemp(path.join(os.tmpdir(), 'harness-preflight-worktree-'));
+  await git(root, 'worktree', 'add', '-b', branch, worktree, 'HEAD');
+  await git(worktree, 'config', 'user.name', 'Harness Test');
+  await git(worktree, 'config', 'user.email', 'harness@example.com');
+  return worktree;
 }
 
 async function writeActiveTask(root, withRiskAssessment) {
@@ -87,20 +95,26 @@ async function writePlaceholderRiskAssessment(root) {
 test('worktree-preflight --safety reports remote, risk assessment, and checkpoint guidance', async () => {
   const root = await createHarnessFixture();
   const remote = await mkdtemp(path.join(os.tmpdir(), 'harness-preflight-remote-'));
+  let worktree;
   try {
     await initRepo(root);
-    await writeActiveTask(root, true);
     await git(remote, 'init', '--bare');
     await git(root, 'remote', 'add', 'origin', remote);
     await git(root, 'push', '-u', 'origin', 'HEAD');
+    worktree = await createLinkedWorktree(root, 'feature/preflight-ok');
+    await writeActiveTask(worktree, true);
 
-    const { stdout } = await harness(root, 'worktree-preflight', '--safety');
+    const { stdout } = await harness(worktree, 'worktree-preflight', '--safety');
 
     assert.match(stdout, /Safety checks:/);
     assert.match(stdout, /remoteConfigured: ok/);
     assert.match(stdout, /riskAssessmentRecorded: ok/);
+    assert.match(stdout, /checkpointPushReady: ok/);
     assert.match(stdout, /checkpointCommand:/);
   } finally {
+    if (worktree) {
+      await rm(worktree, { recursive: true, force: true });
+    }
     await removeHarnessFixture(root);
     await rm(remote, { recursive: true, force: true });
   }
@@ -117,5 +131,30 @@ test('worktree-preflight --safety treats placeholder risk assessment rows as mis
     assert.match(stdout, /riskAssessmentRecorded: problem/);
   } finally {
     await removeHarnessFixture(root);
+  }
+});
+
+test('worktree-preflight --safety reports checkpoint-push readiness problems for detached HEAD', async () => {
+  const root = await createHarnessFixture();
+  const remote = await mkdtemp(path.join(os.tmpdir(), 'harness-preflight-detached-remote-'));
+  let worktree;
+  try {
+    await initRepo(root);
+    await git(remote, 'init', '--bare');
+    await git(root, 'remote', 'add', 'origin', remote);
+    await git(root, 'push', '-u', 'origin', 'HEAD');
+    worktree = await createLinkedWorktree(root, 'feature/preflight-detached');
+    await writeActiveTask(worktree, true);
+    await git(worktree, 'checkout', '--detach', 'HEAD');
+
+    const { stdout } = await harness(worktree, 'worktree-preflight', '--safety');
+
+    assert.match(stdout, /checkpointPushReady: problem \(detached HEAD\)/);
+  } finally {
+    if (worktree) {
+      await rm(worktree, { recursive: true, force: true });
+    }
+    await removeHarnessFixture(root);
+    await rm(remote, { recursive: true, force: true });
   }
 });

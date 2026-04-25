@@ -9,4 +9,4 @@
 - Destructive commands without an upstream branch require explicit human ask.
 - Risk assessment for destructive changes must be persisted in `planning/active/<task-id>/task_plan.md` under `## Risk Assessment` before execution.
 - Cross-workspace writes are denied; cross-workspace deletes are denied unconditionally.
-- End every agent task with a diff review and a push to remote when applicable.
+- End every agent task with a diff review and, when creating a remote recovery point, prefer the repository-managed checkpoint push flow.

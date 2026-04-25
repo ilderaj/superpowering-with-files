@@ -242,6 +242,16 @@ Checkpoints land in `~/.agent-config/checkpoints/<workspace>/<timestamp>/`. Logs
 
 Reports remote status, recommended base ref, checkpoint guidance, and whether the active task plan has a non-placeholder `## Risk Assessment` block. Destructive commands without an upstream branch and without a recorded risk assessment are downgraded to `ask` by the hook.
 
+### Recommended recovery-point flow
+
+When you need an off-machine recovery point for risky work, use this order:
+
+1. Run `./scripts/harness worktree-preflight --safety`.
+2. Work from a dedicated worktree branch.
+3. Run `./scripts/harness checkpoint-push --message="..."`.
+4. Review the generated review artifact directory, especially `review.md` and `result.json`.
+5. Keep PR creation and merge as separate manual steps.
+
 ### Cloud bootstrap
 
 ```bash

@@ -2,56 +2,99 @@
 
 ## Session Log
 
-### 2026-04-25
-- 读取 `using-superpowers` 与 `planning-with-files` 技能，按 tracked task 建立任务文件。
-- 扫描 `planning/active/`，确认没有与本任务重复的 active task。
-- 初步搜索到的关键入口：
-  - `harness/core/hooks/safety/scripts/pretool-guard.sh`
-  - `README.md`
-  - `docs/safety/architecture.md`
-  - `docs/safety/vibe-coding-safety-manual.md`
-  - `docs/maintenance.md`
-  - `docs/release.md`
-  - `harness/upstream/superpowers/docs/superpowers/specs/2026-03-23-codex-app-compatibility-design.md`
-- 读取并确认了控制面实现：
-  - `harness/installer/commands/install.mjs`
-  - `harness/installer/lib/hook-projection.mjs`
-  - `harness/installer/lib/git-base.mjs`
+### 2026-04-25（分析与计划）
+- 读取 `using-superpowers`、`planning-with-files`、`executing-plans`、`subagent-driven-development` 等技能，恢复 tracked task 上下文。
+- 读取 companion plan `docs/superpowers/plans/2026-04-25-checkpoint-push-automation-plan.md` 与既有 planning files，确认用户要求直接执行 plan，并在验证后 merge 回本地 `dev`。
+- 读取/确认关键实现入口：
+  - `harness/installer/commands/harness.mjs`
   - `harness/installer/commands/worktree-preflight.mjs`
-  - `harness/core/policy/safety.md`
-  - `harness/core/hooks/safety/copilot-hooks.json`
-- 读取当前实例状态 `.harness/state.json`，确认当前安装态是 `always-on-core` + `hookMode: off`，所以 safety hooks 现在并未在此仓库实例里实际启用。
-- 结论已基本成型：
-  - 当前默认态不是“自动 verify + commit + push”系统，而是“默认薄策略 + 可选 safety gate + 强推荐的 worktree/push 工作流”。
-  - 普通 `git commit` / `git push` 不受 repo-owned pretool guard 的专门拦截；human approve 若频繁出现，更可能来自平台或外部运行配置。
-  - PR 自动化目前主要停留在 workflow/skill 层，没有落成 Harness 自己的 PR orchestrator。
-- 用户进一步收敛范围：`PR` 暂不自动化，只需要基于 findings 输出详细 implementation plan 供 review。
-- 已创建 companion plan：`docs/superpowers/plans/2026-04-25-checkpoint-push-automation-plan.md`。
-- companion plan 的核心落点：新增 `checkpoint-push` CLI 与 library、将自动 push 限定在 eligible worktree branches、产出 deterministic review artifact、同步更新 worktree-preflight 与安全文档。
+  - `harness/installer/lib/git-base.mjs`
+  - `package.json`
+- 记录当前基线：隔离 worktree 分支 `copilot/using-subagents-for-plans` 与本地 `dev` 起始同 SHA：`a20059fd2a95b2199923b5cc2a1f8cef918c0b02`
 
-## Files Consulted
+### 2026-04-25（Task 0：合同测试）
+- 先补 `checkpoint-push` 相关 failing tests：
+  - `tests/installer/checkpoint-push.test.mjs`
+  - `tests/installer/worktree-preflight.test.mjs`
+  - `tests/installer/commands.test.mjs`
+- 初始红灯集中在：
+  - `Unknown command: checkpoint-push`
+  - CLI help 缺少 `checkpoint-push`
+  - `worktree-preflight --safety` 缺少 `checkpointPushReady`
 
-- `.agents/skills/using-superpowers/SKILL.md`
-- `.agents/skills/planning-with-files/SKILL.md`
-- `planning/active/github-actions-upstream-automation-analysis/task_plan.md`
-- `harness/core/hooks/safety/scripts/pretool-guard.sh` (search hits only so far)
-- `harness/installer/commands/install.mjs`
-- `harness/installer/lib/hook-projection.mjs`
-- `harness/installer/lib/git-base.mjs`
-- `harness/core/hooks/safety/copilot-hooks.json`
-- `harness/core/policy/safety.md`
+### 2026-04-25（Task 1-4：实现与回归收紧）
+- 新增 `harness/installer/lib/checkpoint-push.mjs`
+- 新增 `harness/installer/commands/checkpoint-push.mjs`
+- 修改 `harness/installer/commands/harness.mjs`
+- 修改 `harness/installer/commands/worktree-preflight.mjs`
+- 按多轮 code review 继续补红灯回归并修复：
+  - 非成功状态非零退出码
+  - newly added files 也纳入 `diff --check`
+  - malformed `package.json` / failure paths 仍落盘 `review.md` 与 `result.json`
+  - dry-run / failure 保留 caller index
+  - `intent-to-add` index entries 不丢失
+  - upstream 必须是 `origin/<current-branch>`
+  - `push.default=matching` 下仍只推当前分支
+  - verify 生成的新文件会进入 review evidence
+  - failure artifact 不再伪装 `diff-check clean`
+  - pre-push upstream 与 post-push upstream 分离
+  - index backup 移出 worktree，避免被提交
+- 多轮独立 code review 最终结论：`approved`
+
+### 2026-04-25（Task 5：文档/策略同步）
+- 更新 `README.md`
+- 更新 `docs/maintenance.md`
+- 更新 `docs/safety/vibe-coding-safety-manual.md`
+- 更新 `docs/compatibility/hooks.md`
+- 更新 `harness/core/skills/safe-bypass-flow/SKILL.md`
+- 更新 `harness/core/policy/safety.md`
+- 明确推荐流程：`worktree-preflight --safety` → dedicated worktree branch → `checkpoint-push --message="..."` → review `review.md` / `result.json` → manual PR / merge
+
+### 2026-04-25（完整验证）
+- 运行 focused checkpoint slice，当前结果：33/33 passing
+- 运行 `npm run verify`，当前结果：198/198 passing
+- 运行 `./scripts/harness doctor --check-only`，结果：passed；保留两个既有 orphan companion plan warnings（非本次改动引入）
+- 运行 `./scripts/harness worktree-preflight --safety`，结果：
+  - `checkpointPushReady: ok`
+  - `riskAssessmentRecorded` 在补填 task risk assessment 前曾提示缺失，现已回填
+- 子代理在 Task 5 期间误把 authoritative planning files 收窄为 docs-only 任务；已手动修复为整个 checkpoint-push 实现任务的真实状态
+
+## Files Changed
+
+- `harness/installer/lib/checkpoint-push.mjs`
+- `harness/installer/commands/checkpoint-push.mjs`
+- `harness/installer/commands/harness.mjs`
+- `harness/installer/commands/worktree-preflight.mjs`
+- `tests/installer/checkpoint-push.test.mjs`
+- `tests/installer/worktree-preflight.test.mjs`
+- `tests/installer/commands.test.mjs`
 - `README.md`
-- `docs/architecture.md`
-- `docs/compatibility/hooks.md`
-- `docs/install/copilot.md`
-- `docs/safety/architecture.md`
+- `docs/maintenance.md`
 - `docs/safety/vibe-coding-safety-manual.md`
-- `docs/release.md`
+- `docs/compatibility/hooks.md`
+- `harness/core/skills/safe-bypass-flow/SKILL.md`
+- `harness/core/policy/safety.md`
+- `planning/active/git-execution-authorization-analysis/task_plan.md`
+- `planning/active/git-execution-authorization-analysis/findings.md`
+- `planning/active/git-execution-authorization-analysis/progress.md`
 
 ## Verification
 
-- 当前阶段为研究分析，无可执行测试；验证方式以源码/文档交叉比对为主。
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Focused checkpoint slice | `npm test -- tests/installer/checkpoint-push.test.mjs tests/installer/worktree-preflight.test.mjs tests/installer/commands.test.mjs` | All checkpoint contracts and regressions pass | Pass; 33/33 tests passed | ✓ |
+| Repository verification | `npm run verify` | Full repo verification passes after code/docs changes | Pass; 198/198 tests passed | ✓ |
+| Installer health | `./scripts/harness doctor --check-only` | Health passes | Pass; only existing orphan companion-plan warnings remain | ✓ |
+| Preflight safety | `./scripts/harness worktree-preflight --safety` | Checkpoint push readiness reported as ok | Pass; `checkpointPushReady: ok` | ✓ |
+
+## Error Log
+
+| Timestamp | Error | Attempt | Resolution |
+|-----------|-------|---------|------------|
+| 2026-04-25 | Task 5 docs 子代理误改 authoritative planning files | 1 | 手动重写三份 planning files，恢复整任务状态 |
 
 ## Next Step
 
-- 等待用户 review `docs/superpowers/plans/2026-04-25-checkpoint-push-automation-plan.md`，再决定是否进入实现。
+- 在 disposable worktree 做一次 `checkpoint-push --dry-run --json` smoke
+- 将 `copilot/using-subagents-for-plans` merge 回本地 `dev`
+- 提交并推送 feature branch 与 `dev`
