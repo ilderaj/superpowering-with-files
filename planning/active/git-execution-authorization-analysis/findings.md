@@ -12,6 +12,8 @@
 ## Verified Findings
 
 - 当前仓库 `.harness/state.json` 记录的是 `policyProfile: "always-on-core"`、`hookMode: "off"`，所以 safety hooks 在当前实例里默认并未实际启用。
+- review 阶段暴露的 full `verify` 唯一 blocker 确认为 `tests/adapters/hook-projection.test.mjs` 的 stale assertion：实现已包含 `render-session-summary.mjs` 与 `session-summary.mjs`，测试期望未同步。
+- 该漂移通过最小测试修复解决：更新 Cursor planning hook 的 `planning.scriptSourcePaths` 断言后，focused test 与 full `npm run verify` 都恢复为 green。
 - `checkpoint-push` 现在通过 `harness/installer/lib/checkpoint-push.mjs` 统一处理 snapshot/readiness、verify orchestration、review artifact、commit/push result shaping。
 - CLI failure semantics 已收紧：`blocked`、`verification_failed`、`push_failed` 会返回非零退出码，避免上层脚本把失败当成功。
 - `git diff --check` 现在对 staged commit set 执行，能覆盖 newly added files。
@@ -21,10 +23,11 @@
 - index backup 已移到系统临时目录，不会被 `git add -A` 带入 recovery commit。
 - `harness/installer/commands/worktree-preflight.mjs` 的 `--safety` 输出现在包含 `checkpointPushReady`。
 - README、`docs/maintenance.md`、`docs/safety/vibe-coding-safety-manual.md`、`docs/compatibility/hooks.md`、`harness/core/skills/safe-bypass-flow/SKILL.md`、`harness/core/policy/safety.md` 已同步到 repo-owned `checkpoint-push` 工作流。
+- 当前 user-global adoption 流程在存在既有非 Harness-owned 全局入口时会安全拒绝覆盖；在本机实际场景下，先执行 `./scripts/harness sync --conflict=backup` 再执行 `./scripts/harness adopt-global` 可以无损接管并恢复 `in_sync` receipt。
 
 ## Open Threads
 
-- `doctor --check-only` 仍会报告三个既有 orphan companion plan warning（`2026-04-20-global-auto-apply-adoption.md`、`2026-04-25-agent-safety-harness.md`、`2026-04-25-session-summary-mechanism.md`）；它们与本次实现无关，不作为本任务 blocker。
+- `doctor --check-only` / `adoption-status` 仍会报告一组既有 companion-plan 治理 warning：多个旧 orphan companion plans 以及 `docs/superpowers/plans/2026-04-26-cross-ide-hook-capability-alignment.md` 缺少指回 `planning/active/<task-id>/` 的反向链接。它们与本次 verify/adoption repair 无关，不作为本任务 blocker。
 
 ## Recommended Implementation Scope
 
@@ -39,6 +42,7 @@
 |-------|------------|
 | Task 5 docs 子代理把 authoritative planning files 收窄成 docs-only 子任务 | 手动重写 `planning/active/git-execution-authorization-analysis/{task_plan,findings,progress}.md`，恢复整个 checkpoint-push 实现任务的真实状态 |
 | 多轮 code review 持续暴露测试未覆盖的合同缺口 | 每个缺口都先补红灯回归，再做最小修复，直到 reviewer 最终批准 |
+| `adopt-global` 对既有非 Harness-owned 全局 Codex 入口执行保护性阻断 | 先执行 `./scripts/harness sync --conflict=backup`，让 Harness 以备份方式接管后再重跑 adoption |
 
 ## Destructive Operations Log
 
@@ -46,6 +50,7 @@
 |---------|--------|------------|----------|
 | `git push -u origin copilot/using-subagents-for-plans` | 远端功能分支 | 本地已验证 commit `e61ddd1` | 若后续 `dev` 集成失败，可从该远端功能分支恢复 |
 | `git push origin dev` | 远端开发分支 | 本地 merged `dev` commit `d51a729` | 若后续需要回退，可从远端历史或功能分支重新建立修复分支 |
+| `git push origin dev` | 远端开发分支 | 本地 repair commit `e300de5` | 若后续需要回退，可从 `origin/dev` 的前一提交 `a84a588` 或 repair worktree 分支记录重建修复 |
 
 ## Resources
 

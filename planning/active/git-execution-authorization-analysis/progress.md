@@ -72,6 +72,27 @@
   - `./scripts/harness doctor --check-only` → PASS（保留既有 orphan companion plan warnings）
 - 已推送远端开发分支：`git push origin dev`
 
+### 2026-04-26（Phase 10：verify/adoption repair）
+- 从本地 `dev @ a84a588` 创建隔离 worktree：`~/.config/superpowers/worktrees/SuperpoweringWithFiles/fix-checkpoint-adoption`，分支 `fix/checkpoint-adoption`
+- 在 worktree 中复现已知红灯：
+  - `npm test -- --test-name-pattern="planHookProjections returns cursor planning hook config when hooks are on" tests/adapters/hook-projection.test.mjs` → FAIL
+  - 根因确认：`tests/adapters/hook-projection.test.mjs` 的 `planning.scriptSourcePaths` 未同步 `render-session-summary.mjs` / `session-summary.mjs`
+- 做最小修复后立即重跑 focused test：PASS
+- worktree 内完整验证：
+  - `npm run verify` → PASS
+  - `./scripts/harness doctor --check-only` → PASS（保留既有 companion-plan warnings）
+- worktree 内 adoption refresh：
+  - 首次 `./scripts/harness adopt-global` 因既有非 Harness-owned `~/.codex/AGENTS.md` 被安全阻断
+  - 先执行 `./scripts/harness sync --conflict=backup` 备份并接管既有全局投影
+  - 再执行 `./scripts/harness adopt-global` → `status: in_sync`
+  - `./scripts/harness adoption-status` → `status: in_sync`
+- 在 worktree 提交修复：`e300de5 test: sync hook projection expectations`
+- 在主 checkout `/Users/jared/SuperpoweringWithFiles` 上执行 `git merge --ff-only fix/checkpoint-adoption`，本地 `dev` fast-forward 到 `e300de5`
+- 在 merged `dev` 上重新验证并推送：
+  - `npm run verify` → PASS
+  - `./scripts/harness doctor --check-only` → PASS（保留既有 companion-plan warnings）
+  - `git push origin dev` → PASS（`a84a588..e300de5`）
+
 ## Files Changed
 
 - `harness/installer/lib/checkpoint-push.mjs`
@@ -81,6 +102,7 @@
 - `tests/installer/checkpoint-push.test.mjs`
 - `tests/installer/worktree-preflight.test.mjs`
 - `tests/installer/commands.test.mjs`
+- `tests/adapters/hook-projection.test.mjs`
 - `README.md`
 - `docs/maintenance.md`
 - `docs/safety/vibe-coding-safety-manual.md`
@@ -102,13 +124,19 @@
 | Smoke dry-run | `./scripts/harness checkpoint-push --message="chore: smoke test checkpoint push" --dry-run --json` | Success result, resolved verify command, artifact paths emitted, no commit/push | Pass; `status: success`, `verifyCommand: npm run verify`, `headAfter === headBefore` | ✓ |
 | Post-merge repository verification | `npm run verify` on `/Users/jared/SuperpoweringWithFiles` | Merged `dev` still passes | Pass; 198/198 tests passed | ✓ |
 | Post-merge installer health | `./scripts/harness doctor --check-only` on `/Users/jared/SuperpoweringWithFiles` | Health still passes on merged `dev` | Pass; only existing orphan companion-plan warnings remain | ✓ |
+| Focused repair repro / fix | `npm test -- --test-name-pattern="planHookProjections returns cursor planning hook config when hooks are on" tests/adapters/hook-projection.test.mjs` | Reproduce the stale assertion first, then turn it green with the minimal test update | Pass; reproduced FAIL before edit and PASS immediately after the fix | ✓ |
+| Repair worktree verification | `npm run verify` on `~/.config/superpowers/worktrees/SuperpoweringWithFiles/fix-checkpoint-adoption` | Full repo verification passes after the hook-projection expectation update | Pass; full suite completed without failures | ✓ |
+| Repair worktree adoption | `./scripts/harness sync --conflict=backup && ./scripts/harness adopt-global && ./scripts/harness adoption-status` | Existing non-owned global projection is backed up safely and final adoption reports `in_sync` | Pass; backup-based sync succeeded and both adopt/adoption-status reported `in_sync` | ✓ |
+| Post-repair merged dev verification | `npm run verify` on `/Users/jared/SuperpoweringWithFiles` | Fast-forwarded `dev` remains green before push | Pass; full suite completed without failures | ✓ |
+| Post-repair merged dev push | `git push origin dev` | Updated `dev` is published to remote | Pass; `origin/dev` advanced from `a84a588` to `e300de5` | ✓ |
 
 ## Error Log
 
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
 | 2026-04-25 | Task 5 docs 子代理误改 authoritative planning files | 1 | 手动重写三份 planning files，恢复整任务状态 |
+| 2026-04-26 | `adopt-global` 被既有非 Harness-owned `~/.codex/AGENTS.md` 阻断 | 1 | 先运行 `./scripts/harness sync --conflict=backup` 备份并接管该全局入口，再重跑 adoption 成功 |
 
 ## Next Step
 
-- 保留为未归档 closed task；如后续需要再扩展 `checkpoint-push`，在同 task 下新增 Phase 10+
+- 当前任务范围已完成，等待归档条件满足后再迁移到 `planning/archive/`。

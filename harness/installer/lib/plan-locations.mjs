@@ -37,6 +37,28 @@ function normalizeForMatch(filePath) {
   return filePath.split(path.sep).join('/');
 }
 
+function matchesLiteralOrLink(value, targetPath) {
+  const normalizedTarget = normalizeForMatch(targetPath);
+  const normalizedValue = normalizeForMatch(value).trim();
+  const markdownLinkMatch = normalizedValue.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+
+  return (
+    normalizedValue === normalizedTarget ||
+    normalizedValue === `\`${normalizedTarget}\`` ||
+    normalizedValue === `\`/${normalizedTarget}\`` ||
+    (markdownLinkMatch !== null &&
+      (markdownLinkMatch[1] === normalizedTarget ||
+        normalizeForMatch(markdownLinkMatch[2]).includes(normalizedTarget)))
+  );
+}
+
+function extractLabeledReferenceValue(line, labels) {
+  const normalizedLine = normalizeForMatch(line).trim();
+  const labelsPattern = labels.map((label) => escapeRegExp(label)).join('|');
+  const match = normalizedLine.match(new RegExp(`^(?:[-*]\\s+)?(?:${labelsPattern})\\s*:\\s*(.+)$`, 'i'));
+  return match ? match[1].trim() : null;
+}
+
 async function collectActivePlanningReferences(rootDir) {
   const planningDir = path.join(rootDir, 'planning/active');
   const references = new Map();
@@ -77,13 +99,6 @@ async function collectActivePlanningReferences(rootDir) {
 
 function referencesForCompanionPlan(referenceTexts, companionRelativePath) {
   const normalizedPath = normalizeForMatch(companionRelativePath);
-  const exactPathPattern = new RegExp(`^${escapeRegExp(normalizedPath)}$`);
-  const backtickPattern = new RegExp(`\`${escapeRegExp(normalizedPath)}\``);
-  const absoluteBacktickPattern = new RegExp(`\`${escapeRegExp(`/${normalizedPath}`)}\``);
-  const labeledPathPattern = new RegExp(
-    `\\b(?:companion plan|plan path|companion path|path)\\s*:\\s*${escapeRegExp(normalizedPath)}\\b`,
-    'i'
-  );
   const matches = [];
 
   for (const [planningPath, text] of referenceTexts.entries()) {
@@ -92,13 +107,18 @@ function referencesForCompanionPlan(referenceTexts, companionRelativePath) {
       .map((line) => line.trim());
 
     if (
-      normalizedLines.some(
-        (line) =>
-          exactPathPattern.test(line) ||
-          backtickPattern.test(line) ||
-          absoluteBacktickPattern.test(line) ||
-          labeledPathPattern.test(line)
-      )
+      normalizedLines.some((line) => {
+        if (matchesLiteralOrLink(line, normalizedPath)) return true;
+
+        const labeledReference = extractLabeledReferenceValue(line, [
+          'Companion plan',
+          'Companion plan path',
+          'Companion path',
+          'Plan path'
+        ]);
+
+        return labeledReference ? matchesLiteralOrLink(labeledReference, normalizedPath) : false;
+      })
     ) {
       matches.push(planningPath);
     }
@@ -121,22 +141,19 @@ function companionPlanBackReferences(companionText, referencedBy) {
 
   const matches = [];
   for (const expectedPath of expectedPaths) {
-    const exactPathPattern = new RegExp(`^${escapeRegExp(expectedPath)}$`);
-    const backtickPattern = new RegExp(`\`${escapeRegExp(expectedPath)}\``);
-    const absoluteBacktickPattern = new RegExp(`\`${escapeRegExp(`/${expectedPath}`)}\``);
-    const labeledPathPattern = new RegExp(
-      `\\b(?:active task|planning|task)\\s*path\\s*:\\s*${escapeRegExp(expectedPath)}(?:$|\\s)`,
-      'i'
-    );
-
     if (
-      normalizedLines.some(
-        (line) =>
-          exactPathPattern.test(line) ||
-          backtickPattern.test(line) ||
-          absoluteBacktickPattern.test(line) ||
-          labeledPathPattern.test(line)
-      )
+      normalizedLines.some((line) => {
+        if (matchesLiteralOrLink(line, expectedPath)) return true;
+
+        const labeledReference = extractLabeledReferenceValue(line, [
+          'Active task',
+          'Active task path',
+          'Planning path',
+          'Task path'
+        ]);
+
+        return labeledReference ? matchesLiteralOrLink(labeledReference, expectedPath) : false;
+      })
     ) {
       matches.push(expectedPath);
     }

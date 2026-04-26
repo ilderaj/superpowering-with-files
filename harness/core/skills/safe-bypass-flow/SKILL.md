@@ -16,14 +16,14 @@ Bypass-style work belongs in an isolated worktree with a recovery path and a rem
 ## Quick Reference
 | Step | Required action |
 | --- | --- |
-| 1 | `./scripts/harness worktree-preflight --safety` |
+| 1 | `./scripts/harness worktree-preflight --task <task-id> --safety` when multiple active tasks exist |
 | 2 | Record `Worktree base: <ref> @ <sha>` in planning |
 | 3 | `git worktree add <path> -b <branch> <base>` |
 | 4 | Start the session only inside that worktree |
 | 5 | Prefer `./scripts/harness checkpoint-push --message="..."` before cleanup or merge |
 
 ## Implementation
-1. Run `./scripts/harness worktree-preflight --safety`.
+1. Run `./scripts/harness worktree-preflight --task <task-id> --safety` when multiple active tasks exist.
 2. Record the reported base ref and SHA in the active task files.
 3. Create a dedicated worktree and branch for the risky session.
 4. Let SessionStart checkpoint the worktree before destructive work continues.

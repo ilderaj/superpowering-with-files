@@ -7,6 +7,7 @@ import {
   collectCheckpointPushSnapshot,
   evaluateCheckpointPushReadiness
 } from '../lib/checkpoint-push.mjs';
+import { resolveWorktreeNaming } from '../lib/worktree-name.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -15,12 +16,39 @@ function parseBase(args) {
   return baseArg ? baseArg.slice('--base='.length) : undefined;
 }
 
+function parseTaskId(args) {
+  const inline = args.find((arg) => arg.startsWith('--task='));
+  if (inline) {
+    return inline.slice('--task='.length);
+  }
+
+  const taskIndex = args.indexOf('--task');
+  if (taskIndex === -1) {
+    return undefined;
+  }
+
+  const taskId = args[taskIndex + 1];
+  if (!taskId || taskId.startsWith('--')) {
+    throw new Error('Missing value for --task.');
+  }
+
+  return taskId;
+}
+
 function wantsJson(args) {
   return args.includes('--json');
 }
 
 function wantsSafety(args) {
   return args.includes('--safety');
+}
+
+function namespaceFromBranch(branchName) {
+  if (!branchName || !branchName.includes('/')) {
+    return undefined;
+  }
+
+  return branchName.split('/')[0] || undefined;
 }
 
 function hasFilledRiskAssessment(content) {
@@ -126,13 +154,15 @@ async function collectSafetyChecks(rootDir, snapshot) {
   };
 }
 
-function renderText(snapshot, recommendation, safety) {
+function renderText(snapshot, recommendation, naming, safety) {
   const lines = [
     'Worktree base preflight',
     '',
     `Recommended base: ${recommendation.baseRef}`,
     `Base SHA: ${recommendation.baseSha ?? 'unresolved'}`,
     `Reason: ${recommendation.reason}`,
+    `Suggested worktree label: ${naming.canonicalLabel}`,
+    `Suggested branch name: ${naming.branchName}`,
     '',
     'Git context:',
     `- Current branch: ${snapshot.currentBranch || 'detached HEAD'}`,
@@ -142,7 +172,7 @@ function renderText(snapshot, recommendation, safety) {
     `- Dirty worktree: ${snapshot.dirty ? 'yes' : 'no'}`,
     '',
     'Use this explicit start point when creating a worktree:',
-    `git worktree add <path> -b <new-branch> ${recommendation.baseRef}`,
+    `git worktree add <path>/${naming.worktreeBasename} -b ${naming.branchName} ${recommendation.baseRef}`,
     '',
     'Record this in Planning with Files:',
     `- Worktree base: ${recommendation.baseRef} @ ${recommendation.baseSha ?? 'unresolved'}`
@@ -168,12 +198,16 @@ export async function worktreePreflight(args = []) {
   const rootDir = process.cwd();
   const snapshot = await collectGitBaseSnapshot(rootDir);
   const recommendation = recommendWorktreeBase(snapshot, { baseRef: parseBase(args) });
+  const naming = await resolveWorktreeNaming(rootDir, {
+    taskId: parseTaskId(args),
+    namespace: namespaceFromBranch(snapshot.currentBranch)
+  });
   const safety = wantsSafety(args) ? await collectSafetyChecks(rootDir, snapshot) : null;
 
   if (wantsJson(args)) {
-    console.log(JSON.stringify({ snapshot, recommendation, safety }, null, 2));
+    console.log(JSON.stringify({ snapshot, recommendation, naming, safety }, null, 2));
     return;
   }
 
-  console.log(renderText(snapshot, recommendation, safety));
+  console.log(renderText(snapshot, recommendation, naming, safety));
 }

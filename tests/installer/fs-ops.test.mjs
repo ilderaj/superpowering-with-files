@@ -111,6 +111,35 @@ test('writeRenderedProjection backs up non-owned existing file when requested', 
   }
 });
 
+test('writeRenderedProjection archives non-owned existing file when requested', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-fs-'));
+  try {
+    const target = path.join(dir, 'AGENTS.md');
+    await writeFile(target, 'user content');
+
+    const archiveEvents = [];
+
+    const result = await writeRenderedProjection({
+      targetPath: target,
+      content: 'generated',
+      ownedTargets: new Set(),
+      conflictMode: 'backup',
+      backupHandler: async (details) => {
+        archiveEvents.push(details);
+        await rm(details.targetPath, { force: true, recursive: true });
+        return { backupPath: '/tmp/archive/AGENTS.md' };
+      },
+      now: () => '20260413T010203'
+    });
+
+    assert.equal(result.backupPath, '/tmp/archive/AGENTS.md');
+    assert.equal(archiveEvents.length, 1);
+    await assert.rejects(readFile(`${target}.harness-backup-20260413T010203`, 'utf8'), /ENOENT/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('linkDirectoryProjection replaces owned path with symlink to source', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-fs-'));
   try {

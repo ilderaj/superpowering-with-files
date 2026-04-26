@@ -4,6 +4,7 @@ import path from 'node:path';
 import { entriesForScope, loadAdapter, renderEntry } from '../lib/adapters.mjs';
 import { applyCopilotPlanningPatch } from '../lib/copilot-planning-patch.mjs';
 import { applyPlanningWithFilesCompanionPlanPatch } from '../lib/planning-with-files-companion-plan-patch.mjs';
+import { applySuperpowersUsingGitWorktreesPatch } from '../lib/superpowers-using-git-worktrees-patch.mjs';
 import { applySuperpowersWritingPlansPatch } from '../lib/superpowers-writing-plans-patch.mjs';
 import {
   ensureDirectoryProjection,
@@ -14,6 +15,9 @@ import {
 } from '../lib/fs-ops.mjs';
 import { mergeHookConfig, mergeHookSettings } from '../lib/hook-config.mjs';
 import { planHookProjections } from '../lib/hook-projection.mjs';
+import {
+  createBackupArchiveManager
+} from '../lib/backup-archive.mjs';
 import {
   createProjectionManifest,
   diffProjectionManifest,
@@ -66,11 +70,22 @@ async function applySkillPatches(projection) {
       continue;
     }
 
+    if (patch.type === 'superpowers-using-git-worktrees') {
+      await applySuperpowersUsingGitWorktreesPatch(projection.targetPath);
+      continue;
+    }
+
     throw new Error(`Unsupported skill patch type: ${patch.type}`);
   }
 }
 
-async function applySkillProjection(projection, ownedTargets, conflictMode, projectionMode) {
+async function applySkillProjection(
+  projection,
+  ownedTargets,
+  conflictMode,
+  projectionMode,
+  backupHandler
+) {
   const effectiveStrategy =
     projection.strategy === 'link' && projectionMode === 'portable' ? 'materialize' : projection.strategy;
 
@@ -79,7 +94,8 @@ async function applySkillProjection(projection, ownedTargets, conflictMode, proj
       sourcePath: projection.sourcePath,
       targetPath: projection.targetPath,
       ownedTargets,
-      conflictMode
+      conflictMode,
+      backupHandler
     });
     return effectiveStrategy;
   }
@@ -89,7 +105,8 @@ async function applySkillProjection(projection, ownedTargets, conflictMode, proj
       sourcePath: projection.sourcePath,
       targetPath: projection.targetPath,
       ownedTargets,
-      conflictMode
+      conflictMode,
+      backupHandler
     });
     await applySkillPatches(projection);
     return effectiveStrategy;
@@ -145,7 +162,7 @@ function adaptHookConfig(config, projection) {
   return marked;
 }
 
-async function writeHookConfigProjection({ projection, ownedTargets, conflictMode }) {
+async function writeHookConfigProjection({ projection, ownedTargets, conflictMode, backupHandler }) {
   const incoming = adaptHookConfig(
     JSON.parse(await readFile(projection.configSource, 'utf8')),
     projection
@@ -165,7 +182,8 @@ async function writeHookConfigProjection({ projection, ownedTargets, conflictMod
       targetPath: projection.configTarget,
       content: `${JSON.stringify(incoming, null, 2)}\n`,
       ownedTargets,
-      conflictMode
+      conflictMode,
+      backupHandler
     });
     return;
   }
@@ -174,13 +192,13 @@ async function writeHookConfigProjection({ projection, ownedTargets, conflictMod
   await writeFile(projection.configTarget, `${JSON.stringify(merged, null, 2)}\n`);
 }
 
-async function applyHookProjection(projection, ownedTargets, conflictMode) {
+async function applyHookProjection(projection, ownedTargets, conflictMode, backupHandler) {
   if (projection.status === 'unsupported') return false;
   if (projection.status !== 'planned') {
     throw new Error(`Unsupported hook projection status: ${projection.status}`);
   }
 
-  await writeHookConfigProjection({ projection, ownedTargets, conflictMode });
+  await writeHookConfigProjection({ projection, ownedTargets, conflictMode, backupHandler });
   ownedTargets.add(path.resolve(projection.configTarget));
 
   for (const sourcePath of projection.scriptSourcePaths) {
@@ -189,7 +207,8 @@ async function applyHookProjection(projection, ownedTargets, conflictMode) {
       sourcePath,
       targetPath,
       ownedTargets,
-      conflictMode
+      conflictMode,
+      backupHandler
     });
     ownedTargets.add(path.resolve(targetPath));
   }
@@ -197,12 +216,13 @@ async function applyHookProjection(projection, ownedTargets, conflictMode) {
   return true;
 }
 
-async function applyManagedProjection(projection, ownedTargets, conflictMode) {
+async function applyManagedProjection(projection, ownedTargets, conflictMode, backupHandler) {
   if (projection.kind === 'safety-directory') {
     await ensureDirectoryProjection({
       targetPath: projection.targetPath,
       ownedTargets,
-      conflictMode
+      conflictMode,
+      backupHandler
     });
     return;
   }
@@ -212,7 +232,8 @@ async function applyManagedProjection(projection, ownedTargets, conflictMode) {
       sourcePath: projection.sourcePath,
       targetPath: projection.targetPath,
       ownedTargets,
-      conflictMode
+      conflictMode,
+      backupHandler
     });
     return;
   }
@@ -408,6 +429,13 @@ export async function sync(args = []) {
 
   const currentManifest = await readProjectionManifest(rootDir);
   const plan = await planSyncOperations({ rootDir, homeDir, state });
+  const backupManager = await createBackupArchiveManager({
+    rootDir,
+    homeDir,
+    state,
+    manifest: currentManifest,
+    plan
+  });
   const diff = diffProjectionManifest(currentManifest, plan.manifest);
   const summary = formatDiff(diff);
 
@@ -431,6 +459,10 @@ export async function sync(args = []) {
   }
 
   const ownedTargets = ownedTargetSet(currentManifest);
+  const normalization = await backupManager.normalizeLegacyBackups();
+  for (const warning of normalization.warnings) {
+    console.warn(warning);
+  }
 
   for (const entry of diff.stale) {
     if (isUserManagedTarget(entry.targetPath, plan.userManaged)) {
@@ -447,7 +479,8 @@ export async function sync(args = []) {
       targetPath: entry.targetPath,
       content: entry.content,
       ownedTargets,
-      conflictMode
+      conflictMode,
+      backupHandler: backupManager.backupHandler
     });
     ownedTargets.add(path.resolve(entry.targetPath));
   }
@@ -460,7 +493,8 @@ export async function sync(args = []) {
       projection,
       ownedTargets,
       conflictMode,
-      state.projectionMode
+      state.projectionMode,
+      backupManager.backupHandler
     );
     if (!['link', 'materialize'].includes(effectiveStrategy)) {
       throw new Error(`Unsupported projection strategy: ${effectiveStrategy}`);
@@ -472,7 +506,12 @@ export async function sync(args = []) {
     if (isUserManagedTarget(projection.configTarget, plan.userManaged)) {
       continue;
     }
-    const installed = await applyHookProjection(projection, ownedTargets, conflictMode);
+    const installed = await applyHookProjection(
+      projection,
+      ownedTargets,
+      conflictMode,
+      backupManager.backupHandler
+    );
     if (!installed) continue;
 
     ownedTargets.add(path.resolve(projection.configTarget));
@@ -485,7 +524,12 @@ export async function sync(args = []) {
     if (isUserManagedTarget(projection.targetPath, plan.userManaged)) {
       continue;
     }
-    await applyManagedProjection(projection, ownedTargets, conflictMode);
+    await applyManagedProjection(
+      projection,
+      ownedTargets,
+      conflictMode,
+      backupManager.backupHandler
+    );
     ownedTargets.add(path.resolve(projection.targetPath));
   }
 

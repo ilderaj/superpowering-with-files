@@ -9,7 +9,7 @@ Release flow:
 
 ```bash
 git switch dev
-./scripts/harness worktree-preflight
+./scripts/harness worktree-preflight --task <task-id>
 npm run verify
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness sync --dry-run
@@ -21,7 +21,7 @@ git push origin main
 
 Only promote to `main` after verification passes.
 
-For feature or Superpowers worktrees, run `./scripts/harness worktree-preflight` while still on the intended source branch. In this repository, ongoing implementation starts from `dev` unless a task explicitly says it should start from `main`.
+For feature or Superpowers worktrees, run `./scripts/harness worktree-preflight --task <task-id>` while still on the intended source branch when the repo has multiple active tasks. In this repository, ongoing implementation starts from `dev` unless a task explicitly says it should start from `main`.
 
 ## GitHub Repository Setup
 

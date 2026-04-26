@@ -112,6 +112,45 @@ test('planSkillProjections applies the writing-plans patch for every supported t
   }
 });
 
+test('planSkillProjections applies the using-git-worktrees naming patch for every supported target', async () => {
+  const expectations = {
+    codex: /\.agents\/skills\/using-git-worktrees$/,
+    copilot: /\.agents\/skills\/using-git-worktrees$/,
+    cursor: /\.cursor\/skills\/using-git-worktrees$/,
+    'claude-code': /\.claude\/skills\/using-git-worktrees$/
+  };
+
+  for (const [target, targetPathPattern] of Object.entries(expectations)) {
+    const plan = await planSkillProjections({
+      rootDir: process.cwd(),
+      homeDir: '/home/user',
+      scope: 'workspace',
+      target
+    });
+
+    const usingGitWorktrees = plan.find((entry) => entry.skillName === 'using-git-worktrees');
+    assert.ok(usingGitWorktrees, target);
+    assert.equal(usingGitWorktrees.parentSkillName, 'superpowers', target);
+    assert.equal(usingGitWorktrees.strategy, 'materialize', target);
+    assert.deepEqual(
+      usingGitWorktrees.patches.map((patch) => patch.type),
+      ['superpowers-using-git-worktrees'],
+      target
+    );
+    assert.equal(
+      usingGitWorktrees.patches[0].marker,
+      'Harness Superpowers using-git-worktrees naming patch',
+      target
+    );
+    assert.match(
+      usingGitWorktrees.sourcePath,
+      /harness\/upstream\/superpowers\/skills\/using-git-worktrees$/,
+      target
+    );
+    assert.match(usingGitWorktrees.targetPath, targetPathPattern, target);
+  }
+});
+
 test('planSkillProjections materializes Copilot planning-with-files', async () => {
   const plan = await planSkillProjections({
     rootDir: process.cwd(),

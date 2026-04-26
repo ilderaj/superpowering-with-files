@@ -6,10 +6,10 @@
 ## Current State
 Status: closed
 Archive Eligible: no
-Close Reason: Implemented, verified, smoke-tested, merged to local dev, and pushed.
+Close Reason: Phase 10 completed on 2026-04-26: repaired the post-implementation verify drift, refreshed user-global adoption, fast-forwarded the fix back into local `dev`, and pushed `origin/dev`.
 
 ## Current Phase
-Phase 9
+Phase 10
 
 ## Phases
 
@@ -66,6 +66,13 @@ Phase 9
 - [x] 关闭当前 task 或切到 waiting_review / waiting_integration
 - **Status:** complete
 
+### Phase 10: Post-merge Verification Repair And Adoption Refresh
+- [x] 从本地 `dev` 创建隔离 worktree 并重现当前 verify/adoption 问题
+- [x] 修复全量 `verify` 中的 hook-projection 断言漂移
+- [x] 在 worktree 中重新执行 `npm run verify`、`doctor`、`adoption-status` / `adopt-global`
+- [x] merge 回本地 `dev` 并 push
+- **Status:** complete
+
 ## Risk Assessment
 
 | 风险 | 触发条件 | 影响范围 | 缓解 / 已落盘的回退方案 |
@@ -89,9 +96,11 @@ Phase 9
 ## Notes
 - 当前工作区是隔离 worktree 分支 `copilot/using-subagents-for-plans`，起始基线与本地 `dev` 同 SHA：`a20059fd2a95b2199923b5cc2a1f8cef918c0b02`。
 - 当前功能分支已推送到 `origin/copilot/using-subagents-for-plans`，并已 merge 回本地与远端 `dev`。
+- 2026-04-26 用户要求从本地 `dev` 再开一个 checkout worktree，先修 review 中发现的 verify 漂移，再执行 adoption refresh，最后 merge 回 `dev` 并 push。
+- 2026-04-26 修复在隔离 worktree `~/.config/superpowers/worktrees/SuperpoweringWithFiles/fix-checkpoint-adoption` 上完成，worktree 分支为 `fix/checkpoint-adoption`，修复 commit 为 `e300de5`，随后已 fast-forward merge 到本地与远端 `dev`。
 
 ## Companion Plan Reference
 
 - Companion plan: `docs/superpowers/plans/2026-04-25-checkpoint-push-automation-plan.md`
 - Companion plan role: 保存不含 PR 自动化的详细 implementation tasks、file map、验证命令与 rollout gates。
-- Sync-back status: `2026-04-25` 已同步到 closeout 状态。
+- Sync-back status: `2026-04-26` 已同步到 post-merge repair closeout 状态。

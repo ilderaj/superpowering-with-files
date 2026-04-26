@@ -62,7 +62,7 @@ Close Reason:
 
 ## Companion Plan
 
-- Path: `docs/superpowers/plans/2026-04-19-global-harness-context-remediation-plan.md`
+- Companion plan: `docs/superpowers/plans/2026-04-19-global-harness-context-remediation-plan.md`
 - Summary: 输出了一份可执行的整改计划，覆盖上下文预算、薄入口渲染、planning compact recovery、hook payload 收敛、opt-in skill profile、以及测试/校准/发布门槛。
 - Sync-back Status: companion plan 已创建；active task 记录已同步路径、摘要与当前状态。
 

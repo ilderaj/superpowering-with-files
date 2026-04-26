@@ -13,7 +13,7 @@
   - `planning/active/agent-safety-harness/task_plan.md`（lifecycle + phase + decisions）
   - `planning/active/agent-safety-harness/findings.md`（事故复盘 + review + 设计决策）
   - `planning/active/agent-safety-harness/progress.md`（本文件）
-  - `docs/superpowers/plans/2026-04-25-agent-safety-harness.md`（companion 详细 implementation plan）
+  - `planning/archive/20260425-212230-agent-safety-harness/companion_plan.md`（companion 详细 implementation plan）
 
 **Verification**：
 
@@ -29,7 +29,7 @@
 - A `planning/active/agent-safety-harness/task_plan.md`
 - A `planning/active/agent-safety-harness/findings.md`
 - A `planning/active/agent-safety-harness/progress.md`
-- A `docs/superpowers/plans/2026-04-25-agent-safety-harness.md`
+- A `planning/archive/20260425-212230-agent-safety-harness/companion_plan.md`
 
 ## Session 2026-04-25 — Phase 0 baseline + execution start
 

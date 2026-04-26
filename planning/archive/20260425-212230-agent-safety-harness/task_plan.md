@@ -16,7 +16,7 @@ Close Reason: 安全 harness 第一阶段已完成交付；safety profile、hook
 
 ## Companion Plan
 
-- 路径：[docs/superpowers/plans/2026-04-25-agent-safety-harness.md](../../../docs/superpowers/plans/2026-04-25-agent-safety-harness.md)
+- 路径：[planning/archive/20260425-212230-agent-safety-harness/companion_plan.md](planning/archive/20260425-212230-agent-safety-harness/companion_plan.md)
 - 内容：所有 Phase 的具体文件清单、代码骨架、CLI 接口、测试用例。
 - 同步状态：companion 与本文件双向引用；本文件只承载 lifecycle、phase 状态、durable 决策摘要。
 - Sync-back rule：companion 中任何 phase 落地完成或 durable 决策变更时，回写 `findings.md` 并在本文件 phase 表中更新状态。

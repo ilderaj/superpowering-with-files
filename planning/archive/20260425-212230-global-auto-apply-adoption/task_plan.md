@@ -69,6 +69,6 @@ Complete
 
 ## Companion Plan Reference
 
-- Companion plan: `docs/superpowers/plans/2026-04-20-global-auto-apply-adoption.md`
+- Companion plan: `planning/archive/20260425-212230-global-auto-apply-adoption/companion_plan.md`
 - Companion plan role: 保存详细可行性分析、方案比较和实施清单
 - Sync-back status: `2026-04-20` 已完成

@@ -31,20 +31,30 @@ Optional hooks:
 .claude/settings.json
 .claude/hooks/run-hook.cmd
 .claude/hooks/task-scoped-hook.sh
+.claude/hooks/session-start
 ~/.claude/settings.json
 ~/.claude/hooks/run-hook.cmd
 ~/.claude/hooks/task-scoped-hook.sh
+~/.claude/hooks/session-start
 ```
 
 Hook definitions are merged into the `hooks` field of the Claude Code settings JSON files.
 
 Claude Code receives the Harness planning-with-files task-scoped hook and the vendored superpowers session-start hook when hooks are enabled.
 
+Claude Code remains the native owner of `.claude/settings*.json`. VS Code and Cursor can read Claude-format hooks as a compatibility surface, but Harness treats these settings files as the Claude Code contract and keeps other targets on their native hook adapters.
+
 Run:
 
 ```bash
 ./scripts/harness install --targets=claude-code --scope=workspace
 ./scripts/harness sync
+```
+
+When you create a manual branch or worktree for Claude Code-driven work, resolve the name from the repo-owned helper instead of a prompt summary:
+
+```bash
+./scripts/harness worktree-name --task <task-id> --namespace claude-code
 ```
 
 For user-global adoption, keep the default `full` profile unless you explicitly want the smaller `minimal-global` projection:
@@ -68,3 +78,7 @@ By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a b
 ```bash
 ./scripts/harness sync --conflict=backup
 ```
+
+Harness archives the pre-existing content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`; it no longer leaves `.harness-backup-*` siblings in the live skill or entry roots.
+
+If older `.harness-backup-*` siblings already exist from a previous takeover, the next successful `sync` imports them into the archive store and removes the live duplicates before projecting the new baseline.

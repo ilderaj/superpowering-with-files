@@ -1,5 +1,7 @@
 # Harness Adapters Projection Implementation Plan
 
+- Active task path: `planning/active/harness-template-foundation/`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 实现 Codex、Copilot、Cursor、Claude Code 的 render/link/materialize 投影，使 core policy 能落地到 workspace、user-global、both 三种 scope。

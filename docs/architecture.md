@@ -30,19 +30,19 @@ Hook support is adapter-based:
 
 | Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
-| `planning-with-files` task-scoped hook | Supported with Codex event limits | Supported | Provisional | Supported |
-| `superpowers` session-start hook | Supported via Harness wrapper | Unsupported | Provisional | Supported |
+| `planning-with-files` task-scoped hook | Supported (`codex_hooks = true`) | Supported | Supported | Supported |
+| `superpowers` session-start hook | Supported via Harness wrapper | Supported | Supported | Supported |
 
-Unsupported hook adapters are modeled explicitly and reported by `status` and `doctor`, but they are not treated as health failures. This keeps cross-IDE behavior honest instead of pretending every platform consumes the same hook schema.
+Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. Some targets still have prerequisites: Codex needs `codex_hooks = true`; VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
 
 Hook facts must be backed by official platform documentation before Harness treats them as verified contracts:
 
 | Target | Official doc-backed facts | Harness-owned or provisional facts |
 | --- | --- | --- |
 | Codex | `.codex/hooks.json`, `~/.codex/hooks.json`, `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`, `codex_hooks = true`, Windows disabled | Script filenames under `.codex/hooks/*` are Harness-owned adapter choices. |
-| GitHub Copilot / VS Code | `.github/hooks/*.json`, `~/.copilot/hooks`, PascalCase hook events, Claude hook config compatibility, Copilot CLI lowerCamelCase compatibility | Harness chooses concrete hook filenames such as `planning-with-files.json` and `task-scoped-hook.sh`. |
+| GitHub Copilot / VS Code | `.github/hooks/*.json`, `~/.copilot/hooks`, PascalCase hook events, Claude hook config compatibility, Copilot CLI lowerCamelCase compatibility | Harness chooses concrete hook filenames and keeps native Copilot hook files as the primary projection path. |
 | Claude Code | `.claude/settings.json`, `.claude/settings.local.json`, `~/.claude/settings.json`, `SessionStart` and `UserPromptSubmit` stdout context injection | Harness chooses script filenames under `.claude/hooks/*`. |
-| Cursor | No official docs-level hook path, event, or schema citation is currently recorded in this repository. | Existing Cursor hook projection is treated as provisional until a Cursor official hooks contract is cited. |
+| Cursor | `.cursor/hooks.json`, `~/.cursor/hooks.json`, native agent hook events including `sessionStart`, `sessionEnd`, `preToolUse`, `postToolUse`, `stop`, plus official third-party Claude hook compatibility | Harness chooses concrete script filenames under `.cursor/hooks/*` and keeps the native Cursor format as the default adapter. |
 
 Hook config/settings JSON files are merged rather than blindly overwritten. Harness marks each managed hook entry with a `Harness-managed ... hook` description, removes the previous managed entry for that same skill, and preserves unrelated user hook entries. The target-specific hook container must be mergeable; Claude Code settings JSON can preserve non-hook fields while Harness updates only the `hooks` field. If an existing hook config or settings JSON is malformed, `sync` refuses to modify it unless `--conflict=backup` is used.
 

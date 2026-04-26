@@ -1,5 +1,7 @@
 # Harness Installer CLI Implementation Plan
 
+- Active task path: `planning/active/harness-template-foundation/`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 实现 `./scripts/harness` CLI 的基础状态机、路径解析、render/link/materialize 操作，以及 `install`、`doctor`、`sync` 的最小可用版本。

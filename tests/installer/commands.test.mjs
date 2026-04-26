@@ -28,6 +28,10 @@ test('harness --help prints top-level usage', async () => {
       stdout,
       /checkpoint-push  Verify, record review evidence, commit, and push a recovery branch/
     );
+    assert.match(
+      stdout,
+      /worktree-name  Suggest a canonical worktree label and branch name for the active task/
+    );
     assert.match(stdout, /verify   Print or write verification reports/);
   } finally {
     await removeHarnessFixture(root);

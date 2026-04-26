@@ -45,6 +45,14 @@
   - `docs/superpowers/plans/2026-04-11-harness-adapters-projection-plan.md`
   - `docs/superpowers/plans/2026-04-11-harness-docs-verification-release-plan.md`
 
+## Companion Plans
+
+- Companion plan: `docs/superpowers/plans/2026-04-11-harness-template-plan-review.md`
+- Companion plan: `docs/superpowers/plans/2026-04-11-harness-core-policy-upstream-plan.md`
+- Companion plan: `docs/superpowers/plans/2026-04-11-harness-installer-cli-plan.md`
+- Companion plan: `docs/superpowers/plans/2026-04-11-harness-adapters-projection-plan.md`
+- Companion plan: `docs/superpowers/plans/2026-04-11-harness-docs-verification-release-plan.md`
+
 ## 当前子任务
 
 - 当前收尾

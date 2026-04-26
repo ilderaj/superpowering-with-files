@@ -38,25 +38,38 @@ Future projection patches, health checks, and tests should be verified against t
 - health checks must continue to treat `planning/active/<task-id>/` as authoritative and any companion plan as secondary
 - tests should validate mandatory companion-plan persistence consistently across policy, rendered entries, projected skills, and health warnings
 
+When a task carries a companion artifact, lifecycle tooling must keep it in sync: `close-task` and `archive-task` should block unsynced companion metadata, and `archive-task` should relocate the companion artifact into the archived task directory as `companion_plan.md`.
+
 Worktree base selection is a Harness-owned guardrail. Maintain it in:
 
 - `harness/core/policy/base.md` for rendered cross-platform policy.
 - `harness/installer/lib/git-base.mjs` for base recommendation logic.
 - `harness/installer/commands/worktree-preflight.mjs` for the CLI entry point.
 
+Worktree naming is a Harness-owned contract. Maintain it in:
+
+- `harness/installer/lib/worktree-name.mjs` for canonical label resolution.
+- `harness/installer/commands/worktree-name.mjs` for the operator-facing CLI.
+- `harness/installer/lib/superpowers-using-git-worktrees-patch.mjs` for the projected skill guidance.
+
 Run this before creating a manual or Superpowers-driven worktree:
 
 ```bash
-./scripts/harness worktree-preflight
+./scripts/harness worktree-preflight --task <task-id>
+./scripts/harness worktree-name --task <task-id> --namespace <agent-prefix>
+git worktree add <path>/<canonical-label> -b <suggested-branch> <base-ref>
 ```
+
+Treat `./scripts/harness worktree-name` as the source of truth for worktree basenames and branch names. Do not derive them from prompt summaries or skill names.
 
 When you need a remote recovery point for a risky session, use this operator flow:
 
-1. Run `./scripts/harness worktree-preflight --safety`.
-2. Move the work into a dedicated worktree branch.
-3. Run `./scripts/harness checkpoint-push --message="..."`.
-4. Review the generated review artifact directory, including `review.md` and `result.json`.
-5. Treat PR creation and merge as separate manual actions.
+1. Run `./scripts/harness worktree-preflight --task <task-id> --safety` when the repo has multiple active tasks.
+2. Run `./scripts/harness worktree-name --task <task-id> --namespace <agent-prefix>`.
+3. Move the work into a dedicated worktree branch using the suggested basename and branch name.
+4. Run `./scripts/harness checkpoint-push --message="..."`.
+5. Review the generated review artifact directory, including `review.md` and `result.json`.
+6. Treat PR creation and merge as separate manual actions.
 
 ## Upstream Skill Updates
 
@@ -112,5 +125,17 @@ export HOME=/path/to/disposable-home
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness doctor --check-only
 ```
+
+For backup-governance takeover checks in that disposable home, run an explicit user-global install and confirm both health and adoption state:
+
+```bash
+export HOME=/path/to/disposable-home
+./scripts/harness install --scope=user-global --targets=all --hooks=on
+./scripts/harness sync --conflict=backup
+./scripts/harness doctor --check-only
+./scripts/harness adoption-status
+```
+
+When you run `sync --conflict=backup`, Harness archives the displaced content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`. If legacy `.harness-backup-*` siblings are still present from an older takeover, the next successful `sync` imports them into that archive store and removes the live duplicates before projecting the new baseline.
 
 Use `sync --dry-run` before the actual sync only as a preview; it is not a substitute for verification because it does not write projection files. Manual inspection should cover the user-global entry files for Codex, GitHub Copilot, and Claude Code, plus Cursor's workspace rule output when `scope=both` is used. Cursor does not currently have a rendered user-global entry. The expected result is thin always-on entry content, no full deep-task policy dump, and no broad skill projection when `minimal-global` is selected.

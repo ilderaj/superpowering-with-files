@@ -149,13 +149,21 @@ Before creating a Git worktree for Superpowers, subagents, or manual isolation, 
 Use Harness-owned preflight when available:
 
 ```bash
-./scripts/harness worktree-preflight
+./scripts/harness worktree-preflight [--task <task-id>]
 ```
+
+Resolve the repo-owned name for any manual or skill-driven worktree with:
+
+```bash
+./scripts/harness worktree-name [--task <task-id>] [--namespace <prefix>]
+```
+
+The canonical label format is `YYYYMMDDHHMM-<task-slug>-NNN`. `task-slug` must come from planning task identity rather than a prompt summary. Use the suggested worktree basename and branch name instead of deriving names from the prompt. If the host already manages the workspace or worktree (for example, Codex App), treat the helper as a supplementary naming tool for manual branches or extra worktrees rather than a host override.
 
 Then create the worktree with the reported start point:
 
 ```bash
-git worktree add <path> -b <new-branch> <base-ref>
+git worktree add <path>/<canonical-label> -b <suggested-branch> <base-ref>
 ```
 
 Base selection rules:

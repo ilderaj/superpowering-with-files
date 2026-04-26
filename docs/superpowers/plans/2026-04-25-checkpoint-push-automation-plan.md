@@ -15,6 +15,7 @@
 ## Companion Link
 
 - Authoritative task memory: `planning/active/git-execution-authorization-analysis/`
+- Active task path: `planning/active/git-execution-authorization-analysis/`
 - Sync-back status: pending final review on `2026-04-25`
 
 ## Planning Assumptions

@@ -1,5 +1,7 @@
 # Harness Template Plan Review Implementation Plan
 
+- Active task path: `planning/active/harness-template-foundation/`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 HarnessTemplate spec 拆成可 review、可排序、可独立验证的实施计划集合。

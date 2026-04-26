@@ -50,6 +50,8 @@ Rules:
 7. The active task files must point to the companion plan, and the companion plan must point back to `planning/active/<task-id>/`.
 8. `harness/core/policy/base.md` remains the canonical policy source, while entry files render only the selected always-on profile sections plus the preamble.
 
+Lifecycle transitions are now companion-aware: `close-task` and `archive-task` refuse unsynced companion metadata, and `archive-task` relocates the companion artifact into the archived task directory as `companion_plan.md`.
+
 Recommended companion-plan name: `docs/superpowers/plans/<date>-<task-id>.md`.
 
 ## Upstream, License, Credit
@@ -100,9 +102,23 @@ Skill projections use the `full` profile by default. If you are adopting Harness
 
 The default does not flip to `minimal-global`; omit `--skills-profile` to keep `full`.
 
+### Conflict Backups
+
+By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a backup and continue, run:
+
+```bash
+./scripts/harness sync --conflict=backup
+```
+
+Harness archives the pre-existing content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`; it no longer leaves `.harness-backup-*` siblings in the live skill or entry roots.
+
+If older `.harness-backup-*` siblings already exist from a previous takeover, the next successful `sync` imports them into the archive store and removes the live duplicates before projecting the new baseline.
+
 ### Context Governance
 
 Harness treats context size as a product constraint. Verification reports include `health.context` with entry, hook, planning, skill-profile, summary, and warning data. Entry summaries are measured as the worst target session, not as a cross-IDE total. Use this gate before changing policy rendering, skill projection, or hooks:
+
+When planning hooks are enabled, Harness keeps hot context summary-first instead of replaying raw planning files. Use `./scripts/harness summary` to print the same compact `SESSION SUMMARY` view for the active task, or pass `--task <task-id>` when multiple active tasks exist.
 
 ```bash
 npm run verify
@@ -112,6 +128,18 @@ npm run verify
 ```
 
 The expected default remains thin rendered entry files, `full` skill projection, and hooks off. For user-global adoption trials, use the opt-in `minimal-global` profile in an isolated profile before writing real user-global files.
+
+### Worktree Naming
+
+Harness treats `./scripts/harness worktree-name` as the repo-owned source of truth for manual or skill-driven worktree names. It returns a canonical label in the form `YYYYMMDDHHMM-<task-slug>-NNN`, where `task-slug` comes from planning task identity rather than prompt text.
+
+```bash
+./scripts/harness worktree-preflight --task worktree-naming-governance --safety
+./scripts/harness worktree-name --task worktree-naming-governance --namespace copilot
+git worktree add "$HOME/.config/superpowers/worktrees/superpowering-with-files/<canonical-label>" -b "<suggested-branch>" dev
+```
+
+`worktree-preflight` reuses the same helper when it can resolve the active task; pass `--task <task-id>` when the repo has multiple active tasks. If the host already owns workspace isolation (for example, Codex App), use `worktree-name` as a supplementary naming tool for manual branches or extra worktrees rather than as a host override.
 
 ### Integration Modes
 
@@ -191,6 +219,8 @@ Hooks are opt-in:
 ./scripts/harness doctor --check-only
 ```
 
+When projected, the `planning-with-files` hook renders a compact `SESSION SUMMARY` block for the active task so agents recover state from task status, phases, findings, progress, and recent verification without loading the raw markdown files.
+
 Support matrix:
 
 | Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
@@ -237,16 +267,16 @@ Checkpoints land in `~/.agent-config/checkpoints/<workspace>/<timestamp>/`. Logs
 ### Worktree safety
 
 ```bash
-./scripts/harness worktree-preflight --safety
+./scripts/harness worktree-preflight --task <task-id> --safety
 ```
 
-Reports remote status, recommended base ref, checkpoint guidance, and whether the active task plan has a non-placeholder `## Risk Assessment` block. Destructive commands without an upstream branch and without a recorded risk assessment are downgraded to `ask` by the hook.
+Reports remote status, recommended base ref, checkpoint guidance, naming suggestions, and whether the active task plan has a non-placeholder `## Risk Assessment` block. Destructive commands without an upstream branch and without a recorded risk assessment are downgraded to `ask` by the hook.
 
 ### Recommended recovery-point flow
 
 When you need an off-machine recovery point for risky work, use this order:
 
-1. Run `./scripts/harness worktree-preflight --safety`.
+1. Run `./scripts/harness worktree-preflight --task <task-id> --safety` when multiple active tasks exist.
 2. Work from a dedicated worktree branch.
 3. Run `./scripts/harness checkpoint-push --message="..."`.
 4. Review the generated review artifact directory, especially `review.md` and `result.json`.
@@ -313,9 +343,14 @@ npm run verify
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness adopt-global
 ./scripts/harness adoption-status
+./scripts/harness summary
+./scripts/harness summary --task <task-id>
 ./scripts/harness worktree-preflight
+./scripts/harness worktree-preflight --task <task-id>
 ./scripts/harness worktree-preflight --safety
+./scripts/harness worktree-name --task <task-id> --namespace <prefix>
 ./scripts/harness checkpoint <path>
+./scripts/harness checkpoint-push --message="..."
 ./scripts/harness cloud-bootstrap --target=codespaces
 ./scripts/harness link-personal --repo=<git-url>
 ```

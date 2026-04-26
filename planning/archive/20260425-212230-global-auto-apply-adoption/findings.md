@@ -157,7 +157,7 @@
 
 ## Companion Plan Boundary
 
-- 详细方案比较和执行清单保存在 `docs/superpowers/plans/2026-04-20-global-auto-apply-adoption.md`。
+- 详细方案比较和执行清单保存在 `planning/archive/20260425-212230-global-auto-apply-adoption/companion_plan.md`。
 - 此文件只保留 durable findings、决策与结论摘要。
 
 ## 2026-04-25 运行时收敛结果

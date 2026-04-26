@@ -1,5 +1,7 @@
 # Harness Core Policy And Upstream Implementation Plan
 
+- Active task path: `planning/active/harness-template-foundation/`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 建立 HarnessTemplate 的中立 core、全局 policy baseline、skill metadata 和 vendored upstream baseline。

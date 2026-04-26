@@ -3,7 +3,7 @@
 ## 2026-04-20
 
 - 创建 task-scoped planning 目录：`planning/active/global-auto-apply-adoption/`
-- 创建 companion plan：`docs/superpowers/plans/2026-04-20-global-auto-apply-adoption.md`
+- 创建 companion plan：`planning/archive/20260425-212230-global-auto-apply-adoption/companion_plan.md`
 - 已读取：
   - `README.md`
   - `docs/maintenance.md`

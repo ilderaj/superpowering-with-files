@@ -11,6 +11,8 @@
 > Sync-back status: phases 2-4 in `task_plan.md` reflect this checklist's
 > coarse stages; durable decisions are mirrored into `findings.md`.
 
+- Active task path: `planning/active/session-summary-mechanism/`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 让 harness 在一轮 session 收尾时输出一个结构化、精炼的总结，数据源自 planning files（`task_plan.md` / `progress.md` / `findings.md`）和 hook lifecycle 信号，而非模型自由发挥。

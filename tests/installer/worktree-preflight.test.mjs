@@ -17,8 +17,16 @@ function git(cwd, ...args) {
 }
 
 function harness(root, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root
+    cwd: root,
+    env: {
+      ...process.env,
+      ...(options.env ?? {})
+    }
   });
 }
 
@@ -117,6 +125,96 @@ test('worktree-preflight --safety reports remote, risk assessment, and checkpoin
     }
     await removeHarnessFixture(root);
     await rm(remote, { recursive: true, force: true });
+  }
+});
+
+test('worktree-preflight prints naming suggestions in text output', async () => {
+  const root = await createHarnessFixture();
+  let worktree;
+  try {
+    await initRepo(root);
+    worktree = await createLinkedWorktree(root, 'copilot/preflight-name');
+    await writeActiveTask(worktree, true);
+
+    const { stdout } = await harness(worktree, 'worktree-preflight', {
+      env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
+    });
+
+    assert.match(stdout, /Suggested worktree label: 202604281159-preflight-task-001/);
+    assert.match(stdout, /Suggested branch name: copilot\/202604281159-preflight-task-001/);
+    assert.match(
+      stdout,
+      /git worktree add <path>\/202604281159-preflight-task-001 -b copilot\/202604281159-preflight-task-001 .+/
+    );
+  } finally {
+    if (worktree) {
+      await rm(worktree, { recursive: true, force: true });
+    }
+    await removeHarnessFixture(root);
+  }
+});
+
+test('worktree-preflight --json includes naming suggestions without changing base recommendation', async () => {
+  const root = await createHarnessFixture();
+  let worktree;
+  try {
+    await initRepo(root);
+    worktree = await createLinkedWorktree(root, 'copilot/preflight-json');
+    await writeActiveTask(worktree, true);
+
+    const { stdout } = await harness(worktree, 'worktree-preflight', '--json', {
+      env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
+    });
+    const output = JSON.parse(stdout);
+
+    assert.equal(output.recommendation.baseRef, 'copilot/preflight-json');
+    assert.deepEqual(output.naming, {
+      taskId: 'preflight-task',
+      taskSlug: 'preflight-task',
+      timestamp: '202604281159',
+      sequence: '001',
+      canonicalLabel: '202604281159-preflight-task-001',
+      branchName: 'copilot/202604281159-preflight-task-001',
+      worktreeBasename: '202604281159-preflight-task-001'
+    });
+  } finally {
+    if (worktree) {
+      await rm(worktree, { recursive: true, force: true });
+    }
+    await removeHarnessFixture(root);
+  }
+});
+
+test('worktree-preflight --task resolves naming when multiple active tasks exist', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await initRepo(root);
+    await writeActiveTask(root, true);
+    await mkdir(path.join(root, 'planning/active/second-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/second-task/task_plan.md'),
+      [
+        '# Second task',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        ''
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/second-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/second-task/progress.md'), '# Progress\n');
+
+    const { stdout } = await harness(root, 'worktree-preflight', '--task', 'preflight-task', '--json', {
+      env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
+    });
+    const output = JSON.parse(stdout);
+
+    assert.equal(output.naming.taskId, 'preflight-task');
+    assert.equal(output.naming.canonicalLabel, '202604281159-preflight-task-001');
+  } finally {
+    await removeHarnessFixture(root);
   }
 });
 

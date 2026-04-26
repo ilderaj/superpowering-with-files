@@ -75,6 +75,15 @@ test('sync projects workspace entries and skills', async () => {
     assert.doesNotMatch(writingPlans, /you may additionally create a companion plan/);
     assert.doesNotMatch(writingPlans, /\*\*Save plans to:\*\* `docs\/superpowers\/plans/);
 
+    const usingGitWorktrees = await readFile(path.join(root, '.agents/skills/using-git-worktrees/SKILL.md'), 'utf8');
+    assert.match(usingGitWorktrees, /Harness Superpowers using-git-worktrees naming patch/);
+    assert.match(usingGitWorktrees, /Before creating a manual worktree, run \.\/scripts\/harness worktree-name/);
+    assert.match(usingGitWorktrees, /Use the suggested worktree basename and branch name/);
+    assert.match(
+      usingGitWorktrees,
+      /If the host already manages the worktree \(for example, Codex App\), treat this helper as a supplementary naming tool rather than a host override/
+    );
+
     const riskSkill = await readFile(
       path.join(root, '.agents/skills/risk-assessment-before-destructive-changes/SKILL.md'),
       'utf8'
@@ -83,6 +92,40 @@ test('sync projects workspace entries and skills', async () => {
 
     const bypassSkill = await readFile(path.join(root, '.agents/skills/safe-bypass-flow/SKILL.md'), 'utf8');
     assert.match(bypassSkill, /Use when starting bypass/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync normalizes legacy sibling backups under managed skill roots', async () => {
+    const root = await createHarnessFixture();
+    const homeDir = path.join(root, 'home');
+    try {
+      await mkdir(path.join(homeDir, '.claude/skills'), { recursive: true });
+      const legacyBackup = path.join(
+        homeDir,
+        '.claude/skills/using-superpowers.harness-backup-20260426T044458'
+      );
+      await mkdir(legacyBackup, { recursive: true });
+      await writeFile(
+        path.join(legacyBackup, 'SKILL.md'),
+        `---
+name: using-superpowers
+description: Legacy backup of a materialized skill
+---
+
+# using-superpowers
+`
+      );
+
+      await withCwd(root, () => sync([]));
+
+    await assert.rejects(
+      lstat(path.join(homeDir, '.claude/skills/using-superpowers.harness-backup-20260426T044458')),
+      /ENOENT/
+    );
+    const index = JSON.parse(await readFile(path.join(homeDir, '.harness/backup-index.json'), 'utf8'));
+    assert.equal(index.entries.some((entry) => entry.originalPath.endsWith('using-superpowers')), true);
   } finally {
     await removeHarnessFixture(root);
   }

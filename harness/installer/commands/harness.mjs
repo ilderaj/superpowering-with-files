@@ -14,6 +14,7 @@ import { checkpointPushCommand } from './checkpoint-push.mjs';
 import { cloudBootstrap } from './cloud-bootstrap.mjs';
 import { linkPersonal } from './link-personal.mjs';
 import { summary } from './summary.mjs';
+import { worktreeName } from './worktree-name.mjs';
 
 const commands = {
   install,
@@ -28,6 +29,7 @@ const commands = {
   summary,
   'cloud-bootstrap': cloudBootstrap,
   'link-personal': linkPersonal,
+  'worktree-name': worktreeName,
   'worktree-preflight': worktreePreflight,
   'adopt-global': adoptGlobal,
   'adoption-status': adoptionStatus
@@ -52,6 +54,7 @@ function usage() {
     '  link-personal    Link personal user-managed config into the global install',
     '  adopt-global     Apply the current repo baseline to the user-global install',
     '  adoption-status  Report user-global adoption drift and health',
+    '  worktree-name  Suggest a canonical worktree label and branch name for the active task',
     '  worktree-preflight  Recommend an explicit base before creating a Git worktree'
   ].join('\n');
 }

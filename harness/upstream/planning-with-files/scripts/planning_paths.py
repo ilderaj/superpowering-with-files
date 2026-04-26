@@ -97,6 +97,13 @@ def ensure_active_layout(project_path: Path, task_id: Optional[str] = None) -> P
 
 
 def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Path:
+    from companion_sync import (
+        inspect_companion_sync,
+        read_text,
+        rewrite_task_companion_path,
+        sync_archive_state,
+    )
+
     source_dir = active_dir(project_path, task_id)
     if not source_dir.exists():
         raise FileNotFoundError(f"active planning directory does not exist: {source_dir}")
@@ -108,10 +115,56 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
             f"{source_dir} ({status['reason']})"
         )
 
+    companion_status = inspect_companion_sync(project_path, source_dir.name, require_lifecycle="closed")
+    if companion_status["has_companion"] and not companion_status["ok"]:
+        raise RuntimeError(
+            "companion lifecycle metadata must be synchronized before archiving: "
+            + "; ".join(companion_status["reasons"])
+        )
+
+    companion_source = None
+    companion_original_text = None
+    task_plan_original_text = None
+    if companion_status["has_companion"]:
+        companion_source = Path(companion_status["companion_file"])
+        companion_original_text = read_text(companion_source)
+        task_plan_original_text = read_text(source_dir / "task_plan.md")
+
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     archive_dir = project_path / ARCHIVE_ROOT / f"{timestamp}-{source_dir.name}"
     archive_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(source_dir), str(archive_dir))
+
+    try:
+        if companion_status["has_companion"]:
+            archived_companion = archive_dir / "companion_plan.md"
+            assert companion_source is not None
+            shutil.move(str(companion_source), str(archived_companion))
+
+            archived_task_plan = archive_dir / "task_plan.md"
+            archived_task_relative = archive_dir.relative_to(project_path).as_posix() + "/"
+            archived_companion_relative = archived_companion.relative_to(project_path).as_posix()
+            rewrite_task_companion_path(archived_task_plan, archived_companion_relative)
+            sync_archive_state(
+                archived_companion,
+                archived_task_relative,
+                datetime.now().isoformat(timespec="seconds"),
+            )
+    except Exception:
+        if archive_dir.exists():
+            shutil.move(str(archive_dir), str(source_dir))
+            orphan_companion = source_dir / "companion_plan.md"
+            if orphan_companion.exists():
+                orphan_companion.unlink()
+
+        if companion_source is not None and companion_original_text is not None:
+            companion_source.parent.mkdir(parents=True, exist_ok=True)
+            companion_source.write_text(companion_original_text, encoding="utf-8")
+
+        if task_plan_original_text is not None:
+            (source_dir / "task_plan.md").write_text(task_plan_original_text, encoding="utf-8")
+        raise
+
     return archive_dir
 
 

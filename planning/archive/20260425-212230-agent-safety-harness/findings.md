@@ -105,7 +105,7 @@ allow:
 
 ## 5. 与 harness 政策的对齐
 
-- 本任务为 **Tracked + Deep-reasoning**：使用 planning-with-files（本文件三件套）+ companion plan（`docs/superpowers/plans/2026-04-25-agent-safety-harness.md`）。
+- 本任务为 **Tracked + Deep-reasoning**：使用 planning-with-files（本文件三件套）+ companion plan（`planning/archive/20260425-212230-agent-safety-harness/companion_plan.md`）。
 - 中文写设计/决策；英文留给代码、commit、UI 字符串。
 - 不动 `harness/upstream/**`（vendored 上游），所有改动落在 `harness/core/**`、`harness/installer/**`、`harness/adapters/**`、`docs/**`、`tests/**`。
 - 完成 implementation 后通过 `./scripts/harness verify --output=reports/verification/...` 留证。

@@ -12,6 +12,8 @@
 
 **Authoritative task memory:** `planning/active/cross-ide-single-source-consolidation/`
 
+- Active task path: `planning/active/cross-ide-single-source-consolidation/`
+
 **Companion plan:** `docs/superpowers/plans/2026-04-20-cross-ide-single-source-consolidation.md`
 
 ## Scope and Non-Goals

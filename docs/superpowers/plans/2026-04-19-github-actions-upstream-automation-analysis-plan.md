@@ -13,6 +13,7 @@
 ## Companion Link
 
 - Authoritative task memory: `planning/active/github-actions-upstream-automation-analysis/`
+- Active task path: `planning/active/github-actions-upstream-automation-analysis/`
 - Sync-back status: synced on `2026-04-19`
 
 ## Planning Assumptions

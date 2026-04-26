@@ -1,5 +1,7 @@
 # Harness Docs Verification And Release Implementation Plan
 
+- Active task path: `planning/active/harness-template-foundation/`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 补齐 README、架构/安装/维护/发布文档、verification report 生成，以及本地 main/dev 和 GitHub template repo 发布流程。

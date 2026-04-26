@@ -460,6 +460,81 @@ test('readHarnessHealth filters upstream state to public status fields', async (
   }
 });
 
+test('readHarnessHealth detects legacy sibling backups under user-global roots', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const home = path.join(root, 'home');
+    await mkdir(home, { recursive: true });
+    await withCwd(root, () => sync([]));
+
+    // Create a legacy sibling backup under a user-global root
+    await mkdir(path.join(home, '.claude/skills'), { recursive: true });
+    const legacyBackup = path.join(home, '.claude/skills/using-superpowers.harness-backup-20260426T044458');
+    await mkdir(legacyBackup, { recursive: true });
+    await writeFile(
+      path.join(legacyBackup, 'SKILL.md'),
+      `---
+name: using-superpowers
+description: Legacy backup of a materialized skill
+---
+
+    # using-superpowers
+`
+    );
+
+    const health = await readHarnessHealth(root, home);
+    const problems = health.problems;
+
+    assert.match(
+      problems.join('\n'),
+      /Legacy Harness sibling backups detected under user-global roots/
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports backup archive/index drift under user-global roots', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const home = path.join(root, 'home');
+    const missingArchive = path.join(
+      home,
+      '.harness/backups/20260426T044458Z/harness/home/user/.claude/skills/using-superpowers'
+    );
+
+    await mkdir(path.join(home, '.harness'), { recursive: true });
+    await writeFile(
+      path.join(home, '.harness/backup-index.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          entries: [
+            {
+              originalPath: path.join(home, '.claude/skills/using-superpowers'),
+              archivePath: missingArchive,
+              digest: 'sha256:deadbeef',
+              archivedAt: '2026-04-26T04:44:58.000Z',
+              reason: 'non-harness-owned-conflict'
+            }
+          ]
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const health = await readHarnessHealth(root, home);
+
+    assert.match(
+      health.problems.join('\n'),
+      /Harness backup archive\/index drift detected under user-global roots/
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth reports hook status without failing unsupported adapters', async () => {
   const root = await createHarnessFixture();
   try {
@@ -912,7 +987,7 @@ test('readHarnessHealth reports a problem when Codex hook config is missing a re
   }
 });
 
-test('Cursor hooks are marked provisional when official hook docs are not cited', async () => {
+test('Cursor hooks are marked verified when official hook docs are recorded', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -927,19 +1002,7 @@ test('Cursor hooks are marked provisional when official hook docs are not cited'
     });
 
     await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
-    await writeFile(
-      path.join(root, 'planning/active/compact-task/task_plan.md'),
-      [
-        '# Compact Task',
-        '',
-        '## 任务目标',
-        '- Keep measured hook payloads visible.',
-        '',
-        '## Current State',
-        'Status: active',
-        'Archive Eligible: no'
-      ].join('\n')
-    );
+    await writeFile(path.join(root, 'planning/active/compact-task/task_plan.md'), '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n');
     await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
     await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
 
@@ -948,8 +1011,52 @@ test('Cursor hooks are marked provisional when official hook docs are not cited'
     const planning = health.targets.cursor.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
 
     assert.equal(planning.status, 'ok');
-    assert.equal(planning.evidenceLevel, 'provisional');
-    assert.match(planning.message, /official Cursor hook documentation has not been verified/);
+    assert.equal(planning.evidenceLevel, 'verified');
+    assert.equal(planning.message, undefined);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports missing official Copilot lifecycle events', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: { copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] } },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, '.github/hooks'), { recursive: true });
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/compact-task/task_plan.md'), '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+    await writeFile(
+      path.join(root, '.github/hooks/planning-with-files.json'),
+      `${JSON.stringify(
+        {
+          version: 1,
+          hooks: {
+            sessionStart: [{ type: 'command', description: 'Harness-managed planning-with-files hook' }],
+            preToolUse: [{ type: 'command', description: 'Harness-managed planning-with-files hook' }],
+            postToolUse: [{ type: 'command', description: 'Harness-managed planning-with-files hook' }]
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const planning = health.targets.copilot.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
+
+    assert.equal(planning.status, 'problem');
+    assert.match(planning.message, /missing required event stop/i);
+    assert.match(planning.message, /userPromptSubmit/i);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -1222,6 +1329,92 @@ test('readHarnessHealth warns about orphan companion plans', async () => {
     await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
     await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
     await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(path.join(root, 'docs/superpowers/plans/orphan.md'), '# Orphan companion\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes('docs/superpowers/plans/orphan.md: Companion plan is not referenced by any active task planning file')
+      )
+    );
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'orphan-companion-plan' &&
+          location.path === 'docs/superpowers/plans/orphan.md'
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth accepts markdown links for companion plan back-references', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/task-a/task_plan.md'),
+      '# Task plan\n\n- Companion plan: [docs/superpowers/plans/feature-plan.md](../../../docs/superpowers/plans/feature-plan.md)\n'
+    );
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/feature-plan.md'),
+      '# Companion plan\n\n- Active task: [planning/active/task-a/](../../../planning/active/task-a/)\n'
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      !health.warnings.some((warning) => warning.includes('docs/superpowers/plans/feature-plan.md'))
+    );
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'companion-plan' &&
+          location.path === 'docs/superpowers/plans/feature-plan.md' &&
+          location.referencedBy.includes('planning/active/task-a/task_plan.md')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth ignores incidental companion path mentions in active planning notes', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await writeFile(
+      path.join(root, 'planning/active/task-a/findings.md'),
+      '# Findings\n\n- Existing warning mentioned `docs/superpowers/plans/orphan.md` during triage.\n'
+    );
     await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
     await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
     await writeFile(path.join(root, 'docs/superpowers/plans/orphan.md'), '# Orphan companion\n');

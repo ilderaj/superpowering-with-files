@@ -12,7 +12,7 @@ The materialized copy must preserve:
 
 The materialized copy must also preserve the companion-plan boundary: detailed superpowers implementation plans stay in the companion artifact, while active planning files keep only durable summaries, references, and status.
 
-The materialized copy must avoid incompatible hook assumptions.
+The materialized copy must avoid incompatible hook assumptions, especially when Copilot uses native VS Code hook files as the primary contract and Claude-format hooks only as a compatibility surface.
 
 Harness materializes Copilot's `planning-with-files` copy instead of linking it. During `sync`, Harness copies `harness/upstream/planning-with-files` into the Copilot skill root, applies the shared `Harness planning-with-files companion-plan patch`, and then applies the `Harness Copilot planning-with-files patch`.
 
