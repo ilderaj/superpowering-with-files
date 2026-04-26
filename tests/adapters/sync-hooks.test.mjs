@@ -50,6 +50,61 @@ test('sync installs cursor planning hooks when hookMode is on', async () => {
   }
 });
 
+test('sync installs copilot planning hooks aligned with the official VS Code lifecycle', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: { copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] } },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const hooks = JSON.parse(await readFile(path.join(root, '.github/hooks/planning-with-files.json'), 'utf8'));
+
+    assert.ok(hooks.hooks.sessionStart);
+    assert.ok(hooks.hooks.userPromptSubmit);
+    assert.ok(hooks.hooks.preToolUse);
+    assert.ok(hooks.hooks.postToolUse);
+    assert.ok(hooks.hooks.stop);
+    assert.equal(hooks.hooks.agentStop, undefined);
+    assert.equal(hooks.hooks.errorOccurred, undefined);
+    assert.match(JSON.stringify(hooks), /Harness-managed planning-with-files hook/);
+    assert.match(await readFile(path.join(root, '.github/hooks/task-scoped-hook.sh'), 'utf8'), /planning\/active/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync installs copilot superpowers hooks when hookMode is on', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: { copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] } },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+
+    const hooks = JSON.parse(await readFile(path.join(root, '.github/hooks/superpowers.json'), 'utf8'));
+    assert.ok(hooks.hooks.sessionStart);
+    assert.match(JSON.stringify(hooks), /Harness-managed superpowers hook/);
+
+    const sessionStart = await readFile(path.join(root, '.github/hooks/session-start'), 'utf8');
+    assert.match(sessionStart, /You have superpowers/);
+    assert.match(sessionStart, /planning\/active\/<task-id>\//);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('sync installs codex planning hooks when hookMode is on', async () => {
   const root = await createHarnessFixture();
   try {

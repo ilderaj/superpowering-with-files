@@ -123,7 +123,7 @@ test('planHookProjections returns codex superpowers hook config under .codex', a
   assert.equal(superpowers.scriptTargetRoot, path.join(process.cwd(), '.codex/hooks'));
 });
 
-test('planHookProjections models unsupported superpowers target explicitly', async () => {
+test('planHookProjections returns copilot superpowers hook config under .github/hooks', async () => {
   const plans = await planHookProjections({
     rootDir: process.cwd(),
     homeDir: '/home/user',
@@ -133,8 +133,13 @@ test('planHookProjections models unsupported superpowers target explicitly', asy
   });
   const superpowers = plans.find((plan) => plan.parentSkillName === 'superpowers');
 
-  assert.equal(superpowers.status, 'unsupported');
-  assert.match(superpowers.message, /No verified superpowers hook adapter for copilot/);
+  assert.equal(superpowers.status, 'planned');
+  assert.equal(superpowers.configTarget, path.join(process.cwd(), '.github/hooks/superpowers.json'));
+  assert.deepEqual(superpowers.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/session-start'),
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/run-hook.cmd')
+  ]);
+  assert.equal(superpowers.scriptTargetRoot, path.join(process.cwd(), '.github/hooks'));
 });
 
 test('planHookProjections adds safety hooks when the safety policy profile is active', async () => {

@@ -9,6 +9,14 @@
         "description": "Harness-managed planning-with-files hook"
       }
     ],
+    "userPromptSubmit": [
+      {
+        "type": "command",
+        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot user-prompt-submit || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot user-prompt-submit'",
+        "timeout": 5,
+        "description": "Harness-managed planning-with-files hook"
+      }
+    ],
     "preToolUse": [
       {
         "type": "command",
@@ -25,19 +33,11 @@
         "description": "Harness-managed planning-with-files hook"
       }
     ],
-    "agentStop": [
+    "stop": [
       {
         "type": "command",
-        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot agent-stop || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot agent-stop'",
+        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot stop || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot stop'",
         "timeout": 10,
-        "description": "Harness-managed planning-with-files hook"
-      }
-    ],
-    "errorOccurred": [
-      {
-        "type": "command",
-        "bash": "sh -c '[ -f .github/hooks/task-scoped-hook.sh ] && bash .github/hooks/task-scoped-hook.sh copilot error-occurred || bash \"$HOME/.copilot/hooks/task-scoped-hook.sh\" copilot error-occurred'",
-        "timeout": 5,
         "description": "Harness-managed planning-with-files hook"
       }
     ]
