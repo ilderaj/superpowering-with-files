@@ -59,9 +59,14 @@
   - `README.md` (modified)
 
 ### Phase 5: 集成、回合并与清理
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
-  - 正在同步 authoritative planning closeout，并准备进入 merge / commit / push / worktree cleanup。
+  - 在 feature worktree 上以 `feat: enforce companion lifecycle sync` 提交实现，提交号为 `ca700b3`。
+  - 在主仓库 `dev` 上拉取远端最新状态后合并 feature 分支，生成 merge commit `52c61a4`。
+  - 主 `dev` worktree 直接跑聚合 verify 时，被仓库里现有未跟踪文件 `docs/superpowers/plans/2026-04-26-backup-conflict-governance-plan.md` 污染；为避免触碰无关用户文件，改用 detached 临时 worktree 验证 merge 结果。
+  - detached 临时 worktree 上的 `node --test tests/core/companion-plan-lifecycle.test.mjs && npm run verify` 已通过。
+  - 已运行 `./scripts/harness checkpoint . --quiet`，checkpoint 路径为 `~/.agent-config/checkpoints/SuperpoweringWithFiles/2026-04-26T07-54-50Z`，准备执行 worktree / branch cleanup。
+  - 已移除 worktree `/Users/jared/SuperpoweringWithFiles.worktrees/copilot-superpowers-task-execution-update`，并删除本地分支 `copilot/superpowers-task-execution-update`。
 - Files created/modified:
   - `planning/active/companion-plan-sync-constraints/task_plan.md` (updated)
   - `planning/active/companion-plan-sync-constraints/findings.md` (updated)
@@ -75,6 +80,8 @@
 | Close-flow GREEN | `node --test tests/core/companion-plan-lifecycle.test.mjs` | 3 个 close-flow 场景全部通过 | 3 通过 / 0 失败 | ✓ |
 | Archive-flow GREEN | `node --test tests/core/companion-plan-lifecycle.test.mjs` | 5 个 lifecycle 场景全部通过 | 5 通过 / 0 失败 | ✓ |
 | Repository verify | `node --test tests/core/companion-plan-lifecycle.test.mjs && npm run verify` | focused + full repo verify 通过 | 通过 | ✓ |
+| Merged dev verify | `node --test tests/core/no-personal-paths.test.mjs tests/installer/summary-command.test.mjs` in main dev worktree | 复现 merge 后失败根因 | 单测单独跑通过，说明聚合失败来自主 worktree 环境污染/瞬态条件，而不是本次改动本身 | ✓ |
+| Clean merged dev verify | detached temp worktree 上运行 `node --test tests/core/companion-plan-lifecycle.test.mjs && npm run verify` | 在干净 merge 结果上再次通过 | 通过 | ✓ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |

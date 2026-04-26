@@ -4,14 +4,15 @@
 按照 `docs/superpowers/plans/2026-04-26-companion-plan-sync-constraints.md` 完成 companion lifecycle guard 与 archive auto-migration，实现、验证、保守更新 README，并将结果合并回本地 `dev`、提交、推送、清理 worktree。
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Task completed, verified, merged into local dev, and published to origin/dev.
+Closed At: 2026-04-26T16:04:50
 
 ## Companion Plan
 - Companion plan: `docs/superpowers/plans/2026-04-26-companion-plan-sync-constraints.md`
-- Companion summary: close/archive 生命周期硬门禁已实现，archive 会自动迁移 companion artifact；README 与分支收尾待完成。
-- Sync-back status: implementation and repo verification completed on 2026-04-26; docs sync and branch integration in progress
+- Companion summary: close/archive 生命周期硬门禁已实现，archive 会自动迁移 companion artifact；已完成 dev 集成与 feature worktree cleanup。
+- Sync-back status: closed at 2026-04-26T16:04:50: Task completed, verified, merged into local dev, and published to origin/dev.
 
 ## Current Phase
 Phase 5
@@ -42,10 +43,10 @@ Phase 5
 - **Status:** complete
 
 ### Phase 5: 集成、回合并与清理
-- [ ] 同步 authoritative planning closeout
-- [ ] 合并回本地 `dev`
-- [ ] 提交、推送、移除 worktree
-- **Status:** in_progress
+- [x] 同步 authoritative planning closeout
+- [x] 合并回本地 `dev`
+- [x] 提交、推送、移除 worktree
+- **Status:** complete
 
 ## Risk Assessment
 | 风险 | 触发条件 | 影响范围 | 缓解 / 已落盘的回退方案 |
@@ -53,6 +54,7 @@ Phase 5
 | lifecycle gate 改坏现有 close/archive 流程 | metadata 解析或路径改写不兼容旧格式 | planning-with-files 脚本与测试 | 先补回归测试，再分阶段实现；通过 focused test + `npm run verify` 验证 |
 | close / archive 同步覆盖错误字段 | metadata replace 逻辑匹配范围过宽 | active task / companion plan markdown | 用最小替换函数并在 close / archive 测试中断言最终文本 |
 | merge / cleanup 操作误伤未提交内容 | 分支或 worktree 状态判断错误 | 本地开发分支 | 完成实现后先核对 git 状态，再按记录的 worktree 分支回合并并清理 |
+| `git worktree remove /Users/jared/SuperpoweringWithFiles.worktrees/copilot-superpowers-task-execution-update && git branch -d copilot/superpowers-task-execution-update` | cleanup 前 worktree 或分支仍含唯一状态 | 当前 feature worktree、本地分支引用 | checkpoint: `~/.agent-config/checkpoints/SuperpoweringWithFiles/2026-04-26T07-54-50Z`；如失败，从 `dev` 保留的 merge commit `52c61a4` 恢复，必要时用 checkpoint 回看删除前状态 |
 
 ## Key Questions
 1. 现有 planning-with-files 脚本与测试模式如何最小侵入扩展 close/archive companion lifecycle？

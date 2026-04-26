@@ -15,6 +15,8 @@
 - archive-flow 已补齐：`task-status.py` 增加 companion sync gate，`planning_paths.py` 会在 archive 时迁移 companion artifact 并重写 archived task / companion 引用。
 - `archive-task.sh` 现在会同时要求 safe-to-archive 与 companion-synced，防止 unsynced companion metadata 被归档。
 - focused lifecycle tests 与全仓 `npm run verify` 已通过。
+- 合并到主 `dev` worktree 后，直接在该 worktree 跑 `npm run verify` 暴露了两个环境相关问题：一个是已有未跟踪文件 `docs/superpowers/plans/2026-04-26-backup-conflict-governance-plan.md` 触发 `no-personal-paths`，另一个是 `summary-command` 在那次聚合执行中出现一次性模块解析失败；在主 worktree 单独复现实验时后者未复现。
+- 为了验证合并结果本身，使用 detached 临时 worktree 在 `dev` merge commit 上运行 `node --test tests/core/companion-plan-lifecycle.test.mjs && npm run verify`，结果通过，说明失败来自主 worktree 环境污染而非本次改动。
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -30,11 +32,12 @@
 |-------|------------|
 | 测试夹具若沿用现有 helper 会写入 `/tmp`，违反当前环境约束 | 新 helper 改为在仓库内创建 `.test-fixtures/` 并在测试完成后清理 |
 | 子代理一度把 planning scope 收窄到 close-flow | 已由主代理恢复为完整任务范围，并继续推进 archive / docs / integration 阶段 |
+| 主 `dev` worktree 有与本任务无关的未跟踪文件，导致聚合 verify 失败 | 保留用户现有未跟踪内容不动，改在干净 detached worktree 上验证 merge 结果 |
 
 ## Destructive Operations Log
 | Command | Target | Checkpoint | Rollback |
 |---------|--------|------------|----------|
-| 待记录 | `git merge`, `git push`, `git worktree remove` | 实现完成并验证后记录 | 以 merge 前分支与 commit 为回退点 |
+| `git worktree remove /Users/jared/SuperpoweringWithFiles.worktrees/copilot-superpowers-task-execution-update && git branch -d copilot/superpowers-task-execution-update` | feature worktree path 与本地 feature branch | `~/.agent-config/checkpoints/SuperpoweringWithFiles/2026-04-26T07-54-50Z` | merge commit `52c61a4` 已保留在 `dev`；如需回看删除前状态，使用 checkpoint 路径 |
 
 ## Resources
 - `docs/superpowers/plans/2026-04-26-companion-plan-sync-constraints.md`

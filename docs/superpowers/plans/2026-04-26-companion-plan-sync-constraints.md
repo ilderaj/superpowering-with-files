@@ -6,9 +6,13 @@
 >
 > **Backlink:** see `planning/active/companion-plan-sync-constraints/task_plan.md`, `planning/active/companion-plan-sync-constraints/findings.md`, and `planning/active/companion-plan-sync-constraints/progress.md`
 >
-> **Lifecycle state:** active
+> **Lifecycle state:** closed
 >
-> **Sync-back status:** executed on `2026-04-26`; lifecycle tests and full repo verification passed, branch integration pending.
+> **Sync-back status:** closed on `2026-04-26`; lifecycle tests and full repo verification passed, changes merged into local `dev`, and the feature worktree was cleaned up.
+
+- Active task path: `planning/active/companion-plan-sync-constraints/`
+- Lifecycle state: closed
+- Sync-back status: closed at 2026-04-26T16:04:50: Task completed, verified, merged into local dev, and published to origin/dev.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
