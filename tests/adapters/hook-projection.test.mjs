@@ -34,7 +34,9 @@ test('planHookProjections returns cursor planning hook config when hooks are on'
   assert.deepEqual(planning.scriptSourcePaths, [
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'),
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/render-hot-context.mjs'),
-    path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/planning-hot-context.mjs')
+    path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/planning-hot-context.mjs'),
+    path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/render-session-summary.mjs'),
+    path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/session-summary.mjs')
   ]);
   assert.equal(planning.scriptTargetRoot, path.join(process.cwd(), '.cursor/hooks'));
 });
