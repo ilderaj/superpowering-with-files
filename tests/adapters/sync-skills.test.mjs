@@ -98,13 +98,27 @@ test('sync projects workspace entries and skills', async () => {
 });
 
 test('sync normalizes legacy sibling backups under managed skill roots', async () => {
-  const root = await createHarnessFixture();
-  const homeDir = path.join(root, 'home');
-  try {
-    await mkdir(path.join(homeDir, '.claude/skills'), { recursive: true });
-    await mkdir(path.join(homeDir, '.claude/skills/using-superpowers.harness-backup-20260426T044458'), { recursive: true });
+    const root = await createHarnessFixture();
+    const homeDir = path.join(root, 'home');
+    try {
+      await mkdir(path.join(homeDir, '.claude/skills'), { recursive: true });
+      const legacyBackup = path.join(
+        homeDir,
+        '.claude/skills/using-superpowers.harness-backup-20260426T044458'
+      );
+      await mkdir(legacyBackup, { recursive: true });
+      await writeFile(
+        path.join(legacyBackup, 'SKILL.md'),
+        `---
+name: using-superpowers
+description: Legacy backup of a materialized skill
+---
 
-    await withCwd(root, () => sync([]));
+# using-superpowers
+`
+      );
+
+      await withCwd(root, () => sync([]));
 
     await assert.rejects(
       lstat(path.join(homeDir, '.claude/skills/using-superpowers.harness-backup-20260426T044458')),
