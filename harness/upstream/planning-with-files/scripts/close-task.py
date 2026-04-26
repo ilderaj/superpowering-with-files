@@ -8,6 +8,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+from companion_sync import inspect_companion_sync, read_text, sync_close_state
 import planning_paths
 
 
@@ -17,14 +18,6 @@ Archive Eligible: yes
 Close Reason: {reason}
 Closed At: {closed_at}
 """
-
-
-def read_text(path: Path) -> str:
-    try:
-        return path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        return path.read_text(encoding="utf-8", errors="replace")
-
 
 def update_current_state(markdown: str, reason: str, closed_at: str) -> str:
     block = CURRENT_STATE_TEMPLATE.format(reason=reason, closed_at=closed_at).rstrip()
@@ -50,15 +43,25 @@ def main() -> int:
 
     project_path = Path(args.project_path).resolve()
     plan_dir = planning_paths.active_dir(project_path, args.task_id)
+    task_id = plan_dir.name
     task_plan = plan_dir / "task_plan.md"
 
     if not task_plan.exists():
         print(f"[planning-with-files] task_plan.md not found: {task_plan}")
         return 1
 
+    sync_status = inspect_companion_sync(project_path, task_id)
+    if sync_status["has_companion"] and not sync_status["ok"]:
+        for reason in sync_status["reasons"]:
+            print(f"[planning-with-files] Companion sync error: {reason}")
+        return 2
+
     closed_at = datetime.now().isoformat(timespec="seconds")
     updated = update_current_state(read_text(task_plan), args.reason, closed_at)
-    task_plan.write_text(updated, encoding="utf-8")
+    if sync_status["has_companion"]:
+        sync_close_state(project_path, task_id, closed_at, args.reason, updated)
+    else:
+        task_plan.write_text(updated, encoding="utf-8")
     print(f"[planning-with-files] Closed task and marked archive eligible: {plan_dir}")
     return 0
 

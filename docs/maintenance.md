@@ -38,6 +38,8 @@ Future projection patches, health checks, and tests should be verified against t
 - health checks must continue to treat `planning/active/<task-id>/` as authoritative and any companion plan as secondary
 - tests should validate mandatory companion-plan persistence consistently across policy, rendered entries, projected skills, and health warnings
 
+When a task carries a companion artifact, lifecycle tooling must keep it in sync: `close-task` and `archive-task` should block unsynced companion metadata, and `archive-task` should relocate the companion artifact into the archived task directory as `companion_plan.md`.
+
 Worktree base selection is a Harness-owned guardrail. Maintain it in:
 
 - `harness/core/policy/base.md` for rendered cross-platform policy.

@@ -1,21 +1,91 @@
-# Progress: Companion Plan Sync Constraints
+# Progress Log
 
-## Session Log
+## Session: 2026-04-26
 
-### 2026-04-26
-- 新建 task，分析 companion plan 在 active planning 更新与 archive 流程中的同步约束缺口。
-- 已确认现状：health 会报 warning，但 close/archive 脚本本身没有强制 companion-plan 一致性检查。
-- 用户已选择约束强度 `B`：`close-task` 和 `archive-task` 都要 hard-block，而不是只在 archive 阶段阻断。
-- 已读取 lifecycle 入口：`close-task.py`、`task-status.py`、`planning_paths.py`。
-- 当前结论：现有 lifecycle 工具链完全不知道 companion plan 的存在，因此 `B` 必须通过新增 consistency gate 来落地，不能只复用现有 `safe_to_archive` 判定。
-- 用户已选择 archive 侧行为 `A`：`archive-task` 在 gate 通过后应自动迁移 companion artifact，而不是要求人工先迁移。
-- 已产出 design spec：`docs/superpowers/specs/2026-04-26-companion-plan-sync-constraints-design.md`。
-- spec 当前结论：采用 hard-block close/archive + archive auto-migration；v1 只校验 machine-readable metadata 和 lifecycle 一致性，不比较 prose。
-- spec 自检已完成：无 `TBD` / `TODO` / `FIXME`；补齐了 active-side 必填字段 `Companion summary`，其余边界与当前设计一致。
-- 已产出 implementation plan：`docs/superpowers/plans/2026-04-26-companion-plan-sync-constraints.md`。
-- implementation plan 当前结论：先补新的 lifecycle test harness，再按 TDD 依次落地 close gate、archive gate、archive auto-migration、文档更新与 planning closeout。
-- implementation plan 自检已完成：移除了重复标题、修正了代码片段中的未定义 helper / import / 变量，并清除了 archive 任务里的 placeholder。
+### Phase 1: 建立任务上下文与基线
+- **Status:** complete
+- **Started:** 2026-04-26T06:59:20Z
+- Actions taken:
+  - 调用了 `using-superpowers`、`planning-with-files`、`executing-plans`、`subagent-driven-development`、`using-git-worktrees` 技能以满足流程要求。
+  - 审阅 companion plan、仓库策略、planning-with-files 模板，以及当前 lifecycle 脚本与文档。
+  - 确认当前工作位于隔离 worktree 分支 `copilot/superpowers-task-execution-update`，当前 `HEAD` 为 `36e2253`。
+  - 建立 authoritative planning 文件并回写 companion summary / sync-back status。
+  - 记录 worktree 基点：`dev @ 36e22539f7a5`。
+- Files created/modified:
+  - `planning/active/companion-plan-sync-constraints/task_plan.md` (created)
+  - `planning/active/companion-plan-sync-constraints/findings.md` (created)
+  - `planning/active/companion-plan-sync-constraints/progress.md` (created)
 
-## Next Step
+### Phase 2: 实现 close-task companion sync gate
+- **Status:** complete
+- Actions taken:
+  - 先新增 `tests/helpers/planning-lifecycle-fixture.mjs`，在仓库内创建隔离 fixture，复制 `harness` 与 `docs`，并提供 Python / shell 脚本执行 helper。
+  - 新增 `tests/core/companion-plan-lifecycle.test.mjs`，覆盖 3 个 close-flow 场景。
+  - 运行 `node --test tests/core/companion-plan-lifecycle.test.mjs`，先得到 1 通过 / 2 失败，确认新行为尚未实现。
+  - 新增 `harness/upstream/planning-with-files/scripts/companion_sync.py`，实现 shared metadata 读取、字段解析、字段替换与 close-state 同步。
+  - 修改 `harness/upstream/planning-with-files/scripts/close-task.py`，在关闭前执行 companion gate，失败时逐条打印 `Companion sync error` 并返回非零，成功后同步 active task / companion 的 `Sync-back status`。
+  - 根据 code review 反馈，消除 companion 场景下的 task_plan 双写窗口，并调整 close sync 的写入顺序。
+- Files created/modified:
+  - `tests/helpers/planning-lifecycle-fixture.mjs` (created)
+  - `tests/core/companion-plan-lifecycle.test.mjs` (created)
+  - `harness/upstream/planning-with-files/scripts/companion_sync.py` (created)
+  - `harness/upstream/planning-with-files/scripts/close-task.py` (modified)
 
-- 自检 implementation plan 后交给用户选择执行方式：subagent-driven 或 inline execution。
+### Phase 3: 实现 archive gate 与 companion 迁移
+- **Status:** complete
+- Actions taken:
+  - 扩展 `tests/core/companion-plan-lifecycle.test.mjs`，增加 archive blocked / archive relocation 两个场景。
+  - 扩展 `harness/upstream/planning-with-files/scripts/task-status.py`，暴露 companion sync 状态并支持 `--require-companion-synced`。
+  - 扩展 `harness/upstream/planning-with-files/scripts/planning_paths.py`，在 archive 时迁移 companion artifact 到 archived task 目录，并重写 active task / archived task / companion 的引用。
+  - 更新 `harness/upstream/planning-with-files/scripts/archive-task.sh`，archive 前强制检查 companion synced gate。
+  - 再次运行 `node --test tests/core/companion-plan-lifecycle.test.mjs`，确认 5 个 lifecycle 测试全部通过。
+- Files created/modified:
+  - `tests/core/companion-plan-lifecycle.test.mjs` (modified)
+  - `harness/upstream/planning-with-files/scripts/task-status.py` (modified)
+  - `harness/upstream/planning-with-files/scripts/planning_paths.py` (modified)
+  - `harness/upstream/planning-with-files/scripts/archive-task.sh` (modified)
+  - `harness/upstream/planning-with-files/scripts/companion_sync.py` (modified)
+
+### Phase 4: 文档与仓库验证
+- **Status:** complete
+- Actions taken:
+  - 运行 `node --test tests/core/companion-plan-lifecycle.test.mjs && npm run verify`，确认 focused lifecycle tests 与仓库 verify 全部通过。
+  - 更新 `harness/upstream/planning-with-files/SKILL.md`，补充 companion-aware close/archive contract。
+  - 更新 `docs/maintenance.md`，记录 archive 会阻止 unsynced companion metadata 并自动迁移 companion artifact。
+  - 保守更新 `README.md`，补充 companion-aware lifecycle transition 的一行说明。
+- Files created/modified:
+  - `harness/upstream/planning-with-files/SKILL.md` (modified)
+  - `docs/maintenance.md` (modified)
+  - `README.md` (modified)
+
+### Phase 5: 集成、回合并与清理
+- **Status:** in_progress
+- Actions taken:
+  - 正在同步 authoritative planning closeout，并准备进入 merge / commit / push / worktree cleanup。
+- Files created/modified:
+  - `planning/active/companion-plan-sync-constraints/task_plan.md` (updated)
+  - `planning/active/companion-plan-sync-constraints/findings.md` (updated)
+  - `planning/active/companion-plan-sync-constraints/progress.md` (updated)
+
+## Test Results
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Git baseline | `git status --short --branch` | 确认隔离分支与初始工作区状态 | 当前在 `copilot/superpowers-task-execution-update`，无未提交改动 | ✓ |
+| Close-flow RED | `node --test tests/core/companion-plan-lifecycle.test.mjs` | 新增 close-flow 测试先失败，证明 guard / sync 尚未实现 | 1 通过 / 2 失败；失败点为未阻止 incomplete metadata、未同步 companion lifecycle | ✓ |
+| Close-flow GREEN | `node --test tests/core/companion-plan-lifecycle.test.mjs` | 3 个 close-flow 场景全部通过 | 3 通过 / 0 失败 | ✓ |
+| Archive-flow GREEN | `node --test tests/core/companion-plan-lifecycle.test.mjs` | 5 个 lifecycle 场景全部通过 | 5 通过 / 0 失败 | ✓ |
+| Repository verify | `node --test tests/core/companion-plan-lifecycle.test.mjs && npm run verify` | focused + full repo verify 通过 | 通过 | ✓ |
+
+## Error Log
+| Timestamp | Error | Attempt | Resolution |
+|-----------|-------|---------|------------|
+|           |       | 1       |            |
+
+## 5-Question Reboot Check
+| Question | Answer |
+|----------|--------|
+| Where am I? | Phase 5，代码、文档、验证都已完成，正在准备 merge / commit / push / cleanup |
+| Where am I going? | 接下来收口 planning，合并回本地 `dev`，提交、推送并清理 worktree |
+| What's the goal? | 完成 companion lifecycle guards 与 archive auto-migration，并合并回 `dev` |
+| What have I learned? | close / archive 都需要以 companion metadata 同步为前提，archive 后 companion 应作为 archived task 的自包含快照存在 |
+| What have I done? | 已完成 lifecycle 代码、文档、README、focused tests 和 full verify |

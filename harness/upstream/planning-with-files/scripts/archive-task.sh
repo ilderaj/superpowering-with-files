@@ -13,6 +13,10 @@ if [ -z "$PYTHON_BIN" ]; then
     exit 1
 fi
 
-"$PYTHON_BIN" "$SCRIPT_DIR/task-status.py" "$PROJECT_PATH" "$TASK_ID" --require-safe-to-archive
+"$PYTHON_BIN" "$SCRIPT_DIR/task-status.py" \
+    "$PROJECT_PATH" \
+    "$TASK_ID" \
+    --require-safe-to-archive \
+    --require-companion-synced
 ARCHIVE_DIR="$("$PYTHON_BIN" "$SCRIPT_DIR/planning_paths.py" archive-active "$PROJECT_PATH" "$TASK_ID")"
 echo "[planning-with-files] Archived active planning files to: $ARCHIVE_DIR"

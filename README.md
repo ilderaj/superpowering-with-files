@@ -50,6 +50,8 @@ Rules:
 7. The active task files must point to the companion plan, and the companion plan must point back to `planning/active/<task-id>/`.
 8. `harness/core/policy/base.md` remains the canonical policy source, while entry files render only the selected always-on profile sections plus the preamble.
 
+Lifecycle transitions are now companion-aware: `close-task` and `archive-task` refuse unsynced companion metadata, and `archive-task` relocates the companion artifact into the archived task directory as `companion_plan.md`.
+
 Recommended companion-plan name: `docs/superpowers/plans/<date>-<task-id>.md`.
 
 ## Upstream, License, Credit

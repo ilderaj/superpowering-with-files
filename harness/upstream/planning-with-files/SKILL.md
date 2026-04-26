@@ -114,8 +114,9 @@ Recommended close flow:
 
 1. Verify the task is complete.
 2. Update `task_plan.md`, `findings.md`, and `progress.md` with durable conclusions.
-3. Run `scripts/close-task.sh "$(pwd)" "<task-id>" "Task completed and verified."` or update the lifecycle block manually.
-4. Run `scripts/archive-task.sh "$(pwd)" "<task-id>"` only after the close step.
+3. If a companion plan exists, ensure the active task records `Companion plan`, `Companion summary`, and `Sync-back status`, and ensure the companion plan records `Active task path`, `Lifecycle state`, and `Sync-back status`.
+4. Run `scripts/close-task.sh "$(pwd)" "<task-id>" "Task completed and verified."` or update the lifecycle block manually.
+5. Run `scripts/archive-task.sh "$(pwd)" "<task-id>"` only after the close step; archive will relocate the companion artifact automatically.
 
 ## Critical Rules
 

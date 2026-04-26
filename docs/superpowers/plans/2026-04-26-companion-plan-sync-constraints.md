@@ -6,7 +6,9 @@
 >
 > **Backlink:** see `planning/active/companion-plan-sync-constraints/task_plan.md`, `planning/active/companion-plan-sync-constraints/findings.md`, and `planning/active/companion-plan-sync-constraints/progress.md`
 >
-> **Sync-back status:** drafted on `2026-04-26`; awaiting implementation review before execution.
+> **Lifecycle state:** active
+>
+> **Sync-back status:** executed on `2026-04-26`; lifecycle tests and full repo verification passed, branch integration pending.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
