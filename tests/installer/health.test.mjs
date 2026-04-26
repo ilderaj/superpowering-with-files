@@ -912,7 +912,7 @@ test('readHarnessHealth reports a problem when Codex hook config is missing a re
   }
 });
 
-test('Cursor hooks are marked provisional when official hook docs are not cited', async () => {
+test('Cursor hooks are marked verified when official hook docs are recorded', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -927,19 +927,7 @@ test('Cursor hooks are marked provisional when official hook docs are not cited'
     });
 
     await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
-    await writeFile(
-      path.join(root, 'planning/active/compact-task/task_plan.md'),
-      [
-        '# Compact Task',
-        '',
-        '## 任务目标',
-        '- Keep measured hook payloads visible.',
-        '',
-        '## Current State',
-        'Status: active',
-        'Archive Eligible: no'
-      ].join('\n')
-    );
+    await writeFile(path.join(root, 'planning/active/compact-task/task_plan.md'), '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n');
     await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
     await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
 
@@ -948,8 +936,52 @@ test('Cursor hooks are marked provisional when official hook docs are not cited'
     const planning = health.targets.cursor.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
 
     assert.equal(planning.status, 'ok');
-    assert.equal(planning.evidenceLevel, 'provisional');
-    assert.match(planning.message, /official Cursor hook documentation has not been verified/);
+    assert.equal(planning.evidenceLevel, 'verified');
+    assert.equal(planning.message, undefined);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports missing official Copilot lifecycle events', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: { copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] } },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, '.github/hooks'), { recursive: true });
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/compact-task/task_plan.md'), '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+    await writeFile(
+      path.join(root, '.github/hooks/planning-with-files.json'),
+      `${JSON.stringify(
+        {
+          version: 1,
+          hooks: {
+            sessionStart: [{ type: 'command', description: 'Harness-managed planning-with-files hook' }],
+            preToolUse: [{ type: 'command', description: 'Harness-managed planning-with-files hook' }],
+            postToolUse: [{ type: 'command', description: 'Harness-managed planning-with-files hook' }]
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const planning = health.targets.copilot.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
+
+    assert.equal(planning.status, 'problem');
+    assert.match(planning.message, /missing required event stop/i);
+    assert.match(planning.message, /userPromptSubmit/i);
   } finally {
     await removeHarnessFixture(root);
   }

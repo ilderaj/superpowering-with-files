@@ -77,3 +77,43 @@
 | Copilot 的整改目标是“官方 lifecycle 对齐 + 官方支持声明更新”，不是“把 Claude hooks 当作 Copilot 主适配层” | 降低重复执行与 schema 偏差风险 |
 | Cursor 从此不应再被标记为仅 provisional | 现已拿到官方 hooks 与 third-party Claude hooks 两页正式文档 |
 | Codex hooks 需要从“保守表述”改成“官方已验证但 feature-flag gated” | 官方 developers 页面现可抓取，且与现有实现基本一致 |
+| 在现有隔离 worktree 中直接执行计划 | 当前工作目录已是独立 worktree，且与本地 `dev` 同步，适合在不污染主工作区的前提下执行 |
+| 完成后回合并到本地 `dev` 并推送 `origin dev` | 这是本次用户明确要求的交付收口方式 |
+
+## Task 1 Execution Notes
+
+- `harness/installer/lib/health.mjs` 已将 hook evidence 判定改为显式 target map；`codex`、`copilot`、`cursor`、`claude-code` 统一标记为 `verified`。
+- `tests/installer/health.test.mjs` 中 Cursor 断言已改为 `verified`，并新增 Copilot lifecycle health 测试，当前红灯稳定暴露旧 schema 仍要求 `agentStop`。
+- 为了命中“required event”检查而不是更早的 marker 缺失，Copilot 新测试的夹具配置加入了 `Harness-managed planning-with-files hook` 描述条目；这不改变任务目标，只是避免被更前置的校验短路。
+
+## Execution Context
+
+- Worktree base: `copilot/subagents-plan-execution @ a84a5882217772f8a882779f42723f9638ff3158`
+- Local `dev` at execution start: `a84a5882217772f8a882779f42723f9638ff3158`
+- Companion plan status: 从“awaiting user review before execution”切换为执行中，由 task-scoped files 继续记录 durable 状态
+
+## Task 2 Execution Notes
+
+- Copilot planning hooks 已对齐到官方 VS Code lifecycle：`sessionStart`、`userPromptSubmit`、`preToolUse`、`postToolUse`、`stop`。
+- `harness/core/hooks/planning-with-files/copilot-hooks.json` 已移除 `agentStop` / `errorOccurred`，并改为对应的 kebab-case runtime event 参数。
+- 为了让 Task 1 新增的 Copilot health 测试在 Task 2 落地后按计划转绿，`harness/installer/lib/health.mjs` 将缺失 required events 的报错改为聚合输出，而不是在第一个缺失事件处提前返回。
+
+## Task 3 Execution Notes
+
+- Copilot 现在具备 native `superpowers` SessionStart adapter，会投影 `.github/hooks/superpowers.json` 和 `.github/hooks/session-start`。
+- `harness/core/skills/index.json` 已在 `skills.superpowers.hooks` 下注册 `copilot` 入口，并复用 `harness/core/hooks/superpowers/scripts/session-start` 与 `run-hook.cmd`。
+- `superpowers` runtime payload 继续使用既有的 PascalCase `hookEventName: "SessionStart"`；这与仓库现有 superpowers tests / health 约定一致，不因新增 Copilot adapter 而改写。
+
+## Task 4 Execution Notes
+
+- 安装文档、兼容矩阵与架构文档已统一更新：Copilot/VS Code 与 Cursor 都明确采用 native-first hook adapter，Claude-format hooks 仅作为兼容层。
+- Copilot 文档现在明确列出 `planning-with-files` 与 `superpowers` 两类 native hook projection；不再声称 Copilot 缺少 superpowers hook 支持。
+- Cursor 文档已移除 provisional 表述，并修正 smoke test，使 `sessionStart` 明确对应 vendored `.cursor/hooks/session-start`。
+- Claude Code 安装文档的 optional hooks 列表已补上 `.claude/hooks/session-start` 与 `~/.claude/hooks/session-start`，与实际 projection 保持一致。
+
+## Final Conclusions
+
+- Copilot planning hooks 现在与 VS Code 官方 lifecycle 对齐：`sessionStart`、`userPromptSubmit`、`preToolUse`、`postToolUse`、`stop`。
+- Copilot `superpowers` SessionStart hook 现在通过 native Copilot adapter 正式受支持。
+- Cursor hook evidence level 已从 provisional 升级为 verified。
+- Claude hook compatibility 在 Copilot / Cursor 上被明确定义为 secondary compatibility surface，而不是 primary contract。

@@ -25,7 +25,7 @@ Skill roots:
 
 These are the same shared Harness skill roots used by GitHub Copilot.
 
-Codex hooks are experimental and require `codex_hooks = true` in Codex `config.toml`.
+Codex hooks are officially documented and remain gated behind `codex_hooks = true` in Codex `config.toml`. Codex can load hooks from `hooks.json` or inline `[hooks]` tables in `config.toml` at both repo and user config layers.
 Harness projects Codex hooks only when `--hooks=on` is selected.
 
 Hook files:

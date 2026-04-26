@@ -34,3 +34,50 @@
   - health 仍把 Cursor 硬编码为 provisional。
   - 多份安装/兼容/架构文档仍保留过时事实。
 - 已起草 companion implementation plan：`docs/superpowers/plans/2026-04-26-cross-ide-hook-capability-alignment.md`。
+- 进入执行阶段：按 `subagent-driven-development` 流程逐个任务实施，并在每个任务后执行 spec/quality review gate。
+- 已记录 worktree base：`copilot/subagents-plan-execution @ a84a5882217772f8a882779f42723f9638ff3158`。
+- 本地 `dev` 在执行开始时指向 `a84a5882217772f8a882779f42723f9638ff3158`；完成后需要 merge back 到本地 `dev` 并推送 `origin dev`。
+- Task 1 按 TDD 执行：先修改 `tests/installer/health.test.mjs`，再运行 `node --test tests/installer/health.test.mjs` 观察红灯。
+- 初次红灯结果：
+  - Cursor 新断言失败，实际 `evidenceLevel` 仍是 `provisional`。
+  - Copilot 新断言最初被 marker 校验短路；随后将测试夹具补成带 Harness marker 的最小官方旧-schema 配置后，失败消息稳定为 `Hook config is missing required event agentStop.`，符合“仍停留在旧 Copilot lifecycle schema”的预期。
+- 已对 `harness/installer/lib/health.mjs` 实施最小生产改动：以 `HOOK_EVIDENCE_BY_TARGET` 显式管理 verified targets，移除 Cursor 专属 provisional 硬编码。
+- 复跑 `node --test tests/installer/health.test.mjs`：
+  - Cursor verified 测试通过。
+  - Copilot official lifecycle 测试仍失败，消息为 `Hook config is missing required event agentStop.`。
+  - 其余测试通过；当前总结果 `pass 31 / fail 1`，剩余失败留待 Task 2。
+- Task 2 按 TDD 执行：先新增 `tests/adapters/sync-hooks.test.mjs` 中的 Copilot lifecycle sync 测试，再运行 `node --test tests/adapters/sync-hooks.test.mjs tests/installer/health.test.mjs` 观察红灯。
+- Task 2 红灯结果：`39 pass / 2 fail`，失败点来自旧 Copilot planning hook projection 与 Task 1 保留的 Copilot health 红灯。
+- 已更新：
+  - `harness/installer/lib/hook-projection.mjs`
+  - `harness/core/hooks/planning-with-files/copilot-hooks.json`
+  - `tests/adapters/sync-hooks.test.mjs`
+  - `harness/installer/lib/health.mjs`（聚合缺失 required events，支撑官方 lifecycle health 断言）
+- 复跑 `node --test tests/adapters/sync-hooks.test.mjs tests/installer/health.test.mjs tests/hooks/task-scoped-hook.test.mjs`：
+  - 全部通过，结果 `pass 47 / fail 0`。
+- Task 3 按 TDD 执行：先新增 `tests/adapters/sync-hooks.test.mjs` 中的 Copilot superpowers sync 测试，再运行 `node --test tests/adapters/sync-hooks.test.mjs`。
+- Task 3 红灯结果：缺少 `.github/hooks/superpowers.json`，报 `ENOENT`，符合“尚未注册 Copilot superpowers adapter”的预期。
+- 已新增 `harness/core/hooks/superpowers/copilot-hooks.json`，并在 `harness/core/skills/index.json` 注册 `skills.superpowers.hooks.copilot`。
+- 复跑 `node --test tests/adapters/sync-hooks.test.mjs`：
+  - 全部通过，结果 `pass 10 / fail 0`。
+- Task 4 已完成文档刷新，更新文件：
+  - `docs/install/copilot.md`
+  - `docs/install/cursor.md`
+  - `docs/install/codex.md`
+  - `docs/install/claude-code.md`
+  - `docs/install/platform-support.md`
+  - `docs/compatibility/hooks.md`
+  - `docs/compatibility/copilot-planning-with-files.md`
+  - `docs/architecture.md`
+- Task 4 文档复审过程中补齐了三个直接耦合项：
+  - `docs/compatibility/hooks.md` 的 Copilot projected files 行补入 `superpowers.json` 与 `session-start`
+  - `docs/install/claude-code.md` 的 optional hooks 列表补入 `session-start`
+  - `docs/install/cursor.md` 与 `docs/compatibility/hooks.md` 的 Cursor smoke test 改为 `bash .cursor/hooks/session-start`
+- Task 5 为修复 `npm run verify` 中的两条 adapter 断言失败，已更新 `tests/adapters/hook-projection.test.mjs`：
+  - Cursor planning projection 断言补齐 `render-session-summary.mjs` 与 `session-summary.mjs`
+  - Copilot `superpowers` projection 断言从 `unsupported` 改为 `planned`
+- 最终验证：
+  - `npm run verify` → `pass 210 / fail 0`
+  - `node --test tests/installer/health.test.mjs tests/adapters/sync-hooks.test.mjs tests/hooks/task-scoped-hook.test.mjs` → `pass 48 / fail 0`
+  - `./scripts/harness doctor --check-only` → `Harness check passed`；仅剩历史 companion plan warnings，不阻塞当前任务
+- 已为当前 companion plan 补上反向链接，消除本任务对应的 doctor warning。

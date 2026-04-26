@@ -16,3 +16,10 @@ That means:
 - no Gemini skill root or hook root is projected by `install` or `sync`.
 
 If you pass `--targets=gemini`, the installer reports Gemini as unsupported instead of silently creating partial state.
+
+Hook availability depends on target-specific prerequisites:
+
+- Codex: requires `[features] codex_hooks = true`.
+- GitHub Copilot / VS Code: hooks are preview functionality and may be disabled by org policy.
+- Cursor: native hooks are official; Claude-compatible hooks additionally require the Third-party skills feature.
+- Claude Code: hooks are native in `.claude/settings*.json`.

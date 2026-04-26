@@ -19,6 +19,13 @@
         }
       },
       "hooks": {
+        "copilot": {
+          "source": "harness/core/hooks/superpowers",
+          "config": "copilot-hooks.json",
+          "scriptRoot": "scripts",
+          "scripts": ["session-start", "run-hook.cmd"],
+          "events": ["sessionStart"]
+        },
         "cursor": {
           "source": "harness/upstream/superpowers/hooks",
           "config": "hooks-cursor.json",

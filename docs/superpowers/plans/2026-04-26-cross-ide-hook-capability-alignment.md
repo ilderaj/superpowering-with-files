@@ -4,7 +4,11 @@
 >
 > **Active task path:** `planning/active/cross-ide-hook-capability-alignment/`
 >
-> **Sync-back status:** drafted on `2026-04-26`; awaiting user review before execution.
+> **Backlink:** see `planning/active/cross-ide-hook-capability-alignment/task_plan.md`, `planning/active/cross-ide-hook-capability-alignment/findings.md`, and `planning/active/cross-ide-hook-capability-alignment/progress.md`
+>
+> **Sync-back status:** executed on `2026-04-26`; durable decisions and verification results synced back to `planning/active/cross-ide-hook-capability-alignment/`.
+
+Active task path: planning/active/cross-ide-hook-capability-alignment/
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

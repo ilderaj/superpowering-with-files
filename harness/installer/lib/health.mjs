@@ -172,18 +172,20 @@ function hookConfigHasEvent(config, eventName) {
   return Array.isArray(config?.hooks?.[eventName]) && config.hooks[eventName].length > 0;
 }
 
-function hookEvidence(projection) {
-  if (projection.target === 'cursor') {
-    return {
-      evidenceLevel: 'provisional',
-      message:
-        'The official Cursor hook documentation has not been verified for this path/schema contract.'
-    };
-  }
+const HOOK_EVIDENCE_BY_TARGET = {
+  codex: { evidenceLevel: 'verified' },
+  copilot: { evidenceLevel: 'verified' },
+  cursor: { evidenceLevel: 'verified' },
+  'claude-code': { evidenceLevel: 'verified' }
+};
 
-  return {
-    evidenceLevel: 'verified'
-  };
+function hookEvidence(projection) {
+  return (
+    HOOK_EVIDENCE_BY_TARGET[projection.target] ?? {
+      evidenceLevel: 'provisional',
+      message: `Official hook documentation has not been verified for ${projection.target}.`
+    }
+  );
 }
 
 function publicUpstreamStatus(upstream = {}) {
@@ -433,10 +435,13 @@ async function inspectHook(projection) {
     return { ...projection, status: 'problem', message: `Hook config is missing ${marker}.` };
   }
 
-  for (const eventName of projection.eventNames ?? []) {
-    if (!hookConfigHasEvent(config, eventName)) {
-      return { ...projection, status: 'problem', message: `Hook config is missing required event ${eventName}.` };
-    }
+  const missingEvents = (projection.eventNames ?? []).filter((eventName) => !hookConfigHasEvent(config, eventName));
+  if (missingEvents.length > 0) {
+    return {
+      ...projection,
+      status: 'problem',
+      message: missingEvents.map((eventName) => `Hook config is missing required event ${eventName}.`).join(' ')
+    };
   }
 
   for (const sourcePath of projection.scriptSourcePaths) {

@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 4: Review handoff
+Phase 5: Implementation execution
 
 ## Phases
 
@@ -35,8 +35,21 @@ Phase 4: Review handoff
 
 ### Phase 4: Review Handoff
 - [x] 将 planning 状态同步回 task-scoped files
-- [ ] 输出供用户 review 的计划摘要与关键判断
-- **Status:** in_progress
+- [x] 输出供用户 review 的计划摘要与关键判断
+- **Status:** complete
+
+### Phase 5: Implementation Execution
+- [x] Task 1: Reclassify hook evidence and health rules
+- [x] Task 2: Align Copilot planning hooks with official VS Code lifecycle
+- [x] Task 3: Add Copilot support for the superpowers SessionStart hook
+- [x] Task 4: Refresh cross-IDE documentation to match official facts
+- [x] Task 5: Final verification and task sync-back
+- **Status:** complete
+
+### Phase 6: Dev Integration
+- [ ] Merge execution branch back into local `dev`
+- [ ] Push `origin dev`
+- **Status:** pending
 
 ## Key Questions
 1. VS Code Chat preview hooks 是否足以被视为 Harness 可用的 Copilot hooks runtime，而不是仅仅“可读取 Copilot CLI/Claude 配置”的兼容层？
@@ -58,3 +71,4 @@ Phase 4: Review handoff
 - Related prior task: `planning/active/session-summary-mechanism/`
 - Related audit baseline: `planning/active/cross-ide-projection-audit/`
 - Companion plan path: `docs/superpowers/plans/2026-04-26-cross-ide-hook-capability-alignment.md`
+- Execution mode: use subagents task-by-task with review gates, then integrate into local `dev`
