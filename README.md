@@ -102,6 +102,18 @@ Skill projections use the `full` profile by default. If you are adopting Harness
 
 The default does not flip to `minimal-global`; omit `--skills-profile` to keep `full`.
 
+### Conflict Backups
+
+By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a backup and continue, run:
+
+```bash
+./scripts/harness sync --conflict=backup
+```
+
+Harness archives the pre-existing content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`; it no longer leaves `.harness-backup-*` siblings in the live skill or entry roots.
+
+If older `.harness-backup-*` siblings already exist from a previous takeover, the next successful `sync` imports them into the archive store and removes the live duplicates before projecting the new baseline.
+
 ### Context Governance
 
 Harness treats context size as a product constraint. Verification reports include `health.context` with entry, hook, planning, skill-profile, summary, and warning data. Entry summaries are measured as the worst target session, not as a cross-IDE total. Use this gate before changing policy rendering, skill projection, or hooks:

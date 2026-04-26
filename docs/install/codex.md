@@ -76,4 +76,8 @@ By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a b
 ./scripts/harness sync --conflict=backup
 ```
 
+Harness archives the pre-existing content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`; it no longer leaves `.harness-backup-*` siblings in the live skill or entry roots.
+
+If older `.harness-backup-*` siblings already exist from a previous takeover, the next successful `sync` imports them into the archive store and removes the live duplicates before projecting the new baseline.
+
 Gemini CLI is not currently a supported Harness installer target. Harness does not create installer-managed Gemini entry files or user-global state.

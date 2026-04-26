@@ -3,10 +3,13 @@ import { access, lstat, readFile, readdir, readlink, realpath, stat } from 'node
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { entriesForScope, loadAdapter } from './adapters.mjs';
+import { readBackupIndex } from './backup-archive.mjs';
 import { evaluateBudget, loadContextBudgets, measureText } from './context-budget.mjs';
 import { hookEntryMarker } from './hook-config.mjs';
 import { planHookProjections } from './hook-projection.mjs';
+import { loadPlatforms } from './metadata.mjs';
 import { inspectPlanLocations } from './plan-locations.mjs';
+import { resolveHookRoots, resolveSkillRoots, resolveTargetPaths } from './paths.mjs';
 import {
   PLANNING_WITH_FILES_DESTRUCTIVE_LOG_PATCH_MARKER,
   PLANNING_WITH_FILES_RISK_ASSESSMENT_PATCH_MARKER
@@ -34,6 +37,85 @@ async function exists(filePath) {
   } catch {
     return false;
   }
+}
+
+function uniqueSortedPaths(paths) {
+  return [...new Set(paths.map((entry) => path.resolve(entry)))].sort((left, right) =>
+    left.localeCompare(right)
+  );
+}
+
+function parseLegacySiblingBackup(targetPath) {
+  const marker = '.harness-backup-';
+  const markerIndex = targetPath.lastIndexOf(marker);
+  if (markerIndex < 0) {
+    return null;
+  }
+
+  return targetPath.slice(0, markerIndex);
+}
+
+async function findLegacySiblingBackups(rootPath) {
+  try {
+    const entries = await readdir(rootPath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.name.includes('.harness-backup-'))
+      .map((entry) => {
+        const targetPath = path.join(rootPath, entry.name);
+        const originalPath = parseLegacySiblingBackup(targetPath);
+        return originalPath ? { targetPath, originalPath } : null;
+      })
+      .filter(Boolean)
+      .sort((left, right) => left.targetPath.localeCompare(right.targetPath));
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return [];
+    }
+    throw error;
+  }
+}
+
+async function inspectBackupGovernance(rootDir, homeDir) {
+  const metadata = await loadPlatforms(rootDir);
+  const managedRoots = uniqueSortedPaths(
+    Object.keys(metadata.platforms ?? {}).flatMap((target) => [
+      ...resolveTargetPaths(rootDir, homeDir, 'user-global', target).map((entryPath) =>
+        path.dirname(entryPath)
+      ),
+      ...resolveSkillRoots(rootDir, homeDir, 'user-global', target),
+      ...resolveHookRoots(rootDir, homeDir, 'user-global', target)
+    ])
+  );
+  const legacyBackups = uniqueSortedPaths(
+    (
+      await Promise.all(
+        managedRoots.map(async (rootPath) =>
+          (await findLegacySiblingBackups(rootPath)).map((backup) => backup.targetPath)
+        )
+      )
+    ).flat()
+  );
+  const archiveIndex = await readBackupIndex(homeDir);
+  const archiveIndexDrift = [];
+
+  for (const entry of archiveIndex.entries ?? []) {
+    if (!entry || typeof entry !== 'object' || typeof entry.archivePath !== 'string' || entry.archivePath.length === 0) {
+      archiveIndexDrift.push(`backup index contains an invalid archive entry for ${entry?.originalPath ?? 'unknown path'}`);
+      continue;
+    }
+
+    const archivePath = path.resolve(entry.archivePath);
+    if (!(await exists(archivePath))) {
+      archiveIndexDrift.push(
+        `backup index references missing archive ${archivePath} for ${entry.originalPath ?? 'unknown path'}`
+      );
+    }
+  }
+
+  return {
+    legacyBackups,
+    archiveIndexDrift: [...new Set(archiveIndexDrift)].sort((left, right) => left.localeCompare(right))
+  };
 }
 
 async function findSingleActiveTaskDir(rootDir) {
@@ -947,6 +1029,21 @@ export async function readHarnessHealth(rootDir, homeDir) {
     if (!(await exists(managedPath))) {
       addUniqueMessage(problems, `user-managed: missing personal projection ${managedPath}`);
     }
+  }
+
+  const backupGovernance = await inspectBackupGovernance(rootDir, homeDir);
+  if (backupGovernance.legacyBackups.length > 0) {
+    addUniqueMessage(
+      problems,
+      `Legacy Harness sibling backups detected under user-global roots: ${backupGovernance.legacyBackups.join(', ')}`
+    );
+  }
+
+  if (backupGovernance.archiveIndexDrift.length > 0) {
+    addUniqueMessage(
+      problems,
+      `Harness backup archive/index drift detected under user-global roots: ${backupGovernance.archiveIndexDrift.join(', ')}`
+    );
   }
 
   return {

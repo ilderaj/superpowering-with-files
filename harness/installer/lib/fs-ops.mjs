@@ -39,6 +39,7 @@ async function prepareProjectionTarget({
   targetPath,
   ownedTargets,
   conflictMode,
+  backupHandler,
   now = defaultTimestamp
 }) {
   const stat = await pathStat(targetPath);
@@ -55,6 +56,12 @@ async function prepareProjectionTarget({
   }
 
   if (conflictMode === 'backup') {
+    if (backupHandler) {
+      const result = await backupHandler({ targetPath, now, stat });
+      await mkdir(path.dirname(targetPath), { recursive: true });
+      return result;
+    }
+
     const backupPath = `${targetPath}.harness-backup-${now()}`;
     await rename(targetPath, backupPath);
     await mkdir(path.dirname(targetPath), { recursive: true });

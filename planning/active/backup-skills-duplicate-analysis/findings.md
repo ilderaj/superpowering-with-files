@@ -16,3 +16,19 @@
 - 常规同步改回 `--conflict=reject`，避免每次遇到现存技能根时再生成新的 `.harness-backup-*` 目录。
 - 如果确实要保留历史副本，先确认哪些目录是真正的用户自定义内容，再把备份集中移动到单独归档目录，而不是继续留在技能根下。
 - 新 companion plan 已落在 `docs/superpowers/plans/2026-04-26-backup-conflict-governance-plan.md`，方案核心是把冲突备份迁移到 home-scoped archive store，并在后续 sync 中自动归并 legacy sibling backups。
+
+## Execution Findings
+
+- 用户已确认进入执行阶段，并要求：新开 worktree 执行 companion plan，最终验证成功后合并回本地 `dev`。
+- `./scripts/harness worktree-preflight --task backup-skills-duplicate-analysis --safety` 明确给出 base：`copilot/worktree-superpowers-execution @ 9cc50a00a6fd2c6c437571aaafbe9f793f212e6b`。
+- 同一 preflight 给出的 canonical label 为 `202604261227-backup-skills-duplicate-analysis-001`，建议分支名为 `copilot/202604261227-backup-skills-duplicate-analysis-001`。
+- preflight safety 唯一问题是 active task 尚未填写风险评估；该信息现已补入 `task_plan.md`。
+- 新 worktree 已创建在 `/Users/jared/SuperpoweringWithFiles.worktrees/202604261227-backup-skills-duplicate-analysis-001`。
+- 基线 `npm run verify` 首次失败的原因不是本任务逻辑，而是 companion plan 示例 JSON 中存在 `/Users/jared/...` 绝对路径；改为 `$HOME/...` 后基线恢复全绿。
+- Task 1 的红灯已被钉住：focused test slice 现在稳定表现为 `55 pass / 4 fail`，4 个失败分别对应 fs-ops archive routing、sync legacy normalization、adoption sibling cleanup、health legacy-backup reporting。
+- 为了让测试夹具贴近真实现场，legacy skill backup fixture 在 `sync-skills.test.mjs` 与 `health.test.mjs` 中都补成了 materialized skill 目录，并包含最小 `SKILL.md`。
+- Task 2 已落地 home-scoped archive scaffolding：`harness/installer/lib/backup-archive.mjs` 现提供 archive root/index path、target digest、index read/write/record 与 `createBackupArchiveService()`。
+- `harness/installer/lib/fs-ops.mjs` 已支持在 `conflictMode='backup'` 时优先委托 `backupHandler`，未传 handler 时仍保留原有 sibling backup 路径，确保 Task 2 只把 fs-ops contract 打绿，不提前吞掉 Task 3/4 的红灯。
+- Task 3 把 `sync` 真正接到 archive manager：legacy sibling backups 会在 projection 写入前被归并进 `~/.harness/backups/`，重复内容按 digest 去重；sync/adoption focused tests 已转绿。
+- Task 4 把 backup governance 暴露进 `health` 管线：现在会报告 legacy sibling backups 和 backup-index 指向缺失 archive 的 drift；`adoption-status` 沿用现有 health 聚合逻辑，不需要新增第二套审计路径。
+- Task 5 已把 operator-facing 文档更新为 archive 语义，并在 `docs/maintenance.md` 中补了 disposable-home takeover 验证步骤。

@@ -46,6 +46,12 @@ export function ownedTargetSet(manifest) {
   return new Set(manifest.entries.map((entry) => path.resolve(entry.targetPath)));
 }
 
+export function projectionTargetRoots(manifest) {
+  return [
+    ...new Set(manifest.entries.map((entry) => path.dirname(path.resolve(entry.targetPath))))
+  ].sort((left, right) => left.localeCompare(right));
+}
+
 function projectionEntryKey(entry) {
   const targetPath = path.resolve(entry.targetPath);
   const parts = [entry.kind ?? 'projection', targetPath];

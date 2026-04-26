@@ -8,3 +8,48 @@
 - 已通过 `.harness/adoption/global.json` 与历史 progress 交叉确认：备份发生在 `2026-04-26T04:44:58Z` 的显式 `sync --conflict=backup`，最近一次成功 `adopt-global` 则发生在 `2026-04-26T05:14:45.776Z`。
 - 已产出 companion implementation plan：`docs/superpowers/plans/2026-04-26-backup-conflict-governance-plan.md`。
 - 当前只做分析，不执行任何清理或同步操作，等待用户 review 方案。
+
+- 用户现已确认开始执行：要求新开 worktree 按 companion plan 实施，并在验证通过后 merge 回本地 `dev`。
+- 已读取 `planning-with-files`、`using-git-worktrees`、`safe-bypass-flow`、`subagent-driven-development` 技能，执行模式切换为 tracked implementation。
+- 已恢复 authoritative task 上下文：`planning/active/backup-skills-duplicate-analysis/` 继续作为 durable task memory。
+- 已运行 planning catchup，当前无额外未同步输出。
+- 已运行 `./scripts/harness worktree-preflight --task backup-skills-duplicate-analysis --safety`。
+- preflight 结果：
+  - Worktree base: `copilot/worktree-superpowers-execution @ 9cc50a00a6fd2c6c437571aaafbe9f793f212e6b`
+  - Suggested label: `202604261227-backup-skills-duplicate-analysis-001`
+  - Suggested branch: `copilot/202604261227-backup-skills-duplicate-analysis-001`
+  - Safety: remote / dirty state / checkpoint 准备均正常；唯一缺口是风险评估未记录，现已补齐
+- 已创建执行 worktree：`/Users/jared/SuperpoweringWithFiles.worktrees/202604261227-backup-skills-duplicate-analysis-001`
+- 基线验证：
+  - `npm run verify` 首轮失败，原因是 `docs/superpowers/plans/2026-04-26-backup-conflict-governance-plan.md` 含 `/Users/jared/...` 绝对路径，触发 `tests/core/no-personal-paths.test.mjs`
+  - 已将 companion plan 示例路径改为 `$HOME/...`
+  - 重新运行 `npm run verify` 后恢复通过
+- 当前进入 Phase 2：开始按 companion plan Task 1 补失败测试。
+- Task 1 执行与复核：
+  - commit `2dba973`: 新增 fs-ops / sync / adoption / health 四个 backup governance contract tests
+  - commit `b40c223`: 把 health legacy backup fixture 改为真实 materialized skill 目录
+  - commit `b836558`: 把 sync legacy backup fixture 改为真实 materialized skill 目录
+  - focused 命令 `npm test -- tests/installer/fs-ops.test.mjs tests/adapters/sync-skills.test.mjs tests/installer/adoption.test.mjs tests/installer/health.test.mjs` 当前稳定结果为 `55 pass / 4 fail`
+  - 四个失败原因均已核对为预期的产品缺口，不再包含 adoption fixture ENOENT 或硬编码时间戳造成的伪结果
+- 已完成 Task 1 的 spec review；code-quality review 里唯一采纳的问题是 legacy skill backup fixture realism，现已修正。
+- 当前进入 Phase 3：开始实现 home-scoped backup archive service 与 sync 集成。
+- Task 2 执行与验证：
+  - commit `1e3db13`: 新增 `harness/installer/lib/backup-archive.mjs`，并让 `fs-ops.mjs` 支持 `backupHandler`
+  - `npm test -- tests/installer/fs-ops.test.mjs` -> `9 pass / 0 fail`
+  - focused 4-test slice 变为 `56 pass / 3 fail`，说明 fs-ops archive contract 已转绿，剩余红灯收敛到 sync / adoption / health
+  - 已完成 Task 2 spec review；额外 code-review 评论未发现我认可的阻塞项
+- Task 3 执行与验证：
+  - commit `5ac104b`: 在 `sync.mjs` 接入 `createBackupArchiveManager()`，在 `projection-manifest.mjs` 增加 target roots helper，并让 `backup-archive.mjs` 支持 legacy normalization + digest dedupe
+  - `npm test -- tests/adapters/sync-skills.test.mjs tests/installer/adoption.test.mjs` -> `17 pass / 0 fail`
+  - focused 4-test slice 变为 `58 pass / 1 fail`，仅剩 health regression
+  - 已完成 Task 3 spec review 与 quality review，未发现阻塞项
+- Task 4 执行与验证：
+  - commit `23a867b`: `health.mjs` 新增 legacy sibling backup / archive-index drift 检查；`tests/installer/health.test.mjs` 与 `tests/installer/adoption.test.mjs` 更新为新的 observability contract
+  - `npm test -- tests/installer/health.test.mjs tests/installer/adoption.test.mjs` -> `41 pass / 0 fail`
+  - focused 4-test slice -> `60 pass / 0 fail`
+  - 已完成 Task 4 spec review 与 quality review，未发现阻塞项
+- Task 5 执行与验证：
+  - commit `71246a8`: 更新 `README.md`、四个 install guide 与 `docs/maintenance.md`，统一为 archive-backed takeover 文案
+  - `npm run verify` -> `231 pass / 0 fail`
+  - 已完成 Task 5 spec review 与 quality review，未发现阻塞项
+- 当前实现阶段已完成，active task 切到 `waiting_integration`，准备提交 companion-plan portability fix + planning closeout，然后合并回本地 `dev`。

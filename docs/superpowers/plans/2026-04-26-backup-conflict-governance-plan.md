@@ -1,6 +1,9 @@
 # Backup Conflict Governance Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **Active task path:** `planning/active/backup-skills-duplicate-analysis/`
+> **Lifecycle state:** waiting_integration
+> **Sync-back status:** implementation complete on `2026-04-26`; Task 1-5 finished, full repo verification passed, and the branch is waiting to merge into local `dev`.
 
 **Goal:** 修复当前 user-global `*.harness-backup-*` 重复残留，并把后续 `sync --conflict=backup` 从“目标目录旁边生成 sibling 备份”改成“保留冲突备份但不再制造 live-root 重复”。
 
@@ -145,10 +148,10 @@ export async function archiveConflictTarget({ homeDir, targetPath, now, source }
   "schemaVersion": 1,
   "entries": [
     {
-      "originalPath": "/Users/jared/.claude/skills/using-superpowers",
+      "originalPath": "$HOME/.claude/skills/using-superpowers",
       "archivedAt": "2026-04-26T04:44:58.000Z",
       "digest": "sha256:...",
-      "archivePath": "/Users/jared/.harness/backups/20260426T044458Z/claude-code/using-superpowers",
+      "archivePath": "$HOME/.harness/backups/20260426T044458Z/claude-code/using-superpowers",
       "reason": "non-harness-owned-conflict"
     }
   ]

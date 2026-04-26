@@ -78,3 +78,7 @@ By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a b
 ```bash
 ./scripts/harness sync --conflict=backup
 ```
+
+Harness archives the pre-existing content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`; it no longer leaves `.harness-backup-*` siblings in the live skill or entry roots.
+
+If older `.harness-backup-*` siblings already exist from a previous takeover, the next successful `sync` imports them into the archive store and removes the live duplicates before projecting the new baseline.
