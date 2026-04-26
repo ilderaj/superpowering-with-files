@@ -189,6 +189,10 @@ test('adopt-global remains in_sync after backup-based takeover without leaving s
     assert.equal(status.status, 'in_sync');
     assert.equal(status.scope, 'user-global');
     assert.equal(status.repoHead, await currentHead(root));
+    assert.equal(
+      status.reasons.some((reason) => /Legacy Harness sibling backups/.test(reason)),
+      false
+    );
     assert.deepEqual(siblingBackups, []);
   } finally {
     await removeHarnessFixture(root);

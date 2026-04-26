@@ -465,6 +465,7 @@ test('readHarnessHealth detects legacy sibling backups under user-global roots',
   try {
     const home = path.join(root, 'home');
     await mkdir(home, { recursive: true });
+    await withCwd(root, () => sync([]));
 
     // Create a legacy sibling backup under a user-global root
     await mkdir(path.join(home, '.claude/skills'), { recursive: true });
@@ -477,17 +478,57 @@ name: using-superpowers
 description: Legacy backup of a materialized skill
 ---
 
-# using-superpowers
+    # using-superpowers
 `
     );
 
-    await withCwd(root, () => sync([]));
     const health = await readHarnessHealth(root, home);
     const problems = health.problems;
 
     assert.match(
       problems.join('\n'),
       /Legacy Harness sibling backups detected under user-global roots/
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports backup archive/index drift under user-global roots', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const home = path.join(root, 'home');
+    const missingArchive = path.join(
+      home,
+      '.harness/backups/20260426T044458Z/harness/home/user/.claude/skills/using-superpowers'
+    );
+
+    await mkdir(path.join(home, '.harness'), { recursive: true });
+    await writeFile(
+      path.join(home, '.harness/backup-index.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          entries: [
+            {
+              originalPath: path.join(home, '.claude/skills/using-superpowers'),
+              archivePath: missingArchive,
+              digest: 'sha256:deadbeef',
+              archivedAt: '2026-04-26T04:44:58.000Z',
+              reason: 'non-harness-owned-conflict'
+            }
+          ]
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const health = await readHarnessHealth(root, home);
+
+    assert.match(
+      health.problems.join('\n'),
+      /Harness backup archive\/index drift detected under user-global roots/
     );
   } finally {
     await removeHarnessFixture(root);
