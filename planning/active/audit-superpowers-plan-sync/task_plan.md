@@ -37,6 +37,12 @@ Complete
 - [x] 记录证据、边界与剩余不确定项
 - **Status:** complete
 
+### Phase 5: Warning 修复计划
+- [x] 复核 `adoption-status` 中当前 warning 列表
+- [x] 区分 orphan companion 与 active-task-link drift 两类问题
+- [x] 形成按优先级排序的修复计划与验证顺序
+- **Status:** complete
+
 ## Key Questions
 
 1. `base.md` 中新增的 companion-plan / memory-plan 双向同步与引用规则，是否已经进入真正被 IDE 消费的入口文件？
@@ -51,3 +57,4 @@ Complete
 | 本轮是审计，不直接改实现 | 用户要求先做审计报告 |
 | 以 `HarnessTemplate` 为主审计仓库，同时检查 Jared 全局入口投影 | 用户要求看“整个 Jared 的所有 workspace、所有 IDE”，重点是投影结果是否真的生效 |
 | 优先相信实现与测试，其次才是 task plan 自述 | `task_plan.md` 可以宣称完成，但不能替代代码与实际投影证据 |
+| 本轮 warning 修复优先处理 task-memory / companion-plan 关系，而不是 installer 逻辑 | 当前 warning 文案与测试语义一致，先修数据再考虑是否需要改检测器 |

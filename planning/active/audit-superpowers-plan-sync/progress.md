@@ -33,3 +33,19 @@
 - 测试验证：
   - 运行 `node --test tests/adapters/templates.test.mjs tests/adapters/sync-skills.test.mjs tests/adapters/skill-projection.test.mjs tests/installer/health.test.mjs`
   - 结果：34 passed, 0 failed
+
+## 2026-04-26 warning 修复计划分析
+
+- 先读取 `./scripts/harness adoption-status`，看到 3 条 companion-plan warning。
+- 再读取并比对：
+  - `planning/active/audit-superpowers-plan-sync/{task_plan,findings,progress}.md`
+  - `planning/active/session-summary-mechanism/task_plan.md`
+  - 三个 warning 对应的 companion plan
+  - `tests/installer/health.test.mjs`
+  - `harness/installer/lib/plan-locations.mjs`
+- 最后运行 `./scripts/harness doctor --check-only` 复现 live 文案；当前 3 条 warning 全部是 `missing back-reference`，不是 orphan。
+- 关键结论：
+  - `referencesForCompanionPlan()` 目前会把 active planning file 中任何出现 companion 相对路径的文本都算作引用。
+  - `companionPlanBackReferences()` 不识别 markdown link 形式的 active task 回指。
+  - 因此当前 warning 既受真实数据状态影响，也受解析规则误判影响。
+- 本轮未改产品代码；仅产出修复顺序与验证建议。
