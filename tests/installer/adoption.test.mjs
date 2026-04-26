@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { readState, writeState } from '../../harness/installer/lib/state.mjs';
@@ -145,6 +145,51 @@ test('adopt-global rejects non-user-global install state to avoid workspace muta
       harnessCommand(root, homeDir, 'adopt-global'),
       /user-global-only|workspace mutation/
     );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('adopt-global remains in_sync after backup-based takeover without leaving sibling backups', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    const instructionsDir = path.join(homeDir, '.copilot/instructions');
+    const instructionsPath = path.join(instructionsDir, 'harness.instructions.md');
+
+    await mkdir(instructionsDir, { recursive: true });
+    await initGitRepo(root);
+
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'user-global',
+      projectionMode: 'link',
+      hookMode: 'off',
+      policyProfile: 'always-on-core',
+      skillProfile: 'full',
+      targets: {
+        copilot: {
+          enabled: true,
+          paths: [instructionsPath]
+        }
+      },
+      upstream: {}
+    });
+
+    await writeFile(instructionsPath, 'legacy');
+    await harnessCommand(root, homeDir, 'sync', '--conflict=backup');
+    await harnessCommand(root, homeDir, 'adopt-global');
+
+    const { stdout } = await harnessCommand(root, homeDir, 'adoption-status');
+    const status = JSON.parse(stdout);
+    const siblingBackups = (await readdir(instructionsDir)).filter((entry) =>
+      entry.startsWith('harness.instructions.md.harness-backup-')
+    );
+
+    assert.equal(status.status, 'in_sync');
+    assert.equal(status.scope, 'user-global');
+    assert.equal(status.repoHead, await currentHead(root));
+    assert.deepEqual(siblingBackups, []);
   } finally {
     await removeHarnessFixture(root);
   }

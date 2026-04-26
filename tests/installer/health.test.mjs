@@ -460,6 +460,29 @@ test('readHarnessHealth filters upstream state to public status fields', async (
   }
 });
 
+test('readHarnessHealth detects legacy sibling backups under user-global roots', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const home = path.join(root, 'home');
+    await mkdir(home, { recursive: true });
+
+    // Create a legacy sibling backup under a user-global root
+    await mkdir(path.join(home, '.claude/skills'), { recursive: true });
+    await writeFile(path.join(home, '.claude/skills/using-superpowers.harness-backup-20260426T044458'), 'legacy');
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, home);
+    const problems = health.problems;
+
+    assert.match(
+      problems.join('\n'),
+      /Legacy Harness sibling backups detected under user-global roots/
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth reports hook status without failing unsupported adapters', async () => {
   const root = await createHarnessFixture();
   try {

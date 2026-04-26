@@ -97,6 +97,26 @@ test('sync projects workspace entries and skills', async () => {
   }
 });
 
+test('sync normalizes legacy sibling backups under managed skill roots', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(path.join(homeDir, '.claude/skills'), { recursive: true });
+    await mkdir(path.join(homeDir, '.claude/skills/using-superpowers.harness-backup-20260426T044458'), { recursive: true });
+
+    await withCwd(root, () => sync([]));
+
+    await assert.rejects(
+      lstat(path.join(homeDir, '.claude/skills/using-superpowers.harness-backup-20260426T044458')),
+      /ENOENT/
+    );
+    const index = JSON.parse(await readFile(path.join(homeDir, '.harness/backup-index.json'), 'utf8'));
+    assert.equal(index.entries.some((entry) => entry.originalPath.endsWith('using-superpowers')), true);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('sync coalesces shared skill projections across codex and copilot', async () => {
   const root = await createHarnessFixture();
   try {
