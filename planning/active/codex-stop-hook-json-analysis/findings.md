@@ -1,0 +1,16 @@
+# 发现
+
+- 用户级 Codex 配置当前已安装 Harness 管理的 hooks：`/Users/jared/.codex/hooks.json` 中同时存在 `SessionStart`、`UserPromptSubmit`、`Stop` 三个 Harness-managed entries，其中 `Stop` 指向 `/Users/jared/.codex/hooks/task-scoped-hook.sh codex stop`。
+- 仓库安装文档与投影逻辑明确说明 Harness 会为 Codex 投影 planning hook：`docs/install/codex.md` 写明 `--hooks=on` 时会投影 Codex hooks；`harness/installer/lib/hook-projection.mjs` 将 Codex planning 事件硬编码为 `SessionStart`、`UserPromptSubmit`、`Stop`；`harness/core/hooks/planning-with-files/codex-hooks.json` 为这三个事件都生成 command hooks。
+- 当前 Harness 的 Codex task-scoped hook 对所有非空上下文统一输出 `{"hookSpecificOutput":{"hookEventName":...,"additionalContext":...}}`，见 `harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh` 与当前安装脚本 `/Users/jared/.codex/hooks/task-scoped-hook.sh`。
+- 官方 Codex hooks 实现对 `UserPromptSubmit` / `SessionStart` 接受 `hookSpecificOutput.additionalContext`，但 `Stop` 的输出结构只接受 universal fields 加 `decision`/`reason`，不接受 `hookSpecificOutput`。因此 Harness 的 Codex `Stop` hook 输出结构与 Codex 的 `stop.command.output` schema 不兼容，会被解析为 `hook returned invalid stop hook JSON output`。
+- 现场复现：在当前仓库执行 `/Users/jared/.codex/hooks/task-scoped-hook.sh codex stop`，stdout 为 `{"hookSpecificOutput":{"hookEventName":"stop","additionalContext":"[planning-with-files] Multiple active tasks found under planning/active. Inspect the task directories before proceeding."}}`。这证明当前生效的用户级 Harness hook 确实在 stop 事件输出 Codex 不接受的 payload。
+- 额外发现：当存在多个 active tasks 时，脚本走 `emit_context ... "$event"` 分支，传出的 `hookEventName` 是原始小写/短横线事件名（如 `stop`、`user-prompt-submit`），而不是 Codex 期望的常量名（如 `Stop`、`UserPromptSubmit`）。这意味着即使不考虑 `Stop` 的 schema 限制，多 active task 分支对 Codex 的事件名也不稳妥。
+- 设计结论已经固化为 spec：`docs/superpowers/specs/2026-04-27-codex-hook-allowlist-design.md`。
+- implementation plan 已写入：`docs/superpowers/plans/2026-04-27-codex-hook-allowlist-implementation-plan.md`，实施范围收敛为 projection/config、回归测试、文档对齐和 task-memory sync，不包含上游源码修改。
+- 已按 allowlist 实施：`harness/installer/lib/hook-projection.mjs` 中 Codex planning 事件从 `['SessionStart', 'UserPromptSubmit', 'Stop']` 收敛为 `['SessionStart', 'UserPromptSubmit']`，`harness/core/hooks/planning-with-files/codex-hooks.json` 也移除了 `Stop` handler。
+- rollout 过程中补齐了一个升级路径缺口：仅删除投影源还不够，`sync` 的 hook merge 逻辑还必须清理“已不再出现在 incoming allowlist 中的 Harness-managed 旧事件”。现在 `harness/installer/lib/hook-config.mjs` 会在 merge 前跨事件剔除同一 managed marker 的陈旧 entries，因此已有 Codex 安装在重新 `sync` 后也会移除 stale planning `Stop`。
+- 回归测试已同步到新契约：`tests/adapters/sync-hooks.test.mjs` 明确拒绝 Codex `Stop`，`tests/installer/health.test.mjs` 改为要求 `UserPromptSubmit` 并接受只含 `SessionStart`/`UserPromptSubmit` 的 verified allowlist，`tests/hooks/task-scoped-hook.test.mjs` 删除了 Codex `Stop` contract 覆盖，session summary 继续留在 `tests/hooks/session-summary.test.mjs`。
+- 额外回归已覆盖升级清理路径：`tests/installer/hook-config.test.mjs` 现在验证 merge 会剔除 stale Harness-managed `Stop`、保留用户自定义 `Stop`；`tests/adapters/sync-hooks.test.mjs` 也验证重跑 `sync` 会清掉旧的 Harness-managed Codex `Stop` 条目。
+- 文档已改为事件级表述：`docs/install/codex.md`、`docs/compatibility/hooks.md`、`docs/architecture.md` 现在都明确 Codex planning projection 只保留 `SessionStart` 和 `UserPromptSubmit`，并提示现有用户重新运行 `./scripts/harness sync` 清理陈旧 `Stop` entries。
+- 最终 dry-run 证据表明用户级 Codex 投影将从包含 `Stop` 的旧配置更新为只保留 `SessionStart` 与 `UserPromptSubmit` 的新配置；这说明 rollout 已覆盖代码、测试、文档与实际投影差异面。

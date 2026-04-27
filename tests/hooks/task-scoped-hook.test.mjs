@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { copyFile, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -142,119 +142,5 @@ test('task-scoped-hook still works after projection to the target hook root', as
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
     await rm(commandCwd, { recursive: true, force: true });
-  }
-});
-
-test('stop-like events emit session summaries, include minute durations, and clear the sidecar', async () => {
-  const { fixtureRoot, taskRoot } = await createFixture('stop-summary', {
-    taskId: 'session-summary',
-    taskPlan: [
-      '# Session Summary',
-      '',
-      '## Current State',
-      'Status: active',
-      'Archive Eligible: no',
-      '',
-      '### Phase 1: Capture stop output',
-      '- **Status:** complete',
-      '',
-      '### Phase 2: Render session summary',
-      '- **Status:** in_progress'
-    ].join('\n'),
-    findings: [
-      '## Findings',
-      '- Stop hooks should render session summaries.'
-    ].join('\n'),
-    progress: [
-      '## Progress',
-      '- Added stop hook coverage.',
-      '',
-      '## Test Results',
-      '| Command | Result |',
-      '| --- | --- |',
-      '| `node --test tests/hooks/task-scoped-hook.test.mjs` | pass |'
-    ].join('\n')
-  });
-
-  try {
-    const scriptPath = path.join(
-      process.cwd(),
-      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
-    );
-
-    for (const [eventName, hookEventName] of [
-      ['stop', 'Stop'],
-      ['agent-stop', 'agent-stop'],
-      ['session-end', 'session-end']
-    ]) {
-      const sidecarPath = path.join(taskRoot, '.session-start');
-      await writeFile(sidecarPath, String(Date.now() - 5 * 60_000 - 5_000));
-
-      const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', eventName], {
-        cwd: fixtureRoot
-      });
-
-      const payload = JSON.parse(stdout);
-      assert.equal(payload.hookSpecificOutput.hookEventName, hookEventName);
-      assert.match(payload.hookSpecificOutput.additionalContext, /SESSION SUMMARY/);
-      assert.match(payload.hookSpecificOutput.additionalContext, /Duration: 5m/);
-      await assert.rejects(stat(sidecarPath), /ENOENT/);
-    }
-  } finally {
-    await rm(fixtureRoot, { recursive: true, force: true });
-  }
-});
-
-test('stop emits unavailable duration when no session sidecar exists', async () => {
-  const { fixtureRoot } = await createFixture('stop-no-sidecar', {
-    taskId: 'session-summary',
-    taskPlan: [
-      '# Session Summary',
-      '',
-      '## Current State',
-      'Status: active',
-      'Archive Eligible: no',
-      '',
-      '### Phase 1: Capture stop output',
-      '- **Status:** in_progress'
-    ].join('\n'),
-    findings: '## Findings\n- Missing sidecars should degrade gracefully.\n',
-    progress: '## Progress\n- Awaiting session duration metadata.\n'
-  });
-
-  try {
-    const scriptPath = path.join(
-      process.cwd(),
-      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
-    );
-    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'stop'], {
-      cwd: fixtureRoot
-    });
-
-    const payload = JSON.parse(stdout);
-    assert.equal(payload.hookSpecificOutput.hookEventName, 'Stop');
-    assert.match(payload.hookSpecificOutput.additionalContext, /Duration: unavailable/);
-  } finally {
-    await rm(fixtureRoot, { recursive: true, force: true });
-  }
-});
-
-test('stop emits an empty payload when no active task exists', async () => {
-  const fixtureRoot = path.join(artifactsRoot, 'stop-no-active-task');
-  await rm(fixtureRoot, { recursive: true, force: true });
-  await mkdir(fixtureRoot, { recursive: true });
-
-  try {
-    const scriptPath = path.join(
-      process.cwd(),
-      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
-    );
-    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'stop'], {
-      cwd: fixtureRoot
-    });
-
-    assert.equal(stdout.trim(), '{}');
-  } finally {
-    await rm(fixtureRoot, { recursive: true, force: true });
   }
 });

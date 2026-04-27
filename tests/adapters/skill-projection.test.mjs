@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { applyCopilotPlanningPatch } from '../../harness/installer/lib/copilot-planning-patch.mjs';
 import { materializeDirectoryProjection } from '../../harness/installer/lib/fs-ops.mjs';
+import { applySuperpowersFinishingADevelopmentBranchPatch } from '../../harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs';
 import {
   planSkillProjections,
   projectionForSkill
@@ -148,6 +149,45 @@ test('planSkillProjections applies the using-git-worktrees naming patch for ever
       target
     );
     assert.match(usingGitWorktrees.targetPath, targetPathPattern, target);
+  }
+});
+
+test('planSkillProjections applies the finishing-a-development-branch base patch for every supported target', async () => {
+  const expectations = {
+    codex: /\.agents\/skills\/finishing-a-development-branch$/,
+    copilot: /\.agents\/skills\/finishing-a-development-branch$/,
+    cursor: /\.cursor\/skills\/finishing-a-development-branch$/,
+    'claude-code': /\.claude\/skills\/finishing-a-development-branch$/
+  };
+
+  for (const [target, targetPathPattern] of Object.entries(expectations)) {
+    const plan = await planSkillProjections({
+      rootDir: process.cwd(),
+      homeDir: '/home/user',
+      scope: 'workspace',
+      target
+    });
+
+    const finishingBranch = plan.find((entry) => entry.skillName === 'finishing-a-development-branch');
+    assert.ok(finishingBranch, target);
+    assert.equal(finishingBranch.parentSkillName, 'superpowers', target);
+    assert.equal(finishingBranch.strategy, 'materialize', target);
+    assert.deepEqual(
+      finishingBranch.patches.map((patch) => patch.type),
+      ['superpowers-finishing-a-development-branch'],
+      target
+    );
+    assert.equal(
+      finishingBranch.patches[0].marker,
+      'Harness Superpowers finishing-a-development-branch base patch',
+      target
+    );
+    assert.match(
+      finishingBranch.sourcePath,
+      /harness\/upstream\/superpowers\/skills\/finishing-a-development-branch$/,
+      target
+    );
+    assert.match(finishingBranch.targetPath, targetPathPattern, target);
   }
 });
 
@@ -315,6 +355,68 @@ test('applyCopilotPlanningPatch shell snippet falls back to legacy Copilot works
     });
 
     assert.equal(resolvedRoot, '.github/skills/planning-with-files');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersFinishingADevelopmentBranchPatch materializes Harness base guidance', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-finishing-branch-patch-'));
+  try {
+    const target = path.join(dir, 'finishing-a-development-branch');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/finishing-a-development-branch'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersFinishingADevelopmentBranchPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.match(skill, /Harness Superpowers finishing-a-development-branch base patch/);
+    assert.match(skill, /Prefer the recorded `Worktree base: <base-ref> @ <base-sha>` from planning\/active\/<task-id>\//);
+    assert.match(skill, /Only fall back to explicit user confirmation or a conservative branch check when no recorded worktree base is available/);
+    assert.doesNotMatch(skill, /This branch split from main - is that correct\?/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersFinishingADevelopmentBranchPatch is idempotent', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-finishing-branch-idempotent-'));
+  try {
+    const target = path.join(dir, 'finishing-a-development-branch');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/finishing-a-development-branch'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersFinishingADevelopmentBranchPatch(target);
+    const once = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    await applySuperpowersFinishingADevelopmentBranchPatch(target);
+    const twice = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.equal(twice, once);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersFinishingADevelopmentBranchPatch fails when Step 2 cannot be found', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-finishing-branch-missing-step-'));
+  try {
+    const target = path.join(dir, 'finishing-a-development-branch');
+    await mkdir(target, { recursive: true });
+    await writeFile(path.join(target, 'SKILL.md'), '# broken skill\n');
+
+    await assert.rejects(
+      applySuperpowersFinishingADevelopmentBranchPatch(target),
+      /Unable to apply Harness Superpowers finishing-a-development-branch base patch/
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

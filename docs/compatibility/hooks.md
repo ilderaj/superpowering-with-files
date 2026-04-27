@@ -16,10 +16,10 @@ Hook installation must be explicit:
 
 | Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
-| `planning-with-files` task-scoped hook | Supported (`codex_hooks = true`) | Supported | Supported | Supported |
+| `planning-with-files` task-scoped hook | Supported via verified-event allowlist (`codex_hooks = true`; retains `SessionStart` and `UserPromptSubmit`, omits planning `Stop`) | Supported | Supported | Supported |
 | `superpowers` session-start hook | Supported via Harness wrapper | Supported | Supported | Supported |
 
-Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. Some targets still have prerequisites: Codex needs `codex_hooks = true`; VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
+Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. That platform-level support is separate from event-level verification: Codex needs `codex_hooks = true`, but Harness only projects the Codex events it has verified for each adapter. VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
 
 Planning hooks are not the only hooks in this repository. When the `safety` profile is installed with hooks enabled, Harness can also project safety-hook behavior for supported targets.
 
@@ -43,7 +43,7 @@ Harness merges hook config files conservatively. Claude Code hook entries are me
 
 ## Planning-With-Files Hook Behavior
 
-The planning-with-files hook is task-scoped. It reads active task plans from `planning/active/<task-id>/task_plan.md`, recent progress from `planning/active/<task-id>/progress.md`, and emits context for supported hook events.
+The planning-with-files hook is task-scoped. It reads active task plans from `planning/active/<task-id>/task_plan.md`, recent progress from `planning/active/<task-id>/progress.md`, and emits context for the verified hook events projected for each target. On Codex, the retained planning events are `SessionStart` and `UserPromptSubmit`.
 
 It does not create a second planning system. It does not read root-level `task_plan.md`, `findings.md`, or `progress.md` files. It does not archive tasks. `session-start` writes a task-local `.session-start` sidecar. `stop`, `agent-stop`, and `session-end` emit a structured session summary rendered from `planning/active/<task-id>/{task_plan.md,progress.md,findings.md}` and that sidecar, bounded by `harness/core/context-budgets.json::hookPayload.warn`. Run `./scripts/harness summary` to reproduce the same output without relying on hooks.
 

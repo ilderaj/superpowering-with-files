@@ -45,6 +45,9 @@ Worktree base selection is a Harness-owned guardrail. Maintain it in:
 - `harness/core/policy/base.md` for rendered cross-platform policy.
 - `harness/installer/lib/git-base.mjs` for base recommendation logic.
 - `harness/installer/commands/worktree-preflight.mjs` for the CLI entry point.
+- `harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs` for projected finishing guidance that resolves the merge target from recorded `Worktree base` metadata before conservative fallback checks.
+
+Finishing branch base resolution must stay aligned with worktree creation. If planning records `Worktree base: <ref> @ <sha>`, projected finishing guidance should use that base for merge-back decisions unless the user or task explicitly overrides it.
 
 Worktree naming is a Harness-owned contract. Maintain it in:
 
@@ -79,6 +82,8 @@ Upstream updates are staged before they are applied:
 ./scripts/harness fetch --source=superpowers
 ./scripts/harness update --source=superpowers
 ```
+
+After any Superpowers update that touches `finishing-a-development-branch`, run `./scripts/harness sync --dry-run` and the focused adapter checks `npm test -- tests/adapters/skill-projection.test.mjs tests/adapters/sync-skills.test.mjs` to confirm the Harness finishing patch still applies cleanly.
 
 `planning-with-files` also tracks its Git source directly:
 

@@ -7,7 +7,7 @@ const SAFETY_SUPPORTED_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-
 const SAFETY_POLICY_PROFILES = new Set(['safety', 'cloud-safe']);
 
 const PLANNING_EVENTS_BY_TARGET = {
-  codex: ['SessionStart', 'UserPromptSubmit', 'Stop'],
+  codex: ['SessionStart', 'UserPromptSubmit'],
   copilot: ['sessionStart', 'userPromptSubmit', 'preToolUse', 'postToolUse', 'stop'],
   cursor: ['userPromptSubmit', 'preToolUse', 'postToolUse', 'stop'],
   'claude-code': ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'Stop']

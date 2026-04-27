@@ -5,6 +5,8 @@
 > **Lifecycle state:** closed
 > **Sync-back status:** closed on `2026-04-26T14:13:51Z`; Task 1-5 finished, full repo verification passed, the branch was merged into local `dev`, and the execution worktree was cleaned up.
 
+Active task path: planning/active/backup-skills-duplicate-analysis/
+
 **Goal:** 修复当前 user-global `*.harness-backup-*` 重复残留，并把后续 `sync --conflict=backup` 从“目标目录旁边生成 sibling 备份”改成“保留冲突备份但不再制造 live-root 重复”。
 
 **Architecture:** 保持 `sync --conflict=backup` 的语义，但把备份落点从目标路径旁边迁移到 home-scoped 的集中归档区，并用 index 记录原路径、时间戳、内容摘要与归档位置。`sync` 在写 projection 前先归档非 Harness-owned 冲突目标；在正常同步时顺带扫描并归并历史 sibling `*.harness-backup-*`，把当前重复问题一起收口。`doctor` / `adoption-status` 继续复用 health 管线，负责暴露未收敛的 legacy backups 或 archive/index 异常。

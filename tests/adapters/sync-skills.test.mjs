@@ -84,6 +84,15 @@ test('sync projects workspace entries and skills', async () => {
       /If the host already manages the worktree \(for example, Codex App\), treat this helper as a supplementary naming tool rather than a host override/
     );
 
+    const finishingBranch = await readFile(
+      path.join(root, '.agents/skills/finishing-a-development-branch/SKILL.md'),
+      'utf8'
+    );
+    assert.match(finishingBranch, /Harness Superpowers finishing-a-development-branch base patch/);
+    assert.match(finishingBranch, /Prefer the recorded `Worktree base: <base-ref> @ <base-sha>` from planning\/active\/<task-id>\//);
+    assert.match(finishingBranch, /Only fall back to explicit user confirmation or a conservative branch check when no recorded worktree base is available/);
+    assert.doesNotMatch(finishingBranch, /This branch split from main - is that correct\?/);
+
     const riskSkill = await readFile(
       path.join(root, '.agents/skills/risk-assessment-before-destructive-changes/SKILL.md'),
       'utf8'

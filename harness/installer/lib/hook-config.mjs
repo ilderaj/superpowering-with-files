@@ -31,6 +31,18 @@ function incomingMarkers(entries) {
   return new Set(entries.map(hookEntryMarker).filter(Boolean));
 }
 
+function incomingConfigMarkers(hooks) {
+  const markers = new Set();
+
+  for (const entries of Object.values(hooks)) {
+    for (const marker of incomingMarkers(entries)) {
+      markers.add(marker);
+    }
+  }
+
+  return markers;
+}
+
 function mergeHookEntries(existingEntries = [], incomingEntries = []) {
   const markers = incomingMarkers(incomingEntries);
   const preserved = existingEntries.filter((entry) => {
@@ -48,13 +60,28 @@ function pruneHookEntries(entries = [], marker) {
 export function mergeHookConfig(existingConfig, incomingConfig, target) {
   assertHookConfig(existingConfig, target);
   assertHookConfig(incomingConfig, target);
+  const managedMarkers = incomingConfigMarkers(incomingConfig.hooks);
+  const hooks = {};
+
+  for (const [eventName, existingEntries] of Object.entries(existingConfig.hooks)) {
+    if (!Array.isArray(existingEntries)) {
+      throw new TypeError(`Hook config for ${target} event ${eventName} must be an array.`);
+    }
+
+    const preservedEntries = existingEntries.filter((entry) => {
+      const marker = hookEntryMarker(entry);
+      return !marker || !managedMarkers.has(marker);
+    });
+
+    if (preservedEntries.length > 0) {
+      hooks[eventName] = preservedEntries;
+    }
+  }
 
   const merged = {
     ...existingConfig,
     ...incomingConfig,
-    hooks: {
-      ...existingConfig.hooks
-    }
+    hooks
   };
 
   for (const [eventName, incomingEntries] of Object.entries(incomingConfig.hooks)) {
@@ -62,7 +89,7 @@ export function mergeHookConfig(existingConfig, incomingConfig, target) {
       throw new TypeError(`Hook config for ${target} event ${eventName} must be an array.`);
     }
 
-    const existingEntries = existingConfig.hooks[eventName] ?? [];
+    const existingEntries = merged.hooks[eventName] ?? [];
     if (!Array.isArray(existingEntries)) {
       throw new TypeError(`Hook config for ${target} event ${eventName} must be an array.`);
     }
