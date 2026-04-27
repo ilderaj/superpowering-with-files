@@ -8,3 +8,9 @@
 - 额外发现：当存在多个 active tasks 时，脚本走 `emit_context ... "$event"` 分支，传出的 `hookEventName` 是原始小写/短横线事件名（如 `stop`、`user-prompt-submit`），而不是 Codex 期望的常量名（如 `Stop`、`UserPromptSubmit`）。这意味着即使不考虑 `Stop` 的 schema 限制，多 active task 分支对 Codex 的事件名也不稳妥。
 - 设计结论已经固化为 spec：`docs/superpowers/specs/2026-04-27-codex-hook-allowlist-design.md`。
 - implementation plan 已写入：`docs/superpowers/plans/2026-04-27-codex-hook-allowlist-implementation-plan.md`，实施范围收敛为 projection/config、回归测试、文档对齐和 task-memory sync，不包含上游源码修改。
+- 已按 allowlist 实施：`harness/installer/lib/hook-projection.mjs` 中 Codex planning 事件从 `['SessionStart', 'UserPromptSubmit', 'Stop']` 收敛为 `['SessionStart', 'UserPromptSubmit']`，`harness/core/hooks/planning-with-files/codex-hooks.json` 也移除了 `Stop` handler。
+- rollout 过程中补齐了一个升级路径缺口：仅删除投影源还不够，`sync` 的 hook merge 逻辑还必须清理“已不再出现在 incoming allowlist 中的 Harness-managed 旧事件”。现在 `harness/installer/lib/hook-config.mjs` 会在 merge 前跨事件剔除同一 managed marker 的陈旧 entries，因此已有 Codex 安装在重新 `sync` 后也会移除 stale planning `Stop`。
+- 回归测试已同步到新契约：`tests/adapters/sync-hooks.test.mjs` 明确拒绝 Codex `Stop`，`tests/installer/health.test.mjs` 改为要求 `UserPromptSubmit` 并接受只含 `SessionStart`/`UserPromptSubmit` 的 verified allowlist，`tests/hooks/task-scoped-hook.test.mjs` 删除了 Codex `Stop` contract 覆盖，session summary 继续留在 `tests/hooks/session-summary.test.mjs`。
+- 额外回归已覆盖升级清理路径：`tests/installer/hook-config.test.mjs` 现在验证 merge 会剔除 stale Harness-managed `Stop`、保留用户自定义 `Stop`；`tests/adapters/sync-hooks.test.mjs` 也验证重跑 `sync` 会清掉旧的 Harness-managed Codex `Stop` 条目。
+- 文档已改为事件级表述：`docs/install/codex.md`、`docs/compatibility/hooks.md`、`docs/architecture.md` 现在都明确 Codex planning projection 只保留 `SessionStart` 和 `UserPromptSubmit`，并提示现有用户重新运行 `./scripts/harness sync` 清理陈旧 `Stop` entries。
+- 最终 dry-run 证据表明用户级 Codex 投影将从包含 `Stop` 的旧配置更新为只保留 `SessionStart` 与 `UserPromptSubmit` 的新配置；这说明 rollout 已覆盖代码、测试、文档与实际投影差异面。

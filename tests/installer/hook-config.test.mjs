@@ -72,6 +72,70 @@ test('mergeHookConfig replaces prior Harness-managed entries for the same skill'
   );
 });
 
+test('mergeHookConfig prunes stale Harness-managed entries removed from the incoming allowlist', () => {
+  const merged = mergeHookConfig(
+    {
+      version: 1,
+      hooks: {
+        SessionStart: [
+          {
+            description: 'Harness-managed planning-with-files hook',
+            hooks: [{ type: 'command', command: 'old-session-start' }]
+          }
+        ],
+        UserPromptSubmit: [
+          {
+            description: 'Harness-managed planning-with-files hook',
+            hooks: [{ type: 'command', command: 'old-user-prompt-submit' }]
+          }
+        ],
+        Stop: [
+          {
+            description: 'Harness-managed planning-with-files hook',
+            hooks: [{ type: 'command', command: 'old-stop' }]
+          },
+          {
+            description: 'User hook',
+            hooks: [{ type: 'command', command: 'user-stop' }]
+          }
+        ]
+      }
+    },
+    {
+      version: 1,
+      hooks: {
+        SessionStart: [
+          {
+            description: 'Harness-managed planning-with-files hook',
+            hooks: [{ type: 'command', command: 'new-session-start' }]
+          }
+        ],
+        UserPromptSubmit: [
+          {
+            description: 'Harness-managed planning-with-files hook',
+            hooks: [{ type: 'command', command: 'new-user-prompt-submit' }]
+          }
+        ]
+      }
+    },
+    'codex'
+  );
+
+  assert.equal(
+    merged.hooks.Stop?.find((entry) => entry.description === 'Harness-managed planning-with-files hook'),
+    undefined
+  );
+  assert.equal(merged.hooks.Stop?.find((entry) => entry.description === 'User hook')?.hooks?.[0]?.command, 'user-stop');
+  assert.equal(
+    merged.hooks.SessionStart.find((entry) => entry.description === 'Harness-managed planning-with-files hook')?.hooks?.[0]?.command,
+    'new-session-start'
+  );
+  assert.equal(
+    merged.hooks.UserPromptSubmit.find((entry) => entry.description === 'Harness-managed planning-with-files hook')?.hooks?.[0]?.command,
+    'new-user-prompt-submit'
+  );
+});
+
 test('mergeHookConfig rejects missing hooks objects', () => {
   assert.throws(
     () => mergeHookConfig({ version: 1 }, { version: 1, hooks: {} }, 'cursor'),

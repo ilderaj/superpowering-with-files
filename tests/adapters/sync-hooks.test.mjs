@@ -123,7 +123,7 @@ test('sync installs codex planning hooks when hookMode is on', async () => {
 
     assert.ok(hooks.hooks.SessionStart);
     assert.ok(hooks.hooks.UserPromptSubmit);
-    assert.ok(hooks.hooks.Stop);
+    assert.equal(hooks.hooks.Stop, undefined);
     assert.match(JSON.stringify(hooks), /Harness-managed planning-with-files hook/);
     assert.match(await readFile(path.join(root, '.codex/hooks/task-scoped-hook.sh'), 'utf8'), /planning\/active/);
     assert.match(
@@ -136,6 +136,66 @@ test('sync installs codex planning hooks when hookMode is on', async () => {
     assert.match(sessionStart, /projected skill/);
     assert.match(sessionStart, /planning\/active\/<task-id>\//);
     assert.doesNotMatch(sessionStart, /description: Use when starting any conversation/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync prunes stale Harness-managed Codex Stop hooks on re-sync', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      policyProfile: 'always-on-core',
+      targets: { codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] } },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    await writeFile(
+      path.join(root, '.codex/hooks.json'),
+      `${JSON.stringify(
+        {
+          hooks: {
+            SessionStart: [
+              {
+                description: 'Harness-managed planning-with-files hook',
+                hooks: [{ type: 'command', command: 'echo planning-session-start' }]
+              }
+            ],
+            UserPromptSubmit: [
+              {
+                description: 'Harness-managed planning-with-files hook',
+                hooks: [{ type: 'command', command: 'echo planning-user-prompt-submit' }]
+              }
+            ],
+            Stop: [
+              {
+                description: 'Harness-managed planning-with-files hook',
+                hooks: [{ type: 'command', command: 'echo stale-planning-stop' }]
+              },
+              {
+                description: 'User hook',
+                hooks: [{ type: 'command', command: 'echo user-stop' }]
+              }
+            ]
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    await withCwd(root, () => sync([]));
+    const hooks = JSON.parse(await readFile(path.join(root, '.codex/hooks.json'), 'utf8'));
+
+    assert.equal(hooks.hooks.Stop?.find((entry) => entry.description === 'Harness-managed planning-with-files hook'), undefined);
+    assert.equal(hooks.hooks.Stop?.find((entry) => entry.description === 'User hook')?.hooks?.[0]?.command, 'echo user-stop');
+    assert.ok(hooks.hooks.SessionStart);
+    assert.ok(hooks.hooks.UserPromptSubmit);
   } finally {
     await removeHarnessFixture(root);
   }

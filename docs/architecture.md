@@ -30,16 +30,16 @@ Hook support is adapter-based:
 
 | Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
-| `planning-with-files` task-scoped hook | Supported (`codex_hooks = true`) | Supported | Supported | Supported |
+| `planning-with-files` task-scoped hook | Supported via verified-event allowlist (`codex_hooks = true`; retains `SessionStart` and `UserPromptSubmit`, omits planning `Stop`) | Supported | Supported | Supported |
 | `superpowers` session-start hook | Supported via Harness wrapper | Supported | Supported | Supported |
 
-Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. Some targets still have prerequisites: Codex needs `codex_hooks = true`; VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
+Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. Harness then narrows projection to the event-level contracts it has actually verified for that adapter. Codex still needs `codex_hooks = true`; VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
 
 Hook facts must be backed by official platform documentation before Harness treats them as verified contracts:
 
 | Target | Official doc-backed facts | Harness-owned or provisional facts |
 | --- | --- | --- |
-| Codex | `.codex/hooks.json`, `~/.codex/hooks.json`, `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`, `codex_hooks = true`, Windows disabled | Script filenames under `.codex/hooks/*` are Harness-owned adapter choices. |
+| Codex | `.codex/hooks.json`, `~/.codex/hooks.json`, `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`, `codex_hooks = true`, Windows disabled | Script filenames under `.codex/hooks/*` are Harness-owned adapter choices, and Harness currently retains only the verified Codex planning subset: `SessionStart` plus `UserPromptSubmit` (planning `Stop` omitted). |
 | GitHub Copilot / VS Code | `.github/hooks/*.json`, `~/.copilot/hooks`, PascalCase hook events, Claude hook config compatibility, Copilot CLI lowerCamelCase compatibility | Harness chooses concrete hook filenames and keeps native Copilot hook files as the primary projection path. |
 | Claude Code | `.claude/settings.json`, `.claude/settings.local.json`, `~/.claude/settings.json`, `SessionStart` and `UserPromptSubmit` stdout context injection | Harness chooses script filenames under `.claude/hooks/*`. |
 | Cursor | `.cursor/hooks.json`, `~/.cursor/hooks.json`, native agent hook events including `sessionStart`, `sessionEnd`, `preToolUse`, `postToolUse`, `stop`, plus official third-party Claude hook compatibility | Harness chooses concrete script filenames under `.cursor/hooks/*` and keeps the native Cursor format as the default adapter. |

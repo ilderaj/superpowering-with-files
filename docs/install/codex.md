@@ -27,6 +27,7 @@ These are the same shared Harness skill roots used by GitHub Copilot.
 
 Codex hooks are officially documented and remain gated behind `codex_hooks = true` in Codex `config.toml`. Codex can load hooks from `hooks.json` or inline `[hooks]` tables in `config.toml` at both repo and user config layers.
 Harness projects Codex hooks only when `--hooks=on` is selected.
+Harness projects only the currently verified Codex hook events. Today that means the superpowers `SessionStart` wrapper plus the planning-with-files `SessionStart` and `UserPromptSubmit` events; the planning `Stop` event is intentionally omitted until a schema-safe adapter exists.
 
 Hook files:
 
@@ -45,6 +46,8 @@ Run:
 ./scripts/harness install --targets=codex --scope=workspace
 ./scripts/harness sync
 ```
+
+If you already installed Codex hooks before this allowlist change, re-run `./scripts/harness sync` so stale planning `Stop` entries are removed from existing Codex hook configs.
 
 For manual branches or extra worktrees created from inside the repo, resolve the name with:
 

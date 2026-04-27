@@ -963,6 +963,54 @@ test('readHarnessHealth reports a problem when Codex hook config is missing a re
                 description: 'Harness-managed planning-with-files hook',
                 hooks: [{ type: 'command', command: 'echo ok' }]
               }
+            ]
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const planning = health.targets.codex.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
+
+    assert.equal(planning.status, 'problem');
+    assert.match(planning.message, /missing required event UserPromptSubmit/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth accepts the verified Codex planning hook allowlist', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/compact-task/task_plan.md'), '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await withCwd(root, () => sync([]));
+    await writeFile(
+      path.join(root, '.codex/hooks.json'),
+      `${JSON.stringify(
+        {
+          hooks: {
+            SessionStart: [
+              {
+                description: 'Harness-managed planning-with-files hook',
+                hooks: [{ type: 'command', command: 'echo ok' }]
+              }
             ],
             UserPromptSubmit: [
               {
@@ -980,8 +1028,9 @@ test('readHarnessHealth reports a problem when Codex hook config is missing a re
     const health = await readHarnessHealth(root, '/home/user');
     const planning = health.targets.codex.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
 
-    assert.equal(planning.status, 'problem');
-    assert.match(planning.message, /missing required event Stop/);
+    assert.equal(planning.status, 'ok');
+    assert.equal(planning.evidenceLevel, 'verified');
+    assert.equal(planning.message, undefined);
   } finally {
     await removeHarnessFixture(root);
   }
