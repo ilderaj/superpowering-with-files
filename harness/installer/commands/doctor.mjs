@@ -50,6 +50,17 @@ function renderHookPayloadSection(health) {
   return `${lines.join('\n')}\n`;
 }
 
+function renderedScopeOverlapWarnings(health) {
+  return new Set(
+    (health.scopeOverlap?.overlaps ?? []).map((overlap) => {
+      const recommendedAction = overlap.recommendedAction ?? health.scopeOverlap?.recommendedAction;
+      return recommendedAction
+        ? `scope overlap ${overlap.target}: ${overlap.message} Recommended action: ${recommendedAction}`
+        : `scope overlap ${overlap.target}: ${overlap.message}`;
+    })
+  );
+}
+
 export async function doctor(args = []) {
   const checkOnly = args.includes('--check-only');
   const health = await readHarnessHealth(process.cwd(), os.homedir());
@@ -75,9 +86,11 @@ export async function doctor(args = []) {
   const uniqueWarnings = warnings.filter((warning, index) => {
     return !uniqueProblems.includes(warning) && warnings.indexOf(warning) === index;
   });
+  const scopeOverlapWarnings = renderedScopeOverlapWarnings(health);
+  const renderedWarnings = uniqueWarnings.filter((warning) => !scopeOverlapWarnings.has(warning));
 
-  if (uniqueWarnings.length) {
-    console.error(uniqueWarnings.join('\n'));
+  if (renderedWarnings.length) {
+    console.error(renderedWarnings.join('\n'));
   }
 
   if (uniqueProblems.length) {

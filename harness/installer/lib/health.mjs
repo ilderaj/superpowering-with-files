@@ -4,7 +4,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { entriesForScope, loadAdapter } from './adapters.mjs';
 import { readBackupIndex } from './backup-archive.mjs';
-import { evaluateBudget, loadContextBudgets, measureText } from './context-budget.mjs';
+import { evaluateBudget, loadContextBudgets, measureText, selectBudgetForTarget } from './context-budget.mjs';
 import { hookEntryMarker } from './hook-config.mjs';
 import { planHookProjections } from './hook-projection.mjs';
 import { loadPlatforms } from './metadata.mjs';
@@ -336,6 +336,18 @@ function addUniqueMessage(collection, message) {
   if (!collection.includes(message)) {
     collection.push(message);
   }
+}
+
+function reportBudgetSelectionIssues(scopeName, budget, contextWarnings, warnings, problems) {
+  const issues = budget?.selectionIssues ?? [];
+  if (issues.length === 0) {
+    return;
+  }
+
+  const message = `context ${scopeName} problem: malformed target budget override (${issues.join('; ')})`;
+  addUniqueMessage(contextWarnings, message);
+  addUniqueMessage(warnings, message);
+  addUniqueMessage(problems, message);
 }
 
 function addMeasurement(targets, target, measurement) {
@@ -1202,6 +1214,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
   const activeTaskDir = await findSingleActiveTaskDir(rootDir);
   const entryTotalsByTarget = new Map();
   const hookTotalsByTarget = new Map();
+  const hookBudgetsByTarget = new Map();
   const planningTotalsByTarget = new Map();
   const skillProfileTotalsByTarget = new Map();
 
@@ -1312,17 +1325,21 @@ export async function readHarnessHealth(rootDir, homeDir) {
 
     targets[target] = { entries, skills, hooks };
 
+    const hookBudget = selectBudgetForTarget(budgets?.budgets?.hookPayload, target, 'budgets.hookPayload');
+    hookBudgetsByTarget.set(target, hookBudget);
+    reportBudgetSelectionIssues(`hook payload ${target}`, hookBudget, context.warnings, warnings, problems);
+
     const hookEntries = await inspectLocalHookPayloads(
-        rootDir,
-        homeDir,
-        activeTaskDir,
-        budgets?.budgets?.hookPayload,
-        state.hookMode,
-        hooks,
-        context.warnings,
-        warnings,
-        problems
-      );
+      rootDir,
+      homeDir,
+      activeTaskDir,
+      hookBudget,
+      state.hookMode,
+      hooks,
+      context.warnings,
+      warnings,
+      problems
+    );
     context.hooks.push(...hookEntries);
     for (const hookEntry of hookEntries) {
       if (hookEntry.measurement) {
@@ -1377,12 +1394,17 @@ export async function readHarnessHealth(rootDir, homeDir) {
 
   const hookBudget = budgets?.budgets?.hookPayload;
   const hookTargetTotals = [...hookTotalsByTarget.values()].map((measurement) => {
-    if (!hookBudget) {
+    const targetHookBudget = hookBudgetsByTarget.get(measurement.target) ?? hookBudget;
+    if (!targetHookBudget) {
       return { ...measurement, verdict: 'unknown', evaluation: null };
     }
 
-    const evaluation = evaluateBudget(measurement, hookBudget);
-    return { ...measurement, verdict: evaluation.verdict, evaluation: toBudgetEvaluation(evaluation, hookBudget) };
+    const evaluation = evaluateBudget(measurement, targetHookBudget);
+    return {
+      ...measurement,
+      verdict: evaluation.verdict,
+      evaluation: toBudgetEvaluation(evaluation, targetHookBudget)
+    };
   });
   applyContextSummary(context.summary.hooks, hookTargetTotals, hookBudget);
 

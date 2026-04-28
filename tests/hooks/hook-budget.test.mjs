@@ -4,7 +4,12 @@ import { execFile } from 'node:child_process';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { evaluateBudget, loadContextBudgets, measureText } from '../../harness/installer/lib/context-budget.mjs';
+import {
+  evaluateBudget,
+  loadContextBudgets,
+  measureText,
+  selectBudgetForTarget
+} from '../../harness/installer/lib/context-budget.mjs';
 
 const execFileAsync = promisify(execFile);
 const artifactsRoot = path.join(process.cwd(), 'tests/hooks/.artifacts/hook-budget');
@@ -69,7 +74,10 @@ test('planning hot context payload stays within the configured hook budget', asy
     const payload = JSON.parse(stdout);
     const additionalContext = payload.hookSpecificOutput.additionalContext;
     const budgets = await loadContextBudgets(process.cwd());
-    const evaluation = evaluateBudget(measureText(additionalContext), budgets.budgets.hookPayload);
+    const evaluation = evaluateBudget(
+      measureText(additionalContext),
+      selectBudgetForTarget(budgets.budgets.hookPayload, 'codex')
+    );
 
     assert.ok(additionalContext.length < 4000);
     assert.equal(evaluation.verdict, 'ok');
@@ -154,7 +162,10 @@ test('copilot repeated prompts collapse to a brief payload within the configured
     const firstPrompt = JSON.parse(firstPromptStdout).hookSpecificOutput.additionalContext;
     const secondPrompt = JSON.parse(secondPromptStdout).hookSpecificOutput.additionalContext;
     const budgets = await loadContextBudgets(process.cwd());
-    const evaluation = evaluateBudget(measureText(secondPrompt), budgets.budgets.hookPayload);
+    const evaluation = evaluateBudget(
+      measureText(secondPrompt),
+      selectBudgetForTarget(budgets.budgets.hookPayload, 'copilot')
+    );
 
     assert.match(firstPrompt, /HOT CONTEXT/);
     assert.match(secondPrompt, /\[planning-with-files\] BRIEF CONTEXT/);

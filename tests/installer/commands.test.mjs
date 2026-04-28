@@ -634,11 +634,12 @@ test('doctor prints overlap governance guidance without failing a recoverable Co
 
     await harnessCommandWithEnv(root, { HOME: home }, 'sync');
     const { stdout, stderr } = await harnessCommandWithEnv(root, { HOME: home }, 'doctor', '--check-only');
+    const overlapMatches = `${stdout}\n${stderr}`.match(/choose one canonical scope for Copilot/gi) ?? [];
 
     assert.match(stdout, /Scope overlap verdict: warning/);
     assert.match(stdout, /Scope overlap detail: copilot -> workspace \+ user-global/);
     assert.match(stdout, /Recommended action: choose one canonical scope for Copilot/i);
-    assert.match(stderr, /scope overlap copilot/i);
+    assert.equal(overlapMatches.length, 1);
     assert.match(stdout, /Harness check passed\./);
   } finally {
     await removeHarnessFixture(root);

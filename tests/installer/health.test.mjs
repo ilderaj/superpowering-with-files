@@ -770,6 +770,93 @@ test('readHarnessHealth measures Copilot hook payloads and reports worst hook ta
   }
 });
 
+test('readHarnessHealth treats malformed Copilot hook payload target budgets as a problem', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      [
+        '# Compact Task',
+        '',
+        '## Goal',
+        '- Force a malformed Copilot hook budget override.',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        '',
+        ...Array.from({ length: 80 }, (_, index) => `- [ ] Repeat prompt ${index + 1}.`)
+      ].join('\n')
+    );
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/findings.md'),
+      ['# Findings', '', ...Array.from({ length: 120 }, (_, index) => `- Finding ${index + 1}.`)].join('\n')
+    );
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/progress.md'),
+      ['# Progress', '', ...Array.from({ length: 120 }, (_, index) => `- Progress ${index + 1}.`)].join('\n')
+    );
+
+    await writeFile(
+      path.join(root, 'harness/core/context-budgets.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          budgets: {
+            entry: {
+              warn: { chars: 30000, lines: 500, tokens: 7500 },
+              problem: { chars: 45000, lines: 750, tokens: 11250 }
+            },
+            hookPayload: {
+              warn: { chars: 12000, lines: 160, tokens: 3000 },
+              problem: { chars: 18000, lines: 240, tokens: 4500 },
+              targets: {
+                copilot: {
+                  warn: { chars: 1200, lines: 24, tokens: 300 },
+                  problem: { chars: 'broken', lines: 40, tokens: 500 }
+                }
+              }
+            },
+            planningHotContext: {
+              warn: { chars: 16000, lines: 240, tokens: 4000 },
+              problem: { chars: 24000, lines: 360, tokens: 6000 }
+            },
+            skillProfile: {
+              warn: { chars: 22000, lines: 320, tokens: 5500 },
+              problem: { chars: 32000, lines: 480, tokens: 8000 }
+            }
+          }
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.context.summary.hooks.target, 'copilot');
+    assert.equal(health.context.summary.hooks.verdict, 'problem');
+    assert.ok(
+      health.problems.some((problem) => /budgets\.hookPayload\.targets\.copilot\.problem\.chars/i.test(problem))
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth does not double count Copilot hook payloads across both scopes', async (t) => {
   const root = await createHarnessFixture();
   const home = path.join(root, 'home');
