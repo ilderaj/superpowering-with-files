@@ -14,6 +14,15 @@ function runGuard(scriptPath, cwd, payload, env = {}) {
   return JSON.parse(stdout);
 }
 
+function runGuardRawInput(scriptPath, cwd, stdinText, platform = 'copilot', env = {}) {
+  const stdout = execFileSync('bash', [scriptPath, platform], {
+    cwd,
+    input: stdinText,
+    env: { ...process.env, ...env }
+  }).toString();
+  return JSON.parse(stdout);
+}
+
 function initGitRepo(cwd) {
   execFileSync('git', ['init'], { cwd });
   execFileSync('git', ['config', 'user.name', 'Harness Test'], { cwd });
@@ -101,6 +110,124 @@ test('pretool-guard allows safe commands inside a repository', async () => {
     const result = runGuard(scriptPath, root, { cwd: root, tool: 'Bash', command: 'git status' });
 
     assert.equal(result.permissionDecision, 'allow');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard keeps malformed Copilot payload text from aborting', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-copilot-malformed-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuardRawInput(
+      scriptPath,
+      root,
+      'copilot pretool payload\n{"cwd":".","tool":"Bash","command":"git status"}\n'
+    );
+
+    assert.match(result.permissionDecision, /allow|ask/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard returns a parse-failure allow reason when no executable command is detected', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-copilot-prose-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuardRawInput(
+      scriptPath,
+      root,
+      'This is just some random English prose that mentions nothing executable.\n'
+    );
+
+    assert.equal(result.permissionDecision, 'allow');
+    assert.equal(
+      result.permissionDecisionReason,
+      'Hook payload could not be parsed, but no executable command was detected.'
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard parses wrapped JSON payload and allows git status', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-copilot-wrapped-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuardRawInput(
+      scriptPath,
+      root,
+      'some surrounding text\n{"cwd":".","tool":"Bash","command":"git status"}\nmore surrounding text\n'
+    );
+
+    assert.equal(result.permissionDecision, 'allow');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard keeps raw dangerous command fallback on ask', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-copilot-fallback-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuardRawInput(
+      scriptPath,
+      root,
+      'rm -rf ./DerivedData\n'
+    );
+
+    assert.equal(result.permissionDecision, 'ask');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard asks when multiline raw Copilot input carries a dangerous later line', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-copilot-multiline-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuardRawInput(
+      scriptPath,
+      root,
+      'Here is my explanation\nrm -rf ./DerivedData\n'
+    );
+
+    assert.equal(result.permissionDecision, 'ask');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard asks when malformed Copilot JSON-like text contains a dangerous command field', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-copilot-malformed-command-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuardRawInput(
+      scriptPath,
+      root,
+      '{"command": "rm -rf ./build", incomplete\n'
+    );
+
+    assert.equal(result.permissionDecision, 'ask');
   } finally {
     await rm(root, { recursive: true, force: true });
   }

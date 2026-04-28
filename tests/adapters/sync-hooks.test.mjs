@@ -248,7 +248,35 @@ test('sync installs codex safety hooks when the safety profile is active', async
     assert.ok(hooks.hooks.PreToolUse);
     assert.match(JSON.stringify(hooks), /Harness-managed safety hook/);
     assert.match(await readFile(path.join(root, '.codex/hooks/pretool-guard.sh'), 'utf8'), /policyProfile/);
+    assert.match(await readFile(path.join(root, '.codex/hooks/pretool-guard.sh'), 'utf8'), /permissionDecision/);
     assert.match(await readFile(path.join(root, '.codex/hooks/session-checkpoint.sh'), 'utf8'), /checkpoint/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync installs copilot safety hooks when the safety profile is active', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      policyProfile: 'safety',
+      skillProfile: 'full',
+      targets: { copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] } },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const hooks = JSON.parse(await readFile(path.join(root, '.github/hooks/safety.json'), 'utf8'));
+
+    assert.ok(hooks.hooks.sessionStart);
+    assert.ok(hooks.hooks.preToolUse);
+    assert.match(JSON.stringify(hooks), /Harness-managed safety hook/);
+    assert.match(await readFile(path.join(root, '.github/hooks/pretool-guard.sh'), 'utf8'), /permissionDecision/);
+    assert.match(await readFile(path.join(root, '.github/hooks/session-checkpoint.sh'), 'utf8'), /checkpoint/);
   } finally {
     await removeHarnessFixture(root);
   }
