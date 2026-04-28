@@ -77,6 +77,69 @@ test('adopt-global bootstraps user-global state, verification output, and receip
   }
 });
 
+test('adopt-global lets an explicit Copilot skills profile override win over the bootstrap default', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await initGitRepo(root);
+
+    await harnessCommand(
+      root,
+      homeDir,
+      'adopt-global',
+      '--targets=copilot',
+      '--skills-profile=minimal-global'
+    );
+
+    const state = await readState(root);
+    const receipt = JSON.parse(
+      await readFile(path.join(root, '.harness/adoption/global.json'), 'utf8')
+    );
+
+    assert.equal(state.skillProfile, 'minimal-global');
+    assert.equal(receipt.skillProfile, 'minimal-global');
+    assert.deepEqual(Object.keys(state.targets), ['copilot']);
+    assert.deepEqual(receipt.targets, ['copilot']);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('adopt-global treats an empty user-global state as bootstrap for Copilot defaults', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await initGitRepo(root);
+
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'user-global',
+      projectionMode: 'link',
+      hookMode: 'off',
+      policyProfile: 'always-on-core',
+      skillProfile: 'full',
+      targets: {},
+      upstream: {}
+    });
+
+    await harnessCommand(root, homeDir, 'adopt-global', '--targets=copilot');
+
+    const state = await readState(root);
+    const receipt = JSON.parse(
+      await readFile(path.join(root, '.harness/adoption/global.json'), 'utf8')
+    );
+
+    assert.equal(state.skillProfile, 'copilot-default');
+    assert.equal(receipt.skillProfile, 'copilot-default');
+    assert.deepEqual(Object.keys(state.targets), ['copilot']);
+    assert.deepEqual(receipt.targets, ['copilot']);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('adopt-global preserves an existing user-global install instead of overwriting it', async () => {
   const root = await createHarnessFixture();
   const homeDir = path.join(root, 'home');
@@ -114,6 +177,7 @@ test('adopt-global preserves an existing user-global install instead of overwrit
     assert.equal(state.skillProfile, 'minimal-global');
     assert.deepEqual(Object.keys(state.targets), ['codex']);
     assert.equal(receipt.policyProfile, 'always-on-core');
+    assert.equal(receipt.skillProfile, 'minimal-global');
     assert.deepEqual(receipt.targets, ['codex']);
   } finally {
     await removeHarnessFixture(root);

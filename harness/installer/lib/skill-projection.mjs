@@ -89,6 +89,16 @@ export async function loadSkillProfiles(rootDir) {
   return config;
 }
 
+export function defaultSkillProfileForTargets(skillProfiles, targets, requestedSkillProfile) {
+  if (requestedSkillProfile) {
+    return requestedSkillProfile;
+  }
+
+  return targets.length === 1 && targets[0] === 'copilot'
+    ? 'copilot-default'
+    : skillProfiles.defaultProfile;
+}
+
 function resolveSkillProfileName(skillProfiles, requestedProfile) {
   const profileName = requestedProfile ?? skillProfiles.defaultProfile;
   if (!skillProfiles.profiles[profileName]) {

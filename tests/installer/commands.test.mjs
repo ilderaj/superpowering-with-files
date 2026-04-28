@@ -67,6 +67,17 @@ test('verify --help prints usage without writing reports', async () => {
   }
 });
 
+test('adopt-global --help describes explicit skills profile precedence', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const { stdout } = await harnessCommand(root, 'adopt-global', '--help');
+    assert.match(stdout, /Usage: \.\/scripts\/harness adopt-global/);
+    assert.match(stdout, /--skills-profile=<name>\s+Override the skills profile; explicit values always win\./);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('install stores the selected entry and skills profiles in state', async () => {
   const root = await createHarnessFixture();
   try {
@@ -84,6 +95,38 @@ test('install stores the selected entry and skills profiles in state', async () 
     assert.equal(state.skillProfile, 'minimal-global');
     assert.equal(state.scope, 'workspace');
     assert.equal(state.targets.codex.enabled, true);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install defaults Copilot-only installs to copilot-default skills profile', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await harnessCommand(root, 'install', '--scope=workspace', '--targets=copilot');
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'copilot-default');
+    assert.equal(state.targets.copilot.enabled, true);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install lets an explicit Copilot skills profile override win over the default', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await harnessCommand(
+      root,
+      'install',
+      '--scope=workspace',
+      '--targets=copilot',
+      '--skills-profile=minimal-global'
+    );
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'minimal-global');
+    assert.equal(state.targets.copilot.enabled, true);
   } finally {
     await removeHarnessFixture(root);
   }

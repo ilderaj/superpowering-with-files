@@ -8,7 +8,7 @@ import { loadPlatforms, normalizeTargets } from './metadata.mjs';
 import { loadPolicyProfiles } from './policy-render.mjs';
 import { resolveTargetPaths } from './paths.mjs';
 import { isSafetyPolicyProfile } from './safety-projection.mjs';
-import { loadSkillProfiles } from './skill-projection.mjs';
+import { defaultSkillProfileForTargets, loadSkillProfiles } from './skill-projection.mjs';
 import { readState, writeState } from './state.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -137,7 +137,14 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
   const projectionMode = options.projectionMode ?? state.projectionMode ?? 'link';
   const hookMode = options.hookMode ?? state.hookMode ?? 'off';
   const policyProfile = options.policyProfile ?? state.policyProfile ?? policyProfiles.defaultProfile;
-  const skillProfile = options.skillProfile ?? state.skillProfile ?? skillProfiles.defaultProfile;
+  const requestedSkillProfile = options.skillProfile;
+  const preservingExistingUserGlobalState =
+    state.scope === 'user-global' && !isEffectivelyEmptyState(state) && mode !== 'force';
+  const skillProfile =
+    requestedSkillProfile ??
+    (preservingExistingUserGlobalState
+      ? state.skillProfile
+      : defaultSkillProfileForTargets(skillProfiles, requestedTargets, undefined));
 
   validateProjectionMode(projectionMode);
   validateHookMode(hookMode);
@@ -168,14 +175,11 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
     state.scope === 'user-global'
       ? {
           ...state,
-          projectionMode: mode === 'force' ? projectionMode : state.projectionMode,
-          hookMode: mode === 'force' ? hookMode : state.hookMode,
-          policyProfile: mode === 'force' ? policyProfile : state.policyProfile,
-          skillProfile: mode === 'force' ? skillProfile : state.skillProfile,
-          targets:
-            mode === 'force'
-              ? buildTargetState(rootDir, homeDir, requestedTargets)
-              : state.targets
+          projectionMode: preservingExistingUserGlobalState ? state.projectionMode : projectionMode,
+          hookMode: preservingExistingUserGlobalState ? state.hookMode : hookMode,
+          policyProfile: preservingExistingUserGlobalState ? state.policyProfile : policyProfile,
+          skillProfile,
+          targets: preservingExistingUserGlobalState ? state.targets : buildTargetState(rootDir, homeDir, requestedTargets)
         }
       : {
           schemaVersion: 1,
