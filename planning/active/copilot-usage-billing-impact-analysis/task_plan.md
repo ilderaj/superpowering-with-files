@@ -11,6 +11,11 @@ Close Reason:
 ## Current Phase
 Phase 8
 
+## Companion Plan
+- Companion plan: `docs/superpowers/plans/2026-04-28-copilot-usage-billing-impact-analysis-plan.md`
+- Companion summary: Copilot usage-based billing impact analysis and phased optimization plan covering fixed tax, recovery tax, and execution tax.
+- Sync-back status: plan and active task files synced on 2026-04-28
+
 ## Phases
 
 ### Phase 1: 计费变化与现状基线收集

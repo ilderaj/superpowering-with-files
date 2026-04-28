@@ -6,6 +6,10 @@
 > **Lifecycle state:** `waiting_execution`
 > **Sync-back status:** synced on 2026-04-28
 
+> **Active task path:** `planning/active/copilot-pretool-guard-regression-fix/`
+> **Lifecycle state:** closed
+> **Sync-back status:** synced on 2026-04-28
+
 **Goal:** 修复 Copilot workspace safety 下 `pretool-guard.sh` 因 payload 解析失败而导致的 `Hook PreToolUse aborted`，并补齐 projection / sync / runtime / smoke 四层回归验证。
 
 **Architecture:** 仅收敛在 `pretool-guard.sh` 的 payload 解析与 command 归一化层，不改 hook projection contract、不改 policy profile 语义。修复核心是把“异常退出”改为“可判定的 `allow/ask/deny` 输出”，并用 Copilot 专用测试夹具锁住真实回归面。
