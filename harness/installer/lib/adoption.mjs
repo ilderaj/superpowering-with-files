@@ -226,10 +226,12 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
   const { repoHead, repoBranch } = await readGitMetadata(rootDir);
   const reasons = [];
   const targets = enabledTargetsFromState(state);
+  const copilotOverlap = health.scopeOverlap?.overlaps?.find((overlap) => overlap.target === 'copilot');
+  const hasRecoverableCopilotOverlap = Boolean(copilotOverlap);
 
   let status = 'in_sync';
 
-  if (state.scope !== 'user-global') {
+  if (state.scope !== 'user-global' && !hasRecoverableCopilotOverlap) {
     status = 'state_mismatch';
     reasons.push(`Expected scope user-global, found ${state.scope}.`);
   }
@@ -244,6 +246,15 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
       status = 'apply_failed';
     }
     reasons.push(...health.problems);
+  }
+
+  if (hasRecoverableCopilotOverlap) {
+    if (status === 'in_sync') {
+      status = 'needs_apply';
+    }
+    reasons.push(
+      'Workspace Copilot projection overlaps user-global install; choose one canonical scope for Copilot unless the workspace install is intentionally overriding safety policy.'
+    );
   }
 
   if (!receipt) {

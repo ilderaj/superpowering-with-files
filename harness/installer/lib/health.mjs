@@ -24,6 +24,8 @@ const execFileAsync = promisify(execFile);
 const HOOK_PAYLOAD_TIMEOUT_MS = 2000;
 const MEASURED_HOOK_PAYLOAD_SKILLS = new Set(['superpowers', 'planning-with-files']);
 const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot']);
+const COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION =
+  'choose one canonical scope for Copilot unless the workspace install is intentionally overriding safety policy.';
 const VERDICT_RANK = {
   unknown: -1,
   ok: 0,
@@ -636,16 +638,22 @@ function pathScope(rootDir, homeDir, targetPath) {
   const resolvedPath = path.resolve(targetPath);
   const resolvedRootDir = path.resolve(rootDir);
   const resolvedHomeDir = path.resolve(homeDir);
+  const matchingScopes = [];
 
   if (resolvedPath === resolvedRootDir || resolvedPath.startsWith(`${resolvedRootDir}${path.sep}`)) {
-    return 'workspace';
+    matchingScopes.push({ scope: 'workspace', prefixLength: resolvedRootDir.length });
   }
 
   if (resolvedPath === resolvedHomeDir || resolvedPath.startsWith(`${resolvedHomeDir}${path.sep}`)) {
-    return 'user-global';
+    matchingScopes.push({ scope: 'user-global', prefixLength: resolvedHomeDir.length });
   }
 
-  return 'external';
+  if (matchingScopes.length === 0) {
+    return 'external';
+  }
+
+  matchingScopes.sort((left, right) => right.prefixLength - left.prefixLength || left.scope.localeCompare(right.scope));
+  return matchingScopes[0].scope;
 }
 
 function mergeUnique(values = [], additions = []) {
@@ -754,7 +762,7 @@ function aggregateHookPayloadEntries(entries, hookPayloadBudget, contextWarnings
 }
 
 function inspectScopeOverlap(rootDir, homeDir, targets) {
-  const overlapTargets = [];
+  const overlaps = [];
 
   for (const [target, targetHealth] of Object.entries(targets)) {
     if (target !== 'copilot') {
@@ -772,16 +780,27 @@ function inspectScopeOverlap(rootDir, homeDir, targets) {
     }
 
     if (scopes.has('workspace') && scopes.has('user-global')) {
-      overlapTargets.push(target);
+      overlaps.push({
+        target,
+        scopes: ['user-global', 'workspace'],
+        verdict: 'warning',
+        message: 'Copilot is projected in both workspace and user-global scopes; this can duplicate startup and hook context.',
+        recommendedAction: COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION
+      });
     }
   }
 
+  const recommendedAction = overlaps.length > 0
+    ? COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION
+    : null;
+
   return {
-    verdict: overlapTargets.length > 0 ? 'warning' : 'ok',
-    targets: overlapTargets,
-    details: overlapTargets.map((target) =>
-      `${target === 'copilot' ? 'Copilot' : target} is projected in both user-global and workspace scopes.`
-    )
+    verdict: overlaps.length > 0 ? 'warning' : 'ok',
+    targets: overlaps.map((overlap) => overlap.target),
+    overlaps,
+    details: overlaps.map((overlap) => `${overlap.target} -> workspace + user-global`),
+    message: overlaps[0]?.message ?? null,
+    recommendedAction
   };
 }
 
@@ -1397,6 +1416,14 @@ export async function readHarnessHealth(rootDir, homeDir) {
   });
   applyContextSummary(context.summary.skillProfiles, skillProfileTargetTotals, skillProfileBudget);
   const scopeOverlap = inspectScopeOverlap(rootDir, homeDir, targets);
+  for (const overlap of scopeOverlap.overlaps ?? []) {
+    const recommendedAction = overlap.recommendedAction ?? scopeOverlap.recommendedAction;
+    const message = recommendedAction
+      ? `scope overlap ${overlap.target}: ${overlap.message} Recommended action: ${recommendedAction}`
+      : `scope overlap ${overlap.target}: ${overlap.message}`;
+    addUniqueMessage(context.warnings, message);
+    addUniqueMessage(warnings, message);
+  }
 
   const safety = await inspectSafetyHealth(rootDir, homeDir, state, targets);
   for (const check of safety.checks) {

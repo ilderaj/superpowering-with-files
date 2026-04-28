@@ -43,9 +43,10 @@ function renderHookPayloadSection(health) {
   }
 
   lines.push(`Scope overlap verdict: ${health.scopeOverlap?.verdict ?? 'ok'}`);
-  lines.push(
-    `Scope overlap detail: ${health.scopeOverlap?.details?.length ? health.scopeOverlap.details.join(' ') : 'None.'}`
-  );
+  lines.push(`Scope overlap detail: ${health.scopeOverlap?.details?.length ? health.scopeOverlap.details.join('; ') : 'None.'}`);
+  if (health.scopeOverlap?.recommendedAction) {
+    lines.push(`Recommended action: ${health.scopeOverlap.recommendedAction}`);
+  }
   return `${lines.join('\n')}\n`;
 }
 

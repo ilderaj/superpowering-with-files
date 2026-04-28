@@ -360,3 +360,39 @@ test('adoption-status reports state_mismatch when install state drifts after ado
     await removeHarnessFixture(root);
   }
 });
+
+test('adoption-status reports overlap when workspace Copilot projection shadows the global install', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await initGitRepo(root);
+    await harnessCommand(root, homeDir, 'adopt-global', '--targets=copilot');
+
+    const state = await readState(root);
+    await writeState(root, {
+      ...state,
+      scope: 'both',
+      targets: {
+        copilot: {
+          enabled: true,
+          paths: [
+            path.join(root, '.github/copilot-instructions.md'),
+            path.join(homeDir, '.copilot/instructions/harness.instructions.md')
+          ]
+        }
+      }
+    });
+
+    await harnessCommand(root, homeDir, 'sync');
+    const { stdout } = await harnessCommand(root, homeDir, 'adoption-status');
+    const status = JSON.parse(stdout);
+
+    assert.equal(status.status, 'needs_apply');
+    assert.ok(
+      status.reasons.some((reason) => /workspace copilot projection overlaps user-global/i.test(reason))
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});

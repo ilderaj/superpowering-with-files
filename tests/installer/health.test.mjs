@@ -821,6 +821,49 @@ test('readHarnessHealth does not double count Copilot hook payloads across both 
   }
 });
 
+test('readHarnessHealth warns when Copilot is active in both workspace and user-global scopes', async (t) => {
+  const root = await createHarnessFixture();
+  const home = path.join(root, 'home');
+  try {
+    await mkdir(home, { recursive: true });
+    t.mock.method(os, 'homedir', () => home);
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'both',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        copilot: {
+          enabled: true,
+          paths: [
+            path.join(root, '.github/copilot-instructions.md'),
+            path.join(home, '.copilot/instructions/harness.instructions.md')
+          ]
+        }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, home);
+
+    assert.equal(health.scopeOverlap?.verdict, 'warning');
+    assert.ok(health.context.warnings.some((warning) => /scope overlap copilot/i.test(warning)));
+    assert.match(health.scopeOverlap?.recommendedAction ?? '', /choose one canonical scope for Copilot/i);
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes(`Recommended action: ${health.scopeOverlap?.recommendedAction}`)
+      )
+    );
+    assert.match(
+      health.scopeOverlap?.message ?? '',
+      /projected in both workspace and user-global scopes/i
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth summarizes hook, planning, and skill profile context ledgers', async () => {
   const root = await createHarnessFixture();
   try {

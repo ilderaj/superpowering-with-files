@@ -336,9 +336,10 @@ test('verify renders overlap and per-target hook ledger rows when Copilot is ena
     assert.match(stdout, /Hook payload verdict:/);
     assert.match(stdout, /Hook payload target: copilot/);
     assert.match(stdout, /Hook payload detail:/);
-    assert.match(stdout, /copilot \/ planning-hot \/ ok \/ \d+ tokens/);
-    assert.match(stdout, /Scope overlap verdict:/);
-    assert.match(stdout, /Scope overlap detail:/);
+    assert.match(stdout, /copilot \/ planning-hot \/ (?:ok|problem) \/ \d+ tokens/);
+    assert.match(stdout, /Scope overlap verdict: warning/);
+    assert.match(stdout, /Scope overlap detail: copilot -> workspace \+ user-global/);
+    assert.match(stdout, /Recommended action: choose one canonical scope for Copilot/i);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -603,6 +604,41 @@ test('doctor prints safety checks for safety profile installs', async () => {
     assert.match(stdout, /Safety checks:/);
     assert.match(stdout, /checkpointExecutable: ok/);
     assert.match(stdout, /riskAssessmentTemplatePatched: ok/);
+    assert.match(stdout, /Harness check passed\./);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('doctor prints overlap governance guidance without failing a recoverable Copilot overlap', async () => {
+  const root = await createHarnessFixture();
+  const home = path.join(root, 'home');
+  try {
+    await mkdir(home, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'both',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        copilot: {
+          enabled: true,
+          paths: [
+            path.join(root, '.github/copilot-instructions.md'),
+            path.join(home, '.copilot/instructions/harness.instructions.md')
+          ]
+        }
+      },
+      upstream: {}
+    });
+
+    await harnessCommandWithEnv(root, { HOME: home }, 'sync');
+    const { stdout, stderr } = await harnessCommandWithEnv(root, { HOME: home }, 'doctor', '--check-only');
+
+    assert.match(stdout, /Scope overlap verdict: warning/);
+    assert.match(stdout, /Scope overlap detail: copilot -> workspace \+ user-global/);
+    assert.match(stdout, /Recommended action: choose one canonical scope for Copilot/i);
+    assert.match(stderr, /scope overlap copilot/i);
     assert.match(stdout, /Harness check passed\./);
   } finally {
     await removeHarnessFixture(root);

@@ -38,11 +38,16 @@ function renderHookPayloadDetailLines(hooks = []) {
 }
 
 function renderScopeOverlapLines(scopeOverlap) {
-  const detail = scopeOverlap?.details?.length ? scopeOverlap.details.join(' ') : 'None.';
-  return [
+  const lines = [
     `Scope overlap verdict: ${scopeOverlap?.verdict ?? 'ok'}`,
-    `Scope overlap detail: ${detail}`
+    `Scope overlap detail: ${scopeOverlap?.details?.length ? scopeOverlap.details.join('; ') : 'None.'}`
   ];
+
+  if (scopeOverlap?.recommendedAction) {
+    lines.push(`Recommended action: ${scopeOverlap.recommendedAction}`);
+  }
+
+  return lines;
 }
 
 function renderMarkdown(report) {
