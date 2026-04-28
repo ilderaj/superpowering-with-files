@@ -162,6 +162,26 @@ test('planHookProjections adds safety hooks when the safety policy profile is ac
   assert.equal(safety.scriptTargetRoot, path.join(process.cwd(), '.codex/hooks'));
 });
 
+test('planHookProjections adds copilot safety hooks under .github/hooks when the safety policy profile is active', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'copilot',
+    hookMode: 'on',
+    policyProfile: 'safety'
+  });
+  const safety = plans.find((plan) => plan.parentSkillName === 'safety');
+
+  assert.equal(safety.status, 'planned');
+  assert.equal(safety.configTarget, path.join(process.cwd(), '.github/hooks/safety.json'));
+  assert.deepEqual(safety.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh'),
+    path.join(process.cwd(), 'harness/core/hooks/safety/scripts/session-checkpoint.sh')
+  ]);
+  assert.equal(safety.scriptTargetRoot, path.join(process.cwd(), '.github/hooks'));
+});
+
 test('planHookProjections skips safety hooks outside safety profiles', async () => {
   const plans = await planHookProjections({
     rootDir: process.cwd(),

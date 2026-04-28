@@ -44,7 +44,20 @@ const path = require('node:path');
 const { execSync } = require('node:child_process');
 
 const payloadText = process.env.PAYLOAD && process.env.PAYLOAD.trim() ? process.env.PAYLOAD : '{}';
-const payload = JSON.parse(payloadText);
+function parsePayloadText(text) {
+  try {
+    return { payload: JSON.parse(text), rawText: text, parseError: null };
+  } catch (error) {
+    const objectMatch = text.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      try {
+        return { payload: JSON.parse(objectMatch[0]), rawText: text, parseError: null };
+      } catch {}
+    }
+    return { payload: {}, rawText: text, parseError: error };
+  }
+}
+const { payload, rawText, parseError } = parsePayloadText(payloadText);
 const platform = process.env.PLATFORM ?? 'unknown';
 const projectRoot = path.resolve(process.env.PROJECT_ROOT ?? process.cwd());
 const configDir = process.env.CONFIG_DIR ?? projectRoot;
@@ -69,7 +82,21 @@ function firstString(paths) {
   return '';
 }
 
-function commandFromPayload() {
+function extractEmbeddedCommand(rawText) {
+  if (typeof rawText !== 'string' || !rawText.trim()) return '';
+
+  const match = rawText.match(/"(command|rawCommand)"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  if (!match) return '';
+
+  try {
+    const decoded = JSON.parse(`"${match[2]}"`);
+    return typeof decoded === 'string' && decoded.trim() ? decoded.trim() : '';
+  } catch {
+    return match[2].trim();
+  }
+}
+
+function commandFromPayload(rawText) {
   const direct = firstString([
     'command',
     'toolInput.command',
@@ -87,7 +114,10 @@ function commandFromPayload() {
     }
   }
 
-  return '';
+  const embedded = extractEmbeddedCommand(rawText);
+  if (embedded) return embedded;
+
+  return typeof rawText === 'string' ? rawText.trim() : '';
 }
 
 function expandHomePatterns(entries, homeDir) {
@@ -234,7 +264,7 @@ const cwd = path.resolve(
   firstString(['cwd', 'workingDirectory', 'workspace.cwd', 'toolInput.cwd', 'tool_input.cwd']) ||
     process.cwd()
 );
-const command = commandFromPayload();
+const command = commandFromPayload(rawText);
 const repoRoot = currentRepoRoot(cwd);
 const protectedPaths = expandHomePatterns(
   readLines('protected-paths.txt', ['/', '/Users', '$HOME', '~/Documents', '~/Desktop', '~/Downloads', '~/Library']),
@@ -253,13 +283,52 @@ const dangerousPatterns = readLines('dangerous-patterns.txt', [
   '^\\s*curl\\b',
   '^\\s*wget\\b',
   '^\\s*(bash|sh)\\s+-c\\b'
-]).map((pattern) => new RegExp(pattern));
+]).map((pattern) => new RegExp(pattern, 'm'));
 const safePatterns = readLines('safe-commands.txt', [
   '^\\s*git\\s+(status|diff|show|log|branch|rev-parse|ls-files|fetch)\\b',
   '^\\s*(npm|pnpm|yarn)\\s+(test|lint|typecheck)\\b',
   '^\\s*swift\\s+(test|build)\\b',
   '^\\s*xcodebuild\\s+test\\b'
 ]).map((pattern) => new RegExp(pattern));
+
+function hasDetectableCommand(rawText) {
+  if (firstString(['command', 'toolInput.command', 'tool_input.command', 'input.command', 'bash.command', 'rawCommand'])) {
+    return true;
+  }
+
+  if (extractEmbeddedCommand(rawText)) return true;
+
+  const fallback = typeof rawText === 'string' ? rawText.trim() : '';
+  if (!fallback) return false;
+
+  const shellLikeLines = fallback
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/payload/i.test(line))
+    .filter((line) => !/^[{\[]/.test(line));
+
+  return shellLikeLines.some((line) => {
+    if (safePatterns.some((pattern) => pattern.test(line))) return true;
+    if (dangerousPatterns.some((pattern) => pattern.test(line))) return true;
+
+    return (
+      /[|&;<>`$()]/.test(line) ||
+      /^(?:\.\.?\/|~\/|\/)/.test(line) ||
+      /^[A-Za-z_][A-Za-z0-9_]*=/.test(line)
+    );
+  });
+}
+
+if (parseError && !hasDetectableCommand(rawText)) {
+  emit(
+    'allow',
+    'Hook payload could not be parsed, but no executable command was detected.',
+    cwd,
+    rawText.trim()
+  );
+  process.exit(0);
+}
 
 if (isProtectedCwd(cwd, homeDir, protectedPaths)) {
   emit('deny', 'Current working directory is protected.', cwd, command);
