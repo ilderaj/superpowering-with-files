@@ -4,12 +4,12 @@
 为 Copilot workspace safety 下的 `pretool-guard.sh` 设计并准备一套可执行的修复方案，解决 `PreToolUse` 在只读/低风险工具上异常 abort 的问题，同时保留对危险 shell 命令的安全判定能力，并补齐完整回归测试与验证路径。
 
 ## Current State
-Status: waiting_integration
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: merged into local dev on 2026-04-28 after focused merge verification and cleanup
 
 ## Current Phase
-Phase 5
+Completed
 
 ## Companion Plan
 - Path: `docs/superpowers/plans/2026-04-28-copilot-pretool-guard-regression-fix-plan.md`
@@ -79,5 +79,6 @@ Phase 5
 | Workspace Copilot safety hook 把 agent 的只读工具调用全部中止 | 1 | 用户在终端手动执行 `install --scope=user-global` + `sync` + `doctor` 恢复 authoritative state；由此确认这是 workspace safety runtime 回归，不是仓库永久损坏 |
 
 ## Notes
-- 本轮只设计修复方案，不修改实现代码。
+- 功能分支 `202604280749-copilot-pretool-guard-regression-fix-001` 已合并回本地 `dev`，merge commit 为 `e57e198`。
+- 对应隔离 worktree 与本地功能分支均已清理完成。
 - 当前 active task 的权威状态保存在本目录；companion plan 只承载详细实现步骤与验证清单。

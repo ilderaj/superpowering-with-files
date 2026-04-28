@@ -32,7 +32,7 @@
   - `docs/superpowers/plans/2026-04-28-copilot-pretool-guard-regression-fix-plan.md` (created)
 
 ### Phase 5: worktree 执行启动
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - 读取 active task / findings / progress 与 companion plan，恢复执行上下文。
   - 运行 `./scripts/harness worktree-preflight --task copilot-pretool-guard-regression-fix`，确认 Worktree base: `dev @ 7326b4a703f05832d325ae016a06fddaa79a92e1`。
@@ -56,6 +56,10 @@
   - 在功能分支提交了实现：`557879b fix: harden copilot pretool guard parsing`。
   - 依据用户选择尝试本地 merge 回 `dev`：提交功能分支成功，但 `git merge --no-ff --no-edit 202604280749-copilot-pretool-guard-regression-fix-001` 在主工作区失败，因为 `dev` 上已有未提交改动会覆盖 `tests/adapters/hook-projection.test.mjs` 与 `tests/adapters/sync-hooks.test.mjs`。
   - 用户选择先自行处理 `dev` 工作区的本地改动，再继续本地 merge；因此当前任务状态更新为 `waiting_integration`，功能分支与隔离 worktree 保留。
+  - 本次在干净的主工作区重新执行 `git merge --no-commit --no-ff 202604280749-copilot-pretool-guard-regression-fix-001`，Git 自动合并成功，没有产生手工冲突。
+  - 在主工作区对合并结果运行 `node --test tests/hooks/pretool-guard.test.mjs tests/adapters/hook-projection.test.mjs tests/adapters/sync-hooks.test.mjs`，结果为 40 passing, 0 failing。
+  - 完成本地 merge commit：`e57e198 Merge branch '202604280749-copilot-pretool-guard-regression-fix-001' into dev`。
+  - 清理隔离 worktree `/Users/jared/SuperpoweringWithFiles/.worktrees/202604280749-copilot-pretool-guard-regression-fix-001`，并删除本地分支 `202604280749-copilot-pretool-guard-regression-fix-001`。
 - Files created/modified:
   - `.worktrees/202604280749-copilot-pretool-guard-regression-fix-001/` (created)
   - `.worktrees/202604280749-copilot-pretool-guard-regression-fix-001/tests/hooks/pretool-guard.test.mjs` (modified)
@@ -78,6 +82,7 @@
 | Prose follow-up regression | `node --test tests/hooks/pretool-guard.test.mjs` | 普通 prose 应走 “no executable command detected” reason | 13 passing, 0 failing | ✓ |
 | Final focused verification | `node --test tests/hooks/pretool-guard.test.mjs tests/adapters/hook-projection.test.mjs tests/adapters/sync-hooks.test.mjs` | 全部 follow-up 修复后仍需保持聚焦验证通过 | 38 passing, 0 failing | ✓ |
 | Final installed-hook smoke | install/sync/doctor 后对投影 hook 喂 safe / dangerous / malformed prose / malformed JSON dangerous 四类输入 | allow / ask / allow / ask | 与预期一致；`Harness check passed.` | ✓ |
+| Merge verification on local dev | `node --test tests/hooks/pretool-guard.test.mjs tests/adapters/hook-projection.test.mjs tests/adapters/sync-hooks.test.mjs` | 合并到 `dev` 后聚焦回归仍全部通过 | 40 passing, 0 failing | ✓ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
