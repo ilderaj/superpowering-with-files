@@ -1,5 +1,13 @@
 # Copilot Usage Optimization Implementation Plan
 
+> **Active task path:** `planning/active/copilot-usage-billing-impact-analysis/`
+> **Lifecycle state:** `waiting_integration`
+> **Sync-back status:** implementation completed in worktree `202604281445-copilot-usage-billing-impact-analysis-001`, reviewed against branch HEAD `7b8f628`, and synced back into the active task on 2026-04-29.
+
+- Active task path: `planning/active/copilot-usage-billing-impact-analysis/`
+- Lifecycle state: `waiting_integration`
+- Sync-back status: implementation completed in worktree `202604281445-copilot-usage-billing-impact-analysis-001`, reviewed against branch HEAD `7b8f628`, and synced back into the active task on 2026-04-29.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 在不削弱 Harness 核心约束效果的前提下，继续压缩 Copilot 的 input、cached token 与可控 output 成本，并把这些优化固化成可观测、可回归、可治理的默认行为。

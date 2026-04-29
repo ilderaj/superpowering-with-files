@@ -36,6 +36,11 @@
 - 当前 skill profile 默认值仍是 `full`，`install.mjs` 和 `adoption.mjs` 都按全局默认解析，这会让 Copilot-only installs 继续携带过大的 skills discovery 面。
 - 当前 planning-with-files 对 Copilot 的 `user-prompt-submit` 仍然每次发送完整 hot context；相比已经收紧的 `session-start` / `pre-tool-use`，这里是下一笔最大的重复 recovery tax。
 - 当前 adoption / doctor / verify 还没有把 user-global 与 workspace 的 Copilot 双安装显式建模成 overlap tax；这会掩盖一类真实的 cached token 重复来源。
+- worktree `/Users/jared/SuperpoweringWithFiles/.worktrees/202604281445-copilot-usage-billing-impact-analysis-001`、branch `202604281445-copilot-usage-billing-impact-analysis-001`、HEAD `7b8f628` 才是本任务实现完成情况的权威 review surface；主工作区 `dev` 只能作为基线，不可用于本分支 merge readiness 判断。
+- implementation plan 的 Tasks 1-6 已在该 worktree 中落地，覆盖面包括 Copilot ledger fidelity、lean default skills、planning recovery v2、overlap governance、budget gates、opt-in concise guidance。
+- focused regression suite 在该 worktree 上最新结果为 `101 passed, 0 failed`。
+- Copilot-only live install 之后再次运行 `verify` 和 `doctor --check-only`，结果为 `Harness check passed.`，`Scope overlap verdict: ok`，`Hook payload target: copilot`，`Context warnings: 0`，并且 companion-plan warnings 已清零。
+- 早先 `sync` 被 `AGENTS.md` ownership guard 拦住，根因是 all-target sync 触发了非 Harness-owned path 保护；这不影响 Copilot-targeted live verification，也不构成当前分支的运行时回归证据。
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -58,6 +63,7 @@
 | `skillProfile` summary 初版会污染 entry-only 预算测试 | 将其测量范围收敛到 `hookMode=on` 场景，保留轻量校验稳定性 |
 | Copilot 薄入口如果直接全平台收紧，会改变 Codex / Cursor / Claude 的既有约束面 | 把 profile 映射限制在 `renderEntry(..., 'copilot', 'always-on-core')` 这一个目标级入口 |
 | planning hook 如果直接删除 Copilot `pre-tool-use` 输出，可能把 allow 行为交给平台默认值 | 继续输出 `permissionDecision: allow`，只压缩 `additionalContext` |
+| 之前误在主工作区 `dev` 上复核 merge readiness，导致 review surface 错位 | 后续每次 review 先同时核对 `pwd`、`git branch --show-current`、`git rev-parse --short HEAD`、`git worktree list`，再开始读取 planning 和代码 |
 
 ## Destructive Operations Log
 | Command | Target | Checkpoint | Rollback |
@@ -81,3 +87,4 @@
 - 官方还给出 early May preview bill experience，说明“先建立 usage 可观测性，再做治理”是产品自身推荐路径；这对 Harness 计划意味着第一阶段不该直接重写系统，而应先建立成本可见性与场景预算。
 - 当前实现结果说明：对 Copilot 单独做 target-aware slimming，能够在不改 persisted state、不改其他 target 的前提下，先压掉一批 always-on 重复税。
 - 当前实现结果说明：把 Copilot planning hook 的完整 hot context 收敛到 `user-prompt-submit`，能降低高频事件的重复输入，同时保留 task 恢复主路径。
+- 当前实现结果说明：planning/companion 治理 warning 只要按解析器认可的 `Companion plan` / `Active task path` 字段落盘，就可以通过 `doctor` 做 deterministic 验证，不需要依赖人工解释。
