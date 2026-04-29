@@ -38,10 +38,10 @@ Phase 5
 - **Status:** complete
 
 ### Phase 5: Delivery
-- [ ] Commit the README change
-- [ ] Push the branch
-- [ ] Create the pull request
-- **Status:** in_progress
+- [x] Commit the README change
+- [x] Push the branch
+- [x] Create the pull request
+- **Status:** complete
 
 ## Risk Assessment
 
