@@ -7,9 +7,9 @@
 Status: closed
 Archive Eligible: yes
 Close Reason: merged into local dev on 2026-04-28 after focused merge verification and cleanup
-
-## Current Phase
-Completed
+- Companion plan: `docs/superpowers/plans/2026-04-28-copilot-pretool-guard-regression-fix-plan.md`
+- Companion summary: 以 payload 解析硬化 + Copilot safety adapter 回归测试补齐为主线，修复 `pretool-guard.sh` 在 Copilot `PreToolUse` 上的异常退出。
+- Sync-back status: synced on 2026-04-28
 
 ## Companion Plan
 - Path: `docs/superpowers/plans/2026-04-28-copilot-pretool-guard-regression-fix-plan.md`

@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   approxTokenCount,
   evaluateBudget,
-  measureText
+  loadContextBudgets,
+  measureText,
+  selectBudgetForTarget
 } from '../../harness/installer/lib/context-budget.mjs';
 
 test('measureText counts chars, lines, and approx tokens', () => {
@@ -26,6 +28,21 @@ test('evaluateBudget returns warning and problem verdicts across budget dimensio
     evaluateBudget({ chars: 2, lines: 1, approxTokens: 2 }, budget).verdict,
     'ok'
   );
+});
+
+test('context budget config keeps global hook payload thresholds backward compatible while tightening Copilot only', async () => {
+  const budgets = await loadContextBudgets(process.cwd());
+  const globalBudget = selectBudgetForTarget(budgets.budgets.hookPayload, 'codex', 'budgets.hookPayload');
+  const copilotBudget = selectBudgetForTarget(budgets.budgets.hookPayload, 'copilot', 'budgets.hookPayload');
+
+  assert.deepEqual(globalBudget, {
+    warn: { chars: 12000, lines: 160, tokens: 3000 },
+    problem: { chars: 18000, lines: 240, tokens: 4500 }
+  });
+  assert.deepEqual(copilotBudget, {
+    warn: { chars: 1200, lines: 24, tokens: 300 },
+    problem: { chars: 2000, lines: 40, tokens: 500 }
+  });
 });
 
 test('approxTokenCount respects boundary transitions', () => {

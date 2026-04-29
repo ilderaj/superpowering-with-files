@@ -1,0 +1,7 @@
+Make copilot-concise-output a narrow opt-in profile
+
+- copilot-concise-output is now an empty array in entry-profiles.json so it acts
+  only as an opt-in signal and doesn't include base.md.
+- Updated test to combine baseline with concise opt-in for Copilot.
+
+Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>

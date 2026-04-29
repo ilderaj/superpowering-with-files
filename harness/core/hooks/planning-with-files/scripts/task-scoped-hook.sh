@@ -6,6 +6,7 @@ event="${2:-}"
 root="${HARNESS_PROJECT_ROOT:-$(pwd)}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 active_root="$root/planning/active"
+runtime_root="$root/.harness/planning-with-files"
 
 json_escape() {
   node -e 'let input = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", chunk => { input += chunk; }); process.stdin.on("end", () => { process.stdout.write(JSON.stringify(input)); });'
@@ -27,11 +28,13 @@ active_task_dirs() {
 }
 
 session_sidecar_path() {
-  printf '%s/.session-start' "$1"
+  local task_dir="$1"
+  printf '%s/%s.session-start' "$runtime_root" "$(basename "$task_dir")"
 }
 
 write_session_sidecar() {
   local task_dir="$1"
+  ensure_runtime_root
   printf '%s000' "$(date +%s)" > "$(session_sidecar_path "$task_dir")"
 }
 
@@ -49,6 +52,38 @@ read_session_sidecar() {
 clear_session_sidecar() {
   local task_dir="$1"
   rm -f "$(session_sidecar_path "$task_dir")"
+}
+
+ensure_runtime_root() {
+  mkdir -p "$runtime_root"
+}
+
+last_hot_context_fingerprint_path() {
+  local task_dir="$1"
+  printf '%s/%s.last-hot-context.sha256' "$runtime_root" "$(basename "$task_dir")"
+}
+
+read_last_hot_context_fingerprint() {
+  local task_dir="$1"
+  local sidecar
+  sidecar="$(last_hot_context_fingerprint_path "$task_dir")"
+  if [ ! -f "$sidecar" ]; then
+    return 0
+  fi
+
+  tr -d '[:space:]' < "$sidecar"
+}
+
+write_last_hot_context_fingerprint() {
+  local task_dir="$1"
+  local fingerprint="$2"
+  ensure_runtime_root
+  printf '%s\n' "$fingerprint" > "$(last_hot_context_fingerprint_path "$task_dir")"
+}
+
+clear_last_hot_context_fingerprint() {
+  local task_dir="$1"
+  rm -f "$(last_hot_context_fingerprint_path "$task_dir")"
 }
 
 emit_context() {
@@ -115,9 +150,18 @@ findings="$task_dir/findings.md"
 progress="$task_dir/progress.md"
 hot_context_helper="$script_dir/render-hot-context.mjs"
 summary_helper="$script_dir/render-session-summary.mjs"
+brief_context_helper="$script_dir/render-brief-context.mjs"
 
 render_hot_context() {
   node "$hot_context_helper" "$plan" "$findings" "$progress"
+}
+
+render_brief_context() {
+  node "$brief_context_helper" "$plan" "$findings" "$progress"
+}
+
+render_planning_fingerprint() {
+  node "$brief_context_helper" --fingerprint "$plan" "$findings" "$progress"
 }
 
 render_session_summary() {
@@ -126,32 +170,34 @@ render_session_summary() {
   node "$summary_helper" "$plan" "$findings" "$progress" "${sidecar_epoch:-}"
 }
 
-relative_task_dir() {
-  case "$task_dir" in
+relative_path() {
+  local target_path="$1"
+  case "$target_path" in
     "$root"/*)
-      printf '%s' "${task_dir#$root/}"
+      printf '%s' "${target_path#$root/}"
       ;;
     *)
-      printf '%s' "$task_dir"
+      printf '%s' "$target_path"
       ;;
   esac
 }
 
 render_copilot_session_start_context() {
   local relative_dir
-  relative_dir="$(relative_task_dir)"
+  relative_dir="$(relative_path "$task_dir")"
   printf '%s' "[planning-with-files] Active task detected at ${relative_dir}. Hot context will be injected on the next user prompt. Keep ${relative_dir}/task_plan.md, ${relative_dir}/findings.md, and ${relative_dir}/progress.md authoritative."
 }
 
 render_copilot_pretool_context() {
   local relative_dir
-  relative_dir="$(relative_task_dir)"
+  relative_dir="$(relative_path "$task_dir")"
   printf '%s' "[planning-with-files] Stay aligned with ${relative_dir}/task_plan.md and record tool-impacting progress in ${relative_dir}/progress.md after the tool call."
 }
 
 case "$event" in
   session-start)
     write_session_sidecar "$task_dir"
+    clear_last_hot_context_fingerprint "$task_dir"
     if [ "$target" = "copilot" ]; then
       context="$(render_copilot_session_start_context)"
     else
@@ -160,7 +206,18 @@ case "$event" in
     emit_context "$context" "SessionStart"
     ;;
   user-prompt-submit)
-    context="$(render_hot_context)"
+    if [ "$target" = "copilot" ]; then
+      fingerprint="$(render_planning_fingerprint)"
+      previous_fingerprint="$(read_last_hot_context_fingerprint "$task_dir")"
+      if [ -n "$fingerprint" ] && [ "$fingerprint" = "$previous_fingerprint" ]; then
+        context="$(render_brief_context)"
+      else
+        context="$(render_hot_context)"
+      fi
+      [ -n "$fingerprint" ] && write_last_hot_context_fingerprint "$task_dir" "$fingerprint"
+    else
+      context="$(render_hot_context)"
+    fi
     emit_context "$context" "UserPromptSubmit"
     ;;
   pre-tool-use)
@@ -172,20 +229,22 @@ case "$event" in
     emit_context "$context" "PreToolUse"
     ;;
   post-tool-use)
-    emit_context "[planning-with-files] Update $progress with what you just did. If the phase changed, update $plan." "PostToolUse"
+    emit_context "[planning-with-files] Update $(relative_path "$progress") with what you just did. If the phase changed, update $(relative_path "$plan")." "PostToolUse"
     ;;
   stop)
     context="$(render_session_summary)"
     clear_session_sidecar "$task_dir"
+    clear_last_hot_context_fingerprint "$task_dir"
     emit_context "$context" "Stop"
     ;;
   agent-stop|session-end)
     context="$(render_session_summary)"
     clear_session_sidecar "$task_dir"
+    clear_last_hot_context_fingerprint "$task_dir"
     emit_context "$context" "$event"
     ;;
   error-occurred)
-    emit_context "[planning-with-files] An error occurred. Log the error, attempt, and resolution in $plan." "ErrorOccurred"
+    emit_context "[planning-with-files] An error occurred. Log the error, attempt, and resolution in $(relative_path "$plan")." "ErrorOccurred"
     ;;
   *)
     printf '{}\n'

@@ -9,6 +9,10 @@ import {
   formatDuration
 } from '../../harness/core/hooks/planning-with-files/scripts/session-summary.mjs';
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 test('extractPhases reads phase titles and explicit status lines', () => {
   const phases = extractPhases([
     '# Session Summary',
@@ -289,6 +293,7 @@ for (const fixture of summaryFixtures) {
       });
 
       fixture.assertSummary(summary);
+      assert.doesNotMatch(summary, new RegExp(escapeRegExp(paths.root)));
     } finally {
       await rm(paths.root, { recursive: true, force: true });
     }

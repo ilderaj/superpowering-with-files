@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { access, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { readState, writeState } from '../../harness/installer/lib/state.mjs';
@@ -15,6 +15,13 @@ const execFileAsync = promisify(execFile);
 function harnessCommand(root, ...args) {
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
     cwd: root
+  });
+}
+
+function harnessCommandWithEnv(root, env, ...args) {
+  return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
+    cwd: root,
+    env: { ...process.env, ...env }
   });
 }
 
@@ -60,6 +67,17 @@ test('verify --help prints usage without writing reports', async () => {
   }
 });
 
+test('adopt-global --help describes explicit skills profile precedence', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const { stdout } = await harnessCommand(root, 'adopt-global', '--help');
+    assert.match(stdout, /Usage: \.\/scripts\/harness adopt-global/);
+    assert.match(stdout, /--skills-profile=<name>\s+Override the skills profile; explicit values always win\./);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('install stores the selected entry and skills profiles in state', async () => {
   const root = await createHarnessFixture();
   try {
@@ -77,6 +95,38 @@ test('install stores the selected entry and skills profiles in state', async () 
     assert.equal(state.skillProfile, 'minimal-global');
     assert.equal(state.scope, 'workspace');
     assert.equal(state.targets.codex.enabled, true);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install defaults Copilot-only installs to copilot-default skills profile', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await harnessCommand(root, 'install', '--scope=workspace', '--targets=copilot');
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'copilot-default');
+    assert.equal(state.targets.copilot.enabled, true);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install lets an explicit Copilot skills profile override win over the default', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await harnessCommand(
+      root,
+      'install',
+      '--scope=workspace',
+      '--targets=copilot',
+      '--skills-profile=minimal-global'
+    );
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'minimal-global');
+    assert.equal(state.targets.copilot.enabled, true);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -236,6 +286,60 @@ test('verify prints to stdout by default without writing reports', async () => {
     assert.match(stdout, /Planning hot context verdict:/);
     assert.match(stdout, /Skill profile verdict:/);
     await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('verify renders overlap and per-target hook ledger rows when Copilot is enabled', async () => {
+  const root = await createHarnessFixture();
+  const home = path.join(root, 'home');
+  try {
+    await mkdir(home, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'both',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        copilot: {
+          enabled: true,
+          paths: [
+            path.join(root, '.github/copilot-instructions.md'),
+            path.join(home, '.copilot/instructions/harness.instructions.md')
+          ]
+        }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      [
+        '# Compact Task',
+        '',
+        '## Goal',
+        '- Keep Copilot verification ledger output visible.',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await harnessCommandWithEnv(root, { HOME: home }, 'sync');
+    const { stdout } = await harnessCommandWithEnv(root, { HOME: home }, 'verify');
+
+    assert.match(stdout, /Hook payload verdict:/);
+    assert.match(stdout, /Hook payload target: copilot/);
+    assert.match(stdout, /Hook payload detail:/);
+    assert.match(stdout, /copilot \/ planning-hot \/ (?:ok|problem) \/ \d+ tokens/);
+    assert.match(stdout, /Scope overlap verdict: warning/);
+    assert.match(stdout, /Scope overlap detail: copilot -> workspace \+ user-global/);
+    assert.match(stdout, /Recommended action: choose one canonical scope for Copilot/i);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -500,6 +604,42 @@ test('doctor prints safety checks for safety profile installs', async () => {
     assert.match(stdout, /Safety checks:/);
     assert.match(stdout, /checkpointExecutable: ok/);
     assert.match(stdout, /riskAssessmentTemplatePatched: ok/);
+    assert.match(stdout, /Harness check passed\./);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('doctor prints overlap governance guidance without failing a recoverable Copilot overlap', async () => {
+  const root = await createHarnessFixture();
+  const home = path.join(root, 'home');
+  try {
+    await mkdir(home, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'both',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        copilot: {
+          enabled: true,
+          paths: [
+            path.join(root, '.github/copilot-instructions.md'),
+            path.join(home, '.copilot/instructions/harness.instructions.md')
+          ]
+        }
+      },
+      upstream: {}
+    });
+
+    await harnessCommandWithEnv(root, { HOME: home }, 'sync');
+    const { stdout, stderr } = await harnessCommandWithEnv(root, { HOME: home }, 'doctor', '--check-only');
+    const overlapMatches = `${stdout}\n${stderr}`.match(/choose one canonical scope for Copilot/gi) ?? [];
+
+    assert.match(stdout, /Scope overlap verdict: warning/);
+    assert.match(stdout, /Scope overlap detail: copilot -> workspace \+ user-global/);
+    assert.match(stdout, /Recommended action: choose one canonical scope for Copilot/i);
+    assert.equal(overlapMatches.length, 1);
     assert.match(stdout, /Harness check passed\./);
   } finally {
     await removeHarnessFixture(root);

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { entriesForScope, loadAdapter } from './adapters.mjs';
 import { readBackupIndex } from './backup-archive.mjs';
-import { evaluateBudget, loadContextBudgets, measureText } from './context-budget.mjs';
+import { evaluateBudget, loadContextBudgets, measureText, selectBudgetForTarget } from './context-budget.mjs';
 import { hookEntryMarker } from './hook-config.mjs';
 import { planHookProjections } from './hook-projection.mjs';
 import { loadPlatforms } from './metadata.mjs';
@@ -23,7 +23,9 @@ import { readUserManaged } from './user-managed.mjs';
 const execFileAsync = promisify(execFile);
 const HOOK_PAYLOAD_TIMEOUT_MS = 2000;
 const MEASURED_HOOK_PAYLOAD_SKILLS = new Set(['superpowers', 'planning-with-files']);
-const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex']);
+const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot']);
+const COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION =
+  'choose one canonical scope for Copilot unless the workspace install is intentionally overriding safety policy.';
 const VERDICT_RANK = {
   unknown: -1,
   ok: 0,
@@ -336,6 +338,18 @@ function addUniqueMessage(collection, message) {
   }
 }
 
+function reportBudgetSelectionIssues(scopeName, budget, contextWarnings, warnings, problems) {
+  const issues = budget?.selectionIssues ?? [];
+  if (issues.length === 0) {
+    return;
+  }
+
+  const message = `context ${scopeName} problem: malformed target budget override (${issues.join('; ')})`;
+  addUniqueMessage(contextWarnings, message);
+  addUniqueMessage(warnings, message);
+  addUniqueMessage(problems, message);
+}
+
 function addMeasurement(targets, target, measurement) {
   const current = targets.get(target) ?? {
     target,
@@ -524,23 +538,6 @@ function selectRuntimeSourcePath(projection) {
   );
 }
 
-function selectHookPayloadArgs(projection) {
-  if (projection.parentSkillName !== 'planning-with-files') {
-    return [];
-  }
-
-  const eventName =
-    projection.eventNames?.find((name) => /userpromptsubmit/i.test(name)) ??
-    projection.eventNames?.[0] ??
-    'UserPromptSubmit';
-  const eventArg = eventName
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/_/g, '-')
-    .toLowerCase();
-
-  return [projection.target, eventArg];
-}
-
 function selectHookPayloadEventName(projection) {
   if (projection.parentSkillName !== 'planning-with-files') {
     return projection.eventNames?.[0] ?? null;
@@ -553,11 +550,59 @@ function selectHookPayloadEventName(projection) {
   );
 }
 
-function createHookPayloadFailureEntry(projection, runtimePath, message) {
+function normalizeHookEventName(eventName) {
+  return typeof eventName === 'string' ? eventName.replace(/[^A-Za-z0-9]/g, '').toLowerCase() : '';
+}
+
+function classifyHookPayload({ parentSkillName, eventName }) {
+  if (parentSkillName === 'superpowers') return 'bootstrap';
+
+  const normalizedEventName = normalizeHookEventName(eventName);
+  if (normalizedEventName === 'sessionstart') return 'planning-brief';
+  if (normalizedEventName === 'userpromptsubmit') return 'planning-hot';
+  if (normalizedEventName === 'stop') return 'session-summary';
+  return 'other';
+}
+
+function toHookPayloadEventArg(eventName) {
+  return eventName
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/_/g, '-')
+    .toLowerCase();
+}
+
+function selectHookPayloadRequests(projection) {
+  if (projection.parentSkillName === 'superpowers') {
+    const eventName = selectHookPayloadEventName(projection);
+    return eventName ? [{ eventName, args: [] }] : [];
+  }
+
+  if (projection.parentSkillName !== 'planning-with-files') {
+    return [];
+  }
+
+  if (projection.target === 'copilot') {
+    return (projection.eventNames ?? [])
+      .filter((eventName) =>
+        ['sessionstart', 'userpromptsubmit', 'stop'].includes(normalizeHookEventName(eventName))
+      )
+      .map((eventName) => ({
+        eventName,
+        args: [projection.target, toHookPayloadEventArg(eventName)]
+      }));
+  }
+
+  const eventName = selectHookPayloadEventName(projection);
+  return eventName ? [{ eventName, args: [projection.target, toHookPayloadEventArg(eventName)] }] : [];
+}
+
+function createHookPayloadFailureEntry(projection, runtimePath, message, eventNameOverride = null) {
+  const eventName = eventNameOverride ?? selectHookPayloadEventName(projection);
   return {
     target: projection.target,
     parentSkillName: projection.parentSkillName,
-    eventName: selectHookPayloadEventName(projection),
+    eventName,
+    category: classifyHookPayload({ parentSkillName: projection.parentSkillName, eventName }),
     runtimePath,
     measurement: null,
     evaluation: null,
@@ -566,27 +611,209 @@ function createHookPayloadFailureEntry(projection, runtimePath, message) {
   };
 }
 
-function validateHookPayloadOutput(output, runtimePath) {
+function parseHookPayloadOutput(output, runtimePath) {
   let payload;
   try {
     payload = JSON.parse(output);
   } catch {
-    return `Hook payload output is not valid JSON: ${runtimePath}`;
+    return {
+      payload: null,
+      problem: `Hook payload output is not valid JSON: ${runtimePath}`
+    };
   }
 
   if (!isPlainObject(payload?.hookSpecificOutput)) {
-    return `Hook payload output is missing hookSpecificOutput: ${runtimePath}`;
+    return {
+      payload: null,
+      problem: `Hook payload output is missing hookSpecificOutput: ${runtimePath}`
+    };
   }
 
   if (typeof payload.hookSpecificOutput.additionalContext !== 'string') {
-    return `Hook payload output is missing hookSpecificOutput.additionalContext: ${runtimePath}`;
+    return {
+      payload: null,
+      problem: `Hook payload output is missing hookSpecificOutput.additionalContext: ${runtimePath}`
+    };
   }
 
   if (typeof payload.hookSpecificOutput.hookEventName !== 'string') {
-    return `Hook payload output is missing hookSpecificOutput.hookEventName: ${runtimePath}`;
+    return {
+      payload: null,
+      problem: `Hook payload output is missing hookSpecificOutput.hookEventName: ${runtimePath}`
+    };
   }
 
-  return null;
+  return { payload, problem: null };
+}
+
+function pathScope(rootDir, homeDir, targetPath) {
+  const resolvedPath = path.resolve(targetPath);
+  const resolvedRootDir = path.resolve(rootDir);
+  const resolvedHomeDir = path.resolve(homeDir);
+  const matchingScopes = [];
+
+  if (resolvedPath === resolvedRootDir || resolvedPath.startsWith(`${resolvedRootDir}${path.sep}`)) {
+    matchingScopes.push({ scope: 'workspace', prefixLength: resolvedRootDir.length });
+  }
+
+  if (resolvedPath === resolvedHomeDir || resolvedPath.startsWith(`${resolvedHomeDir}${path.sep}`)) {
+    matchingScopes.push({ scope: 'user-global', prefixLength: resolvedHomeDir.length });
+  }
+
+  if (matchingScopes.length === 0) {
+    return 'external';
+  }
+
+  matchingScopes.sort((left, right) => right.prefixLength - left.prefixLength || left.scope.localeCompare(right.scope));
+  return matchingScopes[0].scope;
+}
+
+function mergeUnique(values = [], additions = []) {
+  return [...new Set([...(values ?? []), ...(additions ?? [])])];
+}
+
+function compareMeasurements(left, right) {
+  if ((left?.approxTokens ?? 0) !== (right?.approxTokens ?? 0)) {
+    return (left?.approxTokens ?? 0) - (right?.approxTokens ?? 0);
+  }
+
+  if ((left?.chars ?? 0) !== (right?.chars ?? 0)) {
+    return (left?.chars ?? 0) - (right?.chars ?? 0);
+  }
+
+  return (left?.lines ?? 0) - (right?.lines ?? 0);
+}
+
+function aggregateHookPayloadEntries(entries, hookPayloadBudget, contextWarnings, warnings, problems) {
+  const aggregated = new Map();
+  const passthrough = [];
+
+  for (const entry of entries) {
+    if (!entry.measurement || entry.status === 'problem' && !entry.evaluation) {
+      passthrough.push(entry);
+      continue;
+    }
+
+    const key = [entry.target, entry.parentSkillName, entry.eventName, entry.category].join('\0');
+    const current = aggregated.get(key);
+    if (!current) {
+      aggregated.set(key, {
+        ...entry,
+        measurement: { ...entry.measurement },
+        scopes: [...(entry.scopes ?? [])],
+        runtimePaths: [...(entry.runtimePaths ?? (entry.runtimePath ? [entry.runtimePath] : []))]
+      });
+      continue;
+    }
+
+    if (compareMeasurements(entry.measurement, current.measurement) > 0) {
+      current.measurement = { ...entry.measurement };
+      current.runtimePath = entry.runtimePath ?? current.runtimePath;
+    }
+    current.scopes = mergeUnique(current.scopes, entry.scopes);
+    current.runtimePaths = mergeUnique(current.runtimePaths, entry.runtimePaths ?? (entry.runtimePath ? [entry.runtimePath] : []));
+  }
+
+  return [...aggregated.values(), ...passthrough]
+    .map((entry) => {
+      if (entry.status === 'problem' && !entry.evaluation) {
+        return entry;
+      }
+
+      if (!entry.measurement || !hookPayloadBudget) {
+        return {
+          ...entry,
+          evaluation: entry.measurement ? null : entry.evaluation,
+          status: entry.status ?? 'unknown'
+        };
+      }
+
+      const evaluation = evaluateBudget(entry.measurement, hookPayloadBudget);
+      const result = {
+        ...entry,
+        evaluation: toBudgetEvaluation(evaluation, hookPayloadBudget),
+        status: evaluation.verdict === 'ok' ? 'ok' : evaluation.verdict
+      };
+
+      if (evaluation.verdict !== 'ok') {
+        const message = formatBudgetMessage(
+          `hook payload ${result.target} ${result.parentSkillName} ${result.eventName ?? 'unknown'}`,
+          result.measurement,
+          hookPayloadBudget,
+          evaluation.verdict
+        );
+        result.message = message;
+        addUniqueMessage(contextWarnings, message);
+        addUniqueMessage(warnings, message);
+        if (evaluation.verdict === 'problem') {
+          addUniqueMessage(problems, message);
+        }
+      }
+
+      return result;
+    })
+    .sort((left, right) =>
+      [
+        left.target ?? '',
+        left.category ?? '',
+        left.parentSkillName ?? '',
+        left.eventName ?? '',
+        left.status ?? ''
+      ]
+        .join('\0')
+        .localeCompare(
+          [
+            right.target ?? '',
+            right.category ?? '',
+            right.parentSkillName ?? '',
+            right.eventName ?? '',
+            right.status ?? ''
+          ].join('\0')
+        )
+    );
+}
+
+function inspectScopeOverlap(rootDir, homeDir, targets) {
+  const overlaps = [];
+
+  for (const [target, targetHealth] of Object.entries(targets)) {
+    if (target !== 'copilot') {
+      continue;
+    }
+
+    const scopes = new Set();
+    for (const entry of targetHealth.entries ?? []) {
+      scopes.add(pathScope(rootDir, homeDir, entry.path));
+    }
+    for (const hook of targetHealth.hooks ?? []) {
+      if (typeof hook.configTarget === 'string') {
+        scopes.add(pathScope(rootDir, homeDir, hook.configTarget));
+      }
+    }
+
+    if (scopes.has('workspace') && scopes.has('user-global')) {
+      overlaps.push({
+        target,
+        scopes: ['user-global', 'workspace'],
+        verdict: 'warning',
+        message: 'Copilot is projected in both workspace and user-global scopes; this can duplicate startup and hook context.',
+        recommendedAction: COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION
+      });
+    }
+  }
+
+  const recommendedAction = overlaps.length > 0
+    ? COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION
+    : null;
+
+  return {
+    verdict: overlaps.length > 0 ? 'warning' : 'ok',
+    targets: overlaps.map((overlap) => overlap.target),
+    overlaps,
+    details: overlaps.map((overlap) => `${overlap.target} -> workspace + user-global`),
+    message: overlaps[0]?.message ?? null,
+    recommendedAction
+  };
 }
 
 async function runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir) {
@@ -916,76 +1143,63 @@ async function inspectLocalHookPayloads(
       continue;
     }
 
-    const args = selectHookPayloadArgs(projection);
-    const result = await runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir);
-    const output = result.stdout ?? '';
-    const measurement = measureText(output);
+    for (const request of selectHookPayloadRequests(projection)) {
+      const result = await runHookPayloadMeasurement(runtimePath, request.args, rootDir, homeDir);
+      const output = result.stdout ?? '';
+      const measurement = measureText(output);
 
-    if (result.timedOut) {
-      const message = `Hook payload measurement timed out after ${HOOK_PAYLOAD_TIMEOUT_MS}ms: ${runtimePath}`;
-      const entry = createHookPayloadFailureEntry(projection, runtimePath, message);
-      entry.measurement = measurement;
-      addUniqueMessage(contextWarnings, message);
-      addUniqueMessage(warnings, message);
-      addUniqueMessage(problems, message);
-      measurements.push(entry);
-      continue;
-    }
-
-    if (result.error) {
-      const message = `Hook payload measurement failed for ${runtimePath}: ${
-        result.error instanceof Error ? result.error.message : String(result.error)
-      }`;
-      const entry = createHookPayloadFailureEntry(projection, runtimePath, message);
-      entry.measurement = measurement;
-      addUniqueMessage(contextWarnings, message);
-      addUniqueMessage(warnings, message);
-      addUniqueMessage(problems, message);
-      measurements.push(entry);
-      continue;
-    }
-
-    const outputProblem = validateHookPayloadOutput(output, runtimePath);
-    if (outputProblem) {
-      const entry = createHookPayloadFailureEntry(projection, runtimePath, outputProblem);
-      entry.measurement = measurement;
-      addUniqueMessage(contextWarnings, outputProblem);
-      addUniqueMessage(warnings, outputProblem);
-      addUniqueMessage(problems, outputProblem);
-      measurements.push(entry);
-      continue;
-    }
-
-    const evaluation = evaluateBudget(measurement, hookPayloadBudget);
-    const entry = {
-      target: projection.target,
-      parentSkillName: projection.parentSkillName,
-      eventName: selectHookPayloadEventName(projection),
-      runtimePath,
-      measurement,
-      evaluation: toBudgetEvaluation(evaluation, hookPayloadBudget),
-      status: evaluation.verdict === 'ok' ? 'ok' : evaluation.verdict
-    };
-
-    if (evaluation.verdict !== 'ok') {
-      const message = formatBudgetMessage(
-        `hook payload ${projection.target} ${projection.parentSkillName} ${entry.eventName ?? 'unknown'}`,
-        measurement,
-        hookPayloadBudget,
-        evaluation.verdict
-      );
-      entry.message = message;
-      addUniqueMessage(contextWarnings, message);
-      addUniqueMessage(warnings, message);
-      if (evaluation.verdict === 'problem') {
+      if (result.timedOut) {
+        const message = `Hook payload measurement timed out after ${HOOK_PAYLOAD_TIMEOUT_MS}ms: ${runtimePath}`;
+        const entry = createHookPayloadFailureEntry(projection, runtimePath, message, request.eventName);
+        entry.measurement = measurement;
+        addUniqueMessage(contextWarnings, message);
+        addUniqueMessage(warnings, message);
         addUniqueMessage(problems, message);
+        measurements.push(entry);
+        continue;
       }
-    }
 
-    measurements.push(entry);
+      if (result.error) {
+        const message = `Hook payload measurement failed for ${runtimePath}: ${
+          result.error instanceof Error ? result.error.message : String(result.error)
+        }`;
+        const entry = createHookPayloadFailureEntry(projection, runtimePath, message, request.eventName);
+        entry.measurement = measurement;
+        addUniqueMessage(contextWarnings, message);
+        addUniqueMessage(warnings, message);
+        addUniqueMessage(problems, message);
+        measurements.push(entry);
+        continue;
+      }
+
+      const { payload, problem } = parseHookPayloadOutput(output, runtimePath);
+      if (problem) {
+        const entry = createHookPayloadFailureEntry(projection, runtimePath, problem, request.eventName);
+        entry.measurement = measurement;
+        addUniqueMessage(contextWarnings, problem);
+        addUniqueMessage(warnings, problem);
+        addUniqueMessage(problems, problem);
+        measurements.push(entry);
+        continue;
+      }
+
+      const eventName = payload.hookSpecificOutput.hookEventName;
+      measurements.push({
+        target: projection.target,
+        parentSkillName: projection.parentSkillName,
+        eventName,
+        category: classifyHookPayload({ parentSkillName: projection.parentSkillName, eventName }),
+        runtimePath,
+        runtimePaths: [runtimePath],
+        scopes: [pathScope(rootDir, homeDir, runtimePath)],
+        measurement,
+        evaluation: null,
+        status: 'ok'
+      });
+    }
   }
 
-  return measurements;
+  return aggregateHookPayloadEntries(measurements, hookPayloadBudget, contextWarnings, warnings, problems);
 }
 
 export async function readHarnessHealth(rootDir, homeDir) {
@@ -1000,6 +1214,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
   const activeTaskDir = await findSingleActiveTaskDir(rootDir);
   const entryTotalsByTarget = new Map();
   const hookTotalsByTarget = new Map();
+  const hookBudgetsByTarget = new Map();
   const planningTotalsByTarget = new Map();
   const skillProfileTotalsByTarget = new Map();
 
@@ -1110,17 +1325,21 @@ export async function readHarnessHealth(rootDir, homeDir) {
 
     targets[target] = { entries, skills, hooks };
 
+    const hookBudget = selectBudgetForTarget(budgets?.budgets?.hookPayload, target, 'budgets.hookPayload');
+    hookBudgetsByTarget.set(target, hookBudget);
+    reportBudgetSelectionIssues(`hook payload ${target}`, hookBudget, context.warnings, warnings, problems);
+
     const hookEntries = await inspectLocalHookPayloads(
-        rootDir,
-        homeDir,
-        activeTaskDir,
-        budgets?.budgets?.hookPayload,
-        state.hookMode,
-        hooks,
-        context.warnings,
-        warnings,
-        problems
-      );
+      rootDir,
+      homeDir,
+      activeTaskDir,
+      hookBudget,
+      state.hookMode,
+      hooks,
+      context.warnings,
+      warnings,
+      problems
+    );
     context.hooks.push(...hookEntries);
     for (const hookEntry of hookEntries) {
       if (hookEntry.measurement) {
@@ -1175,12 +1394,17 @@ export async function readHarnessHealth(rootDir, homeDir) {
 
   const hookBudget = budgets?.budgets?.hookPayload;
   const hookTargetTotals = [...hookTotalsByTarget.values()].map((measurement) => {
-    if (!hookBudget) {
+    const targetHookBudget = hookBudgetsByTarget.get(measurement.target) ?? hookBudget;
+    if (!targetHookBudget) {
       return { ...measurement, verdict: 'unknown', evaluation: null };
     }
 
-    const evaluation = evaluateBudget(measurement, hookBudget);
-    return { ...measurement, verdict: evaluation.verdict, evaluation: toBudgetEvaluation(evaluation, hookBudget) };
+    const evaluation = evaluateBudget(measurement, targetHookBudget);
+    return {
+      ...measurement,
+      verdict: evaluation.verdict,
+      evaluation: toBudgetEvaluation(evaluation, targetHookBudget)
+    };
   });
   applyContextSummary(context.summary.hooks, hookTargetTotals, hookBudget);
 
@@ -1213,6 +1437,15 @@ export async function readHarnessHealth(rootDir, homeDir) {
     };
   });
   applyContextSummary(context.summary.skillProfiles, skillProfileTargetTotals, skillProfileBudget);
+  const scopeOverlap = inspectScopeOverlap(rootDir, homeDir, targets);
+  for (const overlap of scopeOverlap.overlaps ?? []) {
+    const recommendedAction = overlap.recommendedAction ?? scopeOverlap.recommendedAction;
+    const message = recommendedAction
+      ? `scope overlap ${overlap.target}: ${overlap.message} Recommended action: ${recommendedAction}`
+      : `scope overlap ${overlap.target}: ${overlap.message}`;
+    addUniqueMessage(context.warnings, message);
+    addUniqueMessage(warnings, message);
+  }
 
   const safety = await inspectSafetyHealth(rootDir, homeDir, state, targets);
   for (const check of safety.checks) {
@@ -1263,6 +1496,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     context,
     safety,
     userManaged,
+    scopeOverlap,
     targets,
     problems
   };

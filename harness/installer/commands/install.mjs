@@ -2,7 +2,7 @@ import os from 'node:os';
 import { loadPlatforms, normalizeScope, normalizeTargets } from '../lib/metadata.mjs';
 import { loadPolicyProfiles } from '../lib/policy-render.mjs';
 import { resolveTargetPaths } from '../lib/paths.mjs';
-import { loadSkillProfiles } from '../lib/skill-projection.mjs';
+import { defaultSkillProfileForTargets, loadSkillProfiles } from '../lib/skill-projection.mjs';
 import { isSafetyPolicyProfile } from '../lib/safety-projection.mjs';
 import { writeState } from '../lib/state.mjs';
 import { sync } from './sync.mjs';
@@ -26,9 +26,13 @@ export async function install(args = []) {
     'hooks',
     ['safety', 'cloud-safe'].includes(policyProfile) ? 'on' : 'off'
   );
-  const skillProfile = readOption(args, 'skills-profile', skillProfiles.defaultProfile);
   const targetArg = readOption(args, 'targets', 'all');
   const targets = normalizeTargets(metadata, targetArg.split(',').filter(Boolean));
+  const skillProfile = defaultSkillProfileForTargets(
+    skillProfiles,
+    targets,
+    readOption(args, 'skills-profile', undefined)
+  );
 
   if (!['link', 'portable'].includes(projectionMode)) {
     throw new Error(`Invalid projection mode: ${projectionMode}`);

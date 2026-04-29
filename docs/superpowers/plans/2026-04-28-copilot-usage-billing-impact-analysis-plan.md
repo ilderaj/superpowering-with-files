@@ -1,7 +1,17 @@
 # Copilot Usage-Based Billing 对 Harness 的开销影响分析与优化计划
 
+> **Active task path:** `planning/active/copilot-usage-billing-impact-analysis/`
+> **Lifecycle state:** `closed`
+> **Sync-back status:** retained as the historical analysis artifact and closed after merge into local `dev`, projection sync, and publication to `origin/dev` on 2026-04-29.
+
+- Active task path: `planning/active/copilot-usage-billing-impact-analysis/`
+- Lifecycle state: `closed`
+- Sync-back status: retained as the historical analysis artifact and closed after merge into local `dev`, projection sync, and publication to `origin/dev` on 2026-04-29.
+
 > Active task: `planning/active/copilot-usage-billing-impact-analysis/`
 > Scope: plan only, no implementation in this round.
+
+Active task path: planning/active/copilot-usage-billing-impact-analysis/
 
 ## 目标
 

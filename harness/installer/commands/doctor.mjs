@@ -24,6 +24,43 @@ function renderSafetySection(safety) {
   return `${lines.join('\n')}\n`;
 }
 
+function renderHookPayloadSection(health) {
+  const hooks = health.context?.hooks ?? [];
+  const lines = [
+    `Hook payload verdict: ${health.context?.summary?.hooks?.verdict ?? 'unknown'}`,
+    `Hook payload target: ${health.context?.summary?.hooks?.target ?? 'none'}`,
+    'Hook payload detail:'
+  ];
+
+  if (hooks.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const hook of hooks) {
+      lines.push(
+        `- ${hook.target} / ${hook.category ?? 'other'} / ${hook.status ?? 'unknown'} / ${hook.measurement?.approxTokens ?? 0} tokens`
+      );
+    }
+  }
+
+  lines.push(`Scope overlap verdict: ${health.scopeOverlap?.verdict ?? 'ok'}`);
+  lines.push(`Scope overlap detail: ${health.scopeOverlap?.details?.length ? health.scopeOverlap.details.join('; ') : 'None.'}`);
+  if (health.scopeOverlap?.recommendedAction) {
+    lines.push(`Recommended action: ${health.scopeOverlap.recommendedAction}`);
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function renderedScopeOverlapWarnings(health) {
+  return new Set(
+    (health.scopeOverlap?.overlaps ?? []).map((overlap) => {
+      const recommendedAction = overlap.recommendedAction ?? health.scopeOverlap?.recommendedAction;
+      return recommendedAction
+        ? `scope overlap ${overlap.target}: ${overlap.message} Recommended action: ${recommendedAction}`
+        : `scope overlap ${overlap.target}: ${overlap.message}`;
+    })
+  );
+}
+
 export async function doctor(args = []) {
   const checkOnly = args.includes('--check-only');
   const health = await readHarnessHealth(process.cwd(), os.homedir());
@@ -49,9 +86,11 @@ export async function doctor(args = []) {
   const uniqueWarnings = warnings.filter((warning, index) => {
     return !uniqueProblems.includes(warning) && warnings.indexOf(warning) === index;
   });
+  const scopeOverlapWarnings = renderedScopeOverlapWarnings(health);
+  const renderedWarnings = uniqueWarnings.filter((warning) => !scopeOverlapWarnings.has(warning));
 
-  if (uniqueWarnings.length) {
-    console.error(uniqueWarnings.join('\n'));
+  if (renderedWarnings.length) {
+    console.error(renderedWarnings.join('\n'));
   }
 
   if (uniqueProblems.length) {
@@ -59,6 +98,7 @@ export async function doctor(args = []) {
     if (safetySection) {
       console.log(safetySection);
     }
+    console.log(renderHookPayloadSection(health));
     console.error(uniqueProblems.join('\n'));
     process.exitCode = 1;
     return;
@@ -68,6 +108,7 @@ export async function doctor(args = []) {
   if (safetySection) {
     console.log(safetySection);
   }
+  console.log(renderHookPayloadSection(health));
   console.log(checkOnly ? 'Harness check passed.' : 'Harness installation is healthy.');
 }
 

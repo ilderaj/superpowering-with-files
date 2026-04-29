@@ -8,7 +8,7 @@ import { loadPlatforms, normalizeTargets } from './metadata.mjs';
 import { loadPolicyProfiles } from './policy-render.mjs';
 import { resolveTargetPaths } from './paths.mjs';
 import { isSafetyPolicyProfile } from './safety-projection.mjs';
-import { loadSkillProfiles } from './skill-projection.mjs';
+import { defaultSkillProfileForTargets, loadSkillProfiles } from './skill-projection.mjs';
 import { readState, writeState } from './state.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -137,7 +137,14 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
   const projectionMode = options.projectionMode ?? state.projectionMode ?? 'link';
   const hookMode = options.hookMode ?? state.hookMode ?? 'off';
   const policyProfile = options.policyProfile ?? state.policyProfile ?? policyProfiles.defaultProfile;
-  const skillProfile = options.skillProfile ?? state.skillProfile ?? skillProfiles.defaultProfile;
+  const requestedSkillProfile = options.skillProfile;
+  const preservingExistingUserGlobalState =
+    state.scope === 'user-global' && !isEffectivelyEmptyState(state) && mode !== 'force';
+  const skillProfile =
+    requestedSkillProfile ??
+    (preservingExistingUserGlobalState
+      ? state.skillProfile
+      : defaultSkillProfileForTargets(skillProfiles, requestedTargets, undefined));
 
   validateProjectionMode(projectionMode);
   validateHookMode(hookMode);
@@ -168,14 +175,11 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
     state.scope === 'user-global'
       ? {
           ...state,
-          projectionMode: mode === 'force' ? projectionMode : state.projectionMode,
-          hookMode: mode === 'force' ? hookMode : state.hookMode,
-          policyProfile: mode === 'force' ? policyProfile : state.policyProfile,
-          skillProfile: mode === 'force' ? skillProfile : state.skillProfile,
-          targets:
-            mode === 'force'
-              ? buildTargetState(rootDir, homeDir, requestedTargets)
-              : state.targets
+          projectionMode: preservingExistingUserGlobalState ? state.projectionMode : projectionMode,
+          hookMode: preservingExistingUserGlobalState ? state.hookMode : hookMode,
+          policyProfile: preservingExistingUserGlobalState ? state.policyProfile : policyProfile,
+          skillProfile,
+          targets: preservingExistingUserGlobalState ? state.targets : buildTargetState(rootDir, homeDir, requestedTargets)
         }
       : {
           schemaVersion: 1,
@@ -222,10 +226,12 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
   const { repoHead, repoBranch } = await readGitMetadata(rootDir);
   const reasons = [];
   const targets = enabledTargetsFromState(state);
+  const copilotOverlap = health.scopeOverlap?.overlaps?.find((overlap) => overlap.target === 'copilot');
+  const hasRecoverableCopilotOverlap = Boolean(copilotOverlap);
 
   let status = 'in_sync';
 
-  if (state.scope !== 'user-global') {
+  if (state.scope !== 'user-global' && !hasRecoverableCopilotOverlap) {
     status = 'state_mismatch';
     reasons.push(`Expected scope user-global, found ${state.scope}.`);
   }
@@ -240,6 +246,15 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
       status = 'apply_failed';
     }
     reasons.push(...health.problems);
+  }
+
+  if (hasRecoverableCopilotOverlap) {
+    if (status === 'in_sync') {
+      status = 'needs_apply';
+    }
+    reasons.push(
+      'Workspace Copilot projection overlaps user-global install; choose one canonical scope for Copilot unless the workspace install is intentionally overriding safety policy.'
+    );
   }
 
   if (!receipt) {

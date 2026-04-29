@@ -9,9 +9,9 @@ Archive Eligible: no
 Close Reason: Codex planning hooks now follow the verified-event allowlist; awaiting review.
 
 ## Companion Plan
-Path: `docs/superpowers/plans/2026-04-27-codex-hook-allowlist-implementation-plan.md`
-Companion Summary: Event-level Codex hook allowlist rollout plan covering projection, regression tests, docs, and task-memory sync.
-Sync-back Status: implementation completed; active task files synced with rollout results.
+- Companion plan: `docs/superpowers/plans/2026-04-27-codex-hook-allowlist-implementation-plan.md`
+- Companion summary: Event-level Codex hook allowlist rollout plan covering projection, regression tests, docs, and task-memory sync.
+- Sync-back status: implementation completed; active task files synced with rollout results.
 
 ## 阶段
 - [x] 收集 Codex 适配与 hook 投影证据

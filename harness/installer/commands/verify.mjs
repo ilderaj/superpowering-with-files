@@ -24,6 +24,32 @@ function usage() {
   ].join('\n');
 }
 
+function renderHookPayloadDetailLines(hooks = []) {
+  if (hooks.length === 0) {
+    return ['Hook payload detail:', '- none'];
+  }
+
+  return [
+    'Hook payload detail:',
+    ...hooks.map((hook) => {
+      return `- ${hook.target} / ${hook.category ?? 'other'} / ${hook.status ?? 'unknown'} / ${hook.measurement?.approxTokens ?? 0} tokens`;
+    })
+  ];
+}
+
+function renderScopeOverlapLines(scopeOverlap) {
+  const lines = [
+    `Scope overlap verdict: ${scopeOverlap?.verdict ?? 'ok'}`,
+    `Scope overlap detail: ${scopeOverlap?.details?.length ? scopeOverlap.details.join('; ') : 'None.'}`
+  ];
+
+  if (scopeOverlap?.recommendedAction) {
+    lines.push(`Recommended action: ${scopeOverlap.recommendedAction}`);
+  }
+
+  return lines;
+}
+
 function renderMarkdown(report) {
   const context = report.health?.context;
   const summary = context?.summary?.entries;
@@ -45,6 +71,8 @@ function renderMarkdown(report) {
     `Hook payload verdict: ${hookSummary?.verdict ?? 'unknown'}`,
     `Hook payload target: ${hookSummary?.target ?? 'none'}`,
     `Hook payload size: ${hookSummary?.chars ?? 0} chars, ${hookSummary?.lines ?? 0} lines, ${hookSummary?.approxTokens ?? 0} approx tokens (worst target session)`,
+    ...renderHookPayloadDetailLines(context?.hooks ?? []),
+    ...renderScopeOverlapLines(report.health?.scopeOverlap),
     `Planning hot context verdict: ${planningSummary?.verdict ?? 'unknown'}`,
     `Planning hot context target: ${planningSummary?.target ?? 'none'}`,
     `Planning hot context size: ${planningSummary?.chars ?? 0} chars, ${planningSummary?.lines ?? 0} lines, ${planningSummary?.approxTokens ?? 0} approx tokens (worst target session)`,

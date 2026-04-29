@@ -3,8 +3,10 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
 > **Active task path:** `planning/active/copilot-pretool-guard-regression-fix/`
-> **Lifecycle state:** `waiting_execution`
+> **Lifecycle state:** closed
 > **Sync-back status:** synced on 2026-04-28
+
+Active task path: planning/active/copilot-pretool-guard-regression-fix/
 
 **Goal:** 修复 Copilot workspace safety 下 `pretool-guard.sh` 因 payload 解析失败而导致的 `Hook PreToolUse aborted`，并补齐 projection / sync / runtime / smoke 四层回归验证。
 

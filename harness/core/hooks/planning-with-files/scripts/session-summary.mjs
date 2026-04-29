@@ -2,20 +2,34 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const MAX_FINDINGS = 3;
+const MAX_COMPACT_VALUE_LENGTH = 180;
 const SUMMARY_HEADING = '[planning-with-files] SESSION SUMMARY';
 const CURRENT_STATE_HEADING_NAMES = ['Current State', '当前状态'];
+const ERROR_LOG_HEADING_NAMES = ['Error Log', '错误日志'];
 
-function normalizeText(text) {
+export function normalizeText(text) {
   return String(text ?? '')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n');
 }
 
-function readOptionalFile(filePath) {
+export function compactText(text, limit = MAX_COMPACT_VALUE_LENGTH) {
+  const value = normalizeText(text)
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (value.length <= limit) {
+    return value;
+  }
+
+  return `${value.slice(0, Math.max(0, limit - 1)).trimEnd()}…`;
+}
+
+export function readOptionalFile(filePath) {
   return readFile(filePath, 'utf8').catch(() => '');
 }
 
-function firstHeading(text) {
+export function firstHeading(text) {
   return normalizeText(text).match(/^#\s+(.+)$/m)?.[1]?.trim() ?? '';
 }
 
@@ -39,7 +53,7 @@ function statusFromHeading(rawTitle) {
   return match?.[1]?.toLowerCase() ?? null;
 }
 
-function sectionBody(text, headingNames) {
+export function sectionBody(text, headingNames) {
   const lines = normalizeText(text).split('\n');
 
   for (let index = 0; index < lines.length; index += 1) {
@@ -69,19 +83,19 @@ function lifecycleValue(taskPlan, key) {
   return match?.[1]?.trim() ?? '';
 }
 
-function collectBullets(text, limit = Number.POSITIVE_INFINITY) {
+export function collectBullets(text, limit = Number.POSITIVE_INFINITY, { fromEnd = false } = {}) {
   const bullets = [];
   for (const line of normalizeText(text).split('\n')) {
     const trimmed = line.trim();
     const bullet = trimmed.match(/^[-*+]\s+(.+)$/)?.[1] ?? trimmed.match(/^\d+\.\s+(.+)$/)?.[1];
     if (bullet) {
       bullets.push(bullet.trim());
-      if (bullets.length >= limit) {
+      if (!fromEnd && bullets.length >= limit) {
         break;
       }
     }
   }
-  return bullets;
+  return fromEnd ? bullets.slice(-limit) : bullets;
 }
 
 function lastBullet(text) {
@@ -89,8 +103,8 @@ function lastBullet(text) {
   return bullets.at(-1) ?? '';
 }
 
-function tableRowsInSection(text, headingName) {
-  const body = sectionBody(text, [headingName]);
+export function tableRowsInSection(text, headingName) {
+  const body = sectionBody(text, Array.isArray(headingName) ? headingName : [headingName]);
   const tableLines = body
     .split('\n')
     .map((line) => line.trim())
@@ -141,8 +155,42 @@ function buildChecklist(phases) {
     : ['- [ ] No phases recorded'];
 }
 
-function firstPendingPhase(phases) {
+export function firstPendingPhase(phases) {
   return phases.find((phase) => phase.status === 'pending')?.title ?? '—';
+}
+
+export function currentPhaseTitle(phases) {
+  return phases.find((phase) => phase.status === 'in_progress')?.title
+    ?? phases.find((phase) => phase.status === 'pending')?.title
+    ?? phases.at(-1)?.title
+    ?? '—';
+}
+
+export function firstIncompleteChecklistItem(taskPlan) {
+  for (const line of normalizeText(taskPlan).split('\n')) {
+    const trimmed = line.trim();
+    const checklistItem = trimmed.match(/^[-*+]\s+\[( |~)\]\s+(.+)$/)?.[2];
+    if (checklistItem) {
+      return compactText(checklistItem);
+    }
+  }
+
+  return '';
+}
+
+export function latestOpenError(progress) {
+  const errorRows = tableRowsInSection(progress, ERROR_LOG_HEADING_NAMES);
+  const openRow = [...errorRows]
+    .reverse()
+    .find((row) => row.some((cell) => /\bopen\b/i.test(cell)));
+  if (openRow?.[0]) {
+    return compactText(openRow[0]);
+  }
+
+  const errorBullets = collectBullets(sectionBody(progress, ERROR_LOG_HEADING_NAMES), Number.POSITIVE_INFINITY, {
+    fromEnd: true
+  });
+  return errorBullets.at(-1) ?? '';
 }
 
 function enforceBudget(text) {
