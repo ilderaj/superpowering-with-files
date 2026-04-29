@@ -21,6 +21,9 @@
       "Compact Instructions",
       "Shell And Token-Saving Preferences"
     ],
+    "copilot-concise-output": {
+      "include": ["base.md"]
+    },
     "tracked-task-extended": [
       "Plan Location Boundaries",
       "Planning-With-Files Lifecycle Rule",

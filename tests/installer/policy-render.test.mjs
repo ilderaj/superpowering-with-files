@@ -110,3 +110,12 @@ test('project docs keep Codex and Copilot on shared .agents skill roots while pr
   assert.match(codexInstall, /`\.agents\/skills`/);
   assert.match(codexInstall, /`~\/\.agents\/skills`/);
 });
+
+
+test('renderEntry can include concise copilot output guidance without affecting other targets', async () => {
+  const copilotEntry = await renderEntry(process.cwd(), 'copilot', ['copilot-concise-output']);
+  assert.match(copilotEntry, /Prefer terse progress updates and concise finals unless the user asks for depth/);
+
+  const codexEntry = await renderEntry(process.cwd(), 'codex', ['copilot-concise-output']);
+  assert.doesNotMatch(codexEntry, /Prefer terse progress updates and concise finals unless the user asks for depth/);
+});
