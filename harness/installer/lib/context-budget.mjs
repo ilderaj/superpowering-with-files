@@ -54,6 +54,55 @@ function validateBudgetSection(section, pathLabel, issues) {
   validateThresholdNode(section.problem, `${pathLabel}.problem`, issues);
 }
 
+function cloneThresholdNode(node) {
+  return {
+    chars: node?.chars,
+    lines: node?.lines,
+    tokens: node?.tokens
+  };
+}
+
+function cloneBudgetSection(section) {
+  if (!isPlainObject(section)) {
+    return null;
+  }
+
+  return {
+    warn: cloneThresholdNode(section.warn),
+    problem: cloneThresholdNode(section.problem)
+  };
+}
+
+function annotateBudgetSection(section, metadata = {}) {
+  if (!section) {
+    return section;
+  }
+
+  Object.defineProperties(section, {
+    selectionIssues: {
+      value: metadata.selectionIssues ?? [],
+      enumerable: false
+    },
+    selectionSource: {
+      value: metadata.selectionSource ?? 'global',
+      enumerable: false
+    },
+    targetOverrideMalformed: {
+      value: Boolean(metadata.targetOverrideMalformed),
+      enumerable: false
+    }
+  });
+
+  return section;
+}
+
+function problemBudgetSection() {
+  return {
+    warn: { chars: 0, lines: 0, tokens: 0 },
+    problem: { chars: 0, lines: 0, tokens: 0 }
+  };
+}
+
 function validateContextBudgetsShape(config) {
   const issues = [];
 
@@ -100,6 +149,43 @@ export async function loadContextBudgets(rootDir) {
   }
 
   return config;
+}
+
+export function selectBudgetForTarget(section, target, pathLabel = 'budget') {
+  const fallback = cloneBudgetSection(section);
+  if (!fallback) {
+    return null;
+  }
+
+  if (typeof target !== 'string' || target.length === 0 || section?.targets === undefined) {
+    return annotateBudgetSection(fallback, { selectionSource: 'global' });
+  }
+
+  if (!isPlainObject(section.targets)) {
+    return annotateBudgetSection(problemBudgetSection(), {
+      selectionSource: 'invalid-target-map',
+      selectionIssues: [`${pathLabel}.targets must be a JSON object.`],
+      targetOverrideMalformed: true
+    });
+  }
+
+  if (section.targets[target] === undefined) {
+    return annotateBudgetSection(fallback, { selectionSource: 'global' });
+  }
+
+  const issues = [];
+  validateBudgetSection(section.targets[target], `${pathLabel}.targets.${target}`, issues);
+  if (issues.length > 0) {
+    return annotateBudgetSection(problemBudgetSection(), {
+      selectionSource: 'invalid-target-override',
+      selectionIssues: issues,
+      targetOverrideMalformed: true
+    });
+  }
+
+  return annotateBudgetSection(cloneBudgetSection(section.targets[target]), {
+    selectionSource: 'target'
+  });
 }
 
 export function approxTokenCount(text) {

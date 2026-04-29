@@ -23,6 +23,20 @@
         "chars": 18000,
         "lines": 240,
         "tokens": 4500
+      },
+      "targets": {
+        "copilot": {
+          "warn": {
+            "chars": 1200,
+            "lines": 24,
+            "tokens": 300
+          },
+          "problem": {
+            "chars": 2000,
+            "lines": 40,
+            "tokens": 500
+          }
+        }
       }
     },
     "planningHotContext": {

@@ -34,6 +34,8 @@ test('planHookProjections returns cursor planning hook config when hooks are on'
   assert.deepEqual(planning.scriptSourcePaths, [
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'),
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/render-hot-context.mjs'),
+    path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/render-brief-context.mjs'),
+    path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/planning-brief-context.mjs'),
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/planning-hot-context.mjs'),
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/render-session-summary.mjs'),
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/session-summary.mjs')
@@ -53,6 +55,11 @@ test('planHookProjections returns copilot planning hook config under .github/hoo
 
   assert.equal(planning.status, 'planned');
   assert.equal(planning.configTarget, path.join(process.cwd(), '.github/hooks/planning-with-files.json'));
+  assert.ok(
+    planning.scriptSourcePaths.includes(
+      path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/planning-brief-context.mjs')
+    )
+  );
   assert.equal(planning.scriptTargetRoot, path.join(process.cwd(), '.github/hooks'));
 });
 

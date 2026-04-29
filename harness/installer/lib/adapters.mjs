@@ -14,17 +14,32 @@ function normalizeProfileNames(profileNames) {
 
 function resolveEntryPolicyProfiles(target, profileNames) {
   const normalized = normalizeProfileNames(profileNames);
+
+  // Non-Copilot targets should not pick up the Copilot concise opt-in profile.
   if (target !== 'copilot') {
-    return normalized ?? profileNames;
+    if (!normalized) return undefined;
+    const filtered = normalized.filter((p) => p !== 'copilot-concise-output');
+    return filtered.length > 0 ? filtered : undefined;
   }
 
+  // For Copilot target, default to the thinner always-on profile when no explicit
+  // profiles are requested.
   if (!normalized) {
     return 'copilot-always-on-thin';
   }
 
-  return normalized.map((profileName) =>
+  // Map any 'always-on-core' requests to the Copilot thin baseline, but ensure
+  // the thin baseline is present whenever Copilot is explicitly targeted so
+  // opt-in profiles (like copilot-concise-output) augment rather than replace it.
+  const mapped = normalized.map((profileName) =>
     profileName === 'always-on-core' ? 'copilot-always-on-thin' : profileName
   );
+
+  if (!mapped.includes('copilot-always-on-thin')) {
+    mapped.unshift('copilot-always-on-thin');
+  }
+
+  return mapped;
 }
 
 export async function loadAdapter(rootDir, target) {
@@ -41,9 +56,32 @@ export async function renderEntry(rootDir, target, profileNames) {
     readFile(path.join(rootDir, adapter.override), 'utf8'),
   ]);
 
+  let finalPlatformOverride = platformOverride;
+
+  // For Copilot target, include the concise guidance only when the opt-in profile is requested.
+  if (target === 'copilot') {
+    const includesConcise =
+      Array.isArray(resolvedProfiles)
+        ? resolvedProfiles.includes('copilot-concise-output')
+        : resolvedProfiles === 'copilot-concise-output';
+
+    if (!includesConcise) {
+      finalPlatformOverride = finalPlatformOverride.replace(
+        /<!--\s*profile:copilot-concise-output:start\s*-->[\s\S]*?<!--\s*profile:copilot-concise-output:end\s*-->\n?/g,
+        ''
+      );
+    }
+  } else {
+    // Ensure unrelated targets never receive the concise guidance even if requested.
+    finalPlatformOverride = finalPlatformOverride.replace(
+      /<!--\s*profile:copilot-concise-output:start\s*-->[\s\S]*?<!--\s*profile:copilot-concise-output:end\s*-->\n?/g,
+      ''
+    );
+  }
+
   return renderTemplate(template, {
     basePolicy: policyProfile,
-    platformOverride,
+    platformOverride: finalPlatformOverride,
   });
 }
 

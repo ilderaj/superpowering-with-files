@@ -30,7 +30,7 @@ function usage() {
     'Options:',
     '  --targets=<list>|all       Global targets to adopt. Defaults to the existing user-global install; empty bootstrap includes all supported global targets.',
     '  --profile=<name>           Override the policy profile when bootstrapping or forcing state.',
-    '  --skills-profile=<name>    Override the skills profile when bootstrapping or forcing state.',
+    '  --skills-profile=<name>    Override the skills profile; explicit values always win.',
     '  --projection=link|portable Override projection mode when bootstrapping or forcing state.',
     '  --hooks=off|on             Override hook mode when bootstrapping or forcing state.',
     '  --mode=ensure|force        Ensure the existing user-global state or rewrite it.',

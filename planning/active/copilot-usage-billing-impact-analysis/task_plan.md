@@ -4,17 +4,19 @@
 基于当前 Harness 的真实上下文装载路径，先完成 usage-based billing 影响分析与优化计划，再按不明显削弱 Harness 约束效果的前提，分阶段落实高 ROI 的 Copilot usage 优化。
 
 ## Current State
-Status: waiting_review
+Status: waiting_integration
 Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 9
+Phase 12
 
-## Companion Plan
+## Companion Plans
 - Companion plan: `docs/superpowers/plans/2026-04-28-copilot-usage-optimization-implementation-plan.md`
-- Companion summary: Detailed implementation plan for the next Copilot usage optimization phases covering cost ledger fidelity, lean skill defaults, planning recovery v2, overlap governance, and budget gates.
-- Sync-back status: implementation plan and active task files synced on 2026-04-28
+- Companion summary: Detailed implementation plan covering cost ledger fidelity, lean skill defaults, planning recovery v2, overlap governance, budget gates, and opt-in concise output guidance.
+- Companion plan: `docs/superpowers/plans/2026-04-28-copilot-usage-billing-impact-analysis-plan.md`
+- Companion summary: Original plan-only analysis of usage-based billing impact, retained as the historical decision record for this tracked task.
+- Sync-back status: active task and both companion artifacts reconciled on 2026-04-29 after branch-specific implementation review; branch is merge ready pending normal integration.
 
 ## Phases
 
@@ -71,6 +73,32 @@ Phase 9
 - [x] 产出完整实现计划供 review
 - **Status:** complete
 
+### Phase 10: Impl plan execution in isolated worktree
+- [x] 完成 Copilot ledger fidelity、lean default skills、planning recovery v2、overlap governance、budget gates、opt-in concise guidance 的代码落地
+- [x] 将实现限制在 Copilot target-aware slimming，不扩大其他 adapter 的默认约束面
+- [x] 保持 persisted policy profile 语义稳定，并通过 focused regression suite 验证
+- **Status:** complete
+
+### Phase 11: Branch-specific review and live verification
+- [x] 在 `202604281445-copilot-usage-billing-impact-analysis-001` worktree 上重新核对 branch、HEAD、代码落点与 companion plan 对应关系
+- [x] 运行 focused regression suite，确认实现分支 `101 passed, 0 failed`
+- [x] 执行 Copilot-only live install，再运行 `verify` 与 `doctor --check-only` 验证预算与约束面
+- **Status:** complete
+
+### Phase 12: Planning governance cleanup and merge gate
+- [x] 回填 active task 对 analysis companion artifact 的引用
+- [x] 为 primary companion plan 补齐 `Active task path`、`Lifecycle state`、`Sync-back status`
+- [x] 将任务状态推进到 `waiting_integration`，只保留 merge 前的常规集成动作
+- **Status:** complete
+
+## Merge Gate
+- `node --test tests/installer/health.test.mjs tests/installer/commands.test.mjs tests/installer/adoption.test.mjs tests/hooks/task-scoped-hook.test.mjs tests/hooks/hook-budget.test.mjs tests/hooks/session-summary.test.mjs tests/installer/policy-render.test.mjs tests/installer/copilot-usage-budget.test.mjs`
+	- Passing standard: `101 passed, 0 failed` on branch `202604281445-copilot-usage-billing-impact-analysis-001`
+- `node harness/installer/commands/harness.mjs install --scope=workspace --targets=copilot --projection=link --profile=always-on-core --hooks=on`
+	- Passing standard: exits `0` and materializes only the Copilot workspace projection for live validation
+- `node harness/installer/commands/harness.mjs verify --output=.harness/verification-ledger && ./scripts/harness doctor --check-only`
+	- Passing standard: `Harness check passed.`, no companion-plan warnings, `Scope overlap verdict: ok`, `Hook payload target: copilot`, `Context warnings: 0`
+
 ## Risk Assessment
 
 | 风险 | 触发条件 | 影响范围 | 缓解 / 已落盘的回退方案 |
@@ -108,3 +136,5 @@ Phase 9
 - 当前轮次已完成“分析 + 计划”交付；后续若推进实现，应从 `waiting_execution` 状态继续。
 - 当前已进入执行阶段，并完成路线图的前 3 个高 ROI 步骤：可观测性、Copilot 薄入口、Copilot planning hook 摘要化。
 - 当前已补完一份可执行的 impl plan，后续若启动实现，建议按 Companion Plan 里的 Batch A / B / C 串行推进。
+- 当前用于 merge readiness 判断的唯一权威 review surface 是 worktree `202604281445-copilot-usage-billing-impact-analysis-001`，而不是主工作区 `dev`。
+- merge ready 在本任务里表示“代码、测试、live Copilot verify/doctor、planning/companion 治理都已通过”，不等于已经执行实际 merge。
