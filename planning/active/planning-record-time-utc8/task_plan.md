@@ -1,9 +1,9 @@
 # Planning Records UTC+8 Time Plan
 
 ## Current State
-Status: waiting_review
+Status: closed
 Archive Eligible: no
-Close Reason: UTC+8 timestamp record implementation completed and verified.
+Close Reason: UTC+8 timestamp record change merged into local dev and pushed to origin/dev.
 
 ## Goal
 评估 planning files 的 records 是否需要在日期之外记录具体时间（UTC+8），并给出可执行实现计划。
@@ -21,7 +21,7 @@ Close Reason: UTC+8 timestamp record implementation completed and verified.
 4. 测试先行：新增 UTC+8 timestamp 行为测试。状态：complete
 5. 实现：更新模板、shell 初始化脚本、PowerShell 初始化脚本。状态：complete
 6. 验证：运行目标测试和项目 verify。状态：complete
-7. 收尾：更新 planning 记录并汇报结果。状态：in_progress
+7. 收尾：更新 planning 记录并汇报结果。状态：complete
 
 ## Decisions
 - 任务 id：`planning-record-time-utc8`。
@@ -42,4 +42,6 @@ Close Reason: UTC+8 timestamp record implementation completed and verified.
 | `node --test tests/adapters/planning-record-time.test.mjs` | pass: 3/3 |
 | `npm run verify` | pass: 268/268 |
 | `git --no-pager diff --check` | pass |
+| `npm run verify` on merged `dev` | pass: 268/268 |
+| `git push origin dev` | pass |
 

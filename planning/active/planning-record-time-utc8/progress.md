@@ -19,3 +19,11 @@
 - 更新 `harness/upstream/planning-with-files/templates/{task_plan.md,findings.md,progress.md}`，加入 UTC+8 timestamp record guidance 和示例。
 - 更新 `harness/upstream/planning-with-files/scripts/init-session.sh` 和 `init-session.ps1`，生成并替换 `YYYY-MM-DD HH:mm:ss UTC+8`。
 - 验证通过：`node --test tests/adapters/planning-record-time.test.mjs` 3/3 pass；`npm run verify` 268/268 pass；`git --no-pager diff --check` pass。
+
+## 2026-04-30 17:53:05 UTC+8
+- 重新运行集成前验证：`npm run verify` 268/268 pass。
+- 确认 `readme-slim-pr` 尚有 1 个提交未进入 `dev`，并且 `dev` 领先 1 个更早的 merge commit，因此需要生成新的 merge commit。
+- 在本地执行：`git checkout dev` -> `git pull --ff-only origin dev` -> `git merge --no-ff readme-slim-pr -m "Merge branch 'readme-slim-pr' into dev"`。
+- 在合并后的 `dev` 上再次运行 `npm run verify`，结果仍为 268/268 pass。
+- 执行 `git push origin dev` 成功，远端从 `6548a5d` 更新到 `9ea8b6d`。
+- 当前分支为 `dev`，工作区干净。

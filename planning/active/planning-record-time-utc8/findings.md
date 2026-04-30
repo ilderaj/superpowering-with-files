@@ -21,3 +21,8 @@
 - PowerShell 使用 `[DateTimeOffset]::UtcNow.ToOffset([TimeSpan]::FromHours(8))` 强制 UTC+8，不依赖运行机器本地时区。
 - sync/materialize 不需要额外 patch；修改 upstream planning-with-files 模板后，materialized skill 会自然带上新格式。
 
+## 2026-04-30 17:53:05 UTC+8
+- 用户显式指定基线为 `dev`，因此 finishing 阶段直接按 `dev` 作为合并目标执行，而不是再推断 worktree base。
+- 当前功能分支 `readme-slim-pr` 相对 `dev` 是 `ahead 1 / behind 1`：`dev` 上已有更早的 PR merge commit，因此这次回并生成了新的 merge commit，而不是 fast-forward。
+- merge 后最新提交为 `9ea8b6d`，已同步到 `origin/dev`。
+
