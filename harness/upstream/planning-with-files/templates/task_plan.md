@@ -123,6 +123,13 @@ Phase 1
 |----------|-----------|
 |          |           |
 
+## Record Format
+<!--
+  When adding dated task records, use UTC+8 timestamps in this format:
+  YYYY-MM-DD HH:mm:ss UTC+8
+  This keeps multiple task updates from the same date easy to order.
+-->
+
 ## Errors Encountered
 <!-- 
   WHAT: Every error you encounter, what attempt number it was, and how you resolved it.

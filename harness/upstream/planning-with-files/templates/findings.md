@@ -33,6 +33,12 @@
 <!-- Key discoveries during exploration -->
 -
 
+## Record Format
+<!--
+  Use headings like `## YYYY-MM-DD HH:mm:ss UTC+8` when recording discoveries.
+  This keeps multiple findings from the same date easy to order.
+-->
+
 ## Technical Decisions
 <!-- 
   WHAT: Architecture and implementation choices you've made, with reasoning.
