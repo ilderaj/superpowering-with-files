@@ -7,7 +7,7 @@ param(
 )
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Date = Get-Date -Format "yyyy-MM-dd"
+$Timestamp = ([DateTimeOffset]::UtcNow.ToOffset([TimeSpan]::FromHours(8))).ToString("yyyy-MM-dd HH:mm:ss") + " UTC+8"
 $PythonCmd = Get-Command python -ErrorAction SilentlyContinue
 if (-not $PythonCmd) {
     $PythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
@@ -51,7 +51,7 @@ if (-not (Test-Path "$PlanDir/findings.md")) {
 }
 
 if (-not (Test-Path "$PlanDir/progress.md")) {
-    (Get-Content "$ScriptDir/../templates/progress.md" -Raw).Replace("[DATE]", $Date) | Out-File -FilePath "$PlanDir/progress.md" -Encoding UTF8
+    (Get-Content "$ScriptDir/../templates/progress.md" -Raw).Replace("[TIMESTAMP]", $Timestamp).Replace("[DATE]", $Timestamp) | Out-File -FilePath "$PlanDir/progress.md" -Encoding UTF8
     @"
 
 ## Task Metadata

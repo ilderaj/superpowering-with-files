@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_PATH="${1:-$(pwd)}"
 TASK_ID="${2:-}"
-DATE="$(date +%Y-%m-%d)"
+TIMESTAMP="$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S UTC+8')"
 PYTHON_BIN="$(command -v python3 || command -v python)"
 
 if [ -z "$PYTHON_BIN" ]; then
@@ -48,7 +48,7 @@ else
 fi
 
 if [ ! -f "$PLAN_DIR/progress.md" ]; then
-    sed "s/\\[DATE\\]/$DATE/g" "$SCRIPT_DIR/../templates/progress.md" > "$PLAN_DIR/progress.md"
+    sed -e "s/\\[TIMESTAMP\\]/$TIMESTAMP/g" -e "s/\\[DATE\\]/$TIMESTAMP/g" "$SCRIPT_DIR/../templates/progress.md" > "$PLAN_DIR/progress.md"
     {
         echo ""
         echo "## Task Metadata"

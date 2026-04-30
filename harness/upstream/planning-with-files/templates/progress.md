@@ -5,11 +5,12 @@
   WHEN: Update after completing each phase or encountering errors. More detailed than task_plan.md.
 -->
 
-## Session: [DATE]
+## Session: [TIMESTAMP]
 <!-- 
-  WHAT: The date of this work session.
-  WHY: Helps track when work happened, useful for resuming after time gaps.
-  EXAMPLE: 2026-01-15
+  WHAT: The UTC+8 timestamp for this work session.
+  WHY: Helps order multiple records from the same date during high-iteration work.
+  FORMAT: YYYY-MM-DD HH:mm:ss UTC+8
+  EXAMPLE: 2026-01-15 10:00:00 UTC+8
 -->
 
 ### Phase 1: [Title]
@@ -19,10 +20,10 @@
   WHEN: Update as you work through the phase, or at least when you complete it.
 -->
 - **Status:** in_progress
-- **Started:** [timestamp]
+- **Started:** [TIMESTAMP]
 <!-- 
   STATUS: Same as task_plan.md (pending, in_progress, complete)
-  TIMESTAMP: When you started this phase (e.g., "2026-01-15 10:00")
+  TIMESTAMP: When you started this phase (e.g., "2026-01-15 10:00:00 UTC+8")
 -->
 - Actions taken:
   <!-- 
@@ -74,8 +75,8 @@
   WHY: More detailed than task_plan.md's error table. Helps you learn from mistakes.
   WHEN: Add immediately when an error occurs, even if you fix it quickly.
   EXAMPLE:
-    | 2026-01-15 10:35 | FileNotFoundError | 1 | Added file existence check |
-    | 2026-01-15 10:37 | JSONDecodeError | 2 | Added empty file handling |
+    | 2026-01-15 10:35:00 UTC+8 | FileNotFoundError | 1 | Added file existence check |
+    | 2026-01-15 10:37:00 UTC+8 | JSONDecodeError | 2 | Added empty file handling |
 -->
 <!-- Keep ALL errors - they help avoid repetition -->
 | Timestamp | Error | Attempt | Resolution |
@@ -109,6 +110,6 @@
   REMINDER: 
   - Update after completing each phase or encountering errors
   - Be detailed - this is your "what happened" log
-  - Include timestamps for errors to track when issues occurred
+  - Include UTC+8 timestamps for errors to track when issues occurred
 -->
 *Update after completing each phase or encountering errors*
