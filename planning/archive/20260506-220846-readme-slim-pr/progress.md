@@ -76,5 +76,17 @@
 | What have I learned? | The README can lose a lot of prose without losing orientation, but some tables are test-sensitive |
 | What have I done? | Rewrote README, fixed a compatibility regression, and passed verification |
 
+## Session: 2026-05-07 00:18:00 UTC+8
+
+### Phase 6: merge and archive closeout
+- **Status:** complete
+- Actions taken:
+  - Checked `gh pr view 29 --json state,mergeStateStatus,headRefName,baseRefName,url`.
+  - Confirmed PR #29 is `MERGED` into `dev`.
+  - Decided this task no longer needs to remain `waiting_review`; `v1.5` will absorb the merged README as baseline.
+- Files created/modified:
+  - `planning/active/readme-slim-pr/task_plan.md` (updated)
+  - `planning/active/readme-slim-pr/progress.md` (updated)
+
 ---
 *Update after completing each phase or encountering errors*

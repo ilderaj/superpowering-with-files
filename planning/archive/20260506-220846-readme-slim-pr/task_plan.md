@@ -4,12 +4,13 @@
 Condense the repository README so the prose is materially shorter while preserving the main workflow and structure diagrams plus useful iconography, then verify, commit, push, and open a pull request.
 
 ## Current State
-Status: waiting_review
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: PR #29 merged into dev; README simplification is now baseline.
+Closed At: 2026-05-06T22:08:40
 
 ## Current Phase
-Phase 5
+Closeout
 
 ## Phases
 
@@ -41,6 +42,11 @@ Phase 5
 - [x] Commit the README change
 - [x] Push the branch
 - [x] Create the pull request
+- **Status:** complete
+
+### Phase 6: Merge and archive closeout
+- [x] Confirm PR #29 merge status
+- [x] Close and archive this task
 - **Status:** complete
 
 ## Risk Assessment
