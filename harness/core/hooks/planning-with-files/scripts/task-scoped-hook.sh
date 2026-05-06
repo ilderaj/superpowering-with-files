@@ -264,7 +264,7 @@ case "$event" in
     emit_context "$context" "PreToolUse"
     ;;
   post-tool-use)
-    emit_context "[planning-with-files] Update $(relative_path "$progress") with what you just did. If the phase changed, update $(relative_path "$plan")." "PostToolUse"
+    emit_context "[planning-with-files] Update $(relative_path "$progress") with what you just did. If you need a fresh timestamped block, use ./scripts/harness record --task $(basename "$task_dir") --file progress. If the phase changed, update $(relative_path "$plan")." "PostToolUse"
     ;;
   stop)
     context="$(render_session_summary)"

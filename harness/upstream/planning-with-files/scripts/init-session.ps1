@@ -7,7 +7,6 @@ param(
 )
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$Timestamp = ([DateTimeOffset]::UtcNow.ToOffset([TimeSpan]::FromHours(8))).ToString("yyyy-MM-dd HH:mm:ss") + " UTC+8"
 $PythonCmd = Get-Command python -ErrorAction SilentlyContinue
 if (-not $PythonCmd) {
     $PythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
@@ -17,6 +16,8 @@ if (-not $PythonCmd) {
     Write-Host '[planning-with-files] Python is required to initialize planning files.'
     exit 1
 }
+
+$Timestamp = & $PythonCmd.Source "$ScriptDir/planning_record.py" timestamp
 
 $PlanDir = & $PythonCmd.Source "$ScriptDir/planning_paths.py" ensure-active-dir $ProjectPath $TaskId
 $TaskSlug = & $PythonCmd.Source "$ScriptDir/planning_paths.py" task-id $ProjectPath $TaskId

@@ -14,6 +14,7 @@ import { checkpointPushCommand } from './checkpoint-push.mjs';
 import { cloudBootstrap } from './cloud-bootstrap.mjs';
 import { linkPersonal } from './link-personal.mjs';
 import { summary } from './summary.mjs';
+import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
 
 const commands = {
@@ -27,6 +28,7 @@ const commands = {
   checkpoint: checkpointCommand,
   'checkpoint-push': checkpointPushCommand,
   summary,
+  record,
   'cloud-bootstrap': cloudBootstrap,
   'link-personal': linkPersonal,
   'worktree-name': worktreeName,
@@ -48,6 +50,7 @@ function usage() {
     '  update   Apply fetched upstream candidates',
     '  verify   Print or write verification reports',
     '  summary  Print structured session summary for the active task',
+    '  record   Append a timestamped record block to task_plan, findings, or progress',
     '  checkpoint  Create a safety checkpoint',
     '  checkpoint-push  Verify, record review evidence, commit, and push a recovery branch',
     '  cloud-bootstrap  Generate safety bootstrap files for cloud workspaces',

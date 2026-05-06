@@ -37,6 +37,7 @@
 <!--
   Use headings like `## YYYY-MM-DD HH:mm:ss UTC+8` when recording discoveries.
   This keeps multiple findings from the same date easy to order.
+  Prefer `./scripts/harness record --file findings` when starting a new dated findings block.
 -->
 
 ## Technical Decisions

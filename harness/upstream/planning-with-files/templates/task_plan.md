@@ -128,6 +128,7 @@ Phase 1
   When adding dated task records, use UTC+8 timestamps in this format:
   YYYY-MM-DD HH:mm:ss UTC+8
   This keeps multiple task updates from the same date easy to order.
+  Prefer `./scripts/harness record --file task_plan` when starting a new dated task-plan block.
 -->
 
 ## Errors Encountered
