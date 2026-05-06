@@ -3,9 +3,10 @@
 把当前仍应保持 `active` 的任务收敛成一个可执行的后续跟进项目，明确每个任务的下一步、依赖关系、收口顺序与非目标边界，避免后续继续在多个 active 目录之间来回切换。
 
 ## Current State
-Status: waiting_review
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Superseded by project-roadmap-audit; follow-up batches transferred into the consolidated roadmap audit.
+Closed At: 2026-05-06T15:54:39
 
 ## 完成标准
 

@@ -63,8 +63,10 @@ Closed
 | Root `npm test` initially failed because `ws` was not installed for the upstream brainstorm-server tests | 1 | Installed the upstream test dependency with `npm ci` in `harness/upstream/superpowers/tests/brainstorm-server`, then re-ran `npm test` successfully |
 
 ## Notes
-- Companion plan: [docs/superpowers/plans/2026-04-25-session-summary-mechanism.md](../../../docs/superpowers/plans/2026-04-25-session-summary-mechanism.md)
+- Companion plan: `planning/archive/20260506-155323-session-summary-mechanism/companion_plan.md`
   - Holds the detailed 11-task TDD checklist that would be too verbose for this file.
+  - Companion summary: detailed 11-task TDD checklist for renderer, hook, CLI, adapter verification, and closeout.
+  - Sync-back status: closed and ready for archive.
   - Sync-back: durable decisions are mirrored into `findings.md`; phases 2-4 above are the coarse-grained projection of the companion checklist.
   - Status: drafted, not yet executed.
   - Note: this task is **not** a Deep-reasoning Superpowers task. The companion plan path under `docs/superpowers/plans/` is reused as a generic companion-artifact location per Harness AGENTS.md "Companion Plan Model". No Superpowers tooling was invoked.

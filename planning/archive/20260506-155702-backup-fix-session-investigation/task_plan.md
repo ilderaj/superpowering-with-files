@@ -1,9 +1,10 @@
 # backup 修复 session 跑偏调查
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Root cause and prevention actions transferred into project-roadmap-audit version plan.
+Closed At: 2026-05-06T15:56:53
 
 ## Goal
 查清 `copilot-superpowers-execution-merge-commit` 这个 session 为什么没有把 duplicate backup 修复真正落到 `dev`，判断是 worktree 命名冲突、branch/worktree 复用、迁移 stash 机制，还是其它流程问题，并给出避免复发的治理方案。

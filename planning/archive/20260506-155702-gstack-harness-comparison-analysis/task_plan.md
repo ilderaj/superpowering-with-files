@@ -1,9 +1,10 @@
 # gstack 与 Harness 范围能力对比分析
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Comparison conclusions and follow-up queue transferred into project-roadmap-audit version plan.
+Closed At: 2026-05-06T15:56:53
 
 ## 目标
 

@@ -2,7 +2,9 @@
 
 > **Companion to** `planning/active/worktree-naming-governance/` — durable lifecycle, findings, and review state are maintained there; this file carries the detailed implementation checklist.
 
-Active task path: `planning/active/worktree-naming-governance/`
+Active task path: `planning/archive/20260506-155323-worktree-naming-governance/`
+Lifecycle state: archived
+Sync-back status: archived at 2026-05-06T15:53:23: moved companion plan into archive
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -18,7 +20,7 @@ Active task path: `planning/active/worktree-naming-governance/`
 
 - Authoritative task memory: `planning/active/worktree-naming-governance/`
 - Design spec: `docs/superpowers/specs/2026-04-26-worktree-naming-governance-design.md`
-- Sync-back status: implementation complete; active task files summarize execution and verification state.
+- Sync-back status: closed and ready for archive.
 
 ## Planning Assumptions
 

@@ -1,9 +1,10 @@
 # TypeMint Skill 重复候选排查计划
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Skill duplicate root cause identified and transferred into project-roadmap-audit cleanup backlog.
+Closed At: 2026-05-06T15:56:53
 
 ## 目标
 

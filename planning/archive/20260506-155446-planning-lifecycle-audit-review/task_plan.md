@@ -3,9 +3,10 @@
 审计本地 `planning/active/` 下的任务状态与归档资格；先对高置信可归档任务补齐 eligibility，不执行 archive；再对 `waiting_review` 与 `closed + yes` 任务做严格 code review / audit，判断哪些适合后续 archive；最后为仍保持 `active` 的任务收敛 follow-up 并落一个新的 planning 项目。
 
 ## Current State
-Status: waiting_review
-Archive Eligible: no
-Close Reason: 已完成 archive 执行与 companion-sync 收尾，等待用户 review 最终结果。
+Status: closed
+Archive Eligible: yes
+Close Reason: Lifecycle audit completed; cleanup decisions transferred into project-roadmap-audit.
+Closed At: 2026-05-06T15:54:39
 
 ## 完成标准
 

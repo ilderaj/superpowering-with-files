@@ -8,7 +8,7 @@
   - `096626b feat: close planning records and update status after merging UTC+8 timestamp changes`
 - 初步判断需要继续核对“历史实现是否仍在当前有效写入链路中”，尤其是模板、初始化脚本、hook / summary 写入器，以及 skill projection 的实际落点。
 
-## 2026-05-06 15:20:00 UTC+8
+## Findings Record: 2026-05-06 15:20:00 UTC+8
 
 - 已确认之前不只是做过 planning，而是已经真正开发并合并过一次：
   - archived task：`planning/archive/20260506-142311-planning-record-time-utc8/`
@@ -32,7 +32,7 @@
   - 旧格式示例：`planning/active/session-summary-mechanism/progress.md`、`planning/active/cross-ide-projection-audit/progress.md`
 - 因为上次明确“不迁移历史 records”，所以你现在看到旧日期标题，本身与当时实现边界一致，不是单纯回归。
 
-## 2026-05-06 15:50:00 UTC+8
+## Findings Record: 2026-05-06 15:50:00 UTC+8
 
 - 本轮实现不做历史 planning records 迁移；仅收口“今后新增 record”的官方写入链路。
 - 共享实现新增为 `planning_record.py`，职责包括：

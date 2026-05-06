@@ -3,9 +3,10 @@
 审计 `planning-with-files` / Harness 中关于 planning 记录标题时间格式的既有设计、历史实现与当前生效情况。确认是否曾完成“仅日期 -> 日期+具体时间”的规划与开发；如果当前仍存在仅日期标题，则定位漂移点，并输出可 review 的 implementation plan，不直接实施代码变更。
 
 ## Current State
-Status: waiting_review
-Archive Eligible: no
-Close Reason: 已完成“统一今后所有新 records 的写入链路”实现与全量验证，等待用户 review。
+Status: closed
+Archive Eligible: yes
+Close Reason: Record timestamp implementation completed and verified; result transferred into project-roadmap-audit.
+Closed At: 2026-05-06T15:54:39
 
 ## 完成标准
 

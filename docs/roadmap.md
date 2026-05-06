@@ -8,6 +8,94 @@ This document captures deferred product and workflow work that is intentionally 
 - Keep `safety` and `cloud-safe` off by default for global installs.
 - Treat safety as a workspace-scoped capability until the overlay model and tool-allowance issues are resolved.
 
+## Version Plan
+
+### v1.1: Planning Hygiene And Active Task Cleanup
+
+- Status: in progress
+- Goal: keep `planning/active/` limited to work that still needs a real decision, external event, PR review, or implementation.
+- Scope:
+  - archive tasks that are explicitly closed and archive eligible
+  - close completed planning/meta tasks after their durable conclusions are transferred
+  - keep PR/review tasks active until the review outcome is known
+  - keep tasks with external concurrent edits untouched
+- Success criteria:
+  - no empty active task directories remain
+  - completed planning-only tasks are moved to `planning/archive/`
+  - remaining active tasks all have a clear reason to stay active
+
+### v1.2: Cross-IDE Projection And Hook Closure
+
+- Status: planned
+- Goal: finish the current cross-IDE projection, single-source, and hook-alignment work so Codex, GitHub Copilot, Cursor, and Claude Code have stable native projections.
+- Scope:
+  - integrate `cross-ide-projection-audit` execution work or make an explicit no-merge decision
+  - finish `cross-ide-hook-capability-alignment` dev integration and push
+  - review the `cross-ide-single-source-consolidation` PR outcome
+  - complete Cursor official load-model evidence with source links
+- Success criteria:
+  - projection paths match current platform facts
+  - hook support statements match native platform behavior
+  - shared skill roots are used only where they reduce maintenance without violating platform expectations
+
+### v1.3: Context Budget And Skill Discovery Governance
+
+- Status: planned
+- Goal: turn the current context-cost and duplicate-skill investigations into enforceable budget and discovery rules.
+- Scope:
+  - finish `global-rule-context-load-analysis` without overwriting concurrent edits
+  - close the remaining report gap in `rtk-support-feasibility-analysis`
+  - fold TypeMint/Copilot duplicate-skill findings into projection dedupe rules
+  - track generic-target brief/hot context behavior as a budget regression candidate
+- Success criteria:
+  - `verify` and `doctor` expose actionable context budget data
+  - global installs default to lean skill profiles
+  - full skill surfaces remain opt-in
+  - duplicate skill candidates are prevented or clearly diagnosed
+
+### v1.4: Safety Overlay, Cloud Harness, And Automation Follow-Through
+
+- Status: planned
+- Goal: make safety and cloud usage additive overlays instead of global baseline mutations.
+- Scope:
+  - complete the `post-upstream-automation-followups` scheduled-run observation after 2026-05-08 20:05 Asia/Shanghai
+  - review and decide the `origin-cloud-harness-deployment-plan`
+  - implement a workspace safety overlay model that does not rewrite the global baseline
+  - reduce safety hook false positives for read/search/verification workflows
+- Success criteria:
+  - `sync`, `doctor`, and `adoption-status` report global baseline plus workspace overlays coherently
+  - cloud repo-local policy files are clearly separated from local user-global adoption
+  - destructive-action guardrails remain effective without blocking routine low-risk work
+
+### v1.5: Workflow Productization And Operator Experience
+
+- Status: planned
+- Goal: turn Harness from a substrate into a clearer set of operator workflows without adding a second planning system.
+- Scope:
+  - use the gstack comparison findings to define workflow lanes such as plan, review, verify, finish, release, and archive
+  - close or merge the `readme-slim-pr` review outcome
+  - keep docs concise while preserving diagrams and command surfaces
+  - define browser/runtime/eval integration as contracts, not mandatory dependencies
+- Success criteria:
+  - users can identify the right Harness lane without reading internal policy detail
+  - README and docs explain the workflow model without duplicating the full rules
+  - evaluation and QA hooks remain optional and measurable
+
+### v1.6: Release Readiness And Adoption Stabilization
+
+- Status: planned
+- Goal: close the foundation umbrella and make the repo ready for repeatable adoption, release, and external handoff.
+- Scope:
+  - close `harness-template-foundation` after release/adoption state is recorded
+  - verify `dev`, `origin/dev`, and release documentation are aligned
+  - ensure adoption automation reports only committed, meaningful changes
+  - re-evaluate default safety posture after v1.4 is proven
+- Success criteria:
+  - active planning contains only current work
+  - release docs match the renamed repository and current command surface
+  - adoption status is reproducible across supported targets
+  - broader safety rollout is based on verified overlay behavior
+
 ## Active Roadmap Items
 
 ### 1. Global Baseline + Workspace Safety Overlay

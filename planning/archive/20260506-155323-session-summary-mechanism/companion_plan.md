@@ -11,7 +11,9 @@
 > Sync-back status: phases 2-4 in `task_plan.md` reflect this checklist's
 > coarse stages; durable decisions are mirrored into `findings.md`.
 
-- Active task path: `planning/active/session-summary-mechanism/`
+Active task path: `planning/archive/20260506-155323-session-summary-mechanism/`
+Lifecycle state: archived
+Sync-back status: archived at 2026-05-06T15:53:23: moved companion plan into archive
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

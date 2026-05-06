@@ -67,9 +67,9 @@ Phase 5
 
 ## Companion Artifacts
 - Design spec: `docs/superpowers/specs/2026-04-26-worktree-naming-governance-design.md`
-- Companion plan: `docs/superpowers/plans/2026-04-26-worktree-naming-governance.md`
+- Companion plan: `planning/archive/20260506-155323-worktree-naming-governance/companion_plan.md`
 - Companion summary: repo-owned naming helper + projected `using-git-worktrees` patch + policy/docs/test sync，统一生成基于 planning task id 的 canonical worktree label。
-- Sync-back status: implementation complete on 2026-04-26; final integration into `dev` and push are in progress.
+- Sync-back status: closed and ready for archive.
 
 ## Notes
 - 当前仓库的 `worktree-preflight` 只推荐 base，示例命令中的 `<new-branch>` 仍是占位符，没有 naming logic。

@@ -4,9 +4,10 @@
 把 GitHub 上当前仓库从 `HarnessTemplate` 更名为 `superpowering-with-files`，并同步本地 remote、用户可见文档、安装/发布说明与验证检查，确保本地开发和 GitHub 同步不受混乱影响。
 
 ## Current State
-Status: waiting_review
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Repository rename completed, verified, merged to dev, and transferred into project-roadmap-audit cleanup record.
+Closed At: 2026-05-06T15:56:53
 
 ## Current Phase
 Phase 8
