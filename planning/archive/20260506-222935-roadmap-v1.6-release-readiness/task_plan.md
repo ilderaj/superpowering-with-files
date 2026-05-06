@@ -1,9 +1,10 @@
 # Task Plan: Roadmap v1.6 Release Readiness
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Roadmap v1.6 release readiness completed; dev adoption is in_sync and foundation records are archived.
+Closed At: 2026-05-06T22:29:29
 
 ## Goal
 
@@ -44,14 +45,14 @@ Phase 3: Foundation closeout
 ### Phase 3: Foundation closeout
 - [x] 关闭并归档 `harness-template-foundation`
 - [x] 更新 roadmap 总控记录
-- [ ] 提交 `v1.6` 实现与验证记录
-- [ ] merge back 到本地 `dev` 并 push `origin/dev`
-- **Status:** in_progress
+- [x] 提交 `v1.6` 实现与验证记录
+- [x] merge back 到本地 `dev` 并 push `origin/dev`
+- **Status:** complete
 
 ### Phase 4: Roadmap completion
 - [ ] 关闭并归档 `roadmap-v1.6-release-readiness`
-- [ ] 将 `roadmap-implementation-plan` 更新到“只剩外部时间 gate”或“全部完成”
-- **Status:** pending
+- [x] 将 `roadmap-implementation-plan` 更新到“只剩外部时间 gate”或“全部完成”
+- **Status:** in_progress
 
 ## Finishing Criteria
 

@@ -142,6 +142,12 @@
 - `./scripts/harness adoption-status` 已返回 `in_sync`。
 - `harness-template-foundation` 已关闭并归档到 `planning/archive/20260506-222324-harness-template-foundation/`。
 - 当前进入 `v1.6` 的分支提交 / merge back / dev push closeout。
+- `v1.6` branch 已推送到 `origin/codex/202605070235-roadmap-v1-6-release-readiness-001`。
+- `v1.6` 已 merge back 到本地 `dev`，merge commit 为 `f93387c`。
+- `dev` post-merge 再次执行 `npm run verify`，结果仍为 `333 pass / 0 fail`。
+- `dev` post-merge 初次 `adoption-status` 因 merge commit 前进而回到 `needs_apply`；再次执行 `adopt-global` 后恢复为 `in_sync`。
+- foundation 剩余 4 个 orphan companion plans 已并入 `planning/archive/20260506-222324-harness-template-foundation/`，`doctor` warnings 清零。
+- 总控结论：v1.1 到 v1.6 的所有可执行 roadmap 工作均已完成；剩余只保留 `v1.4`/`post-upstream-automation-followups` 的外部时间观察 gate。
 
 ## Errors Encountered
 
@@ -196,6 +202,12 @@
 - `v1.6` `./scripts/harness adoption-status`：返回 `in_sync`
 - `v1.6` `./scripts/harness verify --output=.harness/verification`：通过
 - `v1.6` `git diff --check`：通过
+- `v1.6` branch push：成功
+- `v1.6` merge back to dev：成功
+- `v1.6` post-merge `npm run verify`：通过（`333 pass / 0 fail`）
+- `v1.6` post-merge `./scripts/harness adopt-global`：通过
+- `v1.6` post-merge `./scripts/harness adoption-status`：返回 `in_sync`
+- `v1.6` post-merge `./scripts/harness doctor --check-only`：通过；无 companion warnings
 
 ## Changed Files
 
@@ -218,4 +230,5 @@
 - `v1.3`: complete and archived
 - `v1.4`: implementation, merge, verification, and dev push complete; only scheduled-run external gate remains
 - `v1.5`: implementation, merge, verification, and dev push complete
-- `v1.6`: adoption stabilized and foundation archived; branch closeout in progress
+- `v1.6`: complete
+- Remaining gate: `roadmap-v1.4-safety-overlay-governance` / `post-upstream-automation-followups` scheduled-run observation on 2026-05-08 20:05 Asia/Shanghai

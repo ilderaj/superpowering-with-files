@@ -28,6 +28,15 @@
 - `harness-template-foundation` 已关闭并归档：
   - close reason: `Foundation implementation, release facts, and adoption stabilization verified under roadmap v1.6.`
   - archive path: `planning/archive/20260506-222324-harness-template-foundation/`
+- `v1.6` branch closeout 已完成：
+  - branch commits: `65b5d31` / `2b2e85f`
+  - remote branch: `origin/codex/202605070235-roadmap-v1-6-release-readiness-001`
+  - merge commit on `dev`: `f93387c`
+- `dev` post-merge 收口：
+  - `./scripts/harness adoption-status` 初次返回 `needs_apply`，因为 merge commit 使 `repoHead` 前进到 `f93387c...`
+  - 再次执行 `./scripts/harness adopt-global` 后，`adoption-status` 回到 `in_sync`
+  - foundation orphan companion plans 已并入 `planning/archive/20260506-222324-harness-template-foundation/`
+  - `./scripts/harness doctor --check-only` 再次通过且无 companion warnings
 
 ## Verification
 
@@ -41,10 +50,17 @@
 - `./scripts/harness adoption-status`：返回 `in_sync`。
 - `./scripts/harness verify --output=.harness/verification`：通过。
 - `git diff --check`：通过。
+- `git push -u origin codex/202605070235-roadmap-v1-6-release-readiness-001`：通过。
+- `git merge --no-ff codex/202605070235-roadmap-v1-6-release-readiness-001 -m "merge: roadmap v1.6 release readiness"`：通过[`dev`]
+- `./scripts/harness adoption-status`：post-merge 初次返回 `needs_apply`，原因是 `dev` merge commit 前进。
+- `npm run verify`：post-merge 再次通过（`333 pass / 0 fail`）。
+- `./scripts/harness adopt-global`：post-merge 再次通过；同步 4 个 target，`update=0, stale=0`。
+- `./scripts/harness adoption-status`：post-merge 返回 `in_sync`，且 warnings 为空。
+- `./scripts/harness doctor --check-only`：post-merge 再次通过；无 companion warnings。
 
 ## Current Execution State
 
 - Discovery: complete
 - Adoption stabilization: complete
-- Foundation closeout: in_progress
-- Merge / push: pending
+- Foundation closeout: complete
+- Merge / push: complete

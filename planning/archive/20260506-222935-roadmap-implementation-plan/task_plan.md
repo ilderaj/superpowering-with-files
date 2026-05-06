@@ -1,9 +1,10 @@
 # Roadmap 全版本执行与收口
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: All executable roadmap versions v1.1-v1.6 are complete; the only remaining gate is the scheduled v1.4 observation tracked in dedicated active tasks.
+Closed At: 2026-05-06T22:29:29
 
 ## Goal
 
@@ -19,9 +20,9 @@ Close Reason:
 
 ## Companion Plan
 
-- Companion plan: `docs/superpowers/plans/2026-05-06-roadmap-implementation-plan.md`
+- Companion plan: `planning/archive/20260506-222935-roadmap-implementation-plan/companion_plan.md`
 - Companion summary: 保存详细执行清单、版本 gate、Git 流程、文件矩阵、commit/record 策略，以及执行中的版本进度。
-- Sync-back status: active, executing roadmap gates
+- Sync-back status: closed at 2026-05-06T22:29:29: All executable roadmap versions v1.1-v1.6 are complete; the only remaining gate is the scheduled v1.4 observation tracked in dedicated active tasks.
 
 ## Phases
 
@@ -44,12 +45,12 @@ Close Reason:
 | 4. 输出完整 companion implementation plan | complete |
 | 5. 同步摘要并切换到 waiting_review | complete |
 | 6. 完成 Gate 0 baseline stabilization 并推送 `origin/dev` | complete |
-| 7. 按版本推进 v1.1 到 v1.6，并持续回写 planning/verification records | in_progress |
-| 8. 完成总体 closeout，关闭并归档所有可收口 task | pending |
+| 7. 按版本推进 v1.1 到 v1.6，并持续回写 planning/verification records | complete |
+| 8. 完成总体 closeout，关闭并归档所有可收口 task | complete |
 
 ## Finishing Criteria
 
-- companion plan 持续反映 v1.1 到 v1.6 的执行状态。
+- companion plan 持续反映 v1.1 到 v1.6 的执行状态，且剩余外部时间 gate 已移交给独立 active task。
 - 每个版本都有任务范围、开发步骤、文件范围、验证、commit/push/merge 流程和完成记录。
 - 所有可收口 roadmap task 都被关闭或归档；不能立即收口的任务有明确 gate 和保留理由。
 - 本任务三件套记录基线 commit、版本推进状态、验证和最终 closeout 状态。

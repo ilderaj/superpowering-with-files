@@ -38,20 +38,20 @@
   - 无个人绝对路径泄漏
   - 已把关键实现默认值收敛到文档中
 - implementation plan review/index：
-  - `docs/superpowers/plans/2026-04-11-harness-template-plan-review.md`
+  - `planning/archive/20260506-222324-harness-template-foundation/companion_plan.md`
 - implementation 子计划：
-  - `docs/superpowers/plans/2026-04-11-harness-core-policy-upstream-plan.md`
-  - `docs/superpowers/plans/2026-04-11-harness-installer-cli-plan.md`
-  - `docs/superpowers/plans/2026-04-11-harness-adapters-projection-plan.md`
-  - `docs/superpowers/plans/2026-04-11-harness-docs-verification-release-plan.md`
+  - `planning/archive/20260506-222324-harness-template-foundation/companion_core_policy_upstream_plan.md`
+  - `planning/archive/20260506-222324-harness-template-foundation/companion_installer_cli_plan.md`
+  - `planning/archive/20260506-222324-harness-template-foundation/companion_adapters_projection_plan.md`
+  - `planning/archive/20260506-222324-harness-template-foundation/companion_docs_verification_release_plan.md`
 
 ## Companion Plans
 
 - Companion plan: `planning/archive/20260506-222324-harness-template-foundation/companion_plan.md`
-- Companion plan: `docs/superpowers/plans/2026-04-11-harness-core-policy-upstream-plan.md`
-- Companion plan: `docs/superpowers/plans/2026-04-11-harness-installer-cli-plan.md`
-- Companion plan: `docs/superpowers/plans/2026-04-11-harness-adapters-projection-plan.md`
-- Companion plan: `docs/superpowers/plans/2026-04-11-harness-docs-verification-release-plan.md`
+- Companion plan: `planning/archive/20260506-222324-harness-template-foundation/companion_core_policy_upstream_plan.md`
+- Companion plan: `planning/archive/20260506-222324-harness-template-foundation/companion_installer_cli_plan.md`
+- Companion plan: `planning/archive/20260506-222324-harness-template-foundation/companion_adapters_projection_plan.md`
+- Companion plan: `planning/archive/20260506-222324-harness-template-foundation/companion_docs_verification_release_plan.md`
 - Companion summary: 首个 companion plan 作为 foundation umbrella 的总索引；其余 companion 记录 core、installer、adapters、docs/release 四条已完成实施线。
 - Sync-back status: closed at 2026-05-06T22:23:07: Foundation implementation, release facts, and adoption stabilization verified under roadmap v1.6.
 
@@ -83,4 +83,3 @@ Status: closed
 Archive Eligible: yes
 Close Reason: Foundation implementation, release facts, and adoption stabilization verified under roadmap v1.6.
 Closed At: 2026-05-06T22:23:07
-

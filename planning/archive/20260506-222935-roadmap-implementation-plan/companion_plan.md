@@ -1,8 +1,8 @@
 # Roadmap 全版本 Implementation Plan
 
-Active task path: `planning/active/roadmap-implementation-plan/`
-Lifecycle state: active
-Sync-back status: active, executing roadmap gates
+Active task path: `planning/archive/20260506-222935-roadmap-implementation-plan/`
+Lifecycle state: archived
+Sync-back status: archived at 2026-05-06T22:29:35: moved companion plan into archive
 
 ## 0. 目标与边界
 
