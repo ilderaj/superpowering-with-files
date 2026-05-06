@@ -135,6 +135,11 @@
 - Pushed integrated branch: `origin/dev`
 - Opened review PR: https://github.com/ilderaj/superpowering-with-files/pull/22
 
+## v1.2 Revalidation
+
+- `v1.2` 远端复核确认：PR #22 已处于 `MERGED` 状态，base 为 `main`，head 为 `dev`，`mergedAt` 为 `2026-04-21T01:37:28Z`。
+- 因此本 task 在 `v1.2` 不需要再摘代码或重新 merge；剩余动作只有 lifecycle closeout。
+
 ## Errors
 
 | Timestamp | Error | Attempt | Resolution |

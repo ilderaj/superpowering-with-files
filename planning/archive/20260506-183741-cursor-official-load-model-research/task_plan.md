@@ -1,9 +1,10 @@
 # Cursor 官方加载模型研究
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Official Cursor rules, skills, and hooks links were added during roadmap v1.2 closeout; no code changes were required beyond documentation and planning records.
+Closed At: 2026-05-06T18:37:41
 
 ## 任务目标
 

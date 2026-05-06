@@ -31,13 +31,18 @@ This document captures deferred product and workflow work that is intentionally 
 
 ### v1.2: Cross-IDE Projection And Hook Closure
 
-- Status: planned
+- Status: complete
 - Goal: finish the current cross-IDE projection, single-source, and hook-alignment work so Codex, GitHub Copilot, Cursor, and Claude Code have stable native projections.
 - Scope:
   - integrate `cross-ide-projection-audit` execution work or make an explicit no-merge decision
   - finish `cross-ide-hook-capability-alignment` dev integration and push
   - review the `cross-ide-single-source-consolidation` PR outcome
   - complete Cursor official load-model evidence with source links
+- Closeout:
+  - `cross-ide-projection-audit` closed with an explicit no-merge decision after `dev` revalidation
+  - `cross-ide-hook-capability-alignment` closed after confirming its implementation commit was already in `dev`
+  - `cross-ide-single-source-consolidation` closed after confirming PR #22 was merged
+  - `cursor-official-load-model-research` closed after adding the official rules/skills/hooks link matrix
 - Success criteria:
   - projection paths match current platform facts
   - hook support statements match native platform behavior

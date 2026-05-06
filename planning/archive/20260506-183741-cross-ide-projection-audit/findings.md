@@ -146,3 +146,25 @@
 ## Visual/Browser Findings
 
 - OpenAI developer Codex 子页面当前对直接抓取返回 403；不能把未抓取全文的 Codex skills/hooks 细节当成已确认事实。
+
+## v1.2 Closeout Revalidation
+
+- `v1.2` 复核确认：本 task 当时的实现结论已经被当前 `dev` 吸收，不再存在可独立 merge 的 execution branch / worktree 载体。
+- Cursor hooks 的官方路径证据现已可从 `https://cursor.com/docs/hooks` 直接确认：
+  - project-level: `<project>/.cursor/hooks.json`
+  - user-level: `~/.cursor/hooks.json`
+- 因此，本 task 在 `v1.2` 的正确处理方式不是继续找旧分支合并，而是记录显式 `no-merge` closeout：
+  - 原 task 的主要代码结果已在当前 `dev`
+  - 原 execution branch / worktree 已消失
+  - 剩余价值在于审计结论，而不是独立实现载体
+- Codex 官方 filesystem 细节仍存在保守 gap，但这已经不阻塞本 task 收口：
+  - 本 task 的主实现结果并不依赖在 `v1.2` 再改动 Codex-specific paths
+  - Codex 相关未确认项保留为后续文档/研究边界，不继续阻塞本次 closeout
+
+## Final Disposition
+
+- Disposition: close with explicit `no-merge` decision
+- Reason:
+  - implementation conclusions already landed on `dev`
+  - Cursor hook path evidence gap is now closed
+  - no standalone execution branch remains to integrate

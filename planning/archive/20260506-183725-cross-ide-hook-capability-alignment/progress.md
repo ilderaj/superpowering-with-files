@@ -81,3 +81,9 @@
   - `node --test tests/installer/health.test.mjs tests/adapters/sync-hooks.test.mjs tests/hooks/task-scoped-hook.test.mjs` → `pass 48 / fail 0`
   - `./scripts/harness doctor --check-only` → `Harness check passed`；仅剩历史 companion plan warnings，不阻塞当前任务
 - 已为当前 companion plan 补上反向链接，消除本任务对应的 doctor warning。
+
+## v1.2 Revalidation
+
+- `v1.2` 复核确认：主实现提交 `25877bb7e190f512475756c094b65d235c754186` 已在当前 `dev` / `origin/dev` 的祖先链中。
+- 当前仓库已不存在与本 task 对应的悬空 feature branch / worktree。
+- `task_plan.md` 中遗留的 `Phase 6: Dev Integration pending` 已过期；真实状态是代码已集成，剩余动作仅为 lifecycle closeout。
