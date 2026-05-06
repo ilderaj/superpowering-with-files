@@ -100,6 +100,17 @@
 - 已决定保持当前已验证工作区不动，通过 heartbeat automation 在额度恢复后回到本线程，从 `v1.4` branch creation / commit / merge / push 继续。
 - 已创建 heartbeat automation：`resume-roadmap-after-git-quota-reset`。
 - 2026-05-07 恢复执行时，提权 `git switch -c codex/202605070150-roadmap-v1-4-safety-overlay-governance-003` 已成功，继续沿主工作区完成 `v1.4` 的 commit/merge/push。
+- `v1.4` 正式提交线已完成：
+  - branch: `codex/202605070150-roadmap-v1-4-safety-overlay-governance-003`
+  - implementation commit: `4b03004`
+  - record commit: `23a326b`
+  - merge commit on `dev`: `0ba2f50`
+- merge 后在本地 `dev` 再次全量验证通过：
+  - `npm run verify` -> `333 pass / 0 fail`
+  - `./scripts/harness verify --output=stdout`
+  - `./scripts/harness doctor --check-only`
+  - `git diff --check`
+- 当前只剩把 `dev` 推到 `origin/dev`，随后进入 `v1.5`。
 
 ## Errors Encountered
 
@@ -137,6 +148,9 @@
 - `v1.4` full verification：通过[`codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`]
 - `v1.4` branch creation on main workspace：被平台 git-write quota 阻塞
 - `v1.4` branch creation on main workspace：恢复后提权成功
+- `v1.4` branch push：成功
+- `v1.4` merge back to dev：成功
+- `v1.4` post-merge verification on dev：通过
 
 ## Changed Files
 
@@ -157,5 +171,5 @@
 - `v1.1`: complete and archived
 - `v1.2`: complete and archived
 - `v1.3`: complete and archived
-- `v1.4`: implementation and full verification complete, commit/merge/push in progress
-- Next version: `v1.4` integration then `v1.5`, automatically resumed after quota reset
+- `v1.4`: implementation, merge, and post-merge verification complete; dev push pending
+- Next version: `v1.5` after `origin/dev` receives `v1.4`

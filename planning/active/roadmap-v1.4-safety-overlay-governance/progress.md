@@ -40,6 +40,19 @@
 - 恢复策略：保留当前已验证工作区，等待额度恢复后直接从 branch creation -> stage/commit -> merge/push 继续，不回滚已完成实现。
 - 已创建 thread heartbeat automation：`resume-roadmap-after-git-quota-reset`，按本地 01:50 wall-clock 自动续跑。
 - 2026-05-07 恢复执行时，提权 `git switch -c codex/202605070150-roadmap-v1-4-safety-overlay-governance-003` 已成功，`v1.4` 正式提交线恢复。
+- `v1.4` 正式提交线已完成：
+  - Branch: `codex/202605070150-roadmap-v1-4-safety-overlay-governance-003`
+  - Implementation commit: `4b03004 feat: implement roadmap v1.4 safety overlay governance`
+  - Record commit: `23a326b docs: record roadmap v1.4 verification`
+  - Merge commit on `dev`: `0ba2f50 merge: roadmap v1.4 safety overlay`
+- 本地 `dev` merge 后再次验证：
+  - `npm run verify` -> `333 pass / 0 fail`
+  - `./scripts/harness verify --output=stdout`
+  - `./scripts/harness doctor --check-only`
+  - `git diff --check`
+- 当前仅剩：
+  - push `origin/dev`
+  - 2026-05-08 scheduled run 观察 gate
 
 ## Verification
 
@@ -53,6 +66,12 @@
 - `npm run verify`：通过（`333 pass / 0 fail`）。
 - `git switch -c codex/202605061308-roadmap-v1-4-safety-overlay-governance-003`：被平台权限/额度限制阻塞，未执行。
 - `git switch -c codex/202605070150-roadmap-v1-4-safety-overlay-governance-003`：提权执行成功。
+- `git push -u origin codex/202605070150-roadmap-v1-4-safety-overlay-governance-003`：成功。
+- `git merge --no-ff codex/202605070150-roadmap-v1-4-safety-overlay-governance-003 -m "merge: roadmap v1.4 safety overlay"`：成功。
+- merge 后 `npm run verify`：通过（`333 pass / 0 fail`）。
+- merge 后 `./scripts/harness verify --output=stdout`：通过。
+- merge 后 `./scripts/harness doctor --check-only`：通过。
+- merge 后 `git diff --check`：通过。
 
 ## Current Execution State
 
@@ -60,4 +79,5 @@
 - Implementation: complete
 - Focused verification: complete
 - Full verification: complete
-- Merge / push: in_progress
+- Merge: complete
+- Push: pending
