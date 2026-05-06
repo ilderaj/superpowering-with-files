@@ -51,7 +51,7 @@ Sync-back status: waiting_review, summary synced
 VERSION="v1.2"
 TASK_ID="roadmap-v1.2-cross-ide-closure"
 BRANCH="codex/roadmap-v1.2-cross-ide-closure"
-WORKTREE_ROOT="/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles"
+WORKTREE_ROOT="$HOME/.config/superpowers/worktrees/SuperpoweringWithFiles"
 ```
 
 ### 2.1 进入版本前
@@ -144,7 +144,7 @@ git commit -m "docs: implement roadmap ${VERSION} <theme>"
 ### 2.6 合并回 dev
 
 ```bash
-cd /Users/jared/SuperpoweringWithFiles
+cd <repo-root>
 git checkout dev
 git pull --ff-only origin dev
 git merge --no-ff "$BRANCH" -m "merge: roadmap ${VERSION} <theme>"
@@ -159,13 +159,13 @@ git push origin dev
 合并并推送成功后：
 
 ```bash
-/Users/jared/.agents/skills/planning-with-files/scripts/close-task.sh \
-  /Users/jared/SuperpoweringWithFiles \
+bash harness/core/upstream-overlays/planning-with-files/scripts/close-task.sh \
+  . \
   "$TASK_ID" \
   "Roadmap ${VERSION} implemented, verified, merged into dev, and pushed to origin/dev."
 
-/Users/jared/.agents/skills/planning-with-files/scripts/archive-task.sh \
-  /Users/jared/SuperpoweringWithFiles \
+bash harness/core/upstream-overlays/planning-with-files/scripts/archive-task.sh \
+  . \
   "$TASK_ID"
 ```
 

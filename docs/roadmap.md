@@ -12,17 +12,22 @@ This document captures deferred product and workflow work that is intentionally 
 
 ### v1.1: Planning Hygiene And Active Task Cleanup
 
-- Status: in progress
+- Status: complete
 - Goal: keep `planning/active/` limited to work that still needs a real decision, external event, PR review, or implementation.
 - Scope:
   - archive tasks that are explicitly closed and archive eligible
   - close completed planning/meta tasks after their durable conclusions are transferred
   - keep PR/review tasks active until the review outcome is known
   - keep tasks with external concurrent edits untouched
+  - publish a lifecycle audit checklist for `planning/active/`
+  - provide a machine-readable active queue summary for operator review
 - Success criteria:
-  - no empty active task directories remain
+  - `empty active task directories = 0`
+  - `missing task_plan.md = 0`
+  - `missing Current State lifecycle block = 0`
+  - archive-ready tasks are explicitly identified and companion-synced
   - completed planning-only tasks are moved to `planning/archive/`
-  - remaining active tasks all have a clear reason to stay active
+  - remaining active and waiting-review tasks each have a named keep reason or external gate
 
 ### v1.2: Cross-IDE Projection And Hook Closure
 
