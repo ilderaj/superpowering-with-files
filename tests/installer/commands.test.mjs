@@ -91,7 +91,9 @@ test('install stores the selected entry and skills profiles in state', async () 
     );
 
     const state = await readState(root);
-    assert.equal(state.policyProfile, 'safety');
+    assert.equal(state.policyProfile, 'always-on-core');
+    assert.equal(state.workspacePolicyOverlay, 'safety');
+    assert.equal(state.deploymentProfile, 'standard');
     assert.equal(state.skillProfile, 'minimal-global');
     assert.equal(state.scope, 'workspace');
     assert.equal(state.targets.codex.enabled, true);

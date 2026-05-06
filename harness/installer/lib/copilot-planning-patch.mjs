@@ -4,14 +4,21 @@ import { applyPlanningWithFilesCompanionPlanPatch } from './planning-with-files-
 
 const MARKER = 'Harness Copilot planning-with-files patch';
 
-function copilotSkillRootSnippet() {
+function copilotSkillRootSnippet({ preferGithubSkillRoot = false } = {}) {
+  const preferredRoot = preferGithubSkillRoot
+    ? '.github/skills/planning-with-files'
+    : '.agents/skills/planning-with-files';
+  const fallbackRoot = preferGithubSkillRoot
+    ? '.agents/skills/planning-with-files'
+    : '.github/skills/planning-with-files';
+
   return [
-    'COPILOT_PLANNING_WITH_FILES_ROOT="${HARNESS_AGENT_SKILL_ROOT:-${GITHUB_COPILOT_SKILL_ROOT:-.agents/skills/planning-with-files}}"',
+    `COPILOT_PLANNING_WITH_FILES_ROOT="\${HARNESS_AGENT_SKILL_ROOT:-\${GITHUB_COPILOT_SKILL_ROOT:-${preferredRoot}}}"`,
     'if [ ! -f "$COPILOT_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ] && [ -n "${HOME:-}" ]; then',
     '  COPILOT_PLANNING_WITH_FILES_ROOT="$HOME/.agents/skills/planning-with-files"',
     'fi',
     'if [ ! -f "$COPILOT_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ]; then',
-      '  COPILOT_PLANNING_WITH_FILES_ROOT=".github/skills/planning-with-files"',
+    `  COPILOT_PLANNING_WITH_FILES_ROOT="${fallbackRoot}"`,
     '  if [ ! -f "$COPILOT_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ] && [ -n "${HOME:-}" ]; then',
     '    COPILOT_PLANNING_WITH_FILES_ROOT="$HOME/.copilot/skills/planning-with-files"',
     '  fi',
@@ -19,7 +26,7 @@ function copilotSkillRootSnippet() {
   ].join('\n');
 }
 
-export async function applyCopilotPlanningPatch(targetDir) {
+export async function applyCopilotPlanningPatch(targetDir, options = {}) {
   await applyPlanningWithFilesCompanionPlanPatch(targetDir);
 
   const skillPath = path.join(targetDir, 'SKILL.md');
@@ -37,7 +44,7 @@ export async function applyCopilotPlanningPatch(targetDir) {
             'It keeps task state under `planning/active/<task-id>/` and resolves helper scripts from the Copilot skill directory.',
             '',
             '```bash',
-            copilotSkillRootSnippet(),
+            copilotSkillRootSnippet(options),
             '```',
             '',
             '# Planning with Files'

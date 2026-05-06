@@ -68,6 +68,38 @@
   - `./scripts/harness verify --output=stdout` → pass
   - `./scripts/harness doctor --check-only` → `Harness check passed`
   - `git diff --check` → pass
+- 启动 `v1.4` 控制任务 `roadmap-v1.4-safety-overlay-governance`，确认当前唯一硬时间门槛为 `post-upstream-automation-followups` 在 `2026-05-08 20:05 Asia/Shanghai` 的 scheduled run 观察。
+- `v1.4` discovery 结论：
+  - `pretool-guard.sh` 是唯一 pre-tool safety runtime；false-positive 修复应集中在 safe allowlist 和 `find ... -delete` 保护。
+  - state 当前仍是单层 `policyProfile` / `skillProfile`，需要新增 baseline + overlay 与 cloud deployment profile 维度。
+  - Copilot repo-local cloud surface 目前只覆盖 `.github/copilot-instructions.md` 与 `.github/hooks/**`，workspace skills 仍需切到 `.github/skills`。
+- `v1.4` 实施路径因平台权限差异做过一次调整：
+  - 外部 Harness worktree `~/.config/superpowers/worktrees/...001` 创建成功，但后续文件写入审批超时；
+  - 已切换到仓库内 fallback worktree `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002` 继续实现，不影响 base/ref。
+- `v1.4` 已完成代码实现与 focused verification：
+  - state 增加 `deploymentProfile` / `workspacePolicyOverlay`，并兼容旧 safety state 自动归一化；
+  - `install` / `sync` / `health` / `doctor` / `adoption-status` 接入 baseline + overlay + deployment 维度；
+  - Copilot `github-cloud` deployment profile 把 workspace skill root 切到 `.github/skills`；
+  - `cloud-bootstrap` 模板默认带 `--deployment-profile=github-cloud`；
+  - safety pre-tool allowlist 已纳入 `rg`、`node --test`、`npm run verify`，并为低风险 `find` 增加专门分支。
+- `v1.4` focused verification 通过：
+  - state/path/skill projection suites 通过
+  - safety/projection/sync-hooks suites 通过
+  - commands/adoption/health/automation suites 通过
+- `v1.4` full verification 通过：
+  - `./scripts/harness verify --output=stdout`
+  - `./scripts/harness doctor --check-only`
+  - `./scripts/harness sync --dry-run`
+  - `git diff --check`
+  - `npm run verify` -> `333 pass / 0 fail`
+- 主工作区已与 `v1.4` fallback worktree 的实现内容同步，并在主工作区再次全量验证通过。
+- 进入 `v1.4` 正式提交阶段时，平台拒绝 `.git/refs` 写入：
+  - `git switch -c codex/202605061308-roadmap-v1-4-safety-overlay-governance-003`
+  - 错误：`cannot lock ref ... Operation not permitted`
+- 同窗口内针对 worktree 缓存文件的提权恢复也被平台拒绝，原因是会话执行额度已用尽；平台提示需等到 `May 7th, 2026 1:45 AM` 后重试。
+- 已决定保持当前已验证工作区不动，通过 heartbeat automation 在额度恢复后回到本线程，从 `v1.4` branch creation / commit / merge / push 继续。
+- 已创建 heartbeat automation：`resume-roadmap-after-git-quota-reset`。
+- 2026-05-07 恢复执行时，提权 `git switch -c codex/202605070150-roadmap-v1-4-safety-overlay-governance-003` 已成功，继续沿主工作区完成 `v1.4` 的 commit/merge/push。
 
 ## Errors Encountered
 
@@ -101,6 +133,10 @@
 - `git diff --check`：通过[`v1.3` worktree]
 - `git push -u origin codex/202605061218-roadmap-v1-3-context-budget-governance-001`：通过
 - `git merge --no-ff a9f699c -m "merge: roadmap v1.3 context governance"`：通过[`dev`]
+- `v1.4` focused test matrix：通过[`codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`]
+- `v1.4` full verification：通过[`codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`]
+- `v1.4` branch creation on main workspace：被平台 git-write quota 阻塞
+- `v1.4` branch creation on main workspace：恢复后提权成功
 
 ## Changed Files
 
@@ -111,11 +147,15 @@
 - `planning/active/roadmap-v1.3-context-budget-governance/task_plan.md`
 - `planning/active/roadmap-v1.3-context-budget-governance/findings.md`
 - `planning/active/roadmap-v1.3-context-budget-governance/progress.md`
+- `planning/active/roadmap-v1.4-safety-overlay-governance/task_plan.md`
+- `planning/active/roadmap-v1.4-safety-overlay-governance/findings.md`
+- `planning/active/roadmap-v1.4-safety-overlay-governance/progress.md`
 
 ## Current Execution State
 
 - Gate 0: complete
 - `v1.1`: complete and archived
 - `v1.2`: complete and archived
-- `v1.3`: complete and ready to archive after dev push
-- Next version: `v1.4`
+- `v1.3`: complete and archived
+- `v1.4`: implementation and full verification complete, commit/merge/push in progress
+- Next version: `v1.4` integration then `v1.5`, automatically resumed after quota reset

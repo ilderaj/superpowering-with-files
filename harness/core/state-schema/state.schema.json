@@ -9,7 +9,9 @@
     "scope": { "type": "string", "enum": ["workspace", "user-global", "both"] },
     "projectionMode": { "type": "string", "enum": ["link", "portable"] },
     "hookMode": { "type": "string", "enum": ["off", "on"] },
+    "deploymentProfile": { "type": "string", "enum": ["standard", "github-cloud"] },
     "policyProfile": { "type": "string" },
+    "workspacePolicyOverlay": { "type": ["string", "null"] },
     "skillProfile": { "type": "string" },
     "targets": {
       "type": "object",

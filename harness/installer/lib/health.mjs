@@ -21,7 +21,7 @@ import {
   planSkillProjections
 } from './skill-projection.mjs';
 import { isSafetyPolicyProfile, resolveAgentConfigRoots } from './safety-projection.mjs';
-import { readState } from './state.mjs';
+import { activeSafetyPolicyProfile, readState } from './state.mjs';
 import { readUserManaged } from './user-managed.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -1099,11 +1099,12 @@ async function inspectPlanningRiskAssessmentTemplates(targets) {
 }
 
 async function inspectSafetyHealth(rootDir, homeDir, state, targets) {
-  const enabled = isSafetyPolicyProfile(state.policyProfile);
+  const profile = activeSafetyPolicyProfile(state);
+  const enabled = isSafetyPolicyProfile(profile);
   if (!enabled) {
     return {
       enabled: false,
-      profile: state.policyProfile,
+      profile,
       checks: []
     };
   }
@@ -1211,7 +1212,7 @@ async function inspectSafetyHealth(rootDir, homeDir, state, targets) {
 
   return {
     enabled,
-    profile: state.policyProfile,
+    profile,
     checks
   };
 }
@@ -1346,7 +1347,9 @@ export async function readHarnessHealth(rootDir, homeDir) {
     scope: state.scope,
     projectionMode: state.projectionMode,
     hookMode: state.hookMode,
+    deploymentProfile: state.deploymentProfile,
     policyProfile: state.policyProfile,
+    workspacePolicyOverlay: state.workspacePolicyOverlay ?? null,
     skillProfile: state.skillProfile,
     targets: []
   };
@@ -1439,7 +1442,8 @@ export async function readHarnessHealth(rootDir, homeDir) {
       homeDir,
       scope: state.scope,
       target,
-      skillProfile: state.skillProfile
+      skillProfile: state.skillProfile,
+      deploymentProfile: state.deploymentProfile
     });
     const duplicateSkillFindings = await classifySkillProjectionDuplicates(plannedSkillProjections);
     const duplicateSkillByTargetPath = new Map();
@@ -1500,7 +1504,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
       scope: state.scope,
       target,
       hookMode: state.hookMode,
-      policyProfile: state.policyProfile
+      policyProfile: activeSafetyPolicyProfile(state)
     })) {
       const inspected = await inspectHook(projection);
       hooks.push(inspected);
@@ -1682,7 +1686,9 @@ export async function readHarnessHealth(rootDir, homeDir) {
     scope: state.scope,
     projectionMode: state.projectionMode,
     hookMode: state.hookMode,
+    deploymentProfile: state.deploymentProfile,
     policyProfile: state.policyProfile,
+    workspacePolicyOverlay: state.workspacePolicyOverlay ?? null,
     skillProfile: state.skillProfile,
     lastSync: state.lastSync,
     lastFetch: state.lastFetch,

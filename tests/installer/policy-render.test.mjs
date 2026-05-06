@@ -96,7 +96,7 @@ test('renderPolicyProfile fails clearly when a profile references a missing sect
   );
 });
 
-test('project docs keep Codex and Copilot on shared .agents skill roots while preserving platform boundaries', async () => {
+test('project docs keep shared defaults while documenting the optional Copilot github-cloud skill root', async () => {
   const [readme, architecture, copilotInstall, codexInstall] = await Promise.all([
     readFile(path.join(process.cwd(), 'README.md'), 'utf8'),
     readFile(path.join(process.cwd(), 'docs/architecture.md'), 'utf8'),
@@ -115,8 +115,9 @@ test('project docs keep Codex and Copilot on shared .agents skill roots while pr
   assert.doesNotMatch(architecture, /GitHub Copilot \| `\.github\/skills` \| `~\/\.copilot\/skills`/);
   assert.match(copilotInstall, /`\.agents\/skills`/);
   assert.match(copilotInstall, /`~\/\.agents\/skills`/);
+  assert.match(copilotInstall, /\.github\/skills/);
+  assert.match(copilotInstall, /--deployment-profile=github-cloud/);
   assert.match(copilotInstall, /tracked-task/);
-  assert.doesNotMatch(copilotInstall, /\.github\/skills/);
   assert.doesNotMatch(copilotInstall, /~\/\.copilot\/skills/);
   assert.match(codexInstall, /`\.agents\/skills`/);
   assert.match(codexInstall, /`~\/\.agents\/skills`/);

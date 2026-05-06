@@ -54,7 +54,7 @@ function renderBudgetLedgerSection(health) {
   const ledger = health.context?.ledger;
   const lines = [
     'Budget ledger:',
-    `- install: scope=${ledger?.scope ?? 'unknown'}, projection=${ledger?.projectionMode ?? 'unknown'}, hooks=${ledger?.hookMode ?? 'unknown'}, policy=${ledger?.policyProfile ?? 'unknown'}, skills=${ledger?.skillProfile ?? 'unknown'}`
+    `- install: scope=${ledger?.scope ?? 'unknown'}, projection=${ledger?.projectionMode ?? 'unknown'}, deployment=${ledger?.deploymentProfile ?? 'unknown'}, hooks=${ledger?.hookMode ?? 'unknown'}, policy=${ledger?.policyProfile ?? 'unknown'}, overlay=${ledger?.workspacePolicyOverlay ?? 'none'}, skills=${ledger?.skillProfile ?? 'unknown'}`
   ];
 
   for (const target of ledger?.targets ?? []) {

@@ -71,13 +71,18 @@ This document captures deferred product and workflow work that is intentionally 
 
 ### v1.4: Safety Overlay, Cloud Harness, And Automation Follow-Through
 
-- Status: planned
+- Status: implementation complete; scheduled-run observation pending
 - Goal: make safety and cloud usage additive overlays instead of global baseline mutations.
 - Scope:
   - complete the `post-upstream-automation-followups` scheduled-run observation after 2026-05-08 20:05 Asia/Shanghai
   - review and decide the `origin-cloud-harness-deployment-plan`
   - implement a workspace safety overlay model that does not rewrite the global baseline
   - reduce safety hook false positives for read/search/verification workflows
+- Closeout:
+  - state now records baseline policy plus workspace overlay and deployment profile without rewriting the user-global baseline
+  - Copilot `github-cloud` repo-local deployment now projects workspace skills to `.github/skills`
+  - safety pre-tool guard now allows normal read/search/verification flows such as `rg`, `node --test`, `npm run verify`, and low-risk `find`
+  - `post-upstream-automation-followups` remains active only for the first scheduled-run observation window on 2026-05-08
 - Success criteria:
   - `sync`, `doctor`, and `adoption-status` report global baseline plus workspace overlays coherently
   - cloud repo-local policy files are clearly separated from local user-global adoption
@@ -116,7 +121,7 @@ This document captures deferred product and workflow work that is intentionally 
 
 ### 1. Global Baseline + Workspace Safety Overlay
 
-- Status: planned
+- Status: implementation complete
 - Priority: high
 - Problem: the current installer/runtime model uses a single authoritative repo state. Enabling workspace safety rewrites that state instead of layering safety on top of the existing global baseline.
 - Goal: allow a workspace to enable safety for one IDE without disrupting the repo's global baseline, shared skills, or other workspace/IDE access patterns.
@@ -127,7 +132,7 @@ This document captures deferred product and workflow work that is intentionally 
 
 ### 2. Safety Hook False-Positive Reduction
 
-- Status: planned
+- Status: implementation complete
 - Priority: high
 - Problem: the current safety hook can block normal read-only agent/tool operations, which makes diagnosis and routine maintenance harder than intended.
 - Goal: preserve destructive-action guardrails without aborting normal file reads, searches, verification commands, or other low-risk agent workflows.

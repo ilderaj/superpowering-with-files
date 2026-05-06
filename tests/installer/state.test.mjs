@@ -11,7 +11,9 @@ test('defaultState creates v1 workspace state', () => {
     scope: 'workspace',
     projectionMode: 'link',
     hookMode: 'off',
+    deploymentProfile: 'standard',
     policyProfile: 'always-on-core',
+    workspacePolicyOverlay: null,
     skillProfile: 'full',
     targets: {},
     upstream: {}
@@ -26,7 +28,9 @@ test('writeState and readState roundtrip local state', async () => {
       scope: 'both',
       projectionMode: 'portable',
       hookMode: 'off',
+      deploymentProfile: 'standard',
       policyProfile: 'always-on-core',
+      workspacePolicyOverlay: null,
       skillProfile: 'full',
       targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
       upstream: {}
@@ -47,7 +51,9 @@ test('updateState persists state returned by updater', async () => {
       scope: 'workspace',
       projectionMode: 'link',
       hookMode: 'off',
+      deploymentProfile: 'standard',
       policyProfile: 'always-on-core',
+      workspacePolicyOverlay: null,
       skillProfile: 'full',
       targets: {},
       upstream: {}
@@ -72,7 +78,9 @@ test('writeState and readState roundtrip enabled hook mode', async () => {
       scope: 'workspace',
       projectionMode: 'link',
       hookMode: 'on',
+      deploymentProfile: 'standard',
       policyProfile: 'always-on-core',
+      workspacePolicyOverlay: null,
       skillProfile: 'full',
       targets: { cursor: { enabled: true, paths: ['.cursor/rules/harness.mdc'] } },
       upstream: {}
@@ -164,12 +172,14 @@ test('state schema keeps skillProfile optional and stringly typed', async () => 
   assert.ok(!schema.required.includes('policyProfile'));
   assert.equal(schema.properties.policyProfile.type, 'string');
   assert.equal(schema.properties.policyProfile.enum, undefined);
+  assert.deepEqual(schema.properties.deploymentProfile.enum, ['standard', 'github-cloud']);
+  assert.deepEqual(schema.properties.workspacePolicyOverlay.type, ['string', 'null']);
   assert.ok(!schema.required.includes('skillProfile'));
   assert.equal(schema.properties.skillProfile.type, 'string');
   assert.equal(schema.properties.skillProfile.enum, undefined);
 });
 
-test('writeState preserves arbitrary skillProfile strings for loader-based validation', async () => {
+test('writeState preserves arbitrary skillProfile strings while normalizing legacy safety into an overlay', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
   try {
     const state = {
@@ -177,6 +187,7 @@ test('writeState preserves arbitrary skillProfile strings for loader-based valid
       scope: 'workspace',
       projectionMode: 'link',
       hookMode: 'off',
+      deploymentProfile: 'standard',
       policyProfile: 'safety',
       skillProfile: 'legacy',
       targets: {},
@@ -184,7 +195,11 @@ test('writeState preserves arbitrary skillProfile strings for loader-based valid
     };
 
     await writeState(dir, state);
-    assert.deepEqual(await readState(dir), state);
+    assert.deepEqual(await readState(dir), {
+      ...state,
+      policyProfile: 'always-on-core',
+      workspacePolicyOverlay: 'safety'
+    });
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -266,7 +281,9 @@ test('writeState survives concurrent writes with a constant timestamp', async ()
         scope: index % 2 === 0 ? 'workspace' : 'both',
         projectionMode: index % 3 === 0 ? 'link' : 'portable',
         hookMode: 'off',
-        policyProfile: index % 2 === 0 ? 'always-on-core' : 'safety',
+        deploymentProfile: 'standard',
+        policyProfile: 'always-on-core',
+        workspacePolicyOverlay: index % 2 === 0 ? null : 'safety',
         skillProfile: 'full',
         targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
         upstream: {}

@@ -15,7 +15,7 @@ function usage() {
     'Usage: ./scripts/harness cloud-bootstrap --target=codespaces',
     '',
     'Options:',
-    '  --target=codespaces  Generate safety-oriented devcontainer suggestions',
+    '  --target=codespaces  Generate safety-oriented devcontainer suggestions with the GitHub cloud deployment profile',
     '  --help, -h           Show this help message'
   ].join('\n');
 }

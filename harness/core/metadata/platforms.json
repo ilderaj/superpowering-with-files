@@ -36,6 +36,11 @@
         "workspace": [".agents/skills"],
         "global": [".agents/skills"]
       },
+      "deploymentSkillRoots": {
+        "github-cloud": {
+          "workspace": [".github/skills"]
+        }
+      },
       "hookRoots": {
         "workspace": [".github/hooks"],
         "global": [".copilot/hooks"]
