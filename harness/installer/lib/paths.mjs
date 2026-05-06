@@ -29,7 +29,7 @@ function resolveEntryFiles(target, scopeKey) {
   return platform.entryFiles ?? [];
 }
 
-function resolveSkillRootEntries(target) {
+function resolveSkillRootEntries(target, deploymentProfile = 'standard') {
   const platform = platforms[target];
   if (!platform) {
     throw new Error(`Unknown target: ${target}`);
@@ -39,7 +39,15 @@ function resolveSkillRootEntries(target) {
     throw new Error(`Target ${target} does not define skillRoots.`);
   }
 
-  return platform.skillRoots;
+  const deploymentOverride = platform.deploymentSkillRoots?.[deploymentProfile];
+  if (!deploymentOverride) {
+    return platform.skillRoots;
+  }
+
+  return {
+    workspace: deploymentOverride.workspace ?? platform.skillRoots.workspace ?? [],
+    global: deploymentOverride.global ?? platform.skillRoots.global ?? []
+  };
 }
 
 function resolveHookRootEntries(target) {
@@ -80,8 +88,8 @@ export function resolveTargetPaths(rootDir, homeDir, scope, target) {
   return results;
 }
 
-export function resolveSkillRoots(rootDir, homeDir, scope, target) {
-  const roots = resolveSkillRootEntries(target);
+export function resolveSkillRoots(rootDir, homeDir, scope, target, deploymentProfile = 'standard') {
+  const roots = resolveSkillRootEntries(target, deploymentProfile);
   const results = [];
 
   if (scope === 'workspace' || scope === 'both') {
@@ -110,8 +118,15 @@ export function resolveHookRoots(rootDir, homeDir, scope, target) {
   return results;
 }
 
-export function resolveSkillTargetPaths(rootDir, homeDir, scope, target, descriptor) {
-  const roots = resolveSkillRoots(rootDir, homeDir, scope, target);
+export function resolveSkillTargetPaths(
+  rootDir,
+  homeDir,
+  scope,
+  target,
+  descriptor,
+  deploymentProfile = 'standard'
+) {
+  const roots = resolveSkillRoots(rootDir, homeDir, scope, target, deploymentProfile);
 
   if (descriptor.layout === 'single') {
     return roots.map((root) => path.join(root, descriptor.targetName));

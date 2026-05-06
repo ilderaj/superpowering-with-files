@@ -78,7 +78,7 @@ test('cloud-bootstrap creates Codespaces safety files when devcontainer files ar
     );
     assert.match(
       await readFile(path.join(root, '.devcontainer/postCreateCommand.sh'), 'utf8'),
-      /install --scope=workspace --profile=cloud-safe --hooks=on/
+      /install --scope=workspace --profile=cloud-safe --deployment-profile=github-cloud --hooks=on/
     );
     assert.match(await readFile(path.join(root, '.gitignore'), 'utf8'), /\.agent-config\/checkpoints\//);
   } finally {
@@ -105,7 +105,7 @@ test('cloud-bootstrap writes suggested files instead of overwriting existing dev
     );
     assert.match(
       await readFile(path.join(root, '.devcontainer/postCreateCommand.sh.harness.suggested'), 'utf8'),
-      /install --scope=workspace --profile=cloud-safe --hooks=on/
+      /install --scope=workspace --profile=cloud-safe --deployment-profile=github-cloud --hooks=on/
     );
   } finally {
     await removeHarnessFixture(root);

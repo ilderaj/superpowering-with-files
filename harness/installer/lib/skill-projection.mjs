@@ -348,7 +348,14 @@ export async function projectionForSkill(rootDir, skillName, target) {
   };
 }
 
-export async function planSkillProjections({ rootDir, homeDir, scope, target, skillProfile }) {
+export async function planSkillProjections({
+  rootDir,
+  homeDir,
+  scope,
+  target,
+  skillProfile,
+  deploymentProfile = 'standard'
+}) {
   const [index, metadata, skillProfiles] = await Promise.all([
     loadSkillIndex(rootDir),
     loadPlatformsMetadata(rootDir),
@@ -396,10 +403,17 @@ export async function planSkillProjections({ rootDir, homeDir, scope, target, sk
         continue;
       }
 
-      const targetPaths = resolveSkillTargetPaths(rootDir, homeDir, scope, target, {
-        layout: 'collection',
-        childNames
-      });
+      const targetPaths = resolveSkillTargetPaths(
+        rootDir,
+        homeDir,
+        scope,
+        target,
+        {
+          layout: 'collection',
+          childNames
+        },
+        deploymentProfile
+      );
 
       for (const childName of childNames) {
         for (const targetPath of targetPaths.filter((candidate) => path.basename(candidate) === childName)) {
@@ -409,6 +423,7 @@ export async function planSkillProjections({ rootDir, homeDir, scope, target, sk
             parentSkillName,
             skillName: childName,
             target,
+            deploymentProfile,
             strategy,
             sourcePath: path.join(sourceRoot, childName),
             targetPath,
@@ -424,13 +439,21 @@ export async function planSkillProjections({ rootDir, homeDir, scope, target, sk
         continue;
       }
 
-      for (const targetPath of resolveSkillTargetPaths(rootDir, homeDir, scope, target, skill)) {
+      for (const targetPath of resolveSkillTargetPaths(
+        rootDir,
+        homeDir,
+        scope,
+        target,
+        skill,
+        deploymentProfile
+      )) {
         const patches = resolvePatches(skill.patches, target);
         projections.push({
           kind: 'skill',
           parentSkillName,
           skillName: skill.targetName,
           target,
+          deploymentProfile,
           strategy,
           sourcePath: sourceRoot,
           targetPath,

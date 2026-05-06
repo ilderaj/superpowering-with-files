@@ -7,9 +7,15 @@ import { readHarnessHealth } from './health.mjs';
 import { loadPlatforms, normalizeTargets } from './metadata.mjs';
 import { loadPolicyProfiles } from './policy-render.mjs';
 import { resolveTargetPaths } from './paths.mjs';
-import { isSafetyPolicyProfile } from './safety-projection.mjs';
 import { defaultSkillProfileForTargets, loadSkillProfiles } from './skill-projection.mjs';
-import { readState, writeState } from './state.mjs';
+import {
+  DEFAULT_DEPLOYMENT_PROFILE,
+  activeSafetyPolicyProfile,
+  normalizePolicySelection,
+  readState,
+  validateDeploymentProfile,
+  writeState
+} from './state.mjs';
 
 const execFileAsync = promisify(execFile);
 const ADOPTION_DIR = '.harness/adoption';
@@ -136,8 +142,10 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
 
   const projectionMode = options.projectionMode ?? state.projectionMode ?? 'link';
   const hookMode = options.hookMode ?? state.hookMode ?? 'off';
-  const policyProfile = options.policyProfile ?? state.policyProfile ?? policyProfiles.defaultProfile;
+  const requestedPolicyProfile = options.policyProfile ?? state.policyProfile ?? policyProfiles.defaultProfile;
+  const { policyProfile, workspacePolicyOverlay } = normalizePolicySelection(requestedPolicyProfile);
   const requestedSkillProfile = options.skillProfile;
+  const deploymentProfile = options.deploymentProfile ?? state.deploymentProfile ?? DEFAULT_DEPLOYMENT_PROFILE;
   const preservingExistingUserGlobalState =
     state.scope === 'user-global' && !isEffectivelyEmptyState(state) && mode !== 'force';
   const skillProfile =
@@ -148,6 +156,7 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
 
   validateProjectionMode(projectionMode);
   validateHookMode(hookMode);
+  validateDeploymentProfile(deploymentProfile);
 
   if (!policyProfiles.profiles[policyProfile]) {
     throw new Error(
@@ -155,8 +164,10 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
     );
   }
 
-  if (isSafetyPolicyProfile(policyProfile)) {
-    throw new Error(`Safety profiles are workspace-only. Refusing ${policyProfile} for user-global scope.`);
+  if (activeSafetyPolicyProfile(state) || activeSafetyPolicyProfile({ policyProfile, workspacePolicyOverlay })) {
+    throw new Error(
+      `Safety profiles are workspace-only. Refusing ${requestedPolicyProfile} for user-global scope.`
+    );
   }
 
   if (!skillProfiles.profiles[skillProfile]) {
@@ -177,7 +188,9 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
           ...state,
           projectionMode: preservingExistingUserGlobalState ? state.projectionMode : projectionMode,
           hookMode: preservingExistingUserGlobalState ? state.hookMode : hookMode,
+          deploymentProfile: preservingExistingUserGlobalState ? state.deploymentProfile : deploymentProfile,
           policyProfile: preservingExistingUserGlobalState ? state.policyProfile : policyProfile,
+          workspacePolicyOverlay: null,
           skillProfile,
           targets: preservingExistingUserGlobalState ? state.targets : buildTargetState(rootDir, homeDir, requestedTargets)
         }
@@ -186,7 +199,9 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
           scope: 'user-global',
           projectionMode,
           hookMode,
+          deploymentProfile,
           policyProfile,
+          workspacePolicyOverlay: null,
           skillProfile,
           targets: buildTargetState(rootDir, homeDir, requestedTargets),
           upstream: state.upstream ?? {}
@@ -211,7 +226,9 @@ export async function createSuccessReceipt(rootDir, state, options = {}) {
     appliedAt: new Date().toISOString(),
     projectionMode: state.projectionMode,
     hookMode: state.hookMode,
+    deploymentProfile: state.deploymentProfile,
     policyProfile: state.policyProfile,
+    workspacePolicyOverlay: state.workspacePolicyOverlay ?? null,
     skillProfile: state.skillProfile,
     targets: enabledTargetsFromState(state),
     doctorPassed: true,
@@ -311,6 +328,11 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
     scope: 'user-global',
     repoHead,
     repoBranch,
+    deploymentProfile: state.deploymentProfile,
+    policyProfile: state.policyProfile,
+    workspacePolicyOverlay: state.workspacePolicyOverlay ?? null,
+    effectivePolicyProfiles:
+      state.workspacePolicyOverlay ? [state.policyProfile, state.workspacePolicyOverlay] : [state.policyProfile],
     targets,
     reasons,
     receipt,

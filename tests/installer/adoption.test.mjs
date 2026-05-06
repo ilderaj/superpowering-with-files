@@ -348,7 +348,8 @@ test('adoption-status reports state_mismatch when install state drifts after ado
     const state = await readState(root);
     await writeState(root, {
       ...state,
-      policyProfile: 'safety',
+      policyProfile: 'tracked-task-extended',
+      workspacePolicyOverlay: null,
       skillProfile: 'full'
     });
 

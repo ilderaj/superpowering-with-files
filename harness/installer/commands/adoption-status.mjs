@@ -9,7 +9,7 @@ function usage() {
   return [
     'Usage: ./scripts/harness adoption-status',
     '',
-    'Print the current user-global adoption status as JSON.',
+    'Print the current user-global adoption status as JSON, including any workspace-only overlay state.',
     '',
     'Options:',
     '  --help, -h  Show this help message'

@@ -581,10 +581,11 @@ test('readHarnessHealth reports safety checks for safety profile installs', asyn
 
     await writeState(root, {
       schemaVersion: 1,
-      scope: 'both',
+      scope: 'workspace',
       projectionMode: 'link',
       hookMode: 'on',
-      policyProfile: 'safety',
+      policyProfile: 'always-on-core',
+      workspacePolicyOverlay: 'safety',
       targets: {
         codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
       },

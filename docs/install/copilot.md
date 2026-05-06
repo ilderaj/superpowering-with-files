@@ -14,13 +14,19 @@ User-global scope writes:
 ~/.copilot/instructions/harness.instructions.md
 ```
 
-GitHub Copilot uses the shared Harness skill roots `.agents/skills` and `~/.agents/skills`. `planning-with-files` is materialized there when required.
+GitHub Copilot uses the shared Harness skill roots `.agents/skills` and `~/.agents/skills` by default. For GitHub-origin cloud repos, Harness can switch the workspace root to `.github/skills` while keeping user-global skills under `~/.agents/skills`.
 
 Skill roots:
 
 ```text
 .agents/skills
 ~/.agents/skills
+```
+
+GitHub-origin cloud deployment profile workspace skill root:
+
+```text
+.github/skills
 ```
 
 The Copilot entry stays thin: it renders the always-on core policy plus Copilot-specific notes, but not the tracked-task or deep-reasoning sections.
@@ -44,6 +50,13 @@ Run:
 
 ```bash
 ./scripts/harness install --targets=copilot --scope=workspace
+./scripts/harness sync
+```
+
+For repo-local cloud execution where Copilot must stay inside `.github/**`, run:
+
+```bash
+./scripts/harness install --targets=copilot --scope=workspace --profile=cloud-safe --deployment-profile=github-cloud --hooks=on
 ./scripts/harness sync
 ```
 

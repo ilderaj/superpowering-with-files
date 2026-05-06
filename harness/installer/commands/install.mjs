@@ -4,7 +4,12 @@ import { loadPolicyProfiles } from '../lib/policy-render.mjs';
 import { resolveTargetPaths } from '../lib/paths.mjs';
 import { defaultSkillProfileForTargets, loadSkillProfiles } from '../lib/skill-projection.mjs';
 import { isSafetyPolicyProfile } from '../lib/safety-projection.mjs';
-import { writeState } from '../lib/state.mjs';
+import {
+  DEFAULT_DEPLOYMENT_PROFILE,
+  normalizePolicySelection,
+  validateDeploymentProfile,
+  writeState
+} from '../lib/state.mjs';
 import { sync } from './sync.mjs';
 
 function readOption(args, name, fallback) {
@@ -21,11 +26,13 @@ export async function install(args = []) {
   const scope = normalizeScope(readOption(args, 'scope', metadata.defaultScope));
   const mode = readOption(args, 'mode', 'ensure');
   const projectionMode = readOption(args, 'projection', 'link');
-  const policyProfile = readOption(args, 'profile', policyProfiles.defaultProfile);
+  const requestedPolicyProfile = readOption(args, 'profile', policyProfiles.defaultProfile);
+  const deploymentProfile = readOption(args, 'deployment-profile', DEFAULT_DEPLOYMENT_PROFILE);
+  const { policyProfile, workspacePolicyOverlay } = normalizePolicySelection(requestedPolicyProfile);
   const hookMode = readOption(
     args,
     'hooks',
-    ['safety', 'cloud-safe'].includes(policyProfile) ? 'on' : 'off'
+    ['safety', 'cloud-safe'].includes(requestedPolicyProfile) ? 'on' : 'off'
   );
   const targetArg = readOption(args, 'targets', 'all');
   const targets = normalizeTargets(metadata, targetArg.split(',').filter(Boolean));
@@ -48,15 +55,23 @@ export async function install(args = []) {
     throw new Error(`Invalid hooks mode: ${hookMode}`);
   }
 
-  if (!policyProfiles.profiles[policyProfile]) {
+  validateDeploymentProfile(deploymentProfile);
+
+  if (!policyProfiles.profiles[requestedPolicyProfile]) {
     throw new Error(
-      `Invalid profile: ${policyProfile}. Expected one of: ${Object.keys(policyProfiles.profiles).join(', ')}.`
+      `Invalid profile: ${requestedPolicyProfile}. Expected one of: ${Object.keys(policyProfiles.profiles).join(', ')}.`
     );
   }
 
-  if (scope !== 'workspace' && isSafetyPolicyProfile(policyProfile)) {
+  if (scope !== 'workspace' && isSafetyPolicyProfile(requestedPolicyProfile)) {
     throw new Error(
-      `Safety profiles are workspace-only. Refusing ${policyProfile} for ${scope} scope.`
+      `Safety profiles are workspace-only. Refusing ${requestedPolicyProfile} for ${scope} scope.`
+    );
+  }
+
+  if (scope !== 'workspace' && deploymentProfile !== DEFAULT_DEPLOYMENT_PROFILE) {
+    throw new Error(
+      `Deployment profile ${deploymentProfile} is workspace-only. Refusing it for ${scope} scope.`
     );
   }
 
@@ -71,7 +86,9 @@ export async function install(args = []) {
     scope,
     projectionMode,
     hookMode,
+    deploymentProfile,
     policyProfile,
+    workspacePolicyOverlay,
     skillProfile,
     targets: {},
     upstream: {}
