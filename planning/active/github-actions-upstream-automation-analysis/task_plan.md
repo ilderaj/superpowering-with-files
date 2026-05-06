@@ -175,10 +175,12 @@ Phase 17
 - 本轮只修订计划与 planning 文件，不创建 workflow、不改 GitHub 设置、不推分支。
 - Companion plan 与 task memory 已双向关联；task memory 保留摘要，companion plan 保存详细步骤。
 - 2026-05-04 已完成 rollout 收口：`main` rehearsal 通过、`dev` parity fix 合并、schedule gate 启用、`dev` protection 生效、本地 `dev` 已对齐远端。
+- 2026-05-06 审计确认：关闭状态仍有效；主工作区实现与远端状态一致，但存在一个旧 rehearsal worktree 保留失败 refresh 产物，不应视为当前待合并实现。
 
 ## Current Verdict
 
 - 原始方向仍成立：`main` 上 schedule 触发、先探测 upstream `HEAD`、工作分支从 `origin/dev` 派生、执行 Harness refresh chain、通过 PR 落到 `dev`。
+- 2026-05-06 复核：`.github/workflows/upstream-refresh.yml`、`scripts/ci/*`、`tests/automation/*`、`scripts/local/sync-dev-after-upstream-pr.mjs` 均已存在；远端默认分支仍为 `main`，`dev` protection 与 `UPSTREAM_REFRESH_SCHEDULE_ENABLED=true` 仍在，最新 run `25295497835` 仍是成功 rehearsal。
 - 原始计划不能按原样执行，核心缺口是：
   1. 缺少具体的 UTC schedule。
   2. 把“处理冲突”描述得过于乐观，没有 fail-fast 分流。
@@ -186,6 +188,7 @@ Phase 17
   4. 详细 checklist 直接写在 task memory，违反当前 summary-only sync-back 边界。
 - 2026-04-30 复核后新增边界：GitHub 端自动化可行；PR merge 后自动同步 local `dev` 不是 GitHub-only 能力，需要本地 fast-forward helper。
 - 修订后计划已经把这些边界收口，并迁移到 companion plan。
+- 2026-05-06 额外观察：当前主工作区执行 `npm run verify` 未全绿，但失败集中在 `tests/adapters/sync-skills.test.mjs` 的本机 `~/.harness/backups` 写权限，以及 `tests/installer/worktree-name.test.mjs` / `tests/installer/worktree-preflight.test.mjs` 的 worktree naming 断言漂移；这些不是原 upstream automation rollout 的未完成项，而是后续 repo health / worktree naming 回归问题。
 
 ## Companion Plan Reference
 

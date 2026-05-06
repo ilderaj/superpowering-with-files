@@ -114,6 +114,20 @@
 |-------|------------|
 | 本机没有 `fd` | 使用 `rg --files` 继续定位文件 |
 
+## 2026-05-06 Audit Findings
+
+- 主工作区 `dev` 当前干净，`git status --short --branch` 为 `## dev...origin/dev`，说明本地主线没有残留未提交实现。
+- 本地文件面与 closed-task 结论一致：`.github/workflows/upstream-refresh.yml`、`scripts/ci/lib/upstream-heads.mjs`、`scripts/ci/lib/upstream-refresh.mjs`、`scripts/ci/lib/upstream-pr.mjs`、`scripts/ci/run-upstream-refresh.mjs`、`scripts/ci/open-upstream-pr.mjs`、`tests/automation/*.test.mjs`、`scripts/local/sync-dev-after-upstream-pr.mjs` 都已存在。
+- 远端事实在 2026-05-06 再次确认：默认分支仍为 `main`；`dev` protection 仍要求 1 个 approval、resolved conversations，并禁用 force push/deletion；repo variable `UPSTREAM_REFRESH_SCHEDULE_ENABLED=true`；最近一次 `Upstream Refresh` run `25295497835` 仍为 `workflow_dispatch` 成功。
+- 由于今天是 2026-05-06，离下一次周五定时触发还没到，因此当前只验证过 manual rehearsal，尚未看到 schedule gate 打开后的首次真实 weekly run。
+- worktree `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260503-upstream-refresh-rehearsal-fix` 不是待合并实现分支；它停在旧 branch `copilot/20260503-upstream-refresh-layout-compat-dev`，工作区里保留了一次失败 refresh 的未提交产物和 `.harness/upstream-refresh-result.json`。
+- 上述 stale worktree 的变更面不符合“可直接提交”的结论：失败 result 明确记录 `npm run verify` 失败，并且存在 `.planning/**` 这类 allowlist violation；因此这批变更只能当作失败现场/后续分析输入，不能视为当前任务未收口的正确实现。
+- 当前主工作区运行 `npm run verify` 未全绿，但失败点集中在：
+  - `tests/adapters/sync-skills.test.mjs` 试图写入 `~/.harness/backups`，在本轮 sandbox 下报 `EPERM`
+  - `tests/installer/worktree-name.test.mjs`
+  - `tests/installer/worktree-preflight.test.mjs`
+- 这些 verify 失败不属于原 upstream automation rollout 的剩余实施步骤；更像是后续 repo 演进引入的 worktree naming / test harness 问题，需要另开任务处理。
+
 ## Resources
 - 本地 Superpowers 源：`/Users/jared/.codex/superpowers`
 - 本地 Planning with Files skill：`/Users/jared/.agents/skills/planning-with-files/SKILL.md`

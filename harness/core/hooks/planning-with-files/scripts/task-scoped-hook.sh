@@ -58,6 +58,41 @@ ensure_runtime_root() {
   mkdir -p "$runtime_root"
 }
 
+canonical_hook_event_name() {
+  case "$1" in
+    SessionStart|UserPromptSubmit|PreToolUse|PostToolUse|Stop|SessionEnd|AgentStop|ErrorOccurred)
+      printf '%s' "$1"
+      ;;
+    session-start)
+      printf 'SessionStart'
+      ;;
+    user-prompt-submit)
+      printf 'UserPromptSubmit'
+      ;;
+    pre-tool-use)
+      printf 'PreToolUse'
+      ;;
+    post-tool-use)
+      printf 'PostToolUse'
+      ;;
+    stop)
+      printf 'Stop'
+      ;;
+    session-end)
+      printf 'SessionEnd'
+      ;;
+    agent-stop)
+      printf 'AgentStop'
+      ;;
+    error-occurred)
+      printf 'ErrorOccurred'
+      ;;
+    *)
+      printf '%s' "$1"
+      ;;
+  esac
+}
+
 last_hot_context_fingerprint_path() {
   local task_dir="$1"
   printf '%s/%s.last-hot-context.sha256' "$runtime_root" "$(basename "$task_dir")"
@@ -88,7 +123,7 @@ clear_last_hot_context_fingerprint() {
 
 emit_context() {
   context="$1"
-  hook_event="$2"
+  hook_event="$(canonical_hook_event_name "$2")"
   if [ -z "$context" ]; then
     printf '{}\n'
     return 0
