@@ -134,3 +134,25 @@
   - 新增 worst-target true positive 回归，覆盖单个 target 的 workspace+user-global 聚合超预算场景。
   - maintenance 文档改为在 disposable HOME 中实际 `sync` 后再 `verify`，并明确 `sync --dry-run` 只是预览。
   - release 文档改为写出 `.harness/verification/latest.json`，保证 `health.context` 可审查。
+
+## 2026-05-06
+
+- 用户新增目标：全面审计 Harness 在所有支持 IDE 中的 token 初始化与运行 budget 开销，并输出完整可行性分析报告；用户先 review 报告，再决定是否执行优化。
+- 任务边界：只做分析、取证、报告与建议；不修改 Harness 实现、不执行 adoption、不创建 PR。
+- 复用现有 active task：`planning/active/global-rule-context-load-analysis/`，避免与已存在的全局上下文开销治理任务重复。
+- 已执行 preflight：
+  - 扫描 `planning/active/`，确认存在多个 active task。
+  - 读取相关历史任务：`copilot-usage-billing-impact-analysis`、`global-rule-context-load-analysis`、`cross-ide-projection-audit`、`projection-health-analysis`。
+  - 运行 planning catch-up；首次 sandbox 内 `uv run` 因 `~/.cache/uv` 访问受限失败，提权重跑后通过且无输出。
+- 当前计划：重新读取当前仓库 entry、skills、hooks、context budget/health 代码与验证报告，按 Codex、GitHub Copilot、Cursor、Claude Code 四个 target 建立 budget 模型，并输出 review-ready report。
+- 已完成本轮审计：
+  - 读取 `context-budgets.json`、`entry-profiles.json`、`skills/profiles.json`、platform metadata、entry rendering、skill projection、hook payload 和 health context 逻辑。
+  - 使用当前实现测量四个 target 的默认 entry、tracked/deep 扩展 entry、skill profile source 面、`SKILL.md` 正文面、frontmatter discovery 面和 hook payload。
+  - 运行 `./scripts/harness verify --output=stdout`，结果通过，context warnings 为 0。
+  - 核对外部官方计费/上下文事实：GitHub Copilot usage-based billing、OpenAI Codex token-based rate card、Claude Code cost docs、Cursor pricing。
+- 关键结论：
+  - 当前 always-on entry 已从旧基线约 4k tokens 降到约 1.0k-1.24k tokens，不再是最大预算风险。
+  - 最大潜在风险是 `full` skill profile 的 source 面约 76k tokens，以及 full `SKILL.md` 正文面约 31k tokens；如果 IDE 严格 lazy-load，仅 frontmatter discovery 约 906 tokens。
+  - Hook payload 当前很轻，单 active task planning hot context 约 212 tokens；但风险在触发频率和未来 planning 文件膨胀。
+  - 下一步建议不是先删规则，而是补真实 ledger、收紧 user-global 默认 profile、把 deep/tracked 细则保持按需展开。
+- 本轮未改 Harness 实现，未执行 user-global adoption，未创建 PR。

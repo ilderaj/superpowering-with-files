@@ -156,6 +156,129 @@
   - active planning 恢复体积预算
   - global + workspace 重叠风险提示
 
+## 2026-05-06 Budget 可行性审计结论
+
+### 范围与边界
+
+- 本轮覆盖当前 Harness 支持的四个 target：Codex、GitHub Copilot、Cursor、Claude Code。
+- 本轮只做 report/review，不做实现改动、不执行 adoption、不改 user-global 文件。
+- 当前仓库状态：`dev` 分支；本轮只修改本任务 planning 文件。
+
+### 外部计费事实
+
+- GitHub Copilot 官方文档显示：2026-06-01 起 Copilot 从 request-based billing 转为 usage-based billing；一次交互会消耗 input、output、cached tokens，并按模型折算 AI Credits。
+- GitHub Copilot 还明确：Copilot Chat、CLI、cloud agent、Spaces、Spark、third-party coding agents 消耗 AI Credits；code completions 和 next edit suggestions 不消耗 AI Credits。
+- OpenAI Codex rate card 显示：2026-04 起 Codex 已按 API token usage 计 credits，区分 input、cached input、output tokens。
+- Claude Code 官方成本页显示：Claude Code 按 API token consumption 计费，团队平均成本约 $13/developer/active day、$150-250/developer/month，并明确 context size 会推高 token 成本。
+- Cursor pricing 当前把 Pro/Pro+/Ultra 明确绑定 Agent usage、frontier models、skills/hooks 与 on-demand usage；套餐外可继续使用但会按 usage 结算。
+
+### 当前 Harness 本地测量
+
+测量方法：使用当前实现直接调用 `renderEntry()`、`measureText()`、`planSkillProjections()`，按 chars/4 粗估 tokens；并运行 `./scripts/harness verify --output=stdout` 读取实际 health.context。
+
+#### Always-on entry
+
+| Target | 默认 entry 近似 tokens | 说明 |
+| --- | ---: | --- |
+| Codex | 1230 | `always-on-core` |
+| GitHub Copilot | 1024 | Copilot 默认映射到 `copilot-always-on-thin` |
+| Cursor | 1237 | `always-on-core` |
+| Claude Code | 1222 | `always-on-core` |
+
+当前结论：entry 已经从 4 月旧基线的约 4k tokens 明显降到约 1.0k-1.24k tokens。单看 entry，当前不是主要预算风险。
+
+#### Entry profile 扩展成本
+
+| Profile | Codex | Copilot | Cursor | Claude Code |
+| --- | ---: | ---: | ---: | ---: |
+| 默认 / always-on | 1230 | 1024 | 1237 | 1222 |
+| `tracked-task-extended` | 1610 | 2428 | 1617 | 1603 |
+| always-on + tracked + deep | 3222 | 3015 | 3229 | 3214 |
+
+当前结论：深任务详细规则如果常驻，会把 entry 固定税放大约 2.5-3.2 倍；因此 deep/tracked 细则不应默认常驻，只应按任务分类或 skill 触发展开。
+
+#### Skill profile 潜在正文面
+
+| Skill profile | projected skills | 全量 source 近似 tokens | `SKILL.md` 正文近似 tokens | frontmatter discovery 近似 tokens |
+| --- | ---: | ---: | ---: | ---: |
+| `full` | 17 | 76004 | 30994 | 906 |
+| `minimal-global` | 5 | 17001 | 7350 | 333 |
+| `copilot-default` | 6 | 17497 | 7845 | 387 |
+
+当前结论：如果目标 IDE 严格 lazy-load skill 正文，固定发现税很低，约 333-906 tokens；如果 IDE、插件或 agent 会扫描/读入完整 `SKILL.md`，`full` profile 会成为最大风险面。`minimal-global` 能把 source 面从约 76k 降到约 17k，但仍不适合被当成“可全部注入上下文”的内容。
+
+#### Hook / planning context
+
+| Payload | 近似 tokens | 说明 |
+| --- | ---: | --- |
+| superpowers session-start JSON | 88 | 当前已很轻 |
+| planning hot context 单 active task | 212 | 当前任务模型下较轻 |
+| planning brief repeat context | 62 | Copilot 重复 prompt 可降级 |
+| 当前多 active warning | 30 | 多 active 时只提示检查目录 |
+| Copilot session-start estimate | 91 | Copilot 已做短提示 |
+| Copilot pretool estimate | 56 | Copilot 已做短提示 |
+
+当前结论：hook payload 当前不是主要体积风险；真正风险是触发频率、每个 target 的 hook 输出是否都进入模型上下文、以及未来 planning 文件膨胀后 hot-context 提取是否继续稳定。
+
+#### 当前 verify health
+
+- `./scripts/harness verify --output=stdout` 通过。
+- Scope: `user-global`；Projection mode: `link`；Targets: Codex、Copilot、Cursor、Claude Code。
+- Worst entry target: Codex，1230 approx tokens，verdict `ok`。
+- Worst hook payload target: Codex，88 approx tokens，verdict `ok`。
+- Planning hot context: 0 tokens，原因是当前存在多个 active task，实际 hook 会发短 warning，不选单一 active task。
+- Skill profile discovery: Claude Code 226 approx tokens，verdict `ok`。
+- Context warnings: 0。
+
+### 可行性判断
+
+1. 当前 Harness 已经具备基本 budget governance，不是从零开始。
+2. 当前最值得治理的不是 entry 文件本身，而是 skill profile 默认面、global/workspace 叠加策略、deep/tracked 规则按需展开、以及真实使用日志里的 per-turn ledger。
+3. 成本上升后，Harness 的规范性应从“长规则常驻”转成“三层预算化约束”：
+   - Always-on entry 只保任务分类、硬边界、语言/工具偏好、低成本恢复提示。
+   - Tracked/deep 细节进入 skills 或 companion references，按需加载。
+   - Hooks 只注入摘要、指针和变化量，不重复注入大段 planning 正文。
+4. 所有 IDE 不能用同一个总 token 数相加评估；应继续坚持 current code 已采用的 worst target session 模型。
+5. Copilot 是最需要优先控制的 target，因为官方 usage-based billing 已明确 input/output/cached tokens 都会折算 AI Credits，并且多层 instructions 都可能同时进入相关请求。
+6. Claude Code 和 Codex 同样需要控制前缀稳定性：缓存只能降低重复前缀的边际成本，不能让重复上下文变成免费；且长任务、子代理、自动化会放大 usage。
+7. Cursor 当前套餐已把 Agent usage 作为核心边界，skills/hooks 虽是 Pro 功能，但规则与 Agent 上下文仍应按 usage budget 管理。
+
+### 建议路线
+
+#### P0：先建立真实 ledger，不先删规则
+
+- 在 `verify` / `doctor` 的 context report 中补“当前安装态 + profile + scope + target”的可比较 budget ledger。
+- 输出按 target 的 always-on entry、skill discovery、projected skill source body、hook payload、planning hot context。
+- 增加“per session estimate”和“per turn amplification”两个视角，明确哪些是启动一次、哪些是每 prompt、哪些是每 tool event。
+
+#### P1：将 global 默认改成更保守的 budget profile
+
+- user-global 默认应偏向 `minimal-global` 或 equivalent lean profile。
+- workspace 可以保留 `full`，但需要明确只在 repo 确认需要时启用。
+- Copilot 继续保持 thin entry，并把 full skill surface 作为 opt-in，而不是 default。
+
+#### P2：把 deep/tracked 规则从常驻 entry 迁移到按需 skill / reference
+
+- `always-on-core` 保留分类与 hard constraints。
+- `tracked-task-extended`、`deep-reasoning-reference` 只在 tracked/deep 任务或对应 skill 触发时读取。
+- 报告中应追踪触发后正文成本，而不是把它混入启动税。
+
+#### P3：按 IDE 设 budget policy
+
+- Codex：优先保证 `AGENTS.md` 前缀稳定、避免 global+workspace 重复；利用 skills 按需加载和 prompt caching。
+- Copilot：优先治理 personal/repository/organization instructions 叠加，避免多层 relevant instructions 同时注入；保持 thin entry。
+- Cursor：用 `.cursor/rules` 的 scoped rule 类型替代 always-all；避免把大规则做成 Always。
+- Claude Code：用 `CLAUDE.md` 轻入口 + skills 按需；hooks 只通过 `SessionStart` / `UserPromptSubmit` 注入短上下文。
+
+#### P4：执行前 gate
+
+- 执行前应先出一份 implementation plan，明确：
+  - 哪些是 report/ledger 变更
+  - 哪些是 default profile 变更
+  - 哪些是 docs/adoption 变更
+  - 哪些会影响 user-global adoption
+- 不建议直接大幅删除规则；应先量化，再用 tests/verify/doctor 锁住预算。
+
 ## 与既有任务的关系
 
 - `planning/active/harness-init-skill-projection-audit/` 记录了当前四个 IDE 的入口与 skill projection 结构。

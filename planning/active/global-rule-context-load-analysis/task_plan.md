@@ -60,6 +60,10 @@ Close Reason:
 状态：complete
 目标：输出详尽分析报告与整改 plan，包含测试、校准、验证流程。
 
+### Phase 6
+状态：complete
+目标：面向近期模型与订阅成本上升，重新审计所有支持 IDE 的 Harness token budget 开销，输出一份只供 review 的可行性分析报告，不执行优化改动。
+
 ## Companion Plan
 
 - Companion plan: `docs/superpowers/plans/2026-04-19-global-harness-context-remediation-plan.md`
@@ -75,3 +79,5 @@ Close Reason:
   - `planning-with-files` / `using-superpowers` 等技能在 global adoption 下是否构成持续背景税
   - 哪些优化可以在不推翻现有 projection 架构的前提下完成
 - 用户当前明确要求先出详尽报告和整改 plan，因此本任务只做研究、归纳和规划，不改代码。
+- 2026-05-06 用户新增要求：全面审计所有支持 IDE 的 token 初始化与运行开销，并输出 budget 可行性分析报告；本轮边界为 analysis/report only，等待用户 review 后再决定是否执行优化。
+- 2026-05-06 结论：当前 entry 固定税已降至约 1.0k-1.24k tokens；主要风险转为 skill profile 潜在正文面、global/workspace 叠加、deep/tracked 规则是否常驻、以及真实 per-turn ledger 缺口。本轮报告已写入 findings，状态等待用户 review。

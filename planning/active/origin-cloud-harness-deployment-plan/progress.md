@@ -1,0 +1,65 @@
+# Progress Log
+
+## Session: 2026-05-06 22:35:00 UTC+8
+
+### Phase 1: 约束确认与现状恢复
+- **Status:** complete
+- **Started:** 2026-05-06 22:10:00 UTC+8
+- Actions taken:
+  - 检查 `planning/active/` 下已有任务，确认存在 adoption / projection 相关历史结论
+  - 读取 `planning-with-files` 与 `brainstorming` skill
+  - 提取与 Copilot global baseline、workspace-only safety、cross-IDE projection 相关的既有 planning 记录
+- Files created/modified:
+  - `planning/active/origin-cloud-harness-deployment-plan/task_plan.md` (created)
+  - `planning/active/origin-cloud-harness-deployment-plan/findings.md` (created)
+  - `planning/active/origin-cloud-harness-deployment-plan/progress.md` (created)
+
+### Phase 2: 外部事实核验
+- **Status:** complete
+- Actions taken:
+  - 查阅 GitHub Docs 中关于 cloud agent、custom instructions、hooks、custom agents、agent skills 的当前说明
+  - 记录 repo-native 配置面、default branch hook 前提、推送分支限制、repo context 限制和 secret 边界
+- Files created/modified:
+  - `planning/active/origin-cloud-harness-deployment-plan/findings.md` (updated)
+
+### Phase 3: 方案分型与推荐
+- **Status:** complete
+- Actions taken:
+  - 对比“共享 `.agents/skills` / 根 `AGENTS.md`”与“Copilot-only repo overlay”两类路径
+  - 明确指出“同 repo 下本地 Copilot 与 cloud Copilot 绝对零感知”不可达
+  - 形成推荐方向：只把 cloud harness 投到 `.github/**` 原生面，并避免共享 skill root
+- Files created/modified:
+  - `planning/active/origin-cloud-harness-deployment-plan/task_plan.md` (updated)
+  - `planning/active/origin-cloud-harness-deployment-plan/findings.md` (updated)
+
+### Phase 4: 可执行落地计划
+- **Status:** complete
+- Actions taken:
+  - 整理 rollout 顺序、执行边界、验证点和回退策略
+  - 将当前任务标记为 `waiting_review`
+- Files created/modified:
+  - `planning/active/origin-cloud-harness-deployment-plan/task_plan.md` (updated)
+  - `planning/active/origin-cloud-harness-deployment-plan/progress.md` (updated)
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| 官方事实核验 | GitHub Docs targeted read | 确认 cloud agent 当前支持面和限制 | 已确认 `.github/**`、hooks default branch、single-repo/single-branch 边界 | ✓ |
+| 本仓库能力核验 | `rg` / `sed` targeted read | 确认现有 harness 是否已有可复用命令和 policy | 已确认 `adopt-global`、workspace install、cloud-bootstrap、cloud-safe、roadmap 缺口 | ✓ |
+
+## Error Log
+
+| Timestamp | Error | Attempt | Resolution |
+|-----------|-------|---------|------------|
+| 2026-05-06 22:12:00 UTC+8 | `fd` 不存在 | 1 | 改用 `find` / `rg` |
+
+## 5-Question Reboot Check
+
+| Question | Answer |
+|----------|--------|
+| Where am I? | 方案已完成，等待用户 review |
+| Where am I going? | 若用户批准，再进入实施任务，新增 GitHub-origin-only deployment profile / materialization 流程 |
+| What's the goal? | 在 origin repo 部署 cloud harness，同时把本地 global harness 与 cloud workspace harness 切开 |
+| What have I learned? | GitHub cloud agent 的 repo-native 能力与本仓库现有 Copilot/global/workspace 分层可以结合，但共享 `.agents/skills` 与根 `AGENTS.md` 会扩大串扰 |
+| What have I done? | 已完成事实核验、旧任务对齐、方案分型，并写入新的 planning files |
