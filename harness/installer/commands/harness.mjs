@@ -16,6 +16,7 @@ import { linkPersonal } from './link-personal.mjs';
 import { summary } from './summary.mjs';
 import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
+import { activeSummary } from './active-summary.mjs';
 
 const commands = {
   install,
@@ -28,6 +29,7 @@ const commands = {
   checkpoint: checkpointCommand,
   'checkpoint-push': checkpointPushCommand,
   summary,
+  'active-summary': activeSummary,
   record,
   'cloud-bootstrap': cloudBootstrap,
   'link-personal': linkPersonal,
@@ -50,6 +52,7 @@ function usage() {
     '  update   Apply fetched upstream candidates',
     '  verify   Print or write verification reports',
     '  summary  Print structured session summary for the active task',
+    '  active-summary  Print lifecycle summary for all tasks under planning/active',
     '  record   Append a timestamped record block to task_plan, findings, or progress',
     '  checkpoint  Create a safety checkpoint',
     '  checkpoint-push  Verify, record review evidence, commit, and push a recovery branch',

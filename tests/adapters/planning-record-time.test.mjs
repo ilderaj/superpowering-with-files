@@ -52,9 +52,11 @@ test('planning_record.py renders canonical progress and findings headings', asyn
   const scriptPath = path.join(process.cwd(), 'harness/upstream/planning-with-files/scripts/planning_record.py');
   const { stdout: progressHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'progress']);
   const { stdout: findingsHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'findings']);
+  const { stdout: taskPlanHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'task_plan']);
 
   assert.match(progressHeading.trim(), new RegExp(`^## Session: ${utc8TimestampPattern.source}$`));
-  assert.match(findingsHeading.trim(), new RegExp(`^## ${utc8TimestampPattern.source}$`));
+  assert.match(findingsHeading.trim(), new RegExp(`^## Findings Record: ${utc8TimestampPattern.source}$`));
+  assert.match(taskPlanHeading.trim(), new RegExp(`^## Plan Record: ${utc8TimestampPattern.source}$`));
 });
 
 test('sync materializes planning-with-files progress template with timestamp guidance', async () => {

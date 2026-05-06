@@ -106,9 +106,9 @@ test('harness record --task appends findings and task_plan records with the shar
     const taskPlan = await readFile(path.join(root, 'planning/active/t2/task_plan.md'), 'utf8');
     const untouched = await readFile(path.join(root, 'planning/active/t1/findings.md'), 'utf8');
 
-    assert.match(findings, new RegExp(`## ${utc8TimestampPattern.source}`));
+    assert.match(findings, new RegExp(`## Findings Record: ${utc8TimestampPattern.source}`));
     assert.match(findings, /### Discovery/);
-    assert.match(taskPlan, new RegExp(`## ${utc8TimestampPattern.source}`));
+    assert.match(taskPlan, new RegExp(`## Plan Record: ${utc8TimestampPattern.source}`));
     assert.match(taskPlan, /### Plan Update/);
     assert.equal(untouched, '# Findings\n');
   } finally {

@@ -1,8 +1,8 @@
 # 项目 roadmap/backlog/follow-up 全量审计 Companion Plan
 
-Active task path: `planning/active/project-roadmap-audit/`
-Lifecycle state: waiting_review
-Sync-back status: waiting_review, summary synced
+Active task path: `planning/archive/20260506-171553-project-roadmap-audit/`
+Lifecycle state: archived
+Sync-back status: archived at 2026-05-06T17:15:53: moved companion plan into archive
 
 ## Purpose
 

@@ -39,6 +39,12 @@ Complete
 - [x] 将 durable 结论写入 planning files，等待用户 review
 - **Status:** complete
 
+### Phase 5: worktree / branch / ignore 可行性复核
+- [x] 判断 cloud agent 语境下 worktree 是否是可依赖隔离面
+- [x] 判断“ignore harness 文件且不随 commit/push 走”是否与 cloud agent 生效条件冲突
+- [x] 形成针对该思路的可行 / 不可行拆解结论
+- **Status:** complete
+
 ## Risk Assessment
 
 | 风险 | 触发条件 | 影响范围 | 缓解 / 已落盘的回退方案 |
@@ -62,10 +68,10 @@ Complete
 | 先做官方事实核验，再出方案 | Copilot cloud agent 的支持面和限制具有明显时效性，不能只靠旧记忆 |
 | 推荐“Copilot cloud repo-local overlay”而不是“共享 `.agents/skills` + 根 `AGENTS.md`” | 共享根会被本地 Codex / Copilot 一起感知，不满足隔离目标 |
 | 明确把“同 repo 下本地 Copilot 绝对零感知”判定为不可达目标 | GitHub 官方文档已说明 repo instructions 与 agent instructions 会一起生效，本地 Copilot 无法对 repo 内指令失明 |
+| 明确把“cloud repo 内单独 worktree + ignore 掉 harness 跟踪文件”判定为不可行主方案 | cloud agent 的受支持隔离面是 branch / PR，不是你可持久控制的本地 worktree；而生效所需 `.github/...` 文件必须被跟踪并进入仓库 |
 
 ## Errors Encountered
 
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | `fd` 不存在 | 1 | 改用 `find` / `rg` 完成扫描 |
-

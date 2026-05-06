@@ -195,3 +195,22 @@
 - 当前真实本机 `.harness/state.json` 仍显示 `skillProfile: full`；本轮按边界未执行真实 user-global adoption/sync 来改本机安装态。新默认会作用于后续 install/adopt-global bootstrap 或 force 流程。
 - 追加尝试：按用户“执行”要求，尝试运行 `./scripts/harness adopt-global --skills-profile=minimal-global` 将本机真实 user-global install 切到 lean profile。
 - 结果：提权请求被 Codex 平台拒绝，原因是当前 usage limit；未执行 adoption，未修改真实 user-global IDE 配置。按安全规则未尝试绕过。
+
+## 2026-05-06 Global Adoption Apply
+
+- 用户随后明确要求执行一次真实 global adopt，并确保走 `minimal-global`。
+- 已成功执行：`./scripts/harness adopt-global --skills-profile=minimal-global`
+- 实际结果：
+  - Sync 成功：`codex`、`copilot`、`cursor`、`claude-code`
+  - `adoption-status` 返回 `in_sync`
+  - `.harness/state.json` 当前为：
+    - `scope: user-global`
+    - `policyProfile: always-on-core`
+    - `skillProfile: minimal-global`
+    - `hookMode: on`
+  - `.harness/adoption/global.json` receipt 当前为：
+    - `status: success`
+    - `skillProfile: minimal-global`
+    - `doctorPassed: true`
+- 当前 residual warning：
+  - `docs/superpowers/plans/2026-04-28-copilot-usage-billing-impact-analysis-plan.md` 仍有既有 companion-plan 引用 warning，但不阻塞 adoption，也不影响 `in_sync` 结果。

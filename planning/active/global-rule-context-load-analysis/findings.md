@@ -299,6 +299,7 @@
   - Cursor: `scoped-rules-not-always-large`
   - Claude Code: `light-claude-md-lazy-skills`
 - 本轮未执行真实 user-global adoption，因此当前本机安装态仍可能显示旧 `skillProfile: full`；这是边界选择，不是实现失败。
+- 后续已完成真实 user-global adoption：当前本机 `.harness/state.json` 与 `.harness/adoption/global.json` 都已切换到 `skillProfile: minimal-global`，`adoption-status` 为 `in_sync`。
 
 ## 与既有任务的关系
 

@@ -51,6 +51,18 @@
   - 本地 Codex / Claude / Cursor 基本不可见
   - 本地 Copilot 只会看到一层很薄的 repo 指令叠加
 
+### 2026-05-06 关于“在 cloud repo 创建 worktree/branch，再 ignore harness 文件”的判断
+
+- `branch`：可行，但只是 GitHub cloud agent 的原生工作面。官方明确说明 cloud agent 一次只能推一个分支；通常是新建 `copilot/` 分支，或者在既有 PR branch 上继续工作。
+- `worktree`：不应作为 cloud repo 方案前提。`git worktree` 是本地 Git 工作副本管理能力，不是 GitHub cloud agent 官方暴露出来的持久隔离面。即使 agent runtime 内部可能有自己的 checkout/branch 工作目录，你也不能把“在 GitHub 上维持一个专门 worktree”当成可治理资产。
+- “ignore harness 文件”要分两类看：
+  - 未跟踪的本地生成物：可 ignore，也可以不进入 commit/push。
+  - cloud agent 需要读取的 repo-native 配置：不可用 ignore 解决。因为 `.github/copilot-instructions.md`、`.github/instructions/**`、`.github/hooks/*.json` 这类文件要生效，必须是仓库已跟踪内容；hooks 还必须进 default branch。
+- 所以，如果你的意思是“在分支里临时 `adopt harness`，但是 commit / push 时完全不带任何 harness 文件，同时 cloud agent 仍然长期用这套 harness”，答案是不行。
+- 如果你的意思是“只在运行时生成一些未跟踪的辅助文件，不提交它们”，这部分可以，但它们不能承担 GitHub cloud agent 的长期 repo policy 入口职责；最多只能做 session 内 bootstrap / cache / logs / local generated helpers。
+- `.gitignore` 只能忽略未跟踪文件，不能让一个已经被跟踪并且对 cloud agent 生效必需的文件“既存在于仓库语义里，又在提交时自动消失”。
+- `.git/info/exclude` 也是同样的问题：它能帮助某个 checkout 忽略未跟踪文件，但它不属于仓库内容，不会随 cloud agent 的远程 branch 生命周期稳定存在。
+
 ## Technical Decisions
 
 | Decision | Rationale |
@@ -60,6 +72,8 @@
 | 不推荐在第一版提交共享 `.agents/skills` | `.agents/skills` 会被本地 Codex 与 Copilot 一起感知，隔离性不足 |
 | 推荐优先使用 `.github/copilot-instructions.md` + `.github/instructions/**` + `.github/hooks/**` + 可选 `.github/agents/**` | 这些都属于 GitHub 官方文档确认的 cloud agent repo-native 面 |
 | cloud profile 应默认走 `cloud-safe` 语义，但只在 repo-local 生效 | 本地 global 不能被 cloud-only policy 污染，且 cloud 工作区更需要 host-secret / host-path 防护 |
+| 不把 `git worktree` 作为 GitHub cloud 部署设计的一部分 | 这是本地 Git 隔离工具，不是 cloud agent 可靠的托管接口 |
+| 区分“必须提交的 cloud policy 文件”和“可忽略的本地生成物” | 只有后者才适合 ignore；前者必须被跟踪并进入仓库 |
 
 ## Issues Encountered
 
@@ -92,4 +106,3 @@
 - GitHub Docs 已明确 cloud agent 的 repo-native 落点集中在 `.github/**` 体系。
 - hooks 文档明确要求 hook config 文件存在于 default branch，说明“先在 feature branch 试，合并后生效”是必需流程。
 - responsible-use 文档明确说明 Copilot 只能推送到单一 `copilot/` 分支，不能直推 default branch；这降低了 cloud 侧误覆盖主线的风险。
-

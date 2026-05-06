@@ -41,6 +41,17 @@
   - `planning/active/origin-cloud-harness-deployment-plan/task_plan.md` (updated)
   - `planning/active/origin-cloud-harness-deployment-plan/progress.md` (updated)
 
+### Phase 5: worktree / branch / ignore 可行性复核
+- **Status:** complete
+- Actions taken:
+  - 基于 Git 语义与 GitHub 官方 cloud agent 文档，区分 branch、worktree、tracked files、ignored untracked files 四个概念
+  - 明确判断：branch 可行，worktree 不是 cloud 侧可依赖隔离面；必须提交的 `.github/...` harness 文件不能靠 ignore 避免进入 commit
+  - 将“可忽略的运行时生成物”与“必须进仓库的 cloud policy 文件”拆开
+- Files created/modified:
+  - `planning/active/origin-cloud-harness-deployment-plan/task_plan.md` (updated)
+  - `planning/active/origin-cloud-harness-deployment-plan/findings.md` (updated)
+  - `planning/active/origin-cloud-harness-deployment-plan/progress.md` (updated)
+
 ## Test Results
 
 | Test | Input | Expected | Actual | Status |
@@ -58,8 +69,8 @@
 
 | Question | Answer |
 |----------|--------|
-| Where am I? | 方案已完成，等待用户 review |
+| Where am I? | 方案与新 follow-up 可行性判断均已完成，等待用户 review |
 | Where am I going? | 若用户批准，再进入实施任务，新增 GitHub-origin-only deployment profile / materialization 流程 |
 | What's the goal? | 在 origin repo 部署 cloud harness，同时把本地 global harness 与 cloud workspace harness 切开 |
-| What have I learned? | GitHub cloud agent 的 repo-native 能力与本仓库现有 Copilot/global/workspace 分层可以结合，但共享 `.agents/skills` 与根 `AGENTS.md` 会扩大串扰 |
-| What have I done? | 已完成事实核验、旧任务对齐、方案分型，并写入新的 planning files |
+| What have I learned? | GitHub cloud agent 的 repo-native 能力与本仓库现有 Copilot/global/workspace 分层可以结合，但共享 `.agents/skills` 与根 `AGENTS.md` 会扩大串扰；branch 可用，worktree 不应作为 cloud 方案前提，必须生效的 `.github/...` 文件不能靠 ignore 规避提交 |
+| What have I done? | 已完成事实核验、旧任务对齐、方案分型，以及对 worktree/branch/ignore 思路的可行性拆解，并写入 planning files |

@@ -29,7 +29,9 @@ def heading_for(kind: str, timestamp: Optional[str] = None) -> str:
     value = timestamp or utc8_timestamp()
     if kind == "progress":
         return f"## Session: {value}"
-    return f"## {value}"
+    if kind == "findings":
+        return f"## Findings Record: {value}"
+    return f"## Plan Record: {value}"
 
 
 def render_block(kind: str, title: Optional[str] = None) -> str:

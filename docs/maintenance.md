@@ -21,6 +21,29 @@ Use `sync --dry-run` to inspect the desired projection diff without writing file
 ./scripts/harness verify --output=.harness/verification
 ```
 
+## Planning Lifecycle Audit
+
+Use this checklist whenever you want to audit or prune `planning/active/` without inventing a second planning workflow.
+
+Recommended command flow:
+
+```bash
+./scripts/harness active-summary
+./scripts/harness active-summary --json --output=.harness/planning-active-summary.json
+```
+
+Checklist:
+
+1. Confirm empty active task directories are zero. If a directory has no `task_plan.md`, treat it as an anomaly rather than a normal task.
+2. Confirm every remaining task has `## Current State` with `Status`, `Archive Eligible`, and `Close Reason`.
+3. Confirm tasks that look complete but are not `closed + Archive Eligible: yes` are explicitly reviewed before any archive step.
+4. Confirm tasks that are `closed + Archive Eligible: yes` are also companion-synced before calling `archive-task`.
+5. Confirm `waiting_review` tasks still have a real review, PR, or approval gate.
+6. Confirm `active` tasks still have unfinished phases, concurrent edits, or an external time/dependency gate.
+7. Close and archive only the tasks whose durable conclusions are already transferred and whose lifecycle state is explicit.
+
+`active-summary` is the operator-facing queue audit. `summary` remains a single-task session context tool and should not be repurposed as a multi-task audit surface.
+
 Before policy extraction, reread the current global policy source and compare it with `harness/core/policy/base.md`.
 
 When changing orchestration policy:

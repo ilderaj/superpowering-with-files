@@ -1,9 +1,10 @@
 # 项目 roadmap/backlog/follow-up 全量审计计划
 
 ## Current State
-Status: waiting_review
-Archive Eligible: no
-Close Reason: 已完成 roadmap/backlog/follow-up 审计、版本计划输出和安全范围内的 planning cleanup，等待用户 review。
+Status: closed
+Archive Eligible: yes
+Close Reason: Roadmap audit completed, conclusions transferred to docs/roadmap.md, and execution is proceeding under roadmap-implementation-plan.
+Closed At: 2026-05-06T17:15:38
 
 ## Goal
 
@@ -19,9 +20,9 @@ Close Reason: 已完成 roadmap/backlog/follow-up 审计、版本计划输出和
 
 ## Companion Plan
 
-- Companion plan: `docs/superpowers/plans/2026-05-06-project-roadmap-audit.md`
+- Companion plan: `planning/archive/20260506-171553-project-roadmap-audit/companion_plan.md`
 - Companion summary: 用于保存详细审计清单、文件矩阵、版本拆分逻辑和清理判据。
-- Sync-back status: waiting_review, summary synced
+- Sync-back status: closed at 2026-05-06T17:15:38: Roadmap audit completed, conclusions transferred to docs/roadmap.md, and execution is proceeding under roadmap-implementation-plan.
 
 ## Phases
 
