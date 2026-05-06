@@ -29,3 +29,19 @@
   - `git status --short --branch` -> `## dev...origin/dev`
 - 尝试对齐本地 `main` 到 `origin/main` 时，`git branch -f main origin/main` 失败：`main` 被 worktree `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main` 占用。
 - 当前剩余未跟踪改动仅为本任务 planning 目录 `planning/active/audit-pr-41-merge/`。
+
+## 2026-05-06 Follow-up Session
+- 用户追加要求：将本地 `main` 推进到与 `origin/main` 一致。
+- 复查当前状态：
+  - 当前工作区仍在 `dev`
+  - `main = 295698f`
+  - `origin/main = fe42a20`
+  - `main` 由 worktree `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main` 占用
+- 在 `main` worktree 中执行：
+  - `git status --short --branch` -> `## main...origin/main [behind 12]`
+  - `git merge --ff-only origin/main` -> fast-forward `295698f..fe42a20`
+- 最终核对：
+  - `git rev-parse --short main` -> `fe42a20`
+  - `git rev-parse --short origin/main` -> `fe42a20`
+  - `git -C /Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main status --short --branch` -> `## main...origin/main`
+  - 当前工作区 `git status --short --branch` -> `## dev...origin/dev`

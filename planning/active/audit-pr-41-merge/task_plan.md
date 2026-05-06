@@ -3,7 +3,7 @@
 ## Current State
 Status: closed
 Archive Eligible: no
-Close Reason: PR #41 conflicts resolved on dev, latest head pushed, and PR merged into main.
+Close Reason: PR #41 conflicts resolved on dev, latest head pushed, PR merged into main, and local main aligned to origin/main.
 
 ## Goal
 审计 PR #41 的不可合并原因，完成冲突解决、验证、合并，并确保当前需要提交的最新 head 已进入对应 PR 流程。
@@ -19,12 +19,13 @@ Close Reason: PR #41 conflicts resolved on dev, latest head pushed, and PR merge
 2. 冲突解决与本地验证。状态：complete
 3. 合并与远端同步。状态：complete
 4. 收尾与规划回写。状态：complete
+5. 本地 `main` 对齐远端。状态：complete
 
 ## Decisions
 - 该请求涉及审计、冲突处理、merge 与 PR 收尾，属于 tracked task，使用 `planning/active/audit-pr-41-merge/` 作为唯一持久任务记忆。
 - 当前工作区位于 `dev`，PR #41 也确认为 `dev -> main`，因此直接在 `dev` 上吸收 `origin/main` 并推回同一 PR，是最短且语义正确的解法。
 - 冲突只发生在历史 task `planning/active/github-actions-upstream-automation-analysis/` 的两份 planning 文件；`dev` 版本包含比 `main` 更新的 2026-05-04 / 2026-05-06 收口与审计事实，因此冲突解决保留 `dev` 版本。
-- 远端 `main` 已在 GitHub 上合并到 `fe42a20`；本地 `main` 因被额外 worktree 占用，仍停在 `295698f`，这不影响 merge 完成，但后续若要本地对齐需先释放该 worktree。
+- 远端 `main` 已在 GitHub 上合并到 `fe42a20`；因为 `main` 是在额外 worktree 中被检出，正确的本地对齐动作应在该 worktree 内执行 `merge --ff-only origin/main`，而不是在当前 `dev` 工作区强推 branch ref。
 
 ## Risk Assessment
 
@@ -45,3 +46,5 @@ Close Reason: PR #41 conflicts resolved on dev, latest head pushed, and PR merge
 | `gh pr view 41 --json mergeable,headRefOid` | pass: push 后 `mergeable = MERGEABLE`，head = `5591bb3` |
 | `gh pr view 41 --json state,mergedAt,mergeCommit` | pass: `state = MERGED`，`mergedAt = 2026-05-06T05:17:53Z`，merge commit = `fe42a20` |
 | `gh pr list --state open --head dev` | pass: `[]` |
+| `git -C /Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main merge --ff-only origin/main` | pass: `main` fast-forward from `295698f` to `fe42a20` |
+| `git rev-parse --short main` vs `git rev-parse --short origin/main` | pass: both = `fe42a20` |
