@@ -45,13 +45,13 @@ Phase 4: Time-gated follow-through and closeout
 ### Phase 3: Verification and integration
 - [x] 运行 focused tests、`npm run verify`、`./scripts/harness verify --output=stdout`、`./scripts/harness doctor --check-only`
 - [x] 提交版本实现与验证记录
-- [ ] merge back 到本地 `dev` 并 push `origin/dev`
-- **Status:** in_progress
+- [x] merge back 到本地 `dev` 并 push `origin/dev`
+- **Status:** complete
 
 ### Phase 4: Time-gated follow-through and closeout
 - [x] 如果 scheduled run 观察尚未到窗口，则建立自动续跑并明确剩余 gate
 - [ ] 如果 scheduled run 已观察完成，则关闭 `post-upstream-automation-followups`
-- [ ] 更新 roadmap 总控记录
+- [x] 更新 roadmap 总控记录
 - [ ] 关闭并归档 `roadmap-v1.4-safety-overlay-governance`
 - **Status:** in_progress
 

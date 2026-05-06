@@ -111,6 +111,8 @@
   - `./scripts/harness doctor --check-only`
   - `git diff --check`
 - 当前只剩把 `dev` 推到 `origin/dev`，随后进入 `v1.5`。
+- `origin/dev` 已更新到 `5b24511 docs: record roadmap v1.4 integration`。
+- `origin-cloud-harness-deployment-plan` 已关闭并归档到 `planning/archive/20260506-220241-origin-cloud-harness-deployment-plan/`。
 
 ## Errors Encountered
 
@@ -151,6 +153,7 @@
 - `v1.4` branch push：成功
 - `v1.4` merge back to dev：成功
 - `v1.4` post-merge verification on dev：通过
+- `v1.4` dev push：成功
 
 ## Changed Files
 
@@ -171,5 +174,5 @@
 - `v1.1`: complete and archived
 - `v1.2`: complete and archived
 - `v1.3`: complete and archived
-- `v1.4`: implementation, merge, and post-merge verification complete; dev push pending
-- Next version: `v1.5` after `origin/dev` receives `v1.4`
+- `v1.4`: implementation, merge, verification, and dev push complete; only scheduled-run external gate remains
+- Next version: `v1.5`

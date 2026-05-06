@@ -51,8 +51,12 @@
   - `./scripts/harness doctor --check-only`
   - `git diff --check`
 - 当前仅剩：
-  - push `origin/dev`
   - 2026-05-08 scheduled run 观察 gate
+- `origin/dev` 已更新到 `5b24511 docs: record roadmap v1.4 integration`，其中包含：
+  - `0ba2f50 merge: roadmap v1.4 safety overlay`
+  - `5b24511 docs: record roadmap v1.4 integration`
+- `origin-cloud-harness-deployment-plan` 已关闭并归档到：
+  - `planning/archive/20260506-220241-origin-cloud-harness-deployment-plan/`
 
 ## Verification
 
@@ -68,6 +72,7 @@
 - `git switch -c codex/202605070150-roadmap-v1-4-safety-overlay-governance-003`：提权执行成功。
 - `git push -u origin codex/202605070150-roadmap-v1-4-safety-overlay-governance-003`：成功。
 - `git merge --no-ff codex/202605070150-roadmap-v1-4-safety-overlay-governance-003 -m "merge: roadmap v1.4 safety overlay"`：成功。
+- `git push origin dev`：成功。
 - merge 后 `npm run verify`：通过（`333 pass / 0 fail`）。
 - merge 后 `./scripts/harness verify --output=stdout`：通过。
 - merge 后 `./scripts/harness doctor --check-only`：通过。
@@ -80,4 +85,5 @@
 - Focused verification: complete
 - Full verification: complete
 - Merge: complete
-- Push: pending
+- Push: complete
+- Remaining external gate: first scheduled upstream refresh observation on 2026-05-08 20:05 Asia/Shanghai
