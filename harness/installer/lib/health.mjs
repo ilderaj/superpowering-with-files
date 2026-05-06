@@ -15,7 +15,11 @@ import {
   PLANNING_WITH_FILES_DESTRUCTIVE_LOG_PATCH_MARKER,
   PLANNING_WITH_FILES_RISK_ASSESSMENT_PATCH_MARKER
 } from './planning-with-files-risk-assessment-patch.mjs';
-import { loadSkillProfiles, planSkillProjections } from './skill-projection.mjs';
+import {
+  classifySkillProjectionDuplicates,
+  loadSkillProfiles,
+  planSkillProjections
+} from './skill-projection.mjs';
 import { isSafetyPolicyProfile, resolveAgentConfigRoots } from './safety-projection.mjs';
 import { readState } from './state.mjs';
 import { readUserManaged } from './user-managed.mjs';
@@ -935,6 +939,15 @@ function inspectScopeOverlap(rootDir, homeDir, targets) {
   };
 }
 
+function formatDuplicateSkillMessage(duplicate) {
+  return [
+    `skill duplicate ${duplicate.target} ${duplicate.skillName}: ${duplicate.classification}.`,
+    `source path: ${duplicate.sourcePaths.join(', ') || 'unknown'}.`,
+    `resolved path: ${duplicate.resolvedPath}.`,
+    `target path: ${duplicate.targetPaths.join(', ')}.`
+  ].join(' ');
+}
+
 async function runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir) {
   const controller = new AbortController();
   let timedOut = false;
@@ -1421,15 +1434,37 @@ export async function readHarnessHealth(rootDir, homeDir) {
     }
     targetLedger.session.entry = entryTotalsByTarget.get(target) ?? createEmptyMeasurement(target);
 
-    const skills = [];
-    for (const projection of await planSkillProjections({
+    const plannedSkillProjections = await planSkillProjections({
       rootDir,
       homeDir,
       scope: state.scope,
       target,
       skillProfile: state.skillProfile
-    })) {
+    });
+    const duplicateSkillFindings = await classifySkillProjectionDuplicates(plannedSkillProjections);
+    const duplicateSkillByTargetPath = new Map();
+
+    for (const duplicate of duplicateSkillFindings) {
+      const message = formatDuplicateSkillMessage(duplicate);
+      addUniqueMessage(context.warnings, message);
+      addUniqueMessage(warnings, message);
+      if (duplicate.classification === 'true-duplicate') {
+        addUniqueMessage(problems, message);
+      }
+
+      for (const targetPath of duplicate.targetPaths) {
+        duplicateSkillByTargetPath.set(path.resolve(targetPath), duplicate);
+      }
+    }
+
+    const skills = [];
+    for (const projection of plannedSkillProjections) {
       const inspected = await inspectSkill(projection, state.projectionMode);
+      const duplicateSkill = duplicateSkillByTargetPath.get(path.resolve(projection.targetPath));
+      if (duplicateSkill) {
+        inspected.duplicateClassification = duplicateSkill.classification;
+        inspected.duplicateResolvedPath = duplicateSkill.resolvedPath;
+      }
       skills.push(inspected);
       if (inspected.status !== 'ok') {
         problems.push(`${target}: ${inspected.skillName}: ${inspected.message}`);

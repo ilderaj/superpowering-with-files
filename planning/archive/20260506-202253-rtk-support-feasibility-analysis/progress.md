@@ -59,6 +59,18 @@
 - Actions taken:
   - 汇总结论，准备最终可行性分析与价值分析报告。
 
+## Session: 2026-05-06 v1.3 Closeout
+
+### Final report closure
+- **Status:** complete
+- Actions taken:
+  - 将 research findings 收口成 `v1.3` roadmap policy，而不是继续扩展调查范围。
+  - 明确本 task 的最终结论是“optional integration lane, no RTK v1 implementation in this version”。
+  - 将原先 open questions 重分类为“已回答”或“对 `v1.3` 非阻塞”。
+- Durable outcome:
+  - 不新增代码实现。
+  - 后续若要启动 RTK 集成，应新建独立 implementation task。
+
 ## Verification
 
 - `harness/upstream/sources.json` 已确认：本仓库当前 upstream 仅有 `superpowers` 和 `planning-with-files`。

@@ -1,6 +1,8 @@
 # Global Harness Context Remediation Implementation Plan
 
-- Active task path: `planning/active/global-rule-context-load-analysis/`
+- Active task path: `planning/archive/20260506-210038-global-rule-context-load-analysis/`
+- Lifecycle state: archived
+- Sync-back status: archived at 2026-05-06T21:00:38: moved companion plan into archive
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

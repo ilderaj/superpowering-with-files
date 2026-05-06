@@ -1,9 +1,10 @@
 # 全局 Harness 上下文开销治理分析与整改规划
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Context budget governance and global adoption closure completed under roadmap v1.3.
+Closed At: 2026-05-06T21:00:17
 
 ## 任务目标
 
@@ -41,38 +42,38 @@ Close Reason:
 ## 阶段
 
 ### Phase 1
-状态：complete
+- **Status:** complete
 目标：恢复现有 planning 上下文，吸收已有全局规则成本分析与跨 IDE 审计记录。
 
 ### Phase 2
-状态：complete
+- **Status:** complete
 目标：量化当前 global harness 的规则/skills/恢复链路成本，并整理本地设计问题假设。
 
 ### Phase 3
-状态：complete
+- **Status:** complete
 目标：并行核查各 IDE 官方文档，确认入口与加载机制事实来源。
 
 ### Phase 4
-状态：complete
+- **Status:** complete
 目标：汇总问题矩阵，评估各整改方向的通用性、收益成本比、风险与 adopt 难度。
 
 ### Phase 5
-状态：complete
+- **Status:** complete
 目标：输出详尽分析报告与整改 plan，包含测试、校准、验证流程。
 
 ### Phase 6
-状态：complete
+- **Status:** complete
 目标：面向近期模型与订阅成本上升，重新审计所有支持 IDE 的 Harness token budget 开销，输出一份只供 review 的可行性分析报告，不执行优化改动。
 
 ### Phase 7
-状态：complete
+- **Status:** complete
 目标：执行用户批准的 budget 优化路线：补真实 ledger、收紧 user-global 默认 skill profile、保持 deep/tracked 按需展开、落地 IDE-specific budget policy，并完成测试验证。
 
 ## Companion Plan
 
-- Companion plan: `docs/superpowers/plans/2026-04-19-global-harness-context-remediation-plan.md`
-- Summary: 输出了一份可执行的整改计划，覆盖上下文预算、薄入口渲染、planning compact recovery、hook payload 收敛、opt-in skill profile、以及测试/校准/发布门槛。
-- Sync-back Status: companion plan 已创建；active task 记录已同步路径、摘要与当前状态。
+- Companion plan: `planning/archive/20260506-210038-global-rule-context-load-analysis/companion_plan.md`
+- Companion summary: 输出了一份可执行的整改计划，覆盖上下文预算、薄入口渲染、planning compact recovery、hook payload 收敛、opt-in skill profile、以及测试/校准/发布门槛，并已在本任务中完成 Phase 7 实施与真实 global adoption 收口。
+- Sync-back status: closed at 2026-05-06T21:00:17: Context budget governance and global adoption closure completed under roadmap v1.3.
 
 ## 当前关键判断
 
@@ -123,7 +124,7 @@ Close Reason:
 - full tests：`npm run verify`。
 - Harness smoke：`./scripts/harness verify --output=stdout`、`./scripts/harness doctor --check-only`。
 
-### Phase 7 Verification Result
+### Verification Result
 
 - Focused tests passed: `node --test tests/installer/commands.test.mjs tests/installer/adoption.test.mjs tests/installer/health.test.mjs tests/installer/policy-render.test.mjs tests/adapters/skill-profile.test.mjs`，`89/89` passed。
 - Full tests passed: `npm run verify`，`326/326` passed。
