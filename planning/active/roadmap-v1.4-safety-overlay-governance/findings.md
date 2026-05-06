@@ -1,0 +1,31 @@
+# Findings: Roadmap v1.4 Safety Overlay Governance
+
+## Scope Boundaries
+
+- `v1.4` 聚焦 safety overlay、cloud harness repo-local deployment，以及 automation follow-through。
+- `post-upstream-automation-followups` 已有 heartbeat；scheduled run 观察存在固定时间门槛。
+- `origin-cloud-harness-deployment-plan` 目前是 `waiting_review` 分析任务，执行前必须把其结论映射成具体代码落点，而不是直接照抄 planning 文案。
+- `harness-template-foundation` 属于 `v1.6`，本轮只读取其收尾边界，不提前关闭。
+
+## Known Inputs
+
+- Roadmap source: `docs/roadmap.md`
+- Master execution companion: `docs/superpowers/plans/2026-05-06-roadmap-implementation-plan.md`
+- Related active tasks:
+  - `planning/active/post-upstream-automation-followups/`
+  - `planning/active/origin-cloud-harness-deployment-plan/`
+  - `planning/active/harness-template-foundation/`
+
+## Durable Findings
+
+- `post-upstream-automation-followups` 当前唯一剩余 gate 是 `2026-05-08 20:05 Asia/Shanghai` 之后的首个 scheduled run 观察；其余 stale worktree cleanup、verify 修复、workflow gate 已完成。
+- `pre-tool-use` 的真实判定只在 `harness/core/hooks/safety/scripts/pretool-guard.sh`；false-positive 根因不是 payload parse abort，而是 `safe-commands.txt` 对 `rg`、`node --test`、`npm run verify` 等低风险命令覆盖不全。`find` 需要单独走低风险查询分支，不能直接整条放进 allowlist。
+- state 已切成“baseline + overlay”最小模型：
+  - baseline 继续用 `policyProfile`
+  - workspace-only overlay 用 `workspacePolicyOverlay`
+  - Copilot cloud repo-local 路径选择用 `deploymentProfile`
+- 旧的 workspace safety state 会在 `readState()` 中自动归一化为：
+  - `policyProfile: always-on-core`
+  - `workspacePolicyOverlay: safety|cloud-safe`
+- Copilot repo-local cloud profile 现在支持把 workspace skills 投影到 `.github/skills`；planning-with-files 的 Copilot patch 也能把 `.github/skills` 作为正式优先 root。
+- `doctor` / `health` / `adoption-status` 已能暴露 baseline、overlay 与 deployment 维度；user-global adoption 仍只以 baseline contract 为准，不把 workspace overlay 当作 drift。
