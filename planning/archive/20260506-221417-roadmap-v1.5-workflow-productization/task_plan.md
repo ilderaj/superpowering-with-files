@@ -1,9 +1,10 @@
 # Task Plan: Roadmap v1.5 Workflow Productization
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Workflow lanes documented, verified, merged into dev, and pushed to origin/dev.
+Closed At: 2026-05-06T22:14:12
 
 ## Goal
 
@@ -45,15 +46,15 @@ Phase 3: Verification and integration
 ### Phase 3: Verification and integration
 - [x] 运行 focused docs/render verification
 - [x] 运行 `npm run verify`、`./scripts/harness verify --output=stdout`、`./scripts/harness doctor --check-only`
-- [ ] 提交 `v1.5` 实现与验证记录
-- [ ] merge back 到本地 `dev` 并 push `origin/dev`
-- **Status:** in_progress
+- [x] 提交 `v1.5` 实现与验证记录
+- [x] merge back 到本地 `dev` 并 push `origin/dev`
+- **Status:** complete
 
 ### Phase 4: Closeout
 - [x] 关闭并归档 `readme-slim-pr`
-- [ ] 更新 roadmap 总控记录
-- [ ] 关闭并归档 `roadmap-v1.5-workflow-productization`
-- **Status:** pending
+- [x] 更新 roadmap 总控记录
+- [x] 关闭并归档 `roadmap-v1.5-workflow-productization`
+- **Status:** complete
 
 ## Finishing Criteria
 

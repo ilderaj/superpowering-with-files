@@ -128,6 +128,12 @@
   - `./scripts/harness verify --output=stdout`
   - `./scripts/harness doctor --check-only`
   - `git diff --check`
+- `v1.5` 正式提交线已完成：
+  - branch: `codex/202605070210-roadmap-v1-5-workflow-productization-001`
+  - implementation commit: `70ca967`
+  - record commit: `7b44cf1`
+  - merge commit on `dev`: `370e0fa`
+- `origin/dev` 已更新到 `370e0fa merge: roadmap v1.5 workflow productization`。
 
 ## Errors Encountered
 
@@ -171,6 +177,10 @@
 - `v1.4` dev push：成功
 - `v1.5` focused verification：通过
 - `v1.5` full verification：通过
+- `v1.5` branch push：成功
+- `v1.5` merge back to dev：成功
+- `v1.5` post-merge verification on dev：通过
+- `v1.5` dev push：成功
 
 ## Changed Files
 
@@ -192,5 +202,5 @@
 - `v1.2`: complete and archived
 - `v1.3`: complete and archived
 - `v1.4`: implementation, merge, verification, and dev push complete; only scheduled-run external gate remains
-- `v1.5`: implementation and verification complete; commit/merge/push pending
-- Next version: `v1.5` integration then `v1.6`
+- `v1.5`: implementation, merge, verification, and dev push complete
+- Next version: `v1.6`

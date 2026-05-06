@@ -18,6 +18,12 @@
 - 已关闭并归档 `readme-slim-pr`：
   - PR #29 已 merge
   - archive path: `planning/archive/20260506-220846-readme-slim-pr/`
+- `v1.5` 正式提交线已完成：
+  - Branch: `codex/202605070210-roadmap-v1-5-workflow-productization-001`
+  - Implementation commit: `70ca967 docs: implement roadmap v1.5 workflow lanes`
+  - Record commit: `7b44cf1 docs: record roadmap v1.5 verification`
+  - Merge commit on `dev`: `370e0fa merge: roadmap v1.5 workflow productization`
+- `origin/dev` 已更新到 `370e0fa`。
 
 ## Verification
 
@@ -27,10 +33,17 @@
 - `./scripts/harness verify --output=stdout`：通过。
 - `./scripts/harness doctor --check-only`：通过。
 - `git diff --check`：通过。
+- `git push -u origin codex/202605070210-roadmap-v1-5-workflow-productization-001`：成功。
+- `git merge --no-ff codex/202605070210-roadmap-v1-5-workflow-productization-001 -m "merge: roadmap v1.5 workflow productization"`：成功。
+- merge 后 `npm run verify`：通过（`333 pass / 0 fail`）。
+- merge 后 `./scripts/harness verify --output=stdout`：通过。
+- merge 后 `./scripts/harness doctor --check-only`：通过。
+- merge 后 `git diff --check`：通过。
+- `git push origin dev`：成功。
 
 ## Current Execution State
 
 - Discovery: complete
 - Implementation: complete
 - Verification: complete
-- Merge / push: pending
+- Merge / push: complete
