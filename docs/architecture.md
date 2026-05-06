@@ -85,3 +85,18 @@ Health checks include plan-location diagnostics. Root-level `task_plan.md`, `fin
 Platform metadata also records unsupported installer targets. Gemini CLI is currently metadata-listed as unsupported so the installer can fail explicitly instead of pretending partial projection exists.
 
 `fetch` and `update` operate on known upstream source names from `harness/upstream/sources.json`. `update` refreshes only `harness/upstream/*`. It does not mutate IDE directories directly. The next `sync` reads the refreshed upstream baseline and updates Harness-owned projections.
+
+## Operator Surface
+
+The implementation layers above are not the same thing as the operator surface.
+
+- The implementation surface is `core`, `adapters`, `installer`, and `upstream`.
+- The operator surface is the workflow-lane map documented in [Workflows](workflows.md).
+
+This separation is intentional:
+
+- workflow lanes package the repo for day-to-day use
+- implementation layers keep rendering, projection, and lifecycle mechanics centralized
+- optional integrations such as browser automation or eval harnesses remain contracts until the project intentionally adopts a concrete runtime
+
+Browser and eval are therefore architecture extension points, not baseline install requirements.

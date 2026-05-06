@@ -113,6 +113,21 @@
 - 当前只剩把 `dev` 推到 `origin/dev`，随后进入 `v1.5`。
 - `origin/dev` 已更新到 `5b24511 docs: record roadmap v1.4 integration`。
 - `origin-cloud-harness-deployment-plan` 已关闭并归档到 `planning/archive/20260506-220241-origin-cloud-harness-deployment-plan/`。
+- 启动 `v1.5` 控制任务 `roadmap-v1.5-workflow-productization`。
+- `v1.5` discovery 结论：
+  - PR #29 (`readme-slim-pr`) 已 merged，可直接作为当前 README baseline。
+  - `gstack` 的高价值借鉴点应收敛为 operator-facing workflow lanes，而不是照搬 opinionated skill surface。
+  - browser/eval 最适合先以 optional contract 文档化，不新增 core runtime dependency。
+- `v1.5` 已完成文档实现：
+  - 新增 `docs/workflows.md`
+  - README / maintenance / architecture / release 统一接入 `plan / review / verify / finish / release / archive` lanes
+  - `readme-slim-pr` 已关闭并归档到 `planning/archive/20260506-220846-readme-slim-pr/`
+- `v1.5` focused + full verification 通过：
+  - `node --test tests/installer/policy-render.test.mjs tests/adapters/templates.test.mjs`
+  - `npm run verify` -> `333 pass / 0 fail`
+  - `./scripts/harness verify --output=stdout`
+  - `./scripts/harness doctor --check-only`
+  - `git diff --check`
 
 ## Errors Encountered
 
@@ -154,6 +169,8 @@
 - `v1.4` merge back to dev：成功
 - `v1.4` post-merge verification on dev：通过
 - `v1.4` dev push：成功
+- `v1.5` focused verification：通过
+- `v1.5` full verification：通过
 
 ## Changed Files
 
@@ -175,4 +192,5 @@
 - `v1.2`: complete and archived
 - `v1.3`: complete and archived
 - `v1.4`: implementation, merge, verification, and dev push complete; only scheduled-run external gate remains
-- Next version: `v1.5`
+- `v1.5`: implementation and verification complete; commit/merge/push pending
+- Next version: `v1.5` integration then `v1.6`

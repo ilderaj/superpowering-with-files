@@ -1,5 +1,7 @@
 # Maintenance
 
+Maintenance is the operator-facing `verify`, `archive`, and upkeep surface of Harness. For the full lane map, start with [Workflows](workflows.md).
+
 Maintenance flow:
 
 ```bash
@@ -20,6 +22,14 @@ Use `sync --dry-run` to inspect the desired projection diff without writing file
 ```bash
 ./scripts/harness verify --output=.harness/verification
 ```
+
+## Lane Responsibilities
+
+- `verify`: run focused suites first, then `npm run verify`, `./scripts/harness verify --output=...`, `./scripts/harness sync --dry-run`, and `./scripts/harness doctor --check-only`.
+- `archive`: close and archive only after lifecycle state is explicit and companion-plan metadata is synchronized.
+- `release`: use the release gate in [Release](release.md) when maintenance work changes policy rendering, projections, hooks, or adoption state.
+
+Harness may integrate browser or eval tooling, but those stay optional contracts. See [Workflows](workflows.md#optional-contracts).
 
 ## Planning Lifecycle Audit
 
