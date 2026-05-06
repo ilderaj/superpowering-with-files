@@ -228,3 +228,10 @@
 - Task 5 已开始：按计划创建 `harness/core/metadata/` 与 `harness/core/state-schema/`
 - Task 5 将只落地核心元数据与状态 schema，不扩展到 Task 6
 - Task 5 schema review 发现 `state.schema.json` 需要收紧顶层与 target 结构，正在按 reviewer 指示修复
+- `v1.6` release-readiness closeout 复核结论：
+  - 当前 `origin` URL 为 `https://github.com/ilderaj/superpowering-with-files.git`
+  - `./scripts/harness adopt-global` 已将 user-global receipt 对齐到当前 verified repo head
+  - `./scripts/harness adoption-status` 返回 `in_sync`
+  - `npm run verify` 返回 `333 pass / 0 fail`
+  - `./scripts/harness doctor --check-only` 返回 `Harness check passed`
+  - foundation umbrella 不再保留新的 implementation scope，剩余工作已经收敛为 lifecycle closeout 与 archive records

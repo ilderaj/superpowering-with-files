@@ -47,11 +47,13 @@
 
 ## Companion Plans
 
-- Companion plan: `docs/superpowers/plans/2026-04-11-harness-template-plan-review.md`
+- Companion plan: `planning/archive/20260506-222324-harness-template-foundation/companion_plan.md`
 - Companion plan: `docs/superpowers/plans/2026-04-11-harness-core-policy-upstream-plan.md`
 - Companion plan: `docs/superpowers/plans/2026-04-11-harness-installer-cli-plan.md`
 - Companion plan: `docs/superpowers/plans/2026-04-11-harness-adapters-projection-plan.md`
 - Companion plan: `docs/superpowers/plans/2026-04-11-harness-docs-verification-release-plan.md`
+- Companion summary: 首个 companion plan 作为 foundation umbrella 的总索引；其余 companion 记录 core、installer、adapters、docs/release 四条已完成实施线。
+- Sync-back status: closed at 2026-05-06T22:23:07: Foundation implementation, release facts, and adoption stabilization verified under roadmap v1.6.
 
 ## 当前子任务
 
@@ -77,6 +79,8 @@
   - 其他用户拿到 GitHub template 后应可直接安装
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Foundation implementation, release facts, and adoption stabilization verified under roadmap v1.6.
+Closed At: 2026-05-06T22:23:07
+
