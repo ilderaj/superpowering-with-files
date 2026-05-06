@@ -15,6 +15,12 @@
 - 将本任务状态切换为 `waiting_review`。
 - 用户已批准 inline 执行，并要求灵活使用 subagents 持续推进直到完成。
 - 将本任务从 `waiting_review` 切回 `active`，开始执行 Gate 0 baseline stabilization。
+- Gate 0 基线 commit 已完成并推送；`dev` 基线为 `d309b0a0b7a1a05af67ce6fc36ee94cc8614577a`。
+- 在隔离 worktree `codex/202605060906-roadmap-v1-1-planning-hygiene-001` 中完成 `v1.1` 实现：
+  - 新增 `./scripts/harness active-summary`
+  - 新增 planning lifecycle audit runbook
+  - 关闭并归档 `project-roadmap-audit`
+- `v1.1` focused tests、全量 `npm run verify`、`./scripts/harness verify --output=.harness/verification`、`./scripts/harness doctor --check-only`、`git diff --check` 均通过。
 
 ## Errors Encountered
 
@@ -27,6 +33,9 @@
 - `task-status.py roadmap-implementation-plan`：通过；状态 `waiting_review`，companion sync ok。
 - `git diff --check`：通过。
 - 未运行 `npm run verify`，因为本轮只输出 plan，不修改运行时代码。
+- `npm run verify`：通过（`329 pass / 0 fail`）。
+- `./scripts/harness verify --output=.harness/verification`：通过。
+- `./scripts/harness doctor --check-only`：通过；存在一个既有 orphan companion warning，不是本轮新增回归。
 
 ## Changed Files
 
@@ -34,3 +43,7 @@
 - `planning/active/roadmap-implementation-plan/findings.md`
 - `planning/active/roadmap-implementation-plan/progress.md`
 - `docs/superpowers/plans/2026-05-06-roadmap-implementation-plan.md`
+
+## Current Version Status
+
+- `v1.1`: implementation complete, verification complete, awaiting commit / merge back / push
