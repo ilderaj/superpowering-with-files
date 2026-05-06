@@ -16,6 +16,14 @@
 
 **Companion plan:** `docs/superpowers/plans/2026-04-20-cross-ide-single-source-consolidation.md`
 
+**Lifecycle state:** implementation completed, merged to `dev`, pushed to `origin/dev`, and PR #22 was later confirmed merged during `v1.2` closeout.
+
+**Sync-back status:** implementation details were synced back during the original task; `v1.2` added final PR-state revalidation before archive.
+
+- Active task path: `planning/active/cross-ide-single-source-consolidation/`
+- Lifecycle state: active
+- Sync-back status: implementation details were synced back during the original task; `v1.2` added final PR-state revalidation before archive.
+
 ## Scope and Non-Goals
 
 - Do change:

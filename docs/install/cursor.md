@@ -8,7 +8,7 @@ Workspace scope writes:
 .cursor/rules/harness.mdc
 ```
 
-Cursor User Rules live in Cursor Settings. Harness does not write a user-global rules file-system entry for Cursor.
+Cursor User Rules live in Cursor Settings and apply at the settings layer rather than a user-global rule file on disk. Harness does not write a user-global rules file-system entry for Cursor.
 
 User-global scope projects skills only.
 
@@ -16,12 +16,14 @@ User-global scope projects skills only.
 ~/.cursor/skills
 ```
 
-Cursor uses both rules and skills when available.
+Cursor uses both rules and skills when available. Cursor's official docs now list both the native `.cursor/skills` roots and the shared `.agents/skills` roots as auto-discovered skill directories. Harness still keeps `.cursor/skills` / `~/.cursor/skills` as the primary Cursor projection surface, while treating `.agents/skills` as an officially supported compatibility discovery path.
 
 Skill roots:
 
 ```text
+.agents/skills
 .cursor/skills
+~/.agents/skills
 ~/.cursor/skills
 ```
 

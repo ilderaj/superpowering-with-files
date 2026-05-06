@@ -6,7 +6,13 @@
 >
 > **Backlink:** see `planning/active/cross-ide-hook-capability-alignment/task_plan.md`, `planning/active/cross-ide-hook-capability-alignment/findings.md`, and `planning/active/cross-ide-hook-capability-alignment/progress.md`
 >
+> **Lifecycle state:** implementation completed earlier; `v1.2` closeout is recording final merged status and archive readiness.
+>
 > **Sync-back status:** executed on `2026-04-26`; durable decisions and verification results synced back to `planning/active/cross-ide-hook-capability-alignment/`.
+
+- Active task path: `planning/archive/20260506-183725-cross-ide-hook-capability-alignment/`
+- Lifecycle state: archived
+- Sync-back status: archived at 2026-05-06T18:37:25: moved companion plan into archive
 
 Active task path: planning/active/cross-ide-hook-capability-alignment/
 

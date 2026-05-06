@@ -14,8 +14,6 @@ Phase 13
 ## Companion Plans
 - Companion plan: `planning/archive/20260506-142310-copilot-usage-billing-impact-analysis/companion_plan.md`
 - Companion summary: Detailed implementation plan covering cost ledger fidelity, lean skill defaults, planning recovery v2, overlap governance, budget gates, and opt-in concise output guidance.
-- Companion plan: `docs/superpowers/plans/2026-04-28-copilot-usage-billing-impact-analysis-plan.md`
-- Companion summary: Original plan-only analysis of usage-based billing impact, retained as the historical decision record for this tracked task.
 - Sync-back status: closed on 2026-04-29 after merge into local dev, projection sync, final verification, and push to origin/dev.
 
 ## Phases

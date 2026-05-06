@@ -5,9 +5,10 @@
 基于 Codex、GitHub Copilot、Cursor、Claude Code 的官方文档与仓库当前实现，判断 skills、entry files、hooks 及其他 projection 文件是否可以收敛到尽量少的单一同源路径；明确哪些必须保留平台原生路径，哪些可以共享同源，再输出供 review 的基础分析报告与后续执行计划。
 
 ## Current State
-Status: waiting_review
-Archive Eligible: no
-Close Reason: Implementation merged into local `dev`, pushed to `origin/dev`, and opened for review as PR #22.
+Status: closed
+Archive Eligible: yes
+Close Reason: Implementation was already merged into dev, pushed, and PR #22 was confirmed merged during roadmap v1.2 closeout.
+Closed At: 2026-05-06T18:37:40
 
 ## Finishing Criteria
 
@@ -71,6 +72,7 @@ Close Reason: Implementation merged into local `dev`, pushed to `origin/dev`, an
 
 ## Companion Plan
 
-- Path: `docs/superpowers/plans/2026-04-20-cross-ide-single-source-consolidation.md`
+- Path: `planning/archive/20260506-183740-cross-ide-single-source-consolidation/companion_plan.md`
 - Summary: 聚焦 `Codex + Copilot` shared skill roots、Copilot `planning-with-files` shared-root patch、shared projection coalescing、文档同步与完整回归验证。
-- Sync-back status: task-scoped planning files已记录结论与 plan path；详细执行清单保存在 companion plan。
+- Sync-back status: implementation details were synced back during the original task; `v1.2` added final PR-state revalidation before archive.
+- Companion plan: `planning/archive/20260506-183740-cross-ide-single-source-consolidation/companion_plan.md`

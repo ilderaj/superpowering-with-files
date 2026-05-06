@@ -4,9 +4,10 @@
 基于官方 upstream 文档，重新核实 Codex、GitHub Copilot/VS Code Chat、Cursor、Claude Code 的 hooks 能力与配置入口，明确 Harness 当前实现与官方能力之间的差异，并产出一份可审阅的整改与优化 implementation plan，服务于 session summary / planning-with-files hooks 在多 IDE 中的一致落地。
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Implementation was already integrated into dev before roadmap v1.2 closeout; v1.2 revalidation confirmed no remaining branch or merge work.
+Closed At: 2026-05-06T18:37:25
 
 ## Current Phase
 Phase 5: Implementation execution
@@ -67,8 +68,15 @@ Phase 5: Implementation execution
 | 将“Claude hooks 兼容读取”视为迁移/兼容能力，不视为 Harness 的首选投影路径 | Harness 需要稳定、可验证、无重复执行的主路径；原生 `.github/hooks/*.json` / `~/.copilot/hooks` 更符合这一点 |
 | 本轮同时把 Copilot `superpowers` session-start hook 纳入整改范围 | VS Code preview hooks 已具备官方 runtime，文档里继续声明 Copilot 不支持 superpowers hooks 已不准确 |
 
+## Companion Plan
+
+- Path: `docs/superpowers/plans/2026-04-26-cross-ide-hook-capability-alignment.md`
+- Companion summary: 详细记录 official hooks refresh、Copilot lifecycle/schema 对齐、Copilot superpowers hook adapter、文档刷新与验证流程。
+- Sync-back status: closed at 2026-05-06T18:37:25: Implementation was already integrated into dev before roadmap v1.2 closeout; v1.2 revalidation confirmed no remaining branch or merge work.
+
 ## Notes
 - Related prior task: `planning/active/session-summary-mechanism/`
 - Related audit baseline: `planning/active/cross-ide-projection-audit/`
 - Companion plan path: `docs/superpowers/plans/2026-04-26-cross-ide-hook-capability-alignment.md`
 - Execution mode: use subagents task-by-task with review gates, then integrate into local `dev`
+- Companion plan: `planning/archive/20260506-183725-cross-ide-hook-capability-alignment/companion_plan.md`
