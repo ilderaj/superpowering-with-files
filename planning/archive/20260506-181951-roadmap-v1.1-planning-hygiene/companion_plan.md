@@ -1,8 +1,8 @@
 # Roadmap v1.1 Planning Hygiene
 
-Active task path: `planning/active/roadmap-v1.1-planning-hygiene/`
-Lifecycle state: active
-Sync-back status: active, implementation in progress
+Active task path: `planning/archive/20260506-181951-roadmap-v1.1-planning-hygiene/`
+Lifecycle state: archived
+Sync-back status: archived at 2026-05-06T18:19:51: moved companion plan into archive
 
 ## Objective
 

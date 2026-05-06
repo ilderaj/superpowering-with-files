@@ -1,9 +1,10 @@
 # Roadmap v1.1 Planning Hygiene And Active Task Cleanup
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Roadmap v1.1 implemented, verified, landed on origin/dev, and archived after planning hygiene closeout.
+Closed At: 2026-05-06T18:19:38
 
 ## Goal
 
@@ -19,9 +20,9 @@ Close Reason:
 
 ## Companion Plan
 
-- Companion plan: `docs/superpowers/plans/2026-05-06-roadmap-v1.1-planning-hygiene.md`
+- Companion plan: `planning/archive/20260506-181951-roadmap-v1.1-planning-hygiene/companion_plan.md`
 - Companion summary: 记录 v1.1 的实现切片、active queue 审计结论、verification 与 close/archive 步骤。
-- Sync-back status: active, implementation in progress
+- Sync-back status: closed at 2026-05-06T18:19:38: Roadmap v1.1 implemented, verified, landed on origin/dev, and archived after planning hygiene closeout.
 
 ## Phases
 
