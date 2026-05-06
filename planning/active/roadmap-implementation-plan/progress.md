@@ -134,6 +134,14 @@
   - record commit: `7b44cf1`
   - merge commit on `dev`: `370e0fa`
 - `origin/dev` 已更新到 `370e0fa merge: roadmap v1.5 workflow productization`。
+- `v1.6` release-readiness risk gate 已通过：
+  - `npm run verify` -> `333 pass / 0 fail`
+  - `./scripts/harness sync --dry-run` -> `create=0, update=15, stale=0`
+  - `./scripts/harness doctor --check-only` -> `Harness check passed`
+- `./scripts/harness adopt-global` 已执行，user-global adoption receipt 对齐到当前 verified repo head。
+- `./scripts/harness adoption-status` 已返回 `in_sync`。
+- `harness-template-foundation` 已关闭并归档到 `planning/archive/20260506-222324-harness-template-foundation/`。
+- 当前进入 `v1.6` 的分支提交 / merge back / dev push closeout。
 
 ## Errors Encountered
 
@@ -181,6 +189,13 @@
 - `v1.5` merge back to dev：成功
 - `v1.5` post-merge verification on dev：通过
 - `v1.5` dev push：成功
+- `v1.6` pre-closeout `npm run verify`：通过（`333 pass / 0 fail`）
+- `v1.6` pre-closeout `./scripts/harness sync --dry-run`：通过（`create=0, update=15, stale=0`）
+- `v1.6` pre-closeout `./scripts/harness doctor --check-only`：通过（`Harness check passed`）
+- `v1.6` `./scripts/harness adopt-global`：通过
+- `v1.6` `./scripts/harness adoption-status`：返回 `in_sync`
+- `v1.6` `./scripts/harness verify --output=.harness/verification`：通过
+- `v1.6` `git diff --check`：通过
 
 ## Changed Files
 
@@ -203,4 +218,4 @@
 - `v1.3`: complete and archived
 - `v1.4`: implementation, merge, verification, and dev push complete; only scheduled-run external gate remains
 - `v1.5`: implementation, merge, verification, and dev push complete
-- Next version: `v1.6`
+- `v1.6`: adoption stabilized and foundation archived; branch closeout in progress
