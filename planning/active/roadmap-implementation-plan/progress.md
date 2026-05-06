@@ -48,7 +48,26 @@
   - `./scripts/harness sync --dry-run` → no-op dry-run
   - `./scripts/harness doctor --check-only` → `Harness check passed`
   - `git diff --check` → pass
-- `v1.2` 已合回本地 `dev`；下一步进入 `v1.3`。
+- `v1.2` 已合回本地 `dev`，并以 `f771415 docs: record roadmap v1.2 verification` 推送到 `origin/dev`。
+- 启动 `v1.3` 控制任务 `roadmap-v1.3-context-budget-governance`，准备接续 `global-rule-context-load-analysis`、`rtk-support-feasibility-analysis`、duplicate-skill dedupe、generic brief/hot context regression。
+- `v1.3` 已在隔离 worktree `codex/202605061218-roadmap-v1-3-context-budget-governance-001` 中完成：
+  - Worktree base: `dev @ f771415722aa874074e40f89b1d155a54d0e8308`
+  - feature commit: `a9f699c feat: complete roadmap v1.3 context governance`
+  - merge back: `merge: roadmap v1.3 context governance`
+  - pushed branch: `origin/codex/202605061218-roadmap-v1-3-context-budget-governance-001`
+- `v1.3` closeout 内容：
+  - `docs/roadmap.md` 将 `v1.3` 标记为 complete 并写入 closeout。
+  - generic planning hook compact/brief contract 扩展到 `codex`、`cursor`、`claude-code` 与 `generic`。
+  - skill duplicate diagnostics 增加 symlink-aware `display-duplicate` / `true-duplicate` 分类，并接入 `doctor` / `health`。
+  - 关闭并归档：
+    - `planning/archive/20260506-202253-rtk-support-feasibility-analysis/`
+    - `planning/archive/20260506-210038-global-rule-context-load-analysis/`
+- `v1.3` 验证通过：
+  - focused suites 全绿
+  - `npm run verify` → `332 pass / 0 fail`
+  - `./scripts/harness verify --output=stdout` → pass
+  - `./scripts/harness doctor --check-only` → `Harness check passed`
+  - `git diff --check` → pass
 
 ## Errors Encountered
 
@@ -57,6 +76,8 @@
 | `uv run python ... session-catchup.py` 无法访问 `/Users/jared/.cache/uv/sdists-v8/.git` | sandbox 内运行 planning-with-files session catchup | 按 sandbox 规则请求批准后重跑；命令成功且无未同步输出 |
 | `git push origin dev` 首次出现 TLS 连接错误 | Gate 0 baseline push | 立即重试后成功，未影响基线 commit |
 | `close-task.sh` 在旧 companion-plan 任务上因缺字段失败 | `v1.2` task closeout | 先补齐 task/companion 的 `Companion summary`、`Lifecycle state`、`Sync-back status`，再重跑 close/archive 成功 |
+| `node --test tests/hooks/*.test.mjs` 在隔离 worktree 中因 `.artifacts` 目录写权限失败 | `v1.3` focused verification | 按平台规则提权重跑 hook suites；代码无回归，测试随后全绿 |
+| `global-rule-context-load-analysis` close/archive 初次失败 | `v1.3` task closeout | 补齐 active task 的 `Companion summary`、phase status 格式，以及 companion plan 的 `Lifecycle state` / `Sync-back status` 后重跑成功 |
 
 ## Verification
 
@@ -73,6 +94,13 @@
 - `./scripts/harness sync --dry-run`：通过（no-op）[`v1.2` worktree]
 - `./scripts/harness doctor --check-only`：通过（`Harness check passed`）[`v1.2` worktree]
 - `git diff --check`：通过[`v1.2` worktree]
+- `git push origin dev`：通过；`origin/dev` 已更新到 `f771415 docs: record roadmap v1.2 verification`
+- `npm run verify`：通过（`332 pass / 0 fail`）[`v1.3` worktree]
+- `./scripts/harness verify --output=stdout`：通过[`v1.3` worktree]
+- `./scripts/harness doctor --check-only`：通过（`Harness check passed`）[`v1.3` worktree]
+- `git diff --check`：通过[`v1.3` worktree]
+- `git push -u origin codex/202605061218-roadmap-v1-3-context-budget-governance-001`：通过
+- `git merge --no-ff a9f699c -m "merge: roadmap v1.3 context governance"`：通过[`dev`]
 
 ## Changed Files
 
@@ -80,10 +108,14 @@
 - `planning/active/roadmap-implementation-plan/findings.md`
 - `planning/active/roadmap-implementation-plan/progress.md`
 - `docs/superpowers/plans/2026-05-06-roadmap-implementation-plan.md`
+- `planning/active/roadmap-v1.3-context-budget-governance/task_plan.md`
+- `planning/active/roadmap-v1.3-context-budget-governance/findings.md`
+- `planning/active/roadmap-v1.3-context-budget-governance/progress.md`
 
 ## Current Execution State
 
 - Gate 0: complete
 - `v1.1`: complete and archived
 - `v1.2`: complete and archived
-- Next version: `v1.3`
+- `v1.3`: complete and ready to archive after dev push
+- Next version: `v1.4`
