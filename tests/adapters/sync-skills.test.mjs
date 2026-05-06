@@ -233,6 +233,7 @@ test('sync rejects non-owned skill target by default', async () => {
 
 test('sync backs up non-owned skill target when requested', async () => {
   const root = await createHarnessFixture();
+  const previousHome = process.env.HOME;
   try {
     await writeState(root, {
       schemaVersion: 1,
@@ -245,6 +246,7 @@ test('sync backs up non-owned skill target when requested', async () => {
     });
     await mkdir(path.join(root, '.agents/skills'), { recursive: true });
     await writeFile(path.join(root, '.agents/skills/planning-with-files'), 'user file');
+    process.env.HOME = path.join(root, 'home');
 
     await withCwd(root, () => sync(['--conflict=backup']));
 
@@ -252,6 +254,11 @@ test('sync backs up non-owned skill target when requested', async () => {
     assert.match(skill, /Harness planning-with-files companion-plan patch/);
     assert.match(skill, /Harness Copilot planning-with-files patch/);
   } finally {
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
     await removeHarnessFixture(root);
   }
 });

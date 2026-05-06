@@ -528,3 +528,63 @@
 | Focused GREEN | `node --test tests/installer/commands.test.mjs tests/automation/upstream-refresh-lib.test.mjs` | force-mode takeover 与 refresh command chain 修复通过 | 35 tests pass | 通过 |
 | Diff whitespace check | `git diff --check` | 当前 hotfix diff 无 whitespace 问题 | 无输出，exit 0 | 通过 |
 | Full repository verify | `npm run verify` | installer + automation 改动无回归 | 318 tests pass | 通过 |
+
+## Session: 2026-05-04
+
+### Phase 17: final rehearsal, rollout enablement, and local branch alignment
+- **Status:** complete
+- Worktrees:
+  - `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main`
+  - `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-rehearsal-final-fix-dev`
+- Actions taken:
+  - 合并 `main` 修复 PR `#39`，将 final gating fix 带入 `origin/main`，本地 `main` worktree fast-forward 到 `295698f`。
+  - 在最新 `main` 上重新触发 manual rehearsal：`gh workflow run upstream-refresh.yml --ref main -f create_pr=false`，得到 run `25295497835`。
+  - 轮询 run 状态并确认最终 workflow 全绿：`Run upstream refresh`、artifact upload、result read 全部成功，PR step 按 `create_pr=false` 正常 skipped。
+  - 从 `d0a690f` cherry-pick final gating fix 到 `dev` 修复分支，推送并创建 PR `#40`，随后合并到 `dev`；`origin/dev` 前进到 `8517660`。
+  - 启用 repo variable：`UPSTREAM_REFRESH_SCHEDULE_ENABLED=true`。
+  - 为 `dev` 配置最小可行 branch protection：required pull request reviews = 1、required conversation resolution = true、禁用 force push 和 deletion。
+  - 检查主工作区本地 `dev` 发现其 `ahead 1, behind 9`；先创建 `backup/dev-before-origin-align-20260504`，再将 `dev` 重置到 `origin/dev`，完成安全对齐。
+- Files created/modified:
+  - `planning/active/github-actions-upstream-automation-analysis/task_plan.md` (updated)
+  - `planning/active/github-actions-upstream-automation-analysis/findings.md` (updated)
+  - `planning/active/github-actions-upstream-automation-analysis/progress.md` (updated)
+
+## Additional Test Results 18
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Final rehearsal dispatch | `gh workflow run upstream-refresh.yml --ref main -f create_pr=false` | 在包含 PR `#39` 修复的最新 `main` 上启动新 rehearsal | run `25295497835` created | 通过 |
+| Final rehearsal completion | `gh run view 25295497835 --json status,conclusion,jobs,url` | workflow 全部完成且成功 | `status: completed`, `conclusion: success`，核心 job 全绿 | 通过 |
+| Dev parity PR readiness | `gh pr view 40 --json state,isDraft,mergeStateStatus,reviewDecision,headRefName,baseRefName,url` + status checks | PR `#40` 可直接合并 | `mergeStateStatus: CLEAN`，无额外 approvals/check blockers | 通过 |
+| Dev parity merge | `gh pr merge 40 --merge --delete-branch` | final gating fix 进入 `dev` | PR `#40` merged；本地自动切回 `dev` 因 worktree 占用报一条非阻塞 git error | 通过 |
+| Schedule gate verification | `gh api repos/ilderaj/superpowering-with-files/actions/variables/UPSTREAM_REFRESH_SCHEDULE_ENABLED` | variable 已启用 | `value: true` | 通过 |
+| Dev protection verification | `gh api repos/ilderaj/superpowering-with-files/branches/dev/protection` | `dev` protection 生效 | 返回 required reviews/conversation resolution/force-push disabled 配置 | 通过 |
+| Local dev alignment | `git status --short --branch` + `git branch -vv` | 主工作区 `dev` 与 `origin/dev` 完全对齐 | `## dev...origin/dev`，`dev` 指向 `8517660 [origin/dev]` | 通过 |
+
+## Session: 2026-05-06
+
+### Audit: closed-task state, worktrees, and remote status
+- **Status:** complete
+- Actions taken:
+  - 读取 `planning/active/github-actions-upstream-automation-analysis/` 三个 planning 文件与 companion plan，确认 task 仍标记为 `Status: closed`、`Archive Eligible: yes`。
+  - 核对主工作区与相关 worktree：主工作区 `dev` 干净；`202604301444-github-actions-upstream-automation-analysis-001`、`20260504-upstream-refresh-layout-compat-main`、`20260504-upstream-refresh-rehearsal-final-fix-dev` 干净；`20260503-upstream-refresh-rehearsal-fix` 保留未提交 refresh 产物。
+  - 检查主线落地文件，确认 workflow、CI scripts、automation tests 和 local dev sync helper 都已在主工作区存在。
+  - 读取 stale worktree 的 `.harness/upstream-refresh-result.json`，确认它记录的是一次失败 refresh：`npm run verify` 失败，并带有 `.planning/**` allowlist violation，因此不能视为待合并实现。
+  - 再次查询 GitHub 远端，确认默认分支 `main`、`dev` protection、生效中的 `UPSTREAM_REFRESH_SCHEDULE_ENABLED=true`，以及最新 `workflow_dispatch` run `25295497835` 成功。
+  - 在主工作区执行 `npm run verify`；automation tests 仍通过，但全量 verify 当前因 worktree naming tests 与一个 sandbox 写权限问题未全绿。
+- Files modified:
+  - `planning/active/github-actions-upstream-automation-analysis/task_plan.md`
+  - `planning/active/github-actions-upstream-automation-analysis/findings.md`
+  - `planning/active/github-actions-upstream-automation-analysis/progress.md`
+
+## Additional Test Results 19
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Main workspace git cleanliness | `git status --short --branch` | 主工作区无残留实现改动 | `## dev...origin/dev` | 通过 |
+| Worktree inventory | `git worktree list --porcelain` + per-worktree `git status --short --branch` | 识别是否有相关 worktree 残留变更 | 仅 `20260503-upstream-refresh-rehearsal-fix` 为脏；其余相关 worktree 干净 | 通过 |
+| Workflow presence | `sed -n '1,260p' .github/workflows/upstream-refresh.yml` | workflow 已落地主工作区 | manual + schedule `0 12 * * 5` + PR gate 均存在 | 通过 |
+| Remote default branch | `gh repo view ilderaj/superpowering-with-files --json nameWithOwner,defaultBranchRef,viewerPermission` | 默认分支仍为 `main` | `defaultBranchRef.name = main` | 通过 |
+| Remote dev protection | `gh api repos/ilderaj/superpowering-with-files/branches/dev/protection` | protection 仍生效 | 1 approval、resolved conversations、force push/deletion disabled | 通过 |
+| Remote schedule gate | `gh api repos/ilderaj/superpowering-with-files/actions/variables/UPSTREAM_REFRESH_SCHEDULE_ENABLED` | variable 仍开启 | `value: true` | 通过 |
+| Recent workflow runs | `gh run list --workflow upstream-refresh.yml --limit 5 --json databaseId,status,conclusion,event,headBranch,displayTitle,createdAt,updatedAt` | 最新一次 run 仍保持成功 | `25295497835` / `workflow_dispatch` / `success` | 通过 |
+| Stale worktree result audit | read `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260503-upstream-refresh-rehearsal-fix/.harness/upstream-refresh-result.json` | 判断脏 worktree 是否可视为合法待合并改动 | 失败 result；含 verify failure 与 `.planning/**` allowlist violation | 通过 |
+| Current repository verify | `npm run verify` | 理想上全量 verify 通过 | automation tests 通过；全量 verify 当前 312 pass / 7 fail，失败位于 backup write permission 与 worktree naming tests | 失败 |

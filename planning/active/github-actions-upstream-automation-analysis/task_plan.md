@@ -4,12 +4,12 @@
 分析并规划如何用 GitHub Actions 定期检测 Superpowers 和 Planning with Files 主源变更，在本项目内自动刷新 baseline、执行验证，并以 PR 方式把结果落到 `dev`。
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: final rehearsal on main succeeded, dev parity fix merged, schedule gate enabled, and local dev aligned with origin/dev
 
 ## Current Phase
-Phase 16
+Phase 17
 
 ## Phases
 
@@ -120,6 +120,14 @@ Phase 16
 - [x] 运行 focused tests 与 `npm run verify` 确认 GREEN
 - **Status:** complete
 
+### Phase 17: Final rollout rehearsal and governance enablement
+- [x] 触发带有 final gating fix 的最新 `main` rehearsal，并确认 workflow run `25295497835` 全部成功
+- [x] 将 final gating fix 同步到 `dev`，合并 PR `#40` 保持 `main` / `dev` automation parity
+- [x] 启用 repo variable `UPSTREAM_REFRESH_SCHEDULE_ENABLED=true`
+- [x] 为 `dev` 启用最小可行 branch protection：PR required、1 个 approval、resolved conversations
+- [x] 将主工作区本地 `dev` 安全对齐到 `origin/dev`，并保留备份分支
+- **Status:** complete
+
 ## Key Questions
 1. GitHub Actions 是否能定期检测两个 upstream 主源的变更？
 2. Actions 是否能安全触发本项目已有 `fetch` / `update` 流程？
@@ -155,6 +163,7 @@ Phase 16
 | PR helper 内部必须再次检查 `refreshResult.status === 'success'` | workflow gate 不能作为唯一保护；helper 被单独调用时必须从 failure/no_changes/unknown result 抛出终止错误，不能创建或更新 PR |
 | existing automation PR update 使用 `--force-with-lease` | 自动化分支每次从 `origin/dev` 重建，plain push 可能 non-fast-forward；lease 只用于已匹配 head `automation/upstream-refresh` 和 base `dev` 的 automation-owned PR |
 | PR create path 不使用 force push | 新建 automation PR 仍使用 `git push --set-upstream origin automation/upstream-refresh`，保持首次远端分支创建语义清晰 |
+| final rollout 在启用 schedule 前先补 `dev` 最小保护，再把 repo variable 打开 | 仓库没有其他 required checks 可挂，因此用 PR review + conversation resolution 建立最低治理面，避免定时自动化在无保护分支上长期运行 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -165,10 +174,13 @@ Phase 16
 - 需要用中文输出分析；代码相关名称、命令、workflow 字段保持英文。
 - 本轮只修订计划与 planning 文件，不创建 workflow、不改 GitHub 设置、不推分支。
 - Companion plan 与 task memory 已双向关联；task memory 保留摘要，companion plan 保存详细步骤。
+- 2026-05-04 已完成 rollout 收口：`main` rehearsal 通过、`dev` parity fix 合并、schedule gate 启用、`dev` protection 生效、本地 `dev` 已对齐远端。
+- 2026-05-06 审计确认：关闭状态仍有效；主工作区实现与远端状态一致，但存在一个旧 rehearsal worktree 保留失败 refresh 产物，不应视为当前待合并实现。
 
 ## Current Verdict
 
 - 原始方向仍成立：`main` 上 schedule 触发、先探测 upstream `HEAD`、工作分支从 `origin/dev` 派生、执行 Harness refresh chain、通过 PR 落到 `dev`。
+- 2026-05-06 复核：`.github/workflows/upstream-refresh.yml`、`scripts/ci/*`、`tests/automation/*`、`scripts/local/sync-dev-after-upstream-pr.mjs` 均已存在；远端默认分支仍为 `main`，`dev` protection 与 `UPSTREAM_REFRESH_SCHEDULE_ENABLED=true` 仍在，最新 run `25295497835` 仍是成功 rehearsal。
 - 原始计划不能按原样执行，核心缺口是：
   1. 缺少具体的 UTC schedule。
   2. 把“处理冲突”描述得过于乐观，没有 fail-fast 分流。
@@ -176,6 +188,7 @@ Phase 16
   4. 详细 checklist 直接写在 task memory，违反当前 summary-only sync-back 边界。
 - 2026-04-30 复核后新增边界：GitHub 端自动化可行；PR merge 后自动同步 local `dev` 不是 GitHub-only 能力，需要本地 fast-forward helper。
 - 修订后计划已经把这些边界收口，并迁移到 companion plan。
+- 2026-05-06 额外观察：当前主工作区执行 `npm run verify` 未全绿，但失败集中在 `tests/adapters/sync-skills.test.mjs` 的本机 `~/.harness/backups` 写权限，以及 `tests/installer/worktree-name.test.mjs` / `tests/installer/worktree-preflight.test.mjs` 的 worktree naming 断言漂移；这些不是原 upstream automation rollout 的未完成项，而是后续 repo health / worktree naming 回归问题。
 
 ## Companion Plan Reference
 

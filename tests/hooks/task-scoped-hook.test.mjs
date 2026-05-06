@@ -36,6 +36,15 @@ async function createFixture(fixtureName, { taskId = 'codex-hooks', taskPlan, fi
   };
 }
 
+async function addActiveTask(fixtureRoot, taskId, files = activeTaskFiles()) {
+  const taskRoot = path.join(fixtureRoot, 'planning/active', taskId);
+  await mkdir(taskRoot, { recursive: true });
+  await writeFile(path.join(taskRoot, 'task_plan.md'), files.taskPlan);
+  await writeFile(path.join(taskRoot, 'findings.md'), files.findings);
+  await writeFile(path.join(taskRoot, 'progress.md'), files.progress);
+  return taskRoot;
+}
+
 function activeTaskFiles({ statusLine = 'Status: active' } = {}) {
   return {
     taskPlan: [
@@ -115,6 +124,48 @@ test('task-scoped-hook treats active status lines with extra whitespace as activ
     const payload = JSON.parse(stdout);
     assert.equal(payload.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
     assert.match(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('task-scoped-hook canonicalizes Codex SessionStart when multiple active tasks exist', async () => {
+  const { fixtureRoot } = await createFixture('codex-multiple-active-session-start', activeTaskFiles());
+  await addActiveTask(fixtureRoot, 'second-task');
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'session-start'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.equal(payload.hookSpecificOutput.hookEventName, 'SessionStart');
+    assert.match(payload.hookSpecificOutput.additionalContext, /Multiple active tasks/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('task-scoped-hook canonicalizes Codex UserPromptSubmit when multiple active tasks exist', async () => {
+  const { fixtureRoot } = await createFixture('codex-multiple-active-user-prompt', activeTaskFiles());
+  await addActiveTask(fixtureRoot, 'second-task');
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.equal(payload.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
+    assert.match(payload.hookSpecificOutput.additionalContext, /Multiple active tasks/);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
