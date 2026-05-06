@@ -48,8 +48,8 @@ Any release that changes policy rendering, projected skills, hook projection, or
 
 - `health.context` exists in the verification report and includes entries, hooks, planning, skill profiles, summary, and warnings
 - rendered entries for Codex, GitHub Copilot, Cursor, and Claude Code use the intended entry profile
-- `full` remains the default skill profile
-- `minimal-global` remains opt-in and projects only the allow-listed adoption-safe skill subset
+- `minimal-global` remains the default skill profile for user-global and `both` scope installs
+- `full` remains explicit opt-in for workspaces that intentionally need the complete skill surface
 - hook payload measurements use projected runtime hook files, not only source files
 - `hookMode: off` remains the default for low-overhead installs
 - `sync --dry-run` shows only expected Harness-managed projection changes

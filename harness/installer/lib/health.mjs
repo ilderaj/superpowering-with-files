@@ -26,6 +26,7 @@ const MEASURED_HOOK_PAYLOAD_SKILLS = new Set(['superpowers', 'planning-with-file
 const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot']);
 const COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION =
   'choose one canonical scope for Copilot unless the workspace install is intentionally overriding safety policy.';
+const CONTEXT_BUDGET_POLICIES_PATH = 'harness/core/context-budget-policies.json';
 const VERDICT_RANK = {
   unknown: -1,
   ok: 0,
@@ -289,6 +290,13 @@ function publicUpstreamStatus(upstream = {}) {
   return result;
 }
 
+async function loadContextBudgetPolicies(rootDir) {
+  const config = JSON.parse(
+    await readFile(path.join(rootDir, CONTEXT_BUDGET_POLICIES_PATH), 'utf8')
+  );
+  return config.targets ?? {};
+}
+
 function createEmptyContextTotals() {
   return {
     chars: 0,
@@ -301,12 +309,29 @@ function createEmptyContextTotals() {
   };
 }
 
+function createEmptyMeasurement(target = null) {
+  return {
+    chars: 0,
+    lines: 0,
+    approxTokens: 0,
+    target
+  };
+}
+
 function createEmptyContext() {
   return {
     entries: [],
     hooks: [],
     planning: [],
     skillProfiles: [],
+    ledger: {
+      scope: null,
+      projectionMode: null,
+      hookMode: null,
+      policyProfile: null,
+      skillProfile: null,
+      targets: []
+    },
     summary: {
       entries: createEmptyContextTotals(),
       hooks: createEmptyContextTotals(),
@@ -315,6 +340,18 @@ function createEmptyContext() {
     },
     warnings: []
   };
+}
+
+function sumMeasurements(measurements = [], target = null) {
+  return measurements.reduce(
+    (total, measurement) => ({
+      chars: total.chars + (measurement?.chars ?? 0),
+      lines: total.lines + (measurement?.lines ?? 0),
+      approxTokens: total.approxTokens + (measurement?.approxTokens ?? 0),
+      target
+    }),
+    createEmptyMeasurement(target)
+  );
 }
 
 function formatBudgetThresholds(budget) {
@@ -434,6 +471,88 @@ function buildSkillProfileDiscoveryText(profileName, target, skills) {
   }
 
   return lines.join('\n');
+}
+
+function extractFrontmatter(text) {
+  if (!text.startsWith('---')) {
+    return '';
+  }
+
+  const end = text.indexOf('\n---', 3);
+  return end >= 0 ? text.slice(0, end + 4) : '';
+}
+
+function isTextBudgetFile(filePath) {
+  return /\.(md|json|mjs|js|sh|cmd|txt|hbs|yml|yaml)$/i.test(filePath);
+}
+
+async function measureTextTree(rootPath) {
+  const measurements = [];
+
+  async function visit(currentPath) {
+    let entries;
+    try {
+      entries = await readdir(currentPath, { withFileTypes: true });
+    } catch (error) {
+      if (error && error.code === 'ENOENT') {
+        return;
+      }
+      throw error;
+    }
+
+    for (const entry of entries) {
+      const entryPath = path.join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        await visit(entryPath);
+        continue;
+      }
+
+      if (!entry.isFile() || !isTextBudgetFile(entryPath)) {
+        continue;
+      }
+
+      measurements.push(measureText(await readFile(entryPath, 'utf8').catch(() => '')));
+    }
+  }
+
+  await visit(rootPath);
+  return sumMeasurements(measurements);
+}
+
+async function inspectSkillLedger(rootDir, profileName, target, skills) {
+  const discovery = measureText(buildSkillProfileDiscoveryText(profileName, target, skills));
+  const skillRows = [];
+
+  for (const skill of skills) {
+    const label = skill.parentSkillName === skill.skillName
+      ? skill.skillName
+      : `${skill.parentSkillName}:${skill.skillName}`;
+    const skillText = await readFile(path.join(skill.sourcePath, 'SKILL.md'), 'utf8').catch(() => '');
+    const skillBody = measureText(skillText);
+    const frontmatter = measureText(extractFrontmatter(skillText));
+    const source = await measureTextTree(skill.sourcePath);
+
+    skillRows.push({
+      label,
+      sourcePath: path.relative(rootDir, skill.sourcePath).split(path.sep).join('/'),
+      measurement: {
+        discovery: frontmatter,
+        skillBody,
+        source
+      }
+    });
+  }
+
+  return {
+    profileName,
+    target,
+    skillCount: skills.length,
+    discovery,
+    frontmatter: sumMeasurements(skillRows.map((row) => row.measurement.discovery), target),
+    skillBody: sumMeasurements(skillRows.map((row) => row.measurement.skillBody), target),
+    source: sumMeasurements(skillRows.map((row) => row.measurement.source), target),
+    skills: skillRows
+  };
 }
 
 async function inspectPlanningHotContext(
@@ -1210,8 +1329,17 @@ export async function readHarnessHealth(rootDir, homeDir) {
   const warnings = [];
   const planLocations = await inspectPlanLocations(rootDir);
   const context = createEmptyContext();
+  context.ledger = {
+    scope: state.scope,
+    projectionMode: state.projectionMode,
+    hookMode: state.hookMode,
+    policyProfile: state.policyProfile,
+    skillProfile: state.skillProfile,
+    targets: []
+  };
   let budgetLoadProblem = null;
   const activeTaskDir = await findSingleActiveTaskDir(rootDir);
+  const budgetPolicies = await loadContextBudgetPolicies(rootDir).catch(() => ({}));
   const entryTotalsByTarget = new Map();
   const hookTotalsByTarget = new Map();
   const hookBudgetsByTarget = new Map();
@@ -1242,6 +1370,22 @@ export async function readHarnessHealth(rootDir, homeDir) {
   for (const target of Object.keys(state.targets).filter((name) => state.targets[name].enabled)) {
     const adapter = await loadAdapter(rootDir, target);
     const entries = [];
+    const targetLedger = {
+      target,
+      budgetPolicy: budgetPolicies[target] ?? null,
+      session: {
+        entry: createEmptyMeasurement(target),
+        skillDiscovery: createEmptyMeasurement(target),
+        skillFrontmatter: createEmptyMeasurement(target),
+        skillBody: createEmptyMeasurement(target),
+        skillSource: createEmptyMeasurement(target),
+        planningHotContext: createEmptyMeasurement(target)
+      },
+      turn: {
+        hookPayload: createEmptyMeasurement(target),
+        planningHotContext: createEmptyMeasurement(target)
+      }
+    };
 
     for (const entryPath of entriesForScope(rootDir, homeDir, adapter, state.scope)) {
       const status = (await exists(entryPath)) ? 'ok' : 'missing';
@@ -1275,6 +1419,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
         context.entries.push(entryContext);
       }
     }
+    targetLedger.session.entry = entryTotalsByTarget.get(target) ?? createEmptyMeasurement(target);
 
     const skills = [];
     for (const projection of await planSkillProjections({
@@ -1306,6 +1451,12 @@ export async function readHarnessHealth(rootDir, homeDir) {
       context.skillProfiles.push(skillProfileEntry);
       addMeasurement(skillProfileTotalsByTarget, target, skillProfileEntry.measurement);
     }
+    const skillLedger = await inspectSkillLedger(rootDir, state.skillProfile, target, skills);
+    targetLedger.session.skillDiscovery = skillLedger.discovery;
+    targetLedger.session.skillFrontmatter = skillLedger.frontmatter;
+    targetLedger.session.skillBody = skillLedger.skillBody;
+    targetLedger.session.skillSource = skillLedger.source;
+    targetLedger.skills = skillLedger.skills;
 
     const hooks = [];
     for (const projection of await planHookProjections({
@@ -1346,6 +1497,13 @@ export async function readHarnessHealth(rootDir, homeDir) {
         addMeasurement(hookTotalsByTarget, hookEntry.target, hookEntry.measurement);
       }
     }
+    targetLedger.turn.hookPayload = sumMeasurements(
+      hookEntries
+        .filter((hookEntry) => hookEntry.target === target)
+        .map((hookEntry) => hookEntry.measurement)
+        .filter(Boolean),
+      target
+    );
 
     const planningEntry = await inspectPlanningHotContext(
       activeTaskDir,
@@ -1360,7 +1518,11 @@ export async function readHarnessHealth(rootDir, homeDir) {
     if (planningEntry) {
       context.planning.push(planningEntry);
       addMeasurement(planningTotalsByTarget, target, planningEntry.measurement);
+      targetLedger.session.planningHotContext = planningEntry.measurement;
+      targetLedger.turn.planningHotContext = planningEntry.measurement;
     }
+
+    context.ledger.targets.push(targetLedger);
   }
 
   const entryTargetTotals = [...entryTotalsByTarget.values()].map((measurement) => {

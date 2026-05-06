@@ -32,7 +32,8 @@ export async function install(args = []) {
   const skillProfile = defaultSkillProfileForTargets(
     skillProfiles,
     targets,
-    readOption(args, 'skills-profile', undefined)
+    readOption(args, 'skills-profile', undefined),
+    scope
   );
 
   if (!['link', 'portable'].includes(projectionMode)) {

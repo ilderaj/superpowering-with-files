@@ -51,10 +51,10 @@ When you create a manual branch or worktree for Cursor-driven work, resolve the 
 ./scripts/harness worktree-name --task <task-id> --namespace cursor
 ```
 
-For user-global adoption, keep the default `full` profile unless you explicitly want the smaller `minimal-global` projection:
+For user-global adoption, the default skill profile is the lean `minimal-global` projection. Use `--skills-profile=full` only when you intentionally want the complete skill surface:
 
 ```bash
-./scripts/harness install --targets=cursor --scope=user-global --skills-profile=minimal-global
+./scripts/harness install --targets=cursor --scope=user-global
 ./scripts/harness sync
 ```
 

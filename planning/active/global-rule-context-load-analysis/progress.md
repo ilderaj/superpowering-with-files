@@ -156,3 +156,42 @@
   - Hook payload 当前很轻，单 active task planning hot context 约 212 tokens；但风险在触发频率和未来 planning 文件膨胀。
   - 下一步建议不是先删规则，而是补真实 ledger、收紧 user-global 默认 profile、把 deep/tracked 细则保持按需展开。
 - 本轮未改 Harness 实现，未执行 user-global adoption，未创建 PR。
+
+## 2026-05-06 Phase 7 Execution
+
+- 用户批准执行 P0-P4 建议。
+- 本轮执行边界：
+  - 改 Harness source、tests、docs 与本任务 planning。
+  - 不执行真实 user-global adoption。
+  - 不改其它 active task 目录。
+  - 不触碰现有 untracked `planning/active/planning-lifecycle-audit-review/`。
+- Implementation plan 已写入 `task_plan.md` Phase 7，包含 P0 ledger、P1 user-global lean default、P2 deep/tracked opt-in guard、P3 IDE policy 和验证门槛。
+- 已完成实现：
+  - P0：`health.context.ledger` 新增 per-target session/turn ledger，`verify` 与 `doctor` 均输出 budget ledger。
+  - P1：`install` 与 `adopt-global` 对 `user-global` / `both` scope 的默认 skills profile 改为 `minimal-global`；workspace scope 保持原有默认逻辑，显式 `--skills-profile` 继续优先。
+  - P2：新增回归测试，确保默认 always-on entry 不包含 `tracked-task-extended` / `deep-reasoning-reference` 细则。
+  - P3：新增 `harness/core/context-budget-policies.json`，并在 ledger 中输出 Codex、Copilot、Cursor、Claude Code 的 target-specific budget policy。
+  - P4：implementation plan、执行边界、验证门槛和结果均已回写本任务 planning。
+- 修改文件：
+  - `harness/installer/lib/health.mjs`
+  - `harness/installer/lib/skill-projection.mjs`
+  - `harness/installer/lib/adoption.mjs`
+  - `harness/installer/commands/install.mjs`
+  - `harness/installer/commands/verify.mjs`
+  - `harness/installer/commands/doctor.mjs`
+  - `harness/core/context-budget-policies.json`
+  - `README.md`
+  - `docs/install/{codex,copilot,cursor,claude-code}.md`
+  - `docs/maintenance.md`
+  - `docs/release.md`
+  - `docs/compatibility/2026-04-20-context-governance-regression-report.md`
+  - `tests/installer/{commands,adoption,health,policy-render}.test.mjs`
+  - `tests/adapters/skill-profile.test.mjs`
+- 验证结果：
+  - Focused suite：`89/89` passed。
+  - Full suite：`npm run verify`，`326/326` passed。
+  - `./scripts/harness verify --output=stdout` passed，输出 per-target budget ledger。
+  - `./scripts/harness doctor --check-only` passed，仍有一个既有 companion-plan warning，不是本轮新增。
+- 当前真实本机 `.harness/state.json` 仍显示 `skillProfile: full`；本轮按边界未执行真实 user-global adoption/sync 来改本机安装态。新默认会作用于后续 install/adopt-global bootstrap 或 force 流程。
+- 追加尝试：按用户“执行”要求，尝试运行 `./scripts/harness adopt-global --skills-profile=minimal-global` 将本机真实 user-global install 切到 lean profile。
+- 结果：提权请求被 Codex 平台拒绝，原因是当前 usage limit；未执行 adoption，未修改真实 user-global IDE 配置。按安全规则未尝试绕过。

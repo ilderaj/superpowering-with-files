@@ -1003,6 +1003,20 @@ test('readHarnessHealth summarizes hook, planning, and skill profile context led
     assert.equal(health.context.summary.hooks.verdict, 'ok');
     assert.equal(health.context.summary.planning.verdict, 'ok');
     assert.equal(health.context.summary.skillProfiles.verdict, 'ok');
+    assert.equal(health.context.ledger.scope, 'workspace');
+    assert.equal(health.context.ledger.policyProfile, 'always-on-core');
+    assert.equal(health.context.ledger.skillProfile, 'full');
+    assert.equal(health.context.ledger.hookMode, 'on');
+    assert.equal(health.context.ledger.targets.length, 1);
+    assert.equal(health.context.ledger.targets[0].target, 'codex');
+    assert.equal(health.context.ledger.targets[0].budgetPolicy.sessionPolicy, 'stable-prefix-lazy-skills');
+    assert.ok(health.context.ledger.targets[0].session.entry.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].session.skillDiscovery.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].session.skillBody.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].session.skillSource.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].session.planningHotContext.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].turn.hookPayload.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].turn.planningHotContext.approxTokens > 0);
   } finally {
     await removeHarnessFixture(root);
   }

@@ -42,6 +42,17 @@ test('renderEntry uses a thinner always-on profile for Copilot by default', asyn
   assert.ok(measureText(copilotRendered).approxTokens < measureText(codexRendered).approxTokens);
 });
 
+test('default always-on entries keep tracked and deep reasoning details opt-in', async () => {
+  const targets = ['codex', 'copilot', 'cursor', 'claude-code'];
+
+  for (const target of targets) {
+    const rendered = await renderEntry(process.cwd(), target, 'always-on-core');
+    assert.doesNotMatch(rendered, /Planning-With-Files Lifecycle Rule/);
+    assert.doesNotMatch(rendered, /Companion Plan Model/);
+    assert.doesNotMatch(rendered, /Mandatory Sync-Back Rule/);
+  }
+});
+
 test('renderPolicyProfile supports include-based safety profiles', async () => {
   const rendered = await renderPolicyProfile(process.cwd(), 'safety');
 

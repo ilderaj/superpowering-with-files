@@ -58,9 +58,11 @@ When you create a manual branch or worktree for Copilot-driven work, resolve the
 If you want to bootstrap or refresh Copilot user-global state explicitly, use:
 
 ```bash
-./scripts/harness install --targets=copilot --scope=user-global --skills-profile=minimal-global
+./scripts/harness install --targets=copilot --scope=user-global
 ./scripts/harness sync
 ```
+
+User-global Copilot defaults to the lean `minimal-global` skill profile. Use `--skills-profile=full` only for a workspace that intentionally accepts the larger skill surface.
 
 For this repository, enable Copilot `safety` only at workspace scope. User-global Copilot can stay installed, but its profile must remain non-safety such as `always-on-core`.
 

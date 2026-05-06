@@ -64,6 +64,10 @@ Close Reason:
 状态：complete
 目标：面向近期模型与订阅成本上升，重新审计所有支持 IDE 的 Harness token budget 开销，输出一份只供 review 的可行性分析报告，不执行优化改动。
 
+### Phase 7
+状态：complete
+目标：执行用户批准的 budget 优化路线：补真实 ledger、收紧 user-global 默认 skill profile、保持 deep/tracked 按需展开、落地 IDE-specific budget policy，并完成测试验证。
+
 ## Companion Plan
 
 - Companion plan: `docs/superpowers/plans/2026-04-19-global-harness-context-remediation-plan.md`
@@ -81,3 +85,49 @@ Close Reason:
 - 用户当前明确要求先出详尽报告和整改 plan，因此本任务只做研究、归纳和规划，不改代码。
 - 2026-05-06 用户新增要求：全面审计所有支持 IDE 的 token 初始化与运行开销，并输出 budget 可行性分析报告；本轮边界为 analysis/report only，等待用户 review 后再决定是否执行优化。
 - 2026-05-06 结论：当前 entry 固定税已降至约 1.0k-1.24k tokens；主要风险转为 skill profile 潜在正文面、global/workspace 叠加、deep/tracked 规则是否常驻、以及真实 per-turn ledger 缺口。本轮报告已写入 findings，状态等待用户 review。
+- 2026-05-06 用户批准执行 P0-P4：本轮进入实现阶段，但仍不执行真实 user-global adoption；只改 Harness source、tests、docs 与本任务 planning。
+
+## Phase 7 Implementation Plan
+
+### P0：真实 ledger
+
+- 在 health context 中新增 budget ledger，按 target 输出：
+  - session 成本：entry、skill discovery、skill body、skill source、planning hot context。
+  - turn 成本：hook payload、planning hot context、pretool/posttool 类重复触发项。
+  - install/profile 信息：scope、policyProfile、skillProfile、hookMode、projectionMode。
+- `verify --output=stdout` 输出 ledger 摘要，JSON 报告保留结构化明细。
+- `doctor --check-only` 在预算 warning/problem 时继续沿用现有 health problem/warning 机制。
+
+### P1：user-global 默认 profile 收紧
+
+- 将 user-global / scope=both 的默认 skill profile 改为 lean profile（优先复用 `minimal-global`）。
+- workspace 默认继续允许 `full`，避免破坏 repo-local rich workflow。
+- 显式 `--skills-profile=full` 必须继续生效，作为 opt-in。
+
+### P2：deep/tracked 按需展开
+
+- 保持 `always-on-core` 默认不包含 `tracked-task-extended` 和 `deep-reasoning-reference`。
+- 增加/保留回归测试，防止 tracked/deep 细则重新进入默认 entry。
+
+### P3：IDE-specific budget policy
+
+- 在代码/文档中明确 target policy：
+  - Copilot：thin entry、scope overlap 检查、避免多层 instructions 叠加。
+  - Codex/Claude Code：稳定轻入口、skills 按需、hook 摘要化。
+  - Cursor：workspace rule 轻量，避免 Always 规则承载大 policy。
+- 先作为可验证配置/文档与 report 输出，不引入第二套投影系统。
+
+### 验证门槛
+
+- focused tests：commands / health / policy-render / adoption。
+- full tests：`npm run verify`。
+- Harness smoke：`./scripts/harness verify --output=stdout`、`./scripts/harness doctor --check-only`。
+
+### Phase 7 Verification Result
+
+- Focused tests passed: `node --test tests/installer/commands.test.mjs tests/installer/adoption.test.mjs tests/installer/health.test.mjs tests/installer/policy-render.test.mjs tests/adapters/skill-profile.test.mjs`，`89/89` passed。
+- Full tests passed: `npm run verify`，`326/326` passed。
+- Harness smoke passed:
+  - `./scripts/harness verify --output=stdout`
+  - `./scripts/harness doctor --check-only`
+- Residual note: `doctor --check-only` still reports one existing companion-plan warning for `docs/superpowers/plans/2026-04-28-copilot-usage-billing-impact-analysis-plan.md`; exit code remains `0` and this warning predates this phase.

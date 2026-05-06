@@ -144,7 +144,7 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
     requestedSkillProfile ??
     (preservingExistingUserGlobalState
       ? state.skillProfile
-      : defaultSkillProfileForTargets(skillProfiles, requestedTargets, undefined));
+      : defaultSkillProfileForTargets(skillProfiles, requestedTargets, undefined, 'user-global'));
 
   validateProjectionMode(projectionMode);
   validateHookMode(hookMode);

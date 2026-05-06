@@ -57,10 +57,10 @@ For manual branches or extra worktrees created from inside the repo, resolve the
 
 Codex App may already provide an isolated workspace or its own worktree model. Treat the helper as a supplementary naming tool for manual branch or worktree creation inside that workspace, not as a replacement for host-owned workspace identity.
 
-For user-global adoption, keep the default `full` profile unless you explicitly want the smaller `minimal-global` projection:
+For user-global adoption, the default skill profile is the lean `minimal-global` projection. Use `--skills-profile=full` only when you intentionally want the complete skill surface:
 
 ```bash
-./scripts/harness install --targets=codex --scope=user-global --skills-profile=minimal-global
+./scripts/harness install --targets=codex --scope=user-global
 ./scripts/harness sync
 ```
 

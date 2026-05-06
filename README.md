@@ -61,7 +61,7 @@ Notes:
 
 - Rendered entry files default to the `always-on-core` profile.
 - Use `--scope=both` when you want a shared user-global baseline plus repo-local entry files.
-- Use `--skills-profile=minimal-global` only when you intentionally want the smaller user-global projection.
+- User-global and `--scope=both` installs default to the lean `minimal-global` skill profile; use `--skills-profile=full` only when the target workspace intentionally needs the complete skill surface.
 
 ## Common Flows
 
@@ -73,6 +73,11 @@ npm run verify
 ./scripts/harness sync --dry-run
 ./scripts/harness doctor --check-only
 ```
+
+`verify` and `doctor` include a budget ledger with per-target session costs
+(`entry`, `skillDiscovery`, `skillBody`, `skillSource`, `planning`) and per-turn
+costs (`hooks`, `planning`). Use that ledger before changing policy rendering,
+skill profiles, hooks, or user-global adoption defaults.
 
 ### Update upstream baselines
 

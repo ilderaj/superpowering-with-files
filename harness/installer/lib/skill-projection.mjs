@@ -89,9 +89,13 @@ export async function loadSkillProfiles(rootDir) {
   return config;
 }
 
-export function defaultSkillProfileForTargets(skillProfiles, targets, requestedSkillProfile) {
+export function defaultSkillProfileForTargets(skillProfiles, targets, requestedSkillProfile, scope = 'workspace') {
   if (requestedSkillProfile) {
     return requestedSkillProfile;
+  }
+
+  if (scope === 'user-global' || scope === 'both') {
+    return 'minimal-global';
   }
 
   return targets.length === 1 && targets[0] === 'copilot'

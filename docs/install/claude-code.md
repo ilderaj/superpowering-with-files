@@ -57,10 +57,10 @@ When you create a manual branch or worktree for Claude Code-driven work, resolve
 ./scripts/harness worktree-name --task <task-id> --namespace claude-code
 ```
 
-For user-global adoption, keep the default `full` profile unless you explicitly want the smaller `minimal-global` projection:
+For user-global adoption, the default skill profile is the lean `minimal-global` projection. Use `--skills-profile=full` only when you intentionally want the complete skill surface:
 
 ```bash
-./scripts/harness install --targets=claude-code --scope=user-global --skills-profile=minimal-global
+./scripts/harness install --targets=claude-code --scope=user-global
 ./scripts/harness sync
 ```
 

@@ -279,6 +279,27 @@
   - 哪些会影响 user-global adoption
 - 不建议直接大幅删除规则；应先量化，再用 tests/verify/doctor 锁住预算。
 
+## 2026-05-06 Budget 优化执行结论
+
+- 已补真实 ledger：
+  - `verify` / `doctor` 输出 per-target budget ledger。
+  - JSON health context 中保留 `health.context.ledger.targets[]`，包含 session 与 turn 两个维度。
+  - session 维度覆盖：entry、skill discovery、skill frontmatter、skill body、skill source、planning hot context。
+  - turn 维度覆盖：hook payload 与 planning hot context。
+- 已收紧 user-global 默认 skill profile：
+  - `user-global` 和 `both` scope 的默认 skill profile 改为 `minimal-global`。
+  - workspace scope 继续保持既有逻辑：Copilot-only 默认 `copilot-default`，其它 workspace 默认 `full`。
+  - 显式 `--skills-profile` 仍始终优先。
+- 已锁住 deep/tracked 按需展开：
+  - 默认 `always-on-core` entry 不包含 `tracked-task-extended` 或 `deep-reasoning-reference` 的细则。
+  - 新增 policy-render 回归覆盖 Codex、Copilot、Cursor、Claude Code。
+- 已建立 IDE-specific budget policy：
+  - Codex: `stable-prefix-lazy-skills`
+  - Copilot: `thin-entry-overlap-guard`
+  - Cursor: `scoped-rules-not-always-large`
+  - Claude Code: `light-claude-md-lazy-skills`
+- 本轮未执行真实 user-global adoption，因此当前本机安装态仍可能显示旧 `skillProfile: full`；这是边界选择，不是实现失败。
+
 ## 与既有任务的关系
 
 - `planning/active/harness-init-skill-projection-audit/` 记录了当前四个 IDE 的入口与 skill projection 结构。

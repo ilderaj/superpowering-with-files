@@ -232,7 +232,7 @@ Required checks:
 - confirm rendered entries stay on the always-on core profile unless a target explicitly needs more detail
 - confirm `hookMode: off` remains the low-overhead default
 - if hook files changed, confirm runtime hook payload measurements stay within the configured budgets
-- if skill projection changed, verify both the default `full` profile and the opt-in `minimal-global` profile
+- if skill projection changed, verify the lean user-global default `minimal-global` profile and the explicit opt-in `full` profile
 
 User-global calibration must be isolated unless the goal is to intentionally update the operator's real user-global files. Use a disposable clone and a disposable home/profile, then perform an actual sync before verification:
 
