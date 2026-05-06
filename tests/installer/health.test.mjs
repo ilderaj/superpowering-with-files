@@ -1866,3 +1866,45 @@ test('readHarnessHealth keeps root-level planning files and docs/plans as warnin
     await removeHarnessFixture(root);
   }
 });
+
+test('readHarnessHealth classifies symlinked Copilot skill duplicates without failing display-only overlap', async (t) => {
+  const root = await createHarnessFixture();
+  const home = path.join(root, 'home');
+
+  try {
+    t.mock.method(os, 'homedir', () => home);
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'both',
+      projectionMode: 'link',
+      targets: {
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+
+    const workspaceSkill = path.join(root, '.agents/skills/using-superpowers');
+    const globalSkill = path.join(home, '.agents/skills/using-superpowers');
+    const canonicalSource = path.join(root, 'harness/upstream/superpowers/skills/using-superpowers');
+
+    await rm(workspaceSkill, { recursive: true, force: true });
+    await rm(globalSkill, { recursive: true, force: true });
+    await symlink(canonicalSource, workspaceSkill);
+    await symlink(canonicalSource, globalSkill);
+
+    const health = await readHarnessHealth(root, home);
+    const duplicateMessage = health.warnings.find((warning) =>
+      warning.includes('skill duplicate copilot using-superpowers: display-duplicate')
+    );
+
+    assert.ok(duplicateMessage);
+    assert.match(duplicateMessage, /source path:/);
+    assert.match(duplicateMessage, /resolved path:/);
+    assert.match(duplicateMessage, /target path:/);
+    assert.ok(!health.problems.some((problem) => problem.includes('skill duplicate copilot using-superpowers')));
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});

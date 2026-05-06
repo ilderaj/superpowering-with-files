@@ -5,9 +5,10 @@
 基于官方文档与 GitHub 一手资料，评估在 Harness 中增加对 `rtk-ai/rtk` 的支持是否值得做、适合做到什么程度、在当前各 IDE 中能产生什么效果，以及它与 Harness 当前两个 upstream 核心模块 `superpowers`、`planning-with-files` 的兼容性与适配性。
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Research conclusions were folded into roadmap v1.3 policy: RTK remains an optional integration lane and does not enter this version as a core upstream or implementation track.
+Closed At: 2026-05-06T20:22:53
 
 ## Current Phase
 
@@ -39,9 +40,9 @@ Phase 5: 报告交付
 - **Status:** complete
 
 ### Phase 5: 报告交付
-- [ ] 产出可行性分析与价值分析报告
-- [ ] 明确结论、建议优先级、风险与不确定性
-- **Status:** in_progress
+- [x] 产出可行性分析与价值分析报告
+- [x] 明确结论、建议优先级、风险与不确定性
+- **Status:** complete
 
 ## Key Questions
 
@@ -60,3 +61,9 @@ Phase 5: 报告交付
 | 结论必须建立在官方文档与 GitHub 一手资料上 | 用户明确要求“不要猜” |
 | 结论以 Harness 当前支持的四个目标为主：Codex、GitHub Copilot、Cursor、Claude Code | `harness/core/metadata/platforms.json` 与 adapter manifests 明确如此 |
 | 评估“加支持”时，优先考虑 Harness-managed optional integration，而不是直接建议用户运行 `rtk init` | `rtk init` 会直接改 Harness 也在管理的 entry / hook 配置，和 `sync` 的权威投影模型存在边界冲突 |
+
+## Final Closeout Direction
+
+- `v1.3` 采用“研究收口，不进入 RTK v1 实现”的路径。
+- 本 task 的最终职责是把研究结论沉淀成 roadmap policy，而不是继续产出代码。
+- 若未来真的启动 RTK 集成，应新建 optional integration implementation task，而不是继续沿用本 feasibility task。

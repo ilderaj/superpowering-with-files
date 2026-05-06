@@ -50,13 +50,19 @@ This document captures deferred product and workflow work that is intentionally 
 
 ### v1.3: Context Budget And Skill Discovery Governance
 
-- Status: planned
+- Status: complete
 - Goal: turn the current context-cost and duplicate-skill investigations into enforceable budget and discovery rules.
 - Scope:
   - finish `global-rule-context-load-analysis` without overwriting concurrent edits
   - close the remaining report gap in `rtk-support-feasibility-analysis`
   - fold TypeMint/Copilot duplicate-skill findings into projection dedupe rules
   - track generic-target brief/hot context behavior as a budget regression candidate
+- Closeout:
+  - `verify` and `doctor` now expose structured budget ledger output and per-target discovery diagnostics
+  - user-global bootstrap defaults stay lean via `minimal-global` while full skill surfaces remain opt-in
+  - generic-target planning hooks now use the compact/brief contract instead of re-emitting full hot context on repeated turns
+  - RTK feasibility is closed as a policy result, not an implementation lane for this version
+  - completed `global-rule-context-load-analysis` and `rtk-support-feasibility-analysis` were archived after sync-back
 - Success criteria:
   - `verify` and `doctor` expose actionable context budget data
   - global installs default to lean skill profiles

@@ -210,6 +210,27 @@ test('coalesceSkillProjections preserves first-seen order while deduping targets
   ]);
 });
 
+test('coalesceSkillProjections still rejects shared target paths backed by different source strings', async () => {
+  await assert.throws(
+    () =>
+      coalesceSkillProjections([
+        {
+          targetPath: '/tmp/shared-skill',
+          sourcePath: '/tmp/upstream/using-superpowers',
+          target: 'copilot',
+          patches: []
+        },
+        {
+          targetPath: '/tmp/shared-skill',
+          sourcePath: '/tmp/upstream/using-superpowers-alias',
+          target: 'copilot',
+          patches: []
+        }
+      ]),
+    /Shared skill root conflict/
+  );
+});
+
 test('sync rejects non-owned skill target by default', async () => {
   const root = await createHarnessFixture();
   try {

@@ -84,6 +84,34 @@ function hotContextFingerprintPath(fixtureRoot, taskId = 'codex-hooks') {
   return path.join(fixtureRoot, '.harness', 'planning-with-files', `${taskId}.last-hot-context.sha256`);
 }
 
+function parseHookOutput(target, stdout, stderr = '') {
+  const payload = JSON.parse(stdout);
+  if (target === 'cursor') {
+    return {
+      payload,
+      additionalContext: payload.additional_context ?? stderr ?? '',
+      hookEventName: payload.hookSpecificOutput?.hookEventName,
+      permissionDecision: payload.permissionDecision
+    };
+  }
+
+  if (target === 'generic') {
+    return {
+      payload,
+      additionalContext: payload.additionalContext ?? '',
+      hookEventName: payload.hookSpecificOutput?.hookEventName,
+      permissionDecision: payload.permissionDecision
+    };
+  }
+
+  return {
+    payload,
+    additionalContext: payload.hookSpecificOutput?.additionalContext ?? '',
+    hookEventName: payload.hookSpecificOutput?.hookEventName,
+    permissionDecision: payload.hookSpecificOutput?.permissionDecision
+  };
+}
+
 test('task-scoped-hook emits Codex hookSpecificOutput payload', async () => {
   const { fixtureRoot } = await createFixture('codex-payload', activeTaskFiles());
 
@@ -105,6 +133,136 @@ test('task-scoped-hook emits Codex hookSpecificOutput payload', async () => {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 });
+
+for (const target of ['codex', 'cursor', 'claude-code']) {
+  test(`task-scoped-hook keeps ${target} session-start compact and defers hot context`, async () => {
+    const { fixtureRoot } = await createFixture(`${target}-compact-session-start`, activeTaskFiles());
+
+    try {
+      const scriptPath = path.join(
+        process.cwd(),
+        'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+      );
+      const { stdout: sessionStartStdout } = await execFileAsync('bash', [scriptPath, target, 'session-start'], {
+        cwd: fixtureRoot
+      });
+      const { stdout: promptStdout } = await execFileAsync(
+        'bash',
+        [scriptPath, target, 'user-prompt-submit'],
+        {
+          cwd: fixtureRoot
+        }
+      );
+
+      const sessionStart = parseHookOutput(target, sessionStartStdout);
+      const prompt = parseHookOutput(target, promptStdout);
+
+      if (target !== 'cursor') {
+        assert.equal(sessionStart.hookEventName, 'SessionStart');
+      }
+      assert.doesNotMatch(sessionStart.additionalContext, /HOT CONTEXT/);
+      assert.match(sessionStart.additionalContext, /next user prompt/i);
+      assert.match(sessionStart.additionalContext, /planning\/active\/codex-hooks/);
+      assert.doesNotMatch(sessionStart.additionalContext, new RegExp(escapeRegExp(fixtureRoot)));
+      assert.match(prompt.additionalContext, /HOT CONTEXT/);
+      assert.ok(sessionStart.additionalContext.length < prompt.additionalContext.length);
+    } finally {
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  test(`task-scoped-hook keeps ${target} pre-tool-use compact`, async () => {
+    const { fixtureRoot } = await createFixture(`${target}-compact-pretool`, activeTaskFiles());
+
+    try {
+      const scriptPath = path.join(
+        process.cwd(),
+        'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+      );
+      const result = await execFileAsync('bash', [scriptPath, target, 'pre-tool-use'], {
+        cwd: fixtureRoot
+      });
+      const parsed = parseHookOutput(target, result.stdout, result.stderr);
+
+      if (target === 'cursor') {
+        assert.equal(parsed.payload.decision, 'allow');
+      } else {
+        assert.equal(parsed.hookEventName, 'PreToolUse');
+      }
+      assert.doesNotMatch(parsed.additionalContext, /HOT CONTEXT/);
+      assert.match(parsed.additionalContext, /progress\.md/);
+      assert.match(parsed.additionalContext, /task_plan\.md/);
+      assert.doesNotMatch(parsed.additionalContext, new RegExp(escapeRegExp(fixtureRoot)));
+    } finally {
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+
+  test(`task-scoped-hook collapses repeated ${target} prompts to brief context until planning changes`, async () => {
+    const { fixtureRoot, taskRoot } = await createFixture(`${target}-brief-reuse`, activeTaskFiles());
+
+    try {
+      const scriptPath = path.join(
+        process.cwd(),
+        'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+      );
+      await execFileAsync('bash', [scriptPath, target, 'session-start'], {
+        cwd: fixtureRoot
+      });
+      const { stdout: firstPromptStdout } = await execFileAsync(
+        'bash',
+        [scriptPath, target, 'user-prompt-submit'],
+        {
+          cwd: fixtureRoot
+        }
+      );
+      const { stdout: secondPromptStdout } = await execFileAsync(
+        'bash',
+        [scriptPath, target, 'user-prompt-submit'],
+        {
+          cwd: fixtureRoot
+        }
+      );
+
+      const firstPrompt = parseHookOutput(target, firstPromptStdout);
+      const secondPrompt = parseHookOutput(target, secondPromptStdout);
+
+      assert.match(firstPrompt.additionalContext, /HOT CONTEXT/);
+      assert.doesNotMatch(secondPrompt.additionalContext, /HOT CONTEXT/);
+      assert.match(secondPrompt.additionalContext, /\[planning-with-files\] BRIEF CONTEXT/);
+      assert.match(secondPrompt.additionalContext, /No planning changes since last hot context emission/);
+      assert.match(secondPrompt.additionalContext, /Task: Codex Hooks/);
+      assert.match(secondPrompt.additionalContext, /Phase: Phase 2: Rework prompt recovery/);
+      assert.match(secondPrompt.additionalContext, /Next: Initial next step\./);
+      assert.ok(secondPrompt.additionalContext.length < firstPrompt.additionalContext.length);
+
+      const fingerprint = await readFile(hotContextFingerprintPath(fixtureRoot), 'utf8');
+      assert.match(fingerprint.trim(), /^[a-f0-9]{64}$/);
+
+      const updatedFiles = activeTaskFiles();
+      updatedFiles.taskPlan = updatedFiles.taskPlan.replace('Initial next step.', 'Updated next step.');
+      await writeFile(path.join(taskRoot, 'task_plan.md'), updatedFiles.taskPlan);
+
+      const { stdout: refreshedPromptStdout } = await execFileAsync(
+        'bash',
+        [scriptPath, target, 'user-prompt-submit'],
+        {
+          cwd: fixtureRoot
+        }
+      );
+      const refreshedPrompt = parseHookOutput(target, refreshedPromptStdout);
+
+      assert.match(refreshedPrompt.additionalContext, /HOT CONTEXT/);
+      assert.match(refreshedPrompt.additionalContext, /Updated next step\./);
+      assert.doesNotMatch(
+        refreshedPrompt.additionalContext,
+        /No planning changes since last hot context emission/
+      );
+    } finally {
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+}
 
 test('task-scoped-hook treats active status lines with extra whitespace as active', async () => {
   const { fixtureRoot } = await createFixture(

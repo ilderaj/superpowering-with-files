@@ -97,3 +97,26 @@
 - RTK 当前官方支持的运行形态是什么：CLI、库、agent runtime、协议层，还是混合形态？
 - RTK 是否已有与 Codex、Claude Code、Cursor、Copilot 等 IDE/agent harness 的已知集成案例？
 - RTK 接入 Harness 需要“内建支持”还是更适合作为可选插件 / adapter 扩展？
+
+## Final Recommendation
+
+### Decision
+
+- 不把 RTK 作为第三个 core upstream。
+- 不把 `rtk init` 作为 Harness 官方支持路径。
+- 将 RTK 保留为 future optional integration lane，并把其优先级放在 `Copilot / Cursor`，`Claude` 次之，`Codex` 最后。
+
+### Why This Is Enough For v1.3
+
+- `v1.3` 的核心目标是 context budget 和 discovery governance；RTK 只需要提供政策方向，不需要在本版本引入新的 runtime 依赖。
+- 现有 findings 已足以支撑 roadmap output：
+  - optional plugin / integration layer
+  - ownership conflict 避免 `rtk init`
+  - Claude 规避 `PreToolUse/Bash` collision
+  - Codex 如要高价值支持，必须走 Harness-owned hook adapter
+
+### Non-Blocking Resolution Of Prior Open Questions
+
+- “RTK 当前是什么形态” 对本版本已不再阻塞：现有证据已足够证明它是外部 CLI-centric integration，不适合成为 Harness core upstream。
+- “是否已有更多 IDE 集成案例” 对本版本也不再阻塞：四个目标的官方资料已经足够支撑优先级排序。
+- “内建支持还是插件扩展” 已被本轮结论回答：优先 optional integration，而不是内建 core upstream。
