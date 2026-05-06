@@ -15,6 +15,10 @@
 - 将本任务状态切换为 `waiting_review`。
 - 用户已批准 inline 执行，并要求灵活使用 subagents 持续推进直到完成。
 - 将本任务从 `waiting_review` 切回 `active`，开始执行 Gate 0 baseline stabilization。
+- 复查当前工作区，确认 `global-rule-context-load-analysis`、`origin-cloud-harness-deployment-plan`、planning timestamp 相关文件仍为保留并发修改，不纳入本轮基线提交。
+- 使用显式 staged file set 完成 Gate 0 baseline commit：`d309b0a0b7a1a05af67ce6fc36ee94cc8614577a`，commit message 为 `docs: add roadmap execution plan`。
+- `git push origin dev` 首次因 TLS 连接错误失败，重试后成功；`origin/dev` 已更新到 `d309b0a0b7a1a05af67ce6fc36ee94cc8614577a`。
+- 开始 `v1.1` 执行准备：`./scripts/harness worktree-preflight --task roadmap-v1.1-planning-hygiene` 建议 base 为 `dev @ d309b0a0b7a1a05af67ce6fc36ee94cc8614577a`。
 
 ## Errors Encountered
 
@@ -27,6 +31,7 @@
 - `task-status.py roadmap-implementation-plan`：通过；状态 `waiting_review`，companion sync ok。
 - `git diff --check`：通过。
 - 未运行 `npm run verify`，因为本轮只输出 plan，不修改运行时代码。
+- `git push origin dev`：成功，`dev` 已包含 Gate 0 baseline commit `d309b0a0b7a1a05af67ce6fc36ee94cc8614577a`。
 
 ## Changed Files
 
@@ -34,3 +39,11 @@
 - `planning/active/roadmap-implementation-plan/findings.md`
 - `planning/active/roadmap-implementation-plan/progress.md`
 - `docs/superpowers/plans/2026-05-06-roadmap-implementation-plan.md`
+
+## Current Execution State
+
+- Gate 0: complete
+- Current version: v1.1
+- Next branch/worktree target:
+  - Task: `roadmap-v1.1-planning-hygiene`
+  - Base: `dev @ d309b0a0b7a1a05af67ce6fc36ee94cc8614577a`

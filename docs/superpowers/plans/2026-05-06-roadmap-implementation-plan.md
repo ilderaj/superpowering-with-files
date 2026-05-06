@@ -1,8 +1,8 @@
 # Roadmap 全版本 Implementation Plan
 
 Active task path: `planning/active/roadmap-implementation-plan/`
-Lifecycle state: waiting_review
-Sync-back status: waiting_review, summary synced
+Lifecycle state: active
+Sync-back status: active, executing roadmap gates
 
 ## 0. 目标与边界
 
