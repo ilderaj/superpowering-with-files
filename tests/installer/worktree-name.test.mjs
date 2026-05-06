@@ -10,6 +10,7 @@ import {
 } from '../helpers/harness-fixture.mjs';
 
 const execFileAsync = promisify(execFile);
+const SESSION_TASK_ENV = { CODEX_THREAD_ID: '019dfb30-6bea-79b2-863d-cf0a17aa2a6f' };
 
 function git(cwd, ...args) {
   return execFileAsync('git', args, { cwd });
@@ -61,6 +62,30 @@ async function loadModule() {
   return import('../../harness/installer/lib/worktree-name.mjs');
 }
 
+async function withEnv(overrides, fn) {
+  const previous = new Map();
+  for (const [key, value] of Object.entries(overrides)) {
+    previous.set(key, process.env[key]);
+    if (value === undefined || value === null) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
+  try {
+    return await fn();
+  } finally {
+    for (const [key, value] of previous.entries()) {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
+}
+
 test('resolveWorktreeNaming uses the explicit task as the task slug', async () => {
   const root = await createHarnessFixture();
   try {
@@ -91,7 +116,7 @@ test('resolveWorktreeNaming detects a single active planning task automatically'
     await writeActiveTask(root, 'worktree-naming-governance');
     const { resolveWorktreeNaming } = await loadModule();
 
-    const result = await resolveWorktreeNaming(root, { now: '202604281159' });
+    const result = await withEnv(SESSION_TASK_ENV, () => resolveWorktreeNaming(root, { now: '202604281159' }));
 
     assert.equal(result.taskId, 'worktree-naming-governance');
     assert.equal(result.taskSlug, 'worktree-naming-governance');
@@ -107,7 +132,7 @@ test('resolveWorktreeNaming falls back to the current branch only when planning 
     await initRepo(root, 'feature/worktree-labeling');
     const { resolveWorktreeNaming } = await loadModule();
 
-    const result = await resolveWorktreeNaming(root, { now: '202604281159' });
+    const result = await withEnv(SESSION_TASK_ENV, () => resolveWorktreeNaming(root, { now: '202604281159' }));
 
     assert.equal(result.taskId, 'feature-worktree-labeling');
     assert.equal(result.taskSlug, 'feature-worktree-labeling');
@@ -124,7 +149,7 @@ test('resolveWorktreeNaming starts sequence allocation at 001 when no prior labe
     await writeActiveTask(root, 'codex-app-compatibility-design');
     const { resolveWorktreeNaming } = await loadModule();
 
-    const result = await resolveWorktreeNaming(root, { now: '202604281159' });
+    const result = await withEnv(SESSION_TASK_ENV, () => resolveWorktreeNaming(root, { now: '202604281159' }));
 
     assert.equal(result.sequence, '001');
     assert.equal(result.canonicalLabel, '202604281159-codex-app-compatibility-design-001');
@@ -147,7 +172,7 @@ test('resolveWorktreeNaming increments sequence when progress already records pr
     ]);
     const { resolveWorktreeNaming } = await loadModule();
 
-    const result = await resolveWorktreeNaming(root, { now: '202604281159' });
+    const result = await withEnv(SESSION_TASK_ENV, () => resolveWorktreeNaming(root, { now: '202604281159' }));
 
     assert.equal(result.sequence, '005');
     assert.equal(result.canonicalLabel, '202604281159-codex-app-compatibility-design-005');

@@ -115,10 +115,16 @@ async function resolvePlanningTask(rootDir, explicitTaskId) {
 
     const taskSlug = sanitizeSegment(envValue);
     const taskDir = path.join(rootDir, 'planning/active', taskSlug);
+    const taskDirExists = await pathExists(taskDir);
+
+    if (envName !== 'PLANNING_TASK_ID' && !taskDirExists) {
+      continue;
+    }
+
     return {
       taskId: taskSlug,
       taskSlug,
-      taskDir: (await pathExists(taskDir)) ? taskDir : null,
+      taskDir: taskDirExists ? taskDir : null,
       source: envName
     };
   }

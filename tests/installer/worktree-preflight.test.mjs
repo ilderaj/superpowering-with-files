@@ -11,6 +11,7 @@ import {
 } from '../helpers/harness-fixture.mjs';
 
 const execFileAsync = promisify(execFile);
+const SESSION_TASK_ENV = { CODEX_THREAD_ID: '019dfb30-6bea-79b2-863d-cf0a17aa2a6f' };
 
 function git(cwd, ...args) {
   return execFileAsync('git', args, { cwd });
@@ -137,7 +138,7 @@ test('worktree-preflight prints naming suggestions in text output', async () => 
     await writeActiveTask(worktree, true);
 
     const { stdout } = await harness(worktree, 'worktree-preflight', {
-      env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
+      env: { ...SESSION_TASK_ENV, HARNESS_WORKTREE_NAME_NOW: '202604281159' }
     });
 
     assert.match(stdout, /Suggested worktree label: 202604281159-preflight-task-001/);
@@ -163,7 +164,7 @@ test('worktree-preflight --json includes naming suggestions without changing bas
     await writeActiveTask(worktree, true);
 
     const { stdout } = await harness(worktree, 'worktree-preflight', '--json', {
-      env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
+      env: { ...SESSION_TASK_ENV, HARNESS_WORKTREE_NAME_NOW: '202604281159' }
     });
     const output = JSON.parse(stdout);
 
