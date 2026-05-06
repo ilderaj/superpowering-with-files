@@ -109,13 +109,18 @@ This document captures deferred product and workflow work that is intentionally 
 
 ### v1.6: Release Readiness And Adoption Stabilization
 
-- Status: planned
+- Status: complete
 - Goal: close the foundation umbrella and make the repo ready for repeatable adoption, release, and external handoff.
 - Scope:
   - close `harness-template-foundation` after release/adoption state is recorded
   - verify `dev`, `origin/dev`, and release documentation are aligned
   - ensure adoption automation reports only committed, meaningful changes
   - re-evaluate default safety posture after v1.4 is proven
+- Closeout:
+  - `adopt-global` now refreshes the user-global receipt against the current verified repo head, and `adoption-status` returns `in_sync` across the supported targets
+  - release docs continue to point at the renamed `superpowering-with-files` repository and current `harness verify` / `doctor` command surface
+  - `harness-template-foundation` is closed as a delivery umbrella after release/adoption facts are recorded and archived
+  - default safety posture remains `keep default-off`; broader rollout stays deferred until the `v1.4` scheduled-run observation lands
 - Success criteria:
   - active planning contains only current work
   - release docs match the renamed repository and current command surface

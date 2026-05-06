@@ -1,6 +1,8 @@
 # Harness Template Plan Review Implementation Plan
 
-- Active task path: `planning/active/harness-template-foundation/`
+- Active task path: `planning/archive/20260506-222324-harness-template-foundation/`
+- Lifecycle state: archived
+- Sync-back status: archived at 2026-05-06T22:23:24: moved companion plan into archive
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
