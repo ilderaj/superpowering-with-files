@@ -28,6 +28,27 @@
 - 确认 `origin/dev` 已包含 `v1.1` 实现链：`20be240`、`9326164`，以及后续总控同步。
 - 使用正式 lifecycle 流程关闭并归档 `roadmap-v1.1-planning-hygiene`，归档目录为 `planning/archive/20260506-181951-roadmap-v1.1-planning-hygiene/`。
 - `v1.1` closeout 完成；下一步进入 `v1.2`。
+- 推送 `dev` 成功：`origin/dev` 从 `ae62c71` 前进到 `c2d37ea`，包含 `v1.1` closeout archive commit `docs: close roadmap v1.1`。
+- 启动 `v1.2` 控制任务 `roadmap-v1.2-cross-ide-closure`，开始并行核对 `cross-ide-projection-audit`、`cross-ide-hook-capability-alignment`、`cross-ide-single-source-consolidation`、`cursor-official-load-model-research` 的真实 merge / closeout 状态。
+- `v1.2` 执行线已在隔离 worktree `codex/202605061025-roadmap-v1-2-cross-ide-closure-001` 中完成：
+  - Worktree base: `dev @ c2d37ea8e5432bb26c719153e4682037b7bc1444`
+  - 实际提交：`12b439d docs: close roadmap v1.2`
+  - merge back 到本地 `dev`：`merge: roadmap v1.2 cross-ide closure`
+- `v1.2` closeout 内容：
+  - `docs/install/cursor.md` 补齐 Cursor rules/skills/hooks 官方事实边界
+  - `docs/roadmap.md` 将 `v1.2` 标记为 complete
+  - 关闭并归档：
+    - `planning/archive/20260506-183725-cross-ide-hook-capability-alignment/`
+    - `planning/archive/20260506-183740-cross-ide-single-source-consolidation/`
+    - `planning/archive/20260506-183741-cross-ide-projection-audit/`
+    - `planning/archive/20260506-183741-cursor-official-load-model-research/`
+  - 顺手清理了既有 orphan companion：移除 `docs/superpowers/plans/2026-04-28-copilot-usage-billing-impact-analysis-plan.md`
+- `v1.2` 验证通过：
+  - `npm run verify` → `329 pass / 0 fail`
+  - `./scripts/harness sync --dry-run` → no-op dry-run
+  - `./scripts/harness doctor --check-only` → `Harness check passed`
+  - `git diff --check` → pass
+- `v1.2` 已合回本地 `dev`；下一步进入 `v1.3`。
 
 ## Errors Encountered
 
@@ -35,6 +56,7 @@
 | --- | --- | --- |
 | `uv run python ... session-catchup.py` 无法访问 `/Users/jared/.cache/uv/sdists-v8/.git` | sandbox 内运行 planning-with-files session catchup | 按 sandbox 规则请求批准后重跑；命令成功且无未同步输出 |
 | `git push origin dev` 首次出现 TLS 连接错误 | Gate 0 baseline push | 立即重试后成功，未影响基线 commit |
+| `close-task.sh` 在旧 companion-plan 任务上因缺字段失败 | `v1.2` task closeout | 先补齐 task/companion 的 `Companion summary`、`Lifecycle state`、`Sync-back status`，再重跑 close/archive 成功 |
 
 ## Verification
 
@@ -46,6 +68,11 @@
 - `./scripts/harness doctor --check-only`：通过；存在一个既有 orphan companion warning，不是本轮新增回归。
 - `close-task.sh roadmap-v1.1-planning-hygiene`：通过。
 - `archive-task.sh roadmap-v1.1-planning-hygiene`：通过。
+- `git push origin dev`：通过；`origin/dev` 已包含 `c2d37ea docs: close roadmap v1.1`。
+- `npm run verify`：通过（`329 pass / 0 fail`）[`v1.2` worktree]
+- `./scripts/harness sync --dry-run`：通过（no-op）[`v1.2` worktree]
+- `./scripts/harness doctor --check-only`：通过（`Harness check passed`）[`v1.2` worktree]
+- `git diff --check`：通过[`v1.2` worktree]
 
 ## Changed Files
 
@@ -58,4 +85,5 @@
 
 - Gate 0: complete
 - `v1.1`: complete and archived
-- Next version: `v1.2`
+- `v1.2`: complete and archived
+- Next version: `v1.3`
