@@ -1,0 +1,31 @@
+# Progress - Audit PR 41 And Complete Merge
+
+## 2026-05-06 Session
+- 创建任务目录 `planning/active/audit-pr-41-merge/`，按 tracked task 管理本次 PR 审计与 merge 工作。
+- 已检查当前 Git 基线：
+  - `git status --short --branch` -> `## dev...origin/dev`
+  - `git branch --all --verbose --no-abbrev` -> `dev` 与 `origin/dev` 同步；`main` 落在 PR #39 merge commit。
+- 已检查仓库存在大量历史 active tasks；按仓库规则仅扫描、不自动迁移或归档。
+- 通过 `gh pr view 41 --json ...` 确认 PR #41 为 `dev -> main`，初始 head 为 `aa1f1b55344ddb168bd981e050a4a942f2117159`，`mergeable = CONFLICTING`。
+- 运行 `git fetch --prune origin` 更新远端 refs。
+- 建立本地回退分支 `backup/pr41-dev-before-main-merge-20260506`，指向冲突处理前的 `dev` head。
+- 在当前 `dev` 执行 `git merge --no-commit --no-ff origin/main`，得到两处真实冲突：
+  - `planning/active/github-actions-upstream-automation-analysis/task_plan.md`
+  - `planning/active/github-actions-upstream-automation-analysis/progress.md`
+- 对比 ours/theirs 后，确认 `dev` 版本包含更新的 rollout 收口事实，因此使用 `git checkout --ours` 保留 `dev` 版本并 `git add` 标记解决。
+- 验证冲突解决结果：
+  - `rg -n "^(<<<<<<<|=======|>>>>>>>)" ...` -> 无残留 marker
+  - `git diff --check --cached` -> pass
+- 创建 merge commit：`git commit -m "Merge origin/main into dev to resolve PR #41 conflicts"` -> `5591bb3`
+- 推送更新后的 `dev`：`git push origin dev` -> pass，远端提示 bypass 了 “Changes must be made through a pull request” 规则，但 push 已成功。
+- 再次查询 PR #41：
+  - push 前并发查询仍显示旧 head `aa1f1b5`
+  - 等待 GitHub 刷新后，`gh pr view 41 --json mergeable,headRefOid` -> `mergeable = MERGEABLE`，head = `5591bb3`
+- 执行 `gh pr merge 41 --merge` 完成合并。
+- 最终核对：
+  - `gh pr view 41 --json state,mergedAt,mergeCommit` -> `MERGED` / `2026-05-06T05:17:53Z` / `fe42a20`
+  - `git fetch --prune origin` -> `origin/main` 前进到 `fe42a20`
+  - `gh pr list --state open --head dev` -> `[]`
+  - `git status --short --branch` -> `## dev...origin/dev`
+- 尝试对齐本地 `main` 到 `origin/main` 时，`git branch -f main origin/main` 失败：`main` 被 worktree `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main` 占用。
+- 当前剩余未跟踪改动仅为本任务 planning 目录 `planning/active/audit-pr-41-merge/`。
