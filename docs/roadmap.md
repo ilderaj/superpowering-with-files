@@ -90,13 +90,18 @@ This document captures deferred product and workflow work that is intentionally 
 
 ### v1.5: Workflow Productization And Operator Experience
 
-- Status: planned
+- Status: complete
 - Goal: turn Harness from a substrate into a clearer set of operator workflows without adding a second planning system.
 - Scope:
   - use the gstack comparison findings to define workflow lanes such as plan, review, verify, finish, release, and archive
   - close or merge the `readme-slim-pr` review outcome
   - keep docs concise while preserving diagrams and command surfaces
   - define browser/runtime/eval integration as contracts, not mandatory dependencies
+- Closeout:
+  - `readme-slim-pr` PR #29 is merged and archived as historical delivery state
+  - workflow lanes now have a dedicated operator-facing entry in `docs/workflows.md`
+  - README, maintenance, architecture, and release docs now describe the same lane model
+  - browser and eval capabilities are documented as optional contracts, not core install requirements
 - Success criteria:
   - users can identify the right Harness lane without reading internal policy detail
   - README and docs explain the workflow model without duplicating the full rules

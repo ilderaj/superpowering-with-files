@@ -63,6 +63,19 @@ Notes:
 - Use `--scope=both` when you want a shared user-global baseline plus repo-local entry files.
 - User-global and `--scope=both` installs default to the lean `minimal-global` skill profile; use `--skills-profile=full` only when the target workspace intentionally needs the complete skill surface.
 
+## Workflow Lanes
+
+Harness exposes six operator-facing lanes:
+
+- `plan`: tracked task setup, worktree base selection, and durable planning state
+- `review`: plan review, diff review, PR review, and archive-readiness review
+- `verify`: focused checks, full repository verification, projection dry-runs, and doctor output
+- `finish`: branch push, merge back to `dev`, and task record updates
+- `release`: `dev` to `main` promotion plus adoption and release-document alignment
+- `archive`: explicit close-and-archive lifecycle flow
+
+See [Workflows](docs/workflows.md) for the lane map and the optional browser/eval contracts.
+
 ## Common Flows
 
 ### Verify a change
@@ -142,6 +155,7 @@ flowchart LR
 | Claude Code | `.claude/skills` | `~/.claude/skills` | materialized |
 
 Shared skill roots are limited to Codex and GitHub Copilot. Claude Code and Cursor keep platform-native skill directories.
+For GitHub-origin cloud usage, keep the default table above and follow the optional deployment guidance in [GitHub Copilot installation](docs/install/copilot.md).
 
 ## Safety
 
@@ -187,6 +201,7 @@ More detail:
 - [Architecture](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
 - [Maintenance](docs/maintenance.md)
+- [Workflows](docs/workflows.md)
 - [Release](docs/release.md)
 - [Platform support](docs/install/platform-support.md)
 - [Codex installation](docs/install/codex.md)
