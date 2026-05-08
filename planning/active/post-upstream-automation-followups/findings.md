@@ -42,3 +42,11 @@
   - `sync-skills` 的 `EPERM` 是测试环境未隔离 `HOME`，不是产品逻辑回归。
 - 主工作区最新验证结果为 `npm run verify => 319 pass / 0 fail`，因此后续 followup 不再受这 7 个失败阻塞。
 - 当前唯一剩余事项是 heartbeat 在 2026-05-08 20:05 Asia/Shanghai 续跑，观察首次 `schedule` 事件 run。
+
+## 2026-05-08 Manual Run Failure
+- 用户于 2026-05-08 手动触发 `Upstream Refresh #6`，run id `25539563928`，事件类型 `workflow_dispatch`。
+- 失败 job 为 `Refresh upstream baselines`，失败 step 为 `Run upstream refresh`。
+- 根因不是 refresh contract 本身漂移，而是最新 upstream `superpowers` 改写了两个 skill 结构，导致本地 patch 锚点失效：
+  - `finishing-a-development-branch`
+  - `using-git-worktrees`
+- 已单开 repair task：`planning/active/upstream-refresh-6-failure-repair/`。

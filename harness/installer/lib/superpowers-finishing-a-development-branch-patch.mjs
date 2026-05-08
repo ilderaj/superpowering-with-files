@@ -3,12 +3,14 @@ import path from 'node:path';
 
 const MARKER = 'Harness Superpowers finishing-a-development-branch base patch';
 
-const STEP_2_PATTERN = /### Step 2: Determine Base Branch\n[\s\S]*?(?=\n### Step 3: Present Options)/;
+const LEGACY_BASE_BRANCH_PATTERN = /### Step 2: Determine Base Branch\n[\s\S]*?(?=\n### Step 3: Present Options)/;
+const ENVIRONMENT_AWARE_BASE_BRANCH_PATTERN = /### Step 3: Determine Base Branch\n[\s\S]*?(?=\n### Step 4: Present Options)/;
 
-const PATCHED_BLOCK = [
+function patchedBlock(stepNumber) {
+  return [
   `## ${MARKER}`,
   '',
-  '### Step 2: Determine Base Branch',
+  `### Step ${stepNumber}: Determine Base Branch`,
   '',
   'Prefer the recorded `Worktree base: <base-ref> @ <base-sha>` from planning/active/<task-id>/ before using any late Git guess.',
   '',
@@ -27,7 +29,19 @@ const PATCHED_BLOCK = [
   '```',
   '',
   'Do not default to `main` or `master` when the repository already records a non-trunk worktree base such as `dev`.'
-].join('\n');
+  ].join('\n');
+}
+
+const PATCH_VARIANTS = [
+  {
+    pattern: ENVIRONMENT_AWARE_BASE_BRANCH_PATTERN,
+    block: patchedBlock(3)
+  },
+  {
+    pattern: LEGACY_BASE_BRANCH_PATTERN,
+    block: patchedBlock(2)
+  }
+];
 
 export async function applySuperpowersFinishingADevelopmentBranchPatch(targetDir) {
   const skillPath = path.join(targetDir, 'SKILL.md');
@@ -37,7 +51,16 @@ export async function applySuperpowersFinishingADevelopmentBranchPatch(targetDir
     return;
   }
 
-  const patched = original.replace(STEP_2_PATTERN, PATCHED_BLOCK);
+  let patched = original;
+  for (const variant of PATCH_VARIANTS) {
+    if (!variant.pattern.test(original)) {
+      continue;
+    }
+
+    patched = original.replace(variant.pattern, variant.block);
+    break;
+  }
+
   if (patched === original) {
     throw new Error(`Unable to apply ${MARKER} to ${skillPath}`);
   }

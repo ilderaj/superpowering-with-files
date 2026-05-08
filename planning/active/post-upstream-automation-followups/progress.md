@@ -78,3 +78,15 @@
   - `planning/active/post-upstream-automation-followups/task_plan.md` (updated)
   - `planning/active/post-upstream-automation-followups/findings.md` (updated)
   - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Session: 2026-05-08 14:35:00 UTC+8
+
+### Phase 2: manual run failure branch
+- **Status:** in_progress
+- Actions taken:
+  - 用户手动触发 `Upstream Refresh #6` 后，查询 GitHub run `25539563928` 的 job/step 和 failed log。
+  - 确认失败由 upstream `superpowers` skill 结构漂移触发的 patch 失配导致，而不是 refresh allowlist / PR contract 问题。
+  - 单开 `upstream-refresh-6-failure-repair`，在隔离 worktree 中完成本地修复与全量验证。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
