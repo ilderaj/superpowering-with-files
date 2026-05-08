@@ -78,3 +78,14 @@
   - 首次真实 scheduled run 已经证明 `#6` 的 patch 兼容性修复解除了一阶阻塞
   - 当前新的剩余问题在 PR 打开路径，而不是 refresh 主链路
   - 该问题已并入 `planning/active/upstream-refresh-6-failure-repair/`，不再单开新的 followup task
+
+## 2026-05-08 Manual Rerun After Push
+- 用户已把第一轮 PR-opening 修复推到 `origin`，随后手动触发 run `25562079399`。
+- 这次 rerun 进一步确认：
+  - `spawn E2BIG` 已经消失
+  - refresh 主链路与 result artifact 上传/读取都已恢复
+  - 新的剩余失败点是固定 automation branch 的远端状态机：
+    - 远端 `automation/upstream-refresh` 分支仍存在
+    - 但仓库里没有对应 open PR
+    - 当前 create path 仍尝试 `git push --set-upstream`，因此被 non-fast-forward 拒绝
+- 该问题仍属于同一 repair chain，已继续在 `upstream-refresh-6-failure-repair` 中处理。

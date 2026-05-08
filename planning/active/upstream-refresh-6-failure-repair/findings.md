@@ -103,3 +103,51 @@
 - full:
   - `npm run verify`
   - 结果：`336 pass / 0 fail`
+
+## 2026-05-08 Manual Rerun After Push (`25562079399`)
+- 用户已将上一轮修复推到 `origin`，随后手动触发新的 workflow_dispatch run：
+  - run id：`25562079399`
+  - createdAt：`2026-05-08T14:47:01Z`，即 **2026-05-08 22:47:01 Asia/Shanghai**
+  - headSha：`fac4492961226ce39e12a4d6d0778a0b434be52d`
+- 这次结果证明：
+  - `Run upstream refresh` 成功
+  - `Upload upstream refresh result` 成功
+  - `Read upstream refresh result` 成功
+  - `Open upstream refresh pull request` 失败
+- 因此上一个根因 `spawn E2BIG` 已被解除。
+
+## New Failure Root Cause
+- failed log 的最小根因变为：
+  - `git push --set-upstream origin automation/upstream-refresh`
+  - `! [rejected] automation/upstream-refresh -> automation/upstream-refresh (non-fast-forward)`
+- 进一步取证确认：
+  - `gh pr list --head automation/upstream-refresh --state all ...` 返回 `[]`
+  - `git ls-remote --heads origin automation/upstream-refresh` 返回：
+    - `c0260fe880c2327f0c36d65c6183bd270f5588ea	refs/heads/automation/upstream-refresh`
+- 结论：
+  - 当前逻辑把“没有 open PR”错误等价成了“可以安全用 `git push --set-upstream` 创建远端 branch”
+  - 但真实状态是：固定 automation branch 可能已经存在，只是当前没有 open PR
+  - 在这个状态下，create path 也必须对固定 branch 走受控 `--force-with-lease`
+
+## Fix Strategy Extension 2
+- `scripts/ci/lib/upstream-pr.mjs`
+  - 新增 `buildDetectRemoteBranchCommand() -> git ls-remote --heads origin automation/upstream-refresh`
+  - 新增 `parseRemoteBranchExists()`
+  - `buildUpstreamPullRequestPlan(..., remoteBranchExists)` 显式接收远端 branch existence
+  - 当 `remoteBranchExists = true` 且没有 open PR 时：
+    - 仍走 create-PR 路径
+    - 但 push 改为 `git push --force-with-lease origin automation/upstream-refresh`
+- `scripts/ci/open-upstream-pr.mjs`
+  - 在加载 open PRs 之后，额外探测远端 fixed automation branch 是否存在
+  - 将该状态传入 PR 计划构造
+- `tests/automation/upstream-pr-lib.test.mjs`
+  - 新增 remote-branch detection tests
+  - 新增“远端 branch 已存在但无 open PR”时 force-push + create PR 的回归测试
+
+## Validation Update 2
+- focused:
+  - `node --test tests/automation/upstream-pr-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`
+  - 结果：`31 pass / 0 fail`
+- full:
+  - `npm run verify`
+  - 结果：`340 pass / 0 fail`

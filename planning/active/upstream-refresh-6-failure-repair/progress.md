@@ -98,3 +98,43 @@
 | Result artifact inspection | `/private/tmp/upstream-refresh-25559163029/upstream-refresh-result.json` | 判断 refresh 主链路是否已恢复 | `status: success`, `eligibleFiles.length: 1737` | 通过 |
 | Focused PR opening verification | `node --test tests/automation/upstream-pr-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs` | create/update 改造后通过 | `27 pass / 0 fail` | 通过 |
 | Full verify in main workspace | `npm run verify` | 全量验证保持全绿 | `336 pass / 0 fail` | 通过 |
+
+## Session: 2026-05-08 22:52:07 UTC+8
+
+### Phase 4: remote rerun and fixed-branch state repair
+- **Status:** in_progress
+- Actions taken:
+  - 在用户确认已推送到 `origin` 后，手动触发新的 GitHub Actions run：`25562079399`。
+  - 持续轮询 run，确认：
+    - `Run upstream refresh` 成功
+    - `Upload upstream refresh result` 成功
+    - `Read upstream refresh result` 成功
+    - `Open upstream refresh pull request` 失败
+  - 读取 failed log，定位新根因为：
+    - `git push --set-upstream origin automation/upstream-refresh`
+    - `non-fast-forward`
+  - 远端状态取证：
+    - `gh pr list --head automation/upstream-refresh --state all ...` => `[]`
+    - `git ls-remote --heads origin automation/upstream-refresh` => `c0260fe880c2327f0c36d65c6183bd270f5588ea`
+  - 修改 `scripts/ci/lib/upstream-pr.mjs` 与 `scripts/ci/open-upstream-pr.mjs`，显式建模 `remoteBranchExists`，让 create path 在“branch 已存在但无 open PR”时走 `--force-with-lease`。
+  - 扩充 `tests/automation/upstream-pr-lib.test.mjs` 覆盖真实失败场景。
+  - 运行：
+    - `node --test tests/automation/upstream-pr-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`
+    - `npm run verify`
+- Files created/modified:
+  - `scripts/ci/lib/upstream-pr.mjs`
+  - `scripts/ci/open-upstream-pr.mjs`
+  - `tests/automation/upstream-pr-lib.test.mjs`
+  - `planning/active/upstream-refresh-6-failure-repair/task_plan.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/findings.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/progress.md` (updated)
+
+## Additional Test Results (Update 2)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Manual rerun snapshot | `gh run view 25562079399 --json ...` | 确认上一轮远端修复是否生效 | `Run upstream refresh = success`, `Open upstream refresh pull request = failure` | 通过 |
+| Failed log triage | `gh run view 25562079399 --log-failed` | 找到新的最小根因 | `git push --set-upstream ... non-fast-forward` | 通过 |
+| Remote branch existence | `git ls-remote --heads origin automation/upstream-refresh` | 判断 fixed automation branch 是否仍存在 | `c0260fe... refs/heads/automation/upstream-refresh` | 通过 |
+| Open/closed PR snapshot | `gh pr list --head automation/upstream-refresh --state all ...` | 判断是否存在可更新 PR | `[]` | 通过 |
+| Focused fixed-branch verification | `node --test tests/automation/upstream-pr-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs` | remote-branch-exists 修复通过 | `31 pass / 0 fail` | 通过 |
+| Full verify in main workspace | `npm run verify` | 全量验证保持全绿 | `340 pass / 0 fail` | 通过 |

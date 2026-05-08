@@ -9,11 +9,13 @@ import {
   buildBotGitIdentityCommands,
   buildCommitCommands,
   buildCreatePullRequestCommand,
+  buildDetectRemoteBranchCommand,
   buildListOpenPullRequestsCommand,
   buildUpdatePullRequestCommand,
   buildUpstreamPullRequestPlan,
   defaultPullRequestBodyPath,
   defaultRefreshResultPath,
+  parseRemoteBranchExists,
   formatCommand,
   parseOpenPullRequests
 } from './lib/upstream-pr.mjs';
@@ -128,6 +130,18 @@ async function loadOpenPullRequests({ cwd, env, run }) {
   }
 }
 
+async function loadRemoteAutomationBranchExists({ cwd, env, run }) {
+  const command = buildDetectRemoteBranchCommand();
+  const result = await runRequiredCommand(command, {
+    cwd,
+    env,
+    run,
+    failureMessage: 'git ls-remote failed'
+  });
+
+  return parseRemoteBranchExists(result.stdout ?? '');
+}
+
 export async function runOpenUpstreamPullRequest({
   cwd = process.cwd(),
   env = process.env,
@@ -180,10 +194,12 @@ export async function runOpenUpstreamPullRequest({
   });
 
   const openPullRequests = await loadOpenPullRequests({ cwd, env, run });
+  const remoteBranchExists = await loadRemoteAutomationBranchExists({ cwd, env, run });
   const plan = buildUpstreamPullRequestPlan({
     eligibleFiles: refreshResult.eligibleFiles,
     sourceHeads: refreshResult.sourceHeads,
-    openPullRequests
+    openPullRequests,
+    remoteBranchExists
   });
   const { bodyFilePath, resolvedBodyFilePath } = await writePullRequestBodyFile({
     cwd,

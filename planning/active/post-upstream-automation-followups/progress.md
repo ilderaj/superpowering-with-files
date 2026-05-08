@@ -136,3 +136,15 @@
 | First real schedule run snapshot | `gh run view 25559163029 --json ...` | 确认首次真实 `schedule` run 是否已经出现 | `event: schedule`, `conclusion: failure` | 通过 |
 | Heartbeat timing comparison | `2026-05-08 21:06` heartbeat snapshot vs `21:47` run createdAt | 判断 earlier no-run 结论是否需要修正 | 真实 scheduled run 晚于 heartbeat 约 40 分钟出现 | 通过 |
 | Scheduled run failure triage | `gh run view 25559163029 --log-failed` + result artifact | 判断失败是否仍属同一 repair chain | `spawn E2BIG`, refresh result `status: success` | 通过 |
+
+## Session: 2026-05-08 22:52:07 UTC+8
+
+### Phase 2: manual rerun after origin push
+- **Status:** complete
+- Actions taken:
+  - 用户将第一轮修复推到 `origin` 后，手动触发 run `25562079399`。
+  - 跟踪 run 到完成，确认 `spawn E2BIG` 已解除，失败进一步收敛到 fixed automation branch 的 non-fast-forward push。
+  - 将新的 failure facts 回流到 `upstream-refresh-6-failure-repair`，继续沿同一 repair task 修复。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)

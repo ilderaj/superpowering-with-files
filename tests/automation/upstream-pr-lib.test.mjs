@@ -122,6 +122,35 @@ test('buildUpstreamPullRequestPlan uses force-with-lease only for a matched auto
   assert.deepEqual(wrongBasePlan.commands.push.args, ['push', '--set-upstream', 'origin', 'automation/upstream-refresh']);
 });
 
+test('buildDetectRemoteBranchCommand probes the fixed automation branch on origin', async () => {
+  const { buildDetectRemoteBranchCommand } = await loadUpstreamPrModule();
+
+  assert.deepEqual(buildDetectRemoteBranchCommand(), {
+    file: 'git',
+    args: ['ls-remote', '--heads', 'origin', 'automation/upstream-refresh']
+  });
+});
+
+test('parseRemoteBranchExists treats non-empty ls-remote output as branch present', async () => {
+  const { parseRemoteBranchExists } = await loadUpstreamPrModule();
+
+  assert.equal(parseRemoteBranchExists('abc123\trefs/heads/automation/upstream-refresh\n'), true);
+  assert.equal(parseRemoteBranchExists(''), false);
+});
+
+test('buildUpstreamPullRequestPlan force-pushes the fixed automation branch when it already exists without an open PR', async () => {
+  const { buildUpstreamPullRequestPlan } = await loadUpstreamPrModule();
+
+  const plan = buildUpstreamPullRequestPlan({
+    eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
+    remoteBranchExists: true
+  });
+
+  assert.equal(plan.shouldCreatePullRequest, true);
+  assert.equal(plan.shouldUpdatePullRequest, false);
+  assert.deepEqual(plan.commands.push.args, ['push', '--force-with-lease', 'origin', 'automation/upstream-refresh']);
+});
+
 test('buildListOpenPullRequestsCommand filters by automation head and dev base', async () => {
   const { buildListOpenPullRequestsCommand } = await loadUpstreamPrModule();
 
@@ -312,6 +341,9 @@ test('runOpenUpstreamPullRequest commits, pushes, and creates a PR when no autom
       if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'list') {
         return { stdout: '[]' };
       }
+      if (command.file === 'git' && command.args[0] === 'ls-remote') {
+        return { stdout: '' };
+      }
       if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'create') {
         return { stdout: 'https://github.com/ilderaj/superpowering-with-files/pull/99\n' };
       }
@@ -328,6 +360,7 @@ test('runOpenUpstreamPullRequest commits, pushes, and creates a PR when no autom
     "git commit -m 'chore: refresh upstream baselines'"
   ]);
   assert.ok(commands.includes('gh pr list --head automation/upstream-refresh --base dev --state open --json number,url,headRefName,baseRefName --limit 1'));
+  assert.ok(commands.includes('git ls-remote --heads origin automation/upstream-refresh'));
   assert.ok(commands.includes('git push --set-upstream origin automation/upstream-refresh'));
   assert.ok(commands.some((command) => command === "gh pr create --base dev --head automation/upstream-refresh --title 'chore: refresh upstream baselines' --body-file .harness/upstream-pr-body.md"));
   assert.equal(commands.some((command) => command.includes('pr merge')), false);
@@ -359,6 +392,9 @@ test('runOpenUpstreamPullRequest creates a dev PR instead of updating a same-hea
             }
           ])
         };
+      }
+      if (command.file === 'git' && command.args[0] === 'ls-remote') {
+        return { stdout: '' };
       }
       if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'create') {
         return { stdout: 'https://github.com/ilderaj/superpowering-with-files/pull/99\n' };
@@ -406,6 +442,9 @@ test('runOpenUpstreamPullRequest updates an existing automation PR branch and bo
           ])
         };
       }
+      if (command.file === 'git' && command.args[0] === 'ls-remote') {
+        return { stdout: 'abc123\trefs/heads/automation/upstream-refresh\n' };
+      }
       return { stdout: '' };
     }
   });
@@ -418,6 +457,40 @@ test('runOpenUpstreamPullRequest updates an existing automation PR branch and bo
   assert.equal(commands.some((command) => command.startsWith('gh pr create ')), false);
   assert.equal(commands.some((command) => command.includes('pr merge')), false);
   assert.equal(existsSync(bodyFilePath), false);
+});
+
+test('runOpenUpstreamPullRequest force-pushes and creates a PR when the automation branch exists remotely without an open PR', async () => {
+  const { formatCommand } = await loadUpstreamPrModule();
+  const { runOpenUpstreamPullRequest } = await import('../../scripts/ci/open-upstream-pr.mjs');
+  const commands = [];
+
+  const result = await runOpenUpstreamPullRequest({
+    cwd: '/tmp/repo',
+    readRefreshResult: async () => ({
+      status: 'success',
+      eligibleFiles: ['harness/upstream/superpowers/SKILL.md'],
+      sourceHeads: {}
+    }),
+    runCommand: async (command) => {
+      commands.push(formatCommand(command));
+      if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'list') {
+        return { stdout: '[]' };
+      }
+      if (command.file === 'git' && command.args[0] === 'ls-remote') {
+        return { stdout: 'c0260fe880c2327f0c36d65c6183bd270f5588ea\trefs/heads/automation/upstream-refresh\n' };
+      }
+      if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'create') {
+        return { stdout: 'https://github.com/ilderaj/superpowering-with-files/pull/100\n' };
+      }
+      return { stdout: '' };
+    }
+  });
+
+  assert.equal(result.status, 'created');
+  assert.equal(result.pullRequest.url, 'https://github.com/ilderaj/superpowering-with-files/pull/100');
+  assert.ok(commands.includes('git ls-remote --heads origin automation/upstream-refresh'));
+  assert.ok(commands.includes('git push --force-with-lease origin automation/upstream-refresh'));
+  assert.equal(commands.includes('git push --set-upstream origin automation/upstream-refresh'), false);
 });
 
 test('runOpenUpstreamPullRequest treats git commit failures as terminal errors', async () => {
@@ -454,6 +527,9 @@ test('runOpenUpstreamPullRequest treats gh PR creation failures as terminal erro
       runCommand: async (command) => {
         if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'list') {
           return { stdout: '[]' };
+        }
+        if (command.file === 'git' && command.args[0] === 'ls-remote') {
+          return { stdout: '' };
         }
         if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'create') {
           throw new Error('GraphQL: pull request create failed');

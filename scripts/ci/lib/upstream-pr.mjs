@@ -100,6 +100,13 @@ export function buildListOpenPullRequestsCommand() {
   };
 }
 
+export function buildDetectRemoteBranchCommand() {
+  return {
+    file: 'git',
+    args: ['ls-remote', '--heads', 'origin', branchName]
+  };
+}
+
 export function parseOpenPullRequests(output) {
   if (!output.trim()) return [];
 
@@ -109,6 +116,10 @@ export function parseOpenPullRequests(output) {
   }
 
   return parsed;
+}
+
+export function parseRemoteBranchExists(output) {
+  return Boolean(String(output ?? '').trim());
 }
 
 export function findOpenAutomationPullRequest(openPullRequests = []) {
@@ -144,7 +155,8 @@ export function buildUpdatePullRequestCommand({ number, bodyFilePath = defaultPu
 export function buildUpstreamPullRequestPlan({
   eligibleFiles = [],
   sourceHeads = {},
-  openPullRequests = []
+  openPullRequests = [],
+  remoteBranchExists = false
 } = {}) {
   const normalizedFiles = normalizeEligibleFiles(eligibleFiles);
 
@@ -188,8 +200,8 @@ export function buildUpstreamPullRequestPlan({
       commit: buildCommitCommands({ eligibleFiles: normalizedFiles }),
       listOpenPullRequests: buildListOpenPullRequestsCommand(),
       push: buildPushBranchCommand({
-        setUpstream: shouldCreatePullRequest,
-        forceWithLease: shouldUpdatePullRequest
+        setUpstream: shouldCreatePullRequest && !remoteBranchExists,
+        forceWithLease: shouldUpdatePullRequest || remoteBranchExists
       }),
       createPullRequest: shouldCreatePullRequest ? buildCreatePullRequestCommand() : undefined,
       updatePullRequest: shouldUpdatePullRequest
