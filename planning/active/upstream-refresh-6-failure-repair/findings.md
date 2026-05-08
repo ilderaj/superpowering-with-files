@@ -151,3 +151,40 @@
 - full:
   - `npm run verify`
   - 结果：`340 pass / 0 fail`
+
+## 2026-05-08 Manual Rerun After Second Push (`25562448036`)
+- 第二轮修复已提交并推送到 `origin/dev`：
+  - commit: `3383cd0`
+  - subject: `Handle fixed automation branch reuse in upstream PR flow`
+- 随后再次手动触发 workflow_dispatch run：
+  - run id：`25562448036`
+  - createdAt：`2026-05-08T14:54:27Z`，即 **2026-05-08 22:54:27 Asia/Shanghai**
+- 这次远端执行结果进一步确认：
+  - `Run upstream refresh` 成功
+  - `Upload upstream refresh result` 成功
+  - `Read upstream refresh result` 成功
+  - `Open upstream refresh pull request` 失败
+- 并且 failed log 说明 branch reuse 的 non-fast-forward 已经解除，失败点再次前移。
+
+## Final Remote Blocker
+- 最新 failed log 的最小根因：
+  - `pull request create failed: GraphQL: GitHub Actions is not permitted to create or approve pull requests (createPullRequest)`
+- 仓库级 Actions workflow permissions 快照：
+  - `default_workflow_permissions = read`
+  - `can_approve_pull_request_reviews = false`
+- 结合实际表现，可以确认：
+  - workflow 文件内的 `contents: write` / `pull-requests: write` 已足以完成 branch push
+  - 但 repo 级 “Allow GitHub Actions to create and approve pull requests” 没有开启，因此 `gh pr create` 被平台策略拦截
+- 这是当前链路上的最后一个已知 blocker，且不再是代码缺陷。
+
+## Human Guidance
+- 需要 human 在 GitHub 仓库设置中开启：
+  - `Settings -> Actions -> General -> Workflow permissions`
+  - 勾选 `Allow GitHub Actions to create and approve pull requests`
+- 最小 blast radius 建议：
+  - 保持 `Workflow permissions` 的默认仓库权限为 `Read repository contents permission`
+  - 只额外打开上述 PR creation/approval 开关
+- 开启后重新运行 `Upstream Refresh`，按当前代码路径预期应能：
+  - 成功 refresh
+  - 成功复用/覆盖固定 automation branch
+  - 成功创建或更新指向 `dev` 的 PR

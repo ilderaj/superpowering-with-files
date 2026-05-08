@@ -148,3 +148,15 @@
 - Files created/modified:
   - `planning/active/post-upstream-automation-followups/findings.md` (updated)
   - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Session: 2026-05-08 22:52:07 UTC+8
+
+### Phase 2: second push followup
+- **Status:** complete
+- Actions taken:
+  - 第二轮代码修复推送到 `origin/dev` 后，再次触发 run `25562448036`。
+  - 跟踪 run 到完成，确认 fixed-branch non-fast-forward 已解除，最终剩余 blocker 为 repo 级 Actions PR policy。
+  - 将该 human-only blocker 回流到 `upstream-refresh-6-failure-repair`，followup task 保留为事实记录，不再继续拆新代码任务。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)

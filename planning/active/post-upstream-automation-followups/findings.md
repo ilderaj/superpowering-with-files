@@ -89,3 +89,13 @@
     - 但仓库里没有对应 open PR
     - 当前 create path 仍尝试 `git push --set-upstream`，因此被 non-fast-forward 拒绝
 - 该问题仍属于同一 repair chain，已继续在 `upstream-refresh-6-failure-repair` 中处理。
+
+## 2026-05-08 Remote State After Second Push
+- 第二轮代码修复已经进入 `origin/dev` 并通过远端 rerun 验证到最后一层。
+- 当前链路中的最终 blocker 不再是代码，而是 repo 级 GitHub Actions policy：
+  - `gh pr create` 被拒绝，错误为：
+    - `GitHub Actions is not permitted to create or approve pull requests (createPullRequest)`
+  - 仓库 workflow-permissions 快照为：
+    - `default_workflow_permissions = read`
+    - `can_approve_pull_request_reviews = false`
+- 这意味着 followup 任务的代码侧目标已经基本完成；剩余的是 human 级仓库设置操作。
