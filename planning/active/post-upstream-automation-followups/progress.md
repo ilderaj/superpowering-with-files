@@ -113,3 +113,26 @@
 | Schedule gate snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/variables/UPSTREAM_REFRESH_SCHEDULE_ENABLED` | gate 仍开启 | `value: true` | 通过 |
 | Workflow run list snapshot | `gh run list --workflow upstream-refresh.yml --limit 12 --json ...` | 若已触发应看到至少 1 个 `schedule` event | 最近 runs 全部为 `workflow_dispatch` | 异常 |
 | Repo schedule run snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/runs?event=schedule&per_page=10` | 若有任意 scheduled run 应返回记录 | `total_count: 0` | 异常 |
+
+## Session: 2026-05-08 22:24:10 UTC+8
+
+### Phase 2: first real scheduled run followup
+- **Status:** complete
+- Actions taken:
+  - 用户报告 `Upstream Refresh #7` 失败后，查询 run `25559163029`，确认它就是首次真实 `event = schedule` 的 upstream refresh run。
+  - 对比 heartbeat 在 `21:06` 的观察快照，确认首次 scheduled run 实际在 `21:47` 才落地，存在显著 schedule latency。
+  - 读取 failed log 与 result artifact，确认：
+    - `Run upstream refresh` 已成功
+    - `Open upstream refresh pull request` 因 `spawn E2BIG` 失败
+  - 将该失败并入 `upstream-refresh-6-failure-repair`，而不是另开新的 followup task。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/task_plan.md` (updated)
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Additional Test Results (Update)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| First real schedule run snapshot | `gh run view 25559163029 --json ...` | 确认首次真实 `schedule` run 是否已经出现 | `event: schedule`, `conclusion: failure` | 通过 |
+| Heartbeat timing comparison | `2026-05-08 21:06` heartbeat snapshot vs `21:47` run createdAt | 判断 earlier no-run 结论是否需要修正 | 真实 scheduled run 晚于 heartbeat 约 40 分钟出现 | 通过 |
+| Scheduled run failure triage | `gh run view 25559163029 --log-failed` + result artifact | 判断失败是否仍属同一 repair chain | `spawn E2BIG`, refresh result `status: success` | 通过 |

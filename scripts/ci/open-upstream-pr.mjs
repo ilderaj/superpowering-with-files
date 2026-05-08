@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFile } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -12,6 +12,7 @@ import {
   buildListOpenPullRequestsCommand,
   buildUpdatePullRequestCommand,
   buildUpstreamPullRequestPlan,
+  defaultPullRequestBodyPath,
   defaultRefreshResultPath,
   formatCommand,
   parseOpenPullRequests
@@ -64,6 +65,27 @@ export async function runCommand(command, {
   } catch (error) {
     error.command = formatCommand(command);
     throw error;
+  }
+}
+
+async function writePullRequestBodyFile({
+  cwd,
+  body,
+  bodyFilePath = defaultPullRequestBodyPath
+}) {
+  const resolvedBodyFilePath = path.resolve(cwd, bodyFilePath);
+  await mkdir(path.dirname(resolvedBodyFilePath), { recursive: true });
+  await writeFile(resolvedBodyFilePath, `${body}\n`, 'utf8');
+  return { bodyFilePath, resolvedBodyFilePath };
+}
+
+async function cleanupPullRequestBodyFile(resolvedBodyFilePath) {
+  try {
+    await unlink(resolvedBodyFilePath);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
   }
 }
 
@@ -163,51 +185,59 @@ export async function runOpenUpstreamPullRequest({
     sourceHeads: refreshResult.sourceHeads,
     openPullRequests
   });
+  const { bodyFilePath, resolvedBodyFilePath } = await writePullRequestBodyFile({
+    cwd,
+    body: plan.body
+  });
 
-  if (plan.shouldUpdatePullRequest) {
+  try {
+    if (plan.shouldUpdatePullRequest) {
+      await runRequiredCommand(plan.commands.push, {
+        cwd,
+        env,
+        run,
+        failureMessage: 'git push failed'
+      });
+      await runRequiredCommand(buildUpdatePullRequestCommand({
+        number: plan.existingPullRequest.number,
+        bodyFilePath
+      }), {
+        cwd,
+        env,
+        run,
+        failureMessage: 'gh pr update failed'
+      });
+
+      return {
+        status: 'updated',
+        pullRequest: plan.existingPullRequest,
+        plan
+      };
+    }
+
     await runRequiredCommand(plan.commands.push, {
       cwd,
       env,
       run,
       failureMessage: 'git push failed'
     });
-    await runRequiredCommand(buildUpdatePullRequestCommand({
-      number: plan.existingPullRequest.number,
-      body: plan.body
-    }), {
+    const createResult = await runRequiredCommand(buildCreatePullRequestCommand({ bodyFilePath }), {
       cwd,
       env,
       run,
-      failureMessage: 'gh pr update failed'
+      failureMessage: 'gh pr create failed'
     });
 
     return {
-      status: 'updated',
-      pullRequest: plan.existingPullRequest,
+      status: 'created',
+      pullRequest: {
+        url: createResult.stdout?.trim()
+      },
       plan
     };
+  } finally {
+    await cleanupPullRequestBodyFile(resolvedBodyFilePath);
   }
-
-  await runRequiredCommand(plan.commands.push, {
-    cwd,
-    env,
-    run,
-    failureMessage: 'git push failed'
-  });
-  const createResult = await runRequiredCommand(buildCreatePullRequestCommand({ body: plan.body }), {
-    cwd,
-    env,
-    run,
-    failureMessage: 'gh pr create failed'
-  });
-
-  return {
-    status: 'created',
-    pullRequest: {
-      url: createResult.stdout?.trim()
-    },
-    plan
-  };
 }
 
 async function main() {

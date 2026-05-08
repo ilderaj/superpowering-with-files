@@ -61,3 +61,45 @@
 - 主工作区回写修复后验证通过：
   - focused: `24 pass / 0 fail`
   - full: `npm run verify` => `335 pass / 0 fail`
+
+## 2026-05-08 First Scheduled Run Failure (`#7`)
+- 失败 run：`25559163029`
+- title：`Upstream Refresh`
+- event：`schedule`
+- createdAt：`2026-05-08T13:47:40Z`，即 **2026-05-08 21:47:40 Asia/Shanghai**
+- headSha：`fac4492961226ce39e12a4d6d0778a0b434be52d`
+- `Run upstream refresh` step 已成功。
+- 失败 job：`Refresh upstream baselines`
+- 失败 step：`Open upstream refresh pull request`
+- failed log 关键错误：
+  - `gh pr create failed: spawn E2BIG`
+
+## Root Cause Extension
+- `#7` 证明 `#6` 的 patch 兼容性修复已经解除 refresh 主链路阻塞，因为 refresh result artifact 明确记录：
+  - `status = success`
+  - `eligibleFiles.length = 1737`
+- 真实失败点转移到 PR 打开阶段：
+  - `scripts/ci/open-upstream-pr.mjs` 调用 `gh pr create`
+  - `scripts/ci/lib/upstream-pr.mjs` 把完整 PR body 作为 `--body <very-large-string>` 直接放进 argv
+- 当 eligible files 数量极大时，PR body 会枚举全部文件路径，最终在 `execFile`/OS argv 长度限制处触发 `spawn E2BIG`。
+- 这不是 GitHub workflow contract 漂移，也不是 refresh allowlist 再次失效，而是本地 PR opening adapter 对大结果集不稳健。
+
+## Fix Strategy Extension
+- `scripts/ci/lib/upstream-pr.mjs`
+  - 新增 `defaultPullRequestBodyPath = .harness/upstream-pr-body.md`
+  - `gh pr create/edit` 改走 `--body-file`，不再把完整 body 内联进 argv
+  - PR body 的 eligible files 列表改为最多展示前 `50` 个文件，并明确提示其余文件数与“请查看 PR diff”
+- `scripts/ci/open-upstream-pr.mjs`
+  - 在实际 create/update 前写出 `.harness/upstream-pr-body.md`
+  - 命令执行后无论成功失败都清理该临时 body file
+- `tests/automation/upstream-pr-lib.test.mjs`
+  - 新增 oversized eligible file list 截断测试
+  - 更新 create/update 测试，校验 `--body-file` 路径、body file 内容以及清理行为
+
+## Validation Update
+- focused:
+  - `node --test tests/automation/upstream-pr-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`
+  - 结果：`27 pass / 0 fail`
+- full:
+  - `npm run verify`
+  - 结果：`336 pass / 0 fail`

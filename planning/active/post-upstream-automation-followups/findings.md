@@ -59,3 +59,22 @@
   - 仓库级 `event = schedule` Actions runs 总数仍为 `0`
   - `upstream-refresh.yml` 最近 runs 仍全部是 `workflow_dispatch`
 - 结论：首次“真实 scheduled run”并没有在预期窗口内触发；这不是失败 run，而是根本没有生成 `schedule` 事件记录。
+
+## 2026-05-08 First Real Scheduled Run (`#7`)
+- 后续又出现了首次真实 `event = schedule` 的 run：
+  - run id：`25559163029`
+  - createdAt：`2026-05-08T13:47:40Z`，即 **2026-05-08 21:47:40 Asia/Shanghai**
+  - conclusion：`failure`
+- 这说明 GitHub schedule 触发存在明显延迟；`21:06` 的 heartbeat 观察只是一张时间点快照，不能直接当作“当天不会触发”的最终结论。
+- 失败结构与 `#6` 已明显不同：
+  - `Run upstream refresh` 已成功
+  - 失败 step 变成 `Open upstream refresh pull request`
+- failed log 的最小根因是：
+  - `gh pr create failed: spawn E2BIG`
+- `upstream-refresh-result` artifact 已确认：
+  - `status = success`
+  - `eligibleFiles.length = 1737`
+- 结论：
+  - 首次真实 scheduled run 已经证明 `#6` 的 patch 兼容性修复解除了一阶阻塞
+  - 当前新的剩余问题在 PR 打开路径，而不是 refresh 主链路
+  - 该问题已并入 `planning/active/upstream-refresh-6-failure-repair/`，不再单开新的 followup task

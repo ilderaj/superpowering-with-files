@@ -62,3 +62,39 @@
 | Focused verification after candidate update | `node --test tests/adapters/planning-record-time.test.mjs tests/adapters/skill-projection.test.mjs` | 最新 upstream candidate 下 focused suite 通过 | `24 pass / 0 fail` | 通过 |
 | Full verify in isolated worktree | `npm run verify` | 最新 upstream candidate 下全量验证通过 | `335 pass / 0 fail` | 通过 |
 | Full verify in main workspace | `npm run verify` | 主工作区回写修复后仍全绿 | `335 pass / 0 fail` | 通过 |
+
+## Session: 2026-05-08 22:24:10 UTC+8
+
+### Phase 4: scheduled run failure extension + PR opening repair
+- **Status:** in_progress
+- Actions taken:
+  - 查询首次真实 scheduled run `25559163029`，确认 `Run upstream refresh` 已成功，失败转移到 `Open upstream refresh pull request`。
+  - 读取 failed log，定位关键错误为 `gh pr create failed: spawn E2BIG`。
+  - 下载并检查 artifact `/private/tmp/upstream-refresh-25559163029/upstream-refresh-result.json`，确认：
+    - `status: success`
+    - `eligibleFiles.length: 1737`
+  - 修改 `scripts/ci/lib/upstream-pr.mjs`：
+    - `gh pr create/edit` 改为 `--body-file`
+    - PR body 只展示前 `50` 个 eligible files，并汇总省略数量
+  - 修改 `scripts/ci/open-upstream-pr.mjs`：
+    - 写出并清理 `.harness/upstream-pr-body.md`
+  - 修改 `tests/automation/upstream-pr-lib.test.mjs`，覆盖 body-file、body 内容与 cleanup 行为。
+  - 运行：
+    - `node --test tests/automation/upstream-pr-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`
+    - `npm run verify`
+- Files created/modified:
+  - `scripts/ci/lib/upstream-pr.mjs`
+  - `scripts/ci/open-upstream-pr.mjs`
+  - `tests/automation/upstream-pr-lib.test.mjs`
+  - `planning/active/upstream-refresh-6-failure-repair/task_plan.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/findings.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/progress.md` (updated)
+
+## Additional Test Results (Update)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| First scheduled run snapshot | `gh run view 25559163029 --json ...` | 确认首次真实 `schedule` run 的失败位置 | `Run upstream refresh = success`, `Open upstream refresh pull request = failure` | 通过 |
+| Failed log triage | `gh run view 25559163029 --log-failed` | 找到新的最小根因 | `gh pr create failed: spawn E2BIG` | 通过 |
+| Result artifact inspection | `/private/tmp/upstream-refresh-25559163029/upstream-refresh-result.json` | 判断 refresh 主链路是否已恢复 | `status: success`, `eligibleFiles.length: 1737` | 通过 |
+| Focused PR opening verification | `node --test tests/automation/upstream-pr-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs` | create/update 改造后通过 | `27 pass / 0 fail` | 通过 |
+| Full verify in main workspace | `npm run verify` | 全量验证保持全绿 | `336 pass / 0 fail` | 通过 |
