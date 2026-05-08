@@ -8,6 +8,7 @@ import path from 'node:path';
 import { applyCopilotPlanningPatch } from '../../harness/installer/lib/copilot-planning-patch.mjs';
 import { materializeDirectoryProjection } from '../../harness/installer/lib/fs-ops.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../../harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs';
+import { applySuperpowersUsingGitWorktreesPatch } from '../../harness/installer/lib/superpowers-using-git-worktrees-patch.mjs';
 import {
   classifySkillProjectionDuplicates,
   planSkillProjections,
@@ -407,6 +408,47 @@ test('applySuperpowersFinishingADevelopmentBranchPatch is idempotent', async () 
   }
 });
 
+test('applySuperpowersFinishingADevelopmentBranchPatch preserves upstream detect-environment step', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-finishing-branch-new-layout-'));
+  try {
+    const target = path.join(dir, 'finishing-a-development-branch');
+    await mkdir(target, { recursive: true });
+    await writeFile(
+      path.join(target, 'SKILL.md'),
+      [
+        '# Finishing a Development Branch',
+        '',
+        '### Step 1: Verify Tests',
+        '',
+        'Tests first.',
+        '',
+        '### Step 2: Detect Environment',
+        '',
+        'Figure out the workspace type first.',
+        '',
+        '### Step 3: Determine Base Branch',
+        '',
+        'Or ask: "This branch split from main - is that correct?"',
+        '',
+        '### Step 4: Present Options',
+        '',
+        'Show the menu.'
+      ].join('\n')
+    );
+
+    await applySuperpowersFinishingADevelopmentBranchPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.match(skill, /### Step 2: Detect Environment/);
+    assert.match(skill, /## Harness Superpowers finishing-a-development-branch base patch/);
+    assert.match(skill, /### Step 3: Determine Base Branch/);
+    assert.match(skill, /Worktree base: <base-ref> @ <base-sha>/);
+    assert.doesNotMatch(skill, /This branch split from main - is that correct\?/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('applySuperpowersFinishingADevelopmentBranchPatch fails when Step 2 cannot be found', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-finishing-branch-missing-step-'));
   try {
@@ -418,6 +460,44 @@ test('applySuperpowersFinishingADevelopmentBranchPatch fails when Step 2 cannot 
       applySuperpowersFinishingADevelopmentBranchPatch(target),
       /Unable to apply Harness Superpowers finishing-a-development-branch base patch/
     );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersUsingGitWorktreesPatch preserves directory-selection fallback layout', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-using-worktrees-new-layout-'));
+  try {
+    const target = path.join(dir, 'using-git-worktrees');
+    await mkdir(target, { recursive: true });
+    await writeFile(
+      path.join(target, 'SKILL.md'),
+      [
+        '# Using Git Worktrees',
+        '',
+        '## Step 1: Create Isolated Workspace',
+        '',
+        '### 1b. Git Worktree Fallback',
+        '',
+        'Use git directly.',
+        '',
+        '#### Directory Selection',
+        '',
+        'Pick a directory.',
+        '',
+        '#### Create the Worktree',
+        '',
+        'Run git worktree add.'
+      ].join('\n')
+    );
+
+    await applySuperpowersUsingGitWorktreesPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.match(skill, /## Harness Superpowers using-git-worktrees naming patch/);
+    assert.match(skill, /Before creating a manual worktree, run \.\/scripts\/harness worktree-name/);
+    assert.match(skill, /#### Directory Selection/);
+    assert.match(skill, /#### Create the Worktree/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
