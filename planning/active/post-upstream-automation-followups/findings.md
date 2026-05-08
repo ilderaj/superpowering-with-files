@@ -50,3 +50,12 @@
   - `finishing-a-development-branch`
   - `using-git-worktrees`
 - 已单开 repair task：`planning/active/upstream-refresh-6-failure-repair/`。
+
+## 2026-05-08 Scheduled Run Observation
+- heartbeat 触发时间：`2026-05-08T13:06:58.413Z`，即 **2026-05-08 21:06:58 Asia/Shanghai**。
+- 到该时点为止：
+  - `upstream-refresh.yml` workflow 仍为 `state = active`
+  - `UPSTREAM_REFRESH_SCHEDULE_ENABLED = true`
+  - 仓库级 `event = schedule` Actions runs 总数仍为 `0`
+  - `upstream-refresh.yml` 最近 runs 仍全部是 `workflow_dispatch`
+- 结论：首次“真实 scheduled run”并没有在预期窗口内触发；这不是失败 run，而是根本没有生成 `schedule` 事件记录。

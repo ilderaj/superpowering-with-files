@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 2
+Complete
 
 ## Phases
 
@@ -24,8 +24,8 @@ Phase 2
 - [x] 明确哪些动作可由 agent 执行，哪些只需要 human review
 - [x] 在 run 前复核一次远端 workflow / variable / protection 状态
 - [x] 安排 thread heartbeat 在首次 scheduled run 窗口后自动继续
-- [ ] 等待 2026-05-08 20:05 Asia/Shanghai heartbeat 触发并完成首次 scheduled run 观察
-- **Status:** in_progress
+- [x] 在 2026-05-08 21:06 Asia/Shanghai 确认首次 scheduled run 并未实际触发；异常已落盘
+- **Status:** complete
 
 ### Phase 3: 后续计划 B - stale rehearsal worktree 处置
 - [x] 固化失败现场保留策略与清理前证据采集范围
@@ -81,7 +81,7 @@ Phase 2
 ## Notes
 - 本 task 负责 followup orchestration；代码修复由 `verify-worktree-naming-regressions` 承接并已回传验证结果。
 - `github-actions-upstream-automation-analysis` 继续保留为关闭态事实记录；后续执行结果只引用它，不回退其 lifecycle。
-- 当前唯一未完成动作是 heartbeat 在 2026-05-08 20:05 Asia/Shanghai 回到本线程，观察首次 scheduled run。
+- 首次 scheduled run heartbeat 已完成；观测结果是 workflow 与 gate 都处于启用状态，但截至 2026-05-08 21:06 Asia/Shanghai 仓库里仍不存在任何 `event = schedule` 的 run 记录。
 
 ## Risk Assessment
 

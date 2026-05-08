@@ -90,3 +90,26 @@
 - Files created/modified:
   - `planning/active/post-upstream-automation-followups/findings.md` (updated)
   - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Session: 2026-05-08 21:06:58 UTC+8
+
+### Phase 2: scheduled run heartbeat observation
+- **Status:** complete
+- Actions taken:
+  - heartbeat 触发后查询 `upstream-refresh.yml` 最近 12 次 runs，确认仍全部是 `workflow_dispatch`。
+  - 查询 workflow metadata，确认 `Upstream Refresh` workflow 仍处于 `active`。
+  - 查询 `UPSTREAM_REFRESH_SCHEDULE_ENABLED`，确认变量仍为 `true`。
+  - 查询仓库级 `event=schedule` runs，确认总数仍为 `0`。
+  - 判定首次 scheduled run 并未实际触发，因此这次 heartbeat 的观察目标已经完成，应删除 `watch-first-upstream-refresh-scheduled-run` automation，避免继续保留陈旧观察器。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/task_plan.md` (updated)
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Additional Test Results
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Workflow state snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/workflows/upstream-refresh.yml` | workflow 仍启用 | `state: active` | 通过 |
+| Schedule gate snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/variables/UPSTREAM_REFRESH_SCHEDULE_ENABLED` | gate 仍开启 | `value: true` | 通过 |
+| Workflow run list snapshot | `gh run list --workflow upstream-refresh.yml --limit 12 --json ...` | 若已触发应看到至少 1 个 `schedule` event | 最近 runs 全部为 `workflow_dispatch` | 异常 |
+| Repo schedule run snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/runs?event=schedule&per_page=10` | 若有任意 scheduled run 应返回记录 | `total_count: 0` | 异常 |
