@@ -50,6 +50,7 @@ Phase 4: Time-gated follow-through and closeout
 
 ### Phase 4: Time-gated follow-through and closeout
 - [x] 如果 scheduled run 观察尚未到窗口，则建立自动续跑并明确剩余 gate
+- [x] 清理误提交的 in-repo Codex worktree gitlink，恢复主仓库与嵌套 worktree 的边界
 - [ ] 如果 scheduled run 已观察完成，则关闭 `post-upstream-automation-followups`
 - [x] 更新 roadmap 总控记录
 - [ ] 关闭并归档 `roadmap-v1.4-safety-overlay-governance`

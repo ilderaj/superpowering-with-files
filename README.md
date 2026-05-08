@@ -115,11 +115,15 @@ flowchart LR
 	Repo["superpowering-with-files"] --> Core["harness/core"]
 	Repo --> Adapters["harness/adapters"]
 	Repo --> Installer["harness/installer"]
+	Repo --> Runtime["harness/runtime"]
+	Repo --> MCP["harness/mcp"]
 	Repo --> Upstream["harness/upstream"]
 
 	Core --> Policy["policy + templates + metadata"]
 	Adapters --> Manifests["target manifests"]
 	Installer --> Sync["install / sync / doctor / update"]
+	Runtime --> Services["typed runtime services"]
+	MCP --> Facade["MCP tools + resources + transports"]
 	Upstream --> Baselines["superpowers + planning-with-files"]
 
 	Policy --> Entries["rendered entry files"]
@@ -127,12 +131,24 @@ flowchart LR
 	Sync --> Entries
 	Sync --> Skills
 	Sync --> Hooks["optional hook projections"]
+	Sync --> Services
+	Facade --> Services
 ```
 
 - `harness/core`: policy, templates, schemas, projection metadata
-- `harness/adapters`: target-specific manifests
+- `harness/adapters`: target-specific manifests and native projection contracts
 - `harness/installer`: CLI commands, state, projection logic, health checks
+- `harness/runtime`: shared services for status, doctor, summaries, dry-runs, approvals, receipts, and registry/policy evaluation
+- `harness/mcp`: MCP server registration, tools/resources, and stdio/HTTP transports
 - `harness/upstream`: vendored `superpowers` and `planning-with-files` baselines
+
+## MCP Runtime Facade
+
+Harness now separates IDE projection from agent runtime access:
+
+- Adapters remain responsible for projecting Harness rules into Codex, GitHub Copilot, Cursor, and Claude Code native entry points, skills, and hooks.
+- Runtime services hold the typed business logic used by both CLI commands and MCP tools.
+- The MCP layer is a runtime facade and control plane. It exposes Harness capabilities as audited tools and resources, but it does not replace or duplicate adapter projection logic.
 
 ## Projection Map
 

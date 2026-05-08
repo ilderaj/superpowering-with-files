@@ -4,6 +4,8 @@ export const title = 'chore: refresh upstream baselines';
 export const botUserName = 'github-actions[bot]';
 export const botUserEmail = '41898282+github-actions[bot]@users.noreply.github.com';
 export const defaultRefreshResultPath = '.harness/upstream-refresh-result.json';
+export const defaultPullRequestBodyPath = '.harness/upstream-pr-body.md';
+export const maxEligibleFilesInPullRequestBody = 50;
 
 export function normalizeEligibleFiles(eligibleFiles = []) {
   return [...new Set(eligibleFiles.map((filePath) => String(filePath).trim()).filter(Boolean))];
@@ -26,8 +28,25 @@ export function formatCommand(command) {
 
 export function buildPullRequestBody({ eligibleFiles = [], sourceHeads = {} } = {}) {
   const normalizedFiles = normalizeEligibleFiles(eligibleFiles);
+  const includedFiles = normalizedFiles.slice(0, maxEligibleFilesInPullRequestBody);
+  const omittedFileCount = Math.max(0, normalizedFiles.length - includedFiles.length);
   const fileLines = normalizedFiles.length > 0
-    ? normalizedFiles.map((filePath) => `- ${filePath}`)
+    ? [
+        ...(omittedFileCount > 0
+          ? [
+              `Showing the first ${includedFiles.length} of ${normalizedFiles.length} eligible files.`,
+              'Review the PR diff for the complete refreshed file set.',
+              ''
+            ]
+          : []),
+        ...includedFiles.map((filePath) => `- ${filePath}`),
+        ...(omittedFileCount > 0
+          ? [
+              '',
+              `- ... ${omittedFileCount} additional files omitted from the PR body.`
+            ]
+          : [])
+      ]
     : ['- No eligible files were reported.'];
   const sourceHeadEntries = Object.entries(sourceHeads ?? {});
   const sourceHeadLines = sourceHeadEntries.length > 0
@@ -81,6 +100,13 @@ export function buildListOpenPullRequestsCommand() {
   };
 }
 
+export function buildDetectRemoteBranchCommand() {
+  return {
+    file: 'git',
+    args: ['ls-remote', '--heads', 'origin', branchName]
+  };
+}
+
 export function parseOpenPullRequests(output) {
   if (!output.trim()) return [];
 
@@ -90,6 +116,10 @@ export function parseOpenPullRequests(output) {
   }
 
   return parsed;
+}
+
+export function parseRemoteBranchExists(output) {
+  return Boolean(String(output ?? '').trim());
 }
 
 export function findOpenAutomationPullRequest(openPullRequests = []) {
@@ -108,24 +138,25 @@ export function buildPushBranchCommand({ setUpstream = false, forceWithLease = f
   };
 }
 
-export function buildCreatePullRequestCommand({ body } = {}) {
+export function buildCreatePullRequestCommand({ bodyFilePath = defaultPullRequestBodyPath } = {}) {
   return {
     file: 'gh',
-    args: ['pr', 'create', '--base', baseBranch, '--head', branchName, '--title', title, '--body', body]
+    args: ['pr', 'create', '--base', baseBranch, '--head', branchName, '--title', title, '--body-file', bodyFilePath]
   };
 }
 
-export function buildUpdatePullRequestCommand({ number, body } = {}) {
+export function buildUpdatePullRequestCommand({ number, bodyFilePath = defaultPullRequestBodyPath } = {}) {
   return {
     file: 'gh',
-    args: ['pr', 'edit', String(number), '--body', body]
+    args: ['pr', 'edit', String(number), '--body-file', bodyFilePath]
   };
 }
 
 export function buildUpstreamPullRequestPlan({
   eligibleFiles = [],
   sourceHeads = {},
-  openPullRequests = []
+  openPullRequests = [],
+  remoteBranchExists = false
 } = {}) {
   const normalizedFiles = normalizeEligibleFiles(eligibleFiles);
 
@@ -169,12 +200,12 @@ export function buildUpstreamPullRequestPlan({
       commit: buildCommitCommands({ eligibleFiles: normalizedFiles }),
       listOpenPullRequests: buildListOpenPullRequestsCommand(),
       push: buildPushBranchCommand({
-        setUpstream: shouldCreatePullRequest,
-        forceWithLease: shouldUpdatePullRequest
+        setUpstream: shouldCreatePullRequest && !remoteBranchExists,
+        forceWithLease: shouldUpdatePullRequest || remoteBranchExists
       }),
-      createPullRequest: shouldCreatePullRequest ? buildCreatePullRequestCommand({ body }) : undefined,
+      createPullRequest: shouldCreatePullRequest ? buildCreatePullRequestCommand() : undefined,
       updatePullRequest: shouldUpdatePullRequest
-        ? buildUpdatePullRequestCommand({ number: existingPullRequest.number, body })
+        ? buildUpdatePullRequestCommand({ number: existingPullRequest.number })
         : undefined
     }
   };

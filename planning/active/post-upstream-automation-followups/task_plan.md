@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 2
+Complete
 
 ## Phases
 
@@ -24,8 +24,9 @@ Phase 2
 - [x] 明确哪些动作可由 agent 执行，哪些只需要 human review
 - [x] 在 run 前复核一次远端 workflow / variable / protection 状态
 - [x] 安排 thread heartbeat 在首次 scheduled run 窗口后自动继续
-- [ ] 等待 2026-05-08 20:05 Asia/Shanghai heartbeat 触发并完成首次 scheduled run 观察
-- **Status:** in_progress
+- [x] 记录 heartbeat 在 2026-05-08 21:06 Asia/Shanghai 的首次观察结果：当时仍未出现 `event = schedule` 的 run
+- [x] 记录同日晚些时候首次真实 scheduled run `25559163029`，并把失败转入既有 repair scope
+- **Status:** complete
 
 ### Phase 3: 后续计划 B - stale rehearsal worktree 处置
 - [x] 固化失败现场保留策略与清理前证据采集范围
@@ -51,6 +52,7 @@ Phase 2
 | stale rehearsal worktree 在 checkpoint 后直接清理 | 本地失败现场已充分固化到 planning 与 checkpoint，继续保留只会增加噪音 |
 | scheduled run 观察通过 thread heartbeat 续跑 | 唯一剩余动作发生在未来时间窗口，不应阻塞当前修复收口 |
 | `worktree-naming-governance` 只作为历史设计依据，不直接复用为活动 task | 该 task 已关闭，且当前失败来自后续实现漂移而不是设计未定 |
+| 首次真实 scheduled run 的失败并入 `upstream-refresh-6-failure-repair`，不再单开新的 rollout task | 根因仍在同一条 upstream refresh 修复链路上，只是失败阶段从 refresh 主链路转移到了 PR opening path |
 
 ## Planned Followups
 
@@ -81,7 +83,7 @@ Phase 2
 ## Notes
 - 本 task 负责 followup orchestration；代码修复由 `verify-worktree-naming-regressions` 承接并已回传验证结果。
 - `github-actions-upstream-automation-analysis` 继续保留为关闭态事实记录；后续执行结果只引用它，不回退其 lifecycle。
-- 当前唯一未完成动作是 heartbeat 在 2026-05-08 20:05 Asia/Shanghai 回到本线程，观察首次 scheduled run。
+- 首次 scheduled run heartbeat 已完成；需要以“窗口内观察快照”而不是“最终未触发结论”来解释 2026-05-08 21:06 Asia/Shanghai 的空结果，因为同日晚些时候首次真实 scheduled run `25559163029` 已经出现并失败。
 
 ## Risk Assessment
 

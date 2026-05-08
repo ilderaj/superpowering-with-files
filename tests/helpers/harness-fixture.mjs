@@ -1,14 +1,25 @@
-import { cp, mkdir, mkdtemp, rm } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-export async function createHarnessFixture() {
+export async function createHarnessFixture(options = {}) {
+  const {
+    linkNodeModules = false,
+    includeLiveCompanionPlans = false
+  } = options;
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fixture-'));
   await mkdir(path.join(root, 'scripts'), { recursive: true });
   await cp(path.join(process.cwd(), 'harness'), path.join(root, 'harness'), { recursive: true });
   await cp(path.join(process.cwd(), 'docs'), path.join(root, 'docs'), { recursive: true });
+  if (!includeLiveCompanionPlans) {
+    await rm(path.join(root, 'docs/superpowers/plans'), { recursive: true, force: true });
+  }
   await cp(path.join(process.cwd(), 'scripts'), path.join(root, 'scripts'), { recursive: true });
   await cp(path.join(process.cwd(), 'package.json'), path.join(root, 'package.json'));
+  await cp(path.join(process.cwd(), 'package-lock.json'), path.join(root, 'package-lock.json')).catch(() => {});
+  if (linkNodeModules) {
+    await symlink(path.join(process.cwd(), 'node_modules'), path.join(root, 'node_modules'), 'dir').catch(() => {});
+  }
   return root;
 }
 

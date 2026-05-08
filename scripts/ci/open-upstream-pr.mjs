@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFile } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
@@ -9,10 +9,13 @@ import {
   buildBotGitIdentityCommands,
   buildCommitCommands,
   buildCreatePullRequestCommand,
+  buildDetectRemoteBranchCommand,
   buildListOpenPullRequestsCommand,
   buildUpdatePullRequestCommand,
   buildUpstreamPullRequestPlan,
+  defaultPullRequestBodyPath,
   defaultRefreshResultPath,
+  parseRemoteBranchExists,
   formatCommand,
   parseOpenPullRequests
 } from './lib/upstream-pr.mjs';
@@ -67,6 +70,27 @@ export async function runCommand(command, {
   }
 }
 
+async function writePullRequestBodyFile({
+  cwd,
+  body,
+  bodyFilePath = defaultPullRequestBodyPath
+}) {
+  const resolvedBodyFilePath = path.resolve(cwd, bodyFilePath);
+  await mkdir(path.dirname(resolvedBodyFilePath), { recursive: true });
+  await writeFile(resolvedBodyFilePath, `${body}\n`, 'utf8');
+  return { bodyFilePath, resolvedBodyFilePath };
+}
+
+async function cleanupPullRequestBodyFile(resolvedBodyFilePath) {
+  try {
+    await unlink(resolvedBodyFilePath);
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+}
+
 async function runRequiredCommand(command, {
   cwd,
   env,
@@ -104,6 +128,18 @@ async function loadOpenPullRequests({ cwd, env, run }) {
       cause: error
     });
   }
+}
+
+async function loadRemoteAutomationBranchExists({ cwd, env, run }) {
+  const command = buildDetectRemoteBranchCommand();
+  const result = await runRequiredCommand(command, {
+    cwd,
+    env,
+    run,
+    failureMessage: 'git ls-remote failed'
+  });
+
+  return parseRemoteBranchExists(result.stdout ?? '');
 }
 
 export async function runOpenUpstreamPullRequest({
@@ -158,56 +194,66 @@ export async function runOpenUpstreamPullRequest({
   });
 
   const openPullRequests = await loadOpenPullRequests({ cwd, env, run });
+  const remoteBranchExists = await loadRemoteAutomationBranchExists({ cwd, env, run });
   const plan = buildUpstreamPullRequestPlan({
     eligibleFiles: refreshResult.eligibleFiles,
     sourceHeads: refreshResult.sourceHeads,
-    openPullRequests
+    openPullRequests,
+    remoteBranchExists
+  });
+  const { bodyFilePath, resolvedBodyFilePath } = await writePullRequestBodyFile({
+    cwd,
+    body: plan.body
   });
 
-  if (plan.shouldUpdatePullRequest) {
+  try {
+    if (plan.shouldUpdatePullRequest) {
+      await runRequiredCommand(plan.commands.push, {
+        cwd,
+        env,
+        run,
+        failureMessage: 'git push failed'
+      });
+      await runRequiredCommand(buildUpdatePullRequestCommand({
+        number: plan.existingPullRequest.number,
+        bodyFilePath
+      }), {
+        cwd,
+        env,
+        run,
+        failureMessage: 'gh pr update failed'
+      });
+
+      return {
+        status: 'updated',
+        pullRequest: plan.existingPullRequest,
+        plan
+      };
+    }
+
     await runRequiredCommand(plan.commands.push, {
       cwd,
       env,
       run,
       failureMessage: 'git push failed'
     });
-    await runRequiredCommand(buildUpdatePullRequestCommand({
-      number: plan.existingPullRequest.number,
-      body: plan.body
-    }), {
+    const createResult = await runRequiredCommand(buildCreatePullRequestCommand({ bodyFilePath }), {
       cwd,
       env,
       run,
-      failureMessage: 'gh pr update failed'
+      failureMessage: 'gh pr create failed'
     });
 
     return {
-      status: 'updated',
-      pullRequest: plan.existingPullRequest,
+      status: 'created',
+      pullRequest: {
+        url: createResult.stdout?.trim()
+      },
       plan
     };
+  } finally {
+    await cleanupPullRequestBodyFile(resolvedBodyFilePath);
   }
-
-  await runRequiredCommand(plan.commands.push, {
-    cwd,
-    env,
-    run,
-    failureMessage: 'git push failed'
-  });
-  const createResult = await runRequiredCommand(buildCreatePullRequestCommand({ body: plan.body }), {
-    cwd,
-    env,
-    run,
-    failureMessage: 'gh pr create failed'
-  });
-
-  return {
-    status: 'created',
-    pullRequest: {
-      url: createResult.stdout?.trim()
-    },
-    plan
-  };
 }
 
 async function main() {

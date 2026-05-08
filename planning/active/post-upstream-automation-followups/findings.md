@@ -50,3 +50,52 @@
   - `finishing-a-development-branch`
   - `using-git-worktrees`
 - 已单开 repair task：`planning/active/upstream-refresh-6-failure-repair/`。
+
+## 2026-05-08 Scheduled Run Observation
+- heartbeat 触发时间：`2026-05-08T13:06:58.413Z`，即 **2026-05-08 21:06:58 Asia/Shanghai**。
+- 到该时点为止：
+  - `upstream-refresh.yml` workflow 仍为 `state = active`
+  - `UPSTREAM_REFRESH_SCHEDULE_ENABLED = true`
+  - 仓库级 `event = schedule` Actions runs 总数仍为 `0`
+  - `upstream-refresh.yml` 最近 runs 仍全部是 `workflow_dispatch`
+- 结论：首次“真实 scheduled run”并没有在预期窗口内触发；这不是失败 run，而是根本没有生成 `schedule` 事件记录。
+
+## 2026-05-08 First Real Scheduled Run (`#7`)
+- 后续又出现了首次真实 `event = schedule` 的 run：
+  - run id：`25559163029`
+  - createdAt：`2026-05-08T13:47:40Z`，即 **2026-05-08 21:47:40 Asia/Shanghai**
+  - conclusion：`failure`
+- 这说明 GitHub schedule 触发存在明显延迟；`21:06` 的 heartbeat 观察只是一张时间点快照，不能直接当作“当天不会触发”的最终结论。
+- 失败结构与 `#6` 已明显不同：
+  - `Run upstream refresh` 已成功
+  - 失败 step 变成 `Open upstream refresh pull request`
+- failed log 的最小根因是：
+  - `gh pr create failed: spawn E2BIG`
+- `upstream-refresh-result` artifact 已确认：
+  - `status = success`
+  - `eligibleFiles.length = 1737`
+- 结论：
+  - 首次真实 scheduled run 已经证明 `#6` 的 patch 兼容性修复解除了一阶阻塞
+  - 当前新的剩余问题在 PR 打开路径，而不是 refresh 主链路
+  - 该问题已并入 `planning/active/upstream-refresh-6-failure-repair/`，不再单开新的 followup task
+
+## 2026-05-08 Manual Rerun After Push
+- 用户已把第一轮 PR-opening 修复推到 `origin`，随后手动触发 run `25562079399`。
+- 这次 rerun 进一步确认：
+  - `spawn E2BIG` 已经消失
+  - refresh 主链路与 result artifact 上传/读取都已恢复
+  - 新的剩余失败点是固定 automation branch 的远端状态机：
+    - 远端 `automation/upstream-refresh` 分支仍存在
+    - 但仓库里没有对应 open PR
+    - 当前 create path 仍尝试 `git push --set-upstream`，因此被 non-fast-forward 拒绝
+- 该问题仍属于同一 repair chain，已继续在 `upstream-refresh-6-failure-repair` 中处理。
+
+## 2026-05-08 Remote State After Second Push
+- 第二轮代码修复已经进入 `origin/dev` 并通过远端 rerun 验证到最后一层。
+- 当前链路中的最终 blocker 不再是代码，而是 repo 级 GitHub Actions policy：
+  - `gh pr create` 被拒绝，错误为：
+    - `GitHub Actions is not permitted to create or approve pull requests (createPullRequest)`
+  - 仓库 workflow-permissions 快照为：
+    - `default_workflow_permissions = read`
+    - `can_approve_pull_request_reviews = false`
+- 这意味着 followup 任务的代码侧目标已经基本完成；剩余的是 human 级仓库设置操作。

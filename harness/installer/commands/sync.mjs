@@ -255,7 +255,7 @@ async function applyManagedProjection(projection, ownedTargets, conflictMode, ba
   throw new Error(`Unsupported managed projection kind: ${projection.kind}`);
 }
 
-async function planSyncOperations({ rootDir, homeDir, state }) {
+export async function planSyncOperations({ rootDir, homeDir, state }) {
   const targets = Object.keys(state.targets).filter((target) => state.targets[target].enabled);
   const effectiveEntryProfiles = effectiveEntryPolicyProfiles(state);
   const safetyProfile = activeSafetyPolicyProfile(state);
@@ -372,12 +372,31 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
   };
 }
 
-function formatDiff(diff) {
+export function formatDiff(diff) {
   return {
     create: diff.create.length,
     update: diff.update.length,
     stale: diff.stale.length,
     unchanged: diff.unchanged.length
+  };
+}
+
+export async function computeSyncPlanReport({
+  rootDir,
+  homeDir,
+  state
+}) {
+  const effectiveHomeDir = homeDir ?? os.homedir();
+  const effectiveState = state ?? (await readState(rootDir));
+  const currentManifest = await readProjectionManifest(rootDir);
+  const plan = await planSyncOperations({ rootDir, homeDir: effectiveHomeDir, state: effectiveState });
+  const diff = diffProjectionManifest(currentManifest, plan.manifest);
+  return {
+    state: effectiveState,
+    currentManifest,
+    plan,
+    diff,
+    summary: formatDiff(diff)
   };
 }
 

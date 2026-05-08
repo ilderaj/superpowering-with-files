@@ -19,6 +19,8 @@
 ## Durable Findings
 
 - `post-upstream-automation-followups` 当前唯一剩余 gate 是 `2026-05-08 20:05 Asia/Shanghai` 之后的首个 scheduled run 观察；其余 stale worktree cleanup、verify 修复、workflow gate 已完成。
+- `dev` 上存在一条误提交的 in-repo Codex worktree gitlink：`.codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002`。该路径在 `a41d02a Close roadmap v1.6` 中以 mode `160000` 被加入索引，导致只要嵌套 worktree dirty，主仓库就持续显示 dirty，即使 `dev`/`origin/dev` 本身没有代码漂移。
+- 这类路径的正确边界是“保留磁盘上的嵌套仓库，但不让父仓库跟踪它”。修复方式是为主仓库补充 `.codex-worktrees/` ignore 规则，并将误提交的 gitlink 从父仓库索引中移除；不需要删除嵌套 worktree，也不应该把其中未提交内容直接当成主仓库变更处理。
 - `pre-tool-use` 的真实判定只在 `harness/core/hooks/safety/scripts/pretool-guard.sh`；false-positive 根因不是 payload parse abort，而是 `safe-commands.txt` 对 `rg`、`node --test`、`npm run verify` 等低风险命令覆盖不全。`find` 需要单独走低风险查询分支，不能直接整条放进 allowlist。
 - state 已切成“baseline + overlay”最小模型：
   - baseline 继续用 `policyProfile`

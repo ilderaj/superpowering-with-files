@@ -90,3 +90,73 @@
 - Files created/modified:
   - `planning/active/post-upstream-automation-followups/findings.md` (updated)
   - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Session: 2026-05-08 21:06:58 UTC+8
+
+### Phase 2: scheduled run heartbeat observation
+- **Status:** complete
+- Actions taken:
+  - heartbeat 触发后查询 `upstream-refresh.yml` 最近 12 次 runs，确认仍全部是 `workflow_dispatch`。
+  - 查询 workflow metadata，确认 `Upstream Refresh` workflow 仍处于 `active`。
+  - 查询 `UPSTREAM_REFRESH_SCHEDULE_ENABLED`，确认变量仍为 `true`。
+  - 查询仓库级 `event=schedule` runs，确认总数仍为 `0`。
+  - 判定首次 scheduled run 并未实际触发，因此这次 heartbeat 的观察目标已经完成，应删除 `watch-first-upstream-refresh-scheduled-run` automation，避免继续保留陈旧观察器。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/task_plan.md` (updated)
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Additional Test Results
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Workflow state snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/workflows/upstream-refresh.yml` | workflow 仍启用 | `state: active` | 通过 |
+| Schedule gate snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/variables/UPSTREAM_REFRESH_SCHEDULE_ENABLED` | gate 仍开启 | `value: true` | 通过 |
+| Workflow run list snapshot | `gh run list --workflow upstream-refresh.yml --limit 12 --json ...` | 若已触发应看到至少 1 个 `schedule` event | 最近 runs 全部为 `workflow_dispatch` | 异常 |
+| Repo schedule run snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/runs?event=schedule&per_page=10` | 若有任意 scheduled run 应返回记录 | `total_count: 0` | 异常 |
+
+## Session: 2026-05-08 22:24:10 UTC+8
+
+### Phase 2: first real scheduled run followup
+- **Status:** complete
+- Actions taken:
+  - 用户报告 `Upstream Refresh #7` 失败后，查询 run `25559163029`，确认它就是首次真实 `event = schedule` 的 upstream refresh run。
+  - 对比 heartbeat 在 `21:06` 的观察快照，确认首次 scheduled run 实际在 `21:47` 才落地，存在显著 schedule latency。
+  - 读取 failed log 与 result artifact，确认：
+    - `Run upstream refresh` 已成功
+    - `Open upstream refresh pull request` 因 `spawn E2BIG` 失败
+  - 将该失败并入 `upstream-refresh-6-failure-repair`，而不是另开新的 followup task。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/task_plan.md` (updated)
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Additional Test Results (Update)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| First real schedule run snapshot | `gh run view 25559163029 --json ...` | 确认首次真实 `schedule` run 是否已经出现 | `event: schedule`, `conclusion: failure` | 通过 |
+| Heartbeat timing comparison | `2026-05-08 21:06` heartbeat snapshot vs `21:47` run createdAt | 判断 earlier no-run 结论是否需要修正 | 真实 scheduled run 晚于 heartbeat 约 40 分钟出现 | 通过 |
+| Scheduled run failure triage | `gh run view 25559163029 --log-failed` + result artifact | 判断失败是否仍属同一 repair chain | `spawn E2BIG`, refresh result `status: success` | 通过 |
+
+## Session: 2026-05-08 22:52:07 UTC+8
+
+### Phase 2: manual rerun after origin push
+- **Status:** complete
+- Actions taken:
+  - 用户将第一轮修复推到 `origin` 后，手动触发 run `25562079399`。
+  - 跟踪 run 到完成，确认 `spawn E2BIG` 已解除，失败进一步收敛到 fixed automation branch 的 non-fast-forward push。
+  - 将新的 failure facts 回流到 `upstream-refresh-6-failure-repair`，继续沿同一 repair task 修复。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Session: 2026-05-08 22:52:07 UTC+8
+
+### Phase 2: second push followup
+- **Status:** complete
+- Actions taken:
+  - 第二轮代码修复推送到 `origin/dev` 后，再次触发 run `25562448036`。
+  - 跟踪 run 到完成，确认 fixed-branch non-fast-forward 已解除，最终剩余 blocker 为 repo 级 Actions PR policy。
+  - 将该 human-only blocker 回流到 `upstream-refresh-6-failure-repair`，followup task 保留为事实记录，不再继续拆新代码任务。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
