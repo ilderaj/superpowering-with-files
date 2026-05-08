@@ -47,6 +47,16 @@ function hasFlag(args, ...names) {
   return names.some((name) => args.includes(name));
 }
 
+function isWithinDirectory(candidatePath, directoryPath) {
+  const relative = path.relative(directoryPath, candidatePath);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function isManagedSessionBoundary(targetPath, rootDir, homeDir) {
+  const resolvedTargetPath = path.resolve(targetPath);
+  return isWithinDirectory(resolvedTargetPath, rootDir) || isWithinDirectory(resolvedTargetPath, homeDir);
+}
+
 function usage() {
   return [
     'Usage: ./scripts/harness sync [--conflict=reject|backup] [--dry-run] [--check] [--takeover]',
@@ -505,6 +515,9 @@ export async function sync(args = []) {
 
   for (const entry of diff.stale) {
     if (isUserManagedTarget(entry.targetPath, plan.userManaged)) {
+      continue;
+    }
+    if (!isManagedSessionBoundary(entry.targetPath, rootDir, homeDir)) {
       continue;
     }
     await cleanupStaleProjection(entry);

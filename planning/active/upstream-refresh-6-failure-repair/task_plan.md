@@ -40,7 +40,10 @@ Phase 4
 - [x] 重新触发远端 workflow，确认 `E2BIG` 已解除并暴露出下一层 fixed-branch non-fast-forward 问题
 - [x] 修复 remote fixed branch exists but no open PR 时的 push 策略
 - [x] 代码进入 GitHub 触发分支后，再次 rerun workflow，确认 branch reuse 已恢复并暴露出最终的 repo-level Actions PR policy blocker
-- [ ] human 启用 repo 级 “Allow GitHub Actions to create and approve pull requests”，随后再次 rerun workflow 验证远端完全恢复
+- [x] human 启用 repo 级 “Allow GitHub Actions to create and approve pull requests”，并确认 setting 生效
+- [x] 再次 rerun workflow，确认 repo-level policy blocker 已解除并暴露出新的 refresh-step blockers
+- [x] 将 `npm ci` + Python cache filtering 修复推上远端，并在本地重新确认 `npm run verify` 通过
+- [ ] 确认修复进入 `main` 后，再次 rerun workflow 验证生产路径完全恢复
 - **Status:** in_progress
 
 ## Key Questions
@@ -58,6 +61,10 @@ Phase 4
 | `gh pr create/edit` 改为 `--body-file`，并截断 PR body 中的 eligible file 列表 | 首次真实 scheduled run 已经证明 refresh 成功后仍会在 PR 打开阶段因为超大 argv 失败；同时需要避免 body 过长带来的二次失败或可读性问题 |
 | 当 `automation/upstream-refresh` 远端分支已存在但没有 open PR 时，create path 也必须走 `--force-with-lease` | 手动 rerun 已证明“无 open PR”并不等于“远端 branch 不存在”；固定 automation branch 的状态机必须显式建模远端 branch existence |
 | repo 级 GitHub Actions policy 需要显式允许 Actions 创建/批准 PR | 代码链路和 workflow 权限已经足够；最终失败来自仓库设置 `can_approve_pull_request_reviews=false` 对 `createPullRequest` 的硬性拦截 |
+| upstream-refresh workflow 必须在 runner 上显式执行 `npm ci` | `verify` 已包含 `tests/mcp/*.test.mjs`，但 workflow 此前只 `setup-node` 没有安装依赖，导致 GitHub runner 在 refresh step 中对 `@modelcontextprotocol/sdk` 直接 `ERR_MODULE_NOT_FOUND` |
+| refresh changed-file allowlist 必须忽略运行时 `__pycache__/*.pyc` | Python 脚本在 GitHub runner 上会生成 `cpython-312.pyc`，这类缓存既不是应提交的 upstream/projection 结果，也不应把 refresh 误判成 allowlist violation |
+| `workflow_dispatch --ref main` 与 schedule 都使用 `main` 上的 workflow 定义 | 2026-05-08 的 rerun 仍未出现新增的 `Install dependencies` step；对比 `origin/main` 与 `origin/dev` 的 workflow 文件可确认修复只在 `dev`，尚未进入 `main` |
+| `sync` 清理 stale projection 时必须受当前 session 的 `rootDir/homeDir` 边界约束 | 否则像 MCP safe-apply 这类测试在临时 `HOME` 下运行时，会因为历史 manifest 中的绝对路径去碰真实 `~/.claude/CLAUDE.md` |
 
 ## Implementation Shape
 - 隔离 worktree：
@@ -73,7 +80,8 @@ Phase 4
 - 远端 GitHub Actions 还没有用到这次本地修复；只有当修复进入触发 workflow 的 GitHub 分支后，rerun 或下一次 scheduled run 才会真正恢复。
 - 当前主工作区还存在用户/历史未提交改动；本 task 没有替用户创建 commit 或 push，避免误混不相关 changes。
 - 当前远端还残留 `automation/upstream-refresh @ c0260fe880c2327f0c36d65c6183bd270f5588ea`，且没有 open PR；这是刚刚暴露出 non-fast-forward 失败的直接条件，但修复代码已经把它纳入可恢复状态。
-- 当前最终 blocker 是 repo setting：`default_workflow_permissions=read`, `can_approve_pull_request_reviews=false`。由于这是持久扩大仓库级 Actions 权限的变更，自动执行需要用户显式批准。
+- repo setting blocker 已消失，本地依赖 blocker 也已消失；当前剩余 blocker 是生产路径仍指向 `main`，而 `origin/main` 尚未包含 `npm ci` / Python cache filtering 这批修复。
+- 只要 `origin/main` 落后于 `origin/dev @ 60b2224e5e2fd9184f76de5c8d86993f1fb18310`，从 `main` 触发的手动 run 和真实 scheduled run 都会继续跑旧版 workflow 与旧版 refresh 代码路径。
 
 ## Notes
 - 此 task 来源于 `planning/active/post-upstream-automation-followups/` 的 Phase 2 失败分支。

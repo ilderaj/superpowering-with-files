@@ -188,3 +188,131 @@
   - 成功 refresh
   - 成功复用/覆盖固定 automation branch
   - 成功创建或更新指向 `dev` 的 PR
+
+## 2026-05-08 Verification After Repo Setting Change (`25562792583`)
+- repo setting 已确认生效：
+  - `default_workflow_permissions = read`
+  - `can_approve_pull_request_reviews = true`
+- 新的 workflow_dispatch rerun：
+  - run id：`25562792583`
+  - createdAt：`2026-05-08T15:01:13Z`，即 **2026-05-08 23:01:13 Asia/Shanghai**
+- 这次说明 repo-level PR policy blocker 已解除，因为失败点重新回到了 `Run upstream refresh`，`Open upstream refresh pull request` 已被跳过而不是直接 GraphQL 拒绝。
+
+## New Refresh-Step Root Causes
+- failed log 显示 `npm run verify` 在 GitHub runner 上新增 4 条 `tests/mcp/*.test.mjs` 失败，根因一致：
+  - `Cannot find package '@modelcontextprotocol/sdk'`
+  - 出错位置包括：
+    - `harness/mcp/server.mjs`
+    - `harness/mcp/http.mjs`
+    - `tests/mcp/stdio-handshake.test.mjs`
+- 根因不是 package.json 缺依赖，而是 workflow 少了依赖安装步骤：
+  - `package.json` 已声明 `@modelcontextprotocol/sdk`
+  - 但 `.github/workflows/upstream-refresh.yml` 之前只有 `actions/setup-node`，没有 `npm ci`
+- 同一次 failed log 还包含 allowlist 误报：
+  - `harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/planning_paths.cpython-312.pyc`
+  - `harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/task_lifecycle.cpython-312.pyc`
+- 这些 `pyc` 是 runner 上 Python 执行生成的缓存，不应当被当作 refresh 产物参与 allowlist 判断。
+
+## Fix Strategy Extension 3
+- `.github/workflows/upstream-refresh.yml`
+  - 在 `Set up Node.js` 后新增 `Install dependencies` step
+  - 使用 `npm ci`
+  - 同时为 `setup-node` 打开 `cache: npm`
+- `scripts/ci/lib/upstream-refresh.mjs`
+  - 在 `filterEligibleChanges()` 中忽略：
+    - 任意路径片段包含 `/__pycache__/`
+    - 任意以 `.pyc` 结尾的文件
+- `tests/automation/upstream-refresh-lib.test.mjs`
+  - 新增 Python cache ignore regression test
+- `tests/automation/upstream-refresh-workflow.test.mjs`
+  - 更新 step order 断言
+  - 校验 workflow 确实执行 `npm ci`
+- `tests/mcp/receipt-ledger.test.mjs`
+  - 隔离 `HOME` 到 temp dir，避免沙箱下写 `~/.codex` 触发 `EPERM`
+- `tests/mcp/safe-write.test.mjs`
+  - 同样隔离 `HOME`
+
+## Local Verification Status
+- focused upstream-refresh suite:
+  - `node --test tests/automation/upstream-refresh-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`
+  - 结果：`21 pass / 0 fail`
+- 本地全量 `npm run verify` 目前仍未通过，但原因已经缩小为本机环境缺少 `node_modules/@modelcontextprotocol/sdk`：
+  - 当前本地 `node_modules/@modelcontextprotocol/sdk` 为 `missing`
+  - 由于缺少该依赖，`tests/mcp/*.test.mjs` 本地仍报 `ERR_MODULE_NOT_FOUND`
+- 额外两条本地 MCP 测试的 `EPERM ~/.codex/AGENTS.md` 已通过测试隔离修正，不再是设计性问题。
+
+## Remaining Human / Environment Blocker
+- 需要在本地仓库执行一次：
+  - `npm ci`
+- 当前 agent 无法代执行的原因不是代码，而是平台提权额度限制拦截了安装命令。
+- 一旦依赖装好，下一步就是：
+  - 本地 rerun `npm run verify`
+  - commit/push 这轮修复
+  - 再次触发 `Upstream Refresh` 做远端闭环验证
+
+## 2026-05-08 Local Environment Recovery
+- 用户已在本地仓库执行：
+  - `npm ci`
+  - `npm run verify`
+- agent 随后复核：
+  - `node_modules/@modelcontextprotocol/sdk` 已存在
+  - 本地 `npm run verify` 结果为 `360 pass / 0 fail / 1 skipped`
+- 唯一 skipped 项是 HTTP self-test 在当前 sandbox 下无法监听 localhost，这属于预期环境限制，不是 upstream-refresh 回归。
+
+## 2026-05-08 Manual Rerun On `main` Still Uses Old Workflow (`25563477358`)
+- 在本地验证恢复后，又手动触发了一次：
+  - run id：`25563477358`
+  - event：`workflow_dispatch`
+  - ref：`main`
+- 该 run 仍失败在：
+  - job：`Refresh upstream baselines`
+  - step：`Run upstream refresh`
+- 更关键的证据不是失败本身，而是运行步骤列表里仍然没有新增的：
+  - `Install dependencies`
+- 结合远端 refs 对比可确认这不是“修复无效”，而是“触发目标还在旧分支”：
+  - `origin/main:.github/workflows/upstream-refresh.yml` 仍只有 `Set up Node.js -> Run upstream refresh`
+  - `origin/dev:.github/workflows/upstream-refresh.yml` 已包含：
+    - `cache: npm`
+    - `Install dependencies`
+- 当前 refs：
+  - `origin/main = fcc5c471fb65f4800879ceb0f9d4e118743873a5`
+  - `origin/dev = 60b2224e5e2fd9184f76de5c8d86993f1fb18310`
+- 结论：
+  - `npm ci` / Python cache filtering / MCP test isolation 这批修复已经在 `origin/dev`
+  - 但 `workflow_dispatch --ref main` 与真实 `schedule` 都会使用 `main` 上的 workflow 定义与仓库内容
+  - 因此只要这批修复还没进入 `main`，从 `main` 触发的验证仍会继续命中旧逻辑
+
+## Operational Guidance Update
+- 代码层面当前没有新的 repair gap；剩余工作是发布路径问题：
+  - 先把 `origin/dev @ 60b2224e5e2fd9184f76de5c8d86993f1fb18310` 合入 `main`
+  - 再重新触发 `Upstream Refresh`
+- 如果只是想验证新 workflow 定义本身，可以对 `dev` 触发 `workflow_dispatch`。
+- 如果目标是恢复真实 weekly automation，则必须让 `main` 拿到这批修复，因为 `schedule` 不会读取 `dev` 上的 workflow。
+
+## 2026-05-09 New Local Regression While Re-verifying
+- 在 agent 重新执行全量 `npm run verify` 时，出现了两条新的本地失败：
+  - `tests/mcp/receipt-ledger.test.mjs`
+  - `tests/mcp/safe-write.test.mjs`
+- 共同错误是：
+  - `EPERM: operation not permitted, unlink '/Users/jared/.claude/CLAUDE.md'`
+- 这不是 upstream-refresh 逻辑回退，而是 `applyWritePlan(sync)` 触发 `sync()` 时，stale projection cleanup 会读取仓库已有 manifest 中的绝对 user-global 路径。
+- 即使测试把 `HOME` / `os.homedir()` 改到了临时目录，旧 manifest 里的真实 `~/.claude/CLAUDE.md` 仍会被当作 stale target 尝试删除。
+
+## Fix Strategy Extension 4
+- `harness/installer/commands/sync.mjs`
+  - 新增 session-boundary 判断：
+    - 只有 stale target 落在当前 `rootDir` 或当前 `homeDir` 下时，才允许 cleanup
+  - 对当前 session 边界外的历史绝对路径直接跳过
+- 这是产品级安全修复，不只是测试打桩：
+  - 当运行环境的 `HOME` 与历史 manifest 中记录的 HOME 不一致时，Harness 不应删除当前 session 边界之外的文件
+
+## Validation Update 2
+- focused:
+  - `node --test tests/mcp/receipt-ledger.test.mjs tests/mcp/safe-write.test.mjs`
+  - 结果：`3 pass / 0 fail`
+- full:
+  - `npm run verify`
+  - 结果：`360 pass / 0 fail / 1 skipped`
+- 唯一 skipped 项仍是：
+  - `HTTP self-test succeeds for the local profile`
+  - 原因是 sandbox 无法监听 localhost，属预期环境限制

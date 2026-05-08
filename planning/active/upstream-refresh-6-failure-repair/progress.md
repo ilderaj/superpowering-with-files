@@ -163,3 +163,116 @@
 | Final remote rerun snapshot | `gh run view 25562448036 --json ...` | 确认第二轮代码修复后的远端剩余 blocker | refresh/upload/read success, `Open upstream refresh pull request` failure | 通过 |
 | Failed log triage | `gh run view 25562448036 --log-failed` | 找到最终失败原因 | `GitHub Actions is not permitted to create or approve pull requests (createPullRequest)` | 通过 |
 | Repo workflow-permission snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/permissions/workflow` | 判断是否为 repo policy blocker | `default_workflow_permissions=read`, `can_approve_pull_request_reviews=false` | 通过 |
+
+## Session: 2026-05-08 23:07:29 UTC+8
+
+### Phase 4: post-setting rerun and refresh-step repair
+- **Status:** in_progress
+- Actions taken:
+  - 复核 repo Actions workflow permissions，确认：
+    - `default_workflow_permissions: read`
+    - `can_approve_pull_request_reviews: true`
+  - 触发新的 workflow_dispatch run：`25562792583`。
+  - 跟踪 run 到完成，确认 repo-level PR policy blocker 已解除，但失败重新回到 `Run upstream refresh`。
+  - 读取 failed log，定位两个新根因：
+    - workflow 缺少 `npm ci`，导致 `tests/mcp/*.test.mjs` 在 runner 上缺少 `@modelcontextprotocol/sdk`
+    - allowlist 误报了 Python 运行时生成的 `__pycache__/*.pyc`
+  - 修改：
+    - `.github/workflows/upstream-refresh.yml`
+    - `scripts/ci/lib/upstream-refresh.mjs`
+    - `tests/automation/upstream-refresh-lib.test.mjs`
+    - `tests/automation/upstream-refresh-workflow.test.mjs`
+    - `tests/mcp/receipt-ledger.test.mjs`
+    - `tests/mcp/safe-write.test.mjs`
+  - 运行 focused suites：
+    - `node --test tests/automation/upstream-refresh-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`
+  - 尝试本地全量 `npm run verify`，发现本机当前缺少 `node_modules/@modelcontextprotocol/sdk`，并由此暴露出剩余本地环境 blocker。
+  - 尝试执行 `npm ci` 以补齐本地依赖，但被平台提权额度限制拒绝，当前回合无法继续自动完成 final verify / push / rerun。
+- Files created/modified:
+  - `.github/workflows/upstream-refresh.yml`
+  - `scripts/ci/lib/upstream-refresh.mjs`
+  - `tests/automation/upstream-refresh-lib.test.mjs`
+  - `tests/automation/upstream-refresh-workflow.test.mjs`
+  - `tests/mcp/receipt-ledger.test.mjs`
+  - `tests/mcp/safe-write.test.mjs`
+  - `planning/active/upstream-refresh-6-failure-repair/task_plan.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/findings.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/progress.md` (updated)
+
+## Additional Test Results (Update 4)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Repo setting snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/permissions/workflow` | 确认 PR policy blocker 是否已解除 | `can_approve_pull_request_reviews=true` | 通过 |
+| Post-setting rerun snapshot | `gh run view 25562792583 --json ...` | 确认新失败是否回到 refresh step | `Run upstream refresh = failure` | 通过 |
+| Failed log triage | `gh run view 25562792583 --log-failed` | 抽取新的 refresh-step 最小根因 | missing `@modelcontextprotocol/sdk` + `__pycache__/*.pyc` allowlist violation | 通过 |
+| Focused workflow/allowlist verification | `node --test tests/automation/upstream-refresh-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs` | 新修复通过 | `21 pass / 0 fail` | 通过 |
+| Local dependency presence | `test -d node_modules/@modelcontextprotocol/sdk` | 判断本地能否直接跑 MCP tests | `missing` | 异常 |
+| Local full verify | `npm run verify` | 全量验证通过 | `tests/mcp/*.test.mjs` 因缺少 `@modelcontextprotocol/sdk` 失败；另两条 `EPERM` 已被测试隔离修正 | 阻塞 |
+
+## Session: 2026-05-09 00:10:00 UTC+8
+
+### Phase 4: local verification restored, production-path branch gap confirmed
+- **Status:** in_progress
+- Actions taken:
+  - 用户已在本地执行 `npm ci` 与 `npm run verify`。
+  - agent 复核本地依赖存在：
+    - `test -d node_modules/@modelcontextprotocol/sdk` => `present`
+  - agent 复跑全量验证：
+    - `npm run verify`
+    - 结果：`360 pass / 0 fail / 1 skipped`
+  - 复核远端 refs，确认：
+    - `origin/main = fcc5c471fb65f4800879ceb0f9d4e118743873a5`
+    - `origin/dev = 60b2224e5e2fd9184f76de5c8d86993f1fb18310`
+  - 对比 `origin/main` 与 `origin/dev` 的 `.github/workflows/upstream-refresh.yml`：
+    - `origin/main` 缺少 `cache: npm` 与 `Install dependencies`
+    - `origin/dev` 已包含这两项修复
+  - 重新触发 `workflow_dispatch --ref main` 进行生产路径验证：
+    - run id：`25563477358`
+  - 跟踪该 run 到结束，确认仍失败在 `Run upstream refresh`，且步骤列表里没有 `Install dependencies`，从而锁定失败原因是 `main` 仍在跑旧 workflow 定义，而不是 `dev` 上的最新修复再次失效。
+  - 尝试进一步用 `gh run view` / `gh workflow run --ref dev` 拉取远端日志和补做 `dev` 验证，但当前 sandbox 到 GitHub API 的网络连接失败，无法在本回合继续自动完成远端取证。
+- Files created/modified:
+  - `planning/active/upstream-refresh-6-failure-repair/task_plan.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/findings.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/progress.md` (updated)
+
+## Additional Test Results (Update 5)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Local dependency presence | `test -d node_modules/@modelcontextprotocol/sdk` | 本地依赖已恢复 | `present` | 通过 |
+| Local full verify after npm ci | `npm run verify` | 全量验证通过 | `360 pass / 0 fail / 1 skipped` | 通过 |
+| Workflow file on `origin/main` | `git show origin/main:.github/workflows/upstream-refresh.yml` | 确认生产路径是否拿到 `npm ci` 修复 | 仍无 `Install dependencies` | 阻塞 |
+| Workflow file on `origin/dev` | `git show origin/dev:.github/workflows/upstream-refresh.yml` | 确认修复是否已进入远端开发线 | 含 `cache: npm` 与 `Install dependencies` | 通过 |
+| Branch divergence snapshot | `git rev-parse origin/main origin/dev` | 判断 rerun 使用的代码线 | `origin/main != origin/dev` | 阻塞 |
+| Production-path rerun | `gh workflow run upstream-refresh.yml --ref main -f create_pr=true` | 验证生产路径是否已恢复 | run `25563477358` 仍失败于 `Run upstream refresh` | 阻塞 |
+
+## Session: 2026-05-09 00:35:00 UTC+8
+
+### Phase 4: stale cleanup boundary repair during local re-verify
+- **Status:** in_progress
+- Actions taken:
+  - 在复跑全量 `npm run verify` 时发现两条新失败：
+    - `tests/mcp/receipt-ledger.test.mjs`
+    - `tests/mcp/safe-write.test.mjs`
+  - 失败根因一致：
+    - `sync()` 在 cleanup stale projections 时，会根据仓库现有 manifest 去删除历史绝对 user-global 路径
+    - 当测试把 `HOME` 重定向到临时目录时，这个 cleanup 仍可能碰到真实 `~/.claude/CLAUDE.md`
+  - 修改 `harness/installer/commands/sync.mjs`：
+    - 增加 session-boundary guard
+    - 仅对当前 `rootDir` 或当前 `homeDir` 范围内的 stale target 执行 cleanup
+  - 运行 focused MCP suites：
+    - `node --test tests/mcp/receipt-ledger.test.mjs tests/mcp/safe-write.test.mjs`
+    - 结果：`3 pass / 0 fail`
+  - 再次运行全量验证：
+    - `npm run verify`
+    - 结果：`360 pass / 0 fail / 1 skipped`
+- Files created/modified:
+  - `harness/installer/commands/sync.mjs`
+  - `planning/active/upstream-refresh-6-failure-repair/task_plan.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/findings.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/progress.md` (updated)
+
+## Additional Test Results (Update 6)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Focused MCP safe-apply verification | `node --test tests/mcp/receipt-ledger.test.mjs tests/mcp/safe-write.test.mjs` | 临时 `HOME` 下不再碰真实 `~/.claude` | `3 pass / 0 fail` | 通过 |
+| Full verify after stale-boundary guard | `npm run verify` | 全量验证恢复全绿 | `360 pass / 0 fail / 1 skipped` | 通过 |

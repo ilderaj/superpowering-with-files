@@ -99,3 +99,23 @@
     - `default_workflow_permissions = read`
     - `can_approve_pull_request_reviews = false`
 - 这意味着 followup 任务的代码侧目标已经基本完成；剩余的是 human 级仓库设置操作。
+
+## 2026-05-08 After Repo Setting Enablement
+- repo setting 已确认生效后，新的 rerun `25562792583` 证明：
+  - Actions PR policy blocker 已经解除
+  - 但 upstream refresh 仍未完全恢复，因为 refresh step 现在会跑到更深的验证面
+- 新暴露的问题不是 PR policy，而是：
+  - workflow 没有先 `npm ci`
+  - Python `__pycache__/*.pyc` 被误判为 refresh allowlist violation
+- 这两项都已继续并入同一个 repair task 处理。
+
+## 2026-05-09 Production Path Clarification
+- repair task 后续已确认：
+  - 本地 `npm ci` 后，`npm run verify` 已恢复为 `360 pass / 0 fail / 1 skipped`
+  - `npm ci` + Python cache filtering 相关修复已经在 `origin/dev`
+- 但从 `main` 手动触发的新 run `25563477358` 仍失败，这不是 repair 回退，而是发布路径尚未收口：
+  - `origin/main` 的 `upstream-refresh.yml` 仍未包含 `Install dependencies`
+  - `origin/dev` 的 `upstream-refresh.yml` 才包含该修复
+- 因此 followup 视角下的当前剩余事项已经收敛为一件事：
+  - 让 `main` 接到 `origin/dev @ 60b2224e5e2fd9184f76de5c8d86993f1fb18310`
+  - 然后再验证 `workflow_dispatch --ref main` / 真实 `schedule` 路径

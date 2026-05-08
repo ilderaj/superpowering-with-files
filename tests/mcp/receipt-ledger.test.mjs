@@ -1,11 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { buildWritePlan } from '../../harness/runtime/write-plan.mjs';
 import { createApprovalToken } from '../../harness/runtime/approval-token.mjs';
 import { applyWritePlan } from '../../harness/runtime/safe-apply.mjs';
 
-test('successful apply writes a receipt JSON payload', async () => {
+test('successful apply writes a receipt JSON payload', async (t) => {
+  const tempHome = await mkdtemp(path.join(os.tmpdir(), 'harness-mcp-home-'));
+  const originalHome = process.env.HOME;
+  process.env.HOME = tempHome;
+  t.mock.method(os, 'homedir', () => tempHome);
+  t.after(async () => {
+    process.env.HOME = originalHome;
+    await rm(tempHome, { recursive: true, force: true });
+  });
+
   const plan = buildWritePlan({
     operation: 'sync',
     rootDir: process.cwd(),

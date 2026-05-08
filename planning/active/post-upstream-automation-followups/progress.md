@@ -160,3 +160,15 @@
 - Files created/modified:
   - `planning/active/post-upstream-automation-followups/findings.md` (updated)
   - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Session: 2026-05-08 23:07:29 UTC+8
+
+### Phase 2: post-setting followup
+- **Status:** complete
+- Actions taken:
+  - 在 human 启用 repo-level Actions PR setting 后，重新触发 run `25562792583`。
+  - 确认 PR policy blocker 已被清除，但 refresh step 进一步暴露出 `npm ci` 缺失和 Python cache allowlist 噪音。
+  - 将新的代码修复继续回流到 `upstream-refresh-6-failure-repair`，followup task 仅保留事实记录。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
