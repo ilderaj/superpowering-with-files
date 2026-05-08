@@ -1,13 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { isSafetyPolicyProfile } from './safety-projection.mjs';
+
+export const DEFAULT_DEPLOYMENT_PROFILE = 'standard';
+export const DEFAULT_POLICY_PROFILE = 'always-on-core';
+export const DEFAULT_SKILL_PROFILE = 'full';
+export const GITHUB_CLOUD_DEPLOYMENT_PROFILE = 'github-cloud';
+const DEPLOYMENT_PROFILES = new Set([DEFAULT_DEPLOYMENT_PROFILE, GITHUB_CLOUD_DEPLOYMENT_PROFILE]);
 
 const STATE_KEYS = new Set([
   'schemaVersion',
   'scope',
   'projectionMode',
   'hookMode',
+  'deploymentProfile',
   'policyProfile',
+  'workspacePolicyOverlay',
   'skillProfile',
   'targets',
   'upstream',
@@ -24,8 +33,10 @@ export function defaultState() {
     scope: 'workspace',
     projectionMode: 'link',
     hookMode: 'off',
-    policyProfile: 'always-on-core',
-    skillProfile: 'full',
+    deploymentProfile: DEFAULT_DEPLOYMENT_PROFILE,
+    policyProfile: DEFAULT_POLICY_PROFILE,
+    workspacePolicyOverlay: null,
+    skillProfile: DEFAULT_SKILL_PROFILE,
     targets: {},
     upstream: {}
   };
@@ -33,6 +44,42 @@ export function defaultState() {
 
 export function statePath(rootDir) {
   return path.join(rootDir, '.harness', 'state.json');
+}
+
+export function validateDeploymentProfile(deploymentProfile) {
+  if (!DEPLOYMENT_PROFILES.has(deploymentProfile)) {
+    throw new TypeError(
+      `Harness state deploymentProfile must be one of: ${[...DEPLOYMENT_PROFILES].join(', ')}.`
+    );
+  }
+}
+
+export function normalizePolicySelection(policyProfile) {
+  if (isSafetyPolicyProfile(policyProfile)) {
+    return {
+      policyProfile: DEFAULT_POLICY_PROFILE,
+      workspacePolicyOverlay: policyProfile
+    };
+  }
+
+  return {
+    policyProfile: policyProfile ?? DEFAULT_POLICY_PROFILE,
+    workspacePolicyOverlay: null
+  };
+}
+
+export function effectiveEntryPolicyProfiles(state) {
+  return state.workspacePolicyOverlay
+    ? [state.policyProfile, state.workspacePolicyOverlay]
+    : state.policyProfile;
+}
+
+export function activeSafetyPolicyProfile(state) {
+  if (state.workspacePolicyOverlay && isSafetyPolicyProfile(state.workspacePolicyOverlay)) {
+    return state.workspacePolicyOverlay;
+  }
+
+  return isSafetyPolicyProfile(state.policyProfile) ? state.policyProfile : null;
 }
 
 function isPlainObject(value) {
@@ -66,8 +113,23 @@ function validateStateShape(state) {
     throw new TypeError('Harness state hookMode must be off or on.');
   }
 
+  if ('deploymentProfile' in state) {
+    if (typeof state.deploymentProfile !== 'string') {
+      throw new TypeError('Harness state deploymentProfile must be a string.');
+    }
+    validateDeploymentProfile(state.deploymentProfile);
+  }
+
   if ('policyProfile' in state && typeof state.policyProfile !== 'string') {
     throw new TypeError('Harness state policyProfile must be a string.');
+  }
+
+  if (
+    'workspacePolicyOverlay' in state &&
+    state.workspacePolicyOverlay !== null &&
+    typeof state.workspacePolicyOverlay !== 'string'
+  ) {
+    throw new TypeError('Harness state workspacePolicyOverlay must be a string or null.');
   }
 
   if ('skillProfile' in state && typeof state.skillProfile !== 'string') {
@@ -114,11 +176,15 @@ function validateStateShape(state) {
 }
 
 function normalizeStateShape(state) {
+  const normalizedPolicySelection = normalizePolicySelection(state.policyProfile);
   return {
     ...state,
     hookMode: state.hookMode ?? 'off',
-    policyProfile: state.policyProfile ?? 'always-on-core',
-    skillProfile: state.skillProfile ?? 'full'
+    deploymentProfile: state.deploymentProfile ?? DEFAULT_DEPLOYMENT_PROFILE,
+    policyProfile: normalizedPolicySelection.policyProfile,
+    workspacePolicyOverlay:
+      state.workspacePolicyOverlay ?? normalizedPolicySelection.workspacePolicyOverlay,
+    skillProfile: state.skillProfile ?? DEFAULT_SKILL_PROFILE
   };
 }
 

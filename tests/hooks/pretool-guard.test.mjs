@@ -9,7 +9,11 @@ function runGuard(scriptPath, cwd, payload, env = {}) {
   const stdout = execFileSync('bash', [scriptPath, 'codex'], {
     cwd,
     input: `${JSON.stringify(payload)}\n`,
-    env: { ...process.env, ...env }
+    env: {
+      ...process.env,
+      HARNESS_SAFETY_LOG_DIR: path.join(cwd, '.harness-test-logs'),
+      ...env
+    }
   }).toString();
   return JSON.parse(stdout);
 }
@@ -18,7 +22,11 @@ function runGuardRawInput(scriptPath, cwd, stdinText, platform = 'copilot', env 
   const stdout = execFileSync('bash', [scriptPath, platform], {
     cwd,
     input: stdinText,
-    env: { ...process.env, ...env }
+    env: {
+      ...process.env,
+      HARNESS_SAFETY_LOG_DIR: path.join(cwd, '.harness-test-logs'),
+      ...env
+    }
   }).toString();
   return JSON.parse(stdout);
 }
@@ -110,6 +118,93 @@ test('pretool-guard allows safe commands inside a repository', async () => {
     const result = runGuard(scriptPath, root, { cwd: root, tool: 'Bash', command: 'git status' });
 
     assert.equal(result.permissionDecision, 'allow');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard allows rg inside a repository', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-rg-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuard(scriptPath, root, { cwd: root, tool: 'Bash', command: 'rg -n fixture README.md' });
+
+    assert.equal(result.permissionDecision, 'allow');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard allows node --test inside a repository', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-node-test-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuard(scriptPath, root, { cwd: root, tool: 'Bash', command: 'node --test tests/hooks/pretool-guard.test.mjs' });
+
+    assert.equal(result.permissionDecision, 'allow');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard allows npm run verify inside a repository', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-npm-verify-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuard(scriptPath, root, { cwd: root, tool: 'Bash', command: 'npm run verify' });
+
+    assert.equal(result.permissionDecision, 'allow');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard allows low-risk find queries inside a repository', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-find-safe-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuard(scriptPath, root, {
+      cwd: root,
+      tool: 'Bash',
+      command: "find . -maxdepth 2 -type f -name '*.md'"
+    });
+
+    assert.equal(result.permissionDecision, 'allow');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard asks for find commands outside the low-risk query subset', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-find-risky-'));
+  try {
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuard(scriptPath, root, {
+      cwd: root,
+      tool: 'Bash',
+      command: 'find . -type f -delete'
+    });
+
+    assert.equal(result.permissionDecision, 'ask');
+    assert.equal(
+      result.permissionDecisionReason,
+      'find command is outside the low-risk query allow-list.'
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

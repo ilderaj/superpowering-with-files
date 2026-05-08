@@ -68,6 +68,13 @@ test('resolveSkillRoots returns both Copilot skill roots for scope both', () => 
   ]);
 });
 
+test('resolveSkillRoots switches Copilot workspace skill root for github-cloud deployment', () => {
+  assert.deepEqual(
+    resolveSkillRoots('/repo', '/home/user', 'workspace', 'copilot', 'github-cloud'),
+    ['/repo/.github/skills']
+  );
+});
+
 test('resolveSkillRoots returns global skill root for Codex', () => {
   assert.deepEqual(resolveSkillRoots('/repo', '/home/user', 'user-global', 'codex'), [
     '/home/user/.agents/skills'

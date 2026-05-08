@@ -1,5 +1,7 @@
 # Release
 
+Release is the last operator lane. For the full lane model, start with [Workflows](workflows.md).
+
 Branches:
 
 - `dev`: ongoing implementation and upstream updates.
@@ -20,6 +22,13 @@ git push origin main
 ```
 
 Only promote to `main` after verification passes.
+
+Release lane expectations:
+
+- `plan` and `review` work should already be complete before promotion starts.
+- `verify` artifacts must be current for the exact `dev` commit being promoted.
+- `finish` should already have merged scoped work back to `dev`.
+- `archive` should close any planning-only tasks whose durable conclusions have been transferred.
 
 For feature or Superpowers worktrees, run `./scripts/harness worktree-preflight --task <task-id>` while still on the intended source branch when the repo has multiple active tasks. In this repository, ongoing implementation starts from `dev` unless a task explicitly says it should start from `main`.
 
@@ -48,8 +57,8 @@ Any release that changes policy rendering, projected skills, hook projection, or
 
 - `health.context` exists in the verification report and includes entries, hooks, planning, skill profiles, summary, and warnings
 - rendered entries for Codex, GitHub Copilot, Cursor, and Claude Code use the intended entry profile
-- `full` remains the default skill profile
-- `minimal-global` remains opt-in and projects only the allow-listed adoption-safe skill subset
+- `minimal-global` remains the default skill profile for user-global and `both` scope installs
+- `full` remains explicit opt-in for workspaces that intentionally need the complete skill surface
 - hook payload measurements use projected runtime hook files, not only source files
 - `hookMode: off` remains the default for low-overhead installs
 - `sync --dry-run` shows only expected Harness-managed projection changes

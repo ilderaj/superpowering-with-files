@@ -1,4 +1,4 @@
-import { access, readdir, readFile } from 'node:fs/promises';
+import { access, lstat, readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { resolveSkillTargetPaths } from './paths.mjs';
 
@@ -89,9 +89,13 @@ export async function loadSkillProfiles(rootDir) {
   return config;
 }
 
-export function defaultSkillProfileForTargets(skillProfiles, targets, requestedSkillProfile) {
+export function defaultSkillProfileForTargets(skillProfiles, targets, requestedSkillProfile, scope = 'workspace') {
   if (requestedSkillProfile) {
     return requestedSkillProfile;
+  }
+
+  if (scope === 'user-global' || scope === 'both') {
+    return 'minimal-global';
   }
 
   return targets.length === 1 && targets[0] === 'copilot'
@@ -198,6 +202,34 @@ function patchKey(patch) {
   return `${patch.type}:${patch.marker ?? ''}`;
 }
 
+async function isSymbolicLinkPath(targetPath) {
+  try {
+    return (await lstat(targetPath)).isSymbolicLink();
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+async function canonicalProjectionRealpath(projection) {
+  for (const candidatePath of [projection.targetPath, projection.sourcePath]) {
+    try {
+      return await realpath(candidatePath);
+    } catch (error) {
+      if (error && error.code === 'ENOENT') {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  return path.resolve(projection.sourcePath);
+}
+
 export function coalesceSkillProjections(projections) {
   const grouped = new Map();
 
@@ -234,6 +266,59 @@ export function coalesceSkillProjections(projections) {
   return [...grouped.values()].sort((left, right) => left.targetPath.localeCompare(right.targetPath));
 }
 
+export async function classifySkillProjectionDuplicates(projections) {
+  const grouped = new Map();
+
+  for (const projection of projections) {
+    if (projection.kind !== 'skill') {
+      continue;
+    }
+
+    if (!(await isSymbolicLinkPath(projection.targetPath))) {
+      continue;
+    }
+
+    const key = `${projection.target}\0${projection.skillName}`;
+    const entries = grouped.get(key) ?? [];
+    entries.push({
+      ...projection,
+      resolvedPath: await canonicalProjectionRealpath(projection),
+      sourcePath: path.resolve(projection.sourcePath),
+      targetPath: path.resolve(projection.targetPath)
+    });
+    grouped.set(key, entries);
+  }
+
+  return [...grouped.values()]
+    .filter((entries) => entries.length > 1)
+    .map((entries) => {
+      const resolvedPaths = [...new Set(entries.map((entry) => entry.resolvedPath))].sort((left, right) =>
+        left.localeCompare(right)
+      );
+      const sourcePaths = [...new Set(entries.map((entry) => entry.sourcePath))].sort((left, right) =>
+        left.localeCompare(right)
+      );
+      const targetPaths = [...new Set(entries.map((entry) => entry.targetPath))].sort((left, right) =>
+        left.localeCompare(right)
+      );
+
+      return {
+        target: entries[0].target,
+        skillName: entries[0].skillName,
+        classification: resolvedPaths.length === 1 ? 'display-duplicate' : 'true-duplicate',
+        resolvedPath: resolvedPaths.length === 1 ? resolvedPaths[0] : resolvedPaths.join(', '),
+        resolvedPaths,
+        sourcePaths,
+        targetPaths
+      };
+    })
+    .sort((left, right) =>
+      [left.target, left.skillName, left.classification].join('\0').localeCompare(
+        [right.target, right.skillName, right.classification].join('\0')
+      )
+    );
+}
+
 export async function projectionForSkill(rootDir, skillName, target) {
   const [index, metadata] = await Promise.all([
     loadSkillIndex(rootDir),
@@ -263,7 +348,14 @@ export async function projectionForSkill(rootDir, skillName, target) {
   };
 }
 
-export async function planSkillProjections({ rootDir, homeDir, scope, target, skillProfile }) {
+export async function planSkillProjections({
+  rootDir,
+  homeDir,
+  scope,
+  target,
+  skillProfile,
+  deploymentProfile = 'standard'
+}) {
   const [index, metadata, skillProfiles] = await Promise.all([
     loadSkillIndex(rootDir),
     loadPlatformsMetadata(rootDir),
@@ -311,10 +403,17 @@ export async function planSkillProjections({ rootDir, homeDir, scope, target, sk
         continue;
       }
 
-      const targetPaths = resolveSkillTargetPaths(rootDir, homeDir, scope, target, {
-        layout: 'collection',
-        childNames
-      });
+      const targetPaths = resolveSkillTargetPaths(
+        rootDir,
+        homeDir,
+        scope,
+        target,
+        {
+          layout: 'collection',
+          childNames
+        },
+        deploymentProfile
+      );
 
       for (const childName of childNames) {
         for (const targetPath of targetPaths.filter((candidate) => path.basename(candidate) === childName)) {
@@ -324,6 +423,7 @@ export async function planSkillProjections({ rootDir, homeDir, scope, target, sk
             parentSkillName,
             skillName: childName,
             target,
+            deploymentProfile,
             strategy,
             sourcePath: path.join(sourceRoot, childName),
             targetPath,
@@ -339,13 +439,21 @@ export async function planSkillProjections({ rootDir, homeDir, scope, target, sk
         continue;
       }
 
-      for (const targetPath of resolveSkillTargetPaths(rootDir, homeDir, scope, target, skill)) {
+      for (const targetPath of resolveSkillTargetPaths(
+        rootDir,
+        homeDir,
+        scope,
+        target,
+        skill,
+        deploymentProfile
+      )) {
         const patches = resolvePatches(skill.patches, target);
         projections.push({
           kind: 'skill',
           parentSkillName,
           skillName: skill.targetName,
           target,
+          deploymentProfile,
           strategy,
           sourcePath: sourceRoot,
           targetPath,

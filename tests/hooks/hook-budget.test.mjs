@@ -177,3 +177,108 @@ test('copilot repeated prompts collapse to a brief payload within the configured
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 });
+
+for (const target of ['codex', 'cursor', 'claude-code']) {
+  test(`${target} repeated prompts collapse to a brief payload within the configured hook budget`, async () => {
+    const repeatedPlanBullets = Array.from(
+      { length: 80 },
+      (_, index) => `- [ ] Follow-up step ${index + 1}.`
+    );
+    const repeatedFindings = Array.from(
+      { length: 120 },
+      (_, index) => `- Finding ${index + 1}: keep repeated prompt recovery compact.`
+    );
+    const repeatedProgress = Array.from(
+      { length: 120 },
+      (_, index) => `- Progress ${index + 1}: track prompt recovery churn.`
+    );
+    const fixtureRoot = await createFixture(`${target}-brief-budget`, {
+      taskPlan: [
+        '# Compact Task',
+        '',
+        '## 任务目标',
+        '- Keep planning hot context compact.',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '### Phase 1: Stabilize prompt recovery',
+        '- **Status:** in_progress',
+        ...repeatedPlanBullets
+      ].join('\n'),
+      findings: ['## Notes', ...repeatedFindings].join('\n'),
+      progress: [
+        '## Progress',
+        ...repeatedProgress,
+        '',
+        '## Error Log',
+        '| Error | Status |',
+        '| --- | --- |',
+        '| Repeated prompt budget overflow | open |'
+      ].join('\n')
+    });
+
+    try {
+      const scriptPath = path.join(
+        process.cwd(),
+        'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+      );
+      await execFileAsync('bash', [scriptPath, target, 'session-start'], {
+        cwd: fixtureRoot,
+        env: {
+          ...process.env,
+          HARNESS_PROJECT_ROOT: fixtureRoot
+        }
+      });
+      const { stdout: firstPromptStdout } = await execFileAsync(
+        'bash',
+        [scriptPath, target, 'user-prompt-submit'],
+        {
+          cwd: fixtureRoot,
+          env: {
+            ...process.env,
+            HARNESS_PROJECT_ROOT: fixtureRoot
+          }
+        }
+      );
+      const { stdout: secondPromptStdout } = await execFileAsync(
+        'bash',
+        [scriptPath, target, 'user-prompt-submit'],
+        {
+          cwd: fixtureRoot,
+          env: {
+            ...process.env,
+            HARNESS_PROJECT_ROOT: fixtureRoot
+          }
+        }
+      );
+
+      const firstPayload = JSON.parse(firstPromptStdout);
+      const secondPayload = JSON.parse(secondPromptStdout);
+      const firstPrompt =
+        target === 'cursor'
+          ? firstPayload.additional_context
+          : firstPayload.hookSpecificOutput.additionalContext;
+      const secondPrompt =
+        target === 'cursor'
+          ? secondPayload.additional_context
+          : secondPayload.hookSpecificOutput.additionalContext;
+      const budgets = await loadContextBudgets(process.cwd());
+      const evaluation = evaluateBudget(
+        measureText(secondPrompt),
+        selectBudgetForTarget(budgets.budgets.hookPayload, target)
+      );
+
+      assert.match(firstPrompt, /HOT CONTEXT/);
+      assert.match(secondPrompt, /\[planning-with-files\] BRIEF CONTEXT/);
+      assert.match(secondPrompt, /No planning changes since last hot context emission/);
+      assert.ok(secondPrompt.length < firstPrompt.length);
+      assert.equal(evaluation.verdict, 'ok');
+      assert.doesNotMatch(secondPrompt, new RegExp(fixtureRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    } finally {
+      await rm(fixtureRoot, { recursive: true, force: true });
+    }
+  });
+}

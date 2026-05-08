@@ -11,6 +11,7 @@
   WHY: Helps order multiple records from the same date during high-iteration work.
   FORMAT: YYYY-MM-DD HH:mm:ss UTC+8
   EXAMPLE: 2026-01-15 10:00:00 UTC+8
+  TOOLING: Prefer `./scripts/harness record --file progress` when creating a fresh record block.
 -->
 
 ### Phase 1: [Title]

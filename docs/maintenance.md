@@ -1,5 +1,7 @@
 # Maintenance
 
+Maintenance is the operator-facing `verify`, `archive`, and upkeep surface of Harness. For the full lane map, start with [Workflows](workflows.md).
+
 Maintenance flow:
 
 ```bash
@@ -20,6 +22,37 @@ Use `sync --dry-run` to inspect the desired projection diff without writing file
 ```bash
 ./scripts/harness verify --output=.harness/verification
 ```
+
+## Lane Responsibilities
+
+- `verify`: run focused suites first, then `npm run verify`, `./scripts/harness verify --output=...`, `./scripts/harness sync --dry-run`, and `./scripts/harness doctor --check-only`.
+- `archive`: close and archive only after lifecycle state is explicit and companion-plan metadata is synchronized.
+- `release`: use the release gate in [Release](release.md) when maintenance work changes policy rendering, projections, hooks, or adoption state.
+
+Harness may integrate browser or eval tooling, but those stay optional contracts. See [Workflows](workflows.md#optional-contracts).
+
+## Planning Lifecycle Audit
+
+Use this checklist whenever you want to audit or prune `planning/active/` without inventing a second planning workflow.
+
+Recommended command flow:
+
+```bash
+./scripts/harness active-summary
+./scripts/harness active-summary --json --output=.harness/planning-active-summary.json
+```
+
+Checklist:
+
+1. Confirm empty active task directories are zero. If a directory has no `task_plan.md`, treat it as an anomaly rather than a normal task.
+2. Confirm every remaining task has `## Current State` with `Status`, `Archive Eligible`, and `Close Reason`.
+3. Confirm tasks that look complete but are not `closed + Archive Eligible: yes` are explicitly reviewed before any archive step.
+4. Confirm tasks that are `closed + Archive Eligible: yes` are also companion-synced before calling `archive-task`.
+5. Confirm `waiting_review` tasks still have a real review, PR, or approval gate.
+6. Confirm `active` tasks still have unfinished phases, concurrent edits, or an external time/dependency gate.
+7. Close and archive only the tasks whose durable conclusions are already transferred and whose lifecycle state is explicit.
+
+`active-summary` is the operator-facing queue audit. `summary` remains a single-task session context tool and should not be repurposed as a multi-task audit surface.
 
 Before policy extraction, reread the current global policy source and compare it with `harness/core/policy/base.md`.
 
@@ -232,7 +265,7 @@ Required checks:
 - confirm rendered entries stay on the always-on core profile unless a target explicitly needs more detail
 - confirm `hookMode: off` remains the low-overhead default
 - if hook files changed, confirm runtime hook payload measurements stay within the configured budgets
-- if skill projection changed, verify both the default `full` profile and the opt-in `minimal-global` profile
+- if skill projection changed, verify the lean user-global default `minimal-global` profile and the explicit opt-in `full` profile
 
 User-global calibration must be isolated unless the goal is to intentionally update the operator's real user-global files. Use a disposable clone and a disposable home/profile, then perform an actual sync before verification:
 

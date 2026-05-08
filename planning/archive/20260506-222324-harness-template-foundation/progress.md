@@ -1,0 +1,237 @@
+# 进展：Harness Template Foundation
+
+## 2026-04-10
+
+- 创建 task-scoped planning 文件
+- 确认工作目录为空，尚未初始化 Git
+- 开始检查本机 Codex / Cursor / Copilot / Claude Code 配置结构
+- 确认现有 Harness 实际上已经是“主源 + 共享技能 + IDE 投影”的多层结构
+- 识别出当前最关键的设计决策：未来模板的唯一事实源应该放在哪里
+- 用户已确认：主源方案选择 `IDE-neutral`
+- 用户已确认：运行模式选择双模式，v1 默认项目内安装
+- 用户已确认：v1 必须支持 Codex / Copilot / Cursor / Claude Code
+- 用户已确认：superpowers 与 planning-with-files 采用基线副本 + 上游更新的混合集成
+- 用户已确认：模板必须完全去个人化
+- 用户已确认总体架构：`Core + Adapters + Installer`
+- 已完成设计确认：
+  - 仓库结构与单一事实源边界
+  - core 内容模型与统一规则主源拆分
+  - adapter 投影策略与 link / materialize / render 判定
+  - installer / CLI 命令分工与状态文件思路
+  - README / docs 分层策略
+
+## 2026-04-11
+
+- 用户确认验证策略
+- 准备汇总为完整执行计划框架，覆盖抽取、验证、梳理、README、通用化、GitHub 仓库与分支策略
+- 写入设计 spec：`docs/superpowers/specs/2026-04-11-harness-template-design.md`
+- 完成 spec 自检并修正个人路径示例与开放决策歧义
+- 根据 spec 写出 implementation plan review/index 和 4 个子计划
+- 完成 plan 自检：
+  - 无占位符关键词
+  - 无旧 scope 术语
+  - 无个人绝对路径字面量
+- 未执行任何 implementation task
+- 用户已确认 implementation plan review
+- 等待选择执行方式：subagent-driven 或 inline execution
+- 用户选择 Subagent-Driven execution
+- 已将 plans 基线提交到 `main`
+- 已创建并切换到 `dev` 分支开始 implementation
+- 派发 Core plan Task 1：添加 Node test harness
+- Task 1 已完成：新增 `package.json`，并通过 `npm test` 验证无测试时为 0 tests / pass
+- Task 1 code quality review 发现 `verify` 过早引用未来 `doctor.mjs`
+- 已修复计划和实现：Task 1 先保持 `verify = node --test`，后续 installer plan Task 7 再加入 doctor check
+- Task 1 spec compliance 和 code quality 复审均通过
+- Task 2 已完成：新增 depersonalization test `tests/core/no-personal-paths.test.mjs`
+- 初版扫描命中 `planning/active/...` 中的研究路径，已按计划把 `planning` 加入忽略目录
+- `npm run test:core` 已通过
+- Task 3 开始：已按要求重新读取最新全局 `$HOME/.codex/AGENTS.md`
+- Task 3 新增中立 core policy 文件：
+  - `harness/core/policy/base.md`
+  - `harness/core/policy/snippets/shell-token-guidance.md`
+- Task 3 验证通过：`npm run test:core`
+- Task 3 已提交：`8f57cfd`，commit message 为 `feat: extract core harness policy`
+- Task 3 code quality review 要求平台中立化 archive guard，并为 shell/token snippet 增加使用边界
+- Task 3 质量修复已提交：`37f230a`，commit message 为 `fix: keep core policy platform neutral`
+- Task 3 code quality 复审通过
+- Task 4 已完成：新增四个平台 policy override 文件，并通过 spec / quality review
+- Task 5 已完成：新增 `platforms.json` 与 `state.schema.json`，并收紧 schema 约束
+- Task 6 已完成：新增 skill index、Copilot patch note、upstream sources metadata、`tests/core/skill-index.test.mjs`
+- 当前 `npm run test:core` 结果：2 tests pass / 0 fail
+- Task 7 已完成：vendored `superpowers` baseline 与 `planning-with-files` baseline 已落地到 `harness/upstream/`
+- Task 7 验证通过：`npm run test:core` 仍为 2 tests pass / 0 fail
+- Core policy/upstream 子计划已完成，当前工作树仅剩未跟踪系统文件 `planning/active/.DS_Store`
+- 已切换到 installer-cli 子计划，准备从 `scripts/harness` 与命令分发器开始实现最小 CLI 骨架
+- Installer Task 1 已完成：新增 `scripts/harness`、CLI dispatcher 与 6 个临时命令模块
+- Installer Task 1 本地验证通过：
+  - `./scripts/harness --help`
+  - `./scripts/harness install`
+  - `./scripts/harness doctor`
+  - `git diff --check -- scripts/harness harness/installer/commands`
+- Installer Task 1 已通过两层 review：
+  - spec compliance review 通过
+  - code quality / future-task compatibility review 通过
+- Installer Task 1 implementer commit：`2b26b89` `feat: add harness cli dispatcher`
+- Installer Task 2 已完成：新增 `state.mjs` 与 `tests/installer/state.test.mjs`
+- Installer Task 2 初版通过 spec review，但 code quality review 指出两个需要立即修复的问题：
+  - state shape 不能只做 happy path roundtrip，必须拒绝非法 state
+  - `writeState` 不能直接覆盖写，必须改为原子写
+- 已完成两轮跟进修复：
+  - 增加 state shape 校验与非法状态测试
+  - 把 temp file 命名改为 `pid + timestamp + randomUUID()`，并补并发写入回归测试
+- Installer Task 2 最终验证通过：
+  - `node --test tests/installer/state.test.mjs` -> 5 tests pass
+  - spec compatibility re-review 通过
+  - code quality re-review 通过
+- Installer Task 2 相关 commits：
+  - `fd4f01e` `feat: add harness state helpers`
+  - `d6ca9fd` `fix: validate and atomically write harness state`
+  - `8359d2c` `fix: harden harness state temp writes`
+- Installer Task 3 已完成：新增 `metadata.mjs` 与 `tests/installer/metadata.test.mjs`
+- Installer Task 3 验证通过：
+  - `node --test tests/installer/metadata.test.mjs` -> 3 tests pass
+  - spec compliance review 通过
+  - code quality review 通过
+- Installer Task 3 commit：`7b9e547` `feat: add harness metadata loader`
+- Installer Task 4 已完成：新增 `paths.mjs` 与 `tests/installer/paths.test.mjs`
+- Installer Task 4 初版通过 spec review，但 code quality review 指出两个问题：
+  - paths resolver 不应维护第二套 entry file 真源
+  - unknown target 不能静默返回空数组
+- 已完成 follow-up 修复：
+  - 从 `harness/core/metadata/platforms.json` 读取 `entryFiles`
+  - 新增 unknown target 失败测试
+- Installer Task 4 最终验证通过：
+  - `node --test tests/installer/paths.test.mjs` -> 4 tests pass
+  - spec compliance review 通过
+  - code quality re-review 通过
+- Installer Task 4 相关 commits：
+  - `bb2b478` `feat: add target path resolver`
+  - `d3491dd` `fix: derive target paths from metadata`
+- Installer Task 5 已完成：新增 `fs-ops.mjs` 与 `tests/installer/fs-ops.test.mjs`
+- Installer Task 5 初版通过 spec review，但 code quality review 指出一个阻塞问题：
+  - `writeRenderedFile` / `materializeFile` 在已有 symlink target 上会沿着 link 改写 referent
+- 已完成 follow-up 修复：
+  - 在 render / materialize / link 前统一替换既有 target path
+  - 新增 symlink reuse regression tests
+- Installer Task 5 最终验证通过：
+  - `node --test tests/installer/fs-ops.test.mjs` -> 4 tests pass
+  - spec compliance review 通过
+  - code quality re-review 通过
+- Installer Task 5 相关 commits：
+  - `ab6e456` `feat: add projection filesystem helpers`
+  - `5b309c1` `fix: replace symlink targets before writing`
+- Installer Task 6 已完成：替换 `install.mjs` 与 `status.mjs`
+- Installer Task 6 代码实现验证通过：
+  - `./scripts/harness install --scope=both --targets=codex,copilot --projection=portable`
+  - `./scripts/harness status`
+- Task 6 review 发现计划中的一个错误步骤：
+  - 把 `.harness/state.json` 一起提交进仓库会把本机绝对路径固化到 template 里
+  - 这会直接触发 `tests/core/no-personal-paths.test.mjs` 失败
+- 已完成仓库级修正：
+  - 新增 `.gitignore` 忽略 `.harness/`
+  - 从仓库中移除 `.harness/state.json`
+  - 把 `tests/core/no-personal-paths.test.mjs` 的忽略目录扩展到 `.harness`
+- 修正后验证通过：
+  - `npm run test:core` -> 2 tests pass
+  - `./scripts/harness install --scope=both --targets=codex,copilot --projection=portable`
+  - `./scripts/harness status`
+- Installer Task 6 commit：`2b1c9b0` `feat: add install state command`
+- Installer Task 7 已完成：实现 `doctor` / `sync` / `fetch` / `update` 合同，并更新 `verify`
+- Installer Task 7 初版通过 spec review，但 code quality review 指出两个问题：
+  - `verify` 不应依赖本地 `.harness/state.json` 或 `doctor --check-only`
+  - `doctor` 不能把个人路径检测写死为 `jared`
+- 已完成 follow-up 修复：
+  - `verify` 改为只跑仓库自己的 `tests/core/*.test.mjs` 与 `tests/installer/*.test.mjs`
+  - `doctor` 改成通用 home path pattern 检测，覆盖 macOS / Linux / Windows
+- Installer Task 7 最终验证通过：
+  - `node --test tests/core/*.test.mjs tests/installer/*.test.mjs` -> 18 tests pass
+  - `./scripts/harness status`
+  - `./scripts/harness sync`
+  - `./scripts/harness fetch`
+  - `./scripts/harness update`
+- Installer Task 7 相关 commits：
+  - `4228095` `feat: add installer command contracts`
+  - `b53fa32` `fix: stabilize installer verify and doctor scan`
+- installer-cli 子计划已完成
+- 当前转入 adapters-projection 子计划 Task 1：添加四个平台 render templates
+- Adapters Task 1 已完成：新增四个平台 render templates
+- Adapters Task 1 commit：`5407b49` `feat: add platform render templates`
+- Adapters Task 2 已完成：新增四个平台 adapter manifests
+- Adapters Task 2 commit：`f8fbed8` `feat: add adapter manifests`
+- Adapters Task 3 已完成：新增 adapter loader 与模板渲染测试
+- Adapters Task 3 初版通过 spec review，但 code quality review 指出一个问题：
+  - `entriesForScope` 不能直接依赖 adapter manifest 的 entry arrays 作为 runtime 路径真源
+- 已完成 follow-up 修复：
+  - `entriesForScope` 改为委托给 `paths.mjs`
+  - 新增测试确保 runtime path resolution 只认 installer path metadata
+- Adapters Task 3 最终验证通过：
+  - `node --test tests/adapters/templates.test.mjs` -> 2 tests pass
+- Adapters Task 3 相关 commits：
+  - `88065ef` `feat: add adapter rendering helpers`
+  - `5e96566` `fix: delegate adapter scope resolution`
+- 当前转入 Adapters Task 4：实现 sync projection
+- Adapters Task 4 已完成：`sync` 现在会渲染启用 target 的入口文件
+- Adapters Task 4 初版实现后发现测试隔离问题：
+  - `tests/adapters/sync.test.mjs` 会在 repo 根目录生成 `AGENTS.md`
+  - 还会写入本地 `.harness/state.json`
+- 已完成 follow-up 修正：
+  - sync 测试备份并恢复/删除 `AGENTS.md`
+  - sync 测试备份并恢复本地 `.harness/state.json`
+  - `.harness/state.json` 从 Git tracking 中移除，保持为 ignored local state
+  - `package.json` 的 `verify` 纳入 `tests/adapters/*.test.mjs`
+- Adapters Task 4 验证通过：
+  - `node --test tests/adapters/sync.test.mjs`
+  - `npm run verify` -> 21 tests pass
+- Adapters Task 4 相关 commits：
+  - `7bf3baf` `feat: render platform entries on sync`
+  - `d1301c0` `fix: isolate sync projection tests`
+- 当前转入 Adapters Task 5：新增 skill projection lookup contract
+- Adapters Task 5 已完成：新增 skill projection lookup
+- Adapters Task 5 初版通过 spec review，但 code quality review 指出一个问题：
+  - 未知 target 不能静默 fallback 到 default strategy
+- 已完成 follow-up 修复：
+  - `projectionForSkill` 校验 target 必须存在于 `platforms.json`
+  - projection strategy 必须是支持值
+  - 新增 unknown target 负向测试
+- Adapters Task 5 最终验证通过：
+  - `node --test tests/adapters/skill-projection.test.mjs` -> 3 tests pass
+  - `npm run verify` -> 24 tests pass
+- Adapters Task 5 相关 commits：
+  - `ce16f63` `feat: add skill projection lookup`
+- adapters-projection 子计划已完成
+- 当前转入 docs-verification-release 子计划 Task 1：新增 README
+- Docs Task 1 已完成：新增 `README.md`
+- Docs Task 1 commit：`4f705d2` `docs: add project readme`
+- 当前转入 Docs Task 2：新增 architecture 与 install docs
+- Docs Task 2 已完成：新增 architecture doc 与四个平台 install docs
+- Docs Task 2 commit：`162e369` `docs: add architecture and install guides`
+- 当前转入 Docs Task 3：新增 compatibility、maintenance、release docs
+- Docs Task 3 已完成：新增 compatibility、maintenance、release docs
+- Docs Task 3 commit：`fbae031` `docs: add maintenance and compatibility guides`
+- 当前转入 Docs Task 4：新增 verification report command
+- Docs Task 4 已完成：新增 `harness verify` report command
+- Docs Task 4 commit：`96c4d06` `feat: add verification report command`
+- `./scripts/harness verify` 已验证可生成 `reports/verification/latest.md/json`，生成物已清理，仓库只保留 `.gitkeep`
+- 当前转入 Docs Task 5：把 GitHub repository setup 写入 release doc
+- Docs Task 5 已完成：release doc 增加 GitHub repository setup
+- Release flow 已从 `npm test` / `doctor` 调整为 `npm run verify` / `./scripts/harness verify`
+- docs-verification-release 子计划已完成
+- 本地 `main` 已 fast-forward 到 `dev`
+- 已创建 GitHub repository：`https://github.com/ilderaj/HarnessTemplate`
+- 已推送并设置 tracking：
+  - `dev` -> `origin/dev`
+  - `main` -> `origin/main`
+- GitHub repository 已设置：
+  - default branch: `main`
+  - template repository: enabled
+- Task 4 已完成：新增四个平台 overrides，`npm run test:core` 通过，commit `ee96d24`
+- Task 5 已开始：按计划创建 `harness/core/metadata/` 与 `harness/core/state-schema/`
+- Task 5 将只落地核心元数据与状态 schema，不扩展到 Task 6
+- Task 5 schema review 发现 `state.schema.json` 需要收紧顶层与 target 结构，正在按 reviewer 指示修复
+- `v1.6` release-readiness closeout 复核结论：
+  - 当前 `origin` URL 为 `https://github.com/ilderaj/superpowering-with-files.git`
+  - `./scripts/harness adopt-global` 已将 user-global receipt 对齐到当前 verified repo head
+  - `./scripts/harness adoption-status` 返回 `in_sync`
+  - `npm run verify` 返回 `333 pass / 0 fail`
+  - `./scripts/harness doctor --check-only` 返回 `Harness check passed`
+  - foundation umbrella 不再保留新的 implementation scope，剩余工作已经收敛为 lifecycle closeout 与 archive records

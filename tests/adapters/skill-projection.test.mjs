@@ -2,13 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { applyCopilotPlanningPatch } from '../../harness/installer/lib/copilot-planning-patch.mjs';
 import { materializeDirectoryProjection } from '../../harness/installer/lib/fs-ops.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../../harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs';
 import {
+  classifySkillProjectionDuplicates,
   planSkillProjections,
   projectionForSkill
 } from '../../harness/installer/lib/skill-projection.mjs';
@@ -417,6 +418,94 @@ test('applySuperpowersFinishingADevelopmentBranchPatch fails when Step 2 cannot 
       applySuperpowersFinishingADevelopmentBranchPatch(target),
       /Unable to apply Harness Superpowers finishing-a-development-branch base patch/
     );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('classifySkillProjectionDuplicates distinguishes display duplicates from true duplicates', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-skill-duplicate-classifier-'));
+
+  try {
+    const sourceRoot = path.join(dir, 'sources');
+    const canonicalSource = path.join(sourceRoot, 'using-superpowers');
+    const canonicalSourceCopy = path.join(sourceRoot, 'using-superpowers-copy');
+    const aliasSource = path.join(sourceRoot, 'using-superpowers-alias');
+    const targetRoot = path.join(dir, 'targets');
+    const firstTarget = path.join(targetRoot, 'workspace');
+    const secondTarget = path.join(targetRoot, 'global');
+
+    await mkdir(canonicalSource, { recursive: true });
+    await mkdir(canonicalSourceCopy, { recursive: true });
+    await mkdir(targetRoot, { recursive: true });
+    await writeFile(path.join(canonicalSource, 'SKILL.md'), '# canonical\n');
+    await writeFile(path.join(canonicalSourceCopy, 'SKILL.md'), '# duplicate\n');
+    await symlink(canonicalSource, aliasSource);
+    await symlink(canonicalSource, firstTarget);
+    await symlink(aliasSource, secondTarget);
+    const canonicalResolvedPath = await realpath(canonicalSource);
+
+    const displayDuplicates = await classifySkillProjectionDuplicates([
+      {
+        kind: 'skill',
+        target: 'copilot',
+        skillName: 'using-superpowers',
+        sourcePath: canonicalSource,
+        targetPath: firstTarget
+      },
+      {
+        kind: 'skill',
+        target: 'copilot',
+        skillName: 'using-superpowers',
+        sourcePath: aliasSource,
+        targetPath: secondTarget
+      }
+    ]);
+
+    assert.deepEqual(displayDuplicates, [
+      {
+        target: 'copilot',
+        skillName: 'using-superpowers',
+        classification: 'display-duplicate',
+        resolvedPath: canonicalResolvedPath,
+        resolvedPaths: [canonicalResolvedPath],
+        sourcePaths: [canonicalSource, aliasSource].sort(),
+        targetPaths: [firstTarget, secondTarget].sort()
+      }
+    ]);
+
+    await rm(secondTarget, { recursive: true, force: true });
+    await symlink(canonicalSourceCopy, secondTarget);
+    const duplicateResolvedPath = await realpath(canonicalSourceCopy);
+
+    const trueDuplicates = await classifySkillProjectionDuplicates([
+      {
+        kind: 'skill',
+        target: 'copilot',
+        skillName: 'using-superpowers',
+        sourcePath: canonicalSource,
+        targetPath: firstTarget
+      },
+      {
+        kind: 'skill',
+        target: 'copilot',
+        skillName: 'using-superpowers',
+        sourcePath: canonicalSourceCopy,
+        targetPath: secondTarget
+      }
+    ]);
+
+    assert.deepEqual(trueDuplicates, [
+      {
+        target: 'copilot',
+        skillName: 'using-superpowers',
+        classification: 'true-duplicate',
+        resolvedPath: [canonicalResolvedPath, duplicateResolvedPath].sort().join(', '),
+        resolvedPaths: [canonicalResolvedPath, duplicateResolvedPath].sort(),
+        sourcePaths: [canonicalSource, canonicalSourceCopy].sort(),
+        targetPaths: [firstTarget, secondTarget].sort()
+      }
+    ]);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

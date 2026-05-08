@@ -91,7 +91,9 @@ test('install stores the selected entry and skills profiles in state', async () 
     );
 
     const state = await readState(root);
-    assert.equal(state.policyProfile, 'safety');
+    assert.equal(state.policyProfile, 'always-on-core');
+    assert.equal(state.workspacePolicyOverlay, 'safety');
+    assert.equal(state.deploymentProfile, 'standard');
     assert.equal(state.skillProfile, 'minimal-global');
     assert.equal(state.scope, 'workspace');
     assert.equal(state.targets.codex.enabled, true);
@@ -108,6 +110,36 @@ test('install defaults Copilot-only installs to copilot-default skills profile',
     const state = await readState(root);
     assert.equal(state.skillProfile, 'copilot-default');
     assert.equal(state.targets.copilot.enabled, true);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install defaults user-global installs to minimal-global skills profile', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await harnessCommandWithEnv(root, { HOME: homeDir }, 'install', '--scope=user-global', '--targets=all');
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'minimal-global');
+    assert.equal(state.scope, 'user-global');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install defaults both-scope installs to minimal-global skills profile', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await harnessCommandWithEnv(root, { HOME: homeDir }, 'install', '--scope=both', '--targets=codex');
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'minimal-global');
+    assert.equal(state.scope, 'both');
   } finally {
     await removeHarnessFixture(root);
   }
@@ -359,6 +391,10 @@ test('verify renders overlap and per-target hook ledger rows when Copilot is ena
     assert.match(stdout, /Hook payload target: copilot/);
     assert.match(stdout, /Hook payload detail:/);
     assert.match(stdout, /copilot \/ planning-hot \/ (?:ok|problem) \/ \d+ tokens/);
+    assert.match(stdout, /Budget ledger:/);
+    assert.match(stdout, /copilot policy: thin-entry-overlap-guard/);
+    assert.match(stdout, /copilot session: entry=\d+, skillDiscovery=\d+, skillBody=\d+, skillSource=\d+, planning=\d+ tokens/);
+    assert.match(stdout, /copilot turn: hooks=\d+, planning=\d+ tokens/);
     assert.match(stdout, /Scope overlap verdict: warning/);
     assert.match(stdout, /Scope overlap detail: copilot -> workspace \+ user-global/);
     assert.match(stdout, /Recommended action: choose one canonical scope for Copilot/i);
@@ -388,12 +424,14 @@ test('verify --output writes report files only to the requested directory', asyn
 
     assert.match(markdown, /Context entry verdict:/);
     assert.match(markdown, /Hook payload verdict:/);
+    assert.match(markdown, /Budget ledger:/);
     assert.match(markdown, /Planning hot context verdict:/);
     assert.match(markdown, /Skill profile verdict:/);
     assert.equal(report.health.context.summary.entries.verdict, 'ok');
     assert.equal(report.health.context.summary.hooks.verdict, 'ok');
     assert.equal(report.health.context.summary.planning.verdict, 'ok');
     assert.equal(report.health.context.summary.skillProfiles.verdict, 'ok');
+    assert.ok(report.health.context.ledger);
     assert.equal(report.health.context.entries.length, 0);
     assert.ok(Array.isArray(report.health.context.warnings));
     await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);

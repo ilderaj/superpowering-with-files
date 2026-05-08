@@ -50,6 +50,28 @@ function renderHookPayloadSection(health) {
   return `${lines.join('\n')}\n`;
 }
 
+function renderBudgetLedgerSection(health) {
+  const ledger = health.context?.ledger;
+  const lines = [
+    'Budget ledger:',
+    `- install: scope=${ledger?.scope ?? 'unknown'}, projection=${ledger?.projectionMode ?? 'unknown'}, deployment=${ledger?.deploymentProfile ?? 'unknown'}, hooks=${ledger?.hookMode ?? 'unknown'}, policy=${ledger?.policyProfile ?? 'unknown'}, overlay=${ledger?.workspacePolicyOverlay ?? 'none'}, skills=${ledger?.skillProfile ?? 'unknown'}`
+  ];
+
+  for (const target of ledger?.targets ?? []) {
+    if (target.budgetPolicy?.sessionPolicy) {
+      lines.push(`- ${target.target} policy: ${target.budgetPolicy.sessionPolicy}`);
+    }
+    lines.push(
+      `- ${target.target} session: entry=${target.session?.entry?.approxTokens ?? 0}, skillDiscovery=${target.session?.skillDiscovery?.approxTokens ?? 0}, skillBody=${target.session?.skillBody?.approxTokens ?? 0}, skillSource=${target.session?.skillSource?.approxTokens ?? 0}, planning=${target.session?.planningHotContext?.approxTokens ?? 0} tokens`
+    );
+    lines.push(
+      `- ${target.target} turn: hooks=${target.turn?.hookPayload?.approxTokens ?? 0}, planning=${target.turn?.planningHotContext?.approxTokens ?? 0} tokens`
+    );
+  }
+
+  return `${lines.join('\n')}\n`;
+}
+
 function renderedScopeOverlapWarnings(health) {
   return new Set(
     (health.scopeOverlap?.overlaps ?? []).map((overlap) => {
@@ -99,6 +121,7 @@ export async function doctor(args = []) {
       console.log(safetySection);
     }
     console.log(renderHookPayloadSection(health));
+    console.log(renderBudgetLedgerSection(health));
     console.error(uniqueProblems.join('\n'));
     process.exitCode = 1;
     return;
@@ -109,6 +132,7 @@ export async function doctor(args = []) {
     console.log(safetySection);
   }
   console.log(renderHookPayloadSection(health));
+  console.log(renderBudgetLedgerSection(health));
   console.log(checkOnly ? 'Harness check passed.' : 'Harness installation is healthy.');
 }
 

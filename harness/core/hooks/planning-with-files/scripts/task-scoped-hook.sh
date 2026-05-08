@@ -229,11 +229,22 @@ render_copilot_pretool_context() {
   printf '%s' "[planning-with-files] Stay aligned with ${relative_dir}/task_plan.md and record tool-impacting progress in ${relative_dir}/progress.md after the tool call."
 }
 
+uses_compact_prompt_contract() {
+  case "$target" in
+    copilot|codex|cursor|claude-code|generic)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 case "$event" in
   session-start)
     write_session_sidecar "$task_dir"
     clear_last_hot_context_fingerprint "$task_dir"
-    if [ "$target" = "copilot" ]; then
+    if uses_compact_prompt_contract; then
       context="$(render_copilot_session_start_context)"
     else
       context="$(render_hot_context)"
@@ -241,7 +252,7 @@ case "$event" in
     emit_context "$context" "SessionStart"
     ;;
   user-prompt-submit)
-    if [ "$target" = "copilot" ]; then
+    if uses_compact_prompt_contract; then
       fingerprint="$(render_planning_fingerprint)"
       previous_fingerprint="$(read_last_hot_context_fingerprint "$task_dir")"
       if [ -n "$fingerprint" ] && [ "$fingerprint" = "$previous_fingerprint" ]; then
@@ -256,7 +267,7 @@ case "$event" in
     emit_context "$context" "UserPromptSubmit"
     ;;
   pre-tool-use)
-    if [ "$target" = "copilot" ]; then
+    if uses_compact_prompt_contract; then
       context="$(render_copilot_pretool_context)"
     else
       context="$(render_hot_context)"
@@ -264,7 +275,7 @@ case "$event" in
     emit_context "$context" "PreToolUse"
     ;;
   post-tool-use)
-    emit_context "[planning-with-files] Update $(relative_path "$progress") with what you just did. If the phase changed, update $(relative_path "$plan")." "PostToolUse"
+    emit_context "[planning-with-files] Update $(relative_path "$progress") with what you just did. If you need a fresh timestamped block, use ./scripts/harness record --task $(basename "$task_dir") --file progress. If the phase changed, update $(relative_path "$plan")." "PostToolUse"
     ;;
   stop)
     context="$(render_session_summary)"

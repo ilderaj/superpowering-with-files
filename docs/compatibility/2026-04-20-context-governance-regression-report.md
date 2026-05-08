@@ -52,7 +52,7 @@ Executed after fast-forwarding local `dev`.
 
 The compatibility calibration ran twice in a disposable clone with a disposable `HOME`:
 
-- default state: `scope=both`, `targets=all`, `projection=portable`, `full`, hooks off
+- default state at the time of this report: `scope=both`, `targets=all`, `projection=portable`, `full`, hooks off
 - adoption state: `scope=both`, `targets=all`, `projection=portable`, `minimal-global`, hooks on
 
 Results for both pre-merge and post-merge calibration:

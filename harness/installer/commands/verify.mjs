@@ -50,6 +50,27 @@ function renderScopeOverlapLines(scopeOverlap) {
   return lines;
 }
 
+function renderBudgetLedgerLines(ledger) {
+  const lines = [
+    'Budget ledger:',
+    `- install: scope=${ledger?.scope ?? 'unknown'}, projection=${ledger?.projectionMode ?? 'unknown'}, hooks=${ledger?.hookMode ?? 'unknown'}, policy=${ledger?.policyProfile ?? 'unknown'}, skills=${ledger?.skillProfile ?? 'unknown'}`
+  ];
+
+  for (const target of ledger?.targets ?? []) {
+    if (target.budgetPolicy?.sessionPolicy) {
+      lines.push(`- ${target.target} policy: ${target.budgetPolicy.sessionPolicy}`);
+    }
+    lines.push(
+      `- ${target.target} session: entry=${target.session?.entry?.approxTokens ?? 0}, skillDiscovery=${target.session?.skillDiscovery?.approxTokens ?? 0}, skillBody=${target.session?.skillBody?.approxTokens ?? 0}, skillSource=${target.session?.skillSource?.approxTokens ?? 0}, planning=${target.session?.planningHotContext?.approxTokens ?? 0} tokens`
+    );
+    lines.push(
+      `- ${target.target} turn: hooks=${target.turn?.hookPayload?.approxTokens ?? 0}, planning=${target.turn?.planningHotContext?.approxTokens ?? 0} tokens`
+    );
+  }
+
+  return lines;
+}
+
 function renderMarkdown(report) {
   const context = report.health?.context;
   const summary = context?.summary?.entries;
@@ -73,6 +94,7 @@ function renderMarkdown(report) {
     `Hook payload size: ${hookSummary?.chars ?? 0} chars, ${hookSummary?.lines ?? 0} lines, ${hookSummary?.approxTokens ?? 0} approx tokens (worst target session)`,
     ...renderHookPayloadDetailLines(context?.hooks ?? []),
     ...renderScopeOverlapLines(report.health?.scopeOverlap),
+    ...renderBudgetLedgerLines(context?.ledger),
     `Planning hot context verdict: ${planningSummary?.verdict ?? 'unknown'}`,
     `Planning hot context target: ${planningSummary?.target ?? 'none'}`,
     `Planning hot context size: ${planningSummary?.chars ?? 0} chars, ${planningSummary?.lines ?? 0} lines, ${planningSummary?.approxTokens ?? 0} approx tokens (worst target session)`,

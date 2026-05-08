@@ -45,9 +45,18 @@ test('init-session.ps1 formats timestamps with an explicit UTC+8 offset', async 
     'utf8'
   );
 
-  assert.match(script, /UtcNow\.ToOffset\(\[TimeSpan\]::FromHours\(8\)\)/);
-  assert.match(script, /yyyy-MM-dd HH:mm:ss/);
-  assert.match(script, /UTC\+8/);
+  assert.match(script, /planning_record\.py" timestamp/);
+});
+
+test('planning_record.py renders canonical progress and findings headings', async () => {
+  const scriptPath = path.join(process.cwd(), 'harness/upstream/planning-with-files/scripts/planning_record.py');
+  const { stdout: progressHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'progress']);
+  const { stdout: findingsHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'findings']);
+  const { stdout: taskPlanHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'task_plan']);
+
+  assert.match(progressHeading.trim(), new RegExp(`^## Session: ${utc8TimestampPattern.source}$`));
+  assert.match(findingsHeading.trim(), new RegExp(`^## Findings Record: ${utc8TimestampPattern.source}$`));
+  assert.match(taskPlanHeading.trim(), new RegExp(`^## Plan Record: ${utc8TimestampPattern.source}$`));
 });
 
 test('sync materializes planning-with-files progress template with timestamp guidance', async () => {

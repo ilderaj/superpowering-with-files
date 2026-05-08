@@ -65,10 +65,12 @@ test('adopt-global bootstraps user-global state, verification output, and receip
     assert.equal(state.scope, 'user-global');
     assert.equal(state.hookMode, 'off');
     assert.equal(state.policyProfile, 'always-on-core');
+    assert.equal(state.skillProfile, 'minimal-global');
     assert.deepEqual(Object.keys(state.targets).sort(), ['claude-code', 'codex', 'copilot', 'cursor']);
     assert.equal(receipt.status, 'success');
     assert.equal(receipt.scope, 'user-global');
     assert.equal(receipt.policyProfile, 'always-on-core');
+    assert.equal(receipt.skillProfile, 'minimal-global');
     assert.deepEqual(receipt.targets, ['claude-code', 'codex', 'copilot', 'cursor']);
     assert.equal(receipt.repoHead, await currentHead(root));
     assert.equal(verification.health.problems.length, 0);
@@ -106,7 +108,7 @@ test('adopt-global lets an explicit Copilot skills profile override win over the
   }
 });
 
-test('adopt-global treats an empty user-global state as bootstrap for Copilot defaults', async () => {
+test('adopt-global treats an empty user-global state as lean bootstrap for Copilot', async () => {
   const root = await createHarnessFixture();
   const homeDir = path.join(root, 'home');
   try {
@@ -131,8 +133,8 @@ test('adopt-global treats an empty user-global state as bootstrap for Copilot de
       await readFile(path.join(root, '.harness/adoption/global.json'), 'utf8')
     );
 
-    assert.equal(state.skillProfile, 'copilot-default');
-    assert.equal(receipt.skillProfile, 'copilot-default');
+    assert.equal(state.skillProfile, 'minimal-global');
+    assert.equal(receipt.skillProfile, 'minimal-global');
     assert.deepEqual(Object.keys(state.targets), ['copilot']);
     assert.deepEqual(receipt.targets, ['copilot']);
   } finally {
@@ -346,8 +348,9 @@ test('adoption-status reports state_mismatch when install state drifts after ado
     const state = await readState(root);
     await writeState(root, {
       ...state,
-      policyProfile: 'safety',
-      skillProfile: 'minimal-global'
+      policyProfile: 'tracked-task-extended',
+      workspacePolicyOverlay: null,
+      skillProfile: 'full'
     });
 
     const { stdout } = await harnessCommand(root, homeDir, 'adoption-status');

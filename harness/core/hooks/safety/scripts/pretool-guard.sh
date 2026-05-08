@@ -199,6 +199,100 @@ function absolutePathTargets(command, homeDir) {
   });
 }
 
+function shellSplit(command) {
+  const tokens = [];
+  let current = '';
+  let quote = null;
+  let escaping = false;
+
+  for (const char of command) {
+    if (escaping) {
+      current += char;
+      escaping = false;
+      continue;
+    }
+
+    if (char === '\\') {
+      escaping = true;
+      continue;
+    }
+
+    if (quote) {
+      if (char === quote) {
+        quote = null;
+      } else {
+        current += char;
+      }
+      continue;
+    }
+
+    if (char === '\'' || char === '"') {
+      quote = char;
+      continue;
+    }
+
+    if (/\s/.test(char)) {
+      if (current) {
+        tokens.push(current);
+        current = '';
+      }
+      continue;
+    }
+
+    current += char;
+  }
+
+  if (escaping || quote) return null;
+  if (current) tokens.push(current);
+  return tokens;
+}
+
+function isFindCommand(command) {
+  const trimmed = command.trimStart();
+  return trimmed === 'find' || trimmed.startsWith('find ');
+}
+
+function isLowRiskFindCommand(command) {
+  if (!isFindCommand(command)) return false;
+  if (/[|&;<>`]/.test(command) || /\$\(/.test(command) || /[\r\n]/.test(command)) return false;
+
+  const tokens = shellSplit(command);
+  if (!tokens || tokens[0] !== 'find') return false;
+
+  const allowedFlags = new Set([
+    '-maxdepth',
+    '-mindepth',
+    '-name',
+    '-iname',
+    '-path',
+    '-ipath',
+    '-type'
+  ]);
+  const allowedStandalone = new Set(['-print', '(', ')', '!', '-a', '-o']);
+
+  for (let index = 1; index < tokens.length; index += 1) {
+    const token = tokens[index];
+
+    if (allowedStandalone.has(token)) {
+      continue;
+    }
+
+    if (allowedFlags.has(token)) {
+      const value = tokens[index + 1];
+      if (!value) return false;
+      if (token === '-type' && !/^[bcdpfls]$/.test(value)) return false;
+      index += 1;
+      continue;
+    }
+
+    if (token.startsWith('-')) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 function hasRiskAssessment(rootDir) {
   const activeRoot = path.join(rootDir, 'planning', 'active');
   if (!fs.existsSync(activeRoot)) return false;
@@ -273,7 +367,7 @@ const protectedPaths = expandHomePatterns(
 const dangerousPatterns = readLines('dangerous-patterns.txt', [
   '^\\s*rm\\s+-rf?\\b',
   '^\\s*rmdir\\b',
-  '\\bfind\\b.*\\b-delete\\b',
+  '\\bfind\\b.*(?:^|\\s)-delete(?:\\s|$)',
   '^\\s*git\\s+clean\\b',
   '^\\s*git\\s+reset\\s+--hard\\b',
   '^\\s*sudo\\b',
@@ -310,6 +404,7 @@ function hasDetectableCommand(rawText) {
 
   return shellLikeLines.some((line) => {
     if (safePatterns.some((pattern) => pattern.test(line))) return true;
+    if (isLowRiskFindCommand(line)) return true;
     if (dangerousPatterns.some((pattern) => pattern.test(line))) return true;
 
     return (
@@ -349,6 +444,16 @@ for (const target of absolutePathTargets(command, homeDir)) {
     emit('deny', 'Command targets an absolute path outside the workspace.', cwd, command);
     process.exit(0);
   }
+}
+
+if (isFindCommand(command)) {
+  if (isLowRiskFindCommand(command)) {
+    emit('allow', 'find command matches the low-risk query allow-list.', cwd, command);
+    process.exit(0);
+  }
+
+  emit('ask', 'find command is outside the low-risk query allow-list.', cwd, command);
+  process.exit(0);
 }
 
 if (repoRoot && safePatterns.some((pattern) => pattern.test(command)) && isInside(cwd, repoRoot)) {

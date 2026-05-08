@@ -28,7 +28,12 @@ import {
 } from '../lib/projection-manifest.mjs';
 import { coalesceSkillProjections, planSkillProjections } from '../lib/skill-projection.mjs';
 import { planSafetyProjections } from '../lib/safety-projection.mjs';
-import { readState, updateState } from '../lib/state.mjs';
+import {
+  activeSafetyPolicyProfile,
+  effectiveEntryPolicyProfiles,
+  readState,
+  updateState
+} from '../lib/state.mjs';
 import { removeManagedHookConfig, removeManagedHookSettings } from '../lib/hook-config.mjs';
 import { isUserManagedTarget, readUserManaged } from '../lib/user-managed.mjs';
 
@@ -63,7 +68,9 @@ async function applySkillPatches(projection) {
     }
 
     if (patch.type === 'copilot-planning-with-files') {
-      await applyCopilotPlanningPatch(projection.targetPath);
+      await applyCopilotPlanningPatch(projection.targetPath, {
+        preferGithubSkillRoot: projection.deploymentProfile === 'github-cloud'
+      });
       continue;
     }
 
@@ -250,6 +257,8 @@ async function applyManagedProjection(projection, ownedTargets, conflictMode, ba
 
 async function planSyncOperations({ rootDir, homeDir, state }) {
   const targets = Object.keys(state.targets).filter((target) => state.targets[target].enabled);
+  const effectiveEntryProfiles = effectiveEntryPolicyProfiles(state);
+  const safetyProfile = activeSafetyPolicyProfile(state);
   const entryWrites = [];
   const rawSkillWrites = [];
   const hookWrites = [];
@@ -257,14 +266,14 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
     rootDir,
     homeDir,
     scope: state.scope,
-    policyProfile: state.policyProfile
+    policyProfile: safetyProfile
   });
   const manifestEntries = [];
   const userManaged = await readUserManaged(homeDir);
 
   for (const target of targets) {
     const adapter = await loadAdapter(rootDir, target);
-    const content = await renderEntry(rootDir, target, state.policyProfile);
+    const content = await renderEntry(rootDir, target, effectiveEntryProfiles);
     const entries = entriesForScope(rootDir, homeDir, adapter, state.scope);
 
     for (const entry of entries) {
@@ -286,7 +295,8 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
       homeDir,
       scope: state.scope,
       target,
-      skillProfile: state.skillProfile
+      skillProfile: state.skillProfile,
+      deploymentProfile: state.deploymentProfile
     });
 
     for (const projection of skillProjections) {
@@ -302,7 +312,7 @@ async function planSyncOperations({ rootDir, homeDir, state }) {
       scope: state.scope,
       target,
       hookMode: state.hookMode,
-      policyProfile: state.policyProfile
+      policyProfile: safetyProfile
     });
 
     for (const projection of hookProjections) {

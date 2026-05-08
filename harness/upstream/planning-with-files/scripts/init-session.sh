@@ -7,13 +7,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_PATH="${1:-$(pwd)}"
 TASK_ID="${2:-}"
-TIMESTAMP="$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S UTC+8')"
 PYTHON_BIN="$(command -v python3 || command -v python)"
 
 if [ -z "$PYTHON_BIN" ]; then
     echo "[planning-with-files] Python is required to initialize planning files."
     exit 1
 fi
+
+TIMESTAMP="$("$PYTHON_BIN" "$SCRIPT_DIR/planning_record.py" timestamp)"
 
 PLAN_DIR="$("$PYTHON_BIN" "$SCRIPT_DIR/planning_paths.py" ensure-active-dir "$PROJECT_PATH" "$TASK_ID")"
 TASK_SLUG="$("$PYTHON_BIN" "$SCRIPT_DIR/planning_paths.py" task-id "$PROJECT_PATH" "$TASK_ID")"

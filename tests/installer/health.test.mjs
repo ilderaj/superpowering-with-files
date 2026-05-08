@@ -581,10 +581,11 @@ test('readHarnessHealth reports safety checks for safety profile installs', asyn
 
     await writeState(root, {
       schemaVersion: 1,
-      scope: 'both',
+      scope: 'workspace',
       projectionMode: 'link',
       hookMode: 'on',
-      policyProfile: 'safety',
+      policyProfile: 'always-on-core',
+      workspacePolicyOverlay: 'safety',
       targets: {
         codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
       },
@@ -1003,6 +1004,20 @@ test('readHarnessHealth summarizes hook, planning, and skill profile context led
     assert.equal(health.context.summary.hooks.verdict, 'ok');
     assert.equal(health.context.summary.planning.verdict, 'ok');
     assert.equal(health.context.summary.skillProfiles.verdict, 'ok');
+    assert.equal(health.context.ledger.scope, 'workspace');
+    assert.equal(health.context.ledger.policyProfile, 'always-on-core');
+    assert.equal(health.context.ledger.skillProfile, 'full');
+    assert.equal(health.context.ledger.hookMode, 'on');
+    assert.equal(health.context.ledger.targets.length, 1);
+    assert.equal(health.context.ledger.targets[0].target, 'codex');
+    assert.equal(health.context.ledger.targets[0].budgetPolicy.sessionPolicy, 'stable-prefix-lazy-skills');
+    assert.ok(health.context.ledger.targets[0].session.entry.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].session.skillDiscovery.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].session.skillBody.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].session.skillSource.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].session.planningHotContext.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].turn.hookPayload.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].turn.planningHotContext.approxTokens > 0);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -1848,6 +1863,48 @@ test('readHarnessHealth keeps root-level planning files and docs/plans as warnin
         warning.includes('docs/plans: docs/plans contains plan files outside planning/active/<task-id>/')
       )
     );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth classifies symlinked Copilot skill duplicates without failing display-only overlap', async (t) => {
+  const root = await createHarnessFixture();
+  const home = path.join(root, 'home');
+
+  try {
+    t.mock.method(os, 'homedir', () => home);
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'both',
+      projectionMode: 'link',
+      targets: {
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+
+    const workspaceSkill = path.join(root, '.agents/skills/using-superpowers');
+    const globalSkill = path.join(home, '.agents/skills/using-superpowers');
+    const canonicalSource = path.join(root, 'harness/upstream/superpowers/skills/using-superpowers');
+
+    await rm(workspaceSkill, { recursive: true, force: true });
+    await rm(globalSkill, { recursive: true, force: true });
+    await symlink(canonicalSource, workspaceSkill);
+    await symlink(canonicalSource, globalSkill);
+
+    const health = await readHarnessHealth(root, home);
+    const duplicateMessage = health.warnings.find((warning) =>
+      warning.includes('skill duplicate copilot using-superpowers: display-duplicate')
+    );
+
+    assert.ok(duplicateMessage);
+    assert.match(duplicateMessage, /source path:/);
+    assert.match(duplicateMessage, /resolved path:/);
+    assert.match(duplicateMessage, /target path:/);
+    assert.ok(!health.problems.some((problem) => problem.includes('skill duplicate copilot using-superpowers')));
   } finally {
     await removeHarnessFixture(root);
   }
