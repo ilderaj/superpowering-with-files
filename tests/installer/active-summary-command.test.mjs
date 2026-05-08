@@ -116,6 +116,7 @@ test('harness active-summary --json and --output marks unsynced companions as no
         '- **Status:** complete'
       ].join('\n')
     });
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
     await writeFile(
       path.join(root, 'docs/superpowers/plans/task-blocked.md'),
       [
