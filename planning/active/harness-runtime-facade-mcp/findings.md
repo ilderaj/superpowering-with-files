@@ -45,6 +45,24 @@
 | stdio server 如果用 `console.log` 会污染协议 stdout | MCP server 层禁止业务日志写 stdout；所有日志写 stderr，tool 内容走 MCP response。 |
 | 真实云端支持不能靠 simulator 声称完成 | Phase 3 完成定义分为 contract complete 与 platform activated；platform activated 必须有 Codespaces/Copilot cloud/remote agent live smoke receipt。 |
 
+## Implementation Findings
+- `harness/mcp/stdio.mjs` 和 `harness/mcp/http.mjs` 必须区分 “被 import” 与 “被直接执行”；否则测试 import `runHttpSelfTest()` 时会意外启动常驻 server，污染 session 和端口。
+- Streamable HTTP stateful session 需要在 `StreamableHTTPServerTransport` 构造时传入 `onsessioninitialized`；后设属性不会生效，客户端初始化后的第二个 POST 会丢 session。
+- 对不支持 standalone SSE 的 server，`GET /mcp` 无 session 时返回 `405` 更符合 SDK client 预期；返回 `400` 会把“未实现该模式”误判成协议错误。
+- MCP HTTP localhost self-test 在当前 sandbox 下会触发 `listen EPERM`；仓库级 `verify` 需要对这种环境限制做显式 skip，而不能让整套测试红掉。
+- 公共 `createHarnessFixture()` 不能默认注入 live companion plans，也不能默认 symlink 整棵 `node_modules`；这会污染 health diagnostics，并把 hook payload measurement 拉慢到超时。
+
+## Final Verification Facts
+- `npm run test:mcp`：20/20 通过；包含 stdio handshake、safe-write、approval、registry/policy、HTTP local self-test、remote live-guard。
+- `npm run verify`：354 通过，1 skip；唯一 skip 是 sandbox 阻止 localhost listen 的 `tests/mcp/http.test.mjs`。
+- `node harness/mcp/http.mjs --profile=local --self-test`：提权环境通过，返回 `ok: true` 与 `toolCount: 7`。
+- `./scripts/harness sync --dry-run`：零 diff。
+- `./scripts/harness doctor --check-only`：通过，无 warning/problem。
+
+## Documentation Decisions
+- README 和 `docs/architecture.md` 现在显式区分三层：adapter projection、shared runtime services、MCP runtime facade。
+- MCP 被定义为 control plane，不承担 IDE projection，不允许成为“第五个普通 adapter”。
+
 ## Resources
 - Local: `/Users/jared/SuperpoweringWithFiles/README.md`
 - Local: `/Users/jared/SuperpoweringWithFiles/docs/architecture.md`

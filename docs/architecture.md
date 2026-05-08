@@ -1,13 +1,23 @@
 # Architecture
 
-superpowering-with-files uses four layers:
+superpowering-with-files uses six layers:
 
 - `harness/core`: platform-neutral policy, skills metadata, templates, and schemas.
 - `harness/adapters`: platform-specific projection manifests.
 - `harness/installer`: CLI commands and projection logic.
+- `harness/runtime`: typed runtime services shared by CLI and MCP.
+- `harness/mcp`: MCP tools, resources, and transports.
 - `harness/upstream`: vendored baselines and source metadata.
 
-Core is the source of truth. Adapters translate core into platform-specific entry files. The installer manages state, safe writes, and entry + skills projection.
+Core is the source of truth. Adapters translate core into platform-specific entry files. The installer manages state, safe writes, and entry + skills projection. Runtime services hold reusable business logic. The MCP layer exposes that logic to external agents as a governed facade rather than as another adapter.
+
+The runtime split is intentional:
+
+- `harness/adapters` remains the projection layer for Codex, GitHub Copilot, Cursor, and Claude Code.
+- `harness/runtime` contains root policy, status/doctor/summary services, dry-run planning, safe-apply flows, approval verification, receipts, and registry/policy evaluation.
+- `harness/mcp` registers those services as MCP tools and resources over stdio or Streamable HTTP.
+
+If a feature can be shared between CLI and MCP, it belongs in `harness/runtime`, not in `harness/mcp`, and not in a shell wrapper around `./scripts/harness`.
 
 `harness/core/policy/base.md` remains the canonical policy source. Entry files are rendered from heading-based profiles, so the always-on startup payload is smaller than the full canonical policy. Tracked-task and deep-reasoning detail still lives in `base.md`, but it is not injected into every session start by default.
 

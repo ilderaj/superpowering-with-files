@@ -1,7 +1,7 @@
 # Task Plan: Harness Runtime Facade MCP
 
 ## Goal
-判断并固化 “harness runtime facade” MCP 路线是否可行，并产出可由 CLI agent 分阶段执行、验证、收敛到 agent governance runtime 的实施计划。
+实现并验证 “harness runtime facade” MCP 路线，使 Harness 从 projection harness 升级为可被 MCP 安全调用的 agent governance runtime。
 
 ## Current State
 Status: waiting_review
@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 6
+Phase 11
 
 ## Phases
 
@@ -48,6 +48,37 @@ Phase 6
 - [x] 修正 root allowlist、stdio stdout、approval token、SDK dependency、remote auth、self-test 等执行漏洞。
 - **Status:** complete
 
+### Phase 7: 执行前置与基线收敛
+- [x] 建立隔离 worktree。
+- [x] 记录 worktree base 与当前 branch。
+- [x] 收敛现有测试依赖基线。
+- **Status:** complete
+
+### Phase 8: Phase 1 本地 MCP read-only + dry-run
+- [x] 实现 runtime root policy / read-only services / stdio server。
+- [x] 实现 read-only tools 与 resources。
+- [x] 增加 real MCP client handshake tests。
+- [x] 跑通本阶段验证。
+- **Status:** complete
+
+### Phase 9: Phase 2 safe write tools
+- [x] 实现 write plan / approval token verify / receipt ledger。
+- [x] 实现 write tools 与 `mcp-approve` CLI。
+- [x] 跑通本阶段验证。
+- **Status:** complete
+
+### Phase 10: Phase 3 remote MCP contract
+- [x] 实现 localhost HTTP transport / auth validator / profile policy。
+- [x] 跑通 remote contract tests 与 self-test。
+- [x] 评估 live smoke 是否具备外部条件。
+- **Status:** complete
+
+### Phase 11: Phase 4 registry + policy
+- [x] 实现 registry / policy / signature 能力。
+- [x] 跑通本阶段验证。
+- [x] 完成最终全量验证。
+- **Status:** complete
+
 ## Key Questions
 1. 这条路线是否可行？可行，但必须定位为 runtime facade，而不是 adapter。
 2. 是否能让 CLI agent 成功执行并验证？可以。修订后的计划把 Phase 1/2 限定为本地可完全验证的 stdio/read-only/dry-run 与 out-of-band approval safe-write；Phase 3/4 必须先通过本地 contract tests 和 simulator，真实云端启用不得跳过 live smoke。
@@ -64,6 +95,7 @@ Phase 6
 | MCP root 由 allowlist 控制，默认只允许当前 repo | 防止 `root?: string` 被用来读取 HOME、secret 或其他 repo。 |
 | Phase 2 approval token 不得由 MCP tool 生成 | 防止 agent 自批自用；approval 必须来自外部 CLI/UI/预置签名文件。 |
 | stdio server 所有日志只能写 stderr | stdout 属于 MCP JSON-RPC 通道，写普通日志会破坏协议。 |
+| HTTP self-test 在受限 sandbox 下允许 skip，但必须额外跑一次提权 localhost self-test | 保证默认 `verify` 稳定，同时保留真实 Streamable HTTP contract 证据。 |
 
 ## Companion Plan
 - Companion plan: `docs/superpowers/plans/2026-05-08-harness-runtime-facade-mcp.md`
@@ -74,7 +106,10 @@ Phase 6
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | `fd` 不存在 | 1 | 按仓库偏好退回 `find` 做目录轻扫，并记录为环境事实。 |
+| `runHttpSelfTest()` 被测试导入时无条件执行 `main()` | 1 | 为 `stdio.mjs` / `http.mjs` 增加 direct-execution guard，只在脚本直接运行时启动 server。 |
+| Streamable HTTP 初始化后丢失 session | 1 | 把 `onsessioninitialized` 改为 transport constructor option，并把无 session 的 `GET /mcp` 调整为 `405`。 |
+| 公共 fixture 污染 installer tests | 1 | 将 live companion plan 拷贝和 `node_modules` symlink 改为显式 opt-in，恢复默认轻量 fixture。 |
 
 ## Notes
 - 本任务使用 `using-superpowers` 和 `planning-with-files`，因此保留 companion plan，并让 `planning/active/harness-runtime-facade-mcp/` 继续作为权威任务记忆。
-- 本轮只产出架构和实施计划，不修改 runtime 代码。
+- 本轮已经完成 runtime / MCP / registry 实现，并通过 MCP 专项测试、CLI smoke 和全量 `verify` 验证。
