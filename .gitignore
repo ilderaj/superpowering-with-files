@@ -1,5 +1,6 @@
 .harness/
 .worktrees/
+.codex-worktrees/
 .agent-config/checkpoints/
 .agent-config/logs/
 reports/checkpoints/

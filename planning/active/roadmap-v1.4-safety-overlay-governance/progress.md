@@ -58,6 +58,24 @@
 - `origin-cloud-harness-deployment-plan` 已关闭并归档到：
   - `planning/archive/20260506-220241-origin-cloud-harness-deployment-plan/`
 
+### 2026-05-08
+
+- 按 hook 要求先复核 `planning/active/`，定位当前 dirty 主因不是 `dev` 代码本身，而是仓库内 fallback worktree `.codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002`。
+- 主工作区锚点：`/Users/jared/SuperpoweringWithFiles` on `dev @ 55de0186cec5ceb5b4709ef090296cb89c261aeb`。
+- 关联 worktree 锚点：`/Users/jared/SuperpoweringWithFiles/.codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002` on `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002 @ 1fe45cfce9e09f2d4264cba73f7383703c94e0de`。
+- 比对结果：`git rev-list --left-right --count dev...codex/202605061308-roadmap-v1-4-safety-overlay-governance-002` 返回 `18 0`，说明该 worktree branch 没有未并入 `dev` 的提交，只是滞后 18 个提交并带有自己的未提交工作区改动。
+- 根因取证：
+  - `git ls-files -s .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002` 显示 mode `160000`，证实父仓库错误跟踪了该嵌套仓库 gitlink。
+  - `git show --summary --name-status a41d02a -- .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002` 证实这条 gitlink 在 `a41d02a Close roadmap v1.6` 被加入主仓库。
+- 已执行修复：
+  - 在主仓库 `.gitignore` 中新增 `.codex-worktrees/`。
+  - 执行 `git rm --cached -f .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002`，仅从父仓库索引移除误跟踪 gitlink，保留磁盘上的嵌套 worktree 目录。
+- 修复后验证：
+  - 主仓库 `git status --short --branch` 只剩预期改动：gitlink staged delete + `.gitignore` 修改。
+  - `test -d .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002` 通过，确认嵌套 worktree 现场仍在。
+- 在本地 `2026-05-08 14:29 CST` 再次复核 closeout gate：`post-upstream-automation-followups` 仍要求等待 `2026-05-08 20:05 Asia/Shanghai` 之后的首次 scheduled run 观察，因此 `roadmap-v1.4-safety-overlay-governance` 目前只能继续保持 active，不能提前 close/archive。
+- 本轮先执行 cleanup commit/push，使 `dev` 与 `origin/dev` 对齐到“忽略 in-repo Codex worktrees + 不再跟踪误提交 gitlink”的状态；任务 close/archive 留待 scheduled gate 满足后继续。
+
 ## Verification
 
 - Focused state / path / skill projection suites：通过。
@@ -77,6 +95,11 @@
 - merge 后 `./scripts/harness verify --output=stdout`：通过。
 - merge 后 `./scripts/harness doctor --check-only`：通过。
 - merge 后 `git diff --check`：通过。
+- `git rev-list --left-right --count dev...codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`：通过，结果 `18 0`，证实 stale worktree branch 没有领先 `dev` 的提交。
+- `git ls-files -s .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002`：通过，发现父仓库误跟踪了 mode `160000` gitlink。
+- `git show --summary --name-status a41d02a -- .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002`：通过，证实误跟踪来自 `a41d02a Close roadmap v1.6`。
+- `git rm --cached -f .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002`：成功。
+- 修复后 `git status --short --branch`：通过，仅剩预期的 `.gitignore` 修改与 gitlink staged delete。
 
 ## Current Execution State
 
