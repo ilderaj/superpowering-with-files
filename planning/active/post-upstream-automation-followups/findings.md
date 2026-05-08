@@ -99,3 +99,12 @@
     - `default_workflow_permissions = read`
     - `can_approve_pull_request_reviews = false`
 - 这意味着 followup 任务的代码侧目标已经基本完成；剩余的是 human 级仓库设置操作。
+
+## 2026-05-08 After Repo Setting Enablement
+- repo setting 已确认生效后，新的 rerun `25562792583` 证明：
+  - Actions PR policy blocker 已经解除
+  - 但 upstream refresh 仍未完全恢复，因为 refresh step 现在会跑到更深的验证面
+- 新暴露的问题不是 PR policy，而是：
+  - workflow 没有先 `npm ci`
+  - Python `__pycache__/*.pyc` 被误判为 refresh allowlist violation
+- 这两项都已继续并入同一个 repair task 处理。

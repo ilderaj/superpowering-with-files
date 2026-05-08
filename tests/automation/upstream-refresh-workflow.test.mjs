@@ -105,6 +105,8 @@ test('upstream refresh workflow runs on ubuntu and checks out full main history'
   const workflow = await readFile(workflowPath, 'utf8');
   const jobBlock = extractJobBlock(workflow, 'upstream-refresh');
   const checkoutBlock = extractStepBlock(workflow, 'Check out main');
+  const setupNodeBlock = extractStepBlock(workflow, 'Set up Node.js');
+  const installBlock = extractStepBlock(workflow, 'Install dependencies');
 
   assert.match(
     jobBlock,
@@ -114,6 +116,9 @@ test('upstream refresh workflow runs on ubuntu and checks out full main history'
   assert.match(checkoutBlock, /^\s{8}uses:\s*actions\/checkout@v4\s*$/m);
   assert.match(checkoutBlock, /^\s{10}ref:\s*main\s*$/m);
   assert.match(checkoutBlock, /^\s{10}fetch-depth:\s*0\s*$/m);
+  assert.match(setupNodeBlock, /^\s{10}node-version:\s*'22'\s*$/m);
+  assert.match(setupNodeBlock, /^\s{10}cache:\s*npm\s*$/m);
+  assert.match(installBlock, /^\s{8}run:\s*npm ci\s*$/m);
 });
 
 test('upstream refresh workflow keeps the expected step order', async () => {
@@ -122,6 +127,7 @@ test('upstream refresh workflow keeps the expected step order', async () => {
   assert.deepEqual(extractStepNames(workflow), [
     'Check out main',
     'Set up Node.js',
+    'Install dependencies',
     'Run upstream refresh',
     'Upload upstream refresh result',
     'Read upstream refresh result',

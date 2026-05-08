@@ -163,3 +163,48 @@
 | Final remote rerun snapshot | `gh run view 25562448036 --json ...` | 确认第二轮代码修复后的远端剩余 blocker | refresh/upload/read success, `Open upstream refresh pull request` failure | 通过 |
 | Failed log triage | `gh run view 25562448036 --log-failed` | 找到最终失败原因 | `GitHub Actions is not permitted to create or approve pull requests (createPullRequest)` | 通过 |
 | Repo workflow-permission snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/permissions/workflow` | 判断是否为 repo policy blocker | `default_workflow_permissions=read`, `can_approve_pull_request_reviews=false` | 通过 |
+
+## Session: 2026-05-08 23:07:29 UTC+8
+
+### Phase 4: post-setting rerun and refresh-step repair
+- **Status:** in_progress
+- Actions taken:
+  - 复核 repo Actions workflow permissions，确认：
+    - `default_workflow_permissions: read`
+    - `can_approve_pull_request_reviews: true`
+  - 触发新的 workflow_dispatch run：`25562792583`。
+  - 跟踪 run 到完成，确认 repo-level PR policy blocker 已解除，但失败重新回到 `Run upstream refresh`。
+  - 读取 failed log，定位两个新根因：
+    - workflow 缺少 `npm ci`，导致 `tests/mcp/*.test.mjs` 在 runner 上缺少 `@modelcontextprotocol/sdk`
+    - allowlist 误报了 Python 运行时生成的 `__pycache__/*.pyc`
+  - 修改：
+    - `.github/workflows/upstream-refresh.yml`
+    - `scripts/ci/lib/upstream-refresh.mjs`
+    - `tests/automation/upstream-refresh-lib.test.mjs`
+    - `tests/automation/upstream-refresh-workflow.test.mjs`
+    - `tests/mcp/receipt-ledger.test.mjs`
+    - `tests/mcp/safe-write.test.mjs`
+  - 运行 focused suites：
+    - `node --test tests/automation/upstream-refresh-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`
+  - 尝试本地全量 `npm run verify`，发现本机当前缺少 `node_modules/@modelcontextprotocol/sdk`，并由此暴露出剩余本地环境 blocker。
+  - 尝试执行 `npm ci` 以补齐本地依赖，但被平台提权额度限制拒绝，当前回合无法继续自动完成 final verify / push / rerun。
+- Files created/modified:
+  - `.github/workflows/upstream-refresh.yml`
+  - `scripts/ci/lib/upstream-refresh.mjs`
+  - `tests/automation/upstream-refresh-lib.test.mjs`
+  - `tests/automation/upstream-refresh-workflow.test.mjs`
+  - `tests/mcp/receipt-ledger.test.mjs`
+  - `tests/mcp/safe-write.test.mjs`
+  - `planning/active/upstream-refresh-6-failure-repair/task_plan.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/findings.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/progress.md` (updated)
+
+## Additional Test Results (Update 4)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Repo setting snapshot | `gh api repos/ilderaj/superpowering-with-files/actions/permissions/workflow` | 确认 PR policy blocker 是否已解除 | `can_approve_pull_request_reviews=true` | 通过 |
+| Post-setting rerun snapshot | `gh run view 25562792583 --json ...` | 确认新失败是否回到 refresh step | `Run upstream refresh = failure` | 通过 |
+| Failed log triage | `gh run view 25562792583 --log-failed` | 抽取新的 refresh-step 最小根因 | missing `@modelcontextprotocol/sdk` + `__pycache__/*.pyc` allowlist violation | 通过 |
+| Focused workflow/allowlist verification | `node --test tests/automation/upstream-refresh-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs` | 新修复通过 | `21 pass / 0 fail` | 通过 |
+| Local dependency presence | `test -d node_modules/@modelcontextprotocol/sdk` | 判断本地能否直接跑 MCP tests | `missing` | 异常 |
+| Local full verify | `npm run verify` | 全量验证通过 | `tests/mcp/*.test.mjs` 因缺少 `@modelcontextprotocol/sdk` 失败；另两条 `EPERM` 已被测试隔离修正 | 阻塞 |

@@ -35,6 +35,10 @@ const repoOwnedProjectionFiles = new Set([
   '.github/copilot-instructions.md'
 ]);
 
+function isIgnoredGeneratedCacheFile(filePath) {
+  return filePath.includes('/__pycache__/') || filePath.endsWith('.pyc');
+}
+
 export function buildRefreshCommandChain() {
   return [
     { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
@@ -90,6 +94,8 @@ export function filterEligibleChanges(changes) {
 
   for (const change of mergeChangeLists(changes)) {
     const filePath = change.path;
+    if (isIgnoredGeneratedCacheFile(filePath)) continue;
+
     const isRuntimeOnly = runtimeOnlyFiles.has(filePath);
     const isRepoOwnedProjectionFile = repoOwnedProjectionFiles.has(filePath)
       || repoOwnedProjectionPathPrefixes.some((prefix) => filePath.startsWith(prefix));

@@ -391,3 +391,21 @@ test('filterEligibleChanges excludes harness runtime state and unrelated workspa
     'README.md'
   ]);
 });
+
+test('filterEligibleChanges ignores generated Python cache files', async () => {
+  const { filterEligibleChanges } = await loadUpstreamRefreshModule();
+
+  const result = filterEligibleChanges([
+    { path: 'harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/planning_paths.cpython-312.pyc', tracked: false },
+    { path: 'harness/upstream/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc', tracked: false },
+    { path: 'harness/upstream/superpowers/SKILL.md', tracked: true },
+    { path: 'README.md', tracked: true }
+  ]);
+
+  assert.deepEqual(result.eligibleFiles, [
+    'harness/upstream/superpowers/SKILL.md'
+  ]);
+  assert.deepEqual(result.excludedFiles, [
+    'README.md'
+  ]);
+});
