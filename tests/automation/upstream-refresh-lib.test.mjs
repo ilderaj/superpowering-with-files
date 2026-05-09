@@ -164,6 +164,73 @@ test('runUpstreamRefresh captures eligible files after writing the source head r
   assert.deepEqual(writtenResults, [result]);
 });
 
+test('runUpstreamRefresh restores repo-local entry files before enforcing the allowlist', async () => {
+  const { filterEligibleChanges, listRepoLocalEntryFileChanges } = await loadUpstreamRefreshModule();
+  const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
+  const events = [];
+  const writtenResults = [];
+  let captureCount = 0;
+
+  const result = await runUpstreamRefresh({
+    cwd: '/tmp/repo',
+    now: () => new Date('2026-04-30T00:00:00.000Z'),
+    probeHeads: async () => ({
+      status: 'changes_detected',
+      sources: [
+        {
+          name: 'superpowers',
+          url: 'https://github.com/obra/superpowers'
+        }
+      ],
+      sourceHeads: {
+        superpowers: '1212121212121212121212121212121212121212'
+      }
+    }),
+    runRefresh: async () => {
+      events.push('runRefresh');
+    },
+    writeSourceHeads: async () => {
+      events.push('writeSourceHeads');
+    },
+    captureChanges: async () => {
+      captureCount += 1;
+      events.push(`captureChanges:${captureCount}`);
+
+      if (captureCount === 1) {
+        return [
+          { path: 'AGENTS.md', tracked: true },
+          { path: '.github/copilot-instructions.md', tracked: true },
+          { path: 'harness/upstream/superpowers/SKILL.md', tracked: true }
+        ];
+      }
+
+      return [
+        { path: 'harness/upstream/superpowers/SKILL.md', tracked: true }
+      ];
+    },
+    filterChanges: filterEligibleChanges,
+    listRepoLocalEntryChanges: listRepoLocalEntryFileChanges,
+    restoreRepoLocalEntries: async (filePaths) => {
+      events.push(`restore:${filePaths.join(',')}`);
+    },
+    writeResult: async (refreshResult) => {
+      events.push('writeResult');
+      writtenResults.push(refreshResult);
+    }
+  });
+
+  assert.deepEqual(events, [
+    'runRefresh',
+    'writeSourceHeads',
+    'captureChanges:1',
+    'restore:AGENTS.md,.github/copilot-instructions.md',
+    'captureChanges:2',
+    'writeResult'
+  ]);
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
+  assert.deepEqual(writtenResults, [result]);
+});
+
 test('runUpstreamRefresh writes a failure result and rejects when verification fails', async () => {
   const { filterEligibleChanges } = await loadUpstreamRefreshModule();
   const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
@@ -338,9 +405,9 @@ test('filterEligibleChanges includes tracked and untracked repo-owned upstream f
 });
 
 test('filterEligibleChanges includes hidden projection roots and excludes repo-local entry files', async () => {
-  const { filterEligibleChanges } = await loadUpstreamRefreshModule();
+  const { filterEligibleChanges, listRepoLocalEntryFileChanges } = await loadUpstreamRefreshModule();
 
-  const result = filterEligibleChanges([
+  const changes = [
     { path: 'docs/maintenance.md', status: 'M', tracked: true },
     { path: 'AGENTS.md', status: 'M', tracked: true },
     { path: 'CLAUDE.md', status: 'M', tracked: true },
@@ -351,7 +418,8 @@ test('filterEligibleChanges includes hidden projection roots and excludes repo-l
     { path: '.github/copilot-instructions.md', status: 'M', tracked: true },
     { path: '.github/instructions/harness.instructions.md', status: 'M', tracked: true },
     { path: '.github/prompts/review.prompt.md', status: 'M', tracked: true }
-  ]);
+  ];
+  const result = filterEligibleChanges(changes);
 
   assert.deepEqual(result.eligibleFiles, [
     'docs/maintenance.md',
@@ -363,6 +431,11 @@ test('filterEligibleChanges includes hidden projection roots and excludes repo-l
     '.github/prompts/review.prompt.md'
   ]);
   assert.deepEqual(result.excludedFiles, [
+    'AGENTS.md',
+    'CLAUDE.md',
+    '.github/copilot-instructions.md'
+  ]);
+  assert.deepEqual(listRepoLocalEntryFileChanges(changes), [
     'AGENTS.md',
     'CLAUDE.md',
     '.github/copilot-instructions.md'
