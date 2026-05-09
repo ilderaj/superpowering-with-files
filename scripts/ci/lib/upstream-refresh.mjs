@@ -117,6 +117,12 @@ export function filterEligibleChanges(changes) {
   return { eligibleFiles, excludedFiles };
 }
 
+export function listRepoLocalEntryFileChanges(changes) {
+  return mergeChangeLists(changes)
+    .map((change) => change.path)
+    .filter((filePath) => repoLocalEntryFiles.has(filePath));
+}
+
 export function parseNameOnlyOutput(output, { tracked }) {
   return output
     .split(/\r?\n/)
@@ -138,6 +144,24 @@ export async function captureChangedFiles({ cwd = process.cwd() } = {}) {
     parseNameOnlyOutput(trackedChanges.stdout, { tracked: true }),
     parseNameOnlyOutput(untrackedChanges.stdout, { tracked: false })
   );
+}
+
+export async function restoreRepoLocalEntryFiles(filePaths, {
+  cwd = process.cwd()
+} = {}) {
+  const uniquePaths = [...new Set((filePaths ?? []).map(normalizeChangePath))]
+    .filter((filePath) => repoLocalEntryFiles.has(filePath));
+
+  if (uniquePaths.length === 0) {
+    return [];
+  }
+
+  await execFileAsync('git', ['restore', '--source=HEAD', '--worktree', '--', ...uniquePaths], {
+    cwd,
+    maxBuffer: 1024 * 1024
+  });
+
+  return uniquePaths;
 }
 
 export function createRefreshResult({

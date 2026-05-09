@@ -12,6 +12,8 @@ import {
   createFailureRefreshResult,
   createRefreshResult,
   filterEligibleChanges,
+  listRepoLocalEntryFileChanges,
+  restoreRepoLocalEntryFiles,
   runRefreshCommandChain,
   UpstreamRefreshBlockedError,
   writeRefreshResult
@@ -24,6 +26,8 @@ export async function runUpstreamRefresh({
   runRefresh = runRefreshCommandChain,
   captureChanges = captureChangedFiles,
   filterChanges = filterEligibleChanges,
+  listRepoLocalEntryChanges = listRepoLocalEntryFileChanges,
+  restoreRepoLocalEntries = restoreRepoLocalEntryFiles,
   writeSourceHeads = writeSourceHeadsRecord,
   writeResult = writeRefreshResult
 } = {}) {
@@ -56,8 +60,17 @@ export async function runUpstreamRefresh({
     }), { cwd });
 
     const changedFiles = await captureChanges({ cwd });
+    const repoLocalEntryChanges = listRepoLocalEntryChanges(changedFiles);
+
+    if (repoLocalEntryChanges.length > 0) {
+      await restoreRepoLocalEntries(repoLocalEntryChanges, { cwd });
+    }
+
+    const effectiveChangedFiles = repoLocalEntryChanges.length > 0
+      ? await captureChanges({ cwd })
+      : changedFiles;
     changedFilesCaptured = true;
-    const filteredChanges = filterChanges(changedFiles);
+    const filteredChanges = filterChanges(effectiveChangedFiles);
     eligibleFiles = filteredChanges.eligibleFiles;
 
     if ((filteredChanges.excludedFiles ?? []).length > 0) {
@@ -77,7 +90,16 @@ export async function runUpstreamRefresh({
     if (shouldCaptureFailureChanges && !changedFilesCaptured) {
       try {
         const changedFiles = await captureChanges({ cwd });
-        const filteredChanges = filterChanges(changedFiles);
+        const repoLocalEntryChanges = listRepoLocalEntryChanges(changedFiles);
+
+        if (repoLocalEntryChanges.length > 0) {
+          await restoreRepoLocalEntries(repoLocalEntryChanges, { cwd });
+        }
+
+        const effectiveChangedFiles = repoLocalEntryChanges.length > 0
+          ? await captureChanges({ cwd })
+          : changedFiles;
+        const filteredChanges = filterChanges(effectiveChangedFiles);
         eligibleFiles = filteredChanges.eligibleFiles;
 
         if ((filteredChanges.excludedFiles ?? []).length > 0) {
