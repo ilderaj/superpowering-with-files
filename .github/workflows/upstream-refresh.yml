@@ -23,13 +23,13 @@ jobs:
 
     steps:
       - name: Check out main
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm
@@ -42,7 +42,7 @@ jobs:
 
       - name: Upload upstream refresh result
         if: ${{ always() && hashFiles('.harness/upstream-refresh-result.json') != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: upstream-refresh-result
           path: .harness/upstream-refresh-result.json
