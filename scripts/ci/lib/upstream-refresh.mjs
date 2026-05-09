@@ -29,9 +29,12 @@ const repoOwnedProjectionPathPrefixes = [
 ];
 
 const repoOwnedProjectionFiles = new Set([
+  'docs/maintenance.md',
+]);
+
+const repoLocalEntryFiles = new Set([
   'AGENTS.md',
   'CLAUDE.md',
-  'docs/maintenance.md',
   '.github/copilot-instructions.md'
 ]);
 
@@ -95,6 +98,10 @@ export function filterEligibleChanges(changes) {
   for (const change of mergeChangeLists(changes)) {
     const filePath = change.path;
     if (isIgnoredGeneratedCacheFile(filePath)) continue;
+    if (repoLocalEntryFiles.has(filePath)) {
+      excludedFiles.push(filePath);
+      continue;
+    }
 
     const isRuntimeOnly = runtimeOnlyFiles.has(filePath);
     const isRepoOwnedProjectionFile = repoOwnedProjectionFiles.has(filePath)

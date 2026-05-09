@@ -337,7 +337,7 @@ test('filterEligibleChanges includes tracked and untracked repo-owned upstream f
   ]);
 });
 
-test('filterEligibleChanges includes repo-owned projection and maintenance files', async () => {
+test('filterEligibleChanges includes hidden projection roots and excludes repo-local entry files', async () => {
   const { filterEligibleChanges } = await loadUpstreamRefreshModule();
 
   const result = filterEligibleChanges([
@@ -355,17 +355,18 @@ test('filterEligibleChanges includes repo-owned projection and maintenance files
 
   assert.deepEqual(result.eligibleFiles, [
     'docs/maintenance.md',
-    'AGENTS.md',
-    'CLAUDE.md',
     '.agents/skills/planning-with-files/SKILL.md',
     '.claude/skills/superpowers/SKILL.md',
     '.codex/skills/planning-with-files/SKILL.md',
     '.cursor/rules/harness.mdc',
-    '.github/copilot-instructions.md',
     '.github/instructions/harness.instructions.md',
     '.github/prompts/review.prompt.md'
   ]);
-  assert.deepEqual(result.excludedFiles, []);
+  assert.deepEqual(result.excludedFiles, [
+    'AGENTS.md',
+    'CLAUDE.md',
+    '.github/copilot-instructions.md'
+  ]);
 });
 
 test('filterEligibleChanges excludes harness runtime state and unrelated workspace files', async () => {

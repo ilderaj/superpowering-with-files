@@ -113,9 +113,10 @@ test('upstream refresh workflow runs on ubuntu and checks out full main history'
     /^\s{4}if:\s*\$\{\{\s*github\.event_name\s*!=\s*'schedule'\s*\|\|\s*vars\.UPSTREAM_REFRESH_SCHEDULE_ENABLED\s*==\s*'true'\s*\}\}\s*$/m
   );
   assert.match(jobBlock, /^\s{4}runs-on:\s*ubuntu-latest\s*$/m);
-  assert.match(checkoutBlock, /^\s{8}uses:\s*actions\/checkout@v4\s*$/m);
+  assert.match(checkoutBlock, /^\s{8}uses:\s*actions\/checkout@v6\s*$/m);
   assert.match(checkoutBlock, /^\s{10}ref:\s*main\s*$/m);
   assert.match(checkoutBlock, /^\s{10}fetch-depth:\s*0\s*$/m);
+  assert.match(setupNodeBlock, /^\s{8}uses:\s*actions\/setup-node@v6\s*$/m);
   assert.match(setupNodeBlock, /^\s{10}node-version:\s*'22'\s*$/m);
   assert.match(setupNodeBlock, /^\s{10}cache:\s*npm\s*$/m);
   assert.match(installBlock, /^\s{8}run:\s*npm ci\s*$/m);
@@ -139,6 +140,7 @@ test('upstream refresh workflow uploads the result artifact even after failed re
   const workflow = await readFile(workflowPath, 'utf8');
   const uploadBlock = extractStepBlock(workflow, 'Upload upstream refresh result');
 
+  assert.match(uploadBlock, /^\s{8}uses:\s*actions\/upload-artifact@v7\s*$/m);
   assert.match(uploadBlock, /^\s{8}if:\s*\$\{\{\s*always\(\).*\}\}\s*$/m);
   assert.match(uploadBlock, new RegExp(`^\\s{10}path:\\s*${escapeRegExp(resultPath)}\\s*$`, 'm'));
 });
