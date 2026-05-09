@@ -1,5 +1,5 @@
 import { execFile, spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -119,8 +119,7 @@ export function filterEligibleChanges(changes) {
 
 export function listRepoLocalEntryFileChanges(changes) {
   return mergeChangeLists(changes)
-    .map((change) => change.path)
-    .filter((filePath) => repoLocalEntryFiles.has(filePath));
+    .filter((change) => repoLocalEntryFiles.has(change.path));
 }
 
 export function parseNameOnlyOutput(output, { tracked }) {
@@ -149,19 +148,30 @@ export async function captureChangedFiles({ cwd = process.cwd() } = {}) {
 export async function restoreRepoLocalEntryFiles(filePaths, {
   cwd = process.cwd()
 } = {}) {
-  const uniquePaths = [...new Set((filePaths ?? []).map(normalizeChangePath))]
-    .filter((filePath) => repoLocalEntryFiles.has(filePath));
+  const repoLocalEntryChanges = mergeChangeLists(filePaths ?? [])
+    .filter((change) => repoLocalEntryFiles.has(change.path));
 
-  if (uniquePaths.length === 0) {
+  if (repoLocalEntryChanges.length === 0) {
     return [];
   }
 
-  await execFileAsync('git', ['restore', '--source=HEAD', '--worktree', '--', ...uniquePaths], {
-    cwd,
-    maxBuffer: 1024 * 1024
-  });
+  const trackedPaths = repoLocalEntryChanges
+    .filter((change) => change.tracked !== false)
+    .map((change) => change.path);
+  const untrackedPaths = repoLocalEntryChanges
+    .filter((change) => change.tracked === false)
+    .map((change) => path.resolve(cwd, change.path));
 
-  return uniquePaths;
+  if (trackedPaths.length > 0) {
+    await execFileAsync('git', ['restore', '--source=HEAD', '--worktree', '--', ...trackedPaths], {
+      cwd,
+      maxBuffer: 1024 * 1024
+    });
+  }
+
+  await Promise.all(untrackedPaths.map((targetPath) => rm(targetPath, { force: true })));
+
+  return repoLocalEntryChanges.map((change) => change.path);
 }
 
 export function createRefreshResult({

@@ -210,8 +210,8 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
     },
     filterChanges: filterEligibleChanges,
     listRepoLocalEntryChanges: listRepoLocalEntryFileChanges,
-    restoreRepoLocalEntries: async (filePaths) => {
-      events.push(`restore:${filePaths.join(',')}`);
+    restoreRepoLocalEntries: async (changes) => {
+      events.push(`restore:${changes.map((change) => `${change.path}:${change.tracked === false ? 'untracked' : 'tracked'}`).join(',')}`);
     },
     writeResult: async (refreshResult) => {
       events.push('writeResult');
@@ -223,7 +223,7 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
     'runRefresh',
     'writeSourceHeads',
     'captureChanges:1',
-    'restore:AGENTS.md,.github/copilot-instructions.md',
+    'restore:AGENTS.md:tracked,.github/copilot-instructions.md:tracked',
     'captureChanges:2',
     'writeResult'
   ]);
@@ -436,9 +436,9 @@ test('filterEligibleChanges includes hidden projection roots and excludes repo-l
     '.github/copilot-instructions.md'
   ]);
   assert.deepEqual(listRepoLocalEntryFileChanges(changes), [
-    'AGENTS.md',
-    'CLAUDE.md',
-    '.github/copilot-instructions.md'
+    { path: 'AGENTS.md', status: 'M', tracked: true },
+    { path: 'CLAUDE.md', status: 'M', tracked: true },
+    { path: '.github/copilot-instructions.md', status: 'M', tracked: true }
   ]);
 });
 
