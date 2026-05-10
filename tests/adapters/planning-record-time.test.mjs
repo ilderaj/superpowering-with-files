@@ -85,3 +85,34 @@ test('sync materializes planning-with-files progress template with timestamp gui
     await removeHarnessFixture(root);
   }
 });
+
+test('sync materializes planning-with-files skill with mandatory dated record guidance', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      targets: {
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+
+    const skill = await readFile(
+      path.join(root, '.agents/skills/planning-with-files/SKILL.md'),
+      'utf8'
+    );
+
+    assert.match(skill, /Manual timestamp guard/);
+    assert.match(skill, /YYYY-MM-DD HH:mm:ss UTC\+8/);
+    assert.match(skill, /\.\/scripts\/harness record --file progress/);
+    assert.match(skill, /\.\/scripts\/harness record --file findings/);
+    assert.match(skill, /\.\/scripts\/harness record --file task_plan/);
+    assert.match(skill, /date '\+%Y-%m-%d %H:%M:%S UTC%z'/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});

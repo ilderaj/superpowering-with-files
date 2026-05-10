@@ -50,6 +50,33 @@ If catchup report shows unsynced context:
 | Skill directory (`${CLAUDE_PLUGIN_ROOT}/`) | Templates, scripts, reference docs |
 | Your active task directory (`planning/active/<task-id>/`) | `task_plan.md`, `findings.md`, `progress.md` |
 
+## Manual timestamp guard
+
+Every dated planning record must include a concrete UTC+8 timestamp in the
+format `YYYY-MM-DD HH:mm:ss UTC+8`. Never write date-only headings such as
+`2026-05-10 UTC+8`.
+
+Prefer the record helper whenever adding a new dated block:
+
+```bash
+./scripts/harness record --file progress
+./scripts/harness record --file findings
+./scripts/harness record --file task_plan
+```
+
+If you must edit a planning file manually, first get the current timestamp from
+tooling instead of guessing from the system date:
+
+```bash
+$(command -v python3 || command -v python) ${CLAUDE_PLUGIN_ROOT}/scripts/planning_record.py timestamp
+date '+%Y-%m-%d %H:%M:%S UTC%z'
+```
+
+When using `date`, normalize offsets like `UTC+0800` to the canonical `UTC+8`
+suffix before writing. Use the same timestamp shape for all planning records:
+`## Session: <timestamp>`, `- **Started:** <timestamp>`, error log rows,
+`## Findings Record: <timestamp>`, and `## Plan Record: <timestamp>`.
+
 ## Quick Start
 
 Before ANY complex task:
