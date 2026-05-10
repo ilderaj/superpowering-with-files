@@ -14,13 +14,13 @@ The materialized copy must also preserve the companion-plan boundary: detailed s
 
 The materialized copy must avoid incompatible hook assumptions, especially when Copilot uses native VS Code hook files as the primary contract and Claude-format hooks only as a compatibility surface.
 
-Harness materializes Copilot's `planning-with-files` copy instead of linking it. During `sync`, Harness copies `harness/upstream/planning-with-files` into the Copilot skill root, applies the shared `Harness planning-with-files companion-plan patch`, and then applies the `Harness Copilot planning-with-files patch`.
+Harness materializes the shared `planning-with-files` copy instead of linking it. During `sync`, Harness copies `harness/upstream/planning-with-files` into the shared Agent Skills root, applies the shared `Harness planning-with-files companion-plan patch`, and then applies the shared `Harness planning-with-files skill-root resolution patch`.
 
-`doctor` checks for both markers so a stale or manually edited copy is visible.
+Harness health and regression coverage check for both markers so a stale or manually edited copy is visible.
 
 Target paths:
 
 - Workspace: `.agents/skills/planning-with-files`
 - User-global: `~/.agents/skills/planning-with-files`
 
-Explicit env overrides and legacy Copilot roots remain supported for compatibility: `HARNESS_AGENT_SKILL_ROOT`, `GITHUB_COPILOT_SKILL_ROOT`, `.github/skills/planning-with-files`, and `~/.copilot/skills/planning-with-files`.
+Explicit env overrides and legacy Copilot roots remain supported inside the shared patch for compatibility: `HARNESS_AGENT_SKILL_ROOT`, `GITHUB_COPILOT_SKILL_ROOT`, `.github/skills/planning-with-files`, and `~/.copilot/skills/planning-with-files`.

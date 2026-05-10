@@ -57,8 +57,8 @@
         "global": []
       },
       "skillRoots": {
-        "workspace": [".cursor/skills"],
-        "global": [".cursor/skills"]
+        "workspace": [".agents/skills"],
+        "global": [".agents/skills"]
       },
       "hookRoots": {
         "workspace": [".cursor"],

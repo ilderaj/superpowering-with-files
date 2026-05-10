@@ -13,12 +13,12 @@ Cursor User Rules live in Cursor Settings and apply at the settings layer rather
 User-global scope projects skills only.
 
 ```text
-~/.cursor/skills
+~/.agents/skills
 ```
 
-Cursor uses both rules and skills when available. Cursor's official docs now list both the native `.cursor/skills` roots and the shared `.agents/skills` roots as auto-discovered skill directories. Harness still keeps `.cursor/skills` / `~/.cursor/skills` as the primary Cursor projection surface, while treating `.agents/skills` as an officially supported compatibility discovery path.
+Cursor uses both rules and skills when available. Cursor's official docs list `.agents/skills` and `~/.agents/skills` as auto-discovered skill directories, so Harness uses the same shared skill roots as Codex and GitHub Copilot. Cursor's native `.cursor/skills` roots remain official compatibility discovery paths, but Harness no longer projects a duplicate Cursor-specific skill tree there.
 
-Skill roots:
+Cursor official discovery roots:
 
 ```text
 .agents/skills

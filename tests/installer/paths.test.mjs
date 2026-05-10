@@ -87,15 +87,15 @@ test('resolveSkillRoots returns workspace skill root for Codex', () => {
   ]);
 });
 
-test('resolveSkillTargetPaths maps a single skill into each selected root', () => {
+test('resolveSkillTargetPaths maps Cursor skills into shared Agent Skills roots', () => {
   assert.deepEqual(
     resolveSkillTargetPaths('/repo', '/home/user', 'both', 'cursor', {
       layout: 'single',
       targetName: 'planning-with-files'
     }),
     [
-      '/repo/.cursor/skills/planning-with-files',
-      '/home/user/.cursor/skills/planning-with-files'
+      '/repo/.agents/skills/planning-with-files',
+      '/home/user/.agents/skills/planning-with-files'
     ]
   );
 });

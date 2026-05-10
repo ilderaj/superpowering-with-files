@@ -75,10 +75,10 @@ Skill roots are platform metadata, not command-local constants:
 | --- | --- | --- |
 | Codex | `.agents/skills` | `~/.agents/skills` |
 | GitHub Copilot | `.agents/skills` | `~/.agents/skills` |
-| Cursor | `.cursor/skills` | `~/.cursor/skills` |
+| Cursor | `.agents/skills` | `~/.agents/skills` |
 | Claude Code | `.claude/skills` | `~/.claude/skills` |
 
-Shared skill roots are limited to Codex and GitHub Copilot. Claude Code stays on `.claude/skills`, and Cursor stays on `.cursor/skills` until the official skill-directory contract is re-verified. Hooks and entry files remain platform-native.
+Codex, GitHub Copilot, and Cursor share `.agents/skills` / `~/.agents/skills` for skill projection. Cursor keeps native `.cursor/rules` and `.cursor` hook roots; only skill projection is shared. Claude Code stays on `.claude/skills` because Harness health checks reject shared Claude skill root symlinks.
 
 Harness materializes skill projections by default so the projected directory is the only discovery source each IDE sees during fresh install. Harness expects each Claude skill target path to be projected individually under `.claude/skills` or `~/.claude/skills`; directory-level sharing such as `.claude/skills -> ~/.agents/skills` is reported as unhealthy.
 
@@ -86,7 +86,7 @@ Some upstream skills carry default file-location guidance that conflicts with Ha
 
 - The Superpowers `writing-plans` projection is patched so durable plans are written to `planning/active/<task-id>/` instead of `docs/superpowers/plans/**`.
 - The `planning-with-files` projection is patched for every supported IDE so its lifecycle guidance requires the companion plan when Superpowers is actually used on a Deep-reasoning task.
-- Copilot receives that shared `planning-with-files` patch plus an extra Copilot-specific compatibility patch for skill-root resolution.
+- Codex, GitHub Copilot, and Cursor share the `planning-with-files` skill-root resolution patch; GitHub Copilot compatibility fallbacks such as `GITHUB_COPILOT_SKILL_ROOT`, `.github/skills/planning-with-files`, and `~/.copilot/skills/planning-with-files` are preserved inside that shared patch.
 
 These patches preserve the summary/detail split: the active planning files keep durable task state, while any detailed deep-reasoning implementation plan stays in the companion artifact.
 
