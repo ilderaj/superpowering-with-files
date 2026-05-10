@@ -7,21 +7,26 @@ metadata:
   version: "2.34.0"
 ---
 
-# Harness Copilot planning-with-files patch
+# Harness planning-with-files skill-root resolution patch
 
-This materialized copy is maintained by Harness for GitHub Copilot.
-It keeps task state under `planning/active/<task-id>/` and resolves helper scripts from the Copilot skill directory.
+This materialized copy is maintained by Harness for Agent Skills compatible tools.
+It keeps task state under `planning/active/<task-id>/` and resolves helper scripts from the projected skill directory.
 
 ```bash
-COPILOT_PLANNING_WITH_FILES_ROOT="${HARNESS_AGENT_SKILL_ROOT:-${GITHUB_COPILOT_SKILL_ROOT:-.agents/skills/planning-with-files}}"
-if [ ! -f "$COPILOT_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ] && [ -n "${HOME:-}" ]; then
-  COPILOT_PLANNING_WITH_FILES_ROOT="$HOME/.agents/skills/planning-with-files"
+HARNESS_PLANNING_WITH_FILES_ROOT="${HARNESS_AGENT_SKILL_ROOT:-${GITHUB_COPILOT_SKILL_ROOT:-.agents/skills/planning-with-files}}"
+if [ ! -f "$HARNESS_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ] && [ -n "${HOME:-}" ]; then
+  HARNESS_PLANNING_WITH_FILES_ROOT="$HOME/.agents/skills/planning-with-files"
 fi
-if [ ! -f "$COPILOT_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ]; then
-  COPILOT_PLANNING_WITH_FILES_ROOT=".github/skills/planning-with-files"
-  if [ ! -f "$COPILOT_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ] && [ -n "${HOME:-}" ]; then
-    COPILOT_PLANNING_WITH_FILES_ROOT="$HOME/.copilot/skills/planning-with-files"
-  fi
+if [ ! -f "$HARNESS_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ]; then
+  HARNESS_PLANNING_WITH_FILES_ROOT=".github/skills/planning-with-files"
+fi
+if [ ! -f "$HARNESS_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ] && [ -n "${HOME:-}" ]; then
+  for candidate in "$HOME/.cursor/skills/planning-with-files" "$HOME/.copilot/skills/planning-with-files" "$HOME/.claude/skills/planning-with-files"; do
+    if [ -f "$candidate/scripts/session-catchup.py" ]; then
+      HARNESS_PLANNING_WITH_FILES_ROOT="$candidate"
+      break
+    fi
+  done
 fi
 ```
 
@@ -44,12 +49,25 @@ Work like Manus: Use persistent markdown files as your "working memory on disk."
 
 ```bash
 # Linux/macOS
-$(command -v python3 || command -v python) $COPILOT_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py "$(pwd)"
+$(command -v python3 || command -v python) $HARNESS_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py "$(pwd)"
 ```
 
 ```powershell
 # Windows PowerShell
-& (Get-Command python -ErrorAction SilentlyContinue).Source "$env:USERPROFILE\.claude\skills\planning-with-files\scripts\session-catchup.py" (Get-Location)
+$planningWithFilesCandidates = @(
+  $env:HARNESS_AGENT_SKILL_ROOT,
+  $env:GITHUB_COPILOT_SKILL_ROOT,
+  '.agents/skills/planning-with-files',
+  '.github/skills/planning-with-files',
+  (Join-Path $env:USERPROFILE '.agents/skills/planning-with-files'),
+  (Join-Path $env:USERPROFILE '.cursor/skills/planning-with-files'),
+  (Join-Path $env:USERPROFILE '.copilot/skills/planning-with-files'),
+  (Join-Path $env:USERPROFILE '.claude/skills/planning-with-files')
+) | Where-Object { $_ }
+$planningWithFilesRoot = $planningWithFilesCandidates | Where-Object {
+  Test-Path (Join-Path $_ 'scripts/session-catchup.py')
+} | Select-Object -First 1
+& (Get-Command python -ErrorAction SilentlyContinue).Source (Join-Path $planningWithFilesRoot 'scripts/session-catchup.py') (Get-Location)
 ```
 
 If catchup report shows unsynced context:
@@ -60,12 +78,12 @@ If catchup report shows unsynced context:
 
 ## Important: Where Files Go
 
-- **Templates** are in `$COPILOT_PLANNING_WITH_FILES_ROOT/templates/`
+- **Templates** are in `$HARNESS_PLANNING_WITH_FILES_ROOT/templates/`
 - **Your planning files** go in **your active task directory** inside the project
 
 | Location | What Goes There |
 |----------|-----------------|
-| Skill directory (`$COPILOT_PLANNING_WITH_FILES_ROOT/`) | Templates, scripts, reference docs |
+| Skill directory (`$HARNESS_PLANNING_WITH_FILES_ROOT/`) | Templates, scripts, reference docs |
 | Your active task directory (`planning/active/<task-id>/`) | `task_plan.md`, `findings.md`, `progress.md` |
 
 ## Manual timestamp guard
@@ -86,7 +104,7 @@ If you must edit a planning file manually, first get the current timestamp from
 tooling instead of guessing from the system date:
 
 ```bash
-$(command -v python3 || command -v python) $COPILOT_PLANNING_WITH_FILES_ROOT/scripts/planning_record.py timestamp
+$(command -v python3 || command -v python) $HARNESS_PLANNING_WITH_FILES_ROOT/scripts/planning_record.py timestamp
 date '+%Y-%m-%d %H:%M:%S UTC%z'
 ```
 

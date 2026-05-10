@@ -7,6 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { applyCopilotPlanningPatch } from '../../harness/installer/lib/copilot-planning-patch.mjs';
 import { materializeDirectoryProjection } from '../../harness/installer/lib/fs-ops.mjs';
+import { applyPlanningWithFilesSkillRootPatch } from '../../harness/installer/lib/planning-with-files-skill-root-patch.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../../harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs';
 import { applySuperpowersUsingGitWorktreesPatch } from '../../harness/installer/lib/superpowers-using-git-worktrees-patch.mjs';
 import {
@@ -17,16 +18,16 @@ import {
 
 const execFileAsync = promisify(execFile);
 
-function extractCopilotSnippet(skill) {
+function extractPlanningSkillRootSnippet(skill) {
   const match = skill.match(/```bash\n([\s\S]*?)\n```/);
-  assert.ok(match, 'expected Copilot shell snippet');
+  assert.ok(match, 'expected planning-with-files shell snippet');
   return match[1];
 }
 
-async function resolveCopilotSkillRoot(snippet, cwd, env = {}) {
+async function resolvePlanningSkillRoot(snippet, cwd, env = {}) {
   const { stdout } = await execFileAsync(
     'sh',
-    ['-c', `${snippet}\nprintf '%s' "$COPILOT_PLANNING_WITH_FILES_ROOT"`],
+    ['-c', `${snippet}\nprintf '%s' "$HARNESS_PLANNING_WITH_FILES_ROOT"`],
     {
       cwd,
       env: {
@@ -92,7 +93,7 @@ test('planSkillProjections applies the writing-plans patch for every supported t
   const expectations = {
     codex: /\.agents\/skills\/writing-plans$/,
     copilot: /\.agents\/skills\/writing-plans$/,
-    cursor: /\.cursor\/skills\/writing-plans$/,
+    cursor: /\.agents\/skills\/writing-plans$/,
     'claude-code': /\.claude\/skills\/writing-plans$/
   };
 
@@ -119,7 +120,7 @@ test('planSkillProjections applies the using-git-worktrees naming patch for ever
   const expectations = {
     codex: /\.agents\/skills\/using-git-worktrees$/,
     copilot: /\.agents\/skills\/using-git-worktrees$/,
-    cursor: /\.cursor\/skills\/using-git-worktrees$/,
+    cursor: /\.agents\/skills\/using-git-worktrees$/,
     'claude-code': /\.claude\/skills\/using-git-worktrees$/
   };
 
@@ -158,7 +159,7 @@ test('planSkillProjections applies the finishing-a-development-branch base patch
   const expectations = {
     codex: /\.agents\/skills\/finishing-a-development-branch$/,
     copilot: /\.agents\/skills\/finishing-a-development-branch$/,
-    cursor: /\.cursor\/skills\/finishing-a-development-branch$/,
+    cursor: /\.agents\/skills\/finishing-a-development-branch$/,
     'claude-code': /\.claude\/skills\/finishing-a-development-branch$/
   };
 
@@ -205,7 +206,7 @@ test('planSkillProjections materializes Copilot planning-with-files', async () =
   assert.equal(planning.strategy, 'materialize');
   assert.deepEqual(
     planning.patches.map((patch) => patch.type),
-    ['planning-with-files-companion-plan', 'copilot-planning-with-files']
+    ['planning-with-files-companion-plan', 'planning-with-files-skill-root']
   );
   assert.match(planning.targetPath, /\.agents\/skills\/planning-with-files$/);
 });
@@ -253,26 +254,28 @@ test('planSkillProjections applies the planning-with-files companion-plan patch 
       target
     );
 
-    if (target === 'copilot') {
+    if (['codex', 'copilot', 'cursor'].includes(target)) {
       assert.ok(
-        planning.patches.some((patch) => patch.type === 'copilot-planning-with-files'),
+        planning.patches.some((patch) => patch.type === 'planning-with-files-skill-root'),
         target
       );
       assert.ok(
-        planning.patches.some((patch) => patch.marker === 'Harness Copilot planning-with-files patch'),
+        planning.patches.some(
+          (patch) => patch.marker === 'Harness planning-with-files skill-root resolution patch'
+        ),
         target
       );
     } else {
       assert.ok(
-        planning.patches.every((patch) => patch.type !== 'copilot-planning-with-files'),
+        planning.patches.every((patch) => patch.type !== 'planning-with-files-skill-root'),
         target
       );
     }
   }
 });
 
-test('applyCopilotPlanningPatch materializes Copilot-specific skill content', async () => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-copilot-patch-'));
+test('applyPlanningWithFilesSkillRootPatch materializes shared skill-root content', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-planning-skill-root-patch-'));
   try {
     const target = path.join(dir, 'planning-with-files');
     await materializeDirectoryProjection({
@@ -282,28 +285,27 @@ test('applyCopilotPlanningPatch materializes Copilot-specific skill content', as
       conflictMode: 'reject'
     });
 
-    await applyCopilotPlanningPatch(target);
+    await applyPlanningWithFilesSkillRootPatch(target);
     const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
 
     assert.match(skill, /Harness planning-with-files companion-plan patch/);
-    assert.match(skill, /Harness Copilot planning-with-files patch/);
+    assert.match(skill, /Harness planning-with-files skill-root resolution patch/);
     assert.match(skill, /If superpowers is used on a Deep-reasoning task, persist the detailed implementation plan/);
+    assert.match(skill, /\$HARNESS_PLANNING_WITH_FILES_ROOT/);
     assert.doesNotMatch(
       skill,
       /Do not create a parallel long-lived superpowers plan unless the user explicitly requests that file\./
     );
     assert.doesNotMatch(skill, /\$\{CLAUDE_PLUGIN_ROOT\}/);
-    assert.match(
-      skill,
-      /```bash\nCOPILOT_PLANNING_WITH_FILES_ROOT="\$\{HARNESS_AGENT_SKILL_ROOT:-\$\{GITHUB_COPILOT_SKILL_ROOT:-\.agents\/skills\/planning-with-files\}\}"\nif \[ ! -f "\$COPILOT_PLANNING_WITH_FILES_ROOT\/scripts\/session-catchup\.py" \] && \[ -n "\$\{HOME:-\}" \]; then\n  COPILOT_PLANNING_WITH_FILES_ROOT="\$HOME\/\.agents\/skills\/planning-with-files"\nfi\nif \[ ! -f "\$COPILOT_PLANNING_WITH_FILES_ROOT\/scripts\/session-catchup\.py" \]; then\n  COPILOT_PLANNING_WITH_FILES_ROOT="\.github\/skills\/planning-with-files"\n  if \[ ! -f "\$COPILOT_PLANNING_WITH_FILES_ROOT\/scripts\/session-catchup\.py" \] && \[ -n "\$\{HOME:-\}" \]; then\n    COPILOT_PLANNING_WITH_FILES_ROOT="\$HOME\/\.copilot\/skills\/planning-with-files"\n  fi\nfi\n```/
-    );
+    assert.doesNotMatch(skill, /Harness Copilot planning-with-files patch/);
+    assert.doesNotMatch(skill, /\.claude\\skills\\planning-with-files\\scripts\\session-catchup\.py/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
 });
 
-test('applyCopilotPlanningPatch shell snippet honors explicit env override when it is valid', async () => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-copilot-env-override-'));
+test('applyPlanningWithFilesSkillRootPatch shell snippet honors explicit env override when it is valid', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-planning-skill-root-env-override-'));
   try {
     const target = path.join(dir, 'planning-with-files');
     const overrideRoot = path.join(dir, 'override-skill-root');
@@ -317,11 +319,11 @@ test('applyCopilotPlanningPatch shell snippet honors explicit env override when 
     await mkdir(path.join(overrideRoot, 'scripts'), { recursive: true });
     await writeFile(path.join(overrideRoot, 'scripts/session-catchup.py'), '# test override\n');
 
-    await applyCopilotPlanningPatch(target);
+    await applyPlanningWithFilesSkillRootPatch(target);
     const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
-    const snippet = extractCopilotSnippet(skill);
+    const snippet = extractPlanningSkillRootSnippet(skill);
 
-    const resolvedRoot = await resolveCopilotSkillRoot(snippet, dir, {
+    const resolvedRoot = await resolvePlanningSkillRoot(snippet, dir, {
       HARNESS_AGENT_SKILL_ROOT: overrideRoot
     });
 
@@ -331,8 +333,33 @@ test('applyCopilotPlanningPatch shell snippet honors explicit env override when 
   }
 });
 
-test('applyCopilotPlanningPatch shell snippet falls back to legacy Copilot workspace root when shared roots are absent', async () => {
-  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-copilot-legacy-fallback-'));
+test('applyPlanningWithFilesSkillRootPatch replaces legacy Copilot-specific materialized content', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-planning-skill-root-legacy-materialized-'));
+  try {
+    const target = path.join(dir, 'planning-with-files');
+
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/planning-with-files'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+    await applyCopilotPlanningPatch(target);
+
+    await applyPlanningWithFilesSkillRootPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.match(skill, /Harness planning-with-files skill-root resolution patch/);
+    assert.match(skill, /HARNESS_PLANNING_WITH_FILES_ROOT/);
+    assert.doesNotMatch(skill, /Harness Copilot planning-with-files patch/);
+    assert.doesNotMatch(skill, /COPILOT_PLANNING_WITH_FILES_ROOT/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applyPlanningWithFilesSkillRootPatch shell snippet falls back to legacy workspace root when shared roots are absent', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-planning-skill-root-legacy-fallback-'));
   try {
     const target = path.join(dir, 'planning-with-files');
     const legacyRoot = path.join(dir, '.github/skills/planning-with-files');
@@ -346,17 +373,58 @@ test('applyCopilotPlanningPatch shell snippet falls back to legacy Copilot works
     await mkdir(path.join(legacyRoot, 'scripts'), { recursive: true });
     await writeFile(path.join(legacyRoot, 'scripts/session-catchup.py'), '# legacy fallback\n');
 
-    await applyCopilotPlanningPatch(target);
+    await applyPlanningWithFilesSkillRootPatch(target, { preferGithubSkillRoot: true });
     const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
-    const snippet = extractCopilotSnippet(skill);
+    const snippet = extractPlanningSkillRootSnippet(skill);
 
-    const resolvedRoot = await resolveCopilotSkillRoot(snippet, dir, {
+    const resolvedRoot = await resolvePlanningSkillRoot(snippet, dir, {
       HARNESS_AGENT_SKILL_ROOT: '',
       GITHUB_COPILOT_SKILL_ROOT: '',
       HOME: path.join(dir, 'home-without-shared-skill')
     });
 
     assert.equal(resolvedRoot, '.github/skills/planning-with-files');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applyPlanningWithFilesSkillRootPatch preserves the shared block when cleaning a mixed legacy copy', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-planning-skill-root-mixed-copy-'));
+  try {
+    const target = path.join(dir, 'planning-with-files');
+
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/planning-with-files'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+    await applyCopilotPlanningPatch(target);
+
+    const skillPath = path.join(target, 'SKILL.md');
+    const mixed = (await readFile(skillPath, 'utf8')).replace(
+      '# Planning with Files',
+      [
+        '# Harness planning-with-files skill-root resolution patch',
+        '',
+        'This materialized copy is maintained by Harness for Agent Skills compatible tools.',
+        '',
+        '```bash',
+        'HARNESS_PLANNING_WITH_FILES_ROOT="${HARNESS_AGENT_SKILL_ROOT:-${GITHUB_COPILOT_SKILL_ROOT:-.agents/skills/planning-with-files}}"',
+        '```',
+        '',
+        '# Planning with Files'
+      ].join('\n')
+    );
+    await writeFile(skillPath, mixed);
+
+    await applyPlanningWithFilesSkillRootPatch(target);
+    const skill = await readFile(skillPath, 'utf8');
+
+    assert.equal((skill.match(/Harness planning-with-files skill-root resolution patch/g) ?? []).length, 1);
+    assert.doesNotMatch(skill, /Harness Copilot planning-with-files patch/);
+    assert.match(skill, /\$HOME\/\.copilot\/skills\/planning-with-files/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
