@@ -10,7 +10,7 @@
 - 追加要求：修复 planning files 的时间头回归，不能只修当前文档内容；必须定位生成逻辑、添加回归测试，并反复验证到不会再出现只有日期和 `UTC+8` 的格式。
 
 ## Research Findings
-- 当前 `planning/active/cursor-skill-projection-consolidation/progress.md` 复现了缺陷：`## Session: 2026-05-10 UTC+8`、`- **Started:** 2026-05-10 UTC+8`、Error Log 时间戳均缺少 `HH:mm:ss`。
+- 当前 `planning/active/cursor-skill-projection-consolidation/progress.md` 复现了缺陷：Session heading、Started 字段和 Error Log 时间戳均只写日期与 `UTC+8`，缺少 `HH:mm:ss`。
 - 仓库中存在正确格式样例，例如其他 active progress 文件使用 `YYYY-MM-DD HH:mm:ss UTC+8`，说明目标格式不是未知，而是当前生成路径退化或缺少守护测试。
 - `https://docs.cursor.com/context/skills` 和 `https://docs.cursor.com/en/context/skills` 会重定向到 `https://cursor.com/docs`；Cursor 官方文档主域名当前为 `cursor.com/docs`。
 - `https://cursor.com/docs` 的 “Customize Cursor” 入口文案明确提到 “Use rules, skills, and prompts that match how your team works”，链接指向 `https://cursor.com/docs/rules`。
@@ -78,4 +78,18 @@
 
 ### Timestamp Root Cause
 
--
+- Root cause: the script/tooling path was already protected (`planning_record.py`, `init-session.sh`, `harness record`, and progress templates all produce or require `YYYY-MM-DD HH:mm:ss UTC+8`), but the projected planning-with-files `SKILL.md` did not contain a prominent manual timestamp guard. Agents could read the skill body and directly edit planning files from the date-only system date without opening the template or record helper.
+- Regression test: added `sync materializes planning-with-files skill with mandatory dated record guidance` to `tests/adapters/planning-record-time.test.mjs`; the test first failed because synced `SKILL.md` lacked `Manual timestamp guard`.
+- Fix: added `Manual timestamp guard` to `harness/upstream/planning-with-files/SKILL.md`, mirrored it into `harness/core/upstream-overlays/planning-with-files/SKILL.md`, and updated current tracked top-level projections under `.agents`, `.cursor`, and `.claude` so the active workspace immediately exposes the guard.
+- Verification: `node --test tests/adapters/planning-record-time.test.mjs` now passes 5/5 tests, including init-session, planning_record.py, template guidance, and the new skill-body guidance regression.
+- Current document cleanup: legacy date-only records in this task's progress file were normalized to explicit `2026-05-10 00:00:00 UTC+8` timestamps because the original exact time was not recoverable from the bad records.
+
+## Findings Record: 2026-05-10 22:19:04 UTC+8
+
+### Execution Bootstrap
+
+- 当前原始 checkout 位于 `dev`，不是 linked worktree；已按 harness preflight 建议创建隔离 worktree：`.worktrees/202605101418-cursor-skill-projection-consolidation-001`。
+- Worktree base 已固定记录为 `dev @ 8be83eada6ebb7d0637d3f2cedd0d24bc1bb3d4e`；后续 merge/finish 判断应以这个 base 为准，而不是临时猜测 `main`。
+- `.gitignore` 已忽略 `.worktrees/`，因此 project-local worktree 不会污染仓库跟踪状态。
+- 在隔离 worktree 内运行 `npm install` 与 `npm run verify` 均通过，说明 companion plan 的实现可以从干净基线开始。
+- 当前 repo 中已有对应 active task 目录 `planning/active/cursor-skill-projection-consolidation/`，因此继续复用该任务记忆，而不新建 task id。

@@ -1,7 +1,7 @@
 # Cloud Dev Harness 可行性分析计划
 
 ## Current State
-Status: waiting_review
+Status: active
 Archive Eligible: no
 Close Reason:
 
@@ -23,6 +23,13 @@ Close Reason:
 4. 输出可行性分析报告和实施方案 - complete
 5. 自检报告覆盖面并总结 - complete
 6. 输出工程级 implementation plan - complete
+7. 审阅 implementation plan 并恢复执行上下文 - complete
+8. 实现 cloud-dev branch pure library - pending
+9. 实现 cloud-dev branch runner 与 sync workflow - pending
+10. 实现 issue triage library、runner 与 workflow - pending
+11. 更新 cloud-dev operator 文档 - pending
+12. 运行 focused/full verification 与 dry-run - pending
+13. 回写 implementation evidence 与 rollout gate - pending
 
 ## 关键决策
 - 将 cloud dev 模式视为可选运行模式，不改变本地 dev 的默认工作流。
@@ -39,6 +46,12 @@ Close Reason:
 - Path: `docs/superpowers/plans/2026-05-10-cloud-dev-harness-implementation-plan.md`
 - Summary: 已创建；将可行性报告拆成文件级工程任务，覆盖 `cloud-dev` branch helper、sync workflow、issue triage workflow、docs、tests、verification 和 GitHub rollout gate。
 - Sync-back status: complete
+
+## Plan Record: 2026-05-10 22:20:39 UTC+8
+- 用户已明确要求开始执行 `docs/superpowers/plans/2026-05-10-cloud-dev-harness-implementation-plan.md`。
+- 当前执行策略：按任务顺序遵循 TDD 落地纯函数、runner、workflow、文档与验证，再把实现证据回写到本任务目录。
+- 执行前 preflight 已完成：当前 checkout 是普通 repo 工作区，不是 linked worktree；当前分支为 `dev`。
+- `./scripts/harness worktree-preflight` 推荐 worktree base 为 `dev @ 8be83eada6ebb7d0637d3f2cedd0d24bc1bb3d4e`。
 
 ## Errors Encountered
 | Error | Attempt | Resolution |

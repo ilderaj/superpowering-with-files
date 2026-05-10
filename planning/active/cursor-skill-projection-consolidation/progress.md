@@ -1,10 +1,10 @@
 # Progress Log
 
-## Session: 2026-05-10 UTC+8
+## Session: 2026-05-10 00:00:00 UTC+8
 
 ### Phase 1: 官方文档研究
 - **Status:** complete
-- **Started:** 2026-05-10 UTC+8
+- **Started:** 2026-05-10 00:00:00 UTC+8
 - Actions taken:
   - 读取 planning-with-files、writing-plans、agent-customization 技能。
   - 创建任务级 planning files。
@@ -58,7 +58,7 @@
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
-| 2026-05-10 UTC+8 | `zsh: command not found: rg` | 1 | 改用 `grep` 继续读取官方 docs 页面 |
+| 2026-05-10 00:00:00 UTC+8 | `zsh: command not found: rg` | 1 | 改用 `grep` 继续读取官方 docs 页面 |
 
 ## 5-Question Reboot Check
 | Question | Answer |
@@ -72,7 +72,7 @@
 ## Session: 2026-05-10 22:07:02 UTC+8
 
 ### Phase 5: 时间头回归修复
-- **Status:** in_progress
+- **Status:** complete
 - **Started:** 2026-05-10 22:07:02 UTC+8
 - Actions taken:
   - 读取 systematic-debugging、planning-with-files、test-driven-development、verification-before-completion 技能。
@@ -89,6 +89,45 @@
 ### Timestamp Verification
 
 - Actions taken:
-  -
+  - 新增 `tests/adapters/planning-record-time.test.mjs` 回归测试，断言同步后的 planning-with-files `SKILL.md` 必须包含 `Manual timestamp guard`、`YYYY-MM-DD HH:mm:ss UTC+8`、三个 `./scripts/harness record --file ...` 命令以及手写时先取当前时间的 `date '+%Y-%m-%d %H:%M:%S UTC%z'` fallback。
+  - RED: `node --test tests/adapters/planning-record-time.test.mjs` 先失败，失败原因为 `SKILL.md` 缺少 `Manual timestamp guard`。
+  - 修复 `harness/upstream/planning-with-files/SKILL.md` 与 `harness/core/upstream-overlays/planning-with-files/SKILL.md`，在技能正文加入手写 planning 记录的强制时间戳防护。
+  - 更新当前 tracked 顶层投影 `.agents/skills/planning-with-files/SKILL.md`、`.cursor/skills/planning-with-files/SKILL.md`、`.claude/skills/planning-with-files/SKILL.md`，避免当前工作区继续读旧规则。
+  - GREEN: `node --test tests/adapters/planning-record-time.test.mjs` 通过 5/5。
+  - 相关测试：`node --test tests/adapters/planning-record-time.test.mjs tests/installer/record-command.test.mjs` 通过 8/8。
+  - 静态检查：当前 active task 的 date-only planning records 计数为 0；`harness/upstream`、`harness/core/upstream-overlays`、`.agents`、`.cursor`、`.claude` 五个关键 `SKILL.md` 均包含 `Manual timestamp guard`。
+  - 清理当前 progress 文件中的 legacy date-only 时间头；由于原始具体时间无法从坏记录恢复，统一标记为 `2026-05-10 00:00:00 UTC+8`。
 - Files created/modified:
-  -
+  - tests/adapters/planning-record-time.test.mjs
+  - harness/upstream/planning-with-files/SKILL.md
+  - harness/core/upstream-overlays/planning-with-files/SKILL.md
+  - .agents/skills/planning-with-files/SKILL.md
+  - .cursor/skills/planning-with-files/SKILL.md
+  - .claude/skills/planning-with-files/SKILL.md
+  - planning/active/cursor-skill-projection-consolidation/task_plan.md
+  - planning/active/cursor-skill-projection-consolidation/findings.md
+  - planning/active/cursor-skill-projection-consolidation/progress.md
+
+## Session: 2026-05-10 22:19:04 UTC+8
+
+### Phase 6: Companion plan execution bootstrap
+- **Status:** in_progress
+- **Started:** 2026-05-10 22:19:04 UTC+8
+- Actions taken:
+  - 读取 companion implementation plan、active planning files 与 subagent workflow prompts，确认当前执行应遵循 `subagent-driven-development`。
+  - 创建 SQL 执行待办，对应 companion plan Task 1-6。
+  - 运行 `./scripts/harness worktree-preflight`，确认 worktree base 应固定为 `dev @ 8be83eada6ebb7d0637d3f2cedd0d24bc1bb3d4e`。
+  - 在 `.worktrees/202605101418-cursor-skill-projection-consolidation-001` 创建隔离 worktree，并切到同名分支。
+  - 在隔离 worktree 中执行 `npm install` 与 `npm run verify`，基线通过。
+- Files created/modified:
+  - planning/active/cursor-skill-projection-consolidation/task_plan.md
+  - planning/active/cursor-skill-projection-consolidation/findings.md
+  - planning/active/cursor-skill-projection-consolidation/progress.md
+
+## Test Results
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Timestamp regression tests | `node --test tests/adapters/planning-record-time.test.mjs tests/installer/record-command.test.mjs` | 时间渲染、record helper、skill 正文防护全部通过 | 8/8 pass | pass |
+| Active planning date-only scan | `grep -RInE` against `planning/active/cursor-skill-projection-consolidation` | 0 date-only `Session` / `Started` / Error Log records | `date-only-active-records=0` | pass |
+| Skill guard scan | grep `Manual timestamp guard` and `YYYY-MM-DD HH:mm:ss UTC+8` in source/overlay/current projections | 5 key skill files contain guard | 5/5 guard-ok | pass |
+| Baseline full verification | `npm run verify` in `.worktrees/202605101418-cursor-skill-projection-consolidation-001` | Clean baseline before implementation | Pass | pass |

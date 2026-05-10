@@ -29,3 +29,9 @@
 - 最终建议采用 staged pilot：先 docs-only / planning task，再低风险 test/docs/refactor，最后才开放普通 feature implementation。
 - 工程级 plan 应优先实现可测试的纯函数层：`scripts/ci/lib/cloud-dev-branch.mjs` 和 `scripts/ci/lib/cloud-dev-issue.mjs`，再接 runner 与 workflows，避免把 GitHub Actions 行为写成不可测试脚本。
 - `cloud-dev` sync 必须默认 check-only；sync path 只能在明确 `mode=sync`、repo variable enabled、无 open cloud PR、且 `cloud-dev` 可从 `origin/dev` fast-forward 时执行。
+
+## Findings Record: 2026-05-10 22:20:39 UTC+8
+- implementation plan 已被用户批准执行，当前活动任务继续沿用 `cloud-dev-harness-feasibility` 目录，并把 companion implementation plan 作为详细施工清单。
+- 当前工作区不是 linked worktree：`git rev-parse --git-dir` 与 `--git-common-dir` 都指向仓库根 `.git`。
+- worktree preflight 推荐保留当前开发上下文，使用 `dev @ 8be83eada6ebb7d0637d3f2cedd0d24bc1bb3d4e` 作为隔离工作区基线。
+- 当前 `git status --short` 仅看到无关未跟踪项 `.agents/skills/planning-with-files/scripts/__pycache__/`；说明主工作区并非完全干净。

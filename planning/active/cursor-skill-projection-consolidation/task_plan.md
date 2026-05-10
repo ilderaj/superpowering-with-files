@@ -1,7 +1,7 @@
 # Task Plan: Cursor Skill Projection Consolidation Research
 
 ## Goal
-研究 Cursor 官方文档是否已支持 `.agents/skills`，并在不执行实现的前提下产出可 review 的归并 Cursor/Copilot/Codex skill projection 的详细实现计划。
+基于已 review 的 companion plan，执行 Cursor/Copilot/Codex skill projection 归并实现，保持 `planning/active/cursor-skill-projection-consolidation/` 作为权威任务记忆，并把 durable 决策持续同步回 active planning files。
 
 ## Current State
 Status: active
@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 5
+Phase 6
 
 ## Phases
 
@@ -34,14 +34,23 @@ Phase 5
 ### Phase 4: Review 交付
 - [x] 自查 plan 覆盖用户问题
 - [x] 明确没有执行实现
-- [ ] 向用户交付结论和 plan 路径
-- **Status:** in_progress
+- [x] 向用户交付结论和 plan 路径
+- **Status:** complete
 
 ### Phase 5: 时间头回归修复
-- [ ] 复现 `Session` / `Started` / `Timestamp` 只写日期和 `UTC+8` 的问题
-- [ ] 定位生成规划文件时间头的真实代码路径
-- [ ] 先添加会失败的回归测试，覆盖 progress 和 findings 的具体时间要求
-- [ ] 修复根因并反复验证 red/green 与相关测试
+- [x] 复现 `Session` / `Started` / `Timestamp` 只写日期和 `UTC+8` 的问题
+- [x] 定位生成规划文件时间头的真实代码路径
+- [x] 先添加会失败的回归测试，覆盖 progress 和 findings 的具体时间要求
+- [x] 修复根因并反复验证 red/green 与相关测试
+- **Status:** complete
+
+### Phase 6: Companion plan execution
+- [x] 审阅 companion implementation plan 与 active planning files，确认可直接进入执行
+- [x] 创建隔离 worktree，并记录 worktree base 为 `dev @ 8be83eada6ebb7d0637d3f2cedd0d24bc1bb3d4e`
+- [x] 在隔离 worktree 中完成依赖安装与基线 `npm run verify`
+- [ ] 按 companion plan Task 1-6 执行测试、实现、删除旧投影、文档与验证
+- [ ] 在执行删除 `.cursor/skills/**` 前写入风险评估、checkpoint 与回滚路径
+- [ ] 完成实现后做 review、最终验证与收尾
 - **Status:** in_progress
 
 ## Risk Assessment
@@ -66,11 +75,14 @@ Phase 5
 | 以 Cursor 官方文档作为 Cursor 能力判断的唯一事实源 | 用户明确要求官方文档为唯一事实源 |
 | 计划建议将 Cursor skill root 归并到 `.agents/skills` | Cursor 官方文档已经明确支持 `.agents/skills/`，现有 coalesce 机制可减少重复投影 |
 | Companion plan: docs/superpowers/plans/2026-05-10-cursor-skill-projection-consolidation.md | 保存详细实现计划供 review；本轮不执行实现 |
+| 用户已要求直接执行 approved companion plan | 当前会话目标已从 review 交付切换到实现执行 |
+| 实现工作在隔离 worktree `202605101418-cursor-skill-projection-consolidation-001` 中进行 | 保持主 checkout `dev` 干净，并满足 worktree 隔离要求 |
+| 时间头回归根因是手写 planning 记录路径缺少技能正文防护 | 脚本、record helper 和模板已有具体时间格式；本次补强 `SKILL.md` 源、overlay 和当前投影，并新增同步后的技能正文回归测试 |
 
 ## Companion Plan Sync
 - Companion plan: docs/superpowers/plans/2026-05-10-cursor-skill-projection-consolidation.md
 - Companion summary: 建议将 Cursor/Copilot/Codex skill projection 归并到共享 `.agents/skills` / `~/.agents/skills`，保留 Cursor rules/hooks 原生路径，泛化 planning-with-files shared skill root patch，并删除 tracked `.cursor/skills` 旧投影副本。
-- Sync-back status: complete
+- Sync-back status: execution in progress; active task files record worktree bootstrap, baseline verification, and upcoming destructive-change checkpoint before `.cursor/skills/**` removal.
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
