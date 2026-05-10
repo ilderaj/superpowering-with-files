@@ -4,12 +4,12 @@
 定位并修复 `Upstream Refresh #6` 失败原因，重点确认是否为 upstream `superpowers` 更新导致 `finishing-a-development-branch` 与 `using-git-worktrees` 补丁锚点失效，并在本地复现、修复、验证后恢复 GitHub Actions upstream refresh 流程。
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: `main` 已合入修复，production path 恢复，refresh PR `#45` 已在消除 repo-local entry 覆盖风险后成功合并。
 
 ## Current Phase
-Phase 4
+Complete
 
 ## Phases
 
@@ -43,8 +43,8 @@ Phase 4
 - [x] human 启用 repo 级 “Allow GitHub Actions to create and approve pull requests”，并确认 setting 生效
 - [x] 再次 rerun workflow，确认 repo-level policy blocker 已解除并暴露出新的 refresh-step blockers
 - [x] 将 `npm ci` + Python cache filtering 修复推上远端，并在本地重新确认 `npm run verify` 通过
-- [ ] 确认修复进入 `main` 后，再次 rerun workflow 验证生产路径完全恢复
-- **Status:** in_progress
+- [x] 确认修复进入 `main` 后，再次 rerun workflow 验证生产路径完全恢复
+- **Status:** complete
 
 ## Key Questions
 1. `superpowers` upstream 是否改写了 `finishing-a-development-branch/SKILL.md` 的 Step 结构，导致当前 regex 锚点失效？
@@ -77,11 +77,8 @@ Phase 4
   - `tests/adapters/skill-projection.test.mjs`
 
 ## Residual Risk
-- 远端 GitHub Actions 还没有用到这次本地修复；只有当修复进入触发 workflow 的 GitHub 分支后，rerun 或下一次 scheduled run 才会真正恢复。
-- 当前主工作区还存在用户/历史未提交改动；本 task 没有替用户创建 commit 或 push，避免误混不相关 changes。
-- 当前远端还残留 `automation/upstream-refresh @ c0260fe880c2327f0c36d65c6183bd270f5588ea`，且没有 open PR；这是刚刚暴露出 non-fast-forward 失败的直接条件，但修复代码已经把它纳入可恢复状态。
-- repo setting blocker 已消失，本地依赖 blocker 也已消失；当前剩余 blocker 是生产路径仍指向 `main`，而 `origin/main` 尚未包含 `npm ci` / Python cache filtering 这批修复。
-- 只要 `origin/main` 落后于 `origin/dev @ 60b2224e5e2fd9184f76de5c8d86993f1fb18310`，从 `main` 触发的手动 run 和真实 scheduled run 都会继续跑旧版 workflow 与旧版 refresh 代码路径。
+- 当前 repair 链路已闭环；后续风险不再是这次修复未生效，而是未来 upstream 继续演进时可能产生新的 refresh diff 或新的 GitHub Actions 平台兼容性变化。
+- 当前 GitHub Actions 日志包含平台预警：`actions/checkout@v4`、`actions/setup-node@v4`、`actions/upload-artifact@v4` 仍运行在 Node.js 20 compatibility layer，上游在 **2026-06-02** 开始默认转向 Node.js 24；这不是本次失败原因，但应作为后续维护项关注。
 
 ## Notes
 - 此 task 来源于 `planning/active/post-upstream-automation-followups/` 的 Phase 2 失败分支。

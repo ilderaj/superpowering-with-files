@@ -1,9 +1,9 @@
 # Task Plan: Roadmap v1.4 Safety Overlay Governance
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: repo-local entry file refresh 漏洞已修复，`main` 上 production workflow 已恢复，PR `#45` 已重新生成并成功合并。
 
 ## Goal
 
@@ -21,11 +21,11 @@ Close Reason:
 
 - Master execution plan: `docs/superpowers/plans/2026-05-06-roadmap-implementation-plan.md`
 - Section: `## 7. v1.4: Safety Overlay, Cloud Harness, And Automation Follow-Through`
-- Sync-back status: active, implementation and full verification complete; merge/push pending.
+- Sync-back status: complete
 
 ## Current Phase
 
-Phase 4: Time-gated follow-through and closeout
+Complete
 
 ## Phases
 
@@ -51,13 +51,21 @@ Phase 4: Time-gated follow-through and closeout
 ### Phase 4: Time-gated follow-through and closeout
 - [x] 如果 scheduled run 观察尚未到窗口，则建立自动续跑并明确剩余 gate
 - [x] 清理误提交的 in-repo Codex worktree gitlink，恢复主仓库与嵌套 worktree 的边界
-- [ ] 如果 scheduled run 已观察完成，则关闭 `post-upstream-automation-followups`
+- [x] 如果 scheduled run 已观察完成，则关闭 `post-upstream-automation-followups`
+- [x] 审计 upstream refresh PR 是否可合并，并明确 merge blocker 或 merge 结论
+- [x] 修复 upstream refresh 不应覆盖 repo-local entry files（`AGENTS.md` / `CLAUDE.md` / `.github/copilot-instructions.md`）的 allowlist 缺陷，并让下一轮 refresh 产物不再包含这些文件
 - [x] 更新 roadmap 总控记录
-- [ ] 关闭并归档 `roadmap-v1.4-safety-overlay-governance`
-- **Status:** in_progress
+- [x] 关闭并归档 `roadmap-v1.4-safety-overlay-governance`
+- **Status:** complete
 
 ## Finishing Criteria
 
 - `dev` 和 `origin/dev` 包含 `v1.4` 所需的 overlay / cloud / safety governance 变更，或明确记录唯一剩余的时间门槛。
-- `origin-cloud-harness-deployment-plan` 与 `post-upstream-automation-followups` 的可执行部分被关闭归档，或只保留 scheduled run 观察这一项明确外部 gate。
+- `origin-cloud-harness-deployment-plan` 与 `post-upstream-automation-followups` 的可执行部分被关闭归档，且 upstream refresh PR 不再携带 repo-local policy entry 覆盖风险。
 - 本任务三件套记录 worktree base、验证、merge/push、自动续跑和 closeout 结论。
+
+## Final Outcome
+
+- `v1.4` overlay / cloud / safety governance 已在 `dev` 完成并验证。
+- upstream refresh production path 已在 `main` 恢复。
+- PR `#45 chore: refresh upstream baselines` 已在移除 repo-local entry 覆盖风险后成功合并。

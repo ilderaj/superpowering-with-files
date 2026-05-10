@@ -276,3 +276,80 @@
 |------|-------|----------|--------|--------|
 | Focused MCP safe-apply verification | `node --test tests/mcp/receipt-ledger.test.mjs tests/mcp/safe-write.test.mjs` | 临时 `HOME` 下不再碰真实 `~/.claude` | `3 pass / 0 fail` | 通过 |
 | Full verify after stale-boundary guard | `npm run verify` | 全量验证恢复全绿 | `360 pass / 0 fail / 1 skipped` | 通过 |
+
+## Session: 2026-05-09 07:00:00 UTC+8
+
+### Phase 4: production-path rerun after merge to `main`
+- **Status:** complete
+- Actions taken:
+  - 复核 refs，确认：
+    - `origin/main = fcc5c471fb65f4800879ceb0f9d4e118743873a5`
+    - `origin/dev = c8f50d4467bc5dc47d88647e486cb1cdcaaf2b6e`
+    - 本地 `HEAD = origin/dev`
+  - 重新从 `main` 触发 production-path workflow_dispatch：
+    - `gh workflow run upstream-refresh.yml --ref main -f create_pr=true`
+    - run id：`25583701010`
+  - 跟踪 run 至完成，确认 job `Refresh upstream baselines` 全部步骤成功，且新版 workflow 的 `Install dependencies` 已实际执行。
+  - 下载并检查 artifact `upstream-refresh-result`，确认：
+    - `status: success`
+    - `baseRef: origin/dev`
+    - `branchName: automation/upstream-refresh`
+    - `blockedReason: ""`
+  - 查询 PR 状态，确认 open PR 已存在：
+    - `#45 chore: refresh upstream baselines`
+    - `head: automation/upstream-refresh`
+    - `base: dev`
+- Files created/modified:
+  - `planning/active/upstream-refresh-6-failure-repair/task_plan.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/findings.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/progress.md` (updated)
+
+## Additional Test Results (Update 7)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Production workflow rerun | `gh workflow run upstream-refresh.yml --ref main -f create_pr=true` + `gh run watch 25583701010 --exit-status` | `main` 上的 production path 完整恢复 | run `25583701010` `success` | 通过 |
+| Workflow step snapshot | `gh run view 25583701010 --json jobs` | 新版 workflow 必须出现 `Install dependencies` | step 存在且成功 | 通过 |
+| Refresh artifact snapshot | `gh api .../artifacts/6890337380/zip` + `unzip -p ... upstream-refresh-result.json` | refresh 应成功且无 blocked reason | `status=success`, `blockedReason=""` | 通过 |
+| Upstream refresh PR snapshot | `gh pr list --state all --search 'automation/upstream-refresh in:head' ...` | 存在 open PR 指向 `dev` | `#45` open | 通过 |
+
+## Session: 2026-05-09 23:30:00 UTC+8
+
+### Phase 4: repo-local entry merge blocker final closure
+- **Status:** complete
+- Actions taken:
+  - 对 `#45` 做内容级审计，确认真正 blocker 是 refresh 会改写顶层 repo-local entry files。
+  - 第一轮修复：
+    - commit `344d79e fix: exclude repo-local entries from upstream refresh`
+    - hotfix PR `#46` 合入 `main`
+    - rerun `25604547504` 失败，暴露“excluded 但未从 worktree 清掉”。
+  - 第二轮修复：
+    - commit `19faf0f fix: restore repo-local entries during upstream refresh`
+    - hotfix PR `#47` 合入 `main`
+    - rerun `25604665893` 失败，暴露“tracked/untracked 混用 `git restore`”。
+  - 第三轮修复：
+    - commit `d693dbe fix: handle untracked repo-local entries in refresh`
+    - hotfix PR `#48` 合入 `main`
+    - rerun `25604752525` 成功
+  - 成功 rerun 后复核 `#45`：
+    - `headRefOid = 2daf5a857bfaf86379f38576dfa81c629821684a`
+    - PR body top-50 eligible files 不再包含顶层 `AGENTS.md`
+    - changed files 中不再包含 `AGENTS.md` / `CLAUDE.md` / `.github/copilot-instructions.md`
+  - 执行最终合并：
+    - `gh api repos/ilderaj/superpowering-with-files/pulls/45/merge -X PUT -f merge_method=merge`
+    - merge sha：`cbe0bb77ff4460928adb6da72ffb29c0da556572`
+- Files created/modified:
+  - `scripts/ci/lib/upstream-refresh.mjs`
+  - `scripts/ci/run-upstream-refresh.mjs`
+  - `tests/automation/upstream-refresh-lib.test.mjs`
+  - `planning/active/upstream-refresh-6-failure-repair/task_plan.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/findings.md` (updated)
+  - `planning/active/upstream-refresh-6-failure-repair/progress.md` (updated)
+
+## Additional Test Results (Update 8)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Production rerun after exclusion-only fix | `gh workflow run upstream-refresh.yml --ref main -f create_pr=true` + `gh run watch 25604547504 --exit-status` | repo-local entry files 不再作为 allowlist blocker | 失败，暴露“excluded but still dirty” | 发现下一层根因 |
+| Production rerun after tracked-restore fix | `gh workflow run upstream-refresh.yml --ref main -f create_pr=true` + `gh run watch 25604665893 --exit-status` | restore tracked entries 后成功 | 失败，暴露 untracked pathspec | 发现下一层根因 |
+| Production rerun after tracked/untracked split | `gh workflow run upstream-refresh.yml --ref main -f create_pr=true` + `gh run watch 25604752525 --exit-status` | refresh 成功并更新 `#45` | `success` | 通过 |
+| Final PR content audit | `gh pr view 45 ...` + `gh api repos/.../pulls/45/files --paginate` | repo-local entry files 不再出现在 PR 产物中 | 符合预期 | 通过 |
+| Final merge | `gh api repos/.../pulls/45/merge -X PUT -f merge_method=merge` | refresh PR 成功进入 `dev` | merged | 通过 |

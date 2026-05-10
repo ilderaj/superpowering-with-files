@@ -172,3 +172,28 @@
 - Files created/modified:
   - `planning/active/post-upstream-automation-followups/findings.md` (updated)
   - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Session: 2026-05-09 07:05:00 UTC+8
+
+### Phase 2: production-path confirmation after merge to `main`
+- **Status:** complete
+- Actions taken:
+  - 用户确认相关修复已经 merge 到 `main`。
+  - agent 从 `main` 重新触发 `upstream-refresh.yml`：
+    - run id：`25583701010`
+  - 跟踪 run 到完成，确认：
+    - `Install dependencies` 实际执行成功
+    - `Run upstream refresh` 成功
+    - `Open upstream refresh pull request` 成功
+  - 读取 result artifact，确认 `status: success`、`blockedReason: ""`。
+  - 查询 PR，确认 `#45 chore: refresh upstream baselines` 处于 open 状态，`automation/upstream-refresh -> dev`。
+- Files created/modified:
+  - `planning/active/post-upstream-automation-followups/task_plan.md` (updated)
+  - `planning/active/post-upstream-automation-followups/findings.md` (updated)
+  - `planning/active/post-upstream-automation-followups/progress.md` (updated)
+
+## Additional Test Results (Final)
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Production-path rerun after merge to `main` | `gh workflow run upstream-refresh.yml --ref main -f create_pr=true` + `gh run watch 25583701010 --exit-status` | followup task 的最终验证目标达成 | `success` | 通过 |
+| Open PR verification | `gh pr list --state all --search 'automation/upstream-refresh in:head' ...` | 需要看到 refresh PR 落地 | `#45` open, base `dev` | 通过 |

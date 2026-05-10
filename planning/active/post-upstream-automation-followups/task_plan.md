@@ -4,9 +4,9 @@
 执行 upstream automation 审计后的后续动作：安排首次 scheduled run 观察、处置 stale rehearsal worktree，并把 `npm run verify` 的 7 个失败拆分并推进为独立 repair task，避免把运营跟踪、失败现场处置和代码回归修复混在同一个 task 里。
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: 首次真实 scheduled run 已观察完成，相关失败已通过独立 repair task 修复，production path 已恢复且 refresh PR `#45` 已成功合并。
 
 ## Current Phase
 Complete
