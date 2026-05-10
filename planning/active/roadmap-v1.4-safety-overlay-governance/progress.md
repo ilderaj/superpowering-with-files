@@ -76,6 +76,45 @@
 - 在本地 `2026-05-08 14:29 CST` 再次复核 closeout gate：`post-upstream-automation-followups` 仍要求等待 `2026-05-08 20:05 Asia/Shanghai` 之后的首次 scheduled run 观察，因此 `roadmap-v1.4-safety-overlay-governance` 目前只能继续保持 active，不能提前 close/archive。
 - 本轮先执行 cleanup commit/push，使 `dev` 与 `origin/dev` 对齐到“忽略 in-repo Codex worktrees + 不再跟踪误提交 gitlink”的状态；任务 close/archive 留待 scheduled gate 满足后继续。
 
+### 2026-05-09
+
+- 复核 `main` 上的 production rerun `25583701010`、artifact 和 open PR `#45 chore: refresh upstream baselines`。
+- 对 PR `#45` 做目录级和文件级审计：
+  - GitHub 原生 diff 超过 300 files 限制，因此改用 `git fetch origin automation/upstream-refresh` + 本地 diff 审计。
+  - 目录级统计显示变更主要落在：
+    - `.agents/skills`
+    - `.claude`
+    - `.cursor`
+    - `harness/upstream`
+    - 以及顶层 `AGENTS.md` / `CLAUDE.md`
+  - `gh pr view 45` 显示：
+    - `mergeable = MERGEABLE`
+    - `reviewDecision = REVIEW_REQUIRED`
+    - 当前没有 branch-attached checks
+- 在隔离 worktree `/tmp/pr45-audit` 检出 `origin/automation/upstream-refresh @ 476b1ae` 做本地验证：
+  - `./scripts/harness verify --output=stdout`：通过
+  - `./scripts/harness doctor --check-only`：通过
+  - `npm run verify`：通过（用于确认 refresh branch 本身没有代码级失败）
+- 发现内容级 blocker：
+  - `AGENTS.md` diff 删除了当前仓库厚 entry policy 中的大段 repo-governance 规则，不是可接受的纯 baseline 漂移。
+  - `CLAUDE.md` 与 `.github/copilot-instructions.md` 也属于同类 repo-local entry surface，不应被 automation refresh 当作可直接合并产物。
+- 已在主工作区实现最小修法：
+  - `scripts/ci/lib/upstream-refresh.mjs`
+    - 引入 `repoLocalEntryFiles`
+    - 将 `AGENTS.md` / `CLAUDE.md` / `.github/copilot-instructions.md` 从 eligible refresh 产物中排除
+  - `tests/automation/upstream-refresh-lib.test.mjs`
+    - 更新回归测试，改为显式要求 hidden projection roots 保留、repo-local entry files 被排除
+- 修法验证：
+  - `node --test tests/automation/upstream-refresh-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`：`21 pass / 0 fail`
+  - 主工作区 `npm run verify`：`361 pass / 0 fail`
+- 额外核实了 Node 20 deprecation warning 的官方升级路径：
+  - 当前官方 latest releases：
+    - `actions/checkout v6.0.2`
+    - `actions/setup-node v6.4.0`
+    - `actions/upload-artifact v7.0.1`
+  - 三个仓库当前 `action.yml` 的 `runs.using` 都是 `node24`
+  - 说明该 warning 后续可独立通过 workflow action major bump 修复，不阻塞当前 PR 审计结论。
+
 ## Verification
 
 - Focused state / path / skill projection suites：通过。
@@ -100,6 +139,19 @@
 - `git show --summary --name-status a41d02a -- .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002`：通过，证实误跟踪来自 `a41d02a Close roadmap v1.6`。
 - `git rm --cached -f .codex-worktrees/202605061308-roadmap-v1-4-safety-overlay-governance-002`：成功。
 - 修复后 `git status --short --branch`：通过，仅剩预期的 `.gitignore` 修改与 gitlink staged delete。
+- PR audit worktree `./scripts/harness verify --output=stdout`：通过。
+- PR audit worktree `./scripts/harness doctor --check-only`：通过。
+- PR audit worktree `npm run verify`：通过。
+- repo-local entry exclusion fix `node --test tests/automation/upstream-refresh-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`：通过（`21 pass / 0 fail`）。
+- repo-local entry exclusion fix 后主工作区 `npm run verify`：通过（`361 pass / 0 fail`）。
+- repo-local entry restore fix `node --test tests/automation/upstream-refresh-lib.test.mjs tests/automation/upstream-refresh-workflow.test.mjs`：通过（`22 pass / 0 fail`）。
+- repo-local entry restore fix 后主工作区 `npm run verify`：通过（`362 pass / 0 fail`）。
+- `gh workflow run upstream-refresh.yml --ref main -f create_pr=true`：
+  - `25604547504`：失败，暴露“repo-local entry files 被排除后仍留在 worktree，继续触发 allowlist violation”
+  - `25604665893`：失败，暴露“`git restore` 错把 untracked repo-local entry files 当成 tracked pathspec”
+  - `25604752525`：成功，production path 恢复
+- `gh pr view 45` 最终复核：通过，repo-local entry files 已从 refresh 产物移除
+- `gh api repos/ilderaj/superpowering-with-files/pulls/45/merge -X PUT -f merge_method=merge`：成功，merge sha `cbe0bb77ff4460928adb6da72ffb29c0da556572`
 
 ## Current Execution State
 
@@ -109,4 +161,5 @@
 - Full verification: complete
 - Merge: complete
 - Push: complete
-- Remaining external gate: first scheduled upstream refresh observation on 2026-05-08 20:05 Asia/Shanghai
+- Scheduled-run gate: complete
+- Current blocker: none

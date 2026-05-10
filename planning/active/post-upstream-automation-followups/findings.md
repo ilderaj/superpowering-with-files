@@ -119,3 +119,20 @@
 - 因此 followup 视角下的当前剩余事项已经收敛为一件事：
   - 让 `main` 接到 `origin/dev @ 60b2224e5e2fd9184f76de5c8d86993f1fb18310`
   - 然后再验证 `workflow_dispatch --ref main` / 真实 `schedule` 路径
+
+## 2026-05-09 Followup Closure
+- 用户随后已将修复合入 `main`，并由 agent 从 `main` 成功重跑 production path：
+  - run id：`25583701010`
+  - conclusion：`success`
+- 这次 run 证明 followup task 关心的两件事都已收口：
+  - `main` 确实拿到了修复后的 workflow 与 refresh 代码
+  - production path 不仅 refresh 成功，而且成功创建/更新了 upstream refresh PR
+- 当前可见产物：
+  - open PR `#45 chore: refresh upstream baselines`
+  - head: `automation/upstream-refresh`
+  - base: `dev`
+- 后续又继续完成了 repo-local entry files refresh 风险的收口：
+  - `main` 先后通过 `#46`、`#47`、`#48` 三个微型 hotfix 修复 PR body 过大、repo-local entry exclusion、以及 tracked/untracked restore 分流问题
+  - 最终 production rerun `25604752525` 成功
+  - `#45 chore: refresh upstream baselines` 已成功合并
+- 因此本 task 已不再有剩余执行项，可转为 closed/archive-eligible。

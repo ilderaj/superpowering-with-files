@@ -316,3 +316,40 @@
 - 唯一 skipped 项仍是：
   - `HTTP self-test succeeds for the local profile`
   - 原因是 sandbox 无法监听 localhost，属预期环境限制
+
+## 2026-05-09 Production Rerun Success (`25583701010`)
+- 用户已将相关修复合入 `main`，随后从 `main` 重新触发：
+  - run id：`25583701010`
+  - createdAt：`2026-05-08T23:00:49Z`，即 **2026-05-09 07:00:49 Asia/Shanghai**
+  - headSha：`01b76c11f05194a8f85d30650eb25574cafb8e4d`
+  - conclusion：`success`
+- 这次 run 明确证明生产路径已经切到新版 workflow：
+  - `Install dependencies` step 存在且成功
+  - `Run upstream refresh` 成功
+  - `Upload upstream refresh result` 成功
+  - `Read upstream refresh result` 成功
+  - `Open upstream refresh pull request` 成功
+- `upstream-refresh-result` artifact 关键事实：
+  - `status = success`
+  - `baseRef = origin/dev`
+  - `branchName = automation/upstream-refresh`
+  - `eligibleFiles.length > 0`
+  - `blockedReason = ""`
+- PR 侧实体也已确认恢复：
+  - open PR: `#45`
+  - title: `chore: refresh upstream baselines`
+  - head: `automation/upstream-refresh`
+  - base: `dev`
+  - url: `https://github.com/ilderaj/superpowering-with-files/pull/45`
+
+## Final Conclusion
+- `Upstream Refresh #6` 引出的整条 repair chain 已经完成闭环。
+- 先前修复的几层问题现在都已通过真实生产路径串起来验证：
+  - upstream patch anchor drift
+  - PR body `spawn E2BIG`
+  - fixed automation branch reuse / non-fast-forward
+  - repo-level Actions PR policy
+  - missing `npm ci`
+  - Python `__pycache__/*.pyc` allowlist noise
+  - stale projection cleanup crossing session home boundary
+- 当前不再存在需要继续修复的 blocker；后续工作转为正常 PR review / merge，以及未来 scheduled run 的常规观察。
