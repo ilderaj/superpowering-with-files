@@ -23,6 +23,17 @@ Use `sync --dry-run` to inspect the desired projection diff without writing file
 ./scripts/harness verify --output=.harness/verification
 ```
 
+## Cloud Dev Harness Maintenance
+
+Use these controls when maintaining the remote-only `cloud-dev` lane:
+
+- Bootstrap the lane by creating the remote `cloud-dev` branch from `dev` before enabling automation.
+- `CLOUD_DEV_SYNC_ENABLED`: scheduled sync runs are additionally gated by the workflow job-level `if`; manual dispatches with `mode=sync` bypass that schedule gate but still require script-level `CLOUD_DEV_SYNC_ENABLED=true` to push.
+- `CLOUD_DEV_ISSUE_TRIAGE_ENABLED`: gates whether the issue-triage job runs at all.
+- Check-only is the safe default: `node scripts/ci/check-cloud-dev-branch.mjs --mode=check` inspects branch state and blocking conditions without pushing changes.
+- No auto-merge is configured for cloud-dev automation. Human review and merge steps stay explicit.
+- A local checkout remains unchanged unless a person explicitly syncs it.
+
 ## Lane Responsibilities
 
 - `verify`: run focused suites first, then `npm run verify`, `./scripts/harness verify --output=...`, `./scripts/harness sync --dry-run`, and `./scripts/harness doctor --check-only`.

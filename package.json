@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "test:mcp": "node --test tests/mcp/*.test.mjs",
+    "test:mcp": "node --test --test-concurrency=1 tests/mcp/*.test.mjs",
     "test:core": "node --test tests/core/*.test.mjs",
-    "verify": "node --test tests/core/*.test.mjs tests/installer/*.test.mjs tests/adapters/*.test.mjs tests/automation/*.test.mjs tests/mcp/*.test.mjs",
+    "verify": "node --test tests/core/*.test.mjs tests/installer/*.test.mjs tests/adapters/*.test.mjs tests/automation/*.test.mjs && node --test --test-concurrency=1 tests/mcp/*.test.mjs",
     "mcp:stdio": "node harness/mcp/stdio.mjs"
   },
   "dependencies": {
