@@ -21,6 +21,10 @@ permissions:
   issues: write
   pull-requests: read
 
+concurrency:
+  group: cloud-dev-issue-triage-${{ github.event.issue.number || inputs.issue_number || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   cloud-dev-issue-triage:
     if: ${{ vars.CLOUD_DEV_ISSUE_TRIAGE_ENABLED == 'true' && (github.event_name != 'issue_comment' || github.event.issue.pull_request == null) }}
