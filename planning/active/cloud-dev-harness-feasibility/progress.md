@@ -348,3 +348,51 @@
   - 代码本身可以合入 `cloud-dev`
   - 但建议先修改标题和 PR 描述，避免把本次变更写成已经证明“enforce”成功的线上强制语义
   - 更准确的标题方向应为 `Emit` / `Include` / `Make explicit` `base_branch=cloud-dev` in Copilot triage prompts
+
+## Session: 2026-05-11 17:10:03 UTC+8
+
+- 用户选择执行“2”，要求创建一个后续验证 issue，专门验证 triage comment 路径是否会保留 `cloud-dev` base。
+- 已创建 issue `#60 Validate triage comment path preserves cloud-dev base branch`。
+- issue body 明确约束：
+  - 只走正常的 issue-first + workflow triage comment 路径
+  - 不使用 direct issue-assignment API
+  - 若 Copilot 开 PR，则必须检查其 base 是否为 `cloud-dev`
+  - 需要把 prompt emission 与真实 branch-targeting 行为区分记录
+- 创建后即时核对结果：
+  - issue `#60` 当前为 `OPEN`
+  - labels 正确：`cloud-dev`、`agent:test`
+  - 当次读取时 comments 仍为空，说明至少在该观察点上尚未看到 triage comment
+
+## Session: 2026-05-11 17:17:03 UTC+8
+
+- 用户选择继续执行“1”，要求继续盯 issue `#60` 的真实线上执行状态。
+- 监控结果：
+  - issue `#60` 现已出现 1 条 `github-actions` 评论：`Cloud dev preflight is not ready. The agent task was not started.`
+  - 最近 `Cloud Dev Issue Triage` runs 中，针对该 issue 的 `issues` 事件运行了 3 次：2 次 `success`，1 次 `cancelled`
+  - 对应成功 run `25660998522` 的 job/steps 全部完成，说明 workflow 执行本身没有异常中断
+  - 仓库 agent tasks API 中没有出现与 issue `#60` 标题匹配的新 task
+- 阻塞定位：
+  - 当前存在 1 个 open PR targeting `cloud-dev`：PR `#59`
+  - 这与 issue 上的 blocking comment 一致，说明 `#60` 被 readiness gate 拦在 handoff 前，而不是 comment path 已经成功/失败地进入 Copilot 执行阶段
+
+## Session: 2026-05-11 17:34:31 UTC+8
+
+- 用户要求继续推进，直到所有步骤处理完毕。
+- 执行动作：
+  - 将 PR `#59` 标题改为 `Make \`base_branch=cloud-dev\` explicit in Copilot cloud-dev triage prompts`，并更新 PR body，去掉 overclaiming 的 enforcement 表述
+  - 将 PR `#59` 标记为 ready 并合并到 `cloud-dev`
+  - 创建 promotion PR `#61 Promote cloud-dev prompt contract update into dev`
+  - 因 GitHub 报告 merge conflict，在临时 worktree 中把 `origin/dev` 合入 `origin/cloud-dev`，仅手工解决 `docs/cloud-dev-harness.md` 的冲突后推回 `cloud-dev`
+  - 使用管理员合并 `#61` 到 `dev`
+  - 创建 release PR `#62 Promote cloud-dev prompt contract update into main`，并使用管理员合并到 `main`
+  - 对 issue `#60` 发布 `/cloud-dev retry`
+- issue `#60` retry 后结果：
+  - 新的 `issue_comment` triage run `25662032813` 成功完成
+  - issue 上新增了标准 `@copilot` handoff comment，明确包含：
+    - `base_branch=cloud-dev`
+    - `Base branch: cloud-dev`
+    - `Target PR base: cloud-dev`
+  - 随后读取仓库 tasks API 与 open PR 列表，均未发现与 issue `#60` 对应的新 task 或 PR
+- 收口动作：
+  - 已对 issue `#60` 留下 operator note，总结此次验证结果并关闭该 issue
+  - 已清理本轮 3 个临时 worktrees 与临时分支

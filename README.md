@@ -216,6 +216,7 @@ More detail:
 
 - [Architecture](docs/architecture.md)
 - [Roadmap](docs/roadmap.md)
+- [Backlog](docs/backlog.md)
 - [Maintenance](docs/maintenance.md)
 - [Workflows](docs/workflows.md)
 - [Cloud Dev Harness operator guide](docs/cloud-dev-harness.md)

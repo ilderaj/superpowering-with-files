@@ -4,12 +4,12 @@
 审计并清理项目 roadmap，新增面向 cloud dev 与 cloud agents 的 roadmap/backlog，使未来方向覆盖 cloud 体验对齐 local、Codex/Claude cloud agent 支持、issue/agent assignment 入口和 repo Agent tab 入口。
 
 ## Current State
-Status: active
+Status: waiting_review
 Archive Eligible: no
 Close Reason:
 
 ## Current Phase
-Phase 1
+Phase 5
 
 ## Phases
 
@@ -17,32 +17,32 @@ Phase 1
 - [x] 读取适用流程技能与 planning 模板
 - [x] 扫描现有 roadmap/backlog 文件
 - [x] 查找 cloud-dev、Codex、Claude、agent assignment 相关现状
-- [ ] 审计 roadmap 与 cloud-dev 文档细节
-- **Status:** in_progress
+- [x] 审计 roadmap 与 cloud-dev 文档细节
+- **Status:** complete
 
 ### Phase 2: 方案确认
-- [ ] 汇总已有能力与缺口
-- [ ] 提出 2-3 种 roadmap/backlog 组织方式
-- [ ] 获得用户对落地方向的确认
-- **Status:** pending
+- [x] 汇总已有能力与缺口
+- [x] 提出 2-3 种 roadmap/backlog 组织方式
+- [x] 获得用户对落地方向的确认
+- **Status:** complete
 
 ### Phase 3: 文档更新
-- [ ] 更新或重组 `docs/roadmap.md`
-- [ ] 新增 backlog 文件
-- [ ] 交叉链接 cloud-dev operator guide 与 backlog
-- **Status:** pending
+- [x] 更新或重组 `docs/roadmap.md`
+- [x] 新增 backlog 文件
+- [x] 交叉链接 cloud-dev operator guide 与 backlog
+- **Status:** complete
 
 ### Phase 4: 自检与验证
-- [ ] 检查占位词、重复和矛盾
-- [ ] 运行文档 diff/check
-- [ ] 记录验证结果
-- **Status:** pending
+- [x] 检查占位词、重复和矛盾
+- [x] 运行文档 diff/check
+- [x] 记录验证结果
+- **Status:** complete
 
 ### Phase 5: 交付
-- [ ] 总结修改内容
-- [ ] 标明仍需 GitHub 平台验证的问题
-- [ ] 将 task state 更新为 waiting_review
-- **Status:** pending
+- [x] 总结修改内容
+- [x] 标明仍需 GitHub 平台验证的问题
+- [x] 将 task state 更新为 waiting_review
+- **Status:** complete
 
 ## Risk Assessment
 
@@ -64,12 +64,20 @@ Phase 1
 |----------|-----------|
 | 使用新的 active task `roadmap-cloud-dev-agent-backlog` | 这是独立于已完成 cloud-dev triage 修复的路线图/产品规划任务，需要自己的持久上下文 |
 | 先做 context audit，再修改 docs | 用户提出的问题涉及已验证能力和平台未知项，必须区分事实与计划 |
+| 采用 `docs/roadmap.md` + `docs/backlog.md` 结构 | 用户选择推荐方案 A；roadmap 保持高层方向，backlog 承载可转 issue/agent task 的执行条目 |
 
 ## Plan Record: 2026-05-11 17:05:40 UTC+8
 - 已将任务分类为 tracked task，因为它包含 roadmap 审计、backlog 新增、现有 cloud-dev 状态梳理和未来跨 agent 平台方向设计。
 - 已加载 `planning-with-files`、`brainstorming`、`writing-plans` 相关技能。
 - 当前进入 Phase 1：审计现有路线图、cloud-dev 文档和自动化实现后，再向用户确认文档组织方案。
 
+## Plan Record: 2026-05-11 17:12:04 UTC+8
+- 已完成 roadmap/backlog 更新：`docs/roadmap.md` 新增 v1.7/v1.8 与 cloud-dev active items，`docs/backlog.md` 新增 10 个 CDX backlog 条目，`README.md` 加入 Backlog 链接。
+- 已明确记录用户问题的当前答案：issue template 可标准化并加 labels，但不能直接写成已验证 native cloud-agent assignment；不用模板时，direct Copilot issue assignment API with `agent_assignment.base_branch = cloud-dev` 已有真实验证证据。
+- 已将 repo Agent tab、Codex cloud、Claude cloud 作为平台 research + agent-neutral handoff contract 路线，避免把本地 Harness 支持误写成 cloud automation 已支持。
+- 最终文档验证已通过：`git diff --check`、`awk` trailing whitespace scan、placeholder grep、关键文件存在检查。
+
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
+| Placeholder scan matched its own recorded grep pattern in `progress.md` | 1 | Reworded the progress test input summary so it no longer contains the placeholder red-flag terms, then re-ran final verification successfully. |

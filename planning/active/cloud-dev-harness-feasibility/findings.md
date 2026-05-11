@@ -111,3 +111,20 @@
 - 因此推荐顺序是：
 	- 先改标题与描述，避免使用会暗示线上强制语义已经被证明的 `Enforce`
 	- 然后即可作为低风险改动合入 `cloud-dev`
+
+## Findings Record: 2026-05-11 17:10:03 UTC+8
+- 目前最合理的后续线上验证切片已经被具体化为 issue `#60`：它专门隔离 triage comment path，自觉排除 direct assignment API，以免再次混淆两条控制面。
+- issue `#60` 创建后即时读取时尚未看到 triage comment，因此当前可以确定“验证锚点已创建”，但还不能据此对 workflow 触发结果下结论；后续应继续观察 issue timeline、workflow runs 和任何生成的 task/PR artifacts。
+
+## Findings Record: 2026-05-11 17:17:03 UTC+8
+- issue `#60` 已证明正常 triage comment 路径会真实触发 workflow，但本次没有进入 Copilot task 阶段；workflow 最终留下的是 blocking comment，而不是 `@copilot` handoff comment。
+- 当前最直接的 gate 原因不是 comment path 本身，而是 readiness state：仓库当前仍有一个 open PR targeting `cloud-dev`，即 PR `#59`。这与 operator guide 中“存在 open pull request targets `cloud-dev` 时不应开始新 cloud work”的约束一致。
+- 因此，issue `#60` 当前提供的新增事实是：comment-path 语义验证尚未开始，因为实验被前置 gate 拦下；要继续得到结论，必须先消除 `cloud-dev` open PR 阻塞，再对 `#60` 执行显式 retry。
+
+## Findings Record: 2026-05-11 17:34:31 UTC+8
+- 在将 PR `#59` 推进到 `main` 并对 issue `#60` 执行显式 retry 后，comment-path 实验终于进入了真正的 handoff 阶段：`github-actions` 发布了包含 `base_branch=cloud-dev` 的标准 `@copilot` 评论。
+- 但在 handoff comment 发出后的观察窗口内，仓库 agent tasks API 中没有新增 task，open PR 列表中也没有新增 Copilot PR。这说明在本仓库当前配置下，workflow-authored `@copilot` comment 至少没有在可观察窗口内自动转化成一个可见的 Copilot cloud task。
+- 因此当前最严谨的产品/平台结论是：
+	- prompt emission 已被证明：comment path 会发出显式 `base_branch=cloud-dev`
+	- direct assignment 已被证明：会产出 task artifact 和 PR，且 base 保持 `cloud-dev`
+	- comment-only execution 仍未被证明：因为没有 task/PR 产物，branch-target preservation 无法超出 prompt 层被验证

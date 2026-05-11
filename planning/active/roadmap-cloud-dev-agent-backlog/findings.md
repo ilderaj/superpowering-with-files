@@ -24,11 +24,25 @@
 - `docs/workflows.md` 已有 `cloud-dev` workflow lane，但它偏操作命令和分支边界，没有未来产品化路线。
 - `scripts/ci/lib/cloud-dev-issue.mjs` 生成的是 comment-based `@copilot` prompt；当前 prompt 包含 Base branch 与 Target PR base，但没有 issue template 或 native assignment API 的自动创建逻辑。
 
+## Findings Record: 2026-05-11 17:05:40 UTC+8
+- `.github/workflows/cloud-dev-issue-triage.yml` 触发于 `issues.opened/labeled/assigned`、`issue_comment.created` 和 `workflow_dispatch`；它从 `main` checkout，先跑 branch readiness，再通过 runner 评论 issue，不创建 issue，也不直接调用 assignees API。
+- `docs/install/copilot.md` 已有 cloud-dev pilot 安装方式：workspace-only Copilot + `cloud-safe` + `github-cloud` + hooks on；这是 cloud dev 对齐 local 体验的 Copilot 侧基础。
+- `docs/install/codex.md` 和 `docs/install/claude-code.md` 描述的是普通 workspace/user-global 投影与 hooks；目前没有 `github-cloud` 等价 profile，也没有 cloud issue/agent handoff。
+- 仓库根 `.github/ISSUE_TEMPLATE` 不存在；只在 vendored upstream superpowers 目录下有 issue templates。本仓库若要“创建 issue 时自动使用 assign cloud agent 模板”，需要新增 repo-local issue form/template，并决定它只加 labels，还是配合 API/Actions 做 assignment。
+
 ## Technical Decisions
 | Decision | Rationale |
 |----------|-----------|
 | Backlog 应使用任务级条目而不是只写主题清单 | 后续可直接转 GitHub issue 或 agent task，减少二次整理 |
 | Roadmap 应保持高层方向，backlog 承载可执行 research/implementation slices | 避免 `docs/roadmap.md` 变成过长执行计划 |
+| 记录 issue template 与 assignment API 的能力边界 | 模板可以标准化字段和 labels；direct Copilot assignment API 已验证；comment-based prompt branch targeting 仍需单独实测 |
+| 将 Codex/Claude cloud 支持先写成 research backlog | 本地 Harness 投影已支持 Codex/Claude，但没有已验证 cloud dispatch path，不能过度承诺 |
+
+## Findings Record: 2026-05-11 17:12:04 UTC+8
+- 用户选择方案 A：更新 `docs/roadmap.md` 并新增 `docs/backlog.md`。
+- `docs/backlog.md` 现包含 10 个 CDX 条目，覆盖 cloud dev parity audit、issue template、Copilot assignment decision、comment handoff validation、Agent tab research、agent-neutral cloud contract、Codex/Claude cloud research、cloud-dev status summary 和 promotion playbook。
+- `docs/roadmap.md` 现包含 v1.7/v1.8 未来路线，并将 active roadmap items 转向 cloud-dev/cloud-agent operator experience。
+- 最终验证命令输出 `doc verification passed`，未发现 whitespace、placeholder 或关键文件缺失问题。
 
 ## Issues Encountered
 | Issue | Resolution |

@@ -39,6 +39,9 @@ Close Reason:
 20. 跟进 PR #59 完成态并记录最终代码产出与验证缺口 - complete
 21. 审阅 PR #59、执行最窄验证，并关闭 issue #58 - complete
 22. 给出 PR #59 的明确合并建议与文案修正建议 - complete
+23. 创建 triage comment path 的后续线上验证 issue - complete
+24. 跟进 issue #60 的 triage 结果并确认当前阻塞原因 - complete
+25. 推进 #59 到 main 并完成 issue #60 comment-path 最终验证 - complete
 
 ## 关键决策
 - 将 cloud dev 模式视为可选运行模式，不改变本地 dev 的默认工作流。
@@ -184,6 +187,34 @@ Close Reason:
 - 推荐表述方向：把 `Enforce` 改为 `Emit`、`Include` 或 `Make explicit`，并在 PR body 中明确区分：
   - direct assignment API 路径已线上验证有效
   - triage comment 路径目前只是显式发送相同 directive，尚未完成独立的线上语义验证
+
+## Plan Record: 2026-05-11 17:10:03 UTC+8
+- 已按用户选择创建后续验证 issue `#60 Validate triage comment path preserves cloud-dev base branch`，labels 为 `cloud-dev` + `agent:test`。
+- 该 issue 的目标被明确限定为：只验证正常 workflow triage comment 路径，不使用 direct issue-assignment API；若 Copilot 从 `@copilot` handoff comment 接单并开 PR，则需要确认 PR base 是否仍为 `cloud-dev`。
+- 该 issue 现在成为下一轮线上语义验证的固定锚点，用于补齐“comment path 是否真正执行 `base_branch=cloud-dev`”这一尚未证明的证据缺口。
+
+## Plan Record: 2026-05-11 17:17:03 UTC+8
+- 已继续跟进 issue `#60` 的真实线上执行结果。
+- 当前结论：issue-first + triage workflow 路径确实已执行，但没有启动 Copilot task；issue 上出现的是标准 blocking comment：`Cloud dev preflight is not ready. The agent task was not started.`
+- 已确认当前最直接的阻塞条件是仍存在一个 open PR targeting `cloud-dev`：PR `#59`。因此 `#60` 当前不能作为“comment path 失败”或“comment path 成功”的最终语义结论，它目前只是被现有 readiness gate 挡住。
+- 仓库 agent tasks API 中不存在与 issue `#60` 对应的新 task，进一步支持“未进入 task 阶段，而不是 task 已静默启动”的判断。
+
+## Plan Record: 2026-05-11 17:34:31 UTC+8
+- 已完成整条收尾链路：
+  - 修正 PR `#59` 标题与 body，降低 claim 强度
+  - 合并 PR `#59` 到 `cloud-dev`
+  - 创建并合并 promotion PR `#61`（`cloud-dev -> dev`）
+  - 创建并合并 release PR `#62`（`dev -> main`）
+  - 对 issue `#60` 发送 `/cloud-dev retry`
+- issue `#60` 的最终线上结果：
+  - 初始 `issues` 事件仍先留下过一次 blocking comment
+  - 在清除 open PR blocker 并 retry 后，workflow 在 `main` 上成功发布了标准 `@copilot` handoff comment
+  - 该 handoff comment 已明确包含 `base_branch=cloud-dev`、`Base branch: cloud-dev`、`Target PR base: cloud-dev`
+  - 观察窗口内未出现与 issue `#60` 对应的新 Copilot task，也未出现新的 PR
+- 最终结论：
+  - comment-driven triage path 在默认分支上已被验证会发出显式 `base_branch=cloud-dev` directive
+  - direct assignment path 仍是唯一已被真实 task/PR artifact 证明会保留 `cloud-dev` base 的路径
+  - comment-only path 在本次观察窗口内没有生成 task/PR，因此“是否会被 GitHub 云端语义执行并保留 branch targeting”仍未超出 prompt emission 层得到证明
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
