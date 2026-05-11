@@ -8,8 +8,8 @@ Status: waiting_review
 Archive Eligible: no
 Close Reason:
 Companion plan: `docs/superpowers/plans/2026-05-11-homepage-cloudflare-worker.md`
-Companion summary: 详细实施计划已覆盖 homepage 子项目、BMW M design.md 安装、Worker Static Assets、GitHub Actions 自动部署、文档和验证步骤。
-Sync-back status: companion plan 已与执行结果同步摘要；变更已本地合并回 `dev` 并清理临时 worktree，active task 目录继续作为生命周期和进度 source of truth。
+Companion summary: 详细实施计划已覆盖 homepage 子项目、BMW M design.md 安装、Worker Static Assets、GitHub Actions 自动部署、文档和验证步骤；后续审计已补齐 Cloudflare DNS placeholder record、GitHub Actions secrets，并确认生产域名可访问。
+Sync-back status: companion plan 与后续运维审计结论已同步；active task 目录继续作为生命周期和验证 source of truth。
 
 ## Current Phase
 Phase 6
@@ -78,6 +78,7 @@ Phase 6
 | 为本任务创建独立规划目录 `planning/active/homepage-cloudflare-worker/` | 这是跨前端、Worker、CI 的 tracked task，需要 durable state |
 | 后续执行时优先隔离 homepage 到子目录 | 现有仓库是 harness monorepo，根 package 当前只承载 Node test/runtime，隔离可降低依赖和构建风险 |
 | companion plan 存放在 `docs/superpowers/plans/2026-05-11-homepage-cloudflare-worker.md` | 用户要求详细 impl plan/companion plan；active task 目录保留生命周期摘要 |
+| deploy workflow 在发布后追加生产 smoke check | 自动部署应同时验证公开 URL 可达，而不是只验证 build 和 wrangler deploy 成功 |
 
 ## Plan Record: 2026-05-11 15:39:09 UTC+8
 
@@ -110,6 +111,19 @@ Phase 6
 - 合并后已在 `dev` 上重新安装 `homepage/` 依赖，并再次执行 homepage/typecheck/test/build、Wrangler dry-run、`npm run verify` 与 `git diff --check`。
 - 临时 worktree `.worktrees/202605111312-homepage-cloudflare-worker-001` 已移除，本地分支同名 feature branch 已删除。
 - 根 `.gitignore` 已补入 `homepage/node_modules/` 与 `homepage/dist/`，避免本地 homepage 验证产物持续污染状态。
+
+## Plan Record: 2026-05-11 22:02:56 UTC+8
+
+- 审计确认 homepage 代码已存在于 `origin/dev` 与 `origin/main`，但 `Deploy Homepage` workflow 在 `main` 合并后首次运行失败。
+- 根因定位为两项外部配置缺失：仓库 GitHub Actions secrets 中没有 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`，且 Cloudflare zone 中缺少 `vibing.paymond.me` 的 placeholder DNS record。
+- 已使用本机 Wrangler OAuth 凭据手动部署 Worker，补建 `vibing.paymond.me -> AAAA 100:: (proxied)` 占位记录，并写入 GitHub repo secrets 后重新触发 `homepage-deploy.yml`。
+- 最终验证：`https://vibing.paymond.me/superpowering-with-files` 返回 `308 -> 200`，`gh run view 25674986402` 显示 `Deploy homepage Worker` 成功；任务关闭并可归档。
+
+## Plan Record: 2026-05-11 22:07:25 UTC+8
+
+- 用户选择继续实现 follow-up 选项 2：在 `homepage-deploy.yml` 中增加 deploy 后的生产 smoke check。
+- 按 TDD 先修改 `tests/automation/homepage-deploy-workflow.test.mjs`，要求存在 `Smoke check production homepage` step，并验证测试先红后绿。
+- 当前本地改动已准备好 review；任务状态临时回到 `waiting_review`，等待后续决定是否提交/推送该 workflow 增强。
 
 ## Errors Encountered
 

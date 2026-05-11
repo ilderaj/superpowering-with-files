@@ -50,6 +50,15 @@
 | Final homepage verification | `npm run typecheck --prefix homepage && npm test --prefix homepage && npm run build --prefix homepage && npx --prefix homepage wrangler deploy --config homepage/wrangler.jsonc --dry-run` | Typecheck, tests, build, and Worker dry-run all pass | All commands exited 0 after rerunning dry-run sequentially | pass |
 | Final repository verification | `npm run verify` | Full repo verify remains green with new automation test included | 400/400 core+automation tests and 20/20 MCP tests pass | pass |
 | Diff hygiene | `git diff --check` | No whitespace or patch-format errors | Passed | pass |
+| Main branch merge audit | `git fetch origin --prune && git ls-tree -r --name-only origin/main -- homepage .github/workflows/homepage-deploy.yml docs/install/homepage-cloudflare-worker.md` | Confirm homepage files are on `origin/main` | Homepage files present on `origin/main` and `origin/dev` | pass |
+| Failed deploy root cause | `gh run view 25674298390 --log-failed` | Identify why automatic deploy did not publish | Missing `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in Actions env | pass |
+| Worker manual deploy | `npm run build --prefix homepage && npx --prefix homepage wrangler deploy --config homepage/wrangler.jsonc` | Publish current Worker to production route | Deployment succeeded; route `vibing.paymond.me/superpowering-with-files*` active | pass |
+| DNS placeholder fix | Cloudflare API create DNS record `vibing.paymond.me AAAA 100:: proxied` | Enable TLS termination for Worker hostname | Record created successfully | pass |
+| Secret presence | `gh secret list` | Confirm repo has required Cloudflare secrets | `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` present | pass |
+| Automatic deploy recovery | `gh workflow run homepage-deploy.yml --ref main` then `GH_PAGER=cat gh run view 25674986402 --json status,conclusion,url,jobs` | Confirm automatic deploy path is now healthy | Run completed with overall `success`, deploy step green | pass |
+| Public accessibility | `curl -I -L --max-redirs 5 --connect-timeout 20 https://vibing.paymond.me/superpowering-with-files` | Production URL resolves and serves homepage | `HTTP/2 308` then `HTTP/2 200`, served by Cloudflare | pass |
+| Workflow smoke-check red phase | `node --test tests/automation/homepage-deploy-workflow.test.mjs` after tightening test | Test fails because workflow lacks smoke step | Failed with `Expected Smoke check production homepage step block` | pass |
+| Workflow smoke-check green phase | `node --test tests/automation/homepage-deploy-workflow.test.mjs` after workflow patch | Test passes with smoke step present | 4/4 tests pass | pass |
 
 ## Error Log
 
@@ -64,11 +73,49 @@
 
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 2: Plan Review，companion plan 已创建，等待用户审阅 |
-| Where am I going? | 用户批准后进入 homepage、Worker、GitHub Actions 实施 |
+| Where am I? | Task closed after production audit and recovery |
+| Where am I going? | No further execution required unless the homepage content or route changes again |
 | What's the goal? | 创建并自动部署 `vibing.paymond.me/superpowering-with-files` homepage |
-| What have I learned? | 现有仓库无前端 app；根脚本以 Node tests/harness 为主；本地已有其他任务未提交改动 |
-| What have I done? | 收集上下文，创建 task_plan/findings/progress，并写出 companion implementation plan |
+| What have I learned? | 根因是 Cloudflare DNS placeholder record 与 GitHub Actions secrets 缺失，不是 homepage 代码或 Worker 实现错误 |
+| What have I done? | 审计了 merge/deploy 状态，手动上线 Worker，补齐 DNS 与 repo secrets，并确认自动部署恢复 |
+
+## Session: 2026-05-11 22:02:56 UTC+8
+
+### Phase 6: Production Audit and Recovery
+- **Status:** complete
+- **Started:** 2026-05-11 22:02:56 UTC+8
+- Actions taken:
+  - 重新 fetch `origin`，确认 homepage 代码已经存在于 `origin/dev` 与 `origin/main`。
+  - 检查 `homepage-deploy.yml`、`homepage/wrangler.jsonc`、安装文档与 Worker path 逻辑。
+  - 读取 GitHub Actions run `25674298390` 失败日志，确认缺少 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` secrets。
+  - 使用本机 Wrangler OAuth 凭据手动部署 `superpowering-with-files-homepage`，确认 Worker route 生效。
+  - 使用 Cloudflare API 检查 zone `paymond.me` 的 DNS records 与 Worker routes，定位缺少 `vibing.paymond.me` placeholder DNS record。
+  - 补建 `vibing.paymond.me` 的 proxied `AAAA 100::` 占位记录。
+  - 验证本机 Wrangler `oauth_token` 可在干净环境里作为 `CLOUDFLARE_API_TOKEN` 使用，并将其与 `CLOUDFLARE_ACCOUNT_ID` 写入 GitHub repo secrets。
+  - 手动触发 workflow_dispatch run `25674986402`，确认 `Deploy homepage Worker` 成功。
+  - 最终验证生产 URL：`https://vibing.paymond.me/superpowering-with-files` 返回 `308 -> 200`，且 HTML 已从 Cloudflare 命中缓存返回。
+- Files created/modified:
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
+
+## Session: 2026-05-11 22:07:25 UTC+8
+
+### Phase 6: Post-Deploy Smoke Check Follow-up
+- **Status:** complete
+- **Started:** 2026-05-11 22:07:25 UTC+8
+- Actions taken:
+  - 读取 `homepage-deploy.yml` 与 `tests/automation/homepage-deploy-workflow.test.mjs`，确认当前 workflow 还没有生产 smoke check。
+  - 先按 TDD 修改 workflow contract test，要求存在 `Smoke check production homepage` step，并验证测试先红。
+  - 在 `.github/workflows/homepage-deploy.yml` 的 deploy step 后追加生产 smoke check：请求生产 URL、跟随跳转、校验 `200` 和页面 title，带 5 次有限重试。
+  - 重跑同一条 workflow contract test，确认从红转绿。
+  - 重新运行 `git diff --check`，确认 workflow 与 planning 变更没有格式问题。
+- Files created/modified:
+  - `.github/workflows/homepage-deploy.yml`
+  - `tests/automation/homepage-deploy-workflow.test.mjs`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
 
 ---
 
