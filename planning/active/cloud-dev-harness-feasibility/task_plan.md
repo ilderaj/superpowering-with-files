@@ -1,7 +1,7 @@
 # Cloud Dev Harness 可行性分析计划
 
 ## Current State
-Status: active
+Status: waiting_review
 Archive Eligible: no
 Close Reason:
 
@@ -108,6 +108,14 @@ Close Reason:
 - 但该切换会把仓库内供本地开发使用的 `.agents/skills/**` 视为当前 workspace 的 stale projection，从而在 worktree 中删除本地兼容投影；这说明该形态不能直接 merge 回 `dev`。
 - 部署决策更新：`dev` 继续保留本地兼容/full Harness 形态；GitHub cloud 所需的 `github-cloud` / `cloud-safe` / Copilot-only 变体只在远端 `cloud-dev` 发布分支上生成和提交，不回灌到本地 `dev`。
 - 当前进入 finish 阶段：先恢复当前 worktree 到可 merge 状态，再 merge 回本地 `dev`，随后基于合并后的 `dev` 单独构造远端 `cloud-dev` 发布形态。
+
+## Plan Record: 2026-05-11 12:01:30 UTC+8
+- 已在主 checkout 将功能分支 `202605101422-cloud-dev-harness-feasibility-001` merge 回本地 `dev`，merge commit 为 `2c3d787`。
+- merge 后验证结论：`npm run verify` 通过，`./scripts/harness doctor --check-only` 通过，`node scripts/ci/check-cloud-dev-branch.mjs --mode=check` 在远端分支建立后返回 `Reason: check_only`。
+- 已将 `dev` 推送到 `origin/dev`，并将 `origin/cloud-dev` bootstrap 到与 `origin/dev` 同一提交，满足当前 branch checker 的 zero-divergence staging 契约。
+- 已在 GitHub 仓库上创建并启用 `CLOUD_DEV_SYNC_ENABLED=true` 与 `CLOUD_DEV_ISSUE_TRIAGE_ENABLED=true`，并补齐 labels：`cloud-dev`、`agent:plan`、`agent:test`、`agent:impl`。
+- 已创建并合并 `dev -> main` 的发布 PR `#52 Add cloud-dev harness workflows and rollout checks`，使默认分支 `main` 获得 cloud-dev workflows、docs 与 Copilot entry baseline。
+- 已从 `main` 手动触发一次 `Cloud Dev Sync` workflow 的 `workflow_dispatch(mode=check)`；GitHub Actions run `25649619094` 成功完成。
 
 ## Errors Encountered
 | Error | Attempt | Resolution |

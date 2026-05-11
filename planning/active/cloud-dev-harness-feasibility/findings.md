@@ -53,3 +53,8 @@
 - `npm run verify` 的剩余失败不在本次 cloud-dev 实现范围内：失败测试是 `tests/mcp/receipt-ledger.test.mjs` 与 `tests/mcp/safe-write.test.mjs`，根因是当前 worktree 的 Harness projection manifest/state 与受管 entry 文件（尤其 `AGENTS.md`）不一致，`applyWritePlan(sync)` 命中了现有的 safe-apply ownership 拒写逻辑。
 - `./scripts/harness doctor --check-only` 的失败同样属于现有环境/元数据问题：当前 worktree 缺失 `.github/copilot-instructions.md` 与 `CLAUDE.md`，同时 doctor 仍报告 companion-plan 引用不一致；这些都不是 cloud-dev feature 代码路径本身的回归。
 - `node scripts/ci/check-cloud-dev-branch.mjs --mode=check` 失败则是 rollout prerequisite 未满足：远端尚未创建 `cloud-dev` 分支，因此 `git fetch origin dev cloud-dev` 会返回 `fatal: couldn't find remote ref cloud-dev`。
+
+## Findings Record: 2026-05-11 12:01:30 UTC+8
+- 当前 cloud-dev rollout 的稳定契约是：`origin/cloud-dev` 必须与 `origin/dev` 保持零 staging-only 差异；否则 branch checker 会把 `cloud-dev` 视为 ahead/blocking state，不适合派发新 cloud tasks。
+- 因此 `github-cloud` / `cloud-safe` / Copilot-only 试跑形态不能直接作为 `cloud-dev` 上的额外提交存在；GitHub cloud baseline 必须通过默认分支 `main` 的 workflow/docs/entry 提供，而不是让 `cloud-dev` 脱离 `dev` 产生长期额外 diff。
+- 触发 issue-driven cloud iteration 之前的最低 GitHub 条件现已具备：默认分支拥有 workflow 文件，repo variables 已开启，cloud-dev labels 已创建，远端 `cloud-dev` 已存在且与 `dev` 对齐。
