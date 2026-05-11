@@ -53,7 +53,7 @@ function matchesLiteralOrLink(value, targetPath) {
 }
 
 function extractLabeledReferenceValue(line, labels) {
-  const normalizedLine = normalizeForMatch(line).trim();
+  const normalizedLine = normalizeForMatch(line).trim().replace(/(\*\*|__)/g, '');
   const labelsPattern = labels.map((label) => escapeRegExp(label)).join('|');
   const match = normalizedLine.match(new RegExp(`^(?:[-*]\\s+)?(?:${labelsPattern})\\s*:\\s*(.+)$`, 'i'));
   return match ? match[1].trim() : null;
@@ -114,7 +114,8 @@ function referencesForCompanionPlan(referenceTexts, companionRelativePath) {
           'Companion plan',
           'Companion plan path',
           'Companion path',
-          'Plan path'
+          'Plan path',
+          'Path'
         ]);
 
         return labeledReference ? matchesLiteralOrLink(labeledReference, normalizedPath) : false;

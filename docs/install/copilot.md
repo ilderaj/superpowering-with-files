@@ -60,6 +60,18 @@ For repo-local cloud execution where Copilot must stay inside `.github/**`, run:
 ./scripts/harness sync
 ```
 
+### Cloud Dev Harness Pilot
+
+For the `cloud-dev` lane, keep the Copilot install workspace-only:
+
+```bash
+./scripts/harness install --targets=copilot --scope=workspace --profile=cloud-safe --deployment-profile=github-cloud --hooks=on
+./scripts/harness sync
+./scripts/harness doctor --check-only
+```
+
+Do not use `adopt-global`, `--scope=user-global`, or `--scope=both` for the `cloud-dev` lane.
+
 When you create a manual branch or worktree for Copilot-driven work, resolve the name from the repo-owned helper instead of a prompt summary:
 
 ```bash

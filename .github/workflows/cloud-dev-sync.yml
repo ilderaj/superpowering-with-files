@@ -1,0 +1,54 @@
+name: Cloud Dev Sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Choose whether to check or sync the cloud-dev branch
+        required: false
+        default: check
+        type: choice
+        options:
+          - check
+          - sync
+  schedule:
+    - cron: '0 2 * * 1-5'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cloud-dev-sync:
+    if: ${{ github.event_name != 'schedule' || vars.CLOUD_DEV_SYNC_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check cloud-dev branch state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUD_DEV_SYNC_ENABLED: ${{ vars.CLOUD_DEV_SYNC_ENABLED }}
+        run: node scripts/ci/check-cloud-dev-branch.mjs --mode=${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'check' }}
+
+      - name: Upload cloud-dev sync result
+        if: ${{ always() && hashFiles('.harness/cloud-dev-sync-result.json') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: cloud-dev-sync-result
+          path: .harness/cloud-dev-sync-result.json
+          if-no-files-found: error
