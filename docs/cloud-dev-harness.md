@@ -35,6 +35,8 @@ Every cloud-dev task branch and promotion step should pass these checks before r
 3. Promotion from `cloud-dev` to `dev` happens through a separate human-owned pull request.
 4. Local development branches or checkouts update only when a person explicitly syncs them.
 
+For Copilot issue assignment, keep the directive explicit: `base_branch=cloud-dev`.
+
 ## Recovery
 
 The Recovery section is for manual recovery and operator intervention after automation blocks or fails.
