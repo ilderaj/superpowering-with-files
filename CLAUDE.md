@@ -1,4 +1,4 @@
-# Harness Policy For Codex
+# Harness Policy For Claude Code
 
 # Hybrid Workflow Policy
 
@@ -110,15 +110,11 @@ Use output-compressing command wrappers for shell commands likely to produce med
 
 Skip command wrappers for trivial commands or tiny targeted reads where compression adds overhead without saving context.
 
-## Codex Platform Notes
+## Claude Code Platform Notes
 
-# Codex Override
+# Claude Code Override
 
-Codex can consume `AGENTS.md` as the primary instruction entrypoint.
+Claude Code can use `CLAUDE.md`, skills, plugins, and hooks.
 
-Use rendered `AGENTS.md` files for both workspace and user-global scopes. Project Codex skills into `.agents/skills` and `~/.agents/skills`, and materialize them to keep discovery aligned with the current Codex skill model.
-
-
-
-
+Render a thin `CLAUDE.md` entry file and materialize per-skill projections under `.claude/skills`. Do not install or mutate hooks unless the user explicitly selects hook installation.
 

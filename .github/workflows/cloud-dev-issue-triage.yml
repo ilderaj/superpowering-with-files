@@ -1,0 +1,77 @@
+name: Cloud Dev Issue Triage
+
+on:
+  issues:
+    types:
+      - opened
+      - labeled
+      - assigned
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to triage when manually dispatching the workflow
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  cloud-dev-issue-triage:
+    if: ${{ vars.CLOUD_DEV_ISSUE_TRIAGE_ENABLED == 'true' && (github.event_name != 'issue_comment' || github.event.issue.pull_request == null) }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check cloud-dev branch state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUD_DEV_SYNC_ENABLED: 'false'
+        run: node scripts/ci/check-cloud-dev-branch.mjs --mode=check
+
+      - name: Tighten readiness handoff
+        id: cloud_dev_ready
+        run: |
+          node <<'NODE'
+          const { readFileSync, appendFileSync } = require('node:fs');
+
+          const result = JSON.parse(readFileSync('.harness/cloud-dev-sync-result.json', 'utf8'));
+          const statusOk = result.status !== 'failed';
+          const openPullRequestsTargetingCloudDev = result.report?.openPullRequestsTargetingCloudDev ?? Number.POSITIVE_INFINITY;
+          const stagingOnly = result.report?.aheadBehind?.stagingOnly ?? Number.POSITIVE_INFINITY;
+          const ready = statusOk && openPullRequestsTargetingCloudDev === 0 && stagingOnly === 0 ? 'true' : 'false';
+          appendFileSync(process.env.GITHUB_OUTPUT, `ready=${ready}\n`);
+          NODE
+
+      - name: Run cloud-dev issue triage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLOUD_DEV_READY: ${{ steps.cloud_dev_ready.outputs.ready }}
+        run: node scripts/ci/run-cloud-dev-issue-triage.mjs
+
+      - name: Upload cloud-dev issue triage result
+        if: ${{ always() && hashFiles('.harness/cloud-dev-issue-triage-result.json') != '' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: cloud-dev-issue-triage-result
+          path: .harness/cloud-dev-issue-triage-result.json
+          if-no-files-found: error

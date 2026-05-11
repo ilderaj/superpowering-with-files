@@ -21,6 +21,23 @@ Typical commands:
 ./scripts/harness worktree-name --task <task-id> --namespace <prefix>
 ```
 
+### `cloud-dev`
+
+Use `cloud-dev` when agent work should stage remotely from `origin/dev` without changing a local checkout.
+
+- Treat `cloud-dev` as a remote-only staging branch derived from `origin/dev`.
+- Create a per-task `cloud-dev/<issue>-<slug>` branch for scoped agent work.
+- Merge work into `dev` only through a pull request after `cloud-dev` review is complete.
+- Do not auto-sync `cloud-dev` into local checkouts.
+
+Typical commands:
+
+```bash
+node scripts/ci/check-cloud-dev-branch.mjs --mode=check
+npm run verify
+./scripts/harness doctor --check-only
+```
+
 ### `review`
 
 Use `review` when the goal is to inspect a plan, diff, PR, or archive decision before implementation moves on.
@@ -56,7 +73,7 @@ npm run verify
 
 ### `finish`
 
-Use `finish` when a scoped branch is ready to return to `dev`.
+Use `finish` when a scoped branch is ready to return to the recorded worktree base.
 
 - Push the scoped branch first when you want a remote recovery point.
 - Merge back using the recorded worktree base rather than late guesses.
@@ -66,9 +83,9 @@ Typical commands:
 
 ```bash
 git push -u origin <branch>
-git switch dev
+git switch <base-ref>
 git merge --no-ff <branch>
-git push origin dev
+git push origin <base-ref>
 ```
 
 ### `release`

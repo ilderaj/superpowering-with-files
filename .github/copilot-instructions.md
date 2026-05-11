@@ -1,4 +1,9 @@
-# Harness Policy For Codex
+---
+applyTo: "**"
+---
+# Harness Policy For Copilot
+
+Apply this global policy together with repository-local instructions.
 
 # Hybrid Workflow Policy
 
@@ -47,50 +52,11 @@ Classify the task before choosing the workflow:
 
 Tool-call count is only a supporting signal. Exceeding five meaningful tool calls may indicate tracked work, but it does not override the task classification above by itself.
 
-## When Superpowers Is Allowed
-
-
-Use superpowers only when:
-
-- architecture is unclear
-- requirements are ambiguous
-- debugging is complex
-- root cause is not obvious
-- deep structured reasoning is explicitly requested
-
-## When Superpowers Is Not Allowed
-
-
-Do not use superpowers for:
-
-- trivial edits
-- simple bug fixes
-- straightforward feature implementation
-- renames, moves, formatting, or low-risk refactors
-- routine implementation even if a skill might loosely apply
-- tasks where direct execution is clear and the reasoning value does not justify the token cost
-
 ## Communication Guidelines
 
 
 - Use Chinese for all conversations, explanations, code review results, and plan file content.
 - Use English for all code-related content: code, code comments, documentation, UI strings, commit messages, and PR titles or descriptions.
-
-## Tool Preferences
-
-
-### Package Management
-
-- Development tools are managed via `proto`, including Bun, Node.js, and pnpm.
-- Python commands should always use `uv`.
-- JavaScript and TypeScript work should check the lock file for the package manager.
-
-### Search And Documentation
-
-- Use `fd` for file search when available.
-- Use `rg` for content search.
-- Use the `gh` CLI for all GitHub operations.
-- Check official package documentation for latest usage.
 
 ## Compact Instructions
 
@@ -110,15 +76,12 @@ Use output-compressing command wrappers for shell commands likely to produce med
 
 Skip command wrappers for trivial commands or tiny targeted reads where compression adds overhead without saving context.
 
-## Codex Platform Notes
+## Copilot Platform Notes
 
-# Codex Override
+# Copilot Override
 
-Codex can consume `AGENTS.md` as the primary instruction entrypoint.
+GitHub Copilot supports Harness shared `.agents/skills` roots (`.agents/skills` and `~/.agents/skills`).
 
-Use rendered `AGENTS.md` files for both workspace and user-global scopes. Project Codex skills into `.agents/skills` and `~/.agents/skills`, and materialize them to keep discovery aligned with the current Codex skill model.
-
-
-
+Render `copilot-instructions.md` for Copilot instruction entrypoints. Keep this entry thin: materialize the shared skill roots and the patched `planning-with-files` content, but do not inline broader core workflow policy, tracked-task detail, or deep-reasoning sections into the startup payload.
 
 
