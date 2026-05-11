@@ -48,6 +48,7 @@ export function buildCopilotPrompt({ issueNumber, issueTitle, taskKind }) {
     '',
     `Issue: #${issueNumber} ${issueTitle}`,
     `Task kind: ${taskKind}`,
+    'base_branch=cloud-dev',
     'Base branch: `cloud-dev`',
     'Target PR base: `cloud-dev`',
     'Do not push to `dev` or `main`.',
