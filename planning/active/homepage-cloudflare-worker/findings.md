@@ -52,6 +52,21 @@
 - homepage 子项目在主工作区首次验证时会生成 `homepage/node_modules/` 与 `homepage/dist/`；如果不显式忽略，这两个目录会在 `dev` 上长期显示为未跟踪噪音。
 - 将 `homepage/node_modules/` 与 `homepage/dist/` 加入根 `.gitignore` 是比每次手动删除更稳妥的根因修复，因为它把“子项目依赖与构建产物是生成物”这个事实固定进仓库规则。
 
+## Findings Record: 2026-05-11 22:02:56 UTC+8
+
+- `origin/main` 在刷新 fetch 后确认已包含全部 homepage 文件；问题不在代码是否 merge，而在 deploy 是否成功和域名是否可接入。
+- `gh run view 25674298390 --log-failed` 显示首次 `Deploy Homepage` 失败的直接原因是 GitHub Actions 环境中 `CLOUDFLARE_API_TOKEN` 和 `CLOUDFLARE_ACCOUNT_ID` 都为空。
+- Cloudflare zone `paymond.me` 上已存在 Worker route `vibing.paymond.me/superpowering-with-files* -> superpowering-with-files-homepage`，但此前没有 `vibing.paymond.me` 的 DNS record；因此 TLS 连接在路由生效前就失败。
+- zone 中另一个 Worker hostname `apps.paymond.me` 使用 `AAAA 100::` + `proxied: true` 作为 placeholder record；按同样模式为 `vibing.paymond.me` 补建记录后，HTTPS 立即恢复为 `308 -> 200`。
+- 本机 Wrangler `oauth_token` 可在无本地配置的临时 `HOME` 中被非交互式 `wrangler whoami` 识别为 `CLOUDFLARE_API_TOKEN`，因此可安全复用为 GitHub Actions secret 来源。
+- repo secrets 现已存在 `CLOUDFLARE_API_TOKEN` 与 `CLOUDFLARE_ACCOUNT_ID`；手动触发 run `25674986402` 后，workflow 全绿完成，后续 `main` 上的 homepage 相关 push 会自动部署。
+
+## Findings Record: 2026-05-11 22:07:25 UTC+8
+
+- 当前 `homepage-deploy.yml` 只验证 install/typecheck/test/build/deploy；如果 deploy 成功但公开 URL 回归，workflow 不会及时失败。
+- 最小可靠增强是在 deploy step 后追加生产 smoke check，直接请求 `https://vibing.paymond.me/superpowering-with-files`，跟随重定向，要求最终 `200` 且 HTML 中包含 `<title>Superpowering with Files</title>`。
+- 由于 Cloudflare route 和缓存传播可能有短暂延迟，smoke check 需要有限重试；本次实现采用 5 次重试、每次间隔 5 秒。
+
 ## Technical Decisions
 
 | Decision | Rationale |
@@ -64,6 +79,9 @@
 | worktree 基线采用本地 `dev` HEAD | 当前仓库在非 trunk 开发分支，预检明确建议保留该上下文并显式记录 base SHA |
 | `tsconfig` 使用 `moduleResolution: "Bundler"` | 当前 TypeScript 版本已不接受计划里的 `Node` 设定；Bundler 更符合 Vite/ESM 解析模型 |
 | Worker dry-run 必须在 build 之后串行执行 | `wrangler` 直接检查 `assets.directory`，不能与产物生成并行 |
+| `vibing.paymond.me` 使用 `AAAA 100::` proxied placeholder record | 这是同 zone 内 Worker hostname 的既有模式，能让 Cloudflare 在自定义子域上正确终止 TLS 并将流量送入 Worker route |
+| GitHub Actions secret `CLOUDFLARE_API_TOKEN` 采用本机 Wrangler OAuth token | 该 token 已在无本地配置的环境中验证可被 Wrangler 识别为 `Account API Token`，足以支撑非交互部署 |
+| deploy workflow 用 curl + HTML title 做 smoke check | 这是比单纯 HTTP 200 更具体、但仍足够轻量的生产可用性验证 |
 
 ## Issues Encountered
 

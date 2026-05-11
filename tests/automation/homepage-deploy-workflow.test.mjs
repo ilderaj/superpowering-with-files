@@ -84,6 +84,7 @@ test('homepage deploy workflow builds, tests, and deploys the homepage Worker', 
   const testBlock = extractStepBlock(workflow, 'Test homepage');
   const buildBlock = extractStepBlock(workflow, 'Build homepage');
   const deployBlock = extractStepBlock(workflow, 'Deploy homepage Worker');
+  const smokeBlock = extractStepBlock(workflow, 'Smoke check production homepage');
 
   assert.match(jobBlock, /^\s{4}if:\s*\$\{\{\s*github\.repository\s*==\s*'ilderaj\/superpowering-with-files'\s*\}\}\s*$/m);
   assert.match(jobBlock, /^\s{4}runs-on:\s*ubuntu-latest\s*$/m);
@@ -97,6 +98,18 @@ test('homepage deploy workflow builds, tests, and deploys the homepage Worker', 
   assert.match(deployBlock, /^\s{10}CLOUDFLARE_API_TOKEN:\s*\$\{\{\s*secrets\.CLOUDFLARE_API_TOKEN\s*\}\}\s*$/m);
   assert.match(deployBlock, /^\s{10}CLOUDFLARE_ACCOUNT_ID:\s*\$\{\{\s*secrets\.CLOUDFLARE_ACCOUNT_ID\s*\}\}\s*$/m);
   assert.match(deployBlock, /^\s{8}run:\s*npx --prefix homepage wrangler deploy --config homepage\/wrangler\.jsonc\s*$/m);
+  assert.match(smokeBlock, /^\s{8}run:\s*\|\s*$/m);
+  assert.match(smokeBlock, /^\s{10}url="https:\/\/vibing\.paymond\.me\/superpowering-with-files"\s*$/m);
+  assert.match(smokeBlock, /^\s{10}for attempt in 1 2 3 4 5; do\s*$/m);
+  assert.match(smokeBlock, /^\s{12}status=\$\(curl -sS -o \/tmp\/homepage-smoke\.html -w "%\{http_code\}" -L --max-redirs 5 --connect-timeout 20 "\$url"\)\s*$/m);
+  assert.match(smokeBlock, /^\s{12}if \[ "\$status" = "200" \] && grep -q "<title>Superpowering with Files<\/title>" \/tmp\/homepage-smoke\.html; then\s*$/m);
+  assert.match(smokeBlock, /^\s{14}exit 0\s*$/m);
+  assert.match(smokeBlock, /^\s{12}if \[ "\$attempt" -lt 5 \]; then\s*$/m);
+  assert.match(smokeBlock, /^\s{14}sleep 5\s*$/m);
+  assert.match(smokeBlock, /^\s{10}done\s*$/m);
+  assert.match(smokeBlock, /^\s{10}echo "Smoke check failed for \$url"\s*$/m);
+  assert.match(smokeBlock, /^\s{10}cat \/tmp\/homepage-smoke\.html \|\| true\s*$/m);
+  assert.match(smokeBlock, /^\s{10}exit 1\s*$/m);
 });
 
 test('homepage deploy workflow avoids auto-merge and unsafe force pushes', async () => {
