@@ -47,6 +47,11 @@
 - `homepage/dist/index.html` 正确写入了 `/superpowering-with-files/assets/...` 前缀，说明 Vite `base` 配置与部署子路径目标一致。
 - 当前环境没有现成的浏览器自动化工具，因此预览验证采用 `vite preview` + HTTP 200/HTML 资源引用检查，而不是桌面/移动视口截图。功能链路已验证，视觉细节仍适合后续人工过目。
 
+## Findings Record: 2026-05-11 21:44:07 UTC+8
+
+- homepage 子项目在主工作区首次验证时会生成 `homepage/node_modules/` 与 `homepage/dist/`；如果不显式忽略，这两个目录会在 `dev` 上长期显示为未跟踪噪音。
+- 将 `homepage/node_modules/` 与 `homepage/dist/` 加入根 `.gitignore` 是比每次手动删除更稳妥的根因修复，因为它把“子项目依赖与构建产物是生成物”这个事实固定进仓库规则。
+
 ## Technical Decisions
 
 | Decision | Rationale |

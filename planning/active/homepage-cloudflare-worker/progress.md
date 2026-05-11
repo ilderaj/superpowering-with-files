@@ -162,3 +162,19 @@
 - Files created/modified:
   - `planning/active/homepage-cloudflare-worker/task_plan.md`
   - `planning/active/homepage-cloudflare-worker/progress.md`
+
+## Session: 2026-05-11 21:44:07 UTC+8
+
+### Phase 6: Local Merge Back to dev
+- **Status:** complete
+- **Started:** 2026-05-11 21:44:07 UTC+8
+- Actions taken:
+  - 将修正后的 homepage feature 提交 fast-forward 合并回 `dev`。
+  - 在合并后的主工作区执行 `npm install --prefix homepage`，然后重新跑 homepage typecheck/test/build、Wrangler dry-run、`PYTHONDONTWRITEBYTECODE=1 npm run verify` 与 `git diff --check`。
+  - 清理并删除 `.worktrees/202605111312-homepage-cloudflare-worker-001` worktree 与同名本地分支。
+  - 发现主工作区会生成 `homepage/node_modules/` 与 `homepage/dist/`，因此补充根 `.gitignore`，避免本地验证产物持续污染 git status。
+- Files created/modified:
+  - `.gitignore`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`

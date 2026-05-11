@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 Companion plan: `docs/superpowers/plans/2026-05-11-homepage-cloudflare-worker.md`
 Companion summary: 详细实施计划已覆盖 homepage 子项目、BMW M design.md 安装、Worker Static Assets、GitHub Actions 自动部署、文档和验证步骤。
-Sync-back status: companion plan 已与执行结果同步摘要；active task 目录继续作为生命周期和进度 source of truth，当前等待用户决定分支集成方式。
+Sync-back status: companion plan 已与执行结果同步摘要；变更已本地合并回 `dev` 并清理临时 worktree，active task 目录继续作为生命周期和进度 source of truth。
 
 ## Current Phase
 Phase 6
@@ -103,6 +103,13 @@ Phase 6
 - 已完成 route-utils 与 workflow contract 两段 TDD 红绿循环。
 - 完成 homepage typecheck、homepage tests、homepage build、Wrangler dry-run、`npm run verify` 与 `git diff --check`。
 - 当前状态切换为 `waiting_review`，等待用户选择如何处理当前 worktree 分支。
+
+## Plan Record: 2026-05-11 21:44:07 UTC+8
+
+- 用户已选择将实现本地合并回 `dev`，当前 homepage 变更已 fast-forward 合并到主工作区。
+- 合并后已在 `dev` 上重新安装 `homepage/` 依赖，并再次执行 homepage/typecheck/test/build、Wrangler dry-run、`npm run verify` 与 `git diff --check`。
+- 临时 worktree `.worktrees/202605111312-homepage-cloudflare-worker-001` 已移除，本地分支同名 feature branch 已删除。
+- 根 `.gitignore` 已补入 `homepage/node_modules/` 与 `homepage/dist/`，避免本地 homepage 验证产物持续污染状态。
 
 ## Errors Encountered
 
