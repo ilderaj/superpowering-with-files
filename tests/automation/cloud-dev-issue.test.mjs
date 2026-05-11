@@ -221,7 +221,7 @@ test('runCloudDevIssueTriage skips duplicate copilot handoff comments for automa
             comments: [
               {
                 author: { login: 'github-actions' },
-                body: '@copilot please work on this issue in the cloud-dev lane.\n\nIssue: #55 Draft cloud pilot docs\nTask kind: agent:impl\nBase branch: `cloud-dev`\nTarget PR base: `cloud-dev`\nDo not push to `dev` or `main`.\n\nRequired verification:\n- `npm run verify`\n- `./scripts/harness verify --output=.harness/verification`\n- `./scripts/harness doctor --check-only`\n\nOpen a pull request only after the focused work is complete and verified.'
+                body: '@copilot please work on this issue in the cloud-dev lane.\n\nIssue: #55 Draft cloud pilot docs\nTask kind: agent:impl\nbase_branch=cloud-dev\nBase branch: `cloud-dev`\nTarget PR base: `cloud-dev`\nDo not push to `dev` or `main`.\n\nRequired verification:\n- `npm run verify`\n- `./scripts/harness verify --output=.harness/verification`\n- `./scripts/harness doctor --check-only`\n\nOpen a pull request only after the focused work is complete and verified.'
               }
             ]
           }),
