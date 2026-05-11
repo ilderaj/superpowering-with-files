@@ -110,6 +110,34 @@
   - `planning/active/roadmap-cloud-dev-agent-backlog/findings.md` (updated)
   - `planning/active/roadmap-cloud-dev-agent-backlog/progress.md` (updated)
 
+## Session: 2026-05-11 20:24:37 UTC+8
+
+### Phase 1: 上下文审计与需求收敛
+- **Status:** complete
+- Actions taken:
+  - 读取 GitHub 官方文档 `Using GitHub Copilot to create or update issues`、`Creating an issue`、`Starting GitHub Copilot sessions`、`Kick off a task with Copilot agents on GitHub`。
+  - 确认官方支持面已经覆盖：自然语言创建 issue、基于 template/form 自动填充 metadata、在 issue 创建时直接 assign Copilot、以及在 assignment 时指定 base branch。
+  - 将该发现回写到 backlog 与 planning，调整 `CDX-011` 为 `ready`。
+- Files created/modified:
+  - `docs/backlog.md` (modified)
+  - `planning/active/roadmap-cloud-dev-agent-backlog/task_plan.md` (updated)
+  - `planning/active/roadmap-cloud-dev-agent-backlog/findings.md` (updated)
+  - `planning/active/roadmap-cloud-dev-agent-backlog/progress.md` (updated)
+
+## Session: 2026-05-11 20:24:37 UTC+8
+
+### Phase 1: 真实 repo 试验设计
+- **Status:** complete
+- Actions taken:
+  - 复核本仓库的 cloud-dev operator guide、backlog 与 triage implementation，确认 `/create-issue` 试验的 repo-specific success criteria。
+  - 确认仓库根 `.github/` 下目前没有 repo-local issue template/form，因此 `/create-issue` 实验必须先以“无模板基线”评估自然语言创建效果。
+  - 确认 triage workflow admission 的关键条件是 `cloud-dev` label 与单一 `agent:*` task label，而不是 issue body 的任何特定 Markdown 标题。
+  - 将试验矩阵固化为三段：无模板自然语言创建、创建时直接 assign Copilot、以及必要时用 direct assignment override 固定 `cloud-dev` base 的最小 fallback。
+- Files created/modified:
+  - `planning/active/roadmap-cloud-dev-agent-backlog/task_plan.md` (updated)
+  - `planning/active/roadmap-cloud-dev-agent-backlog/findings.md` (updated)
+  - `planning/active/roadmap-cloud-dev-agent-backlog/progress.md` (updated)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|

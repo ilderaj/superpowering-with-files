@@ -82,6 +82,20 @@ Phase 5
 - 审计结论：现有 backlog 只部分覆盖该需求，分散在 issue template、assignment decision 和 handoff validation 条目中，但没有把“minimal-human `/create-issue` intake”作为明确 backlog item。
 - 已决定做最小增量更新：只补 backlog 条目，不重写 roadmap 或 operator guide 当前事实描述。
 
+## Plan Record: 2026-05-11 20:24:37 UTC+8
+- 继续执行用户选择的 research 路径后，已从 GitHub 官方文档获得更强证据：`Using GitHub Copilot to create or update issues` 与 `Creating an issue` 两篇文档都明确写明，Copilot on GitHub 可以从自然语言或截图创建 issue，并使用仓库 issue templates/forms 自动填充 title、body、labels、assignees 等字段。
+- 官方文档还明确写明可以在 issue 创建时直接 assign issue to Copilot；同时 `Starting GitHub Copilot sessions` 文档说明在 GitHub.com issue assignment UI、GraphQL、REST API 中都可以指定 base branch。
+- 因此 `CDX-011` 不再只是平台猜测，已提升为 `ready`：剩余问题从“平台是否支持”收敛为“本仓库的 cloud-dev labels、task-kind labels 与 `cloud-dev` base 是否能在 ask `/create-issue` 路径上稳定落地”。
+
+## Plan Record: 2026-05-11 20:24:37 UTC+8
+- 为响应用户选择的下一步，已将后续工作收敛为“真实 repo 试验设计”，而不是继续做平台文档研究。
+- 当前本地约束已确认：仓库根 `.github/` 下没有 repo-local issue form/template；现有 cloud-dev triage 只依赖 `cloud-dev` 和一个 `agent:*` label；comment handoff 与 direct assignment 是两条不同控制面。
+- 因而最小试验矩阵应拆成三段：
+	1. `/create-issue` 仅用简短自然语言创建 issue，验证是否能自动生成 cloud-dev 认可的结构与 labels。
+	2. `/create-issue` 在 prompt 中显式要求 assign Copilot，验证创建时 assignment 是否可行，以及是否暴露 base-branch 选择。
+	3. 若创建时 assignment 无法稳定保留 `cloud-dev` base，则记录最小 fallback：issue 由 `/create-issue` 生成，随后用 issue UI 或官方 API 单独执行 `base_branch=cloud-dev` 的 direct assignment。
+- 该设计的判定重点不是“Copilot 是否能创建 issue”，而是四个 repo-specific outcome：`cloud-dev` label、单一 `agent:*` task label、规范化 issue body、以及最终 task/PR base 是否为 `cloud-dev`。
+
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
