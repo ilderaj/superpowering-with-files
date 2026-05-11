@@ -97,6 +97,12 @@ Close Reason:
 - 已放宽 companion-plan 解析器，支持 planning 文件中的 `- Path:` 标签和 companion 文档中的 `**Active task path:**` 粗体标签；`./scripts/harness doctor --check-only` 现已 clean pass。
 - 当前验证结论：`npm run verify` 通过，`./scripts/harness doctor --check-only` 通过，`node scripts/ci/check-cloud-dev-branch.mjs --mode=check` 不再失败退出，而是把缺失远端 `cloud-dev` 明确标记为 rollout prerequisite。
 
+## Plan Record: 2026-05-11 11:55:18 UTC+8
+- 已验证当前 worktree 可以临时切换到 `copilot + cloud-safe + github-cloud + hooks=on`，并成功生成 `.github/hooks` 与 `.github/skills`。
+- 但该切换会把仓库内供本地开发使用的 `.agents/skills/**` 视为当前 workspace 的 stale projection，从而在 worktree 中删除本地兼容投影；这说明该形态不能直接 merge 回 `dev`。
+- 部署决策更新：`dev` 继续保留本地兼容/full Harness 形态；GitHub cloud 所需的 `github-cloud` / `cloud-safe` / Copilot-only 变体只在远端 `cloud-dev` 发布分支上生成和提交，不回灌到本地 `dev`。
+- 当前进入 finish 阶段：先恢复当前 worktree 到可 merge 状态，再 merge 回本地 `dev`，随后基于合并后的 `dev` 单独构造远端 `cloud-dev` 发布形态。
+
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
@@ -107,3 +113,4 @@ Close Reason:
 |-----------|---------|--------|----------------------|------------|----------|
 | 2026-05-11 00:58:33 UTC+8 | `rm -f harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/companion_sync.cpython-313.pyc harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/task_lifecycle.cpython-313.pyc harness/upstream/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc harness/upstream/planning-with-files/scripts/__pycache__/task_lifecycle.cpython-313.pyc` | 5 generated `__pycache__/*.pyc` files produced during local execution | 仅限当前 linked worktree；不触及原始 checkout 或远端 | `/Users/jared/.agent-config/checkpoints/202605101422-cloud-dev-harness-feasibility-001/2026-05-10T16-58-46Z` | 如误删，使用 checkpoint 恢复该 worktree，或从主 checkout/branch 重新检出对应路径。 |
 | 2026-05-11 01:45:45 UTC+8 | `rm -f test_comprehensive.mjs test_write_failure.mjs && git restore -- harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/companion_sync.cpython-313.pyc harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/task_lifecycle.cpython-313.pyc harness/upstream/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc harness/upstream/planning-with-files/scripts/__pycache__/task_lifecycle.cpython-313.pyc` | 2 untracked temporary probe scripts + 5 tracked pyc files re-dirtied by execution | 仅限当前 linked worktree；不触及原始 checkout 或远端 | `/Users/jared/.agent-config/checkpoints/202605101422-cloud-dev-harness-feasibility-001/2026-05-10T17-45-45Z` | 如误清理，使用新 checkpoint 恢复，或从当前 branch 重新检出这些 tracked/untracked artifacts。 |
+| 2026-05-11 11:55:18 UTC+8 | `git clean -fd -- .agent-config` | 当前 worktree 内本次 `github-cloud` 试跑生成的未跟踪安全投影目录 `.agent-config/` | 仅限当前 linked worktree；不触及原始 checkout、主仓库工作树或远端 | `/Users/jared/.agent-config/checkpoints/202605101422-cloud-dev-harness-feasibility-001/2026-05-11T03-55-18Z` | 如误清理，使用该 checkpoint 恢复，或重新执行相同 profile 的 `./scripts/harness sync` 重建目录。 |

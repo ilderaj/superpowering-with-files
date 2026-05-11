@@ -180,3 +180,17 @@
 
 - Residual note:
   - The real remote `origin/cloud-dev` branch still does not exist; the difference is now semantic. Check mode reports that absence as a rollout prerequisite instead of failing the command.
+
+## Session: 2026-05-11 11:55:18 UTC+8
+
+- finish / deploy 准备阶段新增发现：
+  - 当前 worktree 通过 `./scripts/harness install --targets=copilot --scope=workspace --profile=cloud-safe --deployment-profile=github-cloud --hooks=on` 与 `./scripts/harness sync --takeover` 可以成功生成 `.github/hooks/**`、`.github/skills/**`，且 `./scripts/harness doctor --check-only` 在该形态下通过。
+  - 但该形态不适合直接 merge 回 `dev`。原因是它会把仓库内现有的 `.agents/skills/**` 本地开发投影视为 stale，并在当前分支上删除大量 tracked files；这会把本地开发基线错误地改成 cloud-only 形态。
+- 已立即回滚这批未提交试跑改动：
+  - `git restore --source=HEAD --worktree -- .`
+  - `git clean -fd -- .github/hooks .github/skills`
+- 当前部署策略调整为双轨：
+  - 本分支仅承载 cloud-dev 功能实现与 blocker cleanup，merge 回本地 `dev`
+  - 远端 `cloud-dev` 分支在 merge 后从更新后的 `dev` 单独生成 `github-cloud` / `cloud-safe` / Copilot-only 变体
+- 为清理本次试跑额外生成的 `.agent-config/`，已创建 checkpoint：`/Users/jared/.agent-config/checkpoints/202605101422-cloud-dev-harness-feasibility-001/2026-05-11T03-55-18Z`
+- 当前 worktree 状态：仅剩未跟踪目录 `.agent-config/`，待按风险记录执行清理。
