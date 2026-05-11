@@ -79,3 +79,26 @@
 ## Resources
 - `/Users/jared/SuperpoweringWithFiles/planning/archive/20260506-142311-cleanup-local-branches-worktrees/`
 - `/Users/jared/SuperpoweringWithFiles/.git`
+
+## Findings Record: 2026-05-11 13:24:00 UTC+8
+
+- 已按用户批准删除：
+  - 本地分支 `202605101422-cloud-dev-harness-feasibility-001`
+  - worktree `/Users/jared/SuperpoweringWithFiles/.worktrees/202605101422-cloud-dev-harness-feasibility-001`
+- 删除前条件满足：目标分支已并入 `origin/dev` 与 `origin/main`，目标 worktree 干净，且没有同名 remote ref 需要一并处理。
+- 当前本地分支逐项结论：
+  - `202605081401-harness-runtime-facade-mcp-001`：不可清；未并入 `origin/dev` / `origin/main`，且仍有 worktree 占用。
+  - `automation/upstream-refresh`：技术上可清，但建议先保留；虽已并入 `origin/dev` / `origin/main`，但仍带 automation 语义。
+  - `backup/dev-before-origin-align-20260504`：不可清；未并入 `origin/dev` / `origin/main`，属于恢复点。
+  - `backup/main-before-dev-sync-20260508-1125`：可清，但不急；已并入 `origin/main`，未并入 `origin/dev`，本质是 main 回退点。
+  - `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`：不可清；虽已并入主线，但对应 fallback worktree 有未提交改动，且 active task 仍引用。
+  - `codex/202605080601-upstream-refresh-6-failure-repair-001`：当前不可清；虽已并入主线，但对应 worktree 有未提交改动，且 active repair task 仍在。
+  - `dev`：不可清；主工作区分支。
+  - `main`：不可清；主线 worktree，但当前落后 `origin/main` 7 个提交，应先同步后再谈其它操作。
+- 当前远端分支逐项结论：
+  - 必须保留：`origin/main`、`origin/dev`、`origin/cloud-dev`。
+  - 建议保留：`origin/automation/upstream-refresh`，因为 automation 语义仍明确。
+  - 可清理候选：`origin/readme-slim-pr`、`origin/copilot/202604301444-github-actions-upstream-automation-analysis-001`、`origin/copilot/20260503-upstream-refresh-layout-compat-dev`、`origin/copilot/20260503-upstream-refresh-rehearsal-fix-dev`、`origin/copilot/20260504-upstream-refresh-rehearsal-final-fix-dev`、`origin/copilot/using-subagents-for-plans`、`origin/codex/202605061218-roadmap-v1-3-context-budget-governance-001`、`origin/codex/202605070150-roadmap-v1-4-safety-overlay-governance-003`、`origin/codex/202605070210-roadmap-v1-5-workflow-productization-001`、`origin/codex/202605070235-roadmap-v1-6-release-readiness-001`、`origin/codex/readme-final-polish`、`origin/codex/rename-repo-superpowering-with-files`、`origin/codex/superpowers-plan-artifact-model`；这些都已并入 `origin/dev` 与 `origin/main`。
+  - 暂不清理：`origin/codex/202605060906-roadmap-v1-1-planning-hygiene-001`；当前未并入 `origin/dev` / `origin/main`。
+  - 额外复核：当前 `gh pr list --state open` 结果为空，没有 open PR 仍绑定上述可清理候选远端分支。
+  - 额外复核：先前矩阵中出现的 `origin` 项不是有效的 `refs/remotes/origin` 引用，不属于真实可操作的远端分支，不应进入删除集。

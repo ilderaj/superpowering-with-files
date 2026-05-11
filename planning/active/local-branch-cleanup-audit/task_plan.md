@@ -4,9 +4,9 @@
 只读检查当前仓库全部本地分支，审计其与远端、worktree、主线集成状态的关系，并给出可执行但未落地的本地分支清理方案。
 
 ## Current State
-Status: closed
+Status: waiting_review
 Archive Eligible: no
-Close Reason: 按审计建议完成第一批与第二批本地分支 / worktree 清理，保留主线、恢复点、automation 分支与脏的 active worktree 分支。
+Close Reason:
 
 ## Current Phase
 Phase 1
@@ -76,6 +76,20 @@ Phase 1
 - 已执行 Tier 2 对应 clean worktree 删除与 branch 删除。
 - 已保留 Tier 3 全部对象。
 
+## Current Snapshot: 2026-05-11 13:24:00 UTC+8
+
+- 用户额外批准并执行了本地分支 `202605101422-cloud-dev-harness-feasibility-001` 及其对应 clean worktree 的删除。
+- 当前剩余本地分支为 8 个：
+	- `202605081401-harness-runtime-facade-mcp-001`
+	- `automation/upstream-refresh`
+	- `backup/dev-before-origin-align-20260504`
+	- `backup/main-before-dev-sync-20260508-1125`
+	- `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`
+	- `codex/202605080601-upstream-refresh-6-failure-repair-001`
+	- `dev`
+	- `main`
+- 当前剩余 worktree 为 5 个：主工作区 `dev`、`main` worktree、`harness-runtime-facade-mcp` worktree、`upstream-refresh-6-failure-repair` worktree、以及脏的 `roadmap-v1.4-safety-overlay-governance-002` fallback worktree。
+
 ## Risk Assessment
 
 | 风险 | 触发条件 | 影响范围 | 缓解 / 已落盘的回退方案 |
@@ -83,6 +97,10 @@ Phase 1
 | 把仍被 worktree 占用或仍有用途的分支误判为可删 | 只看 merge 状态，不看 worktree / active task /远端用途 | 本地开发流与恢复路径 | 审计同时检查 worktree、tracking、最近用途与历史任务记录 |
 | 把“仅 planning 提交”与“真实代码差异”混为一类 | 当前 `dev` ahead 1，且工作区有未提交状态 | 分支优先级判断失真 | 分开记录代码分支、planning-only 漂移与当前脏状态 |
 | 基于过期远端引用判断已合入/已失效 | 未先 fetch | 清理建议失真 | 先刷新远端再做矩阵 |
+
+| Timestamp | Command | Target | Workspace Boundaries | Checkpoint | Rollback |
+|---|---|---|---|---|---|
+| 2026-05-11 13:21:26 UTC+8 | `git worktree remove .worktrees/202605101422-cloud-dev-harness-feasibility-001 && git branch -d 202605101422-cloud-dev-harness-feasibility-001` | 本地 clean worktree `/Users/jared/SuperpoweringWithFiles/.worktrees/202605101422-cloud-dev-harness-feasibility-001` 与对应本地分支 `202605101422-cloud-dev-harness-feasibility-001` | 仅限当前仓库本地 refs 与本地 worktree 挂载；不触及 `origin/*` 远端分支 | `/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-11T05-21-26Z` | 如需回退，可用 checkpoint 恢复整个仓库状态，或基于 `f11120a` 重新创建本地分支并重新挂载 worktree。 |
 
 ## Key Questions
 1. 哪些本地分支仍被 worktree 持有或由 active task 暗示仍在用？

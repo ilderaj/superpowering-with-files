@@ -98,3 +98,34 @@
 | What's the goal? | 审计全部本地分支并评估清理方案，不直接删除 |
 | What have I learned? | 风险边界主要不在 merged 与否，而在 worktree 占用、恢复点语义和 active task 绑定 |
 | What have I done? | 已刷新远端、盘点 19 个本地分支与 11 个 worktree，完成建议执行，并把本地状态收敛到 6 分支 / 3 worktree |
+
+## Session: 2026-05-11 13:21:26 UTC+8
+
+- 用户批准先执行一项低风险清理：删除本地分支 `202605101422-cloud-dev-harness-feasibility-001` 及其对应 worktree。
+- 删除前复核结果：
+  - 主工作区 `dev` 干净。
+  - 目标 worktree `.worktrees/202605101422-cloud-dev-harness-feasibility-001` 干净。
+  - 目标本地分支当前仅被该 worktree 占用，没有同名 remote ref。
+- 已创建删除前 checkpoint：`/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-11T05-21-26Z`。
+- 下一步：执行 `git worktree remove` + `git branch -d`，然后重新审计剩余本地 / 远端分支的可清理性结论。
+
+## Session: 2026-05-11 13:24:00 UTC+8
+
+- 已执行并完成：
+  - `git worktree remove .worktrees/202605101422-cloud-dev-harness-feasibility-001`
+  - `git branch -d 202605101422-cloud-dev-harness-feasibility-001`
+- 执行结果：目标本地分支已删除，目标 worktree 已从 `git worktree list` 中消失。
+- 删除后复核：
+  - 主工作区仍在 `dev...origin/dev`，代码工作区无新增代码脏状态；当前仅有本次审计任务的 planning 文件修改。
+  - 剩余本地分支 8 个，剩余 worktree 5 个。
+  - `main` worktree 仍 clean，但落后 `origin/main` 7 个提交。
+  - `codex/202605080601-upstream-refresh-6-failure-repair-001` worktree 与 `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002` worktree 仍有未提交改动，继续排除出清理范围。
+  - `202605081401-harness-runtime-facade-mcp-001` worktree clean，但分支未并入主线，继续保留。
+
+## Session: 2026-05-11 13:27:00 UTC+8
+
+- 对远端候选分支做了二次只读复核：
+  - `gh pr list --state open --limit 100` 返回空结果，说明当前没有 open PR 绑定候选远端分支。
+  - 对 13 个远端删除候选分别执行 `git rev-list --left-right --count <branch>...origin/main`，结果左侧均为 `0`，说明它们对 `origin/main` 已无独有提交。
+  - 对先前列表中出现的 `origin` 项执行 `git show-ref --verify refs/remotes/origin`，结果表明该 ref 不存在，因此将其判定为输出噪声而非真实远端分支。
+- 结论收敛：远端“立即可删候选”仍维持 13 个，不新增也不减少。
