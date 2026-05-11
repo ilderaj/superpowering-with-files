@@ -62,6 +62,7 @@ test('analyzeCloudDevIssue builds normalized prompt for labeled planning issue',
   assert.equal(result.shouldPromptCopilot, true);
   assert.equal(result.reason, 'ready');
   assert.match(result.commentBody, /@copilot/);
+  assert.match(result.commentBody, /base_branch=cloud-dev/);
   assert.match(result.commentBody, /Base branch: `cloud-dev`/);
   assert.match(result.commentBody, /Target PR base: `cloud-dev`/);
   assert.match(result.commentBody, /Do not push to `dev` or `main`/);
@@ -188,6 +189,7 @@ test('runCloudDevIssueTriage comments with the normalized copilot prompt for rea
   assert.equal(commands.length, 1);
   assert.deepEqual(commands[0].args.slice(0, 4), ['issue', 'comment', '34', '--body']);
   assert.match(commands[0].args[4], /@copilot/);
+  assert.match(commands[0].args[4], /base_branch=cloud-dev/);
   assert.match(commands[0].args[4], /Base branch: `cloud-dev`/);
   assert.match(commands[0].args[4], /Target PR base: `cloud-dev`/);
   assert.match(commands[0].args[4], /Do not push to `dev` or `main`/);
