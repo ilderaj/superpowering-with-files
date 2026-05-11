@@ -1,0 +1,51 @@
+name: Deploy Homepage
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'homepage/**'
+      - '.github/workflows/homepage-deploy.yml'
+      - 'docs/install/homepage-cloudflare-worker.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: homepage-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-homepage:
+    if: ${{ github.repository == 'ilderaj/superpowering-with-files' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: homepage/package-lock.json
+
+      - name: Install homepage dependencies
+        run: npm ci --prefix homepage
+
+      - name: Typecheck homepage
+        run: npm run typecheck --prefix homepage
+
+      - name: Test homepage
+        run: npm test --prefix homepage
+
+      - name: Build homepage
+        run: npm run build --prefix homepage
+
+      - name: Deploy homepage Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --prefix homepage wrangler deploy --config homepage/wrangler.jsonc

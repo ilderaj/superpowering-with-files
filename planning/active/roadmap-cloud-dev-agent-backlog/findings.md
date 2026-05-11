@@ -44,6 +44,23 @@
 - `docs/roadmap.md` 现包含 v1.7/v1.8 未来路线，并将 active roadmap items 转向 cloud-dev/cloud-agent operator experience。
 - 最终验证命令输出 `doc verification passed`，未发现 whitespace、placeholder 或关键文件缺失问题。
 
+## Findings Record: 2026-05-11 20:24:37 UTC+8
+- 用户提出的更具体需求是：通过 `https://github.com/copilot` ask 模式 `/create-issue`，human 只输入简短 issue 描述，系统自动补全 cloud-dev 所需的结构、labels，并尽可能自动 assign cloud agent。
+- 该需求此前只被 `CDX-002`、`CDX-003` 部分隐含覆盖，没有独立表达“minimal-human intake”这个 operator outcome。
+- 结论：需要独立 backlog 条目把它从“模板/assignment 的组合推断”提升为“明确交付目标”，否则后续实现容易只做到 issue form 或 assignment API 其中一半。
+
+## Findings Record: 2026-05-11 20:24:37 UTC+8
+- GitHub 官方文档 `Using GitHub Copilot to create or update issues` 现在明确声明：Copilot on GitHub 可以从自然语言或截图创建 issue，并会使用仓库 issue forms/templates 自动填充 title、body、labels、assignees 等字段；用户在创建前仍需 review draft。
+- `Creating an issue` 官方文档也明确写明：`Creating an issue with Copilot Chat on GitHub` 是 public preview，并再次声明 Copilot 会使用 repository templates and structure 来填充 issue metadata。
+- 同一组官方文档还写明：在 issue 创建过程中可以直接 `Assign this issue to Copilot.`；另外 `Starting GitHub Copilot sessions` 说明 issue assignment on GitHub.com 和 GraphQL/REST API 都支持指定 base branch。
+- 因而当前真正未解决的不是“GitHub 是否支持 minimal-human issue creation + assignment”，而是“这一能力在本仓库是否能稳定对齐 cloud-dev lane 的特定 labels、issue structure、以及 `cloud-dev` base branch 约束”。
+
+## Findings Record: 2026-05-11 20:24:37 UTC+8
+- 本仓库当前没有 repo-local issue form 或 issue template；因此 `/create-issue` 的真实实验基线不是“模板映射是否生效”，而是“Copilot 在缺少专用模板时，是否仍能依据自由文本和仓库上下文生成可进入 cloud-dev lane 的 issue”。
+- 现有 `scripts/ci/lib/cloud-dev-issue.mjs` 明确表明 triage 的硬门槛很窄：issue 必须带 `cloud-dev` label，且 task kind 只认 `agent:plan`、`agent:impl`、`agent:test` 三者之一；若无 task-kind label，workflow comment path 会默认 `agent:plan`，但前提仍然是已具备 `cloud-dev` label。
+- 这说明 `/create-issue` 路径的关键实验不是 body 文案是否漂亮，而是创建结果能否在不经人工重排的情况下满足 lane admission 条件；否则最小可行产品只能是“Copilot 负责起草 issue，assignment/base branch 仍由 issue UI 或 API 单独补齐”。
+- 由于官方 issue assignment 文档已经独立证明了 UI/API 可指定 base branch，当前最合理的 fallback 不是回退到 comment handoff，而是保留 `/create-issue` 作为 intake，再接 direct assignment override 来固定 `cloud-dev`。
+
 ## Issues Encountered
 | Issue | Resolution |
 |-------|------------|

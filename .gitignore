@@ -1,6 +1,8 @@
 .harness/
 .worktrees/
 .codex-worktrees/
+homepage/node_modules/
+homepage/dist/
 .agent-config/checkpoints/
 .agent-config/logs/
 reports/checkpoints/

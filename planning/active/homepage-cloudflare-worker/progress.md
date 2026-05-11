@@ -37,12 +37,28 @@
 | Repo status check | `git status --short --branch` | Current branch and dirty files known | `dev...origin/dev` with existing cloud-dev related changes | pass |
 | External docs review | fetch getdesign + Cloudflare docs | Design and deployment assumptions grounded in current docs | BMW M design and Worker static assets/CI-CD approach confirmed | pass |
 | Companion plan creation | Write `docs/superpowers/plans/2026-05-11-homepage-cloudflare-worker.md` | Detailed implementation plan exists | Created and synced to active task files | pass |
+| Worktree preflight | `./scripts/harness worktree-preflight --task homepage-cloudflare-worker` | Explicit base and naming guidance | Base `dev @ 0982f8500e61d6661b55caabbfee7a1f15eca649`; branch `202605111312-homepage-cloudflare-worker-001` | pass |
+| Worktree creation | `git worktree add .worktrees/202605111312-homepage-cloudflare-worker-001 -b 202605111312-homepage-cloudflare-worker-001 dev` | Isolated workspace created from explicit base | Worktree created successfully | pass |
+| Homepage dependency install | `npm install --prefix homepage` | Homepage dependencies resolve in isolated subproject | Installed successfully; `homepage/package-lock.json` created | pass |
+| BMW M design install | `cd homepage && npx getdesign@latest add bmw-m` | `DESIGN.md` or equivalent guidance added | `homepage/DESIGN.md` created | pass |
+| Homepage scaffold typecheck | `npm run typecheck --prefix homepage` | Scaffold resolves without package/config errors | Initial TS deprecation fixed; rerun passed | pass |
+| Route utilities red test | `npm test --prefix homepage` before `route-utils.mjs` exists | Fails because implementation is missing | `ERR_MODULE_NOT_FOUND` for `route-utils.mjs` | pass |
+| Route utilities green test | `npm test --prefix homepage` after implementing `route-utils.mjs` | All route utility tests pass | 5/5 pass | pass |
+| Workflow red test | `node --test tests/automation/homepage-deploy-workflow.test.mjs` before workflow exists | Fails because workflow file is missing | `ENOENT` for `.github/workflows/homepage-deploy.yml` | pass |
+| Workflow green test | `node --test tests/automation/homepage-deploy-workflow.test.mjs` after workflow creation | All workflow contract tests pass | 4/4 pass | pass |
+| Homepage preview HTTP check | `curl -I http://127.0.0.1:4173/superpowering-with-files/` | Preview route responds successfully | `HTTP/1.1 200 OK` | pass |
+| Final homepage verification | `npm run typecheck --prefix homepage && npm test --prefix homepage && npm run build --prefix homepage && npx --prefix homepage wrangler deploy --config homepage/wrangler.jsonc --dry-run` | Typecheck, tests, build, and Worker dry-run all pass | All commands exited 0 after rerunning dry-run sequentially | pass |
+| Final repository verification | `npm run verify` | Full repo verify remains green with new automation test included | 400/400 core+automation tests and 20/20 MCP tests pass | pass |
+| Diff hygiene | `git diff --check` | No whitespace or patch-format errors | Passed | pass |
 
 ## Error Log
 
 | Timestamp | Error | Attempt | Resolution |
 |-----------|-------|---------|------------|
 | 2026-05-11 15:39:09 UTC+8 | 无 | 1 | 无需处理 |
+| 2026-05-11 21:12:58 UTC+8 | Python helper wrote tracked `__pycache__` files under `.agents/skills/planning-with-files/scripts/` in the worktree | 1 | 记录为工具副作用；完成实现后单独清理这些生成文件，避免把无关二进制变更带入结果 |
+| 2026-05-11 21:33:27 UTC+8 | 首次 `wrangler --dry-run` 报 assets 目录不存在 | 1 | 完成根因排查后确认是 build 与 dry-run 被错误并行；改为 build 完成后串行执行 dry-run 并通过 |
+| 2026-05-11 21:39:55 UTC+8 | `git add homepage` 误将 `homepage/node_modules` 纳入未推送提交 | 1 | 先记录 destructive rewrite 风险并创建 checkpoint，再重写该本地提交，只保留源码/文档/规划文件 |
 
 ## 5-Question Reboot Check
 
@@ -57,3 +73,108 @@
 ---
 
 *Update after completing each phase or encountering errors*
+
+## Session: 2026-05-11 21:12:58 UTC+8
+
+### Phase 2 → Phase 3: Execution Start
+- **Status:** in_progress
+- **Started:** 2026-05-11 21:12:58 UTC+8
+- Actions taken:
+  - 重新读取 companion plan 与 active task files，确认用户已从 plan review 切换到执行。
+  - 按 `using-git-worktrees` 技能询问用户是否创建隔离工作区，用户明确选择创建隔离 worktree。
+  - 运行 harness worktree preflight 和 worktree naming helper。
+  - 在 `.worktrees/202605111312-homepage-cloudflare-worker-001` 创建隔离工作区与同名分支。
+  - 记录显式 Worktree base：`dev @ 0982f8500e61d6661b55caabbfee7a1f15eca649`。
+  - 确认当前 worktree 中尚无 `homepage/` 目录，可按计划直接创建。
+- Files created/modified:
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+
+## Session: 2026-05-11 21:22:25 UTC+8
+
+### Phase 3: Homepage Scaffold
+- **Status:** complete
+- **Started:** 2026-05-11 21:22:25 UTC+8
+- Actions taken:
+  - 创建 `homepage/`、`homepage/src/`、`homepage/public/`。
+  - 写入 `homepage/package.json`、`index.html`、`tsconfig.json`、`vite.config.ts`。
+  - 安装 homepage 依赖并执行 `npx getdesign@latest add bmw-m` 生成 `homepage/DESIGN.md`。
+  - 读取生成的设计指导，确认 BMW M 视觉 tokens 可直接指导后续 CSS 与版式实现。
+  - 修正 `tsconfig` 的 TypeScript 生态兼容问题，并补入 React 类型依赖。
+  - 重新执行 `npm run typecheck --prefix homepage`，确认当前 scaffold 已通过类型检查。
+- Files created/modified:
+  - `homepage/package.json`
+  - `homepage/package-lock.json`
+  - `homepage/index.html`
+  - `homepage/tsconfig.json`
+  - `homepage/vite.config.ts`
+  - `homepage/DESIGN.md`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+
+## Session: 2026-05-11 21:33:27 UTC+8
+
+### Phase 3 → Phase 6: Implementation, Automation, and Verification
+- **Status:** complete
+- **Started:** 2026-05-11 21:33:27 UTC+8
+- Actions taken:
+  - 以 TDD 完成 `homepage/src/route-utils.test.mjs` 与 `homepage/src/route-utils.mjs`。
+  - 新增 `homepage/src/worker.ts` 与 `homepage/wrangler.jsonc`，实现 Worker Static Assets 路由。
+  - 实现 `homepage/src/main.tsx`、`homepage/src/App.tsx`、`homepage/src/styles.css`、`homepage/src/vite-env.d.ts` 和 `homepage/public/harness-console.svg`。
+  - 以 TDD 完成 `tests/automation/homepage-deploy-workflow.test.mjs` 与 `.github/workflows/homepage-deploy.yml`。
+  - 新增 `docs/install/homepage-cloudflare-worker.md`，写入本地开发、验证、部署、回滚和 secrets 说明。
+  - 运行 homepage typecheck/tests/build、Wrangler dry-run、preview HTTP 检查、仓库 `npm run verify` 与 `git diff --check`。
+  - 清理 verify 过程中重新写脏的 Python `__pycache__` 跟踪文件，确保最终 diff 只包含本任务相关改动。
+- Files created/modified:
+  - `.github/workflows/homepage-deploy.yml`
+  - `docs/install/homepage-cloudflare-worker.md`
+  - `homepage/DESIGN.md`
+  - `homepage/index.html`
+  - `homepage/package-lock.json`
+  - `homepage/package.json`
+  - `homepage/public/harness-console.svg`
+  - `homepage/src/App.tsx`
+  - `homepage/src/main.tsx`
+  - `homepage/src/route-utils.mjs`
+  - `homepage/src/route-utils.test.mjs`
+  - `homepage/src/styles.css`
+  - `homepage/src/vite-env.d.ts`
+  - `homepage/src/worker.ts`
+  - `homepage/tsconfig.json`
+  - `homepage/vite.config.ts`
+  - `homepage/wrangler.jsonc`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
+  - `tests/automation/homepage-deploy-workflow.test.mjs`
+
+## Session: 2026-05-11 21:39:55 UTC+8
+
+### Phase 6: Branch Integration Prep
+- **Status:** in_progress
+- **Started:** 2026-05-11 21:39:55 UTC+8
+- Actions taken:
+  - 根据 `finishing-a-development-branch` 流程开始执行用户选择的 “Merge back to dev locally”。
+  - 发现首次合并失败的根因不是 Git 分支关系，而是当前 worktree 分支只有未提交改动，没有可合并提交。
+  - 随后在 worktree 上提交改动时误把 `homepage/node_modules` 一并纳入本地提交。
+  - 按 `risk-assessment-before-destructive-changes` 要求记录精确命令、影响范围与回退方案，并创建 checkpoint：`/Users/jared/.agent-config/checkpoints/202605111312-homepage-cloudflare-worker-001/2026-05-11T13-40-26Z`。
+- Files created/modified:
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+
+## Session: 2026-05-11 21:44:07 UTC+8
+
+### Phase 6: Local Merge Back to dev
+- **Status:** complete
+- **Started:** 2026-05-11 21:44:07 UTC+8
+- Actions taken:
+  - 将修正后的 homepage feature 提交 fast-forward 合并回 `dev`。
+  - 在合并后的主工作区执行 `npm install --prefix homepage`，然后重新跑 homepage typecheck/test/build、Wrangler dry-run、`PYTHONDONTWRITEBYTECODE=1 npm run verify` 与 `git diff --check`。
+  - 清理并删除 `.worktrees/202605111312-homepage-cloudflare-worker-001` worktree 与同名本地分支。
+  - 发现主工作区会生成 `homepage/node_modules/` 与 `homepage/dist/`，因此补充根 `.gitignore`，避免本地验证产物持续污染 git status。
+- Files created/modified:
+  - `.gitignore`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
