@@ -63,3 +63,51 @@
 - 后续 cloud work 的推荐入口应是 GitHub issue，而不是 `https://github.com/copilot` 上的自由描述；原因是 issue 才能承载 `cloud-dev` / `agent:*` labels、Actions readiness gate、标准化 `@copilot` handoff、PR review trail 和 promotion 记录。
 - `https://github.com/copilot` 可用于非正式讨论或实验，但不应被视为受 Harness 管控的 cloud-dev 工作，除非最终回落到一个带标签的 GitHub issue。
 - 当前实现的 GitHub cloud-dev lane 是 Copilot-first：workflow 会生成 `@copilot` prompt，`github-cloud` deployment profile 也是 Copilot 专用；Codex 和 Claude 仍可使用 repo-local Harness entry/skills，但没有被当前 GitHub issue triage 自动派发。
+
+## Findings Record: 2026-05-11 15:30:10 UTC+8
+- 实测 issue-first cloud-dev 流程可用：创建带 `cloud-dev` + `agent:impl` 的 issue 后，`Cloud Dev Issue Triage` 会自动运行，并在 issue 上发布标准化 `@copilot` handoff 评论。
+- 实际示例为 issue `#55`，workflow run `25656460637` 成功。
+- 当前 workflow 存在去重缺口：issue `opened` 与后续 label 事件会各自触发 triage，导致同一 issue 产生重复 `@copilot` 评论；在 #55 的演示中共出现 3 条重复 handoff 评论。
+
+## Findings Record: 2026-05-11 15:33:20 UTC+8
+- 最小且足够的修复点在 triage runner，而不是 workflow trigger：即使保留 `opened` / `labeled` / `assigned` 三类 `issues` 事件，只要 runner 在自动 issue 事件发评论前查询现有 issue comments 并检测同体 `github-actions` 评论，就能消除重复 handoff。
+- 去重应只默认施加在自动 `issues` 事件；显式 `/cloud-dev retry` 是人工恢复动作，不应被同样的自动查重静默吞掉。
+- 本地对真实 issue `#55` 运行修复后的 runner 后，结果变为 `already_commented`，证明当前实现不会再向同一个 issue 追加第 4 条重复 handoff 评论。
+
+## Findings Record: 2026-05-11 15:51:27 UTC+8
+- 最终线上稳态依赖两层保护同时存在：
+	- runner 仅对 automatic `issues` 事件执行同体 `github-actions` handoff 去重
+	- `.github/workflows/cloud-dev-issue-triage.yml` 通过 `concurrency` 按 issue number 串行化自动 triage runs
+- 手动恢复语义保持不变：`issue_comment` 的 `/cloud-dev retry` 与 `workflow_dispatch(issue_number)` 仍是显式恢复入口，不会因为已有同体评论而被静默吞掉。
+- 真实 GitHub 验证已确认修复生效：issue `#57` 在 `main` 上触发多次 `issues` runs 后，最终只出现 1 条标准 `@copilot` handoff 评论。
+
+## Findings Record: 2026-05-11 15:59:15 UTC+8
+- GitHub 官方的 issue assignment API 在本仓库可用，`repository.suggestedActors(capabilities: [CAN_BE_ASSIGNED])` 已返回 `copilot-swe-agent`，说明仓库级 Copilot 接单入口已真正打开，而不只是 triage 评论可用。
+- 通过 `POST /repos/OWNER/REPO/issues/ISSUE_NUMBER/assignees` 传入 `agent_assignment.base_branch = cloud-dev` 后，Copilot cloud agent 的真实 task artifact 会保留该 base：本次 issue `#58` 的 task artifact 返回 `base_ref = cloud-dev`。
+- 真实生成的 PR 也与 task artifact 一致：PR `#59` 为 `app/copilot-swe-agent` 创建的 draft PR，`baseRefName = cloud-dev`、`headRefName = copilot/validate-copilot-issue-assignment`。这说明 issue-first + Copilot assignment 路径可以把 PR base 稳定压到 `cloud-dev`，不再只是依赖 triage 评论文本约束。
+
+## Findings Record: 2026-05-11 16:02:48 UTC+8
+- direct Copilot assignment 与 triage workflow 是两条不同控制面：issue `#58` 上虽然留下了 `Cloud dev preflight is not ready` 的 triage 评论，但 Copilot issue assignment 仍然真实启动了 agent task 并创建了 PR `#59`。因此 direct assignment 不能被描述成 triage gate 的等价替代，它更像一个可验证但需人工预检的 override 路径。
+- 对 PR `#59` 的持续跟进显示，branch targeting 约束在执行过程中仍然稳定：task、session、artifact 和 PR 都保持 `cloud-dev` 为 base；当前尚无文件改动，说明“branch correctness 已验证”与“任务内容已完成”需要分开表述。
+
+## Findings Record: 2026-05-11 16:51:31 UTC+8
+- PR `#59` 最终并非只做 docs 点缀，而是把 `base_branch=cloud-dev` 从“operator 约束”推进成了“prompt 协议的一部分”。这会让 triage 生成的 `@copilot` 评论同时包含：
+	- 机器可读指令：`base_branch=cloud-dev`
+	- 人类可读约束：`Base branch: cloud-dev`、`Target PR base: cloud-dev`
+- 这项改动与本轮 direct assignment 实验形成闭环：assignment API 已证明 `base_branch` 能被 GitHub cloud agent 保留，PR `#59` 则把同样的键名写进 triage prompt，降低未来仅靠自然语言约束而发生 branch 漂移的概率。
+- 目前仍有一个治理层缺口：PR `#59` 没有公开的 checks 结果，也没有在 PR 描述里附带实际跑过的测试命令。因此可以认为“变更方向与覆盖面合理”，但不能把它表述成“已由 Copilot 自证测试通过”。
+
+## Findings Record: 2026-05-11 17:01:06 UTC+8
+- 正式 review 后，未发现 PR `#59` 的代码级阻断问题；最相关的风险是“证据外延”而不是“实现错误”。
+- 具体来说，`scripts/ci/lib/cloud-dev-issue.mjs` 中新增的 `base_branch=cloud-dev` 只证明 triage comment 会包含该 directive，并不能单独证明 GitHub 的 `@copilot` comment handoff 面一定会解析这个键。现有测试也只覆盖字符串存在性，而非线上行为语义。
+- 因此更准确的 operator 结论应是：
+	- direct assignment API 路径已经过真实线上验证，能保留 `cloud-dev` base
+	- triage comment 路径现在会显式发送同名 directive，但它的“是否被 GitHub comment handoff 语义解释”为后续可继续验证的问题
+- 本地最窄验证已经补齐：在 PR 分支代码上执行 `node --test tests/automation/cloud-dev-issue.test.mjs`，17 个测试全部通过。这足以支撑“小改动未破坏现有 issue triage 测试面”的判断。
+
+## Findings Record: 2026-05-11 17:05:47 UTC+8
+- 从 merge recommendation 角度看，PR `#59` 更适合被表述为 prompt-hardening / protocol-clarification 变更，而不是 enforcement 变更。
+- `mergeStateStatus = CLEAN`、diff 很小、触及测试本地通过，说明这不是“先补代码再说”的 PR；真正需要先修的是标题与 PR body 的 claim 强度。
+- 因此推荐顺序是：
+	- 先改标题与描述，避免使用会暗示线上强制语义已经被证明的 `Enforce`
+	- 然后即可作为低风险改动合入 `cloud-dev`

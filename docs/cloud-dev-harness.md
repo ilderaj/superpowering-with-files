@@ -23,6 +23,33 @@ Recommended entry:
 
 If the workflow does not start automatically, comment `/cloud-dev retry` on the issue or manually run the `Cloud Dev Issue Triage` workflow with the issue number.
 
+## Direct Copilot Assignment
+
+Use direct Copilot assignment only when you intentionally want the official issue-assignment path, especially when you need to pin the working base to `cloud-dev`.
+
+This is not the default entry. It bypasses the workflow-owned readiness gate, so a human must complete the preflight checklist first.
+
+Verified operator sequence:
+
+1. Create the issue and add `cloud-dev` plus one task-kind label.
+2. Manually confirm the lane is ready with the Preflight Checklist.
+3. Assign Copilot from the GitHub issue UI, or call the official issue-assignment API with `agent_assignment.base_branch = cloud-dev`.
+4. Confirm the created task or PR still shows `base_ref` or PR base `cloud-dev`.
+
+REST example:
+
+```bash
+curl -L \
+	-X POST \
+	-H "Accept: application/vnd.github+json" \
+	-H "Authorization: Bearer $GITHUB_TOKEN" \
+	-H "X-GitHub-Api-Version: 2022-11-28" \
+	https://api.github.com/repos/OWNER/REPO/issues/ISSUE_NUMBER/assignees \
+	-d '{"assignees":["Copilot"],"agent_assignment":{"base_branch":"cloud-dev"}}'
+```
+
+Use this path when you need the assignment itself, not the workflow comment, to carry the branch constraint.
+
 ## Issue Template
 
 Use short, concrete issue text. Include enough detail for an agent to finish without guessing.
@@ -79,6 +106,7 @@ node scripts/ci/check-cloud-dev-branch.mjs --mode=check
 - `cloud-dev`: opt an issue into the cloud-dev lane.
 - `agent:plan`: request planning-oriented agent work.
 - `agent:test`: request verification-oriented agent work.
+- `agent:impl`: request implementation-oriented agent work.
 
 ## Human Workflow
 
@@ -98,6 +126,8 @@ When ready, the workflow posts a standardized prompt that includes:
 - target PR base `cloud-dev`
 - prohibition on direct pushes to `dev` or `main`
 - required verification commands
+
+If you intentionally use direct Copilot assignment instead of workflow triage, treat the readiness check as a human responsibility. Do not rely on assignment alone to prove the lane is ready.
 
 ### 3. Supervise Copilot Work
 
@@ -120,7 +150,24 @@ After the task PR is merged into `cloud-dev`, promote cloud work through a separ
 ### 6. Release Normally
 
 Once `dev` is verified, promote `dev` to `main` through the normal release flow.
-- `agent:impl`: request implementation-oriented agent work.
+
+## Validated Behavior
+
+The current `main` branch has already been exercised against the real GitHub issue-to-triage path.
+
+- Verification issue `#57` triggered multiple `issues` workflow runs.
+- The triage workflow completed successfully on `main` after the dedupe fix landed.
+- The issue ended with exactly one standardized `@copilot` handoff comment from `github-actions`.
+
+The direct Copilot issue-assignment path has also been exercised against the real GitHub agent APIs.
+
+- Validation issue `#58` was assigned to Copilot with `agent_assignment.base_branch = cloud-dev`.
+- GitHub created a real Copilot task and preserved `base_ref = cloud-dev` in the task artifacts.
+- Copilot opened draft PR `#59` with base `cloud-dev` and head `copilot/validate-copilot-issue-assignment`.
+
+Treat that as the current operator baseline: duplicate automatic handoff comments are no longer expected on `main`. If they reappear, investigate both the runner dedupe logic and the workflow `concurrency` block before changing labels or retrying manually.
+
+Treat direct assignment as a verified override path: it can preserve the `cloud-dev` base branch, but it does not replace the workflow's readiness gate.
 
 ## Required Checks
 
@@ -169,5 +216,6 @@ The Recovery section is for manual recovery and operator intervention after auto
 | Need verification or test repair | Use `agent:test`. |
 | Need an informal Copilot conversation | Use `https://github.com/copilot`, but do not treat it as cloud-dev work until an issue exists. |
 | Triage did not run | Comment `/cloud-dev retry` or manually dispatch the workflow with `issue_number`. |
+| Need to force the official Copilot assignment path to keep base on `cloud-dev` | Run the preflight checklist yourself, then assign Copilot on the issue with `agent_assignment.base_branch = cloud-dev`. |
 | Copilot opens PR to `dev` or `main` | Stop and retarget/recreate the PR against `cloud-dev`. |
 | Work is merged into `cloud-dev` | Open a human-owned promotion PR from `cloud-dev` to `dev`. |

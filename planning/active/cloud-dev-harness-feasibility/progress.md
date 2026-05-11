@@ -228,3 +228,123 @@
 - 已更新 `README.md`：Docs 索引新增 `Cloud Dev Harness operator guide`。
 - 验证：编辑器诊断对 `docs/cloud-dev-harness.md` 与 `README.md` 无错误；`git diff --check` 通过；`node --test tests/installer/policy-render.test.mjs tests/automation/cloud-dev-workflow.test.mjs` 通过（21 tests）。
 - Diff 范围确认：本次任务修改 `README.md`、`docs/cloud-dev-harness.md` 与 `planning/active/cloud-dev-harness-feasibility/`；工作区另有既存/无关的 `planning/active/local-branch-cleanup-audit/` 变更和 `.agents/skills/planning-with-files/scripts/__pycache__/` 未跟踪目录，未处理。
+
+## Session: 2026-05-11 15:30:10 UTC+8
+
+- 用户要求实际创建一个 issue 并走一遍 cloud-dev 流程进行观察。
+- 已用 GitHub CLI 创建 issue `#55 Polish cloud-dev operator guide with a first-run pilot example`，labels 为 `cloud-dev`、`agent:impl`。
+- 已验证 issue 创建结果：`gh issue view` 返回 open 状态、标签正确、URL 为 `https://github.com/ilderaj/superpowering-with-files/issues/55`。
+- 已验证自动 triage：`gh run list --workflow "Cloud Dev Issue Triage"` 显示 issues 事件触发的 workflow runs；其中 run `25656460637` 完成成功。
+- 已读取 issue 评论 JSON，确认 `github-actions` 发布了标准 `@copilot` handoff 评论，包含 task kind、base branch `cloud-dev`、target PR base `cloud-dev` 与 verification 命令。
+- 演示过程中发现 triage 去重问题：同一 issue 触发了 3 次重复 handoff 评论，说明 workflow 对 `opened` 与 label 事件的并发触发尚未去重。
+
+## Session: 2026-05-11 15:33:20 UTC+8
+
+- 按用户选择开始修复 triage 重复评论问题。
+- 先按 TDD 在 `tests/automation/cloud-dev-issue.test.mjs` 添加新场景：自动 `issues` 事件若 issue 上已有同体 `github-actions` handoff 评论，应返回 `already_commented` 并跳过再次评论。
+- 红灯验证：`node --test tests/automation/cloud-dev-issue.test.mjs` 初次运行 18 tests 中 1 fail，失败点为新加 duplicate-skip 场景，实际状态仍为 `ready`。
+- 最小实现：在 `scripts/ci/run-cloud-dev-issue-triage.mjs` 中新增针对自动 `issues` 事件的现有评论查询，命中相同 `github-actions` 评论时把结果改写为 `already_commented`。
+- 绿灯验证：`node --test tests/automation/cloud-dev-issue.test.mjs` 通过（18 tests）。
+- 真实 issue 验证：对 issue `#55` 本地运行 triage runner，输出 `.harness/cloud-dev-issue-triage-result.json` 为 `status: already_commented`，确认不会再发第 4 条重复 handoff 评论。
+- 收尾验证：`git diff --check` 通过。
+
+## Session: 2026-05-11 15:51:27 UTC+8
+
+- 按用户要求连续执行了“先 1 后 2”：先发 PR，再在合并后做线上验证，中间未停。
+- PR 路径：
+  - 从当前 `dev` 工作区切出分支 `202605111537-cloud-dev-triage-dedupe-001`
+  - 仅提交 `.github/workflows/cloud-dev-issue-triage.yml`、`scripts/ci/run-cloud-dev-issue-triage.mjs`、`tests/automation/cloud-dev-issue.test.mjs`、`tests/automation/cloud-dev-workflow.test.mjs`
+  - 推送分支并创建 PR `#56 Avoid duplicate cloud-dev triage comments`
+  - 读取 PR merge 状态为 `CLEAN`，随后成功 merge 到 `main`
+- merge 前 fresh verification：`node --test tests/automation/cloud-dev-issue.test.mjs tests/automation/cloud-dev-workflow.test.mjs` 通过（29 tests），`git diff --check` 通过。
+- merge 后线上验证：
+  - 创建 issue `#57 Verify cloud-dev triage dedupe on main`
+  - 观察到多个 `issues` workflow runs（`25657367384` cancelled，`25657367402` success，`25657367821` success）
+  - 最终 `gh issue view 57 --json comments` 显示只有 1 条 `github-actions` handoff 评论，未再复现之前的 3 条重复评论问题。
+
+## Session: 2026-05-11 15:59:15 UTC+8
+
+- 用户要求继续执行“先做 1 再做 2”。
+- 第 1 步已完成：
+  - 关闭 issue `#57`，并附带验证成功说明评论。
+  - 更新 `docs/cloud-dev-harness.md`：新增 `Validated Behavior` 段记录 `main` 上真实 dedupe 验证已完成，并修正文档里错位的 `agent:impl` 条目。
+  - 文档检查结果：编辑器 diagnostics 无错误；`git diff --check` 通过。
+- 第 2 步已完成到可验证状态：
+  - 创建 issue `#58 Validate Copilot issue assignment keeps PR base on cloud-dev`
+  - 通过 GraphQL `suggestedActors` 验证仓库可将 issue 指派给 `copilot-swe-agent`
+  - 通过官方 REST issue assignees API 成功将 issue #58 指派给 Copilot，并在 `agent_assignment` 中显式指定 `base_branch = cloud-dev`
+  - 读取仓库级 agent tasks API，确认新 task 已启动，artifact 给出 `base_ref = cloud-dev`、`head_ref = copilot/validate-copilot-issue-assignment`
+  - 读取真实 PR：`#59 [WIP] Validate Copilot issue assignment keeps PR base on cloud-dev`，作者为 `app/copilot-swe-agent`，当前为 draft，`baseRefName = cloud-dev`，`headRefName = copilot/validate-copilot-issue-assignment`
+
+## Session: 2026-05-11 16:02:48 UTC+8
+
+- 按用户新指令继续执行“先做 1 再做 2”：
+  - 第 1 步：继续跟进 PR `#59` 的当前执行结果
+  - 第 2 步：将 official direct assignment 流程补入 operator guide
+- 第 1 步跟进结果：
+  - issue `#58` 当前仍为 `OPEN`，assignees 同时包含 `ilderaj` 与 `Copilot`
+  - Copilot task `c4c61d9e-9333-46a9-8ae4-5348d1fb119c` 当前仍为 `in_progress`
+  - session 仍为 `in_progress`，并保持 `base_ref = cloud-dev`、`head_ref = copilot/validate-copilot-issue-assignment`
+  - PR `#59` 当前仍为 draft，只有 1 个 `Initial plan` 提交，`/pulls/59/files` 结果为空，说明尚未出现实际文件改动
+- 第 2 步文档更新：
+  - 在 `docs/cloud-dev-harness.md` 新增 `Direct Copilot Assignment` 段
+  - 明确 direct assignment 不是默认入口，而是需要人工先做 preflight 的 override 路径
+  - 补入官方 REST 示例，说明通过 `agent_assignment.base_branch = cloud-dev` 固定 Copilot 工作基线
+  - 在 `Validated Behavior` 段补记 issue `#58` / PR `#59` 的真实验证结果
+- 验证：
+  - `get_errors docs/cloud-dev-harness.md` 无错误
+  - `git diff --check -- docs/cloud-dev-harness.md` 通过
+
+## Session: 2026-05-11 16:51:31 UTC+8
+
+- 按用户选择继续跟进 PR `#59`，直到拿到最终实际产出。
+- 最新远端结果：
+  - Copilot task `c4c61d9e-9333-46a9-8ae4-5348d1fb119c` 状态已从 `in_progress` 变为 `completed`
+  - task session `befb83ce-233c-4cc6-97ba-a72b58ac4a31` 也已 `completed`
+  - issue `#58` 仍为 `OPEN`，公开评论仍只有 triage 的 preflight blocking comment
+- PR `#59` 最终状态：
+  - 仍为 draft，base 仍是 `cloud-dev`，head 仍是 `copilot/validate-copilot-issue-assignment`
+  - 标题已更新为 `Enforce \`base_branch=cloud-dev\` in Copilot cloud-dev issue assignment prompts`
+  - 共 2 个提交：`Initial plan` 与 `docs: enforce base_branch cloud-dev in copilot triage prompt`
+  - 最终改动文件 3 个：
+    - `docs/cloud-dev-harness.md`
+    - `scripts/ci/lib/cloud-dev-issue.mjs`
+    - `tests/automation/cloud-dev-issue.test.mjs`
+  - 最终 diff 关键点：
+    - triage prompt 生成逻辑新增 `base_branch=cloud-dev`
+    - 自动化测试新增断言，要求评论包含 `base_branch=cloud-dev`
+    - operator 文档补入对该 directive 的说明
+- 验证现状：
+  - `statusCheckRollup` 为空
+  - PR body 未列出实际执行过的验证命令
+  - 因此当前能确认“Copilot 完成了真实代码修改并保持 PR base 为 cloud-dev”，但不能确认“Copilot 已公开提供测试通过证据”
+
+## Session: 2026-05-11 17:01:06 UTC+8
+
+- 按用户要求继续执行“先 1 后 2，直到完成”。
+- 第 1 步：正式 review PR `#59`
+  - 读取了 PR diff、PR 元数据，以及 PR 分支上的带行号源码片段
+  - 在临时 worktree 上 fetch `pull/59/head` 并执行 `node --test tests/automation/cloud-dev-issue.test.mjs`
+  - 验证结果：17 个测试全部通过
+  - review 结论：未发现代码级阻断问题；主要风险是当前没有线上证据证明 `@copilot` comment handoff 一定会语义解析 `base_branch=cloud-dev`
+- 第 2 步：收口 issue `#58`
+  - 使用 `gh issue close 58 --comment ...` 发布 operator note 并关闭 issue
+  - operator note 记录了：
+    - direct assignment API 路径验证成功
+    - task `c4c61d9e-9333-46a9-8ae4-5348d1fb119c` 与 PR `#59` 证明 base 为 `cloud-dev`
+    - PR 触及的 unit test 已本地通过
+    - triage blocking comment 与 direct assignment 可并存，因此 direct assignment 仍应视作人工 override 路径
+  - 随后用 `gh issue view 58 --json state,closed,url` 确认 issue 已为 `CLOSED`
+
+## Session: 2026-05-11 17:05:47 UTC+8
+
+- 用户选择继续执行“1”，要求将 review 结果落成明确的 merge recommendation。
+- 已重新检查 PR `#59` 当前状态：
+  - 仍为 draft
+  - `mergeStateStatus = CLEAN`
+  - 无 checks
+  - 无额外 review comments 改变结论
+- 形成的明确建议是：
+  - 代码本身可以合入 `cloud-dev`
+  - 但建议先修改标题和 PR 描述，避免把本次变更写成已经证明“enforce”成功的线上强制语义
+  - 更准确的标题方向应为 `Emit` / `Include` / `Make explicit` `base_branch=cloud-dev` in Copilot triage prompts
