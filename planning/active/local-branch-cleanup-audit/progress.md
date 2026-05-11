@@ -98,3 +98,89 @@
 | What's the goal? | 审计全部本地分支并评估清理方案，不直接删除 |
 | What have I learned? | 风险边界主要不在 merged 与否，而在 worktree 占用、恢复点语义和 active task 绑定 |
 | What have I done? | 已刷新远端、盘点 19 个本地分支与 11 个 worktree，完成建议执行，并把本地状态收敛到 6 分支 / 3 worktree |
+
+## Session: 2026-05-11 13:21:26 UTC+8
+
+- 用户批准先执行一项低风险清理：删除本地分支 `202605101422-cloud-dev-harness-feasibility-001` 及其对应 worktree。
+- 删除前复核结果：
+  - 主工作区 `dev` 干净。
+  - 目标 worktree `.worktrees/202605101422-cloud-dev-harness-feasibility-001` 干净。
+  - 目标本地分支当前仅被该 worktree 占用，没有同名 remote ref。
+- 已创建删除前 checkpoint：`/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-11T05-21-26Z`。
+- 下一步：执行 `git worktree remove` + `git branch -d`，然后重新审计剩余本地 / 远端分支的可清理性结论。
+
+## Session: 2026-05-11 13:24:00 UTC+8
+
+- 已执行并完成：
+  - `git worktree remove .worktrees/202605101422-cloud-dev-harness-feasibility-001`
+  - `git branch -d 202605101422-cloud-dev-harness-feasibility-001`
+- 执行结果：目标本地分支已删除，目标 worktree 已从 `git worktree list` 中消失。
+- 删除后复核：
+  - 主工作区仍在 `dev...origin/dev`，代码工作区无新增代码脏状态；当前仅有本次审计任务的 planning 文件修改。
+  - 剩余本地分支 8 个，剩余 worktree 5 个。
+  - `main` worktree 仍 clean，但落后 `origin/main` 7 个提交。
+  - `codex/202605080601-upstream-refresh-6-failure-repair-001` worktree 与 `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002` worktree 仍有未提交改动，继续排除出清理范围。
+  - `202605081401-harness-runtime-facade-mcp-001` worktree clean，但分支未并入主线，继续保留。
+
+## Session: 2026-05-11 14:56:03 UTC+8
+
+- 用户批准执行并复核 13 个远端分支删除候选。
+- 已创建新的删除前 checkpoint：`/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-11T06-56-03Z`。
+- 已记录每个远端候选分支的 tip SHA，作为误删时逐个 `git push origin <sha>:refs/heads/<branch>` 的恢复依据。
+- 下一步：执行 `git push origin --delete ...`，随后立刻用 `git branch -r` 与 `git ls-remote --heads origin` 复核远端剩余分支集合。
+
+## Session: 2026-05-11 15:00:00 UTC+8
+
+- 已执行：
+  - `git push origin --delete readme-slim-pr ... codex/superpowers-plan-artifact-model`
+  - `git fetch origin --prune`
+  - `git branch -r --format='%(refname:short)'`
+  - `git ls-remote --heads origin`
+- 实际结果：13 个目标远端分支全部删除成功，`git push` 返回每个目标均为 `[deleted]`。
+- 删除后复核：
+  - `git ls-remote --heads origin` 显示当前真实远端 heads 仅剩 `automation/upstream-refresh`、`cloud-dev`、`codex/202605060906-roadmap-v1-1-planning-hygiene-001`、`dev`、`main`。
+  - 本地 `git branch -r` 仍出现噪声项 `origin`，但不影响实际远端结果，因为它不对应真实 head。
+  - 当前主工作区未受影响；本地仍只有本次审计文件修改。
+
+## Session: 2026-05-11 15:01:53 UTC+8
+
+- 用户要求继续处理两个后续项：
+  - 删除本地 `backup/main-before-dev-sync-20260508-1125`
+  - 审计 `origin/codex/202605060906-roadmap-v1-1-planning-hygiene-001` 是否还有保留价值
+- 已创建本地 backup 删除前 checkpoint：`/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-11T07-01-53Z`。
+- 远端 codex 审计补充结果：该分支只有 1 个未合入提交 `4311787 docs: sync roadmap execution control`，且只涉及 roadmap/planning 文档，不包含产品代码变更，也没有关联 PR。
+- 首次尝试 `git branch -d backup/main-before-dev-sync-20260508-1125` 失败，原因是该分支未并入当前 `HEAD` 所在的 `dev`，Git 拒绝做非强制删除；这不改变它作为本地 backup ref 的冗余判断，只是要求改用 `-D`。
+- 下一步：执行 `git branch -D backup/main-before-dev-sync-20260508-1125`，然后复核本地分支集合。
+
+## Session: 2026-05-11 15:04:30 UTC+8
+
+- 已执行 `git branch -D backup/main-before-dev-sync-20260508-1125`，Git 返回删除成功，tip 为 `fe42a20`。
+- 删除后复核：
+  - 本地分支现在剩余 7 个：`202605081401-harness-runtime-facade-mcp-001`、`automation/upstream-refresh`、`backup/dev-before-origin-align-20260504`、`codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`、`codex/202605080601-upstream-refresh-6-failure-repair-001`、`dev`、`main`。
+  - 主工作区仍为 `dev...origin/dev`，仅有本次 cleanup 审计文件修改。
+  - 远端 `origin/codex/202605060906-roadmap-v1-1-planning-hygiene-001` 的结论保持不变：不是产品代码分支，只是未合入的 planning 历史快照，后续是否删除取决于你是否还要保留这类历史证据分支。
+
+## Session: 2026-05-11 15:04:18 UTC+8
+
+- 用户批准删除远端 `origin/codex/202605060906-roadmap-v1-1-planning-hygiene-001`。
+- 已创建新的删除前 checkpoint：`/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-11T07-04-18Z`。
+- 已记录该远端分支的 tip SHA：`43117876b1dcf9c8a7697261b20a6806601f3283`。
+- 已再次确认：没有 open PR 绑定该分支。
+- 下一步：执行 `git push origin --delete codex/202605060906-roadmap-v1-1-planning-hygiene-001`，随后以 `git fetch origin --prune` 和 `git ls-remote --heads origin` 复核远端剩余 heads。
+
+## Session: 2026-05-11 15:06:30 UTC+8
+
+- 已执行 `git push origin --delete codex/202605060906-roadmap-v1-1-planning-hygiene-001`，Git 返回 `[deleted]`。
+- 已执行 `git fetch origin --prune` 与 `git ls-remote --heads origin` 复核。
+- 删除后结果：
+  - 远端真实 heads 只剩 `automation/upstream-refresh`、`cloud-dev`、`dev`、`main`。
+  - 本地 remote-tracking refs 只剩 `origin/automation/upstream-refresh`、`origin/cloud-dev`、`origin/dev`、`origin/main`，以及一个不对应真实 head 的噪声项 `origin`。
+  - 当前主工作区未受影响，仍然只有 cleanup 审计文件修改。
+
+## Session: 2026-05-11 15:08:30 UTC+8
+
+- 用户要求对 `local-branch-cleanup-audit` 任务做正式收尾。
+- 已将任务状态更新为 `closed`，并补充最终结论：
+  - 本地剩余 7 个分支，不再存在新的“立即安全删除”对象。
+  - 远端剩余 4 个真实 heads，历史 feature / planning 分支清理完成。
+  - 后续若再继续清理，必须先处理 active task、未合入分支或脏 worktree 的边界，而不是继续删 refs。

@@ -30,6 +30,7 @@ Close Reason:
 11. 更新 cloud-dev operator 文档 - complete
 12. 运行 focused/full verification 与 dry-run - complete
 13. 回写 implementation evidence 与 rollout gate - complete
+14. 补充 GitHub cloud human operator guide 与 README 入口 - complete
 
 ## 关键决策
 - 将 cloud dev 模式视为可选运行模式，不改变本地 dev 的默认工作流。
@@ -116,6 +117,12 @@ Close Reason:
 - 已在 GitHub 仓库上创建并启用 `CLOUD_DEV_SYNC_ENABLED=true` 与 `CLOUD_DEV_ISSUE_TRIAGE_ENABLED=true`，并补齐 labels：`cloud-dev`、`agent:plan`、`agent:test`、`agent:impl`。
 - 已创建并合并 `dev -> main` 的发布 PR `#52 Add cloud-dev harness workflows and rollout checks`，使默认分支 `main` 获得 cloud-dev workflows、docs 与 Copilot entry baseline。
 - 已从 `main` 手动触发一次 `Cloud Dev Sync` workflow 的 `workflow_dispatch(mode=check)`；GitHub Actions run `25649619094` 成功完成。
+
+## Plan Record: 2026-05-11 13:26:28 UTC+8
+- 用户要求补充后续 GitHub cloud 工作的人类执行指南，并明确“从 Copilot 页面直接描述需求”与“从 GitHub issue 开始”的推荐入口。
+- 已将 `docs/cloud-dev-harness.md` 扩展为 operator guide：明确推荐 issue-first 流程、labels、preflight、triage/retry、Copilot PR review、`cloud-dev -> dev` promotion，以及 agent 支持边界。
+- 已在 `README.md` 的 Docs 索引加入 `Cloud Dev Harness operator guide` 链接。
+- 当前结论：本仓库已落地的 GitHub cloud-dev 自动化是 Copilot-first；Codex 与 Claude 可在普通 checkout 中使用 Harness 投影，但当前 issue triage / GitHub cloud handoff 不会直接派发 Codex 或 Claude。
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
