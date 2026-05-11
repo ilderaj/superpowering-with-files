@@ -18,6 +18,23 @@
   - planning/active/cursor-skill-projection-consolidation/findings.md
   - planning/active/cursor-skill-projection-consolidation/progress.md
 
+## Session: 2026-05-11 11:13:30 UTC+8
+
+### Phase 6: Final audit before push
+- **Status:** complete
+- **Started:** 2026-05-11 11:13:30 UTC+8
+- Actions taken:
+  - 审计 `dev` 相对 `origin/dev` 的 433 个文件变更：1 added、20 modified、412 deleted，其中 `.cursor/skills/**` 删除与 shared `.agents/skills` 归并计划一致。
+  - 抽查 `harness/core/metadata/platforms.json`、`harness/installer/lib/planning-with-files-skill-root-patch.mjs`、`harness/installer/commands/sync.mjs` 与相关 tests，未发现阻断问题。
+  - 运行 focused suite：`node --test tests/installer/paths.test.mjs tests/adapters/skill-projection.test.mjs tests/adapters/sync-skills.test.mjs tests/installer/policy-render.test.mjs tests/installer/health.test.mjs tests/adapters/planning-record-time.test.mjs`，结果 110/110 pass。
+  - 运行 `npm run verify`，结果 367/367 pass；运行 `git diff --check`，无输出。
+  - 确认当前未提交差异只剩 companion plan 与 active planning files 的 closeout 同步，准备提交并推送 `dev`。
+- Files created/modified:
+  - docs/superpowers/plans/2026-05-10-cursor-skill-projection-consolidation.md
+  - planning/active/cursor-skill-projection-consolidation/task_plan.md
+  - planning/active/cursor-skill-projection-consolidation/findings.md
+  - planning/active/cursor-skill-projection-consolidation/progress.md
+
 ### Phase 2: 仓库实现盘点
 - **Status:** complete
 - Actions taken:
@@ -131,3 +148,67 @@
 | Active planning date-only scan | `grep -RInE` against `planning/active/cursor-skill-projection-consolidation` | 0 date-only `Session` / `Started` / Error Log records | `date-only-active-records=0` | pass |
 | Skill guard scan | grep `Manual timestamp guard` and `YYYY-MM-DD HH:mm:ss UTC+8` in source/overlay/current projections | 5 key skill files contain guard | 5/5 guard-ok | pass |
 | Baseline full verification | `npm run verify` in `.worktrees/202605101418-cursor-skill-projection-consolidation-001` | Clean baseline before implementation | Pass | pass |
+
+## Session: 2026-05-10 22:35:47 UTC+8
+
+### Phase 6: Task 1 complete / Task 2 start
+- **Status:** in_progress
+- **Started:** 2026-05-10 22:35:47 UTC+8
+- Actions taken:
+  - 通过子代理完成 Task 1，只修改测试文件，不触碰生产实现。
+  - 运行 `node --test tests/installer/paths.test.mjs`、`node --test tests/adapters/skill-projection.test.mjs`、`node --test tests/adapters/sync-skills.test.mjs`、`node --test tests/installer/health.test.mjs`，均得到由实现缺失导致的预期失败。
+  - 完成规格评审，确认 4 个测试文件都已覆盖 approved plan 的要求。
+  - 完成代码质量评审，并基于 plan 明确规格拒绝两个偏离批准范围的 reviewer 建议。
+  - 将 SQL todo `cursor-tests-contract` 标记为 done，切换 `cursor-metadata-root` 为 in_progress。
+- Files created/modified:
+  - planning/active/cursor-skill-projection-consolidation/findings.md
+  - planning/active/cursor-skill-projection-consolidation/progress.md
+
+## Session: 2026-05-10 22:43:33 UTC+8
+
+### Phase 6: Task 2 complete / Task 3 start
+- **Status:** in_progress
+- **Started:** 2026-05-10 22:43:33 UTC+8
+- Actions taken:
+  - 通过子代理仅修改 `harness/core/metadata/platforms.json` 中 Cursor `skillRoots`，将 `.cursor/skills` 切换到 `.agents/skills`。
+  - 运行 `node --test tests/installer/paths.test.mjs tests/adapters/skill-projection.test.mjs tests/adapters/sync-skills.test.mjs`，结果从 44/51 pass 提升到 50/51 pass。
+  - 规格评审确认 `entryFiles` 与 `hookRoots` 未被误改。
+  - 代码质量评审提出的剩余失败/边界意见已判定为后续 Task 3/4 负责范围，而非 Task 2 缺口。
+  - 将 SQL todo `cursor-metadata-root` 标记为 done，切换 `planning-skill-root-patch` 为 in_progress。
+- Files created/modified:
+  - planning/active/cursor-skill-projection-consolidation/findings.md
+  - planning/active/cursor-skill-projection-consolidation/progress.md
+
+## Session: 2026-05-10 23:20:49 UTC+8
+
+### Phase 6: Task 3 complete / Task 4 debug and delete preflight
+- **Status:** in_progress
+- **Started:** 2026-05-10 23:20:49 UTC+8
+- Actions taken:
+  - 完成 Task 3 的 shared planning-with-files patch helper、sync wiring、skill index patch assignment 与相关测试迁移。
+  - 针对剩余 stale cleanup 失败执行系统化调试：单独复现失败、读取 `sync-skills.test.mjs` 与 `sync.mjs`、对比 `diff.stale`、desired manifest 和 sync 后磁盘状态。
+  - 证明失败不是“没有识别 stale”，而是 stale 条目被 session-boundary 检查误判为越界并跳过删除。
+  - 确认根因来自 macOS `/var` 与 `/private/var` 的 canonical path 差异；随后在 worktree 中完成最小修复，并让单测与 focused suites 转绿。
+  - 执行删除前 preflight：确认 `git --no-pager ls-files .cursor/skills | wc -l` 为 412，`.cursor/rules` 仍独立存在。
+  - 生成 destructive-change checkpoint：`/Users/jared/.agent-config/checkpoints/202605101418-cursor-skill-projection-consolidation-001/2026-05-10T15-21-17Z`。
+- Files created/modified:
+  - planning/active/cursor-skill-projection-consolidation/task_plan.md
+  - planning/active/cursor-skill-projection-consolidation/findings.md
+  - planning/active/cursor-skill-projection-consolidation/progress.md
+
+## Session: 2026-05-11 00:42:44 UTC+8
+
+### Phase 6: Tasks 4-6 complete and merged
+- **Status:** complete
+- **Started:** 2026-05-11 00:42:44 UTC+8
+- Actions taken:
+  - 删除 tracked `.cursor/skills/**`，保留 `.cursor/rules/**`，并验证 `tests/adapters/sync-skills.test.mjs` 与 `tests/installer/paths.test.mjs` 转绿。
+  - 修复 reviewer 暴露的 shared patch 迁移问题：新增 legacy-only 与 mixed-copy 回归测试，强化 `applyPlanningWithFilesSkillRootPatch`，并重新 materialize tracked `.agents/skills/planning-with-files/SKILL.md`。
+  - 更新 `docs/compatibility/copilot-planning-with-files.md` 与 `docs/architecture.md` 的剩余旧文案，使 shared patch 与已物化 skill 内容一致。
+  - 重新运行 focused suite（105/105 pass）和 `npm run verify`（367/367 pass），并确认 `git diff --check` 无空白错误。
+  - 按用户选择将 feature branch `202605101418-cursor-skill-projection-consolidation-001` 提交为 `5fc4d2d`，随后本地合并进 `dev`，merge commit 为 `522e7ae`。
+  - 移除临时 worktree 并删除 feature branch；当前主工作区仅保留本任务 active planning files 作为 durable task memory。
+- Files created/modified:
+  - planning/active/cursor-skill-projection-consolidation/task_plan.md
+  - planning/active/cursor-skill-projection-consolidation/findings.md
+  - planning/active/cursor-skill-projection-consolidation/progress.md

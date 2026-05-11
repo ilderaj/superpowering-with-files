@@ -10,9 +10,9 @@
 
 **Active task path:** `planning/active/cursor-skill-projection-consolidation/`
 
-**Lifecycle state:** waiting for user review of this implementation plan; implementation has not been executed.
+**Lifecycle state:** implementation executed, merged into `dev` locally, and re-audited before push.
 
-**Sync-back status:** synced to `planning/active/cursor-skill-projection-consolidation/{task_plan.md,findings.md,progress.md}`.
+**Sync-back status:** synced to `planning/active/cursor-skill-projection-consolidation/{task_plan.md,findings.md,progress.md}`; final implementation committed as `5fc4d2d`, merged into `dev` as `522e7ae`, temporary worktree removed, and final audit verification passed before push.
 
 ---
 

@@ -63,6 +63,7 @@
 ## Destructive Operations Log
 | Command | Target | Checkpoint | Rollback |
 |---------|--------|------------|----------|
+| `git rm -r .cursor/skills` | `.cursor/skills/**` tracked generated projection tree | `/Users/jared/.agent-config/checkpoints/202605101418-cursor-skill-projection-consolidation-001/2026-05-10T15-21-17Z` | `git restore --staged --worktree .cursor/skills` before commit, or restore from the recorded checkpoint bundle if broader recovery is needed |
 
 ## Resources
 - https://cursor.com/docs
@@ -93,3 +94,55 @@
 - `.gitignore` 已忽略 `.worktrees/`，因此 project-local worktree 不会污染仓库跟踪状态。
 - 在隔离 worktree 内运行 `npm install` 与 `npm run verify` 均通过，说明 companion plan 的实现可以从干净基线开始。
 - 当前 repo 中已有对应 active task 目录 `planning/active/cursor-skill-projection-consolidation/`，因此继续复用该任务记忆，而不新建 task id。
+
+## Findings Record: 2026-05-10 22:35:47 UTC+8
+
+### Task 1 Review Outcome
+
+- Task 1 已按 plan 把 Cursor shared-root 合同写进 4 个测试文件，并成功制造预期 red 状态。
+- 规格评审确认 Task 1 覆盖了 plan 要求的全部测试面：路径解析、projection path、三目标 coalesce、fresh-sync 旧副本缺席、stale cleanup、health display-duplicate。
+- 代码质量评审提出两点建议，但都不应采纳：
+  - stale cleanup 用手工旧 manifest/目录模拟更贴近本次已批准 plan；plan 明确要求“simulate a previous Harness-managed `.cursor/skills` projection in `.harness/projections.json`”。
+  - fresh-sync 缺席断言必须保持在 `lstat('.cursor/skills/planning-with-files/SKILL.md')`，因为 companion plan 给了明确断言形式；扩成目录级断言会偏离已批准规格。
+- 决策：Task 1 视为完成，不为迎合 reviewer 建议而偏离已批准 companion plan。
+
+## Findings Record: 2026-05-10 22:43:33 UTC+8
+
+### Task 2 Boundary Confirmation
+
+- 仅通过 `harness/core/metadata/platforms.json` 中 Cursor `skillRoots` 的单点变更，就把 Task 1 的大部分 red 用例从 7 个降到只剩 1 个，证明根路径归并主要由 metadata 驱动。
+- 剩余失败集中在 stale Cursor projection cleanup，用例本身正是后续 Task 3/4 负责的迁移清理语义，因此不应把它算作 Task 2 未完成。
+- 代码质量评审里提到的“health test 超出 Task 2 范围”并不是 Task 2 的问题，而是 Task 1 已批准测试面的既有 diff；不应因此回退 Task 1。
+- 决策：Task 2 视为完成，Task 3 开始处理 shared planning-with-files patch 和 sync patch wiring。
+
+## Findings Record: 2026-05-10 23:20:49 UTC+8
+
+### Stale Cleanup Root Cause
+
+- `sync removes stale Harness-managed Cursor skill projections after shared root migration` 的失败并不是 stale manifest 没被识别；`diff.stale` 已正确识别旧 `.cursor/skills/planning-with-files` 记录。
+- 根因在 `harness/installer/commands/sync.mjs` 的 session-boundary 判断：manifest 里的 stale `targetPath` 经 `path.resolve()` 变成 `/var/...`，而 `process.cwd()` 在 macOS 临时目录环境下是 `/private/var/...`。
+- 因为 `isManagedSessionBoundary()` 只比较未 canonicalize 的路径字符串，同一真实目录被误判为不同边界，导致 stale cleanup 被当作“越界路径”跳过，旧文件完全没删。
+- 这解释了为什么 sync 摘要显示 `stale=1`，但旧 `SKILL.md` 内容仍保持原始 `old cursor projection` 文本不变。
+- 决策：最小修复应是把 session-boundary 比较改为 canonical path 比较，而不是修改 stale manifest 或 cleanup 策略。
+
+## Findings Record: 2026-05-11 00:42:44 UTC+8
+
+### Final Hardening and Merge Outcome
+
+- 在 reviewer 发现 tracked `.agents/skills/planning-with-files/SKILL.md` 仍残留旧 Copilot patch 后，定位到 shared helper 只会追加 shared block，不会清理 legacy Copilot block，也不会修复旧 shared block 里的过时内容。
+- `applyPlanningWithFilesSkillRootPatch` 最终改为：先移除 legacy Copilot block，再移除已有 shared block，然后注入一份 canonical shared block，并重写 lingering `COPILOT_PLANNING_WITH_FILES_ROOT` 引用。
+- 同一次 hardening 还把 Windows PowerShell 示例从 Claude-only `session-catchup.py` 路径改成 shared-root candidate 解析，避免共享 skill 在 Windows 上误指向 `.claude/skills`。
+- 新增回归测试覆盖 legacy-only materialized copy、mixed legacy/shared copy，以及 shared skill content 不再直接写死 Claude Windows path。
+- tracked `.agents/skills/planning-with-files/SKILL.md` 已用修复后的 helper 重新 materialize；`docs/compatibility/copilot-planning-with-files.md` 与 `docs/architecture.md` 也已同步到 shared patch 语义。
+- 最终集成结果：feature commit `5fc4d2d` 已本地合并进 `dev`，merge commit 为 `522e7ae`；临时 worktree 已移除，feature branch 已删除。
+
+## Findings Record: 2026-05-11 11:13:30 UTC+8
+
+### Final Pre-Push Audit Outcome
+
+- 推送前复查确认 Cursor `skillRoots` 已归并到 `.agents/skills`，同时 `.cursor/rules/harness.mdc` entry 与 `.cursor` hook root 未被误改。
+- `.cursor/skills/**` 的 412 个 tracked generated projection 删除符合 approved plan，当前工作区仍保留 `.cursor/rules/**`。
+- `applyPlanningWithFilesSkillRootPatch` 已覆盖 legacy-only 与 mixed materialized copy 场景，shared skill root block 会清理旧 Copilot block，并保留 `HARNESS_AGENT_SKILL_ROOT` / `GITHUB_COPILOT_SKILL_ROOT` 兼容 fallback。
+- stale cleanup 修复限定在 canonical session-boundary 比较，删除前仍经过 managed manifest 与 root/home boundary 检查，没有扩大到非 Harness-owned 路径。
+- 独立只读审计未发现阻断问题；本轮 fresh verification 结果为 focused suite 110/110 pass、`npm run verify` 367/367 pass、`git diff --check` clean。
+- 决策：实现符合预期；剩余 4 个 planning/companion markdown 文件只记录最终状态，应作为 closeout commit 提交并推送 `dev`。
