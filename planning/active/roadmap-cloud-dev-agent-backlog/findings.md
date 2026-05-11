@@ -44,6 +44,11 @@
 - `docs/roadmap.md` 现包含 v1.7/v1.8 未来路线，并将 active roadmap items 转向 cloud-dev/cloud-agent operator experience。
 - 最终验证命令输出 `doc verification passed`，未发现 whitespace、placeholder 或关键文件缺失问题。
 
+## Findings Record: 2026-05-11 20:24:37 UTC+8
+- 用户提出的更具体需求是：通过 `https://github.com/copilot` ask 模式 `/create-issue`，human 只输入简短 issue 描述，系统自动补全 cloud-dev 所需的结构、labels，并尽可能自动 assign cloud agent。
+- 该需求此前只被 `CDX-002`、`CDX-003` 部分隐含覆盖，没有独立表达“minimal-human intake”这个 operator outcome。
+- 结论：需要独立 backlog 条目把它从“模板/assignment 的组合推断”提升为“明确交付目标”，否则后续实现容易只做到 issue form 或 assignment API 其中一半。
+
 ## Issues Encountered
 | Issue | Resolution |
 |-------|------------|

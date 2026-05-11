@@ -77,6 +77,11 @@ Phase 5
 - 已将 repo Agent tab、Codex cloud、Claude cloud 作为平台 research + agent-neutral handoff contract 路线，避免把本地 Harness 支持误写成 cloud automation 已支持。
 - 最终文档验证已通过：`git diff --check`、`awk` trailing whitespace scan、placeholder grep、关键文件存在检查。
 
+## Plan Record: 2026-05-11 20:24:37 UTC+8
+- 用户追加了更具体的 operator requirement：希望 `https://github.com/copilot` ask 模式的 `/create-issue` 只需简短描述，就能自动生成 cloud-dev 认可的 issue 结构、labels，并尽可能自动 assign cloud agent。
+- 审计结论：现有 backlog 只部分覆盖该需求，分散在 issue template、assignment decision 和 handoff validation 条目中，但没有把“minimal-human `/create-issue` intake”作为明确 backlog item。
+- 已决定做最小增量更新：只补 backlog 条目，不重写 roadmap 或 operator guide 当前事实描述。
+
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|

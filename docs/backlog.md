@@ -135,10 +135,26 @@ The next focus area is cloud development parity: make the remote `cloud-dev` lan
   - It references the same branch readiness checks used by issue triage.
 - Dependencies: none.
 
+### CDX-011: Copilot Ask `/create-issue` Minimal-Human Intake
+
+- Status: proposed
+- Priority: high
+- Type: operator experience and platform validation
+- Scope: Validate and, if feasible, productize a flow where a human uses `https://github.com/copilot` ask mode with `/create-issue`, writes only a short natural-language issue description, and the system turns it into a cloud-dev-ready issue.
+- Acceptance signals:
+  - A human can provide only a short freeform description instead of manually filling the full cloud-dev issue structure.
+  - The created issue body is normalized into the repo's preferred cloud-dev structure such as Goal, Scope, Acceptance Criteria, and Verification.
+  - The issue receives `cloud-dev` plus exactly one task-kind label automatically.
+  - If GitHub platform behavior allows it, Copilot assignment is applied automatically and preserves `cloud-dev` as the working base through the official assignment path.
+  - If automatic assignment is not available from `/create-issue`, the remaining human or workflow fallback step is explicitly documented and kept minimal.
+  - The end-to-end behavior is verified on the real GitHub path from ask-mode issue creation to either triage handoff or direct assignment.
+- Dependencies: `CDX-002`, `CDX-003`, and current operator evidence for Copilot cloud-dev assignment.
+
 ## Current Answers To Open Questions
 
 - Issue templates can standardize the shape of cloud-dev requests and apply labels, which is enough to trigger the current triage workflow. They should not be described as proven native cloud-agent assignment until tested against the real GitHub coding-agent assignment behavior.
 - Without a template, Copilot can still be assigned through the official issue assignees API with `agent_assignment.base_branch = cloud-dev`; this repository has real validation evidence for that direct assignment path.
+- The specific requirement "human only gives a short description in Copilot ask `/create-issue`, then the system normalizes the issue, adds cloud-dev labels, and assigns the cloud agent with minimal manual formatting" was only partially covered before. It is now tracked explicitly as `CDX-011`.
 - The existing issue-triggered workflow posts a normalized `@copilot` handoff comment. That is useful and already deduped, but prompt-based branch control should be described separately from the official assignment API path until a real comment-based run proves PR base behavior.
 - Repo Agent tab execution is a platform research item. The desired end state is direct task launch from the repo UI with the same branch, planning, and verification contract as issue-first work.
 - Codex and Claude cloud support should start as platform research plus an agent-neutral handoff contract. Local Harness support for Codex and Claude already exists, but it is not the same as cloud-dev automation.

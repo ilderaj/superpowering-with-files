@@ -96,6 +96,20 @@
   - issue 时间线上存在含 `base_branch=cloud-dev` 的标准 `@copilot` handoff comment
   - 仓库 tasks API 和 open PR 观察窗口内均无与 `#60` 对应的新产物
 
+## Session: 2026-05-11 20:24:37 UTC+8
+
+### Phase 3: 文档更新
+- **Status:** complete
+- Actions taken:
+  - 重新审计 `docs/backlog.md`，确认“Copilot ask `/create-issue` + human 只写简述 + 自动补全 cloud-dev 格式/labels/assignment”此前没有被独立表达。
+  - 在 backlog 中新增 `CDX-011: Copilot Ask `/create-issue` Minimal-Human Intake`。
+  - 将该需求与 `CDX-002` issue template、`CDX-003` assignment automation decision 明确关联，避免后续只做部分能力。
+- Files created/modified:
+  - `docs/backlog.md` (modified)
+  - `planning/active/roadmap-cloud-dev-agent-backlog/task_plan.md` (updated)
+  - `planning/active/roadmap-cloud-dev-agent-backlog/findings.md` (updated)
+  - `planning/active/roadmap-cloud-dev-agent-backlog/progress.md` (updated)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
