@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Harness projection console</title>
+  <desc id="desc">A dark technical interface showing planning, policy, adapters, and verification lanes.</desc>
+  <rect width="1200" height="760" fill="#050505"/>
+  <rect x="48" y="48" width="1104" height="664" fill="#0d0d0d" stroke="#3c3c3c"/>
+  <rect x="48" y="48" width="368" height="6" fill="#0066b1"/>
+  <rect x="416" y="48" width="368" height="6" fill="#1c69d4"/>
+  <rect x="784" y="48" width="368" height="6" fill="#e22718"/>
+  <g fill="#ffffff" font-family="Arial, Helvetica, sans-serif">
+    <text x="84" y="126" font-size="40" font-weight="700">AGENT WORKFLOW GOVERNANCE</text>
+    <text x="84" y="166" font-size="18" fill="#bbbbbb">Planning with Files · Superpowers · Adapter Projection · Verification</text>
+  </g>
+  <g stroke="#3c3c3c" fill="#1a1a1a">
+    <rect x="84" y="220" width="260" height="132"/>
+    <rect x="376" y="220" width="260" height="132"/>
+    <rect x="668" y="220" width="260" height="132"/>
+    <rect x="84" y="390" width="844" height="192"/>
+    <rect x="960" y="220" width="108" height="362"/>
+  </g>
+  <g fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-weight="700">
+    <text x="110" y="268" font-size="24">PLAN</text>
+    <text x="402" y="268" font-size="24">PROJECT</text>
+    <text x="694" y="268" font-size="24">VERIFY</text>
+    <text x="110" y="438" font-size="24">RUNTIME FACADE</text>
+  </g>
+  <g fill="#bbbbbb" font-family="Arial, Helvetica, sans-serif" font-size="16">
+    <text x="110" y="304">Durable task state</text>
+    <text x="402" y="304">IDE-native instructions</text>
+    <text x="694" y="304">Doctor and tests</text>
+    <text x="110" y="478">MCP tools, CLI services, audit receipts, summaries</text>
+  </g>
+  <g stroke="#ffffff" stroke-width="2">
+    <path d="M344 286 H376"/>
+    <path d="M636 286 H668"/>
+    <path d="M928 286 H960"/>
+    <path d="M506 352 V390"/>
+  </g>
+  <g fill="#0066b1"><rect x="1000" y="260" width="28" height="170"/></g>
+  <g fill="#1c69d4"><rect x="1030" y="260" width="28" height="170"/></g>
+  <g fill="#e22718"><rect x="1060" y="260" width="28" height="170"/></g>
+</svg>

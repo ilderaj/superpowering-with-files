@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "superpowering-with-files-homepage",
+  "main": "./src/worker.ts",
+  "compatibility_date": "2026-05-11",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": true
+  },
+  "routes": [
+    {
+      "pattern": "vibing.paymond.me/superpowering-with-files*",
+      "zone_name": "paymond.me"
+    }
+  ]
+}

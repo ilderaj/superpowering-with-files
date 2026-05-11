@@ -28,6 +28,25 @@
 - Cloudflare Workers Static Assets 可配置 `not_found_handling = "single-page-application"`，适合 homepage 前端路由或子路径刷新。
 - Cloudflare 文档建议外部 CI/CD 可使用 GitHub Actions 部署 Workers；本任务的 `origin/main` 触发可由 Actions 监听 push 后调用 Wrangler 完成。
 
+## Findings Record: 2026-05-11 21:12:58 UTC+8
+
+- 用户已从 plan review 明确切换到执行阶段，因此不需要再次停留在审阅态。
+- worktree 预检结果建议基于当前本地 `dev` HEAD 创建隔离分支，而不是回退到 `origin/main` 或 `origin/dev`；这是为了保留当前非 trunk 开发上下文。
+- 本次执行使用的隔离工作区路径为 `.worktrees/202605111312-homepage-cloudflare-worker-001`，分支名同 worktree basename。
+- 当前 worktree 内尚不存在 `homepage/` 目录，可按 companion plan 从零创建，不需要兼容既有 homepage 实现。
+
+## Findings Record: 2026-05-11 21:22:25 UTC+8
+
+- `npx getdesign@latest add bmw-m` 已在 `homepage/` 下生成 `DESIGN.md`，其中确认了近纯黑画布、白色 uppercase display、BMW Type Next Latin、M 三色细线、0px radius、96px section spacing 与 48px button height 等关键视觉约束。
+- companion plan 里的 `moduleResolution: "Node"` 在当前 `typescript@latest` 下会触发弃用错误；已改为更适配 Vite 的 `moduleResolution: "Bundler"`。
+- 为避免后续 React/JSX 类型缺失，`homepage/package.json` 额外补入了 `@types/react` 与 `@types/react-dom`；这是对计划的最小生态兼容修正，不改变产物目标。
+
+## Findings Record: 2026-05-11 21:33:27 UTC+8
+
+- 首次 `wrangler --dry-run` 报出 `assets.directory` 缺失，不是配置错误；根因是我把 `npm run build --prefix homepage` 和 `wrangler deploy --dry-run` 错误地并行执行，导致 dry-run 检查时 `homepage/dist` 尚未生成。串行重跑后通过。
+- `homepage/dist/index.html` 正确写入了 `/superpowering-with-files/assets/...` 前缀，说明 Vite `base` 配置与部署子路径目标一致。
+- 当前环境没有现成的浏览器自动化工具，因此预览验证采用 `vite preview` + HTTP 200/HTML 资源引用检查，而不是桌面/移动视口截图。功能链路已验证，视觉细节仍适合后续人工过目。
+
 ## Technical Decisions
 
 | Decision | Rationale |
@@ -37,6 +56,9 @@
 | GitHub Actions 作为 origin main 触发器 | Cloudflare Worker 本身不能直接感知 GitHub push；Actions 是可审计、可重跑的自动化层 |
 | 使用 path-prefix aware 前端构建 | 目标 URL 在 `/superpowering-with-files` 子路径下，资源引用和客户端路由必须稳定 |
 | companion plan 使用 Vite + React + Worker Static Assets | 与当前 monorepo 隔离，能用 GitHub Actions 在 `main` 更新后构建并部署 Worker |
+| worktree 基线采用本地 `dev` HEAD | 当前仓库在非 trunk 开发分支，预检明确建议保留该上下文并显式记录 base SHA |
+| `tsconfig` 使用 `moduleResolution: "Bundler"` | 当前 TypeScript 版本已不接受计划里的 `Node` 设定；Bundler 更符合 Vite/ESM 解析模型 |
+| Worker dry-run 必须在 build 之后串行执行 | `wrangler` 直接检查 `assets.directory`，不能与产物生成并行 |
 
 ## Issues Encountered
 
