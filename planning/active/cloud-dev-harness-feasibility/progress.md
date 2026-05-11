@@ -219,3 +219,12 @@
 - 当前交付状态：
   - 本地 `dev`、远端 `origin/dev`、远端 `origin/cloud-dev` 已 ready。
   - 默认分支 `main` 已具备 cloud-dev baseline，可开始在 GitHub 上尝试 cloud iteration。
+
+## Session: 2026-05-11 13:26:28 UTC+8
+
+- 用户要求补充一份给 human 后续执行 GitHub cloud 工作的完整、精炼指引，并在 README 中引用。
+- 已读取现有 `docs/cloud-dev-harness.md`、`README.md`、`docs/workflows.md`、`docs/install/copilot.md`、`docs/maintenance.md`、cloud-dev workflow 与 issue triage runner，确认当前自动化是 issue-label-driven 的 Copilot handoff。
+- 已更新 `docs/cloud-dev-harness.md`：补充 issue-first 起点、issue 模板、preflight checklist、human workflow、Copilot PR review/promotion、agent support boundary 和 quick decision table。
+- 已更新 `README.md`：Docs 索引新增 `Cloud Dev Harness operator guide`。
+- 验证：编辑器诊断对 `docs/cloud-dev-harness.md` 与 `README.md` 无错误；`git diff --check` 通过；`node --test tests/installer/policy-render.test.mjs tests/automation/cloud-dev-workflow.test.mjs` 通过（21 tests）。
+- Diff 范围确认：本次任务修改 `README.md`、`docs/cloud-dev-harness.md` 与 `planning/active/cloud-dev-harness-feasibility/`；工作区另有既存/无关的 `planning/active/local-branch-cleanup-audit/` 变更和 `.agents/skills/planning-with-files/scripts/__pycache__/` 未跟踪目录，未处理。

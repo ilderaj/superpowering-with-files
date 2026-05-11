@@ -58,3 +58,8 @@
 - 当前 cloud-dev rollout 的稳定契约是：`origin/cloud-dev` 必须与 `origin/dev` 保持零 staging-only 差异；否则 branch checker 会把 `cloud-dev` 视为 ahead/blocking state，不适合派发新 cloud tasks。
 - 因此 `github-cloud` / `cloud-safe` / Copilot-only 试跑形态不能直接作为 `cloud-dev` 上的额外提交存在；GitHub cloud baseline 必须通过默认分支 `main` 的 workflow/docs/entry 提供，而不是让 `cloud-dev` 脱离 `dev` 产生长期额外 diff。
 - 触发 issue-driven cloud iteration 之前的最低 GitHub 条件现已具备：默认分支拥有 workflow 文件，repo variables 已开启，cloud-dev labels 已创建，远端 `cloud-dev` 已存在且与 `dev` 对齐。
+
+## Findings Record: 2026-05-11 13:26:28 UTC+8
+- 后续 cloud work 的推荐入口应是 GitHub issue，而不是 `https://github.com/copilot` 上的自由描述；原因是 issue 才能承载 `cloud-dev` / `agent:*` labels、Actions readiness gate、标准化 `@copilot` handoff、PR review trail 和 promotion 记录。
+- `https://github.com/copilot` 可用于非正式讨论或实验，但不应被视为受 Harness 管控的 cloud-dev 工作，除非最终回落到一个带标签的 GitHub issue。
+- 当前实现的 GitHub cloud-dev lane 是 Copilot-first：workflow 会生成 `@copilot` prompt，`github-cloud` deployment profile 也是 Copilot 专用；Codex 和 Claude 仍可使用 repo-local Harness entry/skills，但没有被当前 GitHub issue triage 自动派发。

@@ -218,6 +218,7 @@ More detail:
 - [Roadmap](docs/roadmap.md)
 - [Maintenance](docs/maintenance.md)
 - [Workflows](docs/workflows.md)
+- [Cloud Dev Harness operator guide](docs/cloud-dev-harness.md)
 - [Release](docs/release.md)
 - [Platform support](docs/install/platform-support.md)
 - [Codex installation](docs/install/codex.md)
