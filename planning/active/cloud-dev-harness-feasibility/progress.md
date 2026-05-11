@@ -202,3 +202,20 @@
   - 远端 `cloud-dev` 分支在 merge 后从更新后的 `dev` 单独生成 `github-cloud` / `cloud-safe` / Copilot-only 变体
 - 为清理本次试跑额外生成的 `.agent-config/`，已创建 checkpoint：`/Users/jared/.agent-config/checkpoints/202605101422-cloud-dev-harness-feasibility-001/2026-05-11T03-55-18Z`
 - 当前 worktree 状态：仅剩未跟踪目录 `.agent-config/`，待按风险记录执行清理。
+
+## Session: 2026-05-11 12:01:30 UTC+8
+
+- merge / rollout 完成情况：
+  - 已在主 checkout 解决 planning merge conflict，并提交 `Merge branch '202605101422-cloud-dev-harness-feasibility-001' into dev`（`2c3d787`）。
+  - merge 态验证通过：`npm run verify`、`./scripts/harness doctor --check-only`。
+  - `node scripts/ci/check-cloud-dev-branch.mjs --mode=check` 初次在 merge 态下遇到一次 Git HTTPS `SSL_ERROR_SYSCALL` 传输失败；经后续远端连通性复核与分支推送后重跑，已恢复正常并返回 `Reason: check_only`。
+- GitHub 发布动作：
+  - `git push origin dev` 已成功，将 `dev` 更新到 `2c3d787`。
+  - `git push origin dev:cloud-dev` 已成功，远端 `cloud-dev` 已创建并与 `dev` 对齐。
+  - `gh variable set CLOUD_DEV_SYNC_ENABLED --body true` 与 `gh variable set CLOUD_DEV_ISSUE_TRIAGE_ENABLED --body true` 已成功。
+  - 已创建 labels：`cloud-dev`、`agent:plan`、`agent:test`、`agent:impl`。
+  - 已创建并合并发布 PR：`https://github.com/ilderaj/superpowering-with-files/pull/52`。
+  - 已从 `main` 手动触发 `Cloud Dev Sync` workflow；最新 run：`https://github.com/ilderaj/superpowering-with-files/actions/runs/25649619094`，状态 `completed/success`。
+- 当前交付状态：
+  - 本地 `dev`、远端 `origin/dev`、远端 `origin/cloud-dev` 已 ready。
+  - 默认分支 `main` 已具备 cloud-dev baseline，可开始在 GitHub 上尝试 cloud iteration。
