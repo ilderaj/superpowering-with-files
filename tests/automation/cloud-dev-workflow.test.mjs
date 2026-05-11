@@ -228,6 +228,7 @@ test('cloud dev issue triage workflow excludes pull request comments and uses st
   const checkoutBlock = extractStepBlock(workflow, 'Check out repository');
   const setupNodeBlock = extractStepBlock(workflow, 'Set up Node.js');
   const installBlock = extractStepBlock(workflow, 'Install dependencies');
+  const concurrencyBlock = extractTopLevelBlock(workflow, 'concurrency');
   const checkBlock = extractStepBlock(workflow, 'Check cloud-dev branch state');
   const readinessBlock = extractStepBlock(workflow, 'Tighten readiness handoff');
   const triageBlock = extractStepBlock(workflow, 'Run cloud-dev issue triage');
@@ -237,6 +238,11 @@ test('cloud dev issue triage workflow excludes pull request comments and uses st
     jobBlock,
     /^\s{4}if:\s*\$\{\{\s*vars\.CLOUD_DEV_ISSUE_TRIAGE_ENABLED\s*==\s*'true'\s*&&\s*\(\s*github\.event_name\s*!=\s*'issue_comment'\s*\|\|\s*github\.event\.issue\.pull_request\s*==\s*null\s*\)\s*\}\}\s*$/m
   );
+  assert.match(
+    concurrencyBlock,
+    /^\s+group:\s*cloud-dev-issue-triage-\$\{\{\s*github\.event\.issue\.number\s*\|\|\s*inputs\.issue_number\s*\|\|\s*github\.run_id\s*\}\}\s*$/m
+  );
+  assert.match(concurrencyBlock, /^\s+cancel-in-progress:\s*false\s*$/m);
   assert.match(jobBlock, /^\s{4}runs-on:\s*ubuntu-latest\s*$/m);
   assert.match(checkoutBlock, /^\s{8}uses:\s*actions\/checkout@v6\s*$/m);
   assert.match(checkoutBlock, /^\s{10}ref:\s*main\s*$/m);

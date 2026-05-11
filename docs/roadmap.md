@@ -7,6 +7,12 @@ This document captures deferred product and workflow work that is intentionally 
 - Keep the global Harness baseline broad: Codex, Copilot, Cursor, and Claude Code remain part of `adopt-global`.
 - Keep `safety` and `cloud-safe` off by default for global installs.
 - Treat safety as a workspace-scoped capability until the overlay model and tool-allowance issues are resolved.
+- Productize `cloud-dev` as the next operator lane: remote work should feel as predictable as local Harness work while staying isolated behind human review and branch promotion.
+- Treat the current Copilot cloud-dev lane as the verified baseline, then expand through explicit platform research for Codex and Claude cloud agents.
+- Prefer issue-first cloud tasks today because issues preserve durable task state, labels, workflow preflight, and review history.
+- Explore two additional cloud entry points: native Copilot assignment during issue creation, and direct task launch from the repository Agent tab.
+
+Detailed execution candidates live in [Backlog](backlog.md). Keep this roadmap focused on direction, sequencing, and product boundaries.
 
 ## Version Plan
 
@@ -127,35 +133,89 @@ This document captures deferred product and workflow work that is intentionally 
   - adoption status is reproducible across supported targets
   - broader safety rollout is based on verified overlay behavior
 
+### v1.7: Cloud Dev Experience Parity
+
+- Status: planned
+- Goal: make the remote `cloud-dev` lane match the local Harness experience where it matters: planning state, skill visibility, verification, recovery, branch isolation, and operator handoff.
+- Scope:
+  - audit local-vs-cloud workflow parity across Copilot, Codex, and Claude entry surfaces
+  - keep Copilot `github-cloud` as the first verified implementation lane
+  - add repo-local issue templates or issue forms for cloud-dev tasks
+  - decide whether native Copilot assignment should be automated, manual, or both behind an explicit repository switch
+  - produce a concise status summary for branch readiness, active issues, PRs, and latest workflow artifacts
+- Success criteria:
+  - a human can start cloud-dev work without remembering branch, label, or verification details
+  - issue-first tasks preserve the same planning and review boundaries as local work
+  - direct Copilot assignment remains clearly separated from workflow preflight
+  - prompt-based handoff and assignment-API handoff have separately recorded evidence
+
+### v1.8: Multi-Agent Cloud Support And Direct Repo Entry
+
+- Status: proposed
+- Goal: extend cloud-dev beyond Copilot only after each platform has a verified launch, branch-control, credential, and PR-review story.
+- Scope:
+  - define an agent-neutral cloud task contract for issue, branch, planning, verification, and promotion metadata
+  - research Codex cloud execution support for `AGENTS.md`, shared `.agents/skills`, hooks, and branch targeting
+  - research Claude cloud execution support for `CLAUDE.md`, `.claude/skills`, hooks, and branch targeting
+  - evaluate whether the repository Agent tab can launch tasks directly while preserving the same cloud-dev contract
+  - keep local Harness support for Codex and Claude distinct from unverified cloud dispatch claims
+- Success criteria:
+  - each supported cloud agent has a documented, tested dispatch path
+  - unsupported or partially supported agents remain documented as research lanes, not promised automation
+  - direct repo UI task launch can be accepted only when it preserves `cloud-dev` base, planning state, and review boundaries
+
 ## Active Roadmap Items
 
-### 1. Global Baseline + Workspace Safety Overlay
+### 1. Cloud Dev Experience Parity
 
-- Status: implementation complete
+- Status: planned
 - Priority: high
-- Problem: the current installer/runtime model uses a single authoritative repo state. Enabling workspace safety rewrites that state instead of layering safety on top of the existing global baseline.
-- Goal: allow a workspace to enable safety for one IDE without disrupting the repo's global baseline, shared skills, or other workspace/IDE access patterns.
+- Problem: local Harness workflows have clear planning, verification, and recovery surfaces, while cloud-dev still requires operator knowledge spread across docs, workflows, and GitHub UI behavior.
+- Goal: give cloud-dev a first-class operator experience without weakening the remote-only staging boundary.
 - Success criteria:
-  - user-global baseline remains intact after workspace safety enablement
-  - workspace safety is stored as an additive overlay, not as a replacement for the baseline state
-  - `sync`, `doctor`, and `adoption-status` report both layers coherently
+  - a parity matrix identifies local behavior, current cloud behavior, and gaps
+  - cloud-dev issue creation captures labels, scope, acceptance criteria, and verification consistently
+  - preflight and status checks are visible before any cloud agent is assigned
 
-### 2. Safety Hook False-Positive Reduction
+### 2. Cloud Agent Assignment And Issue Entry
 
-- Status: implementation complete
+- Status: planned
 - Priority: high
-- Problem: the current safety hook can block normal read-only agent/tool operations, which makes diagnosis and routine maintenance harder than intended.
-- Goal: preserve destructive-action guardrails without aborting normal file reads, searches, verification commands, or other low-risk agent workflows.
+- Problem: issue templates, comment-based `@copilot` handoff, and official Copilot assignment API are related but not equivalent. The roadmap needs separate evidence for each path.
+- Goal: make issue-first cloud tasks easy to create while keeping assignment and branch targeting explicit.
 - Success criteria:
-  - normal read/search/verification flows do not trigger `Hook PreToolUse aborted`
-  - dangerous commands still downgrade to `ask` or `deny`
-  - Copilot runtime payload variants remain covered by regression tests
+  - repo-local cloud-dev issue templates or forms are available
+  - direct Copilot assignment with `agent_assignment.base_branch = cloud-dev` remains documented as a verified override path
+  - comment-based handoff has its own real branch-targeting validation before being described as equivalent
 
-### 3. Re-evaluate Default Safety Posture
+### 3. Multi-Agent Cloud Dispatch
+
+- Status: proposed
+- Priority: medium
+- Problem: Codex and Claude have local Harness projections, but the repository does not yet have a verified cloud dispatch path for either platform.
+- Goal: support Codex and Claude cloud agents only through verified, platform-specific dispatch adapters that satisfy the shared cloud-dev contract.
+- Success criteria:
+  - agent-neutral task metadata is defined before adding new cloud dispatchers
+  - Codex and Claude support statements distinguish local checkout support from cloud automation
+  - each new cloud agent path proves branch base, PR target, credentials, tool surface, and verification behavior
+
+### 4. Repository Agent Tab Direct Execution
+
+- Status: proposed
+- Priority: medium
+- Problem: issue-triggered tasks are durable but not always the fastest UI path. The repository Agent tab may offer direct execution, but its branch and task-state controls need verification.
+- Goal: allow direct repo UI task launch only if it preserves cloud-dev branch safety, planning state, and review boundaries.
+- Success criteria:
+  - Agent tab inputs and outputs are documented
+  - direct task launch can set or preserve `cloud-dev` as base and target PR branch
+  - tasks launched outside issues still produce a durable trace, or the roadmap keeps issue-first as the required entry
+
+### 5. Re-evaluate Default Safety Posture
 
 - Status: deferred
 - Priority: medium
 - Depends on:
-  - Global Baseline + Workspace Safety Overlay
-  - Safety Hook False-Positive Reduction
-- Decision for now: keep safety available, but default-off. Revisit whether broader default rollout is warranted only after the two items above are complete and verified.
+  - completed workspace safety overlay evidence
+  - completed safety hook false-positive reduction evidence
+  - cloud-dev parity results
+- Decision for now: keep safety available, but default-off. Revisit broader default rollout only after local and cloud operator paths both have verified overlay behavior.

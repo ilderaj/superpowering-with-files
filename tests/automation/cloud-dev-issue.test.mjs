@@ -171,6 +171,11 @@ test('runCloudDevIssueTriage comments with the normalized copilot prompt for rea
     cloudDevReady: true,
     runCommand: async (command) => {
       commands.push(command);
+
+      if (command.args[0] === 'issue' && command.args[1] === 'view' && command.args.includes('comments')) {
+        return { stdout: JSON.stringify({ comments: [] }), stderr: '' };
+      }
+
       return { stdout: '', stderr: '' };
     }
   });
@@ -189,6 +194,54 @@ test('runCloudDevIssueTriage comments with the normalized copilot prompt for rea
   assert.match(commands[0].args[4], /Target PR base: `cloud-dev`/);
   assert.match(commands[0].args[4], /Do not push to `dev` or `main`/);
   assert.equal(writtenResult.status, 'ready');
+});
+
+test('runCloudDevIssueTriage skips duplicate copilot handoff comments for automatic issue events', async (t) => {
+  const { runCloudDevIssueTriage } = await loadRunnerModule();
+  const commands = [];
+  const cwd = await createTestCwd('ready-duplicate-skip-result', t);
+
+  const result = await runCloudDevIssueTriage({
+    cwd,
+    eventName: 'issues',
+    event: {
+      issue: {
+        number: 55,
+        title: 'Draft cloud pilot docs',
+        labels: [{ name: 'cloud-dev' }, { name: 'agent:impl' }]
+      }
+    },
+    cloudDevReady: true,
+    runCommand: async (command) => {
+      commands.push(command);
+
+      if (command.args[0] === 'issue' && command.args[1] === 'view') {
+        return {
+          stdout: JSON.stringify({
+            comments: [
+              {
+                author: { login: 'github-actions' },
+                body: '@copilot please work on this issue in the cloud-dev lane.\n\nIssue: #55 Draft cloud pilot docs\nTask kind: agent:impl\nBase branch: `cloud-dev`\nTarget PR base: `cloud-dev`\nDo not push to `dev` or `main`.\n\nRequired verification:\n- `npm run verify`\n- `./scripts/harness verify --output=.harness/verification`\n- `./scripts/harness doctor --check-only`\n\nOpen a pull request only after the focused work is complete and verified.'
+              }
+            ]
+          }),
+          stderr: ''
+        };
+      }
+
+      return { stdout: '', stderr: '' };
+    }
+  });
+  const writtenResult = JSON.parse(
+    await readFile(path.join(cwd, '.harness/cloud-dev-issue-triage-result.json'), 'utf8')
+  );
+
+  assert.equal(result.status, 'already_commented');
+  assert.equal(result.issue, 55);
+  assert.equal(result.analysis.reason, 'already_commented');
+  assert.equal(commands.length, 1);
+  assert.deepEqual(commands[0].args, ['issue', 'view', '55', '--json', 'comments']);
+  assert.equal(writtenResult.status, 'already_commented');
 });
 
 test('runCloudDevIssueTriage ignores issue comments without the explicit retry command', async (t) => {
@@ -247,6 +300,7 @@ test('runCloudDevIssueTriage comments for explicit retry commands on ready label
     cloudDevReady: true,
     runCommand: async (command) => {
       commands.push(command);
+
       return { stdout: '', stderr: '' };
     }
   });
@@ -280,6 +334,11 @@ test('runCloudDevIssueTriage comments with the not-ready message when cloud dev 
     cloudDevReady: false,
     runCommand: async (command) => {
       commands.push(command);
+
+      if (command.args[0] === 'issue' && command.args[1] === 'view' && command.args.includes('comments')) {
+        return { stdout: JSON.stringify({ comments: [] }), stderr: '' };
+      }
+
       return { stdout: '', stderr: '' };
     }
   });
@@ -364,7 +423,11 @@ test('runCloudDevIssueTriage writes a failure result when issue commenting fails
       }
     },
     cloudDevReady: true,
-    runCommand: async () => {
+    runCommand: async (command) => {
+      if (command.args[0] === 'issue' && command.args[1] === 'view' && command.args.includes('comments')) {
+        return { stdout: JSON.stringify({ comments: [] }), stderr: '' };
+      }
+
       throw new Error('gh issue comment failed');
     }
   });

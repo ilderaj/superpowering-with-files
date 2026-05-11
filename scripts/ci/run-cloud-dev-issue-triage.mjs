@@ -79,6 +79,20 @@ async function resolveIssueContext({
   };
 }
 
+async function hasExistingAutomationComment({ issueNumber, body, cwd, env, run }) {
+  const { stdout } = await run({
+    file: 'gh',
+    args: ['issue', 'view', String(issueNumber), '--json', 'comments']
+  }, { cwd, env });
+
+  const issue = JSON.parse(stdout);
+  const comments = Array.isArray(issue.comments) ? issue.comments : [];
+
+  return comments.some((comment) => {
+    return comment?.author?.login === 'github-actions' && comment?.body === body;
+  });
+}
+
 export async function runCloudDevIssueTriage({
   cwd = process.cwd(),
   env = process.env,
@@ -111,6 +125,25 @@ export async function runCloudDevIssueTriage({
       eventName,
       commentBody: event?.comment?.body
     });
+
+    if (analysis.shouldComment) {
+      // Only automatic issues events are deduped. Manual retry and workflow_dispatch
+      // remain explicit recovery paths and may intentionally post the handoff again.
+      if (eventName === 'issues' && await hasExistingAutomationComment({
+        issueNumber,
+        body: analysis.commentBody,
+        cwd,
+        env,
+        run
+      })) {
+        analysis = {
+          ...analysis,
+          shouldComment: false,
+          shouldPromptCopilot: false,
+          reason: 'already_commented'
+        };
+      }
+    }
 
     if (analysis.shouldComment) {
       failureReason = 'comment_failed';
