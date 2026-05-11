@@ -36,7 +36,7 @@ test('sync projects workspace entries and skills', async () => {
 
     const copilotPlanning = await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8');
     assert.match(copilotPlanning, /Harness planning-with-files companion-plan patch/);
-    assert.match(copilotPlanning, /Harness Copilot planning-with-files patch/);
+    assert.match(copilotPlanning, /Harness planning-with-files skill-root resolution patch/);
     assert.match(
       copilotPlanning,
       /If superpowers is used on a Deep-reasoning task, persist the detailed implementation plan/
@@ -47,12 +47,12 @@ test('sync projects workspace entries and skills', async () => {
     );
     assert.match(
       copilotPlanning,
-      /\$\{HARNESS_AGENT_SKILL_ROOT:-\$\{GITHUB_COPILOT_SKILL_ROOT:-\.agents\/skills\/planning-with-files\}\}[\s\S]*\$HOME\/\.agents\/skills\/planning-with-files[\s\S]*\.github\/skills\/planning-with-files[\s\S]*\$HOME\/\.copilot\/skills\/planning-with-files/
+      /\$\{HARNESS_AGENT_SKILL_ROOT:-\$\{GITHUB_COPILOT_SKILL_ROOT:-\.agents\/skills\/planning-with-files\}\}[\s\S]*\$HOME\/\.agents\/skills\/planning-with-files[\s\S]*\.github\/skills\/planning-with-files[\s\S]*\$HOME\/\.cursor\/skills\/planning-with-files[\s\S]*\$HOME\/\.copilot\/skills\/planning-with-files[\s\S]*\$HOME\/\.claude\/skills\/planning-with-files/
     );
     await assert.rejects(lstat(path.join(root, '.github/skills/planning-with-files/SKILL.md')), /ENOENT/);
     assert.doesNotMatch(
       copilotPlanning,
-      /Do not create a parallel long-lived superpowers plan unless the user explicitly requests that file\./
+      /Do not create a parallel long-lived superpowers plan unless the user explicitly requests that file\.|Harness Copilot planning-with-files patch/
     );
     assert.match(copilotPlanning, /tracked tasks/);
     assert.match(copilotPlanning, /Tool-call count is only a hint/);
@@ -140,7 +140,7 @@ description: Legacy backup of a materialized skill
   }
 });
 
-test('sync coalesces shared skill projections across codex and copilot', async () => {
+test('sync coalesces shared skill projections across codex, copilot, and cursor', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -149,7 +149,8 @@ test('sync coalesces shared skill projections across codex and copilot', async (
       projectionMode: 'link',
       targets: {
         codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] },
-        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] },
+        cursor: { enabled: true, paths: [path.join(root, '.cursor/rules/harness.mdc')] }
       },
       upstream: {}
     });
@@ -167,7 +168,7 @@ test('sync coalesces shared skill projections across codex and copilot', async (
     );
 
     assert.equal(planningEntries.length, 1);
-    assert.deepEqual(planningEntries[0].targets, ['codex', 'copilot']);
+    assert.deepEqual(planningEntries[0].targets, ['codex', 'copilot', 'cursor']);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -273,7 +274,8 @@ test('sync backs up non-owned skill target when requested', async () => {
 
     const skill = await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8');
     assert.match(skill, /Harness planning-with-files companion-plan patch/);
-    assert.match(skill, /Harness Copilot planning-with-files patch/);
+    assert.match(skill, /Harness planning-with-files skill-root resolution patch/);
+    assert.doesNotMatch(skill, /Harness Copilot planning-with-files patch/);
   } finally {
     if (previousHome === undefined) {
       delete process.env.HOME;
@@ -305,7 +307,7 @@ test('sync patches planning-with-files companion-plan semantics for every suppor
     const targets = {
       codex: path.join(root, '.agents/skills/planning-with-files/SKILL.md'),
       copilot: path.join(root, '.agents/skills/planning-with-files/SKILL.md'),
-      cursor: path.join(root, '.cursor/skills/planning-with-files/SKILL.md'),
+      cursor: path.join(root, '.agents/skills/planning-with-files/SKILL.md'),
       'claude-code': path.join(root, '.claude/skills/planning-with-files/SKILL.md')
     };
 
@@ -327,8 +329,82 @@ test('sync patches planning-with-files companion-plan semantics for every suppor
     }
 
     const copilotSkill = await readFile(targets.copilot, 'utf8');
-    assert.match(copilotSkill, /Harness Copilot planning-with-files patch/);
+    assert.match(copilotSkill, /Harness planning-with-files skill-root resolution patch/);
     await assert.rejects(lstat(path.join(root, '.github/skills/planning-with-files/SKILL.md')), /ENOENT/);
+    await assert.rejects(lstat(path.join(root, '.cursor/skills/planning-with-files/SKILL.md')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync removes stale Harness-managed Cursor skill projections after shared root migration', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const staleSkill = path.join(root, '.cursor/skills/planning-with-files');
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      targets: {
+        cursor: { enabled: true, paths: [path.join(root, '.cursor/rules/harness.mdc')] }
+      },
+      upstream: {}
+    });
+    await mkdir(staleSkill, { recursive: true });
+    await writeFile(
+      path.join(staleSkill, 'SKILL.md'),
+      [
+        '---',
+        'name: planning-with-files',
+        'description: stale cursor projection',
+        '---',
+        '',
+        '# planning-with-files',
+        '',
+        'Harness planning-with-files companion-plan patch'
+      ].join('\n')
+    );
+    await writeFile(
+      path.join(root, '.harness/projections.json'),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          entries: [
+            {
+              kind: 'skill',
+              parentSkillName: 'planning-with-files',
+              skillName: 'planning-with-files',
+              target: 'cursor',
+              deploymentProfile: 'standard',
+              strategy: 'materialize',
+              sourcePath: path.join(root, 'harness/upstream/planning-with-files'),
+              targetPath: staleSkill,
+              patches: [
+                {
+                  type: 'planning-with-files-companion-plan',
+                  marker: 'Harness planning-with-files companion-plan patch'
+                }
+              ]
+            }
+          ]
+        },
+        null,
+        2
+      )}\n`
+    );
+
+    await withCwd(root, () => sync([]));
+
+    await assert.rejects(lstat(path.join(staleSkill, 'SKILL.md')), /ENOENT/);
+    assert.equal((await lstat(path.join(root, '.agents/skills/planning-with-files'))).isDirectory(), true);
+    assert.match(
+      await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8'),
+      /Harness planning-with-files companion-plan patch/
+    );
+    assert.match(
+      await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8'),
+      /Harness planning-with-files skill-root resolution patch/
+    );
   } finally {
     await removeHarnessFixture(root);
   }

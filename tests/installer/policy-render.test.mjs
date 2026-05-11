@@ -106,12 +106,12 @@ test('project docs keep shared defaults while documenting the optional Copilot g
 
   assert.match(readme, /GitHub Copilot \| `\.agents\/skills` \| `~\/\.agents\/skills` \| materialized/);
   assert.match(readme, /Claude Code \| `\.claude\/skills` \| `~\/\.claude\/skills` \| materialized/);
-  assert.match(readme, /Cursor \| `\.cursor\/skills` \| `~\/\.cursor\/skills` \| materialized/);
+  assert.match(readme, /Cursor \| `\.agents\/skills` \| `~\/\.agents\/skills` \| materialized/);
   assert.doesNotMatch(readme, /GitHub Copilot \| `\.github\/skills` \| `~\/\.copilot\/skills` \| materialized/);
-  assert.match(architecture, /shared skill roots are limited to Codex and GitHub Copilot/i);
+  assert.match(architecture, /Codex, GitHub Copilot, and Cursor share `\.agents\/skills`/i);
   assert.match(architecture, /`\.claude\/skills`/);
-  assert.match(architecture, /`\.cursor\/skills`/);
-  assert.match(architecture, /platform-native/);
+  assert.doesNotMatch(architecture, /Cursor stays on `\.cursor\/skills`/);
+  assert.match(architecture, /Cursor keeps native `\.cursor\/rules` and `\.cursor` hook roots/i);
   assert.doesNotMatch(architecture, /GitHub Copilot \| `\.github\/skills` \| `~\/\.copilot\/skills`/);
   assert.match(copilotInstall, /`\.agents\/skills`/);
   assert.match(copilotInstall, /`~\/\.agents\/skills`/);

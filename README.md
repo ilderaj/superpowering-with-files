@@ -167,10 +167,10 @@ Harness now separates IDE projection from agent runtime access:
 | --- | --- | --- | --- |
 | Codex | `.agents/skills` | `~/.agents/skills` | materialized |
 | GitHub Copilot | `.agents/skills` | `~/.agents/skills` | materialized |
-| Cursor | `.cursor/skills` | `~/.cursor/skills` | materialized |
+| Cursor | `.agents/skills` | `~/.agents/skills` | materialized |
 | Claude Code | `.claude/skills` | `~/.claude/skills` | materialized |
 
-Shared skill roots are limited to Codex and GitHub Copilot. Claude Code and Cursor keep platform-native skill directories.
+Codex, GitHub Copilot, and Cursor share `.agents/skills` / `~/.agents/skills` for skill projection. Claude Code remains on `.claude/skills`.
 For GitHub-origin cloud usage, keep the default table above and follow the optional deployment guidance in [GitHub Copilot installation](docs/install/copilot.md).
 
 ## Safety

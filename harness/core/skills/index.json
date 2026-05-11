@@ -70,9 +70,17 @@
           "type": "planning-with-files-companion-plan",
           "marker": "Harness planning-with-files companion-plan patch"
         },
+        "codex": {
+          "type": "planning-with-files-skill-root",
+          "marker": "Harness planning-with-files skill-root resolution patch"
+        },
         "copilot": {
-          "type": "copilot-planning-with-files",
-          "marker": "Harness Copilot planning-with-files patch"
+          "type": "planning-with-files-skill-root",
+          "marker": "Harness planning-with-files skill-root resolution patch"
+        },
+        "cursor": {
+          "type": "planning-with-files-skill-root",
+          "marker": "Harness planning-with-files skill-root resolution patch"
         }
       },
       "hooks": {

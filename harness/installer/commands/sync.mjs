@@ -1,9 +1,11 @@
 import os from 'node:os';
+import { realpathSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { entriesForScope, loadAdapter, renderEntry } from '../lib/adapters.mjs';
 import { applyCopilotPlanningPatch } from '../lib/copilot-planning-patch.mjs';
 import { applyPlanningWithFilesCompanionPlanPatch } from '../lib/planning-with-files-companion-plan-patch.mjs';
+import { applyPlanningWithFilesSkillRootPatch } from '../lib/planning-with-files-skill-root-patch.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../lib/superpowers-finishing-a-development-branch-patch.mjs';
 import { applySuperpowersUsingGitWorktreesPatch } from '../lib/superpowers-using-git-worktrees-patch.mjs';
 import { applySuperpowersWritingPlansPatch } from '../lib/superpowers-writing-plans-patch.mjs';
@@ -52,10 +54,25 @@ function isWithinDirectory(candidatePath, directoryPath) {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
-function isManagedSessionBoundary(targetPath, rootDir, homeDir) {
-  const resolvedTargetPath = path.resolve(targetPath);
-  return isWithinDirectory(resolvedTargetPath, rootDir) || isWithinDirectory(resolvedTargetPath, homeDir);
+function canonicalSessionPath(targetPath) {
+  try {
+    return realpathSync.native?.(targetPath) ?? realpathSync(targetPath);
+  } catch (error) {
+    if (error && error.code === 'ENOENT') {
+      return path.resolve(targetPath);
+    }
+    throw error;
+  }
 }
+
+function isManagedSessionBoundary(targetPath, rootDir, homeDir) {
+  const resolvedTargetPath = canonicalSessionPath(targetPath);
+  return (
+    isWithinDirectory(resolvedTargetPath, canonicalSessionPath(rootDir)) ||
+    isWithinDirectory(resolvedTargetPath, canonicalSessionPath(homeDir))
+  );
+}
+
 
 function usage() {
   return [
@@ -74,6 +91,13 @@ async function applySkillPatches(projection) {
   for (const patch of projection.patches ?? []) {
     if (patch.type === 'planning-with-files-companion-plan') {
       await applyPlanningWithFilesCompanionPlanPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'planning-with-files-skill-root') {
+      await applyPlanningWithFilesSkillRootPatch(projection.targetPath, {
+        preferGithubSkillRoot: projection.deploymentProfile === 'github-cloud'
+      });
       continue;
     }
 

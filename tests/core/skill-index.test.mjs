@@ -23,7 +23,9 @@ test('skill index declares layouts required for filesystem projection', async ()
   assert.equal(index.skills['planning-with-files'].layout, 'single');
   assert.equal(index.skills['planning-with-files'].targetName, 'planning-with-files');
   assert.equal(index.skills['planning-with-files'].patches.default.type, 'planning-with-files-companion-plan');
-  assert.equal(index.skills['planning-with-files'].patches.copilot.type, 'copilot-planning-with-files');
+  assert.equal(index.skills['planning-with-files'].patches.codex.type, 'planning-with-files-skill-root');
+  assert.equal(index.skills['planning-with-files'].patches.copilot.type, 'planning-with-files-skill-root');
+  assert.equal(index.skills['planning-with-files'].patches.cursor.type, 'planning-with-files-skill-root');
 });
 
 test('skill index declares hook projection metadata', async () => {
