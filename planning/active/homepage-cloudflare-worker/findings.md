@@ -67,6 +67,12 @@
 - 最小可靠增强是在 deploy step 后追加生产 smoke check，直接请求 `https://vibing.paymond.me/superpowering-with-files`，跟随重定向，要求最终 `200` 且 HTML 中包含 `<title>Superpowering with Files</title>`。
 - 由于 Cloudflare route 和缓存传播可能有短暂延迟，smoke check 需要有限重试；本次实现采用 5 次重试、每次间隔 5 秒。
 
+## Findings Record: 2026-05-12 10:36:40 UTC+8
+
+- 当前 polished homepage 已满足“开发完成并可正式上线”的标准，生产 deploy 不再依赖额外代码改动。
+- 这次发布再次证明 homepage 的正式交付标准应包含三件事：本地 build 通过、Worker deploy 成功、生产 URL 真实返回并带正确 title。
+- 既有 Worker route、DNS placeholder record 和 GitHub Actions secrets 仍然有效，因此后续 homepage 内容迭代可以直接复用同一条发布路径。
+
 ## Technical Decisions
 
 | Decision | Rationale |
