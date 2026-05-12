@@ -139,6 +139,13 @@ Phase 6
 - 采用精确 cherry-pick 路径：把 deploy smoke check 提交 `e700e7e` 与 redesign 收口提交 `fb88ff99e49545b4caa766d57768a98079af30f9` 单独带到 `main`，在 `main` 上对应新 SHA 为 `52bf78b` 与 `a0f6e09`。
 - `origin/main` 已成功推送到 `a0f6e09`，homepage 的自动部署入口现已以 `main` 为准。
 
+## Plan Record: 2026-05-12 13:26:48 UTC+8
+
+- `a0f6e09` 推送后，`homepage-deploy.yml` 自动触发，但首次 run `25714898768` 因 Cloudflare token 失效而失败。
+- 失败根因不是 workflow 或 homepage 代码，而是 GitHub repo secret `CLOUDFLARE_API_TOKEN` 已失效，日志报错为 `Invalid access token [code: 9109]`。
+- 已从本机可用的 Wrangler OAuth 配置 `~/Library/Preferences/.wrangler/config/default.toml` 提取当前 `oauth_token`，覆盖 GitHub secret 后重新触发 workflow。
+- 重跑 run `25715271686` 已完成并成功，说明 `main` 驱动的 homepage 自动部署链路现已恢复到健康状态。
+
 ## Errors Encountered
 
 | Error | Attempt | Resolution |
