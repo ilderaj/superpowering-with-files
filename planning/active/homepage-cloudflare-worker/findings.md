@@ -79,6 +79,12 @@
 - 对当前仓库，这类生产分支回收更适合采用“先在开发分支提交 homepage 收口，再把明确相关的提交 cherry-pick 到 `main`”的策略。
 - `origin/main` 现已包含 deploy smoke check 和最新 polished homepage，因此后续 homepage 更新可以真正依赖 `main` push 触发的自动部署，而不是继续手动从 `dev` 发布。
 
+## Findings Record: 2026-05-12 13:26:48 UTC+8
+
+- 这次 `main` 推送后的首次 workflow 失败说明：即使 deploy workflow 与 smoke check 都已存在，外部 secret 的有效期仍然是自动化健康的一部分，需要和代码一样被视为发布前提。
+- 本机 Wrangler 认证与 GitHub Actions secret 可以漂移。这里的具体表现是：本机 `wrangler whoami` 仍正常，但 repo secret 中的旧 `CLOUDFLARE_API_TOKEN` 已失效。
+- 当前可重复的修复路径已经验证成功：从 `~/Library/Preferences/.wrangler/config/default.toml` 提取当前 `oauth_token`，更新 repo secret，随后重跑 `homepage-deploy.yml`。
+
 ## Technical Decisions
 
 | Decision | Rationale |

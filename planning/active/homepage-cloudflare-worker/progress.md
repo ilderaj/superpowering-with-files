@@ -158,6 +158,22 @@
   - `planning/active/homepage-cloudflare-worker/progress.md`
   - `planning/active/homepage-cloudflare-worker/findings.md`
 
+## Session: 2026-05-12 13:26:48 UTC+8
+
+### Phase 6: Workflow Secret Repair and Rerun
+- **Status:** complete
+- **Started:** 2026-05-12 13:26:48 UTC+8
+- Actions taken:
+  - 检查 `main` 推送后的 `homepage-deploy.yml` run，确认 `a0f6e09` 触发的 run `25714898768` 在 `Deploy homepage Worker` 步骤失败。
+  - 读取失败日志，定位根因为 GitHub Actions 中的 `CLOUDFLARE_API_TOKEN` 无效，报错 `Authentication error [code: 10000]` 与 `Invalid access token [code: 9109]`。
+  - 先验证本机 `npx --prefix homepage wrangler whoami` 仍能正常认证，再定位 Wrangler 本地认证源为 `~/Library/Preferences/.wrangler/config/default.toml`。
+  - 从该文件无回显提取 `oauth_token`，验证其可驱动 Wrangler 后，覆盖 GitHub repo secret `CLOUDFLARE_API_TOKEN`。
+  - 手动重新触发 `homepage-deploy.yml --ref main`，确认新 run `25715271686` 完整成功，自动部署恢复。
+- Files created/modified:
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+
 ---
 
 *Update after completing each phase or encountering errors*
