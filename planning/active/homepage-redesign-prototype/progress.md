@@ -247,3 +247,33 @@
 | Timestamp | Error | Attempt | Resolution |
 |---|---|---|---|
 | 2026-05-11 22:21:10 UTC+8 | 无 | 1 | 无需处理 |
+
+## Session: 2026-05-13 07:50:42 UTC+8
+
+### Phase 5: Final Polish and Publish Preparation
+- **Status:** in_progress
+- **Started:** 2026-05-13 07:50:42 UTC+8
+- Actions taken:
+  - 按用户最新确认，将 hero kicker 改为 `Planning with Files × Superpowers`，并把右侧 proof card 改成更明确的 `A + B = C` 结构，直接表达两者组合后的收益。
+  - 继续调高首屏密度：让 `.page-shell` 与 `.hero` 共同撑住视口高度，放大 hero 标题、lede、proof card 和 comparison cards 的尺寸，同时收紧 closing 的底部留白。
+  - 清理 JSX 中未使用的 `proof-side` 修饰类，避免把无效样式钩子带进发布提交。
+  - 独立运行 homepage 发布前验证：`npm run typecheck`、`npm test`、`npm run build`、`git diff --check -- src/App.tsx src/styles.css`，全部通过。
+  - 请求独立 code review，结果为无阻塞问题；仅建议确认最后一卡的克制强调样式和做移动端 spot-check。随后使用本地 `vite preview` + 浏览器工具打开页面，完成桌面/窄屏视口抽检。
+  - 识别并准备移除一次性提案文件 `planning/active/homepage-redesign-prototype/redesign-2026-05-12-proposal.md`，避免把不必要的中间文档带入发布。
+- Files created/modified:
+  - `homepage/src/App.tsx`
+  - `homepage/src/styles.css`
+  - `planning/active/homepage-redesign-prototype/task_plan.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+  - `planning/active/homepage-redesign-prototype/findings.md`
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+|---|---|---|---|---|
+| Homepage typecheck before publish | `npm run typecheck` in `homepage/` | TS/JSX homepage compiles cleanly | Passed | pass |
+| Homepage tests before publish | `npm test` in `homepage/` | Local homepage tests stay green | Passed, 5 tests | pass |
+| Homepage build before publish | `npm run build` in `homepage/` | Production bundle builds successfully | Passed | pass |
+| Diff hygiene before publish | `git diff --check -- src/App.tsx src/styles.css` in `homepage/` | No whitespace/conflict markers in changed files | Passed | pass |
+| Browser preview spot-check | `vite preview` on `127.0.0.1:4175` + browser snapshot | Desktop and narrow viewport remain readable | Confirmed by browser check | pass |
+| Independent code review | Explore subagent on current working tree diff | No blocking regressions before merge | No blocking findings | pass |
