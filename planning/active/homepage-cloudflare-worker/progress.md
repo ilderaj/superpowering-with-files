@@ -117,6 +117,31 @@
   - `planning/active/homepage-cloudflare-worker/progress.md`
   - `planning/active/homepage-cloudflare-worker/task_plan.md`
 
+## Session: 2026-05-12 10:36:40 UTC+8
+
+### Phase 6: Deploy Polished Homepage to Production
+- **Status:** complete
+- **Started:** 2026-05-12 10:36:40 UTC+8
+- Actions taken:
+  - 复核 `homepage/wrangler.jsonc`、deploy workflow 与当前 active task 状态，确认生产部署链路已就绪，无需新增部署代码。
+  - 运行 `npm run typecheck --prefix homepage` 与 `npm run build --prefix homepage`，确认当前 polished homepage 可用作生产产物。
+  - 执行 `npm run deploy --prefix homepage`，将当前 homepage 发布到 Cloudflare Worker：`superpowering-with-files-homepage`。
+  - 对生产 URL `https://vibing.paymond.me/superpowering-with-files` 做 smoke check，确认 `308 -> 200` 跳转链路与 `<title>Superpowering with Files</title>` 均正确。
+  - 将本次部署结论同步回 deploy task planning files，标记任务可归档。
+- Files created/modified:
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Homepage typecheck before production deploy | `npm run typecheck --prefix homepage` | Current polished homepage compiles cleanly | Passed | pass |
+| Homepage build before production deploy | `npm run build --prefix homepage` | Production bundle builds successfully | Passed | pass |
+| Worker production deploy | `npm run deploy --prefix homepage` | Current working tree publishes to configured Worker route | Deployed `superpowering-with-files-homepage` to `vibing.paymond.me/superpowering-with-files*` | pass |
+| Production smoke check | `curl -L https://vibing.paymond.me/superpowering-with-files` | Redirect resolves to 200 and page title is correct | `308 -> 200`, `<title>Superpowering with Files</title>` found | pass |
+
 ---
 
 *Update after completing each phase or encountering errors*

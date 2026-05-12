@@ -1,101 +1,215 @@
-const lanes = [
-  { label: 'PLAN', value: 'tracked tasks', detail: 'Durable state in planning/active with findings and progress.' },
-  { label: 'PROJECT', value: '4 IDEs', detail: 'Copilot, Codex, Cursor, and Claude Code get native instructions.' },
-  { label: 'VERIFY', value: 'one gate', detail: 'Node tests, harness verify, doctor, and sync dry-runs stay visible.' },
-  { label: 'RELEASE', value: 'main ready', detail: 'Human-reviewed promotion keeps cloud work out of local checkouts.' }
+const navItems = ['Depth', 'Memory', 'Handoff'];
+
+const searchSegments = [
+  { label: 'Think', value: 'Superpowers' },
+  { label: 'Record', value: 'planning files' },
+  { label: 'Resume', value: 'any local agent' }
 ];
 
-const features = [
-  ['Planning with Files', 'A task-scoped memory layer that survives context resets and keeps decisions reviewable.'],
-  ['Superpowers, Temporarily', 'Use deep workflow skills when they add value, then sync durable decisions back to files.'],
-  ['Adapter Projection', 'Render one policy into each agent surface without letting the surfaces drift apart.'],
-  ['Safety Overlay', 'Optional worktree-first guardrails for bypass, autopilot, and long-running sessions.']
+const taskFiles = [
+  {
+    name: 'Think',
+    note: 'skills, critique, harder calls',
+    status: 'temporary'
+  },
+  {
+    name: 'Record',
+    note: 'plan, findings, progress',
+    status: 'durable'
+  },
+  {
+    name: 'Resume',
+    note: 'native rules for each agent',
+    status: 'portable'
+  }
 ];
 
-const workflow = ['plan', 'review', 'verify', 'finish', 'release', 'archive'];
+const categories = [
+  { label: 'Deep tasks', glyph: 'D' },
+  { label: 'Skill routing', glyph: 'S' },
+  { label: 'Files', glyph: 'F' },
+  { label: 'Sync-back', glyph: 'R' },
+  { label: 'Verification', glyph: 'V' },
+  { label: 'Handoff', glyph: 'H' }
+];
+
+const comparisons = [
+  {
+    label: 'One service',
+    title: 'State is hidden.',
+    detail: 'Good for a session. Harder to audit, resume, or move.'
+  },
+  {
+    label: 'Superpowers alone',
+    title: 'Depth is temporary.',
+    detail: 'The agent thinks better, then the context can still fade.'
+  },
+  {
+    label: 'Together',
+    title: 'Depth becomes state.',
+    detail: 'Hard decisions land in files any agent or human can read.'
+  }
+];
+
+const cards = [
+  {
+    title: 'Better calls',
+    location: 'Superpowers',
+    description: 'Skills slow down hard phases: architecture, debugging, review, design.',
+    meta: 'reason',
+    tone: 'rose'
+  },
+  {
+    title: 'Durable memory',
+    location: 'planning files',
+    description: 'Plans, findings, and progress survive context loss and model switches.',
+    meta: 'record',
+    tone: 'sand'
+  },
+  {
+    title: 'Clean handoff',
+    location: 'sync-back',
+    description: 'The next agent starts from decisions, not a vague transcript.',
+    meta: 'resume',
+    tone: 'mint'
+  },
+  {
+    title: 'Tool freedom',
+    location: 'repo-native',
+    description: 'Visible state works across Copilot, Codex, Cursor, and Claude Code.',
+    meta: 'portable',
+    tone: 'blue'
+  }
+];
+
+const links = [
+  { label: 'GitHub', href: 'https://github.com/ilderaj/superpowering-with-files' },
+  { label: 'README', href: 'https://github.com/ilderaj/superpowering-with-files/blob/main/README.md' },
+  { label: 'Workflows', href: 'https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md' },
+  { label: 'Install', href: 'https://github.com/ilderaj/superpowering-with-files/blob/main/docs/install/copilot.md' }
+];
 
 export default function App() {
   return (
     <main className="page-shell">
       <header className="topbar" aria-label="Primary navigation">
         <a className="brand" href="/superpowering-with-files/" aria-label="Superpowering with Files home">
-          <span className="brand-mark" aria-hidden="true"><span /><span /><span /></span>
-          <span>SWF</span>
+          <span className="brand-mark" aria-hidden="true">S</span>
+          <span>Superpowering with Files</span>
         </a>
-        <nav className="nav-links" aria-label="Documentation links">
-          <a href="https://github.com/ilderaj/superpowering-with-files">GitHub</a>
-          <a href="https://github.com/ilderaj/superpowering-with-files/blob/main/README.md">README</a>
-          <a href="https://github.com/ilderaj/superpowering-with-files/tree/main/docs">Docs</a>
+        <nav className="nav-tabs" aria-label="Homepage sections">
+          {navItems.map((item) => (
+            <a key={item} href="https://github.com/ilderaj/superpowering-with-files/blob/main/README.md">{item}</a>
+          ))}
         </nav>
+        <a className="source-button" href="https://github.com/ilderaj/superpowering-with-files">View source</a>
       </header>
 
-      <section className="hero-section" aria-labelledby="hero-title">
-        <div className="hero-copy">
-          <p className="eyebrow">Agent workflow governance harness</p>
-          <h1 id="hero-title">SUPERPOWERING WITH FILES</h1>
-          <p className="hero-lede">
-            A file-backed control plane for local and cloud coding agents: persistent plans,
-            projected skills, optional safety, and verifiable release lanes.
-          </p>
-          <div className="hero-actions" aria-label="Primary actions">
-            <a className="button button-primary" href="https://github.com/ilderaj/superpowering-with-files">
-              View repository
-            </a>
-            <a className="button button-secondary" href="https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md">
-              Read workflows
-            </a>
+      <section className="hero" aria-labelledby="hero-title">
+        <div className="hero-layout">
+          <div className="hero-copy">
+            <p className="kicker">Superpowers + Planning with Files</p>
+            <h1 id="hero-title">Make deep agent work resumable.</h1>
+            <p className="lede">
+              Use Superpowers for hard judgment. Save the useful decisions in planning files, so humans and agents can
+              pick up the work later.
+            </p>
           </div>
-        </div>
-        <figure className="hero-visual">
-          <img src="/superpowering-with-files/harness-console.svg" alt="Dark harness projection console" />
-          <figcaption>Policy, planning, projection, and verification in one operator surface.</figcaption>
-        </figure>
-      </section>
 
-      <section className="metrics-grid" aria-label="Harness lanes">
-        {lanes.map((lane) => (
-          <article className="metric-cell" key={lane.label}>
-            <p>{lane.label}</p>
-            <strong>{lane.value}</strong>
-            <span>{lane.detail}</span>
-          </article>
-        ))}
-      </section>
-
-      <section className="split-section" aria-labelledby="system-title">
-        <div>
-          <p className="eyebrow">One policy, native surfaces</p>
-          <h2 id="system-title">BUILT FOR AGENTIC WORK THAT HAS TO BE RESUMABLE</h2>
+          <aside className="hero-proof" aria-label="Hybrid workflow preview">
+            <p className="proof-kicker">Hybrid workflow</p>
+            <div className="proof-card">
+              <div className="proof-header">
+                <span>deep task lifecycle</span>
+                <strong>think → record → resume</strong>
+              </div>
+              <div className="proof-files">
+                {taskFiles.map((file) => (
+                  <article className="proof-file" key={file.name}>
+                    <div>
+                      <h2>{file.name}</h2>
+                      <p>{file.note}</p>
+                    </div>
+                    <span>{file.status}</span>
+                  </article>
+                ))}
+              </div>
+              <div className="proof-footer">
+                <span>Copilot</span>
+                <span>Codex</span>
+                <span>Cursor</span>
+                <span>Claude Code</span>
+              </div>
+            </div>
+          </aside>
         </div>
-        <div className="feature-grid">
-          {features.map(([title, detail]) => (
-            <article className="feature-card" key={title}>
-              <h3>{title}</h3>
-              <p>{detail}</p>
+
+        <div className="search-pill" aria-label="Project entry points">
+          {searchSegments.map((segment) => (
+            <a className="search-segment" key={segment.label} href="https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md">
+              <span>{segment.label}</span>
+              <strong>{segment.value}</strong>
+            </a>
+          ))}
+          <a className="search-action" href="https://github.com/ilderaj/superpowering-with-files" aria-label="Open repository">→</a>
+        </div>
+
+        <div className="comparison-strip" aria-label="Hybrid workflow comparison">
+          {comparisons.map((item) => (
+            <article className="comparison-item" key={item.label}>
+              <span>{item.label}</span>
+              <h2>{item.title}</h2>
+              <p>{item.detail}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="workflow-band" aria-labelledby="workflow-title">
-        <p className="eyebrow">Operator workflow</p>
-        <h2 id="workflow-title">FROM REQUEST TO VERIFIED RELEASE</h2>
-        <ol>
-          {workflow.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
+      <section className="category-strip" aria-label="Core project areas">
+        {categories.map((category) => (
+          <a key={category.label} href="https://github.com/ilderaj/superpowering-with-files/blob/main/README.md">
+            <span aria-hidden="true">{category.glyph}</span>
+            {category.label}
+          </a>
+        ))}
       </section>
 
-      <section className="cta-band" aria-labelledby="cta-title">
-        <div className="m-stripe" aria-hidden="true"><span /><span /><span /></div>
-        <h2 id="cta-title">KEEP THE WORK REVIEWABLE</h2>
-        <p>
-          Harness keeps task memory, projection rules, and verification evidence close to the code.
-        </p>
-        <a className="text-link" href="https://github.com/ilderaj/superpowering-with-files/blob/main/docs/architecture.md">
-          Explore architecture
-        </a>
+      <section className="card-section" aria-labelledby="card-title">
+        <div className="section-heading">
+          <h2 id="card-title">Built for deep tasks</h2>
+          <a href="https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md">Browse docs</a>
+        </div>
+        <div className="card-grid">
+          {cards.map((card) => (
+            <article className="workflow-card" key={card.title}>
+              <div className={`card-art ${card.tone}`} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="card-copy">
+                <div className="card-title-row">
+                  <h3>{card.title}</h3>
+                  <span>{card.meta}</span>
+                </div>
+                <p className="card-location">{card.location}</p>
+                <p>{card.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="closing" aria-labelledby="closing-title">
+        <div>
+          <p className="kicker">Local prototype</p>
+          <h2 id="closing-title">Reason deeply. Leave a readable trail.</h2>
+        </div>
+        <div className="link-row" aria-label="Project links">
+          {links.map((link) => (
+            <a key={link.label} href={link.href}>{link.label}</a>
+          ))}
+        </div>
       </section>
     </main>
   );

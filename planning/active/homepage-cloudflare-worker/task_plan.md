@@ -4,9 +4,9 @@
 为 `superpowering-with-files` 创建一个可部署到 `vibing.paymond.me/superpowering-with-files` 的 homepage，并设计从 `origin/main` 更新触发 Cloudflare Worker 自动更新的发布链路。
 
 ## Current State
-Status: waiting_review
-Archive Eligible: no
-Close Reason:
+Status: complete
+Archive Eligible: yes
+Close Reason: 当前 polished homepage 已成功部署到生产 Worker 路由，并通过线上 smoke check。
 Companion plan: `docs/superpowers/plans/2026-05-11-homepage-cloudflare-worker.md`
 Companion summary: 详细实施计划已覆盖 homepage 子项目、BMW M design.md 安装、Worker Static Assets、GitHub Actions 自动部署、文档和验证步骤；后续审计已补齐 Cloudflare DNS placeholder record、GitHub Actions secrets，并确认生产域名可访问。
 Sync-back status: companion plan 与后续运维审计结论已同步；active task 目录继续作为生命周期和验证 source of truth。
@@ -124,6 +124,13 @@ Phase 6
 - 用户选择继续实现 follow-up 选项 2：在 `homepage-deploy.yml` 中增加 deploy 后的生产 smoke check。
 - 按 TDD 先修改 `tests/automation/homepage-deploy-workflow.test.mjs`，要求存在 `Smoke check production homepage` step，并验证测试先红后绿。
 - 当前本地改动已准备好 review；任务状态临时回到 `waiting_review`，等待后续决定是否提交/推送该 workflow 增强。
+
+## Plan Record: 2026-05-12 10:36:40 UTC+8
+
+- 用户已明确要求按当前 polished homepage 继续执行正式开发和部署，不再停留在 prototype 阶段。
+- 复用现有 `homepage/wrangler.jsonc`、Worker 路由和已恢复的 Cloudflare/GitHub 发布链路，直接从当前工作树发布最新 homepage。
+- 本地 `typecheck` 与 `build` 通过后，当前 homepage 已成功部署到 `vibing.paymond.me/superpowering-with-files*`，并通过 `308 -> 200` + title smoke check。
+- 本任务现已重新回到完成态，可归档；后续内容调整只需重复同一条 build + deploy + smoke-check 路径。
 
 ## Errors Encountered
 
