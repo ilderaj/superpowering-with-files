@@ -85,6 +85,8 @@
 - 最新这轮用户反馈的核心不是“再加内容”，而是让组合关系一眼可见，并让首屏在大视口下真正撑住一屏。于是 proof card 需要从纵向列举改成 `Breadth + Depth = Hybrid`，hero 也要从轻量介绍提升到能承担整屏视觉重心的尺寸。
 - 在当前信息量已经很克制的前提下，解决“空”不该靠新增 section，而该靠重新分配垂直空间：让 hero 区承担主要高度，让 topbar 和 closing 收紧。
 - 发布前的独立 code review 没有发现阻塞问题；留下的只是一项非功能性确认：最后一个 comparison card 的克制强调样式是否符合当前设计意图。由于这是用户明确选择的“更克制”方案，因此可视为已决设计，而不是待修 bug。
+- 这次真正的发布阻塞不在代码，而在 Git 结构：`main` 已经被单独 worktree 占用，因此任何“在当前目录切到 main 再 cherry-pick”的做法都会失败。对这种仓库，正确路径是直接在拥有 `main` 的 worktree 中完成精确 cherry-pick 和 push。
+- 最终以远端源码 marker 作为发布完成证据，比只看本地分支或 subagent 摘要更可靠；这次就避免了“命令摘要说已推送，但 `origin/main` 实际还是旧版”的误判。
 
 ## Technical Decisions
 

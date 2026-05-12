@@ -4,9 +4,9 @@
 结合仓库现有 `DESIGN.md` 持续重构 `homepage/`，先完成本地可预览 prototype，再在用户确认后将最新 homepage 变更集成并发布到 `origin/main`。
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: 最新 homepage hybrid redesign 已验证通过，并以精确 cherry-pick 方式发布到 `origin/main`。
 Companion plan:
 Companion summary:
 Sync-back status: active task 目录是本次 redesign、prototype 和验证结果的 source of truth。
@@ -44,8 +44,8 @@ Phase 5
 ### Phase 5: Final Polish & Main Integration
 - [x] 根据最新用户反馈继续压缩信息结构并调整首屏密度。
 - [x] 运行发布前验证与独立 code review。
-- [ ] 将最新 homepage 变更提交并集成到 `origin/main`。
-- **Status:** in_progress
+- [x] 将最新 homepage 变更提交并集成到 `origin/main`。
+- **Status:** complete
 
 ## Risks
 
@@ -130,12 +130,13 @@ Phase 5
 - 用户继续基于最新设计做收尾，要求将首屏改成更明确的 `Planning with Files × Superpowers` 叙事，并修正“留白过多、没有撑起一屏”的问题。
 - 当前 task 重新打开为 Phase 5：先完成这轮 density / copy / layout polish，再把最新 homepage 变更发布到 `origin/main`。
 - 发布前验证范围明确为 homepage 子项目：`typecheck`、`test`、`build`、`git diff --check`，外加浏览器视口 spot-check 和独立 code review。
-- 由于 `dev` 上同时存在无关的 `DESIGN.md` 提交，未直接 merge `dev -> main`；改为先在 `dev` 提交 homepage 成果，再只把 homepage 相关提交精确 cherry-pick 到 `main`。
-- 本次进入 `main` 的 redesign 提交原始 SHA 为 `fb88ff99e49545b4caa766d57768a98079af30f9`，在 `main` 上对应 cherry-pick 后的提交为 `a0f6e09`。
-- 结果是当前 polished homepage 已同时具备本地 prototype、生产 deploy 与 `origin/main` 自动发布入口三种完成态。
+- 由于本地 `main` 被另一个 superpowers worktree 占用，最终采用该 `main` worktree 进行精确 cherry-pick，而不是在当前 `dev` 工作区直接切分支。
+- 本轮最新 homepage polish 在 `origin/dev` 上的提交为 `18580da`（`feat: tighten homepage hybrid landing page`），在 `origin/main` 上对应的 cherry-pick 提交为 `c1ff5a5`。
+- 已直接读取 `origin/main:homepage/src/App.tsx` 与 `origin/main:homepage/src/styles.css` 验证 marker，确认最新设计已真实进入远端 `main`。
 
 ## Errors Encountered
 
 | Error | Attempt | Resolution |
 |---|---|---|
 | 无 | 1 | 无需处理 |
+| `main` 分支被独立 worktree 占用，无法在当前工作区直接 `git switch main` | 1 | 改到 `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main` 执行 cherry-pick 与 push |
