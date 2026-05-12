@@ -80,6 +80,12 @@
 - 对这类已在非 trunk 分支上叠加了其他工作的发布型任务，精确 cherry-pick homepage 相关提交比整分支 merge 更可靠，因为它能把生产入口和 unrelated design work 分离。
 - 现在首页不再只是“本地 prototype 完成”，而是已经进入 `origin/main`，后续 homepage 改动可以直接复用现有 GitHub Actions 自动部署路径。
 
+## Findings Record: 2026-05-13 07:50:42 UTC+8
+
+- 最新这轮用户反馈的核心不是“再加内容”，而是让组合关系一眼可见，并让首屏在大视口下真正撑住一屏。于是 proof card 需要从纵向列举改成 `Breadth + Depth = Hybrid`，hero 也要从轻量介绍提升到能承担整屏视觉重心的尺寸。
+- 在当前信息量已经很克制的前提下，解决“空”不该靠新增 section，而该靠重新分配垂直空间：让 hero 区承担主要高度，让 topbar 和 closing 收紧。
+- 发布前的独立 code review 没有发现阻塞问题；留下的只是一项非功能性确认：最后一个 comparison card 的克制强调样式是否符合当前设计意图。由于这是用户明确选择的“更克制”方案，因此可视为已决设计，而不是待修 bug。
+
 ## Technical Decisions
 
 | Decision | Rationale |

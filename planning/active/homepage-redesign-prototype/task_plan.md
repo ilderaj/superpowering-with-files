@@ -1,18 +1,18 @@
 # Task Plan: Homepage Redesign Prototype
 
 ## Goal
-结合仓库现有 `DESIGN.md` 重新设计 `homepage/`，先交付一个可本地打开和预览的 prototype，不触发部署链路或生产发布。
+结合仓库现有 `DESIGN.md` 持续重构 `homepage/`，先完成本地可预览 prototype，再在用户确认后将最新 homepage 变更集成并发布到 `origin/main`。
 
 ## Current State
-Status: complete
-Archive Eligible: yes
-Close Reason: polished homepage 已完成、上线，并以精确 cherry-pick 方式进入 `origin/main`。
+Status: active
+Archive Eligible: no
+Close Reason:
 Companion plan:
 Companion summary:
 Sync-back status: active task 目录是本次 redesign、prototype 和验证结果的 source of truth。
 
 ## Current Phase
-Phase 4
+Phase 5
 
 ## Phases
 
@@ -40,6 +40,12 @@ Phase 4
 - [x] 本地打开并给用户说明预览入口。
 - [x] 回写 planning 结论与剩余风险。
 - **Status:** complete
+
+### Phase 5: Final Polish & Main Integration
+- [x] 根据最新用户反馈继续压缩信息结构并调整首屏密度。
+- [x] 运行发布前验证与独立 code review。
+- [ ] 将最新 homepage 变更提交并集成到 `origin/main`。
+- **Status:** in_progress
 
 ## Risks
 
@@ -118,6 +124,12 @@ Phase 4
 ## Plan Record: 2026-05-12 13:15:18 UTC+8
 
 - 用户选择将当前 homepage 正式推进到 `main`，目标是让后续 homepage 变更直接走 GitHub Actions 自动部署链路。
+
+## Plan Record: 2026-05-13 07:50:42 UTC+8
+
+- 用户继续基于最新设计做收尾，要求将首屏改成更明确的 `Planning with Files × Superpowers` 叙事，并修正“留白过多、没有撑起一屏”的问题。
+- 当前 task 重新打开为 Phase 5：先完成这轮 density / copy / layout polish，再把最新 homepage 变更发布到 `origin/main`。
+- 发布前验证范围明确为 homepage 子项目：`typecheck`、`test`、`build`、`git diff --check`，外加浏览器视口 spot-check 和独立 code review。
 - 由于 `dev` 上同时存在无关的 `DESIGN.md` 提交，未直接 merge `dev -> main`；改为先在 `dev` 提交 homepage 成果，再只把 homepage 相关提交精确 cherry-pick 到 `main`。
 - 本次进入 `main` 的 redesign 提交原始 SHA 为 `fb88ff99e49545b4caa766d57768a98079af30f9`，在 `main` 上对应 cherry-pick 后的提交为 `a0f6e09`。
 - 结果是当前 polished homepage 已同时具备本地 prototype、生产 deploy 与 `origin/main` 自动发布入口三种完成态。
