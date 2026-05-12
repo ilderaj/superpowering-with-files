@@ -251,7 +251,7 @@
 ## Session: 2026-05-13 07:50:42 UTC+8
 
 ### Phase 5: Final Polish and Publish Preparation
-- **Status:** in_progress
+- **Status:** complete
 - **Started:** 2026-05-13 07:50:42 UTC+8
 - Actions taken:
   - 按用户最新确认，将 hero kicker 改为 `Planning with Files × Superpowers`，并把右侧 proof card 改成更明确的 `A + B = C` 结构，直接表达两者组合后的收益。
@@ -259,7 +259,10 @@
   - 清理 JSX 中未使用的 `proof-side` 修饰类，避免把无效样式钩子带进发布提交。
   - 独立运行 homepage 发布前验证：`npm run typecheck`、`npm test`、`npm run build`、`git diff --check -- src/App.tsx src/styles.css`，全部通过。
   - 请求独立 code review，结果为无阻塞问题；仅建议确认最后一卡的克制强调样式和做移动端 spot-check。随后使用本地 `vite preview` + 浏览器工具打开页面，完成桌面/窄屏视口抽检。
-  - 识别并准备移除一次性提案文件 `planning/active/homepage-redesign-prototype/redesign-2026-05-12-proposal.md`，避免把不必要的中间文档带入发布。
+  - 移除一次性提案文件 `planning/active/homepage-redesign-prototype/redesign-2026-05-12-proposal.md`，避免把不必要的中间文档带入发布。
+  - 在 `dev` 上提交本轮结果为 `18580da`（`feat: tighten homepage hybrid landing page`），并推送到 `origin/dev`。
+  - 发现 `main` 分支被独立 worktree 占用，无法在当前工作区直接切换，于是转到 `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main` 执行 `git pull --ff-only origin main`、`git cherry-pick 18580da`、`git push origin main`。
+  - `origin/main` 最终得到提交 `c1ff5a5`，随后直接读取远端 `App.tsx` / `styles.css` 中的 marker，确认 `Planning with Files × Superpowers`、`One workflow, routed by complexity.`、`font-size: 60px` 等最新设计特征都已存在。
 - Files created/modified:
   - `homepage/src/App.tsx`
   - `homepage/src/styles.css`
@@ -277,3 +280,4 @@
 | Diff hygiene before publish | `git diff --check -- src/App.tsx src/styles.css` in `homepage/` | No whitespace/conflict markers in changed files | Passed | pass |
 | Browser preview spot-check | `vite preview` on `127.0.0.1:4175` + browser snapshot | Desktop and narrow viewport remain readable | Confirmed by browser check | pass |
 | Independent code review | Explore subagent on current working tree diff | No blocking regressions before merge | No blocking findings | pass |
+| Remote publication verification | `git show origin/main:homepage/src/App.tsx` and `git show origin/main:homepage/src/styles.css` | Latest homepage markers exist on remote main | Markers found on `origin/main` after push | pass |
