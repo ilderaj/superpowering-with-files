@@ -74,6 +74,12 @@
 - 首屏里最有效的对比不是长论证，而是短判断：`State is hidden`、`Depth is temporary`、`Depth becomes state`。这能更快解释组合为什么优于单一服务或单独 Superpowers。
 - 视觉上，标题、search pill、comparison cards 和 proof card 的尺寸都需要克制，否则即使文案变短，页面仍会显得重。压缩 padding 与字号后，855px 宽度下的节奏更接近用户要求。
 
+## Findings Record: 2026-05-12 13:15:18 UTC+8
+
+- 这次 redesign 的最后一公里不是视觉问题，而是分支范围控制问题。直接 merge `dev` 会把无关的 `DESIGN.md` 提交一起带进 `main`，因此不符合“只推进 homepage”这个目标。
+- 对这类已在非 trunk 分支上叠加了其他工作的发布型任务，精确 cherry-pick homepage 相关提交比整分支 merge 更可靠，因为它能把生产入口和 unrelated design work 分离。
+- 现在首页不再只是“本地 prototype 完成”，而是已经进入 `origin/main`，后续 homepage 改动可以直接复用现有 GitHub Actions 自动部署路径。
+
 ## Technical Decisions
 
 | Decision | Rationale |

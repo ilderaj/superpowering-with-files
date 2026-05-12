@@ -6,7 +6,7 @@
 ## Current State
 Status: complete
 Archive Eligible: yes
-Close Reason: 当前 polished homepage 已成功部署到生产 Worker 路由，并通过线上 smoke check。
+Close Reason: 当前 polished homepage 已成功部署到生产 Worker 路由、通过线上 smoke check，并已把 homepage 相关提交安全推进到 `origin/main`。
 Companion plan: `docs/superpowers/plans/2026-05-11-homepage-cloudflare-worker.md`
 Companion summary: 详细实施计划已覆盖 homepage 子项目、BMW M design.md 安装、Worker Static Assets、GitHub Actions 自动部署、文档和验证步骤；后续审计已补齐 Cloudflare DNS placeholder record、GitHub Actions secrets，并确认生产域名可访问。
 Sync-back status: companion plan 与后续运维审计结论已同步；active task 目录继续作为生命周期和验证 source of truth。
@@ -131,6 +131,13 @@ Phase 6
 - 复用现有 `homepage/wrangler.jsonc`、Worker 路由和已恢复的 Cloudflare/GitHub 发布链路，直接从当前工作树发布最新 homepage。
 - 本地 `typecheck` 与 `build` 通过后，当前 homepage 已成功部署到 `vibing.paymond.me/superpowering-with-files*`，并通过 `308 -> 200` + title smoke check。
 - 本任务现已重新回到完成态，可归档；后续内容调整只需重复同一条 build + deploy + smoke-check 路径。
+
+## Plan Record: 2026-05-12 13:15:18 UTC+8
+
+- 用户随后选择把这版 homepage 推进到 `main`，以便未来 homepage 改动直接走 `homepage-deploy.yml` 自动发布。
+- 审计发现 `dev` 比 `origin/main` 多出的提交里包含无关 `DESIGN.md` 变更，因此没有直接 merge 分支。
+- 采用精确 cherry-pick 路径：把 deploy smoke check 提交 `e700e7e` 与 redesign 收口提交 `fb88ff99e49545b4caa766d57768a98079af30f9` 单独带到 `main`，在 `main` 上对应新 SHA 为 `52bf78b` 与 `a0f6e09`。
+- `origin/main` 已成功推送到 `a0f6e09`，homepage 的自动部署入口现已以 `main` 为准。
 
 ## Errors Encountered
 

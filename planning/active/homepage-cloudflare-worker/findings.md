@@ -73,6 +73,12 @@
 - 这次发布再次证明 homepage 的正式交付标准应包含三件事：本地 build 通过、Worker deploy 成功、生产 URL 真实返回并带正确 title。
 - 既有 Worker route、DNS placeholder record 和 GitHub Actions secrets 仍然有效，因此后续 homepage 内容迭代可以直接复用同一条发布路径。
 
+## Findings Record: 2026-05-12 13:15:18 UTC+8
+
+- “把 homepage 合到 `main`” 这一步的真正风险不在 Cloudflare，而在 Git 范围控制。`dev` 分支包含无关设计文档提交时，直接 merge 会扩大发布面。
+- 对当前仓库，这类生产分支回收更适合采用“先在开发分支提交 homepage 收口，再把明确相关的提交 cherry-pick 到 `main`”的策略。
+- `origin/main` 现已包含 deploy smoke check 和最新 polished homepage，因此后续 homepage 更新可以真正依赖 `main` push 触发的自动部署，而不是继续手动从 `dev` 发布。
+
 ## Technical Decisions
 
 | Decision | Rationale |
