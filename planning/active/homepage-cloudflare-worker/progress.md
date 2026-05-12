@@ -142,6 +142,22 @@
 | Worker production deploy | `npm run deploy --prefix homepage` | Current working tree publishes to configured Worker route | Deployed `superpowering-with-files-homepage` to `vibing.paymond.me/superpowering-with-files*` | pass |
 | Production smoke check | `curl -L https://vibing.paymond.me/superpowering-with-files` | Redirect resolves to 200 and page title is correct | `308 -> 200`, `<title>Superpowering with Files</title>` found | pass |
 
+## Session: 2026-05-12 13:15:18 UTC+8
+
+### Phase 6: Main Branch Integration for Homepage Release
+- **Status:** complete
+- **Started:** 2026-05-12 13:15:18 UTC+8
+- Actions taken:
+  - 审计 `origin/main..dev` 与当前工作树，确认 `homepage/src/App.tsx`、`homepage/src/styles.css`、`PRODUCT.md` 与两组 homepage planning 文件尚未提交，而 `dev` 上另有无关 `DESIGN.md` 提交不应进入 `main`。
+  - 重新执行 homepage 窄验证：`npm run typecheck --prefix homepage` 与 `npm run build --prefix homepage` 均通过。
+  - 在 `dev` 上提交 homepage 成果：`feat: finalize homepage redesign for production`，提交 SHA 为 `fb88ff99e49545b4caa766d57768a98079af30f9`。
+  - 在 `main` 独立 worktree 中 fetch/pull 后，精确 cherry-pick `e700e7e` 与 `fb88ff99e49545b4caa766d57768a98079af30f9`，随后推送 `origin/main` 成功。
+  - 当前 `main` HEAD 为 `a0f6e09`，说明 homepage 发布链路已经回到 trunk 驱动。
+- Files created/modified:
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+
 ---
 
 *Update after completing each phase or encountering errors*

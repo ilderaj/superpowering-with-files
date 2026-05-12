@@ -6,7 +6,7 @@
 ## Current State
 Status: complete
 Archive Eligible: yes
-Close Reason: 本地 Airbnb 风格 homepage prototype 已完成干净重建并通过最终验证。
+Close Reason: polished homepage 已完成、上线，并以精确 cherry-pick 方式进入 `origin/main`。
 Companion plan:
 Companion summary:
 Sync-back status: active task 目录是本次 redesign、prototype 和验证结果的 source of truth。
@@ -114,6 +114,13 @@ Phase 4
 - 已将首屏表达压缩为 `Think -> Record -> Resume`，并把对比文案改为更短的判断句，避免同一价值主张在多个区块反复解释。
 - 已降低 hero、proof card、search pill、comparison cards 的视觉密度，并通过 855px 浏览器截图复核当前页面更轻、更清楚。
 - 验证通过：homepage typecheck、build、禁忌样式扫描、copy 双连字符扫描均通过。
+
+## Plan Record: 2026-05-12 13:15:18 UTC+8
+
+- 用户选择将当前 homepage 正式推进到 `main`，目标是让后续 homepage 变更直接走 GitHub Actions 自动部署链路。
+- 由于 `dev` 上同时存在无关的 `DESIGN.md` 提交，未直接 merge `dev -> main`；改为先在 `dev` 提交 homepage 成果，再只把 homepage 相关提交精确 cherry-pick 到 `main`。
+- 本次进入 `main` 的 redesign 提交原始 SHA 为 `fb88ff99e49545b4caa766d57768a98079af30f9`，在 `main` 上对应 cherry-pick 后的提交为 `a0f6e09`。
+- 结果是当前 polished homepage 已同时具备本地 prototype、生产 deploy 与 `origin/main` 自动发布入口三种完成态。
 
 ## Errors Encountered
 

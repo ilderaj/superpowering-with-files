@@ -227,6 +227,21 @@
 | Copy double-hyphen scan | `grep -niE "[^-]--[^-]" homepage/src/App.tsx` | No copy-level double hyphen remains | No matches found | pass |
 | Browser visual check after concise polish | 855px browser screenshot at `?v=20260512-polish` | Page reads concise, clear, and restrained | Confirmed by screenshot review | pass |
 
+## Session: 2026-05-12 13:15:18 UTC+8
+
+### Phase 4: Main Branch Integration
+- **Status:** complete
+- **Started:** 2026-05-12 13:15:18 UTC+8
+- Actions taken:
+  - 先审计 `origin/main..dev`，确认不能直接 merge，因为 `dev` 还携带一条与 homepage 主任务无关的 `DESIGN.md` 提交。
+  - 在 `dev` 上提交 homepage 成果与相关 planning 记录：`feat: finalize homepage redesign for production`，提交 SHA 为 `fb88ff99e49545b4caa766d57768a98079af30f9`。
+  - 在 `main` 的独立 worktree 中精确 cherry-pick `e700e7e` 与 `fb88ff99e49545b4caa766d57768a98079af30f9`，避免把无关设计文档一起带入。
+  - 成功推送到 `origin/main`；`main` 当前对应的 redesign 提交 SHA 为 `a0f6e09`。
+- Files created/modified:
+  - `planning/active/homepage-redesign-prototype/task_plan.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+  - `planning/active/homepage-redesign-prototype/findings.md`
+
 ## Error Log
 
 | Timestamp | Error | Attempt | Resolution |
