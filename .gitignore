@@ -8,3 +8,4 @@ homepage/dist/
 reports/checkpoints/
 .DS_Store
 .tmp.driveupload/
+.alma-snapshots
