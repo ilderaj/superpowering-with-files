@@ -88,6 +88,12 @@
 - 这次真正的发布阻塞不在代码，而在 Git 结构：`main` 已经被单独 worktree 占用，因此任何“在当前目录切到 main 再 cherry-pick”的做法都会失败。对这种仓库，正确路径是直接在拥有 `main` 的 worktree 中完成精确 cherry-pick 和 push。
 - 最终以远端源码 marker 作为发布完成证据，比只看本地分支或 subagent 摘要更可靠；这次就避免了“命令摘要说已推送，但 `origin/main` 实际还是旧版”的误判。
 
+## Findings Record: 2026-05-15 22:37:32 UTC+8
+
+- 最稳的实现路径不是继续把所有 copy 硬编码在 `App.tsx` 里，而是抽出一个 plain `.mjs` 内容模块，让 Node 内置测试可以直接校验 hero claim、CTA、section order 和 proof copy。
+- 由于当前测试栈是 `node --test src/*.test.mjs`，直接测试 `.tsx` 渲染不如做文本结构契约测试更省事，也更符合这个子项目现有习惯。
+- 本轮 implementation 应先重建信息结构与样式系统，再考虑更细的视觉 polish；不然很容易又回到边修边漂的状态。
+
 ## Technical Decisions
 
 | Decision | Rationale |
