@@ -39,7 +39,6 @@ a {
 .page-shell {
   min-height: 100vh;
   background: var(--canvas);
-  padding-bottom: 40px;
 }
 
 .topbar,
@@ -86,8 +85,6 @@ a {
 
 .topbar-links {
   gap: 10px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
 .topbar-links a,
