@@ -1,22 +1,9 @@
-import { homepageContent } from './homepage-content.mjs';
+import { homepageContent, homepageSectionOrder } from './homepage-content.mjs';
 
 export default function App() {
-  return (
-    <main className="page-shell">
-      <header className="topbar" aria-label="Primary navigation">
-        <a className="brand" href={homepageContent.topbar.brandHref} aria-label="Superpowering with Files home">
-          <span className="brand-mark" aria-hidden="true">S</span>
-          <span>{homepageContent.topbar.brandLabel}</span>
-        </a>
-
-        <nav className="topbar-links" aria-label="Topbar links">
-          {homepageContent.topbar.links.map((link) => (
-            <a key={link.label} href={link.href}>{link.label}</a>
-          ))}
-        </nav>
-      </header>
-
-      <section className="hero" aria-labelledby={homepageContent.hero.headingId}>
+  const sectionContent = {
+    hero: (
+      <section key="hero" className="hero" aria-labelledby={homepageContent.hero.headingId}>
         <div className="hero-layout">
           <div className="hero-copy">
             <p className="kicker">{homepageContent.hero.kicker}</p>
@@ -61,8 +48,9 @@ export default function App() {
           </aside>
         </div>
       </section>
-
-      <section className="comparison" aria-labelledby="comparison-title">
+    ),
+    comparison: (
+      <section key="comparison" className="comparison" aria-labelledby="comparison-title">
         <div className="section-shell">
           <h2 id="comparison-title" className="sr-only">Hybrid comparison</h2>
           <div className="comparison-strip">
@@ -76,8 +64,9 @@ export default function App() {
           </div>
         </div>
       </section>
-
-      <section className="routing" aria-labelledby={homepageContent.routing.headingId}>
+    ),
+    routing: (
+      <section key="routing" className="routing" aria-labelledby={homepageContent.routing.headingId}>
         <div className="section-shell routing-grid">
           <div className="section-heading">
             <p className="section-eyebrow">{homepageContent.routing.eyebrow}</p>
@@ -92,8 +81,9 @@ export default function App() {
           </ul>
         </div>
       </section>
-
-      <section className="repo-proof" aria-labelledby={homepageContent.repoProof.headingId}>
+    ),
+    repoProof: (
+      <section key="repoProof" className="repo-proof" aria-labelledby={homepageContent.repoProof.headingId}>
         <div className="section-shell repo-proof-grid">
           <div className="section-heading">
             <p className="section-eyebrow">{homepageContent.repoProof.eyebrow}</p>
@@ -111,8 +101,9 @@ export default function App() {
           </div>
         </div>
       </section>
-
-      <section className="closing" aria-labelledby={homepageContent.closing.headingId}>
+    ),
+    closing: (
+      <section key="closing" className="closing" aria-labelledby={homepageContent.closing.headingId}>
         <div className="section-shell closing-layout">
           <h2 id={homepageContent.closing.headingId}>{homepageContent.closing.title}</h2>
           <div className="link-row" aria-label="Project links">
@@ -122,6 +113,25 @@ export default function App() {
           </div>
         </div>
       </section>
+    )
+  };
+
+  return (
+    <main className="page-shell">
+      <header className="topbar" aria-label="Primary navigation">
+        <a className="brand" href={homepageContent.topbar.brandHref} aria-label="Superpowering with Files home">
+          <span className="brand-mark" aria-hidden="true">S</span>
+          <span>{homepageContent.topbar.brandLabel}</span>
+        </a>
+
+        <nav className="topbar-links" aria-label="Topbar links">
+          {homepageContent.topbar.links.map((link) => (
+            <a key={link.label} href={link.href}>{link.label}</a>
+          ))}
+        </nav>
+      </header>
+
+      {homepageSectionOrder.map((sectionKey) => sectionContent[sectionKey as keyof typeof sectionContent])}
     </main>
   );
 }
