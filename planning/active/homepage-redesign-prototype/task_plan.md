@@ -4,15 +4,15 @@
 结合仓库现有 `DESIGN.md` 持续重构 `homepage/`，先完成本地可预览 prototype，再在用户确认后将最新 homepage 变更集成并发布到 `origin/main`。
 
 ## Current State
-Status: active
-Archive Eligible: no
-Close Reason: 当前进入新一轮 homepage manifesto redesign 的 implementation planning。
+Status: complete
+Archive Eligible: yes
+Close Reason: homepage manifesto redesign implementation 已在隔离 worktree 中完成并验证通过。
 Companion plan: `docs/superpowers/plans/2026-05-15-homepage-redesign-prototype.md`
-Companion summary: 四步实现计划，覆盖内容契约、`App.tsx` 五段结构重建、dark manifesto 样式系统替换和最终验证。
-Sync-back status: companion plan 已写入；execution 尚未开始；active task 目录继续作为本次 redesign 的 source of truth。
+Companion summary: 四步实现计划已全部执行完成，覆盖内容契约、`App.tsx` 五段结构重建、dark manifesto 样式系统替换和最终验证。
+Sync-back status: companion plan 已执行并同步回 task 目录；实现与验证完成。
 
 ## Current Phase
-Implementation planning complete
+Execution complete
 
 ## Phases
 

@@ -100,6 +100,13 @@
 - 更稳的修复方式是把 section-order 标识直接统一成 `repoProof`，保留 `headingId: 'repo-proof-title'` 作为 DOM id，不把 kebab-case 混入内容 contract。
 - GitHub/docs 出口当前在 `topbar.links`、`hero.actions`、`closing.links` 三处重复定义；把 canonical URL 收敛到单一常量后，测试应直接验证所有 user-facing exit paths 仍然对齐，而不只检查 hero。
 
+## Findings Record: 2026-05-16 12:43:49 UTC+8
+
+- 用户明确要求执行 implementation plan 时不要中途停下来汇报，除非真的被阻塞；本轮执行已按这个偏好直接连续完成。
+- 对这个 homepage 子项目来说，最稳的测试策略是：内容契约用 plain `.mjs`，结构和样式用文本契约测试，路由行为继续沿用现有 `route-utils` 测试。
+- `homepageSectionOrder` 必须成为页面 section 流的单一真相来源，否则内容契约和渲染顺序会慢慢漂掉。
+- style contract 测试不能只看 token 和 class 名；还要锁住 reduced motion、单列 collapse 和移动端 topbar 行为，不然这类首页很容易在后续 polish 时悄悄回退。
+
 ## Technical Decisions
 
 | Decision | Rationale |
