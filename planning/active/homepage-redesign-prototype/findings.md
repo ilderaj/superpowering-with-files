@@ -94,6 +94,12 @@
 - 由于当前测试栈是 `node --test src/*.test.mjs`，直接测试 `.tsx` 渲染不如做文本结构契约测试更省事，也更符合这个子项目现有习惯。
 - 本轮 implementation 应先重建信息结构与样式系统，再考虑更细的视觉 polish；不然很容易又回到边修边漂的状态。
 
+## Findings Record: 2026-05-16 12:08:51 UTC+8
+
+- Task 1 的 code quality 问题集中在内容契约一致性，而不是视觉或行为层：`homepageSectionOrder` 用了 `repo-proof`，但导出内容对象用的是 `repoProof`，这迫使未来消费者做手动映射。
+- 更稳的修复方式是把 section-order 标识直接统一成 `repoProof`，保留 `headingId: 'repo-proof-title'` 作为 DOM id，不把 kebab-case 混入内容 contract。
+- GitHub/docs 出口当前在 `topbar.links`、`hero.actions`、`closing.links` 三处重复定义；把 canonical URL 收敛到单一常量后，测试应直接验证所有 user-facing exit paths 仍然对齐，而不只检查 hero。
+
 ## Technical Decisions
 
 | Decision | Rationale |

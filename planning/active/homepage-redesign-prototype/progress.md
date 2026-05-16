@@ -264,6 +264,30 @@
 |---|---|---|---|
 | 2026-05-11 22:21:10 UTC+8 | 无 | 1 | 无需处理 |
 
+## Session: 2026-05-16 12:08:51 UTC+8
+
+### Phase: Task 1 Code Quality Follow-up
+- **Status:** complete
+- **Started:** 2026-05-16 12:08:51 UTC+8
+- Actions taken:
+  - 读取 `homepage/src/homepage-content.mjs`、`homepage/src/homepage-content.test.mjs`、`homepage/src/App.tsx` 和最近 Task 1 提交，确认 review 指出的两个问题都集中在 content contract 层。
+  - 先按 TDD 修改 `homepage/src/homepage-content.test.mjs`：要求 `homepageSectionOrder` 与导出对象键完全同名，并验证 `topbar.links`、`hero.actions`、`closing.links` 的所有对外出口只收敛到 canonical GitHub/docs 两个 URL。
+  - 运行 `npm test --prefix homepage -- src/homepage-content.test.mjs`，先看到预期失败，证明测试确实抓到了 `repo-proof` / `repoProof` 的不一致。
+  - 更新 `homepage/src/homepage-content.mjs`：把 section key 统一为 `repoProof`，并引入共享 `canonicalLinks` 常量，复用于 topbar、hero、closing 三处出口定义。
+  - 再次运行相同目标测试，确认内容契约和出口对齐检查全部通过。
+- Files created/modified:
+  - `homepage/src/homepage-content.mjs`
+  - `homepage/src/homepage-content.test.mjs`
+  - `planning/active/homepage-redesign-prototype/findings.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+|---|---|---|---|---|
+| Homepage content contract test (RED) | `npm test --prefix homepage -- src/homepage-content.test.mjs` | Fails on section key mismatch before implementation | Failed on `repo-proof` vs `repoProof` mismatch | pass |
+| Homepage content contract test (GREEN) | `npm test --prefix homepage -- src/homepage-content.test.mjs` | Section keys and outbound exit paths are aligned | Passed, 8 tests | pass |
+
 ## Session: 2026-05-13 07:50:42 UTC+8
 
 ### Phase 5: Final Polish and Publish Preparation

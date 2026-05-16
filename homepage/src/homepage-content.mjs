@@ -1,8 +1,13 @@
+const canonicalLinks = {
+  github: 'https://github.com/ilderaj/superpowering-with-files',
+  docs: 'https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md'
+};
+
 export const homepageSectionOrder = [
   'hero',
   'comparison',
   'routing',
-  'repo-proof',
+  'repoProof',
   'closing'
 ];
 
@@ -13,11 +18,11 @@ export const homepageContent = {
     links: [
       {
         label: 'Docs',
-        href: 'https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md'
+        href: canonicalLinks.docs
       },
       {
         label: 'GitHub',
-        href: 'https://github.com/ilderaj/superpowering-with-files'
+        href: canonicalLinks.github
       }
     ]
   },
@@ -30,11 +35,11 @@ export const homepageContent = {
     actions: [
       {
         label: 'View source',
-        href: 'https://github.com/ilderaj/superpowering-with-files'
+        href: canonicalLinks.github
       },
       {
         label: 'Read workflow',
-        href: 'https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md'
+        href: canonicalLinks.docs
       }
     ]
   },
@@ -111,11 +116,11 @@ export const homepageContent = {
     links: [
       {
         label: 'GitHub',
-        href: 'https://github.com/ilderaj/superpowering-with-files'
+        href: canonicalLinks.github
       },
       {
         label: 'Docs',
-        href: 'https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md'
+        href: canonicalLinks.docs
       }
     ]
   }
