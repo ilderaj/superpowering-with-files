@@ -88,6 +88,25 @@
 - 这次真正的发布阻塞不在代码，而在 Git 结构：`main` 已经被单独 worktree 占用，因此任何“在当前目录切到 main 再 cherry-pick”的做法都会失败。对这种仓库，正确路径是直接在拥有 `main` 的 worktree 中完成精确 cherry-pick 和 push。
 - 最终以远端源码 marker 作为发布完成证据，比只看本地分支或 subagent 摘要更可靠；这次就避免了“命令摘要说已推送，但 `origin/main` 实际还是旧版”的误判。
 
+## Findings Record: 2026-05-15 22:37:32 UTC+8
+
+- 最稳的实现路径不是继续把所有 copy 硬编码在 `App.tsx` 里，而是抽出一个 plain `.mjs` 内容模块，让 Node 内置测试可以直接校验 hero claim、CTA、section order 和 proof copy。
+- 由于当前测试栈是 `node --test src/*.test.mjs`，直接测试 `.tsx` 渲染不如做文本结构契约测试更省事，也更符合这个子项目现有习惯。
+- 本轮 implementation 应先重建信息结构与样式系统，再考虑更细的视觉 polish；不然很容易又回到边修边漂的状态。
+
+## Findings Record: 2026-05-16 12:08:51 UTC+8
+
+- Task 1 的 code quality 问题集中在内容契约一致性，而不是视觉或行为层：`homepageSectionOrder` 用了 `repo-proof`，但导出内容对象用的是 `repoProof`，这迫使未来消费者做手动映射。
+- 更稳的修复方式是把 section-order 标识直接统一成 `repoProof`，保留 `headingId: 'repo-proof-title'` 作为 DOM id，不把 kebab-case 混入内容 contract。
+- GitHub/docs 出口当前在 `topbar.links`、`hero.actions`、`closing.links` 三处重复定义；把 canonical URL 收敛到单一常量后，测试应直接验证所有 user-facing exit paths 仍然对齐，而不只检查 hero。
+
+## Findings Record: 2026-05-16 12:43:49 UTC+8
+
+- 用户明确要求执行 implementation plan 时不要中途停下来汇报，除非真的被阻塞；本轮执行已按这个偏好直接连续完成。
+- 对这个 homepage 子项目来说，最稳的测试策略是：内容契约用 plain `.mjs`，结构和样式用文本契约测试，路由行为继续沿用现有 `route-utils` 测试。
+- `homepageSectionOrder` 必须成为页面 section 流的单一真相来源，否则内容契约和渲染顺序会慢慢漂掉。
+- style contract 测试不能只看 token 和 class 名；还要锁住 reduced motion、单列 collapse 和移动端 topbar 行为，不然这类首页很容易在后续 polish 时悄悄回退。
+
 ## Technical Decisions
 
 | Decision | Rationale |

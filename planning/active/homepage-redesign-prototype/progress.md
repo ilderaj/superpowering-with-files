@@ -242,11 +242,72 @@
   - `planning/active/homepage-redesign-prototype/progress.md`
   - `planning/active/homepage-redesign-prototype/findings.md`
 
+## Session: 2026-05-15 22:37:32 UTC+8
+
+### Phase: Implementation Planning
+- **Status:** complete
+- **Started:** 2026-05-15 22:37:32 UTC+8
+- Actions taken:
+  - 基于已批准的 manifesto-leaning homepage spec 编写实现计划。
+  - 映射了新的文件职责：内容模块、结构测试、样式测试、`App.tsx` 重建和 dark CSS 重写。
+  - 将 companion implementation plan 写入 `docs/superpowers/plans/2026-05-15-homepage-redesign-prototype.md`。
+  - 将 companion plan 路径和同步状态回写到 task-scoped planning 文件中。
+- Files created/modified:
+  - `docs/superpowers/plans/2026-05-15-homepage-redesign-prototype.md`
+  - `planning/active/homepage-redesign-prototype/task_plan.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+  - `planning/active/homepage-redesign-prototype/findings.md`
+
+## Session: 2026-05-16 12:43:49 UTC+8
+
+### Phase: Execution Complete
+- **Status:** complete
+- **Started:** 2026-05-16 12:43:49 UTC+8
+- Actions taken:
+  - 在隔离 worktree 中完成了 implementation plan 的全部四个任务，没有中途停下来等人工确认。
+  - 完成 content contract、`App.tsx` manifesto 五段结构、dark manifesto 样式系统，以及 review 修复。
+  - 通过 subagent reviews 修复了 Task 1、Task 2、Task 3 的质量问题，并重新验证直到通过。
+  - 运行完整 homepage 验证：`npm test`、`npm run typecheck`、`npm run build`、preview smoke check，全部通过。
+- Files created/modified:
+  - `homepage/src/homepage-content.mjs`
+  - `homepage/src/homepage-content.test.mjs`
+  - `homepage/src/App.tsx`
+  - `homepage/src/homepage-structure.test.mjs`
+  - `homepage/src/styles.css`
+  - `homepage/src/homepage-styles.test.mjs`
+  - `planning/active/homepage-redesign-prototype/task_plan.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+  - `planning/active/homepage-redesign-prototype/findings.md`
+
 ## Error Log
 
 | Timestamp | Error | Attempt | Resolution |
 |---|---|---|---|
 | 2026-05-11 22:21:10 UTC+8 | 无 | 1 | 无需处理 |
+
+## Session: 2026-05-16 12:08:51 UTC+8
+
+### Phase: Task 1 Code Quality Follow-up
+- **Status:** complete
+- **Started:** 2026-05-16 12:08:51 UTC+8
+- Actions taken:
+  - 读取 `homepage/src/homepage-content.mjs`、`homepage/src/homepage-content.test.mjs`、`homepage/src/App.tsx` 和最近 Task 1 提交，确认 review 指出的两个问题都集中在 content contract 层。
+  - 先按 TDD 修改 `homepage/src/homepage-content.test.mjs`：要求 `homepageSectionOrder` 与导出对象键完全同名，并验证 `topbar.links`、`hero.actions`、`closing.links` 的所有对外出口只收敛到 canonical GitHub/docs 两个 URL。
+  - 运行 `npm test --prefix homepage -- src/homepage-content.test.mjs`，先看到预期失败，证明测试确实抓到了 `repo-proof` / `repoProof` 的不一致。
+  - 更新 `homepage/src/homepage-content.mjs`：把 section key 统一为 `repoProof`，并引入共享 `canonicalLinks` 常量，复用于 topbar、hero、closing 三处出口定义。
+  - 再次运行相同目标测试，确认内容契约和出口对齐检查全部通过。
+- Files created/modified:
+  - `homepage/src/homepage-content.mjs`
+  - `homepage/src/homepage-content.test.mjs`
+  - `planning/active/homepage-redesign-prototype/findings.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+|---|---|---|---|---|
+| Homepage content contract test (RED) | `npm test --prefix homepage -- src/homepage-content.test.mjs` | Fails on section key mismatch before implementation | Failed on `repo-proof` vs `repoProof` mismatch | pass |
+| Homepage content contract test (GREEN) | `npm test --prefix homepage -- src/homepage-content.test.mjs` | Section keys and outbound exit paths are aligned | Passed, 8 tests | pass |
 
 ## Session: 2026-05-13 07:50:42 UTC+8
 

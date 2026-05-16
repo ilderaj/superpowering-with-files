@@ -1,0 +1,152 @@
+<style>
+  :root {
+    --bg:#000;
+    --surface:#0a0a0a;
+    --surface2:#111;
+    --line:#2a2a2a;
+    --line2:#454545;
+    --text:#fff;
+    --body:#c8c8c8;
+    --muted:#7d7d7d;
+    --blue1:#0066b1;
+    --blue2:#1c69d4;
+    --red:#e22718;
+  }
+  .page{display:grid;gap:24px}
+  .meta{display:flex;justify-content:space-between;gap:16px;align-items:end;flex-wrap:wrap}
+  .eyebrow{margin:0;color:var(--muted);font-size:12px;letter-spacing:.18em;text-transform:uppercase}
+  .title{margin:0;max-width:15ch;font-size:clamp(38px,6vw,80px);line-height:.9;font-weight:800;letter-spacing:-.04em;text-transform:uppercase}
+  .sub{margin:0;max-width:64ch;color:var(--body);font-size:16px;line-height:1.7}
+  .tag{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);padding:10px 12px;background:#0d0d0d;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .tag i{display:inline-block;width:9px;height:9px;background:linear-gradient(90deg,var(--blue1),var(--blue2),var(--red))}
+
+  .mockup{border:1px solid var(--line);background:var(--surface);padding:18px;display:grid;gap:14px}
+  .topbar{height:42px;border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#ddd}
+
+  .hero{display:grid;grid-template-columns:1.18fr .82fr;gap:14px;min-height:390px}
+  .hero-main{position:relative;border:1px solid var(--line2);background:linear-gradient(180deg,#101010,#030303);padding:24px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden}
+  .hero-main:before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 82% 14%, rgba(255,255,255,.08), transparent 24%),linear-gradient(140deg, rgba(28,105,212,.12), transparent 34%),linear-gradient(180deg, transparent, rgba(0,0,0,.6));pointer-events:none}
+  .hero-main:after{content:'';position:absolute;left:24px;top:24px;width:180px;height:1px;background:linear-gradient(90deg,var(--blue1),var(--blue2),var(--red));opacity:.9}
+  .stripe{display:flex;width:176px;height:4px;overflow:hidden;margin-bottom:18px;position:relative;z-index:1}
+  .stripe span{flex:1}
+  .hero-copy{position:relative;z-index:1;display:grid;gap:12px}
+  .kicker{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#c4c4c4}
+  .hero-copy h3{margin:0;max-width:8ch;font-size:64px;line-height:.9;font-weight:800;letter-spacing:-.04em;text-transform:uppercase}
+  .hero-copy p{margin:0;max-width:44ch;color:var(--body);font-size:14px;line-height:1.65}
+  .hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .btn{padding:12px 16px;border:1px solid #fff;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .btn.primary{background:#fff;color:#000}
+  .btn.ghost{background:transparent;color:#fff}
+
+  .hero-side{display:grid;gap:14px}
+  .equation{border:1px solid var(--line);background:var(--surface2);padding:16px;display:grid;gap:12px}
+  .eq-row{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch}
+  .eq-box{border:1px solid var(--line);padding:14px;background:#0d0d0d;display:grid;gap:8px}
+  .eq-box span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .eq-box b{font-size:18px;line-height:1.05;text-transform:uppercase}
+  .eq-box p{margin:0;color:var(--body);font-size:12px;line-height:1.5}
+  .op{display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px}
+  .hybrid{border:1px solid var(--line2);padding:14px;background:linear-gradient(180deg,#131313,#0a0a0a);display:grid;gap:8px}
+  .hybrid span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#c2c2c2}
+  .hybrid b{font-size:20px;line-height:1.08;text-transform:uppercase}
+  .hybrid p{margin:0;color:var(--body);font-size:12px;line-height:1.55}
+
+  .compare{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .compare-card{border:1px solid var(--line);background:#0e0e0e;padding:14px;display:grid;gap:8px}
+  .compare-card span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .compare-card b{font-size:18px;line-height:1.08;text-transform:uppercase}
+  .compare-card p{margin:0;color:var(--body);font-size:12px;line-height:1.55}
+
+  .structure{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .section-card{border:1px solid var(--line);background:#0d0d0d;padding:14px;display:grid;gap:10px;min-height:130px}
+  .section-card span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .section-card b{font-size:16px;line-height:1.08;text-transform:uppercase}
+  .section-card p{margin:0;color:var(--body);font-size:12px;line-height:1.55}
+
+  .note p{margin:0;color:var(--muted);font-size:13px;line-height:1.7}
+  .note strong{color:#fff}
+  @media (max-width: 960px){.hero,.compare,.structure,.eq-row{grid-template-columns:1fr}.title{max-width:none}.hero-copy h3{font-size:46px;max-width:none}}
+</style>
+
+<div class="page">
+  <div class="meta">
+    <div>
+      <p class="eyebrow">B1 refined · manifesto-leaning variant</p>
+      <h2 class="title">Sharper claim. Same clarity. More front-footed.</h2>
+    </div>
+    <div class="tag"><i></i> declaration tone pushed up</div>
+  </div>
+
+  <p class="sub">这版我把 hero 的口气往前顶了：不只是解释系统怎么工作，而是先下判断，再给证据。结构还是 B1，那种“先看懂再信服”的骨架没丢。</p>
+
+  <div class="mockup">
+    <div class="topbar">Superpowering with Files <span>Docs · GitHub · Workflow</span></div>
+
+    <div class="hero">
+      <div class="hero-main">
+        <div class="stripe"><span style="background:var(--blue1)"></span><span style="background:var(--blue2)"></span><span style="background:var(--red)"></span></div>
+        <div class="hero-copy">
+          <div class="kicker">Planning with Files × Superpowers</div>
+          <h3>Stop losing good judgment.</h3>
+          <p>Hard work deserves stronger reasoning. Important decisions deserve a visible trail. This workflow does both, in the same repo-native system.</p>
+          <div class="hero-actions">
+            <div class="btn primary">View source</div>
+            <div class="btn ghost">Read workflow</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-side">
+        <div class="equation">
+          <div class="eq-row">
+            <div class="eq-box">
+              <span>Breadth</span>
+              <b>Files keep state.</b>
+              <p>Plans, findings, and progress stay visible across agents and sessions.</p>
+            </div>
+            <div class="op">+</div>
+            <div class="eq-box">
+              <span>Depth</span>
+              <b>Superpowers sharpen hard calls.</b>
+              <p>Deeper reasoning appears only when the task actually earns it.</p>
+            </div>
+          </div>
+          <div class="hybrid">
+            <span>Hybrid</span>
+            <b>One workflow. Routed by complexity.</b>
+            <p>Think → record → resume. Better calls without losing the trail.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="compare">
+      <div class="compare-card">
+        <span>Only breadth</span>
+        <b>State, no sharper thinking.</b>
+        <p>The files survive, but every difficult decision still happens in the same flat lane.</p>
+      </div>
+      <div class="compare-card">
+        <span>Only depth</span>
+        <b>Sharper calls, no durable memory.</b>
+        <p>The reasoning gets better for a moment, then fades and becomes hard to resume.</p>
+      </div>
+      <div class="compare-card">
+        <span>Both</span>
+        <b>Judgment lands as state.</b>
+        <p>The hard part gets deeper thinking, then the result returns to visible planning files.</p>
+      </div>
+    </div>
+
+    <div class="structure">
+      <div class="section-card"><span>Section 02</span><b>How routing works</b><p>Show when the system stays fast and when it intentionally slows down.</p></div>
+      <div class="section-card"><span>Section 03</span><b>What the files hold</b><p>Plans, findings, task state, progress logs, and durable execution context.</p></div>
+      <div class="section-card"><span>Section 04</span><b>Proof from the repo</b><p>Real docs, real artifacts, real workflow traces instead of abstract claims.</p></div>
+      <div class="section-card"><span>Section 05</span><b>Closing CTA</b><p>Push to GitHub and docs cleanly, without bloating the page.</p></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><strong>变化点就一个：</strong> hero 从“解释型主标题”切成“判断型主标题”。气质更宣言，但没有丢掉可读性。</p>
+  </div>
+</div>

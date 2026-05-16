@@ -1,0 +1,174 @@
+<style>
+  :root {
+    --canvas:#000;
+    --surface:#111;
+    --surface-2:#181818;
+    --line:#313131;
+    --text:#fff;
+    --body:#bdbdbd;
+    --muted:#7b7b7b;
+    --blue1:#0066b1;
+    --blue2:#1c69d4;
+    --red:#e22718;
+  }
+  .hero-wrap{display:flex;flex-direction:column;gap:28px}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--body);margin:0}
+  .hero-title{margin:0;max-width:14ch;font-size:clamp(38px,6vw,82px);line-height:.95;font-weight:800;letter-spacing:-.03em;text-transform:uppercase}
+  .hero-sub{margin:0;max-width:58ch;color:var(--body);font-size:17px;line-height:1.65}
+  .stripe{display:flex;height:4px;width:160px;overflow:hidden}
+  .stripe span{flex:1}
+  .actions{display:flex;gap:14px;flex-wrap:wrap}
+  .btn-dark,.btn-ghost{display:inline-flex;align-items:center;justify-content:center;padding:14px 22px;border:1px solid #fff;text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:700}
+  .btn-dark{background:#fff;color:#000}
+  .btn-ghost{background:transparent;color:#fff}
+  .section-title{margin:0 0 10px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .concept{background:var(--surface);border:1px solid var(--line);cursor:pointer;overflow:hidden}
+  .concept:hover{border-color:#fff}
+  .concept-head{padding:18px 20px 0}
+  .concept-kicker{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--body);margin-bottom:10px}
+  .concept-title{font-size:24px;line-height:1.05;text-transform:uppercase;margin:0 0 10px}
+  .concept-desc{margin:0;color:var(--body);font-size:14px;line-height:1.6;min-height:72px}
+  .mock{margin:18px 20px 20px;background:var(--surface-2);border:1px solid var(--line);padding:14px;min-height:350px;display:flex;flex-direction:column;gap:12px}
+  .mock-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+  .mock-nav{height:34px;border:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 12px;color:var(--body);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .block{border:1px solid var(--line);background:#0b0b0b}
+  .hero-block{padding:16px;height:124px;display:flex;flex-direction:column;justify-content:flex-end;gap:8px}
+  .hero-lines{display:grid;gap:6px}
+  .hero-lines span{display:block;height:10px;background:#f5f5f5}
+  .hero-lines span:nth-child(1){width:78%}
+  .hero-lines span:nth-child(2){width:58%}
+  .hero-lines span:nth-child(3){width:42%;background:#7d7d7d}
+  .split-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px}
+  .stack{display:grid;gap:12px}
+  .small{height:72px;padding:12px}
+  .medium{height:116px;padding:12px}
+  .large{height:160px;padding:12px}
+  .list{display:grid;gap:8px}
+  .list span{height:9px;background:#d9d9d9;display:block}
+  .list span:nth-child(2n){width:82%}
+  .list span:nth-child(3n){width:63%}
+  .rail{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .rail .block{height:64px}
+  .tag-row{display:flex;gap:8px;flex-wrap:wrap}
+  .tag{border:1px solid var(--line);padding:6px 10px;font-size:10px;color:var(--body);text-transform:uppercase;letter-spacing:.12em}
+  .pros{display:grid;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+  .pros div{font-size:12px;color:var(--body);line-height:1.5}
+  .pros strong{color:#fff}
+  .recommend{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);padding:10px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:#fff;background:#0f0f0f}
+  .recommend i{display:inline-block;width:8px;height:8px;background:linear-gradient(90deg,var(--blue1),var(--blue2),var(--red))}
+  .note{color:var(--muted);font-size:13px;line-height:1.6}
+  @media (max-width: 980px){.cards{grid-template-columns:1fr}.hero-title{max-width:none}.concept-desc{min-height:auto}}
+</style>
+
+<div class="hero-wrap">
+  <p class="eyebrow">Homepage redesign prototype · based on current DESIGN.md</p>
+  <h2 class="hero-title">Three homepage directions under the same BMW M visual language.</h2>
+  <div class="stripe"><span style="background:var(--blue1)"></span><span style="background:var(--blue2)"></span><span style="background:var(--red)"></span></div>
+  <p class="hero-sub">我先不动代码，先给你看三个原型方向。都保留 DESIGN.md 里的黑底、强对比、全大写标题、工程感分割线和克制的 M 三色点缀。区别主要在于首页叙事方式：是先讲品牌、先讲 workflow，还是先讲 proof。</p>
+  <div class="actions">
+    <div class="btn-dark">Recommended: B</div>
+    <div class="btn-ghost">Click a card to select</div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="section-title">Prototype options</p>
+  <div class="cards">
+    <div class="concept card" data-choice="A" onclick="toggleSelect(this)">
+      <div class="concept-head">
+        <div class="concept-kicker">Direction A</div>
+        <h3 class="concept-title">Cinematic manifesto</h3>
+        <p class="concept-desc">大视觉先压住气场。首屏像品牌宣言，适合把项目讲得更“旗舰”。帅，但离“这是个能立刻理解的开源项目”会稍微远一点。</p>
+      </div>
+      <div class="mock">
+        <div class="mock-top"><span>Full-bleed hero</span><span>BMW M tone</span></div>
+        <div class="mock-nav">Brand / Docs / GitHub <span>Menu</span></div>
+        <div class="block hero-block">
+          <div class="hero-lines"><span></span><span></span><span></span></div>
+        </div>
+        <div class="split-grid">
+          <div class="block large"><div class="list"><span></span><span></span><span></span><span></span></div></div>
+          <div class="stack">
+            <div class="block medium"></div>
+            <div class="block small"></div>
+          </div>
+        </div>
+        <div class="rail"><div class="block"></div><div class="block"></div><div class="block"></div></div>
+      </div>
+      <div class="concept-head" style="padding-top:0">
+        <div class="pros">
+          <div><strong>适合：</strong> 强调项目气质、愿景、品牌识别</div>
+          <div><strong>风险：</strong> 访客第一眼不一定马上懂“这项目具体干嘛”</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept card" data-choice="B" onclick="toggleSelect(this)">
+      <div class="concept-head">
+        <div class="concept-kicker">Direction B</div>
+        <h3 class="concept-title">Operator landing</h3>
+        <p class="concept-desc">我更推荐这个。首屏直接讲清楚 Breadth + Depth 的组合价值，再用 console / file / route 三块 proof 把项目说透，既有力量也不绕。</p>
+      </div>
+      <div class="mock">
+        <div class="mock-top"><span>Recommended</span><span>Hybrid proof</span></div>
+        <div class="mock-nav">Superpowering with Files <span>GitHub / Docs</span></div>
+        <div class="split-grid">
+          <div class="block hero-block" style="height:184px">
+            <div class="hero-lines"><span style="width:84%"></span><span style="width:61%"></span><span style="width:48%;background:#7d7d7d"></span></div>
+          </div>
+          <div class="stack">
+            <div class="block medium"></div>
+            <div class="block medium"></div>
+          </div>
+        </div>
+        <div class="tag-row">
+          <div class="tag">Think</div>
+          <div class="tag">Record</div>
+          <div class="tag">Resume</div>
+        </div>
+        <div class="rail"><div class="block"></div><div class="block"></div><div class="block"></div></div>
+      </div>
+      <div class="concept-head" style="padding-top:0">
+        <div class="recommend"><i></i> Recommended for this repo</div>
+        <div class="pros">
+          <div><strong>适合：</strong> 先解释项目，再给证据，再引导去 GitHub</div>
+          <div><strong>风险：</strong> 视觉需要拿捏，不然容易偏“工具台”少一点品牌张力</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="concept card" data-choice="C" onclick="toggleSelect(this)">
+      <div class="concept-head">
+        <div class="concept-kicker">Direction C</div>
+        <h3 class="concept-title">Editorial magazine</h3>
+        <p class="concept-desc">首页像杂志目录。把 workflow、principles、examples 拆成阅读板块，扫读感会很好，但首屏转化力稍弱，适合内容型首页。</p>
+      </div>
+      <div class="mock">
+        <div class="mock-top"><span>Editorial grid</span><span>Reading-first</span></div>
+        <div class="mock-nav">Index / Workflow / Examples <span>Source</span></div>
+        <div class="block hero-block" style="height:98px">
+          <div class="hero-lines"><span style="width:69%"></span><span style="width:52%"></span><span style="width:37%;background:#7d7d7d"></span></div>
+        </div>
+        <div class="rail"><div class="block"></div><div class="block"></div><div class="block"></div></div>
+        <div class="split-grid">
+          <div class="stack">
+            <div class="block medium"></div>
+            <div class="block small"></div>
+          </div>
+          <div class="block large"><div class="list"><span></span><span></span><span></span><span></span><span></span></div></div>
+        </div>
+      </div>
+      <div class="concept-head" style="padding-top:0">
+        <div class="pros">
+          <div><strong>适合：</strong> 信息密度更高，适合长期扩展 section</div>
+          <div><strong>风险：</strong> 会比 A/B 更“文档首页”，不够一击即中</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px">
+  <p class="note">我现在倾向 <strong style="color:#fff">B</strong>：保留 DESIGN.md 的黑底工程感，但不走纯品牌大片那条路，而是把这个项目最值钱的东西——planning files + superpowers 的组合——在首屏就讲明白。</p>
+</div>
