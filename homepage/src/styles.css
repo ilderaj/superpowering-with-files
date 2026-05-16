@@ -262,6 +262,10 @@ h1 {
   align-items: start;
 }
 
+.section-heading {
+  min-width: 0;
+}
+
 .routing-list {
   margin: 0;
   padding: 20px 20px 20px 38px;
@@ -325,6 +329,11 @@ h1 {
     display: grid;
     justify-content: stretch;
     padding: 14px 0;
+  }
+
+  .topbar-links {
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   h1 {
