@@ -31,7 +31,7 @@ export const homepageContent = {
     headingId: 'hero-title',
     headline: 'Stop losing good judgment.',
     lede:
-      'Hard work deserves stronger reasoning. Important decisions deserve a visible trail. This workflow does both, in the same repo-native system.',
+      'Hard tasks need better reasoning. Decisions need a visible trail. This workflow keeps both in the repo.',
     actions: [
       {
         label: 'View source',
@@ -47,46 +47,46 @@ export const homepageContent = {
     breadth: {
       label: 'Breadth',
       title: 'Files keep state.',
-      detail: 'Plans, findings, and progress stay visible across agents and sessions.'
+      detail: 'Plans and progress stay visible across sessions.'
     },
     depth: {
       label: 'Depth',
       title: 'Superpowers sharpen hard calls.',
-      detail: 'Deeper reasoning appears only when the task actually earns it.'
+      detail: 'Deeper reasoning appears only when the task earns it.'
     },
     hybrid: {
       label: 'Hybrid',
       title: 'One workflow. Routed by complexity.',
-      detail: 'Think → record → resume. Better calls without losing the trail.'
+      detail: 'Escalate for hard work, then write the result back.'
     }
   },
   comparison: [
     {
       label: 'Only breadth',
-      title: 'State, no sharper thinking.',
-      detail: 'The files survive, but every difficult decision still happens in the same flat lane.'
+      title: 'State survives, judgment stays flat.',
+      detail: ''
     },
     {
       label: 'Only depth',
-      title: 'Sharper calls, no durable memory.',
-      detail: 'The reasoning gets better for a moment, then fades and becomes hard to resume.'
+      title: 'Reasoning sharpens, memory fades.',
+      detail: ''
     },
     {
       label: 'Both',
-      title: 'Judgment lands as state.',
-      detail: 'The hard part gets deeper thinking, then the result returns to visible planning files.'
+      title: 'Better judgment lands in files.',
+      detail: ''
     }
   ],
   routing: {
     headingId: 'routing-title',
     eyebrow: 'How routing works',
-    title: 'The fast lane stays fast.',
+    title: 'Keep the fast lane fast.',
     body:
-      'Simple work stays lightweight. Difficult work earns deeper handling, then syncs back into files that any local agent surface can continue from.',
+      'Cheap work stays lightweight. Complex work escalates, then writes back into repo-native state.',
     bullets: [
-      'Start in the normal lane for cheap, visible work.',
-      'Escalate only when the task is complex enough to earn it.',
-      'Write the outcome back into repo-native task state.'
+      'Start local.',
+      'Escalate only for hard work.',
+      'Write the result back.'
     ]
   },
   repoProof: {
@@ -94,19 +94,19 @@ export const homepageContent = {
     eyebrow: 'What lives in files',
     title: 'The trail is part of the product.',
     body:
-      'This system proves itself with visible artifacts in the repo, not with abstract claims.',
+      'Plans, findings, and execution stay inspectable in the repo.',
     items: [
       {
         label: 'Plans',
-        detail: 'Task plans define the route before execution starts.'
+        detail: 'Route before execution starts.'
       },
       {
         label: 'Findings',
-        detail: 'Research, decisions, and constraints stay durable.'
+        detail: 'Research and constraints stay durable.'
       },
       {
         label: 'Progress',
-        detail: 'Execution state stays resumable across sessions and tools.'
+        detail: 'Execution stays resumable across sessions.'
       }
     ]
   },
