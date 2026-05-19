@@ -20,6 +20,9 @@
 - Exposed standalone reconciliation artifacts through MCP task resources when present.
 - Added record/template ergonomics for standalone `reconciliation.md` artifacts.
 - Added focused tests for summary status, MCP resource listing/reading, record helper support, and archive preservation.
+- Added documentation artifacts for Iterations 3-6 and supporting Iteration 1 convergence docs: `docs/state-convergence.md`, `docs/cloud-dev-parity.md`, `docs/mcp-read-only-compatibility.md`, `docs/install/adoption-starter-kit.md`, `docs/upstream-update-compatibility.md`, and `docs/office-templates.md`.
+- Added Harness-owned lightweight office planning templates under `harness/core/templates/planning/`.
+- Updated README, workflows, maintenance, cloud-dev, platform support, release, backlog, and roadmap links/status notes for the new docs.
 
 ## Acceptance Status
 
@@ -31,6 +34,10 @@
 - [x] High-risk loopholes were addressed: lane-vs-gate ambiguity, discoverability, conflict ownership, lifecycle state, docs-only exemption, current-task reconciliation.
 - [x] Iteration 1-2 core lifecycle/tooling/docs support exposes reconciliation as a real active-task signal.
 - [x] Archive preservation for standalone `reconciliation.md` is covered by tests.
+- [x] Iteration 3 MCP compatibility tiers are documented without adding runtime support claims.
+- [x] Iteration 4 cloud parity matrix and agent-neutral contract are evidence-gated; unsupported cloud agents remain research-only.
+- [x] Iteration 5 adoption starter kit and upstream compatibility report contract are documented.
+- [x] Iteration 6 office workflow guide and lightweight templates exist without changing upstream templates or coding workflow requirements.
 - [ ] Owner review is still pending.
 
 ## Verification Evidence
@@ -42,6 +49,13 @@
 - `npm test -- tests/installer/active-summary-command.test.mjs tests/core/companion-plan-lifecycle.test.mjs tests/mcp/resources.test.mjs tests/installer/record-command.test.mjs` — pass, 17 tests, after adding Iteration 1-2 core coverage.
 - `npm run test:core` — initially failed on the older absolute `/Users/jared/` docs path; replaced that sample command with `/path/to/SuperpoweringWithFiles`, reran, and passed, 10 tests.
 - `./scripts/harness active-summary --json` — pass; current task reports `reconciliationStatus=complete` and `reconciliationReady=true`; four legacy archive-ready tasks now report expected `reconciliation_open` anomalies.
+- Targeted new-doc grep checks for README/backlog/workflows/maintenance and required support docs — pass.
+- MCP/cloud wording greps for `MCP read-only`, `native adapter`, `docs-only`, `runtime facade`, `verified baseline`, `comment-only`, `research only`, `agent-neutral`, and `reconciliation_status` — pass.
+- Office template grep for `research`, `decision`, `document review`, and `follow-up` across new office docs/templates and active task — pass.
+- `npm run test:core` — pass, 10 tests.
+- `npm run test:mcp` — pass, 21 tests.
+- `./scripts/harness sync --dry-run` — pass, no projection changes.
+- `./scripts/harness doctor --check-only` — pass; reports pre-existing companion-plan reference warnings on stderr while exiting 0.
 
 ## Intentional Deviations
 
@@ -52,12 +66,16 @@
 
 - Existing repository still has unrelated active-summary warnings; Iteration 1-2 now makes four legacy archive-ready tasks visible as `reconciliation_open` anomalies.
 - REC-002 still needs an owner decision on whether reconciliation-open archive-ready legacy tasks should hard-block archive after cleanup, or remain warning-only for backward compatibility.
-- MCP-001 remains proposed until the MCP runtime facade waiting-review task is closed or explicitly accepted as baseline.
+- MCP-001 remains proposed until a pilot proves read-only adoption with a real client; this change only documents the tier contract.
+- ADOPT-001 remains proposed because fixture/disposable-home validation was documented but not automated in this docs/template pass.
+- UPD-001 remains proposed because the compatibility report contract is documented but command output automation is not implemented.
+- OFFICE-001 remains proposed because templates exist, but generation commands and a full example archive run are not implemented.
 
 ## Docs / Roadmap / Backlog Updates Needed
 
 - Owner should review whether roadmap should call the six-iteration sequence near-term or split it into epics after Iterations 1-2.
 - Owner should decide whether standalone `reconciliation.md` is required for all tracked coding tasks, or whether a `progress.md` section is enough for smaller tasks.
+- Future implementation can add generators/tests for office templates, upstream compatibility reports, and adoption fixtures if these docs become active workflows.
 
 ## Archive Readiness
 

@@ -77,7 +77,7 @@ def render_block(kind: str, title: Optional[str] = None) -> str:
                 "- ",
                 "",
                 "## Archive Readiness",
-                "- ",
+                "- Not ready — reconciliation record is open until an explicit Ready state is recorded.",
             ]
         )
     else:

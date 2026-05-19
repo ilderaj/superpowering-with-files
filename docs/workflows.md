@@ -122,6 +122,13 @@ bash harness/core/upstream-overlays/planning-with-files/scripts/close-task.sh . 
 bash harness/core/upstream-overlays/planning-with-files/scripts/archive-task.sh . <task-id>
 ```
 
+## Supporting Guides
+
+- [State convergence](state-convergence.md) keeps `planning/active`, roadmap, and backlog status aligned during review or maintenance.
+- [Cloud Dev parity](cloud-dev-parity.md) defines the agent-neutral cloud task contract and evidence gates for remote work.
+- [MCP read-only compatibility](mcp-read-only-compatibility.md) defines native adapter, MCP read-only, and docs-only/manual tiers.
+- [Office templates](office-templates.md) cover lightweight non-coding tasks without changing the coding workflow.
+
 ## Optional Contracts
 
 Harness documents integration contracts for browser and eval capabilities, but does not require a bundled runtime for either one.

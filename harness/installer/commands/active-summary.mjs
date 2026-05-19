@@ -109,7 +109,7 @@ function buildAnomalies(tasks) {
       });
     }
 
-    if (task.safeToArchive && !task.reconciliationReady) {
+    if (task.lifecycleArchiveReady && !task.reconciliationReady) {
       anomalies.push({
         taskId: task.task_id,
         kind: 'reconciliation_open',
@@ -179,7 +179,7 @@ export async function activeSummary(args = []) {
         reasons: []
       };
 
-      if (task.safe_to_archive) {
+      if (task.lifecycle_archive_ready ?? task.safe_to_archive) {
         const statusReport = await runPythonJson(rootDir, statusScript, [rootDir, task.task_id, '--json']);
         companion = statusReport.companion || companion;
       }
@@ -191,6 +191,8 @@ export async function activeSummary(args = []) {
         ...task,
         looksComplete: task.looks_complete,
         safeToArchive: task.safe_to_archive,
+        lifecycleArchiveReady: task.lifecycle_archive_ready ?? task.safe_to_archive,
+        lifecycle_archive_ready: task.lifecycle_archive_ready ?? task.safe_to_archive,
         reconciliationStatus,
         reconciliation_status: reconciliationStatus,
         reconciliationReady,

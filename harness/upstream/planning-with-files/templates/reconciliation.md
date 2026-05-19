@@ -22,4 +22,4 @@
 - [Record updates made/needed, or "None".]
 
 ## Archive Readiness
-- [Ready / Not ready, with reason.]
+- Not ready — replace this with `Ready` and supporting reason only after reconciliation is complete.

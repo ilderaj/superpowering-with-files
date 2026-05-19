@@ -60,7 +60,24 @@ test('harness --help lists the record command', async () => {
   const root = await createFixture('record-help');
   try {
     const { stdout } = await harnessCommand(root, '--help');
-    assert.match(stdout, /record\s+Append a timestamped record block to task_plan, findings, or progress/);
+    assert.match(stdout, /record\s+Append a timestamped record block to task_plan, findings, progress, or reconciliation/);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('harness record invalid file error lists reconciliation as an accepted file', async () => {
+  const root = await createFixture('record-invalid-file');
+  try {
+    await writeTask(root, 't1', activeTaskFiles('Task One'));
+
+    await assert.rejects(
+      harnessCommand(root, 'record', '--file', 'notes'),
+      (error) => {
+        assert.match(error.stderr, /Expected one of: task_plan, findings, progress, reconciliation/);
+        return true;
+      }
+    );
   } finally {
     await removeFixture(root);
   }
@@ -141,6 +158,7 @@ test('harness record can create and append a reconciliation record', async () =>
     assert.match(reconciliation, new RegExp(`## Reconciliation Record: ${utc8TimestampPattern.source}`));
     assert.match(reconciliation, /### Archive Readiness/);
     assert.match(reconciliation, /## Verification Evidence/);
+    assert.match(reconciliation, /## Archive Readiness\n- Not ready/);
   } finally {
     await removeFixture(root);
   }

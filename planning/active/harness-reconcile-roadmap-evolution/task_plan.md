@@ -48,6 +48,12 @@ This task documents the decision, updates roadmap/backlog at the right granulari
 
 Pending user review. If approved, implementation can be split across other agents using the iteration boundaries in the long plan.
 
+## Risk Assessment
+
+| Timestamp | Command | Target | Workspace Boundary | Checkpoint | Rollback |
+| --- | --- | --- | --- | --- | --- |
+| 2026-05-19 12:25 UTC+8 | `git checkout -- harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/companion_sync.cpython-313.pyc harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/task_lifecycle.cpython-313.pyc harness/upstream/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc harness/upstream/planning-with-files/scripts/__pycache__/task_lifecycle.cpython-313.pyc` | Generated tracked `__pycache__/*.pyc` files dirtied by test/import runs. | Current worktree only: `/Users/jared/SuperpoweringWithFiles/.worktrees/202605191157-harness-reconcile-execution`. | `/Users/jared/.agent-config/checkpoints/202605191157-harness-reconcile-execution/2026-05-19T04-25-57Z` | Restore from checkpoint bundle/diff if checkout removes needed state; otherwise rerun tests to regenerate ignored bytecode if needed. |
+| 2026-05-19 12:37 UTC+8 | `git checkout -- harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/companion_sync.cpython-313.pyc harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/task_lifecycle.cpython-313.pyc` | Generated tracked overlay `__pycache__/*.pyc` files dirtied by Python-backed test/import runs. | Current worktree only: `/Users/jared/SuperpoweringWithFiles/.worktrees/202605191157-harness-reconcile-execution`. | `/Users/jared/.agent-config/checkpoints/202605191157-harness-reconcile-execution/2026-05-19T04-36-56Z` | Restore from checkpoint bundle/diff if checkout removes needed state; otherwise rerun tests to regenerate bytecode if needed. |
 
 ## Current State
 

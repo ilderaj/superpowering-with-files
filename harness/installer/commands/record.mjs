@@ -47,7 +47,7 @@ function validateFileKind(fileKind) {
   }
 
   if (!VALID_FILES.has(fileKind)) {
-    throw new Error(`Invalid --file "${fileKind}". Expected one of: task_plan, findings, progress.`);
+    throw new Error(`Invalid --file "${fileKind}". Expected one of: task_plan, findings, progress, reconciliation.`);
   }
 }
 

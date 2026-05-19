@@ -40,7 +40,7 @@ function buildAnomalies(tasks) {
     for (const warning of task.warnings || []) {
       anomalies.push({ taskId: task.task_id, kind: 'warning', message: warning });
     }
-    if (task.safeToArchive && !task.reconciliationReady) {
+    if (task.lifecycleArchiveReady && !task.reconciliationReady) {
       anomalies.push({
         taskId: task.task_id,
         kind: 'reconciliation_open',
@@ -97,7 +97,7 @@ export async function getActiveTaskSummary(input = {}) {
         reasons: []
       };
 
-      if (task.safe_to_archive) {
+      if (task.lifecycle_archive_ready ?? task.safe_to_archive) {
         const { stdout: statusStdout } = await execFileAsync(
           'python3',
           [statusScript, resolved.rootDir, task.task_id, '--json'],
@@ -113,6 +113,8 @@ export async function getActiveTaskSummary(input = {}) {
         ...task,
         looksComplete: task.looks_complete,
         safeToArchive: task.safe_to_archive,
+        lifecycleArchiveReady: task.lifecycle_archive_ready ?? task.safe_to_archive,
+        lifecycle_archive_ready: task.lifecycle_archive_ready ?? task.safe_to_archive,
         reconciliationStatus,
         reconciliation_status: reconciliationStatus,
         reconciliationReady,
