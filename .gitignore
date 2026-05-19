@@ -9,3 +9,7 @@ reports/checkpoints/
 .DS_Store
 .tmp.driveupload/
 .alma-snapshots
+__pycache__/
+*.pyc
+.test-fixtures/
+tests/installer/.artifacts/
