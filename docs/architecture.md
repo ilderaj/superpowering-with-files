@@ -110,3 +110,8 @@ This separation is intentional:
 - optional integrations such as browser automation or eval harnesses remain contracts until the project intentionally adopts a concrete runtime
 
 Browser and eval are therefore architecture extension points, not baseline install requirements.
+
+
+## Source-Of-Truth And Reconciliation
+
+`docs/reconciliation.md` defines how Harness resolves drift between intended behavior, actual code, verification evidence, active planning, roadmap, backlog, and companion artifacts. Architecture policy should not treat old specs as automatically more authoritative than verified implementation facts, and verified implementation facts should not be treated as accepted product intent without an owner decision.

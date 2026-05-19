@@ -301,3 +301,16 @@ export HOME=/path/to/disposable-home
 When you run `sync --conflict=backup`, Harness archives the displaced content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`. If legacy `.harness-backup-*` siblings are still present from an older takeover, the next successful `sync` imports them into that archive store and removes the live duplicates before projecting the new baseline.
 
 Use `sync --dry-run` before the actual sync only as a preview; it is not a substitute for verification because it does not write projection files. Manual inspection should cover the user-global entry files for Codex, GitHub Copilot, and Claude Code, plus Cursor's workspace rule output when `scope=both` is used. Cursor does not currently have a rendered user-global entry. The expected result is thin always-on entry content, no full deep-task policy dump, and no broad skill projection when `minimal-global` is selected.
+
+
+## Reconciliation Preservation
+
+For tracked coding, cloud-dev, workflow, adapter, MCP, safety, roadmap, backlog, or governance changes, finish/archive review should check the reconcile gate in `docs/reconciliation.md`.
+
+Acceptable states before archive:
+
+- `reconcile: complete` with `planning/active/<task-id>/reconciliation.md` or a clear `## Reconciliation` section in `progress.md`;
+- `reconcile: not required` with a reason for trivial/copy-only work;
+- `reconcile: waived` with owner/reviewer decision recorded.
+
+Archive handling must preserve `reconciliation.md` alongside `task_plan.md`, `findings.md`, `progress.md`, and any companion plan artifacts. If tooling does not yet expose reconciliation status in `active-summary`, record the status manually in the task's lifecycle block and track tooling support through `REC-002`.

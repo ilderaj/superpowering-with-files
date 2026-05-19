@@ -141,3 +141,12 @@ Use this contract when validating a projected skill, hook payload, or workflow l
 - Input: target IDE, skill or command surface, and expected behavior.
 - Expected artifacts: reproducible fixture, pass/fail verdict, and regression note if behavior changes.
 - Scope: evals supplement repository verification; they do not replace `npm run verify`, `sync --dry-run`, or `doctor --check-only`.
+
+
+## Reconcile Gate
+
+Reconciliation is the verify-to-finish gate defined in `docs/reconciliation.md`. It is not a replacement for implementation or verification, and it should not become a documentation tax for tiny changes.
+
+Use the gate before finish/archive when a task changes code behavior, workflow policy, adapter output, MCP contracts, safety behavior, cloud-dev behavior, roadmap/backlog commitments, or other tracked product decisions. The gate compares planned intent, actual changes, acceptance status, verification evidence, intentional deviations, unresolved drift, and docs/backlog update needs.
+
+A task may mark `reconcile: not required` only for trivial/copy-only work or when the active task plan records a clear owner-approved reason.

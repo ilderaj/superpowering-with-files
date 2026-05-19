@@ -240,3 +240,8 @@ Harness vendors two upstream systems and adds stricter local governance on top.
 | [`planning-with-files`](https://github.com/OthmanAdi/planning-with-files) | persistent markdown planning and session recovery | MIT | the only durable task-memory system |
 
 Thanks to the upstream authors and communities whose work this repository builds on.
+
+
+## Reconciliation Gate
+
+For tracked coding and cloud-dev work, Harness uses the reconcile gate in `docs/reconciliation.md` after implementation/verification and before finish/archive. The gate keeps intended behavior, actual changes, verification evidence, and docs/backlog follow-up aligned without requiring large specs for trivial changes.
