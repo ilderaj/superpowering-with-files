@@ -55,7 +55,7 @@ export async function readHarnessResource(uri, input = {}) {
     return buildContents(uri, sanitizeText(text, input));
   }
 
-  const taskMatch = uri.match(/^harness:\/\/task\/([^/]+)\/(task_plan|findings|progress)$/);
+  const taskMatch = uri.match(/^harness:\/\/task\/([^/]+)\/(task_plan|findings|progress|reconciliation)$/);
   if (taskMatch) {
     const [, taskId, fileStem] = taskMatch;
     const { taskDir } = await getTaskSummary({ ...input, taskId });
@@ -68,23 +68,39 @@ export async function readHarnessResource(uri, input = {}) {
 
 export async function listHarnessResources(input = {}) {
   const activeTasks = await getActiveTaskSummary(input);
-  const taskResources = activeTasks.report.tasks.flatMap((task) => [
-    {
-      name: `${task.task_id} task_plan`,
-      uri: taskUri(task.task_id, 'task_plan'),
-      mimeType: 'text/markdown'
-    },
-    {
-      name: `${task.task_id} findings`,
-      uri: taskUri(task.task_id, 'findings'),
-      mimeType: 'text/markdown'
-    },
-    {
-      name: `${task.task_id} progress`,
-      uri: taskUri(task.task_id, 'progress'),
-      mimeType: 'text/markdown'
-    }
-  ]);
+  const taskResources = (
+    await Promise.all(
+      activeTasks.report.tasks.map(async (task) => {
+        const resources = [
+          {
+            name: `${task.task_id} task_plan`,
+            uri: taskUri(task.task_id, 'task_plan'),
+            mimeType: 'text/markdown'
+          },
+          {
+            name: `${task.task_id} findings`,
+            uri: taskUri(task.task_id, 'findings'),
+            mimeType: 'text/markdown'
+          },
+          {
+            name: `${task.task_id} progress`,
+            uri: taskUri(task.task_id, 'progress'),
+            mimeType: 'text/markdown'
+          }
+        ];
+
+        if (task.reconciliation_artifact) {
+          resources.push({
+            name: `${task.task_id} reconciliation`,
+            uri: taskUri(task.task_id, 'reconciliation'),
+            mimeType: 'text/markdown'
+          });
+        }
+
+        return resources;
+      })
+    )
+  ).flat();
 
   return [
     { name: 'Harness status', uri: 'harness://status', mimeType: 'application/json' },

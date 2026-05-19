@@ -313,4 +313,6 @@ Acceptable states before archive:
 - `reconcile: not required` with a reason for trivial/copy-only work;
 - `reconcile: waived` with owner/reviewer decision recorded.
 
-Archive handling must preserve `reconciliation.md` alongside `task_plan.md`, `findings.md`, `progress.md`, and any companion plan artifacts. If tooling does not yet expose reconciliation status in `active-summary`, record the status manually in the task's lifecycle block and track tooling support through `REC-002`.
+Archive handling preserves `reconciliation.md` alongside `task_plan.md`, `findings.md`, `progress.md`, and any companion plan artifacts because `archive-task` moves the whole active task directory before companion-plan relocation.
+
+`active-summary` exposes `reconciliationStatus` / `reconciliation_status`, `reconciliationReady` / `reconciliation_ready`, counts by reconciliation status, and a `reconciliation_open` anomaly when an archive-ready task lacks an accepted signal. Current archive behavior warns through summary/status rather than hard-blocking reconciliation-open legacy tasks; REC-002 should decide whether to promote that warning to an archive block after legacy active tasks are cleaned up.

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { resolveActiveTaskDirectory } from '../lib/planning-task.mjs';
 
 const execFileAsync = promisify(execFile);
-const VALID_FILES = new Set(['task_plan', 'findings', 'progress']);
+const VALID_FILES = new Set(['task_plan', 'findings', 'progress', 'reconciliation']);
 
 function hasFlag(args, ...names) {
   return names.some((name) => args.includes(name));
@@ -31,10 +31,10 @@ function readOption(args, name) {
 
 function usage() {
   return [
-    'Usage: ./scripts/harness record --file <task_plan|findings|progress> [--task <task-id>] [--title <text>]',
+    'Usage: ./scripts/harness record --file <task_plan|findings|progress|reconciliation> [--task <task-id>] [--title <text>]',
     '',
     'Options:',
-    '  --file <name>    Planning file to append to: task_plan, findings, or progress',
+    '  --file <name>    Planning file to append to: task_plan, findings, progress, or reconciliation',
     '  --task <task-id> Append to a specific task under planning/active',
     '  --title <text>   Optional subheading to insert below the timestamped record heading',
     '  --help, -h       Show this help message'

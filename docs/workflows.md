@@ -149,4 +149,13 @@ Reconciliation is the verify-to-finish gate defined in `docs/reconciliation.md`.
 
 Use the gate before finish/archive when a task changes code behavior, workflow policy, adapter output, MCP contracts, safety behavior, cloud-dev behavior, roadmap/backlog commitments, or other tracked product decisions. The gate compares planned intent, actual changes, acceptance status, verification evidence, intentional deviations, unresolved drift, and docs/backlog update needs.
 
+Lifecycle tooling recognizes these reconciliation signals:
+
+- `complete`: `planning/active/<task-id>/reconciliation.md`, `## Reconciliation` in `progress.md`, or `Reconcile: complete` in `task_plan.md`/`progress.md`.
+- `not_required`: `Reconcile: not_required` or `Reconcile: not required` with a reason for trivial/copy-only work.
+- `waived`: `Reconcile: waived` with the owner/reviewer decision recorded.
+- `open` / `unknown`: no accepted signal yet; `active-summary` reports an anomaly when an archive-ready task is still open.
+
+`./scripts/harness active-summary` reports reconciliation counts and per-task status. `./scripts/harness record --file reconciliation --task <task-id>` creates/appends the recommended `reconciliation.md` shape.
+
 A task may mark `reconcile: not required` only for trivial/copy-only work or when the active task plan records a clear owner-approved reason.

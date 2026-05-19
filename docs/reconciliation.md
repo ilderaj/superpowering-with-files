@@ -67,6 +67,8 @@ Tracked coding work should produce one of these before finish/archive:
 - `planning/active/<task-id>/reconciliation.md`; or
 - a clearly labeled `## Reconciliation` section in `progress.md` for very small tracked tasks.
 
+Use `./scripts/harness record --file reconciliation --task <task-id>` to create or append the standalone artifact. A reusable template also lives at `harness/core/upstream-overlays/planning-with-files/templates/reconciliation.md`.
+
 Recommended artifact shape:
 
 ```markdown
@@ -123,6 +125,18 @@ Docs-only changes that alter governance, roadmap, backlog, architecture, workflo
 - Do not automatically rewrite roadmap/backlog without explicit owner review.
 - Do not treat old specs as more authoritative than verified implementation facts.
 - Do not make MCP a platform-specific adapter; MCP remains the compatibility facade.
+
+## Lifecycle Signals
+
+Planning lifecycle tooling recognizes these status values:
+
+- `complete`: standalone `reconciliation.md`, a `## Reconciliation` section in `progress.md`, or `Reconcile: complete` in task lifecycle text.
+- `not_required`: `Reconcile: not_required` or `Reconcile: not required` with a reason.
+- `waived`: `Reconcile: waived` with the owner/reviewer decision.
+- `open`: archive-eligible/closed work without an accepted readiness signal.
+- `unknown`: active/incomplete work where reconciliation has not started.
+
+`active-summary` reports `reconciliationStatus` / `reconciliation_status`, `reconciliationReady` / `reconciliation_ready`, counts by status, and a `reconciliation_open` anomaly for archive-ready work that still lacks readiness.
 
 ## Validation Expectations
 

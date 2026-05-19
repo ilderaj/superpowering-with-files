@@ -14,9 +14,12 @@ function buildCounts(tasks) {
   let safeToArchive = 0;
   let archiveReady = 0;
   let needsAttention = 0;
+  const byReconciliationStatus = {};
 
   for (const task of tasks) {
     byStatus[task.status] = (byStatus[task.status] || 0) + 1;
+    const reconciliationStatus = task.reconciliationStatus || task.reconciliation_status || 'unknown';
+    byReconciliationStatus[reconciliationStatus] = (byReconciliationStatus[reconciliationStatus] || 0) + 1;
     if (task.looksComplete) looksComplete += 1;
     if (task.safeToArchive) safeToArchive += 1;
     if (task.archive_ready) archiveReady += 1;
@@ -25,7 +28,7 @@ function buildCounts(tasks) {
     }
   }
 
-  return { total: tasks.length, byStatus, looksComplete, safeToArchive, archiveReady, needsAttention };
+  return { total: tasks.length, byStatus, byReconciliationStatus, looksComplete, safeToArchive, archiveReady, needsAttention };
 }
 
 function buildAnomalies(tasks) {
@@ -36,6 +39,13 @@ function buildAnomalies(tasks) {
     }
     for (const warning of task.warnings || []) {
       anomalies.push({ taskId: task.task_id, kind: 'warning', message: warning });
+    }
+    if (task.safeToArchive && !task.reconciliationReady) {
+      anomalies.push({
+        taskId: task.task_id,
+        kind: 'reconciliation_open',
+        message: task.reconciliation_reason || 'archive-ready task lacks reconciliation readiness'
+      });
     }
   }
   return anomalies;
@@ -96,10 +106,17 @@ export async function getActiveTaskSummary(input = {}) {
         companion = JSON.parse(statusStdout).companion || companion;
       }
 
+      const reconciliationStatus = task.reconciliation_status || 'unknown';
+      const reconciliationReady = Boolean(task.reconciliation_ready);
+
       return {
         ...task,
         looksComplete: task.looks_complete,
         safeToArchive: task.safe_to_archive,
+        reconciliationStatus,
+        reconciliation_status: reconciliationStatus,
+        reconciliationReady,
+        reconciliation_ready: reconciliationReady,
         archive_ready: task.safe_to_archive && (!companion.has_companion || companion.ok),
         companion
       };

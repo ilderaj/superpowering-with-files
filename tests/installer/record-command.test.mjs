@@ -115,3 +115,33 @@ test('harness record --task appends findings and task_plan records with the shar
     await removeFixture(root);
   }
 });
+
+
+test('harness record can create and append a reconciliation record', async () => {
+  const root = await createFixture('record-reconciliation');
+  try {
+    await writeTask(root, 't1', activeTaskFiles('Task One'));
+
+    const { stdout, stderr } = await harnessCommand(
+      root,
+      'record',
+      '--task',
+      't1',
+      '--file',
+      'reconciliation',
+      '--title',
+      'Archive Readiness'
+    );
+
+    assert.equal(stderr, '');
+    assert.match(stdout, /planning\/active\/t1\/reconciliation\.md/);
+
+    const reconciliation = await readFile(path.join(root, 'planning/active/t1/reconciliation.md'), 'utf8');
+    assert.match(reconciliation, /^# Reconciliation: t1/m);
+    assert.match(reconciliation, new RegExp(`## Reconciliation Record: ${utc8TimestampPattern.source}`));
+    assert.match(reconciliation, /### Archive Readiness/);
+    assert.match(reconciliation, /## Verification Evidence/);
+  } finally {
+    await removeFixture(root);
+  }
+});

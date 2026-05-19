@@ -15,6 +15,7 @@ FILE_MAP = {
     "task_plan": "task_plan.md",
     "findings": "findings.md",
     "progress": "progress.md",
+    "reconciliation": "reconciliation.md",
 }
 
 
@@ -31,6 +32,8 @@ def heading_for(kind: str, timestamp: Optional[str] = None) -> str:
         return f"## Session: {value}"
     if kind == "findings":
         return f"## Findings Record: {value}"
+    if kind == "reconciliation":
+        return f"## Reconciliation Record: {value}"
     return f"## Plan Record: {value}"
 
 
@@ -49,6 +52,34 @@ def render_block(kind: str, title: Optional[str] = None) -> str:
                 "  -",
             ]
         )
+    elif kind == "reconciliation":
+        lines.extend(
+            [
+                "## Planned Intent",
+                "- ",
+                "",
+                "## Actual Changes",
+                "- ",
+                "",
+                "## Acceptance Status",
+                "- [ ] ",
+                "",
+                "## Verification Evidence",
+                "- ",
+                "",
+                "## Intentional Deviations",
+                "- ",
+                "",
+                "## Drift / Follow-Up Required",
+                "- ",
+                "",
+                "## Docs / Roadmap / Backlog Updates Needed",
+                "- ",
+                "",
+                "## Archive Readiness",
+                "- ",
+            ]
+        )
     else:
         lines.append("- ")
 
@@ -63,7 +94,9 @@ def append_record(project_path: Path, task_id: Optional[str], kind: str, title: 
 
     target = plan_dir / file_name
     if not target.exists():
-        raise FileNotFoundError(f"planning file does not exist: {target}")
+        if kind != "reconciliation":
+            raise FileNotFoundError(f"planning file does not exist: {target}")
+        target.write_text(f"# Reconciliation: {plan_dir.name}\n", encoding="utf-8")
 
     original = target.read_text(encoding="utf-8")
     prefix = original
@@ -81,9 +114,9 @@ def usage() -> str:
         "usage: planning_record.py <command> [args]\n"
         "commands:\n"
         "  timestamp\n"
-        "  heading <task_plan|findings|progress>\n"
-        "  block <task_plan|findings|progress> [title]\n"
-        "  append <project_path> <task_id> <task_plan|findings|progress> [title]\n"
+        "  heading <task_plan|findings|progress|reconciliation>\n"
+        "  block <task_plan|findings|progress|reconciliation> [title]\n"
+        "  append <project_path> <task_id> <task_plan|findings|progress|reconciliation> [title]\n"
     )
 
 

@@ -15,3 +15,12 @@ test('readHarnessResource returns active task data', async () => {
   assert.equal(result.contents[0].uri, 'harness://active-tasks');
   assert.match(result.contents[0].text, /counts/);
 });
+
+
+test('listHarnessResources exposes task reconciliation resources when present', async () => {
+  const resources = await listHarnessResources({ root: process.cwd() });
+  const taskResources = resources.filter((resource) => resource.uri.includes('/reconciliation'));
+  assert(taskResources.length > 0);
+  const result = await readHarnessResource(taskResources[0].uri, { root: process.cwd() });
+  assert.equal(result.contents[0].mimeType, 'text/markdown');
+});
