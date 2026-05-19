@@ -21,7 +21,7 @@ git merge --ff-only dev
 git push origin main
 ```
 
-Only promote to `main` after verification passes.
+Only promote to `main` after verification passes. If the release includes upstream baseline changes, also attach an [Upstream Update Compatibility](upstream-update-compatibility.md) report covering changed upstream files, affected projections, required resync, risk level, patch drift warnings, and checks.
 
 Release lane expectations:
 

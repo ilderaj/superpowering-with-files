@@ -17,6 +17,8 @@ That means:
 
 If you pass `--targets=gemini`, the installer reports Gemini as unsupported instead of silently creating partial state.
 
+For choosing between minimal-global, full-local, and cloud-dev adoption profiles, start with the [Adoption Starter Kit](adoption-starter-kit.md).
+
 Hook availability depends on target-specific prerequisites:
 
 - Codex: requires `[features] codex_hooks = true`.

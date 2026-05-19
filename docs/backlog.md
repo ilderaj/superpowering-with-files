@@ -17,7 +17,7 @@ The next focus area is Harness traceability and adoption convergence: first add 
 
 ### CDX-001: Cloud Dev Experience Parity Audit
 
-- Status: ready
+- Status: ready (documentation contract started in [Cloud Dev Parity](cloud-dev-parity.md); live cloud behavior gaps remain open)
 - Priority: high
 - Type: research and design
 - Scope: Compare local Harness workflow behavior with the current GitHub `cloud-dev` lane across planning state, skills, hooks, verification, branch isolation, recovery, and promotion.
@@ -78,7 +78,7 @@ The next focus area is Harness traceability and adoption convergence: first add 
 
 ### CDX-006: Agent-Neutral Cloud Task Contract
 
-- Status: proposed
+- Status: proposed (initial documentation contract exists in [Cloud Dev Parity](cloud-dev-parity.md); automation remains future work)
 - Priority: medium
 - Type: design
 - Scope: Define a shared handoff contract for cloud agents so Copilot, Codex, and Claude can receive the same task intent while using platform-specific dispatch mechanisms.
@@ -179,7 +179,7 @@ The next focus area is Harness traceability and adoption convergence: first add 
 
 ### REC-003: SOT Map And Drift Policy
 
-- Status: ready
+- Status: ready (policy in [Reconciliation](reconciliation.md); report format in [State Convergence](state-convergence.md))
 - Priority: high
 - Type: documentation and governance
 - Scope: Make source-of-truth boundaries explicit across code, tests, verification evidence, planning, specs, roadmap, backlog, MCP, and adapter policy.
@@ -192,7 +192,7 @@ The next focus area is Harness traceability and adoption convergence: first add 
 
 ### MCP-001: MCP Read-Only Adoption As Compatibility Layer
 
-- Status: proposed
+- Status: proposed (tier contract documented in [MCP Read-Only Compatibility](mcp-read-only-compatibility.md); pilot integration still pending)
 - Priority: high
 - Type: compatibility and adoption
 - Scope: Treat MCP read-only as the minimum compatibility layer for agents or IDEs that do not yet warrant a native Harness adapter.
@@ -205,7 +205,7 @@ The next focus area is Harness traceability and adoption convergence: first add 
 
 ### ADOPT-001: Deployment And Adoption Starter Kit
 
-- Status: proposed
+- Status: proposed (operator guide drafted in [Adoption Starter Kit](install/adoption-starter-kit.md); fixture/disposable-home validation still pending)
 - Priority: medium
 - Type: operator experience
 - Scope: Provide a small adoption package for new repositories and teams.
@@ -218,7 +218,7 @@ The next focus area is Harness traceability and adoption convergence: first add 
 
 ### UPD-001: Upstream Update Compatibility Contract
 
-- Status: proposed
+- Status: proposed (report contract documented in [Upstream Update Compatibility](upstream-update-compatibility.md); command output automation remains future work)
 - Priority: medium
 - Type: maintenance and release hygiene
 - Scope: Make upstream refresh/update output more reviewable before local projection changes are accepted.
@@ -230,7 +230,7 @@ The next focus area is Harness traceability and adoption convergence: first add 
 
 ### OFFICE-001: Everyday Work Lightweight Templates
 
-- Status: proposed
+- Status: proposed (initial templates documented in [Office Templates](office-templates.md); generation commands are not implemented)
 - Priority: low-medium
 - Type: workflow templates
 - Scope: Add lightweight Harness templates for non-coding work such as research, decision records, document review, meeting follow-up, and approvals.

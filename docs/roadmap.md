@@ -12,7 +12,7 @@ This document captures deferred product and workflow work that is intentionally 
 - Prefer issue-first cloud tasks today because issues preserve durable task state, labels, workflow preflight, and review history.
 - Explore two additional cloud entry points: native Copilot assignment during issue creation, and direct task launch from the repository Agent tab.
 
-Detailed execution candidates live in [Backlog](backlog.md). Keep this roadmap focused on direction, sequencing, and product boundaries.
+Detailed execution candidates live in [Backlog](backlog.md). Keep this roadmap focused on direction, sequencing, and product boundaries. Use [State Convergence](state-convergence.md) when roadmap status must be reconciled with active task evidence.
 
 ## Version Plan
 
@@ -197,7 +197,7 @@ This sequence follows the 2026-05-17 roadmap/backlog review captured in `plannin
 
 ### Iteration 3: MCP Read-Only Compatibility Layer
 
-- Status: proposed
+- Status: proposed; [MCP Read-Only Compatibility](mcp-read-only-compatibility.md) documents tiers, while pilot adoption and expanded runtime behavior remain future work
 - Primary backlog: `MCP-001`
 - Goal: make MCP read-only the minimum compatibility layer for agents that do not yet deserve a native Harness adapter.
 - Checkpoints:
@@ -210,7 +210,7 @@ This sequence follows the 2026-05-17 roadmap/backlog review captured in `plannin
 
 ### Iteration 4: Agent-Neutral Cloud-Dev Parity
 
-- Status: planned
+- Status: planned; parity matrix and contract are documented, but unsupported cloud agents remain research-only
 - Primary backlog: `CDX-001`, `CDX-006`, plus amended cloud reconciliation fields
 - Goal: continue cloud-dev parity around a shared contract rather than Copilot-only UI behavior.
 - Checkpoints:
@@ -223,7 +223,7 @@ This sequence follows the 2026-05-17 roadmap/backlog review captured in `plannin
 
 ### Iteration 5: Deployment, Adoption, And Upstream Update Kit
 
-- Status: proposed
+- Status: proposed; starter-kit and compatibility report docs exist, automation/fixture validation remains future work
 - Primary backlog: `ADOPT-001`, `UPD-001`
 - Goal: make Harness easier to deploy, adopt, rollback, and update from upstream without surprising local projects.
 - Checkpoints:
@@ -236,7 +236,7 @@ This sequence follows the 2026-05-17 roadmap/backlog review captured in `plannin
 
 ### Iteration 6: Everyday Office Work Templates
 
-- Status: proposed
+- Status: proposed; lightweight templates exist as Harness-owned docs/templates, no runtime generator added
 - Primary backlog: `OFFICE-001`
 - Goal: extend Harness discipline to research, decisions, document review, and follow-up work without diluting the coding-first architecture.
 - Checkpoints:

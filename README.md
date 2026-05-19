@@ -65,16 +65,17 @@ Notes:
 
 ## Workflow Lanes
 
-Harness exposes six operator-facing lanes:
+Harness exposes operator-facing lanes:
 
 - `plan`: tracked task setup, worktree base selection, and durable planning state
 - `review`: plan review, diff review, PR review, and archive-readiness review
 - `verify`: focused checks, full repository verification, projection dry-runs, and doctor output
+- `reconcile`: align intent, actual changes, verification, and follow-up before finish/archive
 - `finish`: branch push, merge back to `dev`, and task record updates
 - `release`: `dev` to `main` promotion plus adoption and release-document alignment
 - `archive`: explicit close-and-archive lifecycle flow
 
-See [Workflows](docs/workflows.md) for the lane map and the optional browser/eval contracts.
+See [Workflows](docs/workflows.md) for the lane map, reconcile gate, and optional browser/eval contracts.
 
 ## Common Flows
 
@@ -220,6 +221,13 @@ More detail:
 - [Maintenance](docs/maintenance.md)
 - [Workflows](docs/workflows.md)
 - [Cloud Dev Harness operator guide](docs/cloud-dev-harness.md)
+- [Cloud Dev parity and task contract](docs/cloud-dev-parity.md)
+- [MCP read-only compatibility](docs/mcp-read-only-compatibility.md)
+- [State convergence](docs/state-convergence.md)
+- [Reconciliation](docs/reconciliation.md)
+- [Adoption starter kit](docs/install/adoption-starter-kit.md)
+- [Upstream update compatibility](docs/upstream-update-compatibility.md)
+- [Office templates](docs/office-templates.md)
 - [Release](docs/release.md)
 - [Platform support](docs/install/platform-support.md)
 - [Codex installation](docs/install/codex.md)

@@ -186,6 +186,8 @@ Every cloud-dev task branch and promotion step should pass these checks before r
 
 For Copilot issue assignment, keep the directive explicit: `base_branch=cloud-dev`.
 
+For the shared matrix, contract fields, and evidence labels that govern promotion claims, see [Cloud Dev Parity](cloud-dev-parity.md).
+
 ## Agent Support Boundary
 
 The cloud-dev lane implemented in this repository is Copilot-first.
