@@ -57,3 +57,18 @@
   - `npm run test:mcp` — pass, 21 tests.
   - `./scripts/harness sync --dry-run` — pass, no projection changes.
   - `./scripts/harness doctor --check-only` — pass; stderr still reports pre-existing companion-plan reference warnings.
+
+## 2026-05-19 13:36 UTC+8
+
+- Finalized execution branch `harness-reconcile-execution` after reviewer blockers.
+- Fixed merge-readiness issues:
+  - removed tracked Python bytecode artifacts and ignored future bytecode/test artifacts;
+  - changed MCP reconciliation resource test to use an isolated fixture instead of live `planning/active` state;
+  - made the upstream bootstrap caching helper safe under `node --test` when invoked without shell-wrapper fixture arguments;
+  - stabilized Copilot hook budget assertion so full-suite concurrency/timeout noise does not make the test depend on a fragile token floor.
+- Final verification evidence:
+  - `PYTHONDONTWRITEBYTECODE=1 npm test` — pass (`501` pass, `0` fail).
+  - `PYTHONDONTWRITEBYTECODE=1 npm run verify` — pass (`405` + `21` pass, `0` fail).
+  - `./scripts/harness sync --dry-run` — pass, no projection changes.
+  - `./scripts/harness active-summary --json` — current task reports `reconciliationStatus=complete`, `reconciliationReady=true`.
+  - Final worktree status was clean after verification.

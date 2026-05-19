@@ -40,6 +40,14 @@
 - [x] Iteration 6 office workflow guide and lightweight templates exist without changing upstream templates or coding workflow requirements.
 - [ ] Owner review is still pending.
 
+## Final Execution Verification
+
+- `PYTHONDONTWRITEBYTECODE=1 npm test` — pass (`501` pass, `0` fail).
+- `PYTHONDONTWRITEBYTECODE=1 npm run verify` — pass (`405` installer/core/adapter/automation tests plus `21` MCP tests, `0` fail).
+- `./scripts/harness sync --dry-run` — pass, no projection changes.
+- `./scripts/harness active-summary --json` — current task reports `reconciliationStatus=complete`, `reconciliationReady=true`.
+- Final reviewer blockers were resolved before this record: archive gate enforcement, pycache hygiene, fixture-isolated MCP resource test, node-test-safe upstream helper, and stable Copilot budget assertion.
+
 ## Verification Evidence
 
 - `grep -R "REC-001\|REC-002\|REC-003\|MCP-001\|ADOPT-001\|UPD-001\|OFFICE-001" -n docs planning/active/harness-reconcile-roadmap-evolution` — passed before follow-up edits; confirms IDs are searchable.
