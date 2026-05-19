@@ -3,6 +3,11 @@ import { pathToFileURL } from 'url';
 
 const [, , pluginPath, scenario] = process.argv;
 
+if (!pluginPath && !scenario) {
+  console.log('# SKIP bootstrap caching helper requires the shell wrapper to provide fixture arguments');
+  process.exit(0);
+}
+
 if (!pluginPath || !['present', 'missing'].includes(scenario)) {
   console.error('Usage: node test-bootstrap-caching.mjs PLUGIN_PATH present|missing');
   process.exit(2);
