@@ -11,20 +11,21 @@ Status values:
 
 ## Current Focus
 
-The next focus area is cloud development parity: make the remote `cloud-dev` lane feel as predictable as the local Harness workflow while preserving branch safety, planning state, and human review boundaries.
+The next focus area is Harness traceability and adoption convergence: first add post-implementation reconciliation and source-of-truth boundaries, then continue cloud-dev parity through an agent-neutral contract, MCP compatibility, deployment/adoption hardening, upstream-update safety, and lightweight everyday-work templates.
 
 ## Backlog Items
 
 ### CDX-001: Cloud Dev Experience Parity Audit
 
-- Status: ready
+- Status: ready (documentation contract started in [Cloud Dev Parity](cloud-dev-parity.md); live cloud behavior gaps remain open)
 - Priority: high
 - Type: research and design
 - Scope: Compare local Harness workflow behavior with the current GitHub `cloud-dev` lane across planning state, skills, hooks, verification, branch isolation, recovery, and promotion.
 - Acceptance signals:
   - A parity matrix lists local behavior, current cloud behavior, gap, and owner for each workflow surface.
   - Gaps are split into Copilot-specific work, shared Harness work, and platform research.
-  - The matrix links back to `docs/cloud-dev-harness.md` and `docs/workflows.md`.
+  - The matrix links back to `docs/cloud-dev-harness.md`, `docs/workflows.md`, and `docs/reconciliation.md`.
+  - The matrix includes how remote tasks preserve or reconcile planning state, implementation summaries, verification evidence, and docs/backlog update needs.
 - Dependencies: current Copilot cloud-dev lane remains the baseline fact source.
 
 ### CDX-002: Repo-Local Cloud Dev Issue Template
@@ -77,7 +78,7 @@ The next focus area is cloud development parity: make the remote `cloud-dev` lan
 
 ### CDX-006: Agent-Neutral Cloud Task Contract
 
-- Status: proposed
+- Status: proposed (initial documentation contract exists in [Cloud Dev Parity](cloud-dev-parity.md); automation remains future work)
 - Priority: medium
 - Type: design
 - Scope: Define a shared handoff contract for cloud agents so Copilot, Codex, and Claude can receive the same task intent while using platform-specific dispatch mechanisms.
@@ -149,6 +150,95 @@ The next focus area is cloud development parity: make the remote `cloud-dev` lan
   - If automatic assignment is not available from `/create-issue`, the remaining human or workflow fallback step is explicitly documented and kept minimal.
   - The end-to-end behavior is verified on the real GitHub path from ask-mode issue creation to either triage handoff or direct assignment.
 - Dependencies: `CDX-002`, `CDX-003`, and current operator evidence for Copilot cloud-dev assignment.
+
+### REC-001: Post-Implementation Reconcile Lane
+
+- Status: ready
+- Priority: high
+- Type: workflow and lifecycle design
+- Scope: Add a `reconcile` lane after implementation and verification, before finish/archive, for tracked coding tasks and cloud-dev work.
+- Acceptance signals:
+  - `docs/workflows.md` describes when reconciliation is required and when it can be marked not required.
+  - Reconciliation compares planned intent, actual changes, acceptance status, verification evidence, intentional deviations, unresolved drift, and docs/backlog update needs.
+  - The default behavior is report-only; roadmap/backlog/spec rewrites require explicit owner approval.
+  - One tracked coding-task dry run proves the lane from plan through archive-readiness.
+- Dependencies: `docs/reconciliation.md`, existing planning lifecycle.
+
+### REC-002: Reconciliation Artifact Persistence
+
+- Status: ready
+- Priority: high
+- Type: planning lifecycle
+- Scope: Persist reconciliation output in durable task memory and preserve it during archive.
+- Acceptance signals:
+  - Tracked work can store `planning/active/<task-id>/reconciliation.md` or an equivalent `## Reconciliation` progress section.
+  - Archive procedures preserve the reconciliation artifact.
+  - Active summaries can expose whether reconciliation is complete, not required, or still open.
+  - Tiny tasks can explicitly mark `reconcile: not required` with a reason.
+- Dependencies: REC-001.
+
+### REC-003: SOT Map And Drift Policy
+
+- Status: ready (policy in [Reconciliation](reconciliation.md); report format in [State Convergence](state-convergence.md))
+- Priority: high
+- Type: documentation and governance
+- Scope: Make source-of-truth boundaries explicit across code, tests, verification evidence, planning, specs, roadmap, backlog, MCP, and adapter policy.
+- Acceptance signals:
+  - `docs/reconciliation.md` or equivalent docs define which artifact is authoritative for which question.
+  - Common drift cases include roadmap-vs-planning, spec-vs-code, and cloud-task-vs-local-state examples.
+  - Conflict handling requires explicit reconciliation instead of silent overwrite.
+  - Agents can discover this policy from roadmap, backlog, and workflow docs.
+- Dependencies: none.
+
+### MCP-001: MCP Read-Only Adoption As Compatibility Layer
+
+- Status: proposed (tier contract documented in [MCP Read-Only Compatibility](mcp-read-only-compatibility.md); pilot integration still pending)
+- Priority: high
+- Type: compatibility and adoption
+- Scope: Treat MCP read-only as the minimum compatibility layer for agents or IDEs that do not yet warrant a native Harness adapter.
+- Acceptance signals:
+  - Documentation defines native adapter, MCP read-only, and docs-only adoption tiers.
+  - MCP exposes/read-documents status, active task summary, task details, verification summaries, and safe dry-run surfaces where appropriate.
+  - A pilot integration can inspect Harness state without modifying repository files.
+  - MCP remains a runtime facade, not a platform-specific projection adapter.
+- Dependencies: completed MCP runtime facade review.
+
+### ADOPT-001: Deployment And Adoption Starter Kit
+
+- Status: proposed (operator guide drafted in [Adoption Starter Kit](install/adoption-starter-kit.md); fixture/disposable-home validation still pending)
+- Priority: medium
+- Type: operator experience
+- Scope: Provide a small adoption package for new repositories and teams.
+- Acceptance signals:
+  - Quickstart compares `minimal-global`, `full-local`, and `cloud-dev` profiles.
+  - Includes rollback, doctor, sync dry-run, verify, and smoke-check steps.
+  - Explains what upstream update can and cannot overwrite.
+  - A disposable-home or fixture-based adoption test validates the guide.
+- Dependencies: existing install and maintenance docs.
+
+### UPD-001: Upstream Update Compatibility Contract
+
+- Status: proposed (report contract documented in [Upstream Update Compatibility](upstream-update-compatibility.md); command output automation remains future work)
+- Priority: medium
+- Type: maintenance and release hygiene
+- Scope: Make upstream refresh/update output more reviewable before local projection changes are accepted.
+- Acceptance signals:
+  - Update reports include changed upstream files, affected projections, required re-sync, risk level, and patch-drift warnings.
+  - Focused adapter/projection checks are listed for updates that affect skills, hooks, or planning policy.
+  - The process preserves the existing update-then-sync separation.
+- Dependencies: existing upstream refresh automation.
+
+### OFFICE-001: Everyday Work Lightweight Templates
+
+- Status: proposed (initial templates documented in [Office Templates](office-templates.md); generation commands are not implemented)
+- Priority: low-medium
+- Type: workflow templates
+- Scope: Add lightweight Harness templates for non-coding work such as research, decision records, document review, meeting follow-up, and approvals.
+- Acceptance signals:
+  - Templates still use `planning/active/<task-id>/` with task plan, findings, progress, and optional reconciliation.
+  - Non-coding tasks do not require worktrees, code diffs, or code verification.
+  - Coding workflow remains the primary Harness use case and is not made more generic or vague.
+- Dependencies: REC-003 and planning lifecycle.
 
 ## Current Answers To Open Questions
 

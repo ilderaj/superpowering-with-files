@@ -12,7 +12,7 @@ This document captures deferred product and workflow work that is intentionally 
 - Prefer issue-first cloud tasks today because issues preserve durable task state, labels, workflow preflight, and review history.
 - Explore two additional cloud entry points: native Copilot assignment during issue creation, and direct task launch from the repository Agent tab.
 
-Detailed execution candidates live in [Backlog](backlog.md). Keep this roadmap focused on direction, sequencing, and product boundaries.
+Detailed execution candidates live in [Backlog](backlog.md). Keep this roadmap focused on direction, sequencing, and product boundaries. Use [State Convergence](state-convergence.md) when roadmap status must be reconciled with active task evidence.
 
 ## Version Plan
 
@@ -163,6 +163,89 @@ Detailed execution candidates live in [Backlog](backlog.md). Keep this roadmap f
   - each supported cloud agent has a documented, tested dispatch path
   - unsupported or partially supported agents remain documented as research lanes, not promised automation
   - direct repo UI task launch can be accepted only when it preserves `cloud-dev` base, planning state, and review boundaries
+
+
+## Near-Term Harness Evolution: Six-Iteration Plan
+
+This sequence follows the 2026-05-17 roadmap/backlog review captured in `planning/active/harness-reconcile-roadmap-evolution/` and the reconciliation policy in `docs/reconciliation.md`. It keeps Harness coding-first while making the workflow more traceable, easier to adopt, easier to update from upstream, and compatible across local IDEs, cloud agents, and MCP-based integrations.
+
+### Iteration 1: State Convergence And SOT Boundaries
+
+- Status: ready
+- Primary backlog: `REC-003`
+- Goal: align roadmap, backlog, active planning, and archive status so agents and humans can locate the right source of truth.
+- Checkpoints:
+  - active tasks are categorized as active, waiting-review, blocked, or archive-ready with explicit reason
+  - roadmap status and backlog readiness no longer contradict active planning evidence
+  - `docs/reconciliation.md` defines the SOT map and drift policy
+- Verify/reconcile node:
+  - run documentation/search checks for referenced task IDs and backlog IDs
+  - produce a reconciliation note listing any remaining intentional drift
+
+### Iteration 2: Post-Implementation Reconcile Lane
+
+- Status: ready
+- Primary backlog: `REC-001`, `REC-002`
+- Goal: add a lightweight lane after implement/verify and before finish/archive that compares planned intent, actual changes, verification evidence, and follow-up documentation needs.
+- Checkpoints:
+  - `docs/workflows.md` describes `reconcile` without making every small edit documentation-heavy
+  - tracked coding tasks can persist `reconciliation.md` or an equivalent progress section
+  - archive rules preserve reconciliation artifacts
+- Verify/reconcile node:
+  - run one tracked coding-task dry run through `plan -> implement -> verify -> reconcile -> archive-readiness`
+  - confirm the artifact records acceptance status, evidence, deviations, and docs/backlog updates needed
+
+### Iteration 3: MCP Read-Only Compatibility Layer
+
+- Status: proposed; [MCP Read-Only Compatibility](mcp-read-only-compatibility.md) documents tiers, while pilot adoption and expanded runtime behavior remain future work
+- Primary backlog: `MCP-001`
+- Goal: make MCP read-only the minimum compatibility layer for agents that do not yet deserve a native Harness adapter.
+- Checkpoints:
+  - define native adapter vs MCP read-only vs docs-only adoption tiers
+  - expose/read documented status, active-summary, task-summary, verification, and dry-run surfaces through MCP where appropriate
+  - pilot the model with an Alma-style agent before adding any new full adapter
+- Verify/reconcile node:
+  - prove a new agent can inspect Harness state without writing project files
+  - reconcile any MCP/tool contract gaps back into backlog before expanding write capabilities
+
+### Iteration 4: Agent-Neutral Cloud-Dev Parity
+
+- Status: planned; parity matrix and contract are documented, but unsupported cloud agents remain research-only
+- Primary backlog: `CDX-001`, `CDX-006`, plus amended cloud reconciliation fields
+- Goal: continue cloud-dev parity around a shared contract rather than Copilot-only UI behavior.
+- Checkpoints:
+  - parity matrix covers planning state, branch safety, task handoff, verification, promotion, and reconciliation
+  - cloud tasks record source issue/spec, expected acceptance, verification commands, implementation summary, and reconcile status
+  - Copilot direct assignment remains the verified baseline; comment-only, Agent tab, Codex cloud, and Claude cloud stay evidence-gated
+- Verify/reconcile node:
+  - every cloud task has issue/plan/PR/verification/reconcile trace or is marked unsupported
+  - human review boundary is explicit before promotion from `cloud-dev`
+
+### Iteration 5: Deployment, Adoption, And Upstream Update Kit
+
+- Status: proposed; starter-kit and compatibility report docs exist, automation/fixture validation remains future work
+- Primary backlog: `ADOPT-001`, `UPD-001`
+- Goal: make Harness easier to deploy, adopt, rollback, and update from upstream without surprising local projects.
+- Checkpoints:
+  - document minimal-global, full-local, and cloud-dev profiles
+  - provide quickstart, rollback, doctor, dry-run, and smoke-check guidance
+  - define upstream update compatibility output: changed upstream files, affected projections, required re-sync, risk level
+- Verify/reconcile node:
+  - fresh/disposable adoption run completes in dry-run and then verified sync mode
+  - upstream update report reconciles patch drift before projection changes are accepted
+
+### Iteration 6: Everyday Office Work Templates
+
+- Status: proposed; lightweight templates exist as Harness-owned docs/templates, no runtime generator added
+- Primary backlog: `OFFICE-001`
+- Goal: extend Harness discipline to research, decisions, document review, and follow-up work without diluting the coding-first architecture.
+- Checkpoints:
+  - add lightweight templates that still use `planning/active/<task-id>/`
+  - avoid worktree/code-diff requirements for non-coding work
+  - preserve the same finish/archive and evidence expectations at lower ceremony
+- Verify/reconcile node:
+  - run at least one non-coding task through plan/progress/findings/reconcile/archive-readiness
+  - confirm coding workflow remains unchanged and primary
 
 ## Active Roadmap Items
 

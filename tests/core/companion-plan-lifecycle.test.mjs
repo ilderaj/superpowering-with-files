@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -106,6 +106,11 @@ test('task-status exposes unsynced companion state and archive-task blocks archi
       'docs/superpowers/plans/task-a.md',
       '# Companion\n\n- Active task path: `planning/active/task-a/`\n- Lifecycle state: active\n- Sync-back status: active draft\n'
     );
+    await writeFile(
+      path.join(fixture.root, 'planning/active/task-a/reconciliation.md'),
+      '# Reconciliation: task-a\n\n## Archive Readiness\nReady, reason: companion blocker fixture is reconciled.\n',
+      'utf8'
+    );
 
     const { stdout } = await runPythonScript(
       fixture.root,
@@ -143,6 +148,11 @@ test('archive-task migrates companion into archive and rewrites lifecycle metada
       'docs/superpowers/plans/task-a.md',
       '# Companion\n\n- Active task path: `planning/active/task-a/`\n- Lifecycle state: closed\n- Sync-back status: closed at 2025-02-03T04:05:06: done\n'
     );
+    await writeFile(
+      path.join(fixture.root, 'planning/active/task-a/reconciliation.md'),
+      '# Reconciliation: task-a\n\n## Archive Readiness\nReady, reason: companion migration fixture is reconciled.\n',
+      'utf8'
+    );
 
     const { stdout } = await runShellScript(
       fixture.root,
@@ -164,6 +174,44 @@ test('archive-task migrates companion into archive and rewrites lifecycle metada
     assert.match(archivedCompanion, /Lifecycle state: archived/);
     assert.match(archivedCompanion, /Active task path: `planning\/archive\/.+?\/`/);
     assert.match(archivedCompanion, /Sync-back status: archived at .*: moved companion plan into archive/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+
+test('task-status reports reconciliation readiness and archive preserves reconciliation artifact', async () => {
+  const fixture = await createPlanningLifecycleFixture();
+  try {
+    const taskDir = await writeActiveTask(fixture.root, 'task-a', {
+      taskPlan: '# Task\n\n## Current State\nStatus: closed\nArchive Eligible: yes\nClose Reason: done\n',
+      progress: '# Progress\n'
+    });
+    await writeFile(
+      path.join(taskDir, 'reconciliation.md'),
+      '# Reconciliation\n\n## Archive Readiness\n- Ready — reconciliation complete.\n',
+      'utf8'
+    );
+
+    const { stdout: statusStdout } = await runPythonScript(
+      fixture.root,
+      'harness/upstream/planning-with-files/scripts/task-status.py',
+      ['task-a', '--json']
+    );
+    const status = JSON.parse(statusStdout);
+    assert.equal(status.reconciliation_status, 'complete');
+    assert.equal(status.reconciliation_ready, true);
+
+    const { stdout } = await runShellScript(
+      fixture.root,
+      'harness/upstream/planning-with-files/scripts/archive-task.sh',
+      ['task-a']
+    );
+    const archiveDir = stdout.trim().split(': ').at(-1);
+    const archivedReconciliationPath = path.join(archiveDir, 'reconciliation.md');
+
+    await assertExists(archivedReconciliationPath);
+    assert.match(await readFile(archivedReconciliationPath, 'utf8'), /Ready/);
   } finally {
     await fixture.cleanup();
   }

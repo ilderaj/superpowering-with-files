@@ -186,6 +186,8 @@ Every cloud-dev task branch and promotion step should pass these checks before r
 
 For Copilot issue assignment, keep the directive explicit: `base_branch=cloud-dev`.
 
+For the shared matrix, contract fields, and evidence labels that govern promotion claims, see [Cloud Dev Parity](cloud-dev-parity.md).
+
 ## Agent Support Boundary
 
 The cloud-dev lane implemented in this repository is Copilot-first.
@@ -221,3 +223,19 @@ The Recovery section is for manual recovery and operator intervention after auto
 | Need to force the official Copilot assignment path to keep base on `cloud-dev` | Run the preflight checklist yourself, then assign Copilot on the issue with `agent_assignment.base_branch = cloud-dev`. |
 | Copilot opens PR to `dev` or `main` | Stop and retarget/recreate the PR against `cloud-dev`. |
 | Work is merged into `cloud-dev` | Open a human-owned promotion PR from `cloud-dev` to `dev`. |
+
+
+## Reconciliation Before Promotion
+
+Cloud-dev work should follow the reconcile gate in `docs/reconciliation.md` before human promotion from `cloud-dev` to `dev` whenever the remote task changes product behavior, workflow policy, adapter output, MCP contracts, safety behavior, or roadmap/backlog commitments.
+
+Promotion review should confirm or explicitly waive:
+
+- source issue/spec;
+- actual implementation summary;
+- verification evidence;
+- intentional deviations from plan/spec;
+- docs, roadmap, or backlog updates needed;
+- unresolved drift that should block or follow promotion.
+
+Unsupported cloud paths remain unsupported until issue/PR/task evidence proves branch base, target PR, credentials, verification, and reconciliation behavior.

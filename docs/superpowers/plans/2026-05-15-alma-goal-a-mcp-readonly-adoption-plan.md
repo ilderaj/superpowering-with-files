@@ -87,7 +87,7 @@ Goal A is:
 
 Run:
 ```bash
-node harness/mcp/stdio.mjs --root /Users/jared/SuperpoweringWithFiles --mode read-only
+node harness/mcp/stdio.mjs --root /path/to/SuperpoweringWithFiles --mode read-only
 ```
 
 Expected:

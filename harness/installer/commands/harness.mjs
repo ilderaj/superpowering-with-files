@@ -55,7 +55,7 @@ function usage() {
     '  verify   Print or write verification reports',
     '  summary  Print structured session summary for the active task',
     '  active-summary  Print lifecycle summary for all tasks under planning/active',
-    '  record   Append a timestamped record block to task_plan, findings, or progress',
+    '  record   Append a timestamped record block to task_plan, findings, progress, or reconciliation',
     '  mcp-approve  Sign a write plan out-of-band for MCP apply operations',
     '  checkpoint  Create a safety checkpoint',
     '  checkpoint-push  Verify, record review evidence, commit, and push a recovery branch',

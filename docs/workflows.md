@@ -122,6 +122,13 @@ bash harness/core/upstream-overlays/planning-with-files/scripts/close-task.sh . 
 bash harness/core/upstream-overlays/planning-with-files/scripts/archive-task.sh . <task-id>
 ```
 
+## Supporting Guides
+
+- [State convergence](state-convergence.md) keeps `planning/active`, roadmap, and backlog status aligned during review or maintenance.
+- [Cloud Dev parity](cloud-dev-parity.md) defines the agent-neutral cloud task contract and evidence gates for remote work.
+- [MCP read-only compatibility](mcp-read-only-compatibility.md) defines native adapter, MCP read-only, and docs-only/manual tiers.
+- [Office templates](office-templates.md) cover lightweight non-coding tasks without changing the coding workflow.
+
 ## Optional Contracts
 
 Harness documents integration contracts for browser and eval capabilities, but does not require a bundled runtime for either one.
@@ -141,3 +148,21 @@ Use this contract when validating a projected skill, hook payload, or workflow l
 - Input: target IDE, skill or command surface, and expected behavior.
 - Expected artifacts: reproducible fixture, pass/fail verdict, and regression note if behavior changes.
 - Scope: evals supplement repository verification; they do not replace `npm run verify`, `sync --dry-run`, or `doctor --check-only`.
+
+
+## Reconcile Gate
+
+Reconciliation is the verify-to-finish gate defined in `docs/reconciliation.md`. It is not a replacement for implementation or verification, and it should not become a documentation tax for tiny changes.
+
+Use the gate before finish/archive when a task changes code behavior, workflow policy, adapter output, MCP contracts, safety behavior, cloud-dev behavior, roadmap/backlog commitments, or other tracked product decisions. The gate compares planned intent, actual changes, acceptance status, verification evidence, intentional deviations, unresolved drift, and docs/backlog update needs.
+
+Lifecycle tooling recognizes these reconciliation signals:
+
+- `complete`: `planning/active/<task-id>/reconciliation.md`, `## Reconciliation` in `progress.md`, or `Reconcile: complete` in `task_plan.md`/`progress.md`.
+- `not_required`: `Reconcile: not_required` or `Reconcile: not required` with a reason for trivial/copy-only work.
+- `waived`: `Reconcile: waived` with the owner/reviewer decision recorded.
+- `open` / `unknown`: no accepted signal yet; `active-summary` reports an anomaly when an archive-ready task is still open.
+
+`./scripts/harness active-summary` reports reconciliation counts and per-task status. `./scripts/harness record --file reconciliation --task <task-id>` creates/appends the recommended `reconciliation.md` shape.
+
+A task may mark `reconcile: not required` only for trivial/copy-only work or when the active task plan records a clear owner-approved reason.

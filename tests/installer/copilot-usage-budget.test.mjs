@@ -180,9 +180,14 @@ test('copilot hook payload budget fails when planning-hot exceeds the copilot th
       await readFile(path.join(root, '.harness/verification-ledger/latest.json'), 'utf8')
     );
 
-    assert.ok(report.health.context.summary.hooks.approxTokens > 500);
     assert.equal(report.health.context.summary.hooks.target, 'copilot');
     assert.equal(report.health.context.summary.hooks.verdict, 'problem');
+    assert.equal(report.health.context.summary.hooks.evaluation.verdict, 'problem');
+    assert(
+      report.health.context.summary.hooks.evaluation.checks.some(
+        (check) => check.verdict === 'problem' && check.value >= check.problem
+      )
+    );
   } finally {
     await removeHarnessFixture(root);
   }

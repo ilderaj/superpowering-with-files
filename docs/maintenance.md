@@ -63,7 +63,7 @@ Checklist:
 6. Confirm `active` tasks still have unfinished phases, concurrent edits, or an external time/dependency gate.
 7. Close and archive only the tasks whose durable conclusions are already transferred and whose lifecycle state is explicit.
 
-`active-summary` is the operator-facing queue audit. `summary` remains a single-task session context tool and should not be repurposed as a multi-task audit surface.
+`active-summary` is the operator-facing queue audit. `summary` remains a single-task session context tool and should not be repurposed as a multi-task audit surface. Use [State Convergence](state-convergence.md) when the audit also needs roadmap/backlog alignment decisions.
 
 Before policy extraction, reread the current global policy source and compare it with `harness/core/policy/base.md`.
 
@@ -209,7 +209,7 @@ Upstream updates are staged before they are applied:
 ./scripts/harness update --source=superpowers
 ```
 
-After any Superpowers update that touches `finishing-a-development-branch`, run `./scripts/harness sync --dry-run` and the focused adapter checks `npm test -- tests/adapters/skill-projection.test.mjs tests/adapters/sync-skills.test.mjs` to confirm the Harness finishing patch still applies cleanly.
+After any Superpowers update that touches `finishing-a-development-branch`, run `./scripts/harness sync --dry-run` and the focused adapter checks `npm test -- tests/adapters/skill-projection.test.mjs tests/adapters/sync-skills.test.mjs` to confirm the Harness finishing patch still applies cleanly. Record changed upstream files, affected projections, resync need, risk, and patch drift using [Upstream Update Compatibility](upstream-update-compatibility.md).
 
 `planning-with-files` also tracks its Git source directly:
 
@@ -300,4 +300,23 @@ export HOME=/path/to/disposable-home
 
 When you run `sync --conflict=backup`, Harness archives the displaced content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`. If legacy `.harness-backup-*` siblings are still present from an older takeover, the next successful `sync` imports them into that archive store and removes the live duplicates before projecting the new baseline.
 
-Use `sync --dry-run` before the actual sync only as a preview; it is not a substitute for verification because it does not write projection files. Manual inspection should cover the user-global entry files for Codex, GitHub Copilot, and Claude Code, plus Cursor's workspace rule output when `scope=both` is used. Cursor does not currently have a rendered user-global entry. The expected result is thin always-on entry content, no full deep-task policy dump, and no broad skill projection when `minimal-global` is selected.
+Use `sync --dry-run` before the actual sync only as a preview; it is not a substitute for verification because it does not write projection files. Manual inspection should cover the user-global entry files for Codex, GitHub Copilot, and Claude Code, plus Cursor's workspace rule output when `scope=both` is used. Cursor does not currently have a rendered user-global entry. The expected result is thin always-on entry content, no full deep-task policy dump, and no broad skill projection when `minimal-global` is selected. For a shorter adoption-oriented checklist, use the [Adoption Starter Kit](install/adoption-starter-kit.md).
+
+
+## Compatibility Maintenance
+
+Use [MCP Read-Only Compatibility](mcp-read-only-compatibility.md) when evaluating a new agent or IDE that can inspect Harness state through MCP but does not yet warrant a native adapter. Keep MCP projection-neutral and treat write capabilities as separate reviewed work.
+
+## Reconciliation Preservation
+
+For tracked coding, cloud-dev, workflow, adapter, MCP, safety, roadmap, backlog, or governance changes, finish/archive review should check the reconcile gate in `docs/reconciliation.md`.
+
+Acceptable states before archive:
+
+- `reconcile: complete` with `planning/active/<task-id>/reconciliation.md` or a clear `## Reconciliation` section in `progress.md`;
+- `reconcile: not required` with a reason for trivial/copy-only work;
+- `reconcile: waived` with owner/reviewer decision recorded.
+
+Archive handling preserves `reconciliation.md` alongside `task_plan.md`, `findings.md`, `progress.md`, and any companion plan artifacts because `archive-task` moves the whole active task directory before companion-plan relocation.
+
+`active-summary` exposes `reconciliationStatus` / `reconciliation_status`, `reconciliationReady` / `reconciliation_ready`, counts by reconciliation status, and a `reconciliation_open` anomaly when an archive-ready task lacks an accepted signal. Current archive behavior warns through summary/status rather than hard-blocking reconciliation-open legacy tasks; REC-002 should decide whether to promote that warning to an archive block after legacy active tasks are cleaned up.

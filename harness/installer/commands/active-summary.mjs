@@ -50,9 +50,12 @@ function buildCounts(tasks) {
   let safeToArchive = 0;
   let archiveReady = 0;
   let needsAttention = 0;
+  const byReconciliationStatus = {};
 
   for (const task of tasks) {
     byStatus[task.status] = (byStatus[task.status] || 0) + 1;
+    const reconciliationStatus = task.reconciliationStatus || task.reconciliation_status || 'unknown';
+    byReconciliationStatus[reconciliationStatus] = (byReconciliationStatus[reconciliationStatus] || 0) + 1;
     if (task.looksComplete) {
       looksComplete += 1;
     }
@@ -70,6 +73,7 @@ function buildCounts(tasks) {
   return {
     total: tasks.length,
     byStatus,
+    byReconciliationStatus,
     looksComplete,
     safeToArchive,
     archiveReady,
@@ -104,6 +108,14 @@ function buildAnomalies(tasks) {
         message: (task.companion?.reasons || []).join('; ') || 'companion sync check failed'
       });
     }
+
+    if (task.lifecycleArchiveReady && !task.reconciliationReady) {
+      anomalies.push({
+        taskId: task.task_id,
+        kind: 'reconciliation_open',
+        message: task.reconciliation_reason || 'archive-ready task lacks reconciliation readiness'
+      });
+    }
   }
 
   return anomalies;
@@ -119,10 +131,14 @@ function buildTextReport(report) {
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([status, count]) => `${status}=${count}`);
   lines.push(`[planning-with-files] Status counts: ${statusParts.join(', ') || 'none'}`);
+  const reconciliationParts = Object.entries(report.counts.byReconciliationStatus || {})
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([status, count]) => `${status}=${count}`);
+  lines.push(`[planning-with-files] Reconciliation counts: ${reconciliationParts.join(', ') || 'none'}`);
 
   for (const task of report.tasks) {
     lines.push(
-      `[planning-with-files] ${task.task_id}: status=${task.status}, archive_ready=${task.archive_ready ? 'yes' : 'no'}, phases=${task.phase_complete}/${task.phase_total}, reason=${task.reason}`
+      `[planning-with-files] ${task.task_id}: status=${task.status}, archive_ready=${task.archive_ready ? 'yes' : 'no'}, reconciliation=${task.reconciliationStatus || task.reconciliation_status || 'unknown'}, phases=${task.phase_complete}/${task.phase_total}, reason=${task.reason}`
     );
     for (const warning of task.warnings || []) {
       lines.push(`[planning-with-files]   warning: ${warning}`);
@@ -163,15 +179,24 @@ export async function activeSummary(args = []) {
         reasons: []
       };
 
-      if (task.safe_to_archive) {
+      if (task.lifecycle_archive_ready ?? task.safe_to_archive) {
         const statusReport = await runPythonJson(rootDir, statusScript, [rootDir, task.task_id, '--json']);
         companion = statusReport.companion || companion;
       }
+
+      const reconciliationStatus = task.reconciliation_status || 'unknown';
+      const reconciliationReady = Boolean(task.reconciliation_ready);
 
       return {
         ...task,
         looksComplete: task.looks_complete,
         safeToArchive: task.safe_to_archive,
+        lifecycleArchiveReady: task.lifecycle_archive_ready ?? task.safe_to_archive,
+        lifecycle_archive_ready: task.lifecycle_archive_ready ?? task.safe_to_archive,
+        reconciliationStatus,
+        reconciliation_status: reconciliationStatus,
+        reconciliationReady,
+        reconciliation_ready: reconciliationReady,
         archive_ready: task.safe_to_archive && (!companion.has_companion || companion.ok),
         companion
       };

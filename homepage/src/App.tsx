@@ -58,7 +58,7 @@ export default function App() {
               <article className="comparison-item" key={item.label}>
                 <span>{item.label}</span>
                 <h3>{item.title}</h3>
-                <p>{item.detail}</p>
+                {item.detail ? <p>{item.detail}</p> : null}
               </article>
             ))}
           </div>
@@ -71,14 +71,16 @@ export default function App() {
           <div className="section-heading">
             <p className="section-eyebrow">{homepageContent.routing.eyebrow}</p>
             <h2 id={homepageContent.routing.headingId}>{homepageContent.routing.title}</h2>
-            <p className="section-body">{homepageContent.routing.body}</p>
           </div>
 
-          <ul className="routing-list">
-            {homepageContent.routing.bullets.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          <div className="routing-flow">
+            <p className="section-body routing-body">{homepageContent.routing.body}</p>
+            <ul className="routing-list">
+              {homepageContent.routing.bullets.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
     ),
@@ -91,9 +93,9 @@ export default function App() {
             <p className="section-body">{homepageContent.repoProof.body}</p>
           </div>
 
-          <div className="repo-proof-list">
+          <div className="repo-proof-list" role="list">
             {homepageContent.repoProof.items.map((item) => (
-              <article className="repo-proof-item" key={item.label}>
+              <article className="repo-proof-item" key={item.label} role="listitem">
                 <span>{item.label}</span>
                 <p>{item.detail}</p>
               </article>
