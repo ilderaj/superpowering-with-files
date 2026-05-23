@@ -38,6 +38,9 @@ jobs:
         run: npm ci
 
       - name: Run upstream refresh
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/xdg-cache
+          WRANGLER_HOME: ${{ runner.temp }}/wrangler
         run: node scripts/ci/run-upstream-refresh.mjs
 
       - name: Upload upstream refresh result

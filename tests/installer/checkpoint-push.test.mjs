@@ -13,7 +13,7 @@ import {
 const execFileAsync = promisify(execFile);
 
 function git(cwd, ...args) {
-  return execFileAsync('git', args, { cwd });
+  return execFileAsync('git', ['-c', 'safe.bareRepository=all', ...args], { cwd });
 }
 
 function harness(cwd, ...args) {

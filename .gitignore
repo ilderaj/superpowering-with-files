@@ -6,3 +6,6 @@
 reports/checkpoints/
 .DS_Store
 .tmp.driveupload/
+**/__pycache__/
+**/*.pyc
+node_modules/.cache/

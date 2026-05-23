@@ -483,3 +483,20 @@ test('filterEligibleChanges ignores generated Python cache files', async () => {
     'README.md'
   ]);
 });
+
+test('filterEligibleChanges ignores runtime node_modules cache files', async () => {
+  const { filterEligibleChanges } = await loadUpstreamRefreshModule();
+
+  const result = filterEligibleChanges([
+    { path: 'node_modules/.cache/wrangler/wrangler-account.json', tracked: false },
+    { path: 'harness/upstream/superpowers/SKILL.md', tracked: true },
+    { path: 'README.md', tracked: true }
+  ]);
+
+  assert.deepEqual(result.eligibleFiles, [
+    'harness/upstream/superpowers/SKILL.md'
+  ]);
+  assert.deepEqual(result.excludedFiles, [
+    'README.md'
+  ]);
+});

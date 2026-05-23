@@ -39,7 +39,15 @@ const repoLocalEntryFiles = new Set([
 ]);
 
 function isIgnoredGeneratedCacheFile(filePath) {
-  return filePath.includes('/__pycache__/') || filePath.endsWith('.pyc');
+  if (filePath.includes('/__pycache__/') || filePath.endsWith('.pyc')) {
+    return true;
+  }
+
+  if (filePath.startsWith('node_modules/.cache/')) {
+    return true;
+  }
+
+  return false;
 }
 
 export function buildRefreshCommandChain() {
@@ -200,8 +208,9 @@ export class UpstreamRefreshBlockedError extends Error {
 
 export function formatBlockedReason(error) {
   const message = error instanceof Error ? error.message : String(error);
+  const failedCommand = error?.details?.command ?? error?.command ?? '';
 
-  if (conflictFailurePattern.test(message)) {
+  if (failedCommand.startsWith('git ') && conflictFailurePattern.test(message)) {
     return `Git conflict blocked upstream refresh: ${message}`;
   }
 

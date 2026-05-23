@@ -22,3 +22,9 @@
 - 本地还额外复现了 Git 2.54 的 bare repo 安全策略导致的失败：
   - `fatal: cannot use bare repository ... (safe.bareRepository is 'explicit')`
 
+## Applied Fixes (Code)
+- `tests/helpers/harness-fixture.mjs`：对 `ENOTEMPTY/EBUSY/EPERM` 增加删除重试
+- `tests/installer/checkpoint-push.test.mjs`：对所有测试 git 命令注入 `-c safe.bareRepository=all`
+- `scripts/ci/lib/upstream-refresh.mjs`：
+  - 忽略 `node_modules/.cache/**` 运行时缓存
+  - 只有在失败命令为 `git ...` 时才将失败原因归类为 “Git conflict blocked ...”

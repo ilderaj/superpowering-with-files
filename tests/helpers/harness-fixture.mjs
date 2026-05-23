@@ -2,6 +2,36 @@ import { cp, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+async function sleep(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function rmWithRetries(targetPath, options, {
+  retries = 8,
+  delayMs = 25
+} = {}) {
+  let lastError;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      await rm(targetPath, options);
+      return;
+    } catch (error) {
+      lastError = error;
+      const code = error?.code;
+      const retryable = code === 'ENOTEMPTY' || code === 'EBUSY' || code === 'EPERM';
+
+      if (!retryable || attempt >= retries) {
+        throw error;
+      }
+
+      await sleep(delayMs * (attempt + 1));
+    }
+  }
+
+  throw lastError;
+}
+
 export async function createHarnessFixture(options = {}) {
   const {
     linkNodeModules = false,
@@ -24,7 +54,7 @@ export async function createHarnessFixture(options = {}) {
 }
 
 export async function removeHarnessFixture(root) {
-  await rm(root, { recursive: true, force: true });
+  await rmWithRetries(root, { recursive: true, force: true });
 }
 
 export async function withCwd(dir, fn) {
