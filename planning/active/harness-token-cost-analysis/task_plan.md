@@ -68,3 +68,16 @@ Status: pending
 |---|---|---|
 | 2026-05-20 14:39:18 UTC+8 | 建立 tracked planning 任务 `harness-token-cost-analysis` | 用户明确要求后续会多次脑暴和分析，需要持久化上下文。 |
 | 2026-05-20 14:39:18 UTC+8 | 当前只记录分析，不执行改造 | 用户要求不要直接出方案和执行，先详细分析。 |
+
+## Companion Plan
+- Path: `docs/superpowers/plans/2026-05-20-harness-token-output-compression-plan.md`
+- Summary: Implement shared cross-IDE shell output compression guidance through existing Harness policy projections, with render and budget tests.
+- Sync-back status: implementation plan recorded; execution not started.
+
+## Plan Record: 2026-05-20 22:50:45 UTC+8
+
+### Phase 5 — Implementation Plan For Safest Direction
+Status: complete
+- [x] Selected one safest token-compression direction for current four IDE targets.
+- [x] Wrote companion implementation plan.
+- [x] Synced summary back into tracked planning files.

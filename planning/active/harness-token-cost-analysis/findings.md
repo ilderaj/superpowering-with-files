@@ -100,3 +100,15 @@ Assessment:
 
 ## Key Judgment
 The safest optimization direction is not to remove planning/evaluation layers. It is to reduce noisy tool output and repeated full-context loading while preserving durable decision state.
+
+## Findings Record: 2026-05-20 22:50:45 UTC+8
+
+Chosen safest implementation direction: shared prompt-level shell output compression guidance rendered into all four currently supported IDE targets: Codex, Claude Code, Copilot, and Cursor.
+
+Rationale: this targets the largest token risk, shell/tool output, while avoiding hook-level command rewriting and preserving Harness planning/evaluation effectiveness.
+
+Implementation posture:
+- Put the guidance in the canonical shared policy source, not duplicated per IDE.
+- Keep Copilot concise by budget test.
+- Verify rendered outputs contain the guidance for all four targets.
+- Do not install or mutate hooks for this first step.
