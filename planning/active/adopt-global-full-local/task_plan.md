@@ -4,9 +4,9 @@
 在本机真实 user-global 环境执行一次 `./scripts/harness adopt-global --skills-profile=full`，将当前仓库的全局配置投影 adopt 到本地全局路径，并确认 adoption receipt、verification report、health/status 结果一致。
 
 ## Current State
-Status: blocked
-Archive Eligible: no
-Close Reason:
+Status: complete
+Archive Eligible: yes
+Close Reason: Local user-global adoption completed after backup-based takeover of a non-Harness-owned Codex entry file.
 
 ## Current Phase
 Phase 1
@@ -20,15 +20,15 @@ Phase 1
 - **Status:** complete
 
 ### Phase 2: 执行本机 user-global adoption
-- [ ] 以真实 HOME 执行 `adopt-global --skills-profile=full`
-- [ ] 记录实际写入行为、receipt 和 verification 输出位置
-- **Status:** blocked
+- [x] 以真实 HOME 执行 `adopt-global --skills-profile=full`
+- [x] 记录实际写入行为、receipt 和 verification 输出位置
+- **Status:** complete
 
 ### Phase 3: 执行后验证与收口
-- [ ] 运行 `adoption-status`，确认结果达到 `in_sync`
-- [ ] 记录任何 health warning / mismatch / backup takeover 现象
-- [ ] 回写 planning 文件中的 durable 结果
-- **Status:** pending
+- [x] 运行 `adoption-status`，确认结果达到 `in_sync`
+- [x] 记录任何 health warning / mismatch / backup takeover 现象
+- [x] 回写 planning 文件中的 durable 结果
+- **Status:** complete
 
 ## Key Questions
 1. 当前 `.harness` install state 是否已经是 `user-global`，还是存在会触发 `adopt-global` 拒绝的 workspace/both 状态？
@@ -44,9 +44,12 @@ Phase 1
 | 不传 `--mode=force` | 当前 install state 已是合法的非空 `user-global`，`ensure` 足以保留既有 target/hook/projection 配置并只切 skill profile |
 
 ## Blockers
-- 当前 Codex 桌面环境拒绝本次越权执行，请求未进入命令本身：
-  - `Rejected: You've hit your usage limit... try again at May 9th, 2026 3:00 AM.`
-- 在该限制解除前，无法从当前会话对真实 `~/.codex` / `~/.copilot` / `~/.claude` / `~/.cursor` 执行 user-global 写入。
+- None. Previous execution-layer limit is no longer blocking this task.
 
 ## Notes
 - 本轮目标是修改本机 user-global 配置，不改仓库代码。
+
+## Risk Assessment
+| Time | Command | Target Path(s) | Workspace Boundary | Checkpoint | Rollback | Status |
+|---|---|---|---|---|---|---|
+| 2026-05-26 UTC+8 | `./scripts/harness sync --conflict=backup` then `./scripts/harness adopt-global --skills-profile=full` | `~/.codex/AGENTS.md` plus other configured user-global target paths | Touches user-global paths outside the workspace | `/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-26T01-50-41Z/manifest.json` | Restore from `~/.harness/backups/` entry recorded by Harness, or recover repo state from the checkpoint bundle/diffs if needed, then rerun `sync`/`adoption-status` | approved and pending execution |

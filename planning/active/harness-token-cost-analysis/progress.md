@@ -37,3 +37,33 @@
 ## Current Status
 - Implementation plan is ready for review.
 - No source implementation has been executed yet.
+
+## Session: 2026-05-26 UTC+8
+
+- **Started:** 2026-05-26 UTC+8
+- **Task:** Operational branch-alignment check before local `adopt-global` execution.
+- **Status:** complete
+
+## Work Log
+- Verified local `dev` working tree is clean.
+- Fetched `origin` and confirmed `HEAD...origin/dev` divergence is `0 0`.
+- Recovered the existing tracked `adopt-global-full-local` execution context before retrying the local adoption flow.
+
+## Current Status
+- Repo state is aligned with `origin/dev` and ready for a local `adopt-global` attempt.
+- Durable execution details continue under `planning/active/adopt-global-full-local/`.
+
+## Session: 2026-05-26 UTC+8
+
+- **Started:** 2026-05-26 UTC+8
+- **Task:** Record tool-driven `adopt-global` execution outcome while operating under the active planning hook.
+- **Status:** complete
+
+## Work Log
+- Confirmed `adoption-status` remained `user-global` and `needs_apply` only because the receipt HEAD lagged current `dev`.
+- Confirmed `doctor --check-only` had no blocking problems.
+- Captured the failed `adopt-global --skills-profile=full` attempt and the ownership-guard blocker on `/Users/jared/.codex/AGENTS.md`.
+- Verified the documented remediation path is a backup-based takeover via `./scripts/harness sync --conflict=backup` before rerunning `adopt-global`.
+- Captured a rollback checkpoint at `/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-26T01-50-41Z/manifest.json` before the approved takeover step.
+- Executed the backup-based takeover, reran `adopt-global --skills-profile=full`, and confirmed `adoption-status` returned `in_sync`.
+- Ran a final independent `doctor --check-only`; Harness check passed with only pre-existing companion-plan warnings.

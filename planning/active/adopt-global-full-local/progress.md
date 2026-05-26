@@ -29,3 +29,30 @@
   - Codex 执行层拒绝越权：`You've hit your usage limit... try again at May 9th, 2026 3:00 AM.`
 - Impact:
   - 当前会话无法完成真实 HOME 写入，因此 adoption 仍未执行，后置 `in_sync` 验证也无法进行。
+
+## Session: 2026-05-26 UTC+8
+
+### Phase 2: 执行本机 user-global adoption
+- **Status:** resumed
+- Actions taken:
+  - Verified local `dev` is clean and fully aligned with `origin/dev` (`0 0` divergence) before retrying user-global adoption.
+  - Recovered the existing tracked execution context and reconfirmed the intended command remains `./scripts/harness adopt-global --skills-profile=full`.
+  - Ran `./scripts/harness adoption-status` and confirmed scope is still `user-global`; current status is `needs_apply` only because receipt HEAD lags current `dev` HEAD.
+  - Ran `./scripts/harness doctor --check-only`; no blocking health problems were reported, only pre-existing planning warnings.
+  - Attempted `./scripts/harness adopt-global --skills-profile=full` and hit the projection ownership guard: `Refusing to overwrite non-Harness-owned path: /Users/jared/.codex/AGENTS.md`.
+  - Verified the supported remediation path from docs/tests: perform `./scripts/harness sync --conflict=backup` first, then rerun `./scripts/harness adopt-global --skills-profile=full`.
+  - Added a risk-assessment row to `task_plan.md`; destructive takeover remains pending user approval.
+  - User approved the backup-based takeover path.
+  - Captured rollback checkpoint manifest at `/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-26T01-50-41Z/manifest.json` before touching user-global files.
+  - Ran `./scripts/harness sync --conflict=backup`; Harness backed up the pre-existing global Codex entry and synced all four configured global targets.
+  - Reran `./scripts/harness adopt-global --skills-profile=full`; adoption completed successfully and wrote verification output to `.harness/adoption/verification/latest.md` and `.harness/adoption/verification/latest.json`.
+  - Verified `./scripts/harness adoption-status` returned `in_sync` for `dev` HEAD `50f486d7903fad6d9862741a2bcb33e51cce5595` with `skillProfile=full`.
+  - Ran a final `./scripts/harness doctor --check-only`; Harness check passed, with only pre-existing companion-plan warnings.
+
+### Phase 3: 执行后验证与收口
+- **Status:** complete
+- Durable results:
+  - Receipt: `.harness/adoption/global.json`
+  - Verification report: `.harness/adoption/verification/latest.json`
+  - Rollback checkpoint: `/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-26T01-50-41Z/manifest.json`
+  - Backups: `~/.harness/backups/` with index `~/.harness/backup-index.json`
