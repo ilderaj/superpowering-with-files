@@ -8,6 +8,7 @@ import {
   extractPhases,
   firstHeading,
   firstIncompleteChecklistItem,
+  firstIncompleteChecklistItemInPhase,
   latestOpenError,
   readOptionalFile,
   sectionBody
@@ -56,13 +57,17 @@ export async function buildPlanningContextModel({ taskPlanPath, findingsPath, pr
   const taskDirName = taskPlanPath ? path.basename(path.dirname(taskPlanPath)) : 'unknown-task';
   const taskName = compactText(firstHeading(taskPlan) || taskDirName || 'unknown task');
   const phases = extractPhases(taskPlan);
+  const currentPhase = compactValue(currentPhaseTitle(phases));
+  const nextStep =
+    firstIncompleteChecklistItemInPhase(taskPlan, currentPhase) ||
+    firstIncompleteChecklistItem(taskPlan);
 
   return {
     taskName,
     goal: summarizeGoal(taskPlan),
     status: summarizeCurrentState(taskPlan),
-    currentPhase: compactValue(currentPhaseTitle(phases)),
-    nextStep: compactValue(firstIncompleteChecklistItem(taskPlan)),
+    currentPhase,
+    nextStep: compactValue(nextStep),
     lastFailure: compactValue(latestOpenError(progress)),
     findingsBullets: collectBullets(findings, MAX_BULLETS),
     progressBullets: collectBullets(progress, MAX_BULLETS, { fromEnd: true }),

@@ -282,3 +282,24 @@ for (const target of ['codex', 'cursor', 'claude-code']) {
     }
   });
 }
+
+for (const target of ['codex', 'copilot', 'cursor', 'claude-code']) {
+  test(`superpowers ${target} session-start payload stays compact`, async () => {
+    // codex and copilot omit explicit target args because they default to codex behavior.
+    // cursor and claude-code pass the target explicitly to select their respective payload formats.
+    const args = target === 'codex' || target === 'copilot' ? [] : [target];
+    const { stdout } = await execFileAsync('bash', [
+      'harness/core/hooks/superpowers/scripts/session-start',
+      ...args
+    ]);
+    const payload = JSON.parse(stdout);
+    const additionalContext =
+      target === 'cursor'
+        ? payload.additional_context
+        : payload.hookSpecificOutput.additionalContext;
+
+    assert.ok(additionalContext.length < 4000);
+    assert.doesNotMatch(additionalContext, /using-superpowers\/SKILL\.md/);
+    assert.doesNotMatch(additionalContext, /description: Use when starting any conversation/);
+  });
+}

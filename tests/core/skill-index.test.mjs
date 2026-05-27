@@ -31,7 +31,7 @@ test('skill index declares layouts required for filesystem projection', async ()
 test('skill index declares hook projection metadata', async () => {
   const index = JSON.parse(await readFile('harness/core/skills/index.json', 'utf8'));
 
-  assert.equal(index.skills.superpowers.hooks.cursor.config, 'hooks-cursor.json');
-  assert.equal(index.skills.superpowers.hooks['claude-code'].config, 'hooks.json');
+  assert.equal(index.skills.superpowers.hooks.cursor.config, 'cursor-hooks.json');
+  assert.equal(index.skills.superpowers.hooks['claude-code'].config, 'claude-hooks.json');
   assert.equal(index.skills['planning-with-files'].hooks.default.adapter, 'task-scoped-planning');
 });

@@ -180,3 +180,91 @@
 - Ready for user review.
 - No implementation code was changed.
 - Planned verification includes focused tests, `npm run verify`, `./scripts/harness verify --output=.harness/verification`, `./scripts/harness sync --dry-run`, and `./scripts/harness doctor --check-only`.
+
+## Session: 2026-05-27 23:11:29 UTC+8
+
+- **Started:** 2026-05-27 23:11:29 UTC+8
+- **Task:** Execute the token-cost and Waza-pattern companion implementation plan in an isolated worktree.
+- **Status:** in_progress
+
+## Work Log
+- Created isolated worktree `/Users/jared/SuperpoweringWithFiles/.worktrees/202605271450-harness-token-cost-analysis-001` on branch `202605271450-harness-token-cost-analysis-001`.
+- Reinstalled workspace dependencies inside the worktree and reran the focused baseline suite from the companion plan; baseline remained green.
+- Completed Task 1: compact Cursor/Claude Code superpowers hook sources, target-aware session-start output, and focused hook tests.
+- Ran Task 1 spec compliance review and code-quality review, then applied the minor follow-up review notes.
+- Completed Task 2: all-target compact superpowers hook measurement, Cursor payload normalization, and worst-event hook summary accounting.
+- Ran Task 2 spec compliance review and code-quality review, then tightened the regression coverage so the cumulative ledger remains explicitly distinct from the worst-event budget basis.
+- Completed Task 3: planning hot-context now accepts plain phase status lines, prefers the active phase checklist first, and keeps phase/subheading boundaries from leaking stale status or next-step data.
+- Task 3 required multiple review/fix loops to tighten phase boundary parsing (`### Notes`, `### Phase Notes`, and subheading-local `Status:` leakage), and each issue is now covered by focused regression tests.
+- Completed Task 4: added Waza-style outcome contracts to `risk-assessment-before-destructive-changes` and `safe-bypass-flow`, then tightened the local skill contract test so empty shells and weakened worktree semantics cannot slip through.
+- Moved execution to Task 5 (focused/full verification and planning reconciliation).
+
+## Current Status
+- Companion implementation plan is now executing in the isolated worktree.
+- Tasks 1-4 are complete and reviewed.
+- Task 5 is in progress.
+
+## Session: 2026-05-28 01:27:39 UTC+8
+
+- **Started:** 2026-05-28 01:27:39 UTC+8
+- **Task:** Run Task 5 verification and reconciliation commands in the isolated worktree.
+- **Status:** blocked by fresh verification failures in `npm run verify`
+
+## Work Log
+- Re-ran the focused Task 5 suite in the isolated worktree; it passed (`114` tests passed, `0` failed).
+- Started full repository verification with `npm run verify`.
+- Stopped the Task 5 flow after `npm run verify` failed, per task instruction to stop on real blockers instead of guessing through later steps.
+
+## Current Status
+- Task 5 is blocked before Steps 3-8 because full repository verification did not pass.
+- Fresh failing tests:
+  - `tests/adapters/sync-hooks.test.mjs`: `sync installs claude hooks into settings while preserving settings fields`
+  - `tests/installer/copilot-usage-budget.test.mjs`: `copilot hook payload budget fails when planning-hot exceeds the copilot threshold`
+
+## Errors Encountered
+| Time | Error | Attempt | Resolution |
+|---|---|---|---|
+| 2026-05-28 01:27:39 UTC+8 | `npm run verify` failed during Task 5 full verification | 1 | Stopped further verification/reconciliation steps and recorded the blocking failures for follow-up. |
+
+## Session: 2026-05-28 01:56:55 UTC+8
+
+### Task 5 Verification Completion
+
+- Actions taken:
+  - Re-ran the focused changed-surfaces suite after the two blocker fixes landed; the suite passed with `114` tests passed and `0` failed.
+  - Ran `npm run verify`; full repository verification passed in the isolated worktree.
+  - Ran `./scripts/harness verify --output=.harness/verification`; Harness wrote `.harness/verification/latest.md`.
+  - Ran `./scripts/harness sync --dry-run`; the dry-run reported no pending target changes.
+  - Ran `./scripts/harness doctor --check-only`; the command passed with only pre-existing companion-plan hygiene warnings outside this task scope.
+  - Ran the required `readHarnessHealth()` measurement snippet; it returned `hookSummary.approxTokens = 0` and `rows = []` because the current worktree has no active synced targets.
+- Files created/modified:
+  - `.harness/verification/latest.md`
+  - `planning/active/harness-token-cost-analysis/task_plan.md`
+  - `planning/active/harness-token-cost-analysis/findings.md`
+  - `planning/active/harness-token-cost-analysis/progress.md`
+  - `planning/active/harness-token-cost-analysis/reconciliation.md`
+  - A temporary four-target Harness fixture was created and removed after capturing enabled-target hook payload measurements.
+
+## Current Status
+- Task 5 verification and reconciliation are complete after the blocker fixes.
+- Phase 8 can now be treated as complete and the tracked task state has been moved to `waiting_review`.
+- No fresh blockers remain for this task; the only `doctor` messages were unrelated companion-plan warnings that were intentionally left untouched.
+- The final evidence set now includes a controlled enabled-target measurement showing compact `superpowers SessionStart` payloads for all four supported targets.
+
+## Session: 2026-05-28 02:16:14 UTC+8
+
+### Final Verification Addendum
+
+- A final whole-change code review surfaced one real install-state bug after the earlier Task 5 completion record: `harness/installer/commands/sync.mjs` had dropped the `cursor` target argument when adapting the installed Cursor `session-start` command.
+- Fixed the Cursor install-state adaptation so both local and fallback command paths now pass `cursor`, and added focused sync-hook coverage for the installed Cursor command.
+- Re-ran the full completion verification chain after that fix:
+  - focused changed-surfaces suite: pass (`114` tests passed, `0` failed)
+  - `npm run verify`: pass (`414` tests passed, `0` failed; MCP suite `21` passed, `0` failed)
+  - `./scripts/harness verify --output=.harness/verification`: pass
+  - `./scripts/harness sync --dry-run`: pass
+  - `./scripts/harness doctor --check-only`: pass with only unrelated companion-plan warnings
+- Re-ran the controlled four-target fixture measurement after the Cursor fix; `superpowers SessionStart` rows remained present for `codex`, `copilot`, `cursor`, and `claude-code`, each at `88` approx tokens, with worst-event summary `copilot = 124` approx tokens and verdict `ok`.
+
+## Current Status
+- The final verification evidence is fresh as of `2026-05-28 02:16:14 UTC+8`.
+- No task-scoped blockers remain.

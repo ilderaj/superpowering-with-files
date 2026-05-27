@@ -194,7 +194,7 @@ function adaptHookConfig(config, projection) {
   if (projection.parentSkillName === 'superpowers' && projection.target === 'cursor') {
     for (const entry of marked.hooks?.sessionStart ?? []) {
       entry.command =
-        'sh -c \'[ -f .cursor/hooks/session-start ] && sh .cursor/hooks/session-start || sh "$HOME/.cursor/hooks/session-start"\'';
+        'sh -c \'[ -f .cursor/hooks/session-start ] && sh .cursor/hooks/session-start cursor || sh "$HOME/.cursor/hooks/session-start" cursor\'';
     }
   }
 
@@ -202,7 +202,7 @@ function adaptHookConfig(config, projection) {
     for (const entry of marked.hooks?.SessionStart ?? []) {
       for (const hook of entry.hooks ?? []) {
         hook.command =
-          'sh -c \'[ -f .claude/hooks/run-hook.cmd ] && sh .claude/hooks/run-hook.cmd session-start || sh "$HOME/.claude/hooks/run-hook.cmd" session-start\'';
+          'sh -c \'[ -f .claude/hooks/session-start ] && sh .claude/hooks/session-start claude-code || sh "$HOME/.claude/hooks/session-start" claude-code\'';
       }
     }
   }

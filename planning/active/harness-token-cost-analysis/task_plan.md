@@ -1,7 +1,7 @@
 # Task Plan: Harness Token Cost Analysis
 
 ## Current State
-Status: active
+Status: waiting_review
 Archive Eligible: no
 Close Reason:
 
@@ -123,7 +123,7 @@ Close Reason:
 ## Plan Record: 2026-05-27 13:46:07 UTC+8
 
 ### Phase 7 — Implementation Plan For Token-Cost And Waza Patterns
-**Status:** waiting_review
+**Status:** complete
 - [x] 基于本轮 token-cost 证据和 Waza 对照结论选择可执行改造范围。
 - [x] 将高置信 token 优化收敛到 compact superpowers hooks、all-target hook measurement、worst-event hook budget accounting、planning hot context next-step 修复。
 - [x] 将 Waza 借鉴点收敛为 lazy skill outcome contracts 与静态契约测试，避免增加 always-on prompt 体量。
@@ -132,4 +132,26 @@ Close Reason:
 ## Additional Companion Plan
 - Path: `docs/superpowers/plans/2026-05-27-harness-token-cost-waza-optimization-plan.md`
 - Summary: Implement compact Cursor/Claude superpowers session-start hooks, all-target hook payload measurement, worst-event hook summary accounting, current-phase planning hot context next-step selection, and Waza-style outcome contracts for Harness-owned lazy skills.
-- Sync-back status: plan created for review; implementation not started.
+- Sync-back status: execution completed in isolated worktree `202605271450-harness-token-cost-analysis-001`; Tasks 1-5 verified, planning evidence updated, and reconciliation recorded.
+
+## Plan Record: 2026-05-27 23:11:29 UTC+8
+
+### Phase 8 — Execute Token-Cost And Waza Optimization Plan
+**Status:** complete
+- [x] 创建隔离 worktree `202605271450-harness-token-cost-analysis-001` 并在其中恢复执行上下文。
+- [x] 在 worktree 中重新安装依赖并复跑 companion plan 的 focused baseline suite。
+- [x] 完成 Task 1：为 Cursor 与 Claude Code 切换 compact superpowers hook source，并通过 spec review 与 code quality review。
+- [x] 完成 Task 2：补齐 all-target hook payload measurement，并将 hook summary 改为 worst-event accounting。
+- [x] 完成 Task 3：修复 planning hot context 的 current-phase / next-step 陈旧问题。
+- [x] 完成 Task 4：为 Harness-owned lazy skills 添加 Waza-style outcome contracts 与静态契约测试。
+- [x] 完成 Task 5：执行 focused/full verification，并把证据回写到 active planning。
+
+## Plan Record: 2026-05-28 01:56:55 UTC+8
+
+### Task 5 Completion Status
+
+- 已在两个 blocker 修复后完成 Task 5 所需验证链路，并将结果回写到 tracked planning。
+- 通过的命令：focused changed-surfaces suite、`npm run verify`、`./scripts/harness verify --output=.harness/verification`、`./scripts/harness sync --dry-run`、`./scripts/harness doctor --check-only`。
+- 必跑 hook payload 测量命令返回 `hookSummary.approxTokens = 0`、`rows = []`；这是因为当前 worktree 没有激活的已同步 target（verification report 也显示 `Targets: none`），因此它反映的是当前 install state，而不是新的 installed all-target payload 样本。
+- 本轮结论只覆盖已测 prompt/hook payload 压缩与验证健康状态，不扩展为 billing reduction 结论。
+- 当前任务状态切换为 `waiting_review`；Phase 8 已完成，但归档前仍保留 active planning 与 reconciliation 记录。

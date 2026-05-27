@@ -220,3 +220,50 @@ Implementation posture:
 - Highest-confidence correctness win: hook payload budget summary should evaluate the worst individual event, while the cumulative per-turn ledger remains available separately. This avoids Copilot false `problem` verdicts from summing unrelated lifecycle events.
 - Waza borrow intentionally kept low-bloat: outcome contracts are added only to lazy Harness-owned local skills and enforced by tests; no broad Waza anti-pattern text is added to always-on policy.
 - Companion implementation plan: `docs/superpowers/plans/2026-05-27-harness-token-cost-waza-optimization-plan.md`.
+
+## Findings Record: 2026-05-27 23:57:12 UTC+8
+
+## Execution Evidence: Tasks 1-2
+- Cursor and Claude Code superpowers `SessionStart` hook projection now points at compact Harness-managed hook configs under `harness/core/hooks/superpowers/`, instead of the upstream full-skill hook source.
+- `harness/installer/lib/health.mjs` now measures compact superpowers hook payloads for all four supported targets: `codex`, `copilot`, `cursor`, and `claude-code`.
+- Cursor-native hook output using `{ "additional_context": ... }` is now normalized into the existing `hookSpecificOutput` measurement path without requiring a separate public health response shape.
+- Hook budget summary accounting now uses the worst single measured hook event per target, while `targetLedger.turn.hookPayload` remains cumulative and `targetLedger.turn.hookPayloadWorstEvent` makes the distinction explicit.
+- `context.summary.hooks.accounting` is now explicitly `worst-event`, turning the previous Copilot cumulative-summary ambiguity into a visible contract.
+
+## Findings Record: 2026-05-28 01:06:15 UTC+8
+
+## Execution Evidence: Task 3
+- `extractPhases()` now accepts plain `Status:` lines for phase state parsing while keeping numbered `### Phase <n> ...` headings as the only true phase boundaries.
+- `firstIncompleteChecklistItemInPhase()` now prefers checklist items within the active phase without being derailed by intermediate `### Notes`-style subheadings.
+- `extractPhases()` and the phase-scoped checklist helper intentionally use different boundary rules: status parsing stops at any later `###` subheading to avoid status leakage, while checklist scanning continues until the next real numbered phase heading so active-phase notes sections do not hide the true next step.
+- Focused Task 3 regressions now cover stale-next-step prevention, global fallback when the active phase has no checklist item, fake phase prevention for `### Phase Notes`, and prevention of subheading-local `Status:` leakage into the parent phase.
+
+## Findings Record: 2026-05-28 01:22:46 UTC+8
+
+## Execution Evidence: Task 4
+- Harness-owned lazy local skills `risk-assessment-before-destructive-changes` and `safe-bypass-flow` now include compact `## Outcome Contract` sections modeled after the Waza-style outcome/done/evidence/output structure.
+- The new static test `tests/core/local-skill-contract.test.mjs` validates local skill front matter, required section presence, section order, non-empty section bodies, and absence of placeholder text.
+- `safe-bypass-flow` now explicitly requires a dedicated worktree backed by its task branch, preserving the isolation intent instead of weakening the contract to “worktree or branch”.
+- This Waza borrow remains lazy-skill-only; no always-on policy or entry-file text was expanded.
+
+## Findings Record: 2026-05-28 01:56:55 UTC+8
+
+### Task 5 Verification Evidence
+
+- The focused changed-surfaces suite passed after the blocker fixes: `114` tests passed, `0` failed.
+- Full repository verification also passed: `npm run verify`.
+- `./scripts/harness verify --output=.harness/verification` generated `.harness/verification/latest.md`; the report shows `Targets: none`, `Context entry verdict: ok`, `Hook payload verdict: ok`, `Planning hot context verdict: ok`, and `Skill profile verdict: ok` for the current workspace install state.
+- `./scripts/harness sync --dry-run` returned `targets: []` with `create=0`, `update=0`, `stale=0`, and `unchanged=0`, so this worktree has no pending projection drift.
+- `./scripts/harness doctor --check-only` passed. The remaining messages are pre-existing companion-plan reference/backlink warnings unrelated to Task 5 and therefore out of scope for this resume step.
+- The required post-change hook measurement command returned an empty result set: `hookSummary = { approxTokens: 0, target: null, targets: [], verdict: ok, accounting: worst-event }` and `rows = []`. In context, this means the current worktree has no active synced targets to measure, not that the all-target compact-hook implementation regressed.
+- A controlled four-target fixture measurement was run with `hookMode: on` and all workspace targets enabled. It produced `superpowers SessionStart` rows for `codex`, `copilot`, `cursor`, and `claude-code`, each measuring `88` approx tokens / `352` chars.
+- In the same controlled measurement, `hookSummary` reported `accounting: worst-event`, overall `verdict: ok`, and worst target `copilot` at `124` approx tokens / `495` chars, which remains below the configured Copilot hook budget (`warn 300`, `problem 500` tokens).
+- The all-target compact hook behavior and worst-event accounting are therefore covered by both the automated suites and a direct enabled-target measurement, while the live worktree install state remains neutral (`targets: none`).
+- Evidence remains limited to measured prompt/hook payload reduction and verification health. No billing reduction claim is supported by this data.
+
+## Findings Record: 2026-05-28 02:16:14 UTC+8
+
+## Final Verification Addendum
+- A final whole-change review found one additional install-state bug outside the earlier focused suites: `sync.mjs` had stripped the `cursor` target argument while adapting the installed Cursor `session-start` hook command.
+- After restoring `cursor` in both the local and fallback command paths, the installed Cursor hook command now preserves the target-specific `additional_context` route instead of silently falling back to the default codex payload shape.
+- The final fresh verification rerun still passed after this fix, and the controlled four-target fixture measurement continued to show compact `superpowers SessionStart` payloads for all four supported targets (`88` approx tokens each).

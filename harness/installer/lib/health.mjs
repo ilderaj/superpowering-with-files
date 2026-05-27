@@ -27,7 +27,7 @@ import { readUserManaged } from './user-managed.mjs';
 const execFileAsync = promisify(execFile);
 const HOOK_PAYLOAD_TIMEOUT_MS = 2000;
 const MEASURED_HOOK_PAYLOAD_SKILLS = new Set(['superpowers', 'planning-with-files']);
-const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot']);
+const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
 const COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION =
   'choose one canonical scope for Copilot unless the workspace install is intentionally overriding safety policy.';
 const CONTEXT_BUDGET_POLICIES_PATH = 'harness/core/context-budget-policies.json';
@@ -391,6 +391,18 @@ function reportBudgetSelectionIssues(scopeName, budget, contextWarnings, warning
   addUniqueMessage(problems, message);
 }
 
+function compareMeasurements(left, right) {
+  if ((left?.approxTokens ?? 0) !== (right?.approxTokens ?? 0)) {
+    return (left?.approxTokens ?? 0) - (right?.approxTokens ?? 0);
+  }
+
+  if ((left?.chars ?? 0) !== (right?.chars ?? 0)) {
+    return (left?.chars ?? 0) - (right?.chars ?? 0);
+  }
+
+  return (left?.lines ?? 0) - (right?.lines ?? 0);
+}
+
 function addMeasurement(targets, target, measurement) {
   const current = targets.get(target) ?? {
     target,
@@ -403,6 +415,13 @@ function addMeasurement(targets, target, measurement) {
   current.lines += measurement.lines;
   current.approxTokens += measurement.approxTokens;
   targets.set(target, current);
+}
+
+function addWorstMeasurement(targets, target, measurement) {
+  const current = targets.get(target);
+  if (!current || compareMeasurements(measurement, current) > 0) {
+    targets.set(target, { ...measurement, target });
+  }
 }
 
 function chooseWorstContextTotal(totals) {
@@ -734,7 +753,7 @@ function createHookPayloadFailureEntry(projection, runtimePath, message, eventNa
   };
 }
 
-function parseHookPayloadOutput(output, runtimePath) {
+function parseHookPayloadOutput(output, runtimePath, expectedEventName = null) {
   let payload;
   try {
     payload = JSON.parse(output);
@@ -742,6 +761,18 @@ function parseHookPayloadOutput(output, runtimePath) {
     return {
       payload: null,
       problem: `Hook payload output is not valid JSON: ${runtimePath}`
+    };
+  }
+
+  if (typeof payload.additional_context === 'string') {
+    return {
+      payload: {
+        hookSpecificOutput: {
+          hookEventName: expectedEventName ?? 'unknown',
+          additionalContext: payload.additional_context
+        }
+      },
+      problem: null
     };
   }
 
@@ -794,19 +825,6 @@ function pathScope(rootDir, homeDir, targetPath) {
 function mergeUnique(values = [], additions = []) {
   return [...new Set([...(values ?? []), ...(additions ?? [])])];
 }
-
-function compareMeasurements(left, right) {
-  if ((left?.approxTokens ?? 0) !== (right?.approxTokens ?? 0)) {
-    return (left?.approxTokens ?? 0) - (right?.approxTokens ?? 0);
-  }
-
-  if ((left?.chars ?? 0) !== (right?.chars ?? 0)) {
-    return (left?.chars ?? 0) - (right?.chars ?? 0);
-  }
-
-  return (left?.lines ?? 0) - (right?.lines ?? 0);
-}
-
 function aggregateHookPayloadEntries(entries, hookPayloadBudget, contextWarnings, warnings, problems) {
   const aggregated = new Map();
   const passthrough = [];
@@ -1305,7 +1323,7 @@ async function inspectLocalHookPayloads(
         continue;
       }
 
-      const { payload, problem } = parseHookPayloadOutput(output, runtimePath);
+      const { payload, problem } = parseHookPayloadOutput(output, runtimePath, request.eventName);
       if (problem) {
         const entry = createHookPayloadFailureEntry(projection, runtimePath, problem, request.eventName);
         entry.measurement = measurement;
@@ -1358,6 +1376,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
   const budgetPolicies = await loadContextBudgetPolicies(rootDir).catch(() => ({}));
   const entryTotalsByTarget = new Map();
   const hookTotalsByTarget = new Map();
+  const hookWorstByTarget = new Map();
   const hookBudgetsByTarget = new Map();
   const planningTotalsByTarget = new Map();
   const skillProfileTotalsByTarget = new Map();
@@ -1399,6 +1418,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
       },
       turn: {
         hookPayload: createEmptyMeasurement(target),
+        hookPayloadWorstEvent: createEmptyMeasurement(target),
         planningHotContext: createEmptyMeasurement(target)
       }
     };
@@ -1534,6 +1554,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     for (const hookEntry of hookEntries) {
       if (hookEntry.measurement) {
         addMeasurement(hookTotalsByTarget, hookEntry.target, hookEntry.measurement);
+        addWorstMeasurement(hookWorstByTarget, hookEntry.target, hookEntry.measurement);
       }
     }
     targetLedger.turn.hookPayload = sumMeasurements(
@@ -1543,6 +1564,8 @@ export async function readHarnessHealth(rootDir, homeDir) {
         .filter(Boolean),
       target
     );
+    targetLedger.turn.hookPayloadWorstEvent =
+      hookWorstByTarget.get(target) ?? createEmptyMeasurement(target);
 
     const planningEntry = await inspectPlanningHotContext(
       activeTaskDir,
@@ -1594,7 +1617,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
   }
 
   const hookBudget = budgets?.budgets?.hookPayload;
-  const hookTargetTotals = [...hookTotalsByTarget.values()].map((measurement) => {
+  const hookTargetTotals = [...hookWorstByTarget.values()].map((measurement) => {
     const targetHookBudget = hookBudgetsByTarget.get(measurement.target) ?? hookBudget;
     if (!targetHookBudget) {
       return { ...measurement, verdict: 'unknown', evaluation: null };
@@ -1608,6 +1631,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     };
   });
   applyContextSummary(context.summary.hooks, hookTargetTotals, hookBudget);
+  context.summary.hooks.accounting = 'worst-event';
 
   const planningBudget = budgets?.budgets?.planningHotContext;
   const planningTargetTotals = [...planningTotalsByTarget.values()].map((measurement) => {

@@ -321,10 +321,7 @@ test('sync installs claude hooks into settings while preserving settings fields'
       await readFile(path.join(root, '.claude/hooks/task-scoped-hook.sh'), 'utf8'),
       /planning\/active/
     );
-    assert.match(
-      await readFile(path.join(root, '.claude/hooks/run-hook.cmd'), 'utf8'),
-      /session-start/
-    );
+    assert.match(settings.hooks.SessionStart[0].hooks[0].command, /\.claude\/hooks\/session-start.*claude-code/);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -349,6 +346,10 @@ test('sync merges cursor superpowers and planning hooks', async () => {
     assert.ok(hooks.hooks.preToolUse);
     assert.match(JSON.stringify(hooks), /Harness-managed superpowers hook/);
     assert.match(JSON.stringify(hooks), /Harness-managed planning-with-files hook/);
+    assert.match(
+      hooks.hooks.sessionStart[0].command,
+      /\.cursor\/hooks\/session-start cursor.*\$HOME\/\.cursor\/hooks\/session-start" cursor/
+    );
   } finally {
     await removeHarnessFixture(root);
   }
