@@ -440,6 +440,52 @@ test('verify --output writes report files only to the requested directory', asyn
   }
 });
 
+test('verify writes stable Claude Code hook evidence summary into the JSON report', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await harnessCommand(root, 'sync');
+    await harnessCommand(root, 'verify', '--output=.harness/claude-verification');
+
+    const report = JSON.parse(
+      await readFile(path.join(root, '.harness/claude-verification/latest.json'), 'utf8')
+    );
+
+    assert.equal(
+      report.verification.hookEvidence['claude-code']['planning-with-files'].config,
+      'settings-hook-present'
+    );
+    assert.equal(
+      report.verification.hookEvidence['claude-code']['planning-with-files'].payload,
+      'local-payload-verified'
+    );
+    assert.equal(
+      report.verification.hookEvidence['claude-code']['planning-with-files'].runtime,
+      'not-measured'
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('verify tolerates malformed context budgets and records a problem', async () => {
   const root = await createHarnessFixture();
   try {
@@ -665,6 +711,40 @@ test('doctor prints safety checks for safety profile installs', async () => {
     assert.match(stdout, /checkpointExecutable: ok/);
     assert.match(stdout, /riskAssessmentTemplatePatched: ok/);
     assert.match(stdout, /Harness check passed\./);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('doctor prints Claude Code hook evidence levels without claiming runtime invocation', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await harnessCommand(root, 'sync');
+    const { stdout } = await harnessCommand(root, 'doctor', '--check-only');
+
+    assert.match(stdout, /Hook evidence:/);
+    assert.match(stdout, /claude-code \/ planning-with-files/);
+    assert.match(stdout, /payload=local-payload-verified/);
+    assert.match(stdout, /runtime=not-measured/);
   } finally {
     await removeHarnessFixture(root);
   }

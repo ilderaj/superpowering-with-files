@@ -2,6 +2,7 @@ import os from 'node:os';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { readHarnessHealth } from '../lib/health.mjs';
+import { summarizeHookEvidence } from '../lib/hook-evidence-summary.mjs';
 import { readState } from '../lib/state.mjs';
 
 function readOption(args, name, fallback) {
@@ -122,6 +123,9 @@ export async function verify(args = []) {
       selectedTargets: Object.keys(state.targets),
       scope: state.scope,
       projectionMode: state.projectionMode
+    },
+    verification: {
+      hookEvidence: summarizeHookEvidence(health)
     },
     health
   };

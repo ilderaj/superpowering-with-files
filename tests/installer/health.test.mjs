@@ -1440,6 +1440,9 @@ test('readHarnessHealth reports a problem when hook config exists without the ma
     assert.equal(planning.status, 'problem');
     assert.match(planning.message, /missing Harness-managed planning-with-files hook/);
     assert.ok(health.problems.some((problem) => problem.includes('planning-with-files')));
+    assert.ok(
+      !health.problems.some((problem) => problem.includes('Expected Harness-managed hook settings at'))
+    );
   } finally {
     await removeHarnessFixture(root);
   }
@@ -1537,7 +1540,81 @@ test('readHarnessHealth validates Claude Code settings hooks after sync', async 
     );
 
     assert.equal(planning.status, 'ok');
+    assert.equal(planning.evidenceLevel, 'config-verified');
+    assert.equal(planning.configEvidence, 'settings-hook-present');
+    assert.equal(planning.runtimeEvidence, 'not-measured');
     assert.equal(health.problems.length, 0);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports Claude Code hookMode on with missing settings hooks', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const planning = health.targets['claude-code'].hooks.find(
+      (hook) => hook.parentSkillName === 'planning-with-files'
+    );
+
+    assert.equal(planning.status, 'missing');
+    assert.match(planning.message, /Hook config is missing/);
+    assert.ok(
+      health.problems.some((problem) =>
+        problem.includes('claude-code') && problem.includes('.claude/settings.json')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth measures Claude Code local hook payloads after sync', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+
+    const measured = health.context.hooks.find(
+      (hook) =>
+        hook.target === 'claude-code' &&
+        hook.parentSkillName === 'planning-with-files' &&
+        hook.status === 'ok'
+    );
+
+    assert.ok(measured);
+    assert.equal(measured.eventName, 'UserPromptSubmit');
+    assert.ok(measured.measurement.approxTokens >= 0);
   } finally {
     await removeHarnessFixture(root);
   }
