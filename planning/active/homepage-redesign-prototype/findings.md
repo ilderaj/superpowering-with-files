@@ -107,14 +107,33 @@
 - `homepageSectionOrder` 必须成为页面 section 流的单一真相来源，否则内容契约和渲染顺序会慢慢漂掉。
 - style contract 测试不能只看 token 和 class 名；还要锁住 reduced motion、单列 collapse 和移动端 topbar 行为，不然这类首页很容易在后续 polish 时悄悄回退。
 
-## Technical Decisions
+## Findings Record: 2026-05-28 17:56:43 UTC+8
 
-| Decision | Rationale |
+- 用户要求先执行 `npx getdesign@latest add claude` 并采用 Claude DesignMD / Claude design language 重做 homepage，同时做全面 SEO 优化，目标是提升 Google 曝光、增强访问与 GitHub star 转化。
+- `npx getdesign@latest add claude` 当前被 npm registry 返回 `403 Forbidden - GET https://registry.npmjs.org/getdesign` 阻止；不能重复执行同一失败命令。仓库根 `DESIGN.md` 已经是 `name: Claude` 的 Claude DesignMD 内容，可作为本轮实现 source of truth。
+- `homepage/DESIGN.md` 仍是旧 BMW M 设计上下文，当前页面 CSS 也仍保留 near-black / uppercase / BMW M tokens；本轮需要把 homepage 局部设计上下文切换到 Claude 的 cream/coral/dark product-surface rhythm。
+- SEO 当前只包含基础 title、description 和 viewport；缺少 canonical、Open Graph、Twitter card、robots、theme-color、keywords、structured data 等搜索与分享信号。
+
+
 |---|---|
 | 新建 task `homepage-redesign-prototype` | 与既有部署任务分离，避免 planning 混写 |
 | 当前 register 假设为 `brand` | homepage 是面向访客的 landing surface，设计本身就是交付物 |
 | 先做 `PRODUCT.md`，再做 shape brief | 这是 impeccable 明确要求的 gating 顺序 |
 | prototype 阶段只改 homepage 局部实现 | 用户明确要求先给本地 prototype，不触碰部署 |
+
+## Findings Record: 2026-05-28 18:27:05 UTC+8
+
+- Phase 6 的最终实现已经不再依赖旧 BMW M 或 Airbnb 方向：homepage 局部 `DESIGN.md`、CSS tokens、文案和 SEO 都已对齐 Claude-inspired cream/coral/dark product-surface 语言。
+- SEO 优化不只是 metadata 补齐，还增加了可测试契约：`homepage-seo.test.mjs` 锁定 title、description、canonical、robots、theme-color、Open Graph、Twitter card 和真实 `og-image.png`。
+- Bash 直接启动 Vite server 在当前 sandbox 下会触发 `listen EPERM 127.0.0.1:5173`；Preview server 能复用同一端口完成浏览器验证，因此这是工具环境限制，不是 homepage 运行失败。
+- 桌面和 375px 移动视口的 accessibility snapshots 均显示完整页面结构；console/server error 检查无错误。页面已进入 review-ready 状态，但尚未提交、推送或部署。
+
+## Findings Record: 2026-05-28 20:07:20 UTC+8
+
+- 用户新的明确目标不是继续改设计，而是把当前 review-ready 的 Claude DesignMD homepage 结果落到 `origin/dev`，因此本轮最重要的是保证提交边界干净、验证结果可追溯。
+- 对本仓库来说，`.claude/launch.json` 只是本地 Preview server 配置，不属于 homepage 产物本身；在已有验证都完成的前提下，将它留在未跟踪状态比混入 feature commit 更干净。
+- 当前 homepage 子项目的自动验证已经足够作为开发分支提交门槛：19 个 Node tests、typecheck、build 和 `git diff --check -- homepage` 同时通过，说明内容契约、样式契约、SEO 契约和构建链路都稳定。
+- 一旦推送到 `origin/dev`，这个 task 的生命周期应从 `waiting_review` 转成 `waiting_integration`，因为设计与代码已进入共享分支，但尚未按本轮指令继续推进到 `main` 或部署。
 
 ## Open Questions
 

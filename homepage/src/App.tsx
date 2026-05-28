@@ -23,7 +23,7 @@ export default function App() {
             </div>
           </div>
 
-          <aside className="hero-proof" aria-label="Hybrid workflow proof">
+          <aside className="hero-proof product-surface" aria-label="Hybrid workflow proof">
             <div className="hero-equation">
               <article className="equation-card">
                 <span className="equation-label">{homepageContent.proof.breadth.label}</span>

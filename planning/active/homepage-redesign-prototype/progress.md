@@ -279,13 +279,68 @@
   - `planning/active/homepage-redesign-prototype/progress.md`
   - `planning/active/homepage-redesign-prototype/findings.md`
 
-## Error Log
+## Session: 2026-05-28 17:56:43 UTC+8
 
-| Timestamp | Error | Attempt | Resolution |
-|---|---|---|---|
-| 2026-05-11 22:21:10 UTC+8 | 无 | 1 | 无需处理 |
+### Phase 6: Claude DesignMD Redesign and SEO
+- **Status:** in_progress
+- **Started:** 2026-05-28 17:56:43 UTC+8
+- Actions taken:
+  - 读取既有 `homepage-redesign-prototype` 与 `homepage-cloudflare-worker` active task 状态，确认本轮是 homepage redesign 的新阶段，不应混入 Worker/deploy 任务。
+  - 运行 Impeccable context loader，确认根 `PRODUCT.md` 与 `DESIGN.md` 存在，其中根 `DESIGN.md` 为 Claude DesignMD。
+  - 尝试执行用户指定的 `npx getdesign@latest add claude`，但 npm registry 返回 403；已确认本地根 `DESIGN.md` 可作为 Claude DesignMD source of truth。
+  - 读取 `homepage/src/homepage-content.mjs`、`homepage/src/App.tsx`、`homepage/src/styles.css`、`homepage/index.html` 和现有 tests，确定需要先按 TDD 更新内容、结构、样式和 SEO 契约。
+- Files created/modified:
+  - `planning/active/homepage-redesign-prototype/task_plan.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+  - `planning/active/homepage-redesign-prototype/findings.md`
 
-## Session: 2026-05-16 12:08:51 UTC+8
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+|---|---|---|---|---|
+| Claude DesignMD install attempt | `npx getdesign@latest add claude` | Claude design context installed or refreshed | Failed with npm 403; local root `DESIGN.md` already contains Claude DesignMD | blocked |
+## Session: 2026-05-28 18:27:05 UTC+8
+
+### Phase 6: Claude DesignMD Redesign and SEO Complete
+- **Status:** complete
+- **Started:** 2026-05-28 17:56:43 UTC+8
+- Actions taken:
+  - 完成 Claude DesignMD 方向 homepage 重做：`homepage/src/homepage-content.mjs` 现在承载五段内容流和 canonical GitHub/docs 出口，`homepage/src/App.tsx` 通过 `homepageSectionOrder` 渲染 hero、comparison、routing、repo proof 和 closing。
+  - 重写 `homepage/src/styles.css` 为 Claude-inspired warm cream canvas、coral CTA、dark product proof surface、serif display 和克制 responsive rhythm。
+  - 补齐 `homepage/index.html` 的 SEO：canonical、robots、theme-color、keywords、Open Graph、Twitter card 和 `SoftwareSourceCode` structured data。
+  - 新增 `homepage/public/og-image.png` 并新增 `homepage/src/homepage-seo.test.mjs`，确保社交分享 metadata 指向真实发布资产。
+  - 运行自动验证：`npm test --prefix homepage`、`npm run typecheck --prefix homepage`、`npm run build --prefix homepage`、`git diff --check -- homepage` 全部通过。
+  - Bash 直接启动 dev server 因 sandbox 端口监听限制返回 `EPERM`，随后改用 `.claude/launch.json` 中的 Preview server，并完成桌面与 375px 移动视口快照、控制台错误和 server error 检查。
+- Files created/modified:
+  - `.claude/launch.json`
+  - `homepage/DESIGN.md`
+  - `homepage/index.html`
+  - `homepage/public/og-image.png`
+  - `homepage/src/App.tsx`
+  - `homepage/src/homepage-content.mjs`
+  - `homepage/src/homepage-content.test.mjs`
+  - `homepage/src/homepage-seo.test.mjs`
+  - `homepage/src/homepage-styles.test.mjs`
+  - `homepage/src/styles.css`
+  - `planning/active/homepage-redesign-prototype/task_plan.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+  - `planning/active/homepage-redesign-prototype/findings.md`
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+|---|---|---|---|---|
+| Homepage tests after Claude redesign | `npm test --prefix homepage` | Content, structure, style, SEO, and routing tests pass | Passed, 19 tests | pass |
+| Homepage typecheck after Claude redesign | `npm run typecheck --prefix homepage` | TS/JSX compiles cleanly | Passed | pass |
+| Homepage build after Claude redesign | `npm run build --prefix homepage` | Production bundle builds successfully | Passed | pass |
+| Homepage diff hygiene | `git diff --check -- homepage` | No whitespace/conflict marker issues | Passed | pass |
+| Preview server startup | Preview `homepage` from `.claude/launch.json` | Browser-verifiable homepage server is available | Reused server `0dbdc608-5e54-4541-8445-ef7fd9e33b97` on port 5173 | pass |
+| Desktop accessibility snapshot | Preview snapshot | Page title and full five-section flow are present | Confirmed by snapshot | pass |
+| Desktop console/server errors | Preview console/log tools | No browser console or server errors | No errors found | pass |
+| Mobile accessibility snapshot | Preview 375x812 snapshot | Topbar wraps and page content remains present/readable | Confirmed by snapshot | pass |
+| Mobile console errors | Preview console logs after resize | No browser console errors | No errors found | pass |
+
+
 
 ### Phase: Task 1 Code Quality Follow-up
 - **Status:** complete
@@ -309,7 +364,30 @@
 | Homepage content contract test (RED) | `npm test --prefix homepage -- src/homepage-content.test.mjs` | Fails on section key mismatch before implementation | Failed on `repo-proof` vs `repoProof` mismatch | pass |
 | Homepage content contract test (GREEN) | `npm test --prefix homepage -- src/homepage-content.test.mjs` | Section keys and outbound exit paths are aligned | Passed, 8 tests | pass |
 
-## Session: 2026-05-13 07:50:42 UTC+8
+## Session: 2026-05-28 20:07:20 UTC+8
+
+### Phase 6: Commit and Push to origin/dev
+- **Status:** complete
+- **Started:** 2026-05-28 20:07:20 UTC+8
+- Actions taken:
+  - 基于用户明确指令，将 Phase 6 的 Claude DesignMD redesign / SEO 结果从 review-ready 推进到 `origin/dev`。
+  - 复核当前工作树，确认本轮仅包含 homepage 与对应 planning 记录，以及新增 `homepage/public/og-image.png`、`homepage/src/homepage-seo.test.mjs`；`.claude/launch.json` 保持本地未跟踪，不纳入提交。
+  - 重新运行 homepage 子项目提交前验证：`npm test --prefix homepage`、`npm run typecheck --prefix homepage`、`npm run build --prefix homepage`、`git diff --check -- homepage`，均通过。
+  - 将在当前 `dev` 分支创建新提交并推送到 `origin/dev`，使当前 Claude DesignMD + SEO 版本在共享开发分支可追踪。
+- Files created/modified:
+  - `planning/active/homepage-redesign-prototype/task_plan.md`
+  - `planning/active/homepage-redesign-prototype/progress.md`
+  - `planning/active/homepage-redesign-prototype/findings.md`
+
+## Test Results
+
+| Test | Input | Expected | Actual | Status |
+|---|---|---|---|---|
+| Homepage tests before dev push | `npm test --prefix homepage` | Content, route, style, and SEO contracts all pass | Passed, 19 tests | pass |
+| Homepage typecheck before dev push | `npm run typecheck --prefix homepage` | TS/JSX compiles cleanly | Passed | pass |
+| Homepage build before dev push | `npm run build --prefix homepage` | Production bundle succeeds | Passed | pass |
+| Homepage diff hygiene before dev push | `git diff --check -- homepage` | No whitespace or patch-format issues | Passed | pass |
+
 
 ### Phase 5: Final Polish and Publish Preparation
 - **Status:** complete
