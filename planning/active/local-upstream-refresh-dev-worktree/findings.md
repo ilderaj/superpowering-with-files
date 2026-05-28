@@ -177,3 +177,10 @@
 - 完整仓库验证：
   - `npm run verify` → `431 pass / 0 fail`
   - `node --test --test-concurrency=1 tests/mcp/*.test.mjs`（包含在上面的 verify 中）→ `21 pass / 0 fail`
+
+## Findings Record: 2026-05-28 17:16:30 UTC+8
+
+### PR-Level Closure Plan
+- 当前开放 PR 是 `#70`：head `dev` → base `main`。
+- 本地 `dev` 在完成 review follow-up commit `101fa32` 后相对 `origin/dev` 处于 `ahead 1`，因此只需正常 push 即可把修复带进 PR，无需额外分支或 cherry-pick。
+- 这两条 inline comments 适合在线程里直接回复“已修复 + 具体验证结果”，不需要另开顶层评论。

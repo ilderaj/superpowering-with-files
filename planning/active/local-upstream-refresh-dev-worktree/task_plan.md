@@ -71,6 +71,12 @@ Complete
 - [x] 追加回归测试并重新跑完整 `npm run verify`
 - **Status:** complete
 
+### Phase 10: Push and thread closure
+- [x] 将 review follow-up commit 推送到 PR head `dev`
+- [x] 在对应 GitHub review thread 中逐条回复处理结果与验证证据
+- [x] 记录 PR 层闭环状态，确保 tracked task 包含云端收口信息
+- **Status:** complete
+
 ## Key Questions
 1. 当前本地 upstream update 的规范入口命令是什么？
 2. 本次 update 是否只产生预期的 vendor/projection/skill 变更？
@@ -95,6 +101,7 @@ Complete
 | Copilot 双作用域 hook payload measurement timeout 从 2000ms 放宽到 5000ms | 空载运行约 300ms，但全量 verify 压力下 2 秒阈值会产生假阳性超时 |
 | worktree 分支 `202605280557-local-upstream-refresh-dev-worktree-001` 直接 fast-forward merge 回 `dev` | worktree 上已经拿到 fresh `npm run verify` 全绿结果，且主工作区合并前已清理仅 tracking 的本地脏状态，适合无冲突集成 |
 | 接受并修复 `chatgpt-codex-connector` 的两条 safety hook review comments | 两条 comment 都能在本地复现或从代码路径直接证明成立，不属于需要 push back 的误报 |
+| 直接把 review follow-up 推到 PR `#70` 的 head `dev` 并在线程中回复 | 当前 PR head 就是 `dev`，本地修复已经 fresh verify 全绿，最短闭环路径就是 push 后逐条回应 |
 
 ## Blockers
 - 当前无 blocker；task 已完成并可在需要时移入 archive。
@@ -106,3 +113,4 @@ Complete
 - `sync --dry-run` 结果仍为零 projection 变更；`doctor --check-only` 通过，只有 pre-existing companion-plan warnings。
 - 在补齐基线测试后，worktree 上重新执行 `npm run verify`，得到 `431 pass / 0 fail` 与 `21 pass / 0 fail` 的 fresh 结果。
 - 后续 PR review 又发现 safety hook 的 runtime evidence 两处缺口；修复后在主工作区 fresh `npm run verify` 再次得到 `431 pass / 0 fail` 与 `21 pass / 0 fail`。
+- PR `#70` 的 base 为 `main`、head 为 `dev`；本轮 review follow-up 直接追加到同一 `dev` 头部即可更新 PR。
