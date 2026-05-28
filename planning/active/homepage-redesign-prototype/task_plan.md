@@ -4,15 +4,15 @@
 结合仓库现有 `DESIGN.md` 持续重构 `homepage/`，先完成本地可预览 prototype，再在用户确认后将最新 homepage 变更集成并发布到 `origin/main`。
 
 ## Current State
-Status: waiting_integration
+Status: blocked
 Archive Eligible: no
 Close Reason:
 Companion plan: `docs/superpowers/plans/2026-05-15-homepage-redesign-prototype.md`
 Companion summary: 四步实现计划已全部执行完成，覆盖内容契约、`App.tsx` 五段结构重建、dark manifesto 样式系统替换和最终验证。
-Sync-back status: Phase 6 Claude DesignMD redesign / SEO 已验证通过，并按用户要求提交推送到 `origin/dev`；当前等待后续 review、集成或部署指令。
+Sync-back status: Phase 6 Claude DesignMD redesign / SEO 已验证通过，并已本地提交为 `bf41d0b`；尝试推送到 `origin/dev` 时被当前环境的 GitHub CONNECT tunnel 403 阻止，等待具备网络访问的会话继续 push 或由用户手动推送。
 
 ## Current Phase
-Phase 6: Claude DesignMD Redesign and SEO complete
+Phase 6: Local commit created, dev push blocked
 
 ## Phases
 

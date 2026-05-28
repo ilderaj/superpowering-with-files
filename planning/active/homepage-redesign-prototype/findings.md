@@ -135,6 +135,13 @@
 - 当前 homepage 子项目的自动验证已经足够作为开发分支提交门槛：19 个 Node tests、typecheck、build 和 `git diff --check -- homepage` 同时通过，说明内容契约、样式契约、SEO 契约和构建链路都稳定。
 - 一旦推送到 `origin/dev`，这个 task 的生命周期应从 `waiting_review` 转成 `waiting_integration`，因为设计与代码已进入共享分支，但尚未按本轮指令继续推进到 `main` 或部署。
 
+## Findings Record: 2026-05-28 20:10:59 UTC+8
+
+- 本地提交 `bf41d0b` 已成功创建，说明 homepage 交付物与对应 planning 记录已经收敛成可推送边界。
+- `git status -sb` 当前为 `## dev...origin/dev [ahead 1]`，同时 `.claude/launch.json` 仍保持本地未跟踪，说明 feature commit 已完成但远端尚未接收该提交。
+- 当前唯一阻塞是 GitHub HTTPS push 被环境代理返回 `CONNECT tunnel failed, response 403`；这不是代码、测试或提交边界的问题，也不应在同一受限环境里盲目重试相同 push。
+- 下一次继续时，最直接的动作是在具备 GitHub 网络访问的环境中执行 `git push -u origin dev`，或由用户手动推送当前本地 `dev`。
+
 ## Open Questions
 
 1. 用户是否接受把项目默认 register 记为 `brand`，还是希望 repo 整体仍按 `product` 记录、只对 homepage 单独 override？
