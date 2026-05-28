@@ -94,7 +94,38 @@
 - `doctor --check-only` 仍有 pre-existing companion-plan warnings，与 Claude Code hooks adoption 本身无关。
 - `Hook payload target: copilot` 与后续 detail 中同时出现 Claude Code payload 的组合略易误解，属于后续报告语义优化点。
 
-## Companion Plan Draft: 2026-05-28 10:08:51 UTC+8
+## Findings Record: 2026-05-28 13:13:57 UTC+8
+
+### Live Re-audit After Dev Drift
+- 当前主工作区 `dev` 已从 task 启动时的 `40b3a3d` 前进到 `23804de`，因此旧 cleanup 结论必须以实时 git 状态重审，不能直接照搬 Phase 4-5 结论。
+- 当前 linked worktrees 仍为 7 个，主工作区与独立 `main` worktree 均 clean。
+- `harness-reconcile-execution`
+  - branch 仍已被 `dev` / `main` 吸收。
+  - worktree clean。
+  - 相关 task `planning/active/harness-reconcile-roadmap-evolution/task_plan.md` 当前仍是 `waiting_review`，所以仍只能算 review candidate，不应直接清理。
+- `codex/202605080601-upstream-refresh-6-failure-repair-001`
+  - branch 仍已被 `dev` / `main` 吸收。
+  - 相关 task `planning/active/upstream-refresh-6-failure-repair/task_plan.md` 为 `closed` + `Archive Eligible: yes`。
+  - 但对应 worktree 现在依然大量 dirty，并且是 upstream vendor/update 类大 diff，仍不适合直接删 branch/worktree。
+- `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`
+  - branch 仍已被 `dev` / `main` 吸收。
+  - 相关 task `planning/active/roadmap-v1.4-safety-overlay-governance/task_plan.md` 为 `closed` + `Archive Eligible: yes`。
+  - 但对应 worktree 仍有大量未提交修改，且包含源码/tests/docs 变更，仍不适合直接清理。
+- `202605081401-harness-runtime-facade-mcp-001`
+  - branch 仍未被 `dev` / `main` 吸收。
+  - worktree clean。
+  - 相关 task `planning/active/harness-runtime-facade-mcp/task_plan.md` 为 `waiting_review`，必须继续保留。
+- `202605160358-homepage-redesign-prototype-001`
+  - branch 仍未被 `dev` / `main` 吸收；task 文件声称“已集成到 main”，但当前 branch head `2e4171d` 并不在 `main`/`dev` 中。
+  - worktree clean。
+  - 这说明该 lane 至少存在“task lifecycle / branch state / possibly cherry-picked integration”之间的状态不一致，属于优先应该继续分析的对象，而不是 ready cleanup 对象。
+- 其他语义保留对象维持不变：`dev`、`main`、独立 `main` worktree、`automation/upstream-refresh`、`backup/*` 不应在本轮直接纳入清理执行。
+
+### Updated Cleanup Readiness
+- 目前没有新增的“可立即安全清理”对象。
+- 最接近 ready 的仍是 `harness-reconcile-execution`，但因为 active task 仍 `waiting_review`，它现在更适合作为“等 owner 明确 review 通过后即可清理”的 next candidate。
+- 最值得继续分析的不是 merged/dirty 两个 codex lanes，而是 `homepage-redesign-prototype`：它 clean、task 标记 complete/archivable，但 git branch 事实尚未收敛，若不先解释清楚 cherry-pick/merge 关系，直接删 branch/worktree 风险最高。
+
 
 ### Created Artifact
 - 新 companion plan 已写入：`docs/superpowers/plans/2026-05-28-claude-code-runtime-evidence.md`。
@@ -121,4 +152,26 @@
 - `harness/core/hooks/*/claude-hooks.json`
 - `tests/installer/health.test.mjs`
 - `tests/installer/commands.test.mjs`
-- `tests/installer/adoption.test.mjs`
+
+## Findings Record: 2026-05-28 13:31:16 UTC+8
+
+### Focused Follow-up Analysis
+- `homepage-redesign-prototype` 当前不是“已 merge 待清理”状态。
+  - branch `202605160358-homepage-redesign-prototype-001` 相对 `main` 为 `40 8`，相对 `dev` 为 `28 8`，共同 merge-base 都停在 `7d5f8e8`，说明它从很早的基线上分叉后一直未收敛回主线。
+  - `git cherry -v main 202605160358-homepage-redesign-prototype-001` 与对 `dev` 的结果全部为 `-`，说明这 8 个提交没有 patch-equivalent 被主线直接吸收；它不是简单 cherry-pick 已集成的 stale branch。
+  - 但当前主线 homepage 历史显示这条 manifesto prototype 之后又经过 `fb88ff9` / `18580da` / `6a45b11` 等后续 redesign/production commits，且当前 `homepage/src/App.tsx`、`homepage/src/styles.css` 与该 prototype branch 版本只有中等差异，说明它更像“已被后续 homepage 演进替代的旧 prototype lane”，不是当前要保留以待 merge 的分支。
+  - 因此它的清理前提不是“确认是否已 merge”，而是“确认用户是否还想保留这个 prototype branch 作为历史设计分支”。在未明确前，它属于 review candidate，不是 ready cleanup。
+- `harness-reconcile-execution` 可视为 **ready after review**。
+  - 其 branch 已完全被 `dev` / `main` 吸收，worktree clean，且无远端 tracking 依赖。
+  - planning artifacts、`reconciliation.md` 与 companion plan 都已在主工作区 durable 保存；保留该 worktree 不再提供技术价值。
+  - 当前唯一阻塞是 task `planning/active/harness-reconcile-roadmap-evolution/task_plan.md` 仍为 `waiting_review`。
+- merged-but-dirty codex lanes 的性质出现分化：
+  - `202605080601-upstream-refresh-6-failure-repair-001`：dirty 内容以 upstream/vendor refresh residue、patch test changes、`__pycache__` 为主，更像可放弃残留；当前可先忽略，不必优先深挖。
+  - `202605061308-roadmap-v1-4-safety-overlay-governance-002`：dirty 内容包含 `health.mjs`、`state.mjs`、`paths.mjs`、`adoption.mjs`、tests 与 planning 记录的大量实质性修改，且抽样显示像一批已验证但未收敛的人工工作；任何清理前都需要更深入 forensic review。
+
+### Updated Cleanup Classification
+- **Ready after review**: `harness-reconcile-execution`。
+- **Review candidate / keep until owner decision**: `202605160358-homepage-redesign-prototype-001`。
+- **Safe to ignore for now but not worth active cleanup yet**: `codex/202605080601-upstream-refresh-6-failure-repair-001`。
+- **Needs deeper forensic review before any cleanup**: `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`。
+- **Keep**: `dev`、`main`、独立 `main` worktree、`202605081401-harness-runtime-facade-mcp-001`、`automation/upstream-refresh`、`backup/*`。

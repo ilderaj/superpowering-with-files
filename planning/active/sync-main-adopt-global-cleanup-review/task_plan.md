@@ -55,10 +55,19 @@ Phase 7
 - [x] 将 companion plan path/summary/sync-back status 同步回 active planning files
 - **Status:** complete
 
+### Phase 8: 继续做 cleanup readiness 只读分析
+- [x] 追查 `homepage-redesign-prototype` 的 branch head 与 `main`/`dev` 的关系，确认是否为 cherry-pick/等效集成而非直接 merge。
+- [x] 复核 `harness-reconcile-execution` 是否只剩 task lifecycle 未推进，还是仍存在其他不应清理的约束。
+- [x] 如有必要，抽查 merged-but-dirty codex worktrees 中未提交修改是否属于可放弃垃圾、待回收产物，还是仍有未吸收工作。
+- [x] 输出更新后的 keep / review / ready-later 结论，不执行删除。
+- **Status:** complete
+
 ## Key Questions
 1. 当前 `local main` 落后 `origin/main` 的 9 个提交是否只是本地缓存差异，还是 fetch 后仍需真正快进？
 2. `adoption-status` 当前的 `apply_failed` 是否能被一次正常 `adopt-global` 自愈，还是会再次命中 hook/ownership 阻断？
 3. 现有 worktree / branch 集合中，哪些仍绑定 active task、未提交修改或恢复语义，不能进入清理建议？
+4. `homepage-redesign-prototype` 为什么在 task 侧已 complete/archivable，但 branch head 仍不在 `main`/`dev` 中？这是 cherry-pick 集成、等效内容替换，还是 task/git 状态漂移？
+5. `harness-reconcile-execution` 除了 `waiting_review` 之外，是否还有其他技术或语义因素阻止清理？
 
 ## Decisions Made
 | Decision | Rationale |
@@ -71,7 +80,7 @@ Phase 7
 - None.
 
 ## Notes
-- 当前主工作区在 `/Users/jared/SuperpoweringWithFiles`，`dev @ 40b3a3d`。
+- 当前主工作区在 `/Users/jared/SuperpoweringWithFiles`，task 启动时为 `dev @ 40b3a3d`；经 live re-audit，当前已前进到 `dev @ 23804de`，因此 cleanup readiness 结论需以实时 git 状态为准。
 - 当前 `main` worktree 位于 `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main`，已快进到 `41bb6dd`，与 `origin/main` 对齐。
 - `./scripts/harness sync --conflict=backup` 后重新执行 `./scripts/harness adopt-global` 已成功；当前 `adoption-status = in_sync`，receipt HEAD 已更新到 `40b3a3d44e0879b7c6cd61908631a00e9478f145`。
 - 当前本地共 10 个分支、7 个 linked worktrees。多数 feature branches 已被 `main` / `dev` 吸收，但当前“可立即清理”的对象仍很少，因为合并后的两个 codex worktrees 仍有未提交修改，`harness-reconcile-execution` 虽 clean 且已合并，但 task 仍处于 `waiting_review`。

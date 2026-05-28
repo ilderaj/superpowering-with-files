@@ -1,6 +1,35 @@
 # Progress
 
-## Session: 2026-05-28 09:29:29 UTC+8
+## Session: 2026-05-28 13:28:27 UTC+8
+
+### Phase 8: focused follow-up analysis kickoff
+- **Status:** complete
+- **Started:** 2026-05-28 13:28:27 UTC+8
+- Actions taken:
+  - 将本 task 扩展到 Phase 8，明确本轮继续做 cleanup readiness 的只读分析，而不是进入删除执行。
+  - 锁定两个优先目标：`homepage-redesign-prototype` 的集成语义核对，以及 `harness-reconcile-execution` 的最终清理前约束核对。
+  - 如有需要，再回头抽查 merged-but-dirty codex worktrees 的未提交修改性质。
+  - 追查 `homepage-redesign-prototype` 与 `main`/`dev` 的提交关系、patch-equivalence 与当前 homepage 历史，确认它不是“已 merge 待删”，而是已被后续 homepage 演进替代的旧 prototype lane。
+  - 复核 `harness-reconcile-execution` 的 planning artifact 与 branch/worktree 状态，确认其唯一剩余阻塞是 owner review。
+  - 抽查两个 dirty codex lanes，确认 `upstream-refresh-6-failure-repair` 更像 upstream residue，而 `roadmap-v1.4-safety-overlay-governance` 仍可能包含未收敛的实质性人工工作。
+- Files created/modified:
+  - `planning/active/sync-main-adopt-global-cleanup-review/task_plan.md` (modified)
+  - `planning/active/sync-main-adopt-global-cleanup-review/progress.md` (modified)
+
+
+### Phase 7 follow-up: cleanup readiness live re-audit
+- **Status:** complete
+- **Started:** 2026-05-28 13:13:57 UTC+8
+- Actions taken:
+  - 回读本 task 三件套并运行 session catchup，确认当前 task durable context 已完整恢复。
+  - 重新检查 `git branch -vv`、`git worktree list --porcelain` 与每个 linked worktree 的 `git status --short --branch`，避免继续沿用启动时的旧快照。
+  - 读取 cleanup 相关 task 的 lifecycle：`harness-reconcile-roadmap-evolution`、`upstream-refresh-6-failure-repair`、`roadmap-v1.4-safety-overlay-governance`、`homepage-redesign-prototype`、`harness-runtime-facade-mcp`。
+  - 发现当前主工作区 `dev` 已前进到 `23804de`，旧 cleanup 结论存在时间漂移；据此更新 findings。
+  - 复核结论：当前没有新增 ready cleanup 对象；`harness-reconcile-execution` 仍属 review candidate，`homepage-redesign-prototype` 因 task state 与 git branch state 不一致而成为最值得继续分析的对象。
+- Files created/modified:
+  - `planning/active/sync-main-adopt-global-cleanup-review/findings.md` (modified)
+  - `planning/active/sync-main-adopt-global-cleanup-review/progress.md` (modified)
+
 
 ### Phase 1: 上下文恢复与执行前校验
 - **Status:** complete
