@@ -4,12 +4,12 @@
 先把当前 `dev` 上未提交改动提交，清空主工作区；再从本地 `dev` 派生一个新的独立 worktree，在该隔离环境执行一次本地 upstream update，若过程中出现问题则直接修复，并按 upstream update 的常规要点完成验证。
 
 ## Current State
-Status: waiting_integration
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: worktree refresh 已完成 fresh verify，并已提交后 fast-forward merge 回本地 `dev`
 
 ## Current Phase
-Phase 8
+Complete
 
 ## Phases
 
@@ -52,10 +52,10 @@ Phase 8
 - **Status:** complete
 
 ### Phase 7: 集成与收口
-- [ ] 决定是否将 worktree 分支结果 cherry-pick / merge 回 `dev`
-- [ ] 如接受，明确是否连同 tracking 文件一起提交，还是只保留代码变更
-- [ ] 在最终集成前保留 worktree 作为评审与回滚锚点
-- **Status:** pending
+- [x] 决定将 worktree 分支结果直接 merge 回 `dev`
+- [x] 将 tracking 文件随同实现与验证结论一起保留在提交中
+- [x] 在集成前保留 worktree 作为评审与回滚锚点，并在 merge 后继续作为可追溯分支引用
+- **Status:** complete
 
 ### Phase 8: 基线 verify 红点分析与修复
 - [x] 将 10 个基线失败按模块归因
@@ -83,13 +83,13 @@ Phase 8
 | 接受最小本地修复以保证离线 update 结果可用 | 离线 update 暴露了 symlink 绝对路径回归，需要先修复复制语义才能把结果视为有效 |
 | 当前环境恢复 GitHub 可达后，改回标准在线 `fetch` → `update` 路径 | 这样才能把任务从“离线补救”推进为真正的 upstream refresh |
 | `npm run verify` 的 10 个红点按 `dev` 基线既有失败处理 | 同样的 `hook-projection` / `adoption` 测试在主工作区同一 `dev` 提交上也会失败，不是本轮 update 新引入 |
-| 当前 task 进入 `waiting_integration` 而不是 `closed` | worktree 中已有可评审 diff，但尚未决定是否直接集成回主工作区 `dev` |
 | `hook-projection` 的 8 个红点按“测试期望落后于实现”修复 | 实现已稳定投影 `runtime-hook-evidence.sh`，测试必须同步该契约 |
 | `adoption-status` 需要把“部分 hook 未测到 runtime evidence”也作为 advisory 输出 | 否则 receipt 已表明总体未 fully verified，但用户态 status reasons 仍为空，语义不一致 |
 | Copilot 双作用域 hook payload measurement timeout 从 2000ms 放宽到 5000ms | 空载运行约 300ms，但全量 verify 压力下 2 秒阈值会产生假阳性超时 |
+| worktree 分支 `202605280557-local-upstream-refresh-dev-worktree-001` 直接 fast-forward merge 回 `dev` | worktree 上已经拿到 fresh `npm run verify` 全绿结果，且主工作区合并前已清理仅 tracking 的本地脏状态，适合无冲突集成 |
 
 ## Blockers
-- 当前无技术 blocker；剩余工作是决定如何把 worktree 结果集成回 `dev`。
+- 当前无 blocker；task 已完成并可在需要时移入 archive。
 
 ## Notes
 - 本任务从 clean `dev` 基线派生新的 worktree；除必要的 planning 文件外，不在主工作区引入额外实现改动。

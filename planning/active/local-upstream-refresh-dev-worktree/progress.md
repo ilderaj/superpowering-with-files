@@ -118,3 +118,18 @@
   - `planning/active/local-upstream-refresh-dev-worktree/task_plan.md` (modified)
   - `planning/active/local-upstream-refresh-dev-worktree/findings.md` (modified)
   - `planning/active/local-upstream-refresh-dev-worktree/progress.md` (modified)
+
+## Session: 2026-05-28 15:24:50 UTC+8
+
+### Phase 7: 集成与收口
+- **Status:** complete
+- **Started:** 2026-05-28 15:24:50 UTC+8
+- Actions taken:
+  - 确认 worktree 上的最终提交为 `6cbd6a2 chore: refresh upstream baselines from dev worktree`，且该提交已包含 upstream refresh、本地修复、测试更新与 planning 三件套同步内容。
+  - 在主工作区先恢复仅存在于主树的 tracking 脏状态，再执行 `git merge --ff-only 202605280557-local-upstream-refresh-dev-worktree-001`，成功将 worktree 结果无冲突并回 `dev`。
+  - 合并后核对 `git log --oneline --decorate -2`，确认 `dev` 当前 `HEAD` 为 `6cbd6a2`，上一提交为 `9593c14`。
+  - 再次核对 task planning，确认“10 个红点”已经在本 task 内完成 tracked 分析、修复与方案落盘，不再是开放问题。
+- Files created/modified:
+  - `planning/active/local-upstream-refresh-dev-worktree/task_plan.md` (modified)
+  - `planning/active/local-upstream-refresh-dev-worktree/findings.md` (modified)
+  - `planning/active/local-upstream-refresh-dev-worktree/progress.md` (modified)

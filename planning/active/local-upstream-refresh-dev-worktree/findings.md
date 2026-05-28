@@ -132,3 +132,20 @@
 - 最新 fresh 验证结果：
   - `npm run verify` → `431 pass / 0 fail`
   - `node --test --test-concurrency=1 tests/mcp/*.test.mjs`（包含在上面的 verify 中）→ `21 pass / 0 fail`
+
+## Findings Record: 2026-05-28 15:24:50 UTC+8
+
+### Final Integration Confirmation
+- worktree 分支 `202605280557-local-upstream-refresh-dev-worktree-001` 已提交为 `6cbd6a2 chore: refresh upstream baselines from dev worktree`。
+- 主工作区 `dev` 已执行 `git merge --ff-only 202605280557-local-upstream-refresh-dev-worktree-001`，当前 `HEAD` 即 `6cbd6a2`。
+- 合并后的本地 `dev` 相对 `origin/dev` 处于 `ahead 2`：一个是先前的 planning 进度提交 `9593c14`，一个是本轮 upstream refresh 提交 `6cbd6a2`。
+
+### Answer To The “10 Red Points” Question
+- 现在不能再说“10 个红点仍未处理”；它们已经在本轮 task 内被完成归因、修复并重新验证。
+- 这 10 个红点的最终原因分两类：
+  - 8 个 `hook-projection` 失败：测试期望没有跟上 `runtime-hook-evidence.sh` 已被投影进实现的事实。
+  - 2 个 `adoption` 失败：一个是旧期望假设 Claude Code 没有 runtime evidence，另一个是 `computeAdoptionStatus()` 对“部分 hook 未验证”场景的 advisory 聚合缺口。
+- 对应解决方案也已经落地：
+  - 同步测试契约到当前实现；
+  - 修正 `adoption-status` 的 advisory 聚合逻辑；
+  - 顺带修掉完整 verify 过程中额外暴露的 Copilot hook payload measurement 2 秒假阳性超时，把阈值调到 5 秒。
