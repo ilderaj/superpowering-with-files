@@ -334,11 +334,15 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
           continue;
         }
 
-        const runtimeMeasured = (targetHealth.hooks ?? []).some(
-          (hook) => hook.status === 'ok' && hook.runtimeEvidence === 'runtime-invocation-verified'
+        const okHooks = (targetHealth.hooks ?? []).filter((hook) => hook.status === 'ok');
+        if (okHooks.length === 0) {
+          continue;
+        }
+
+        const allRuntimeMeasured = okHooks.every(
+          (hook) => hook.runtimeEvidence === 'runtime-invocation-verified'
         );
-        const runtimeRelevant = (targetHealth.hooks ?? []).some((hook) => hook.status === 'ok');
-        if (!runtimeRelevant || runtimeMeasured) {
+        if (allRuntimeMeasured) {
           continue;
         }
 

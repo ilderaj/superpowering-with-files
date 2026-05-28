@@ -26,7 +26,7 @@ import { readRuntimeHookEvidence, summarizeRuntimeEvidenceForProjection } from '
 import { readUserManaged } from './user-managed.mjs';
 
 const execFileAsync = promisify(execFile);
-const HOOK_PAYLOAD_TIMEOUT_MS = 2000;
+const HOOK_PAYLOAD_TIMEOUT_MS = 5000;
 const MEASURED_HOOK_PAYLOAD_SKILLS = new Set(['superpowers', 'planning-with-files']);
 const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
 const COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION =
