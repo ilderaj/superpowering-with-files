@@ -266,7 +266,11 @@ const HOOK_EVIDENCE_BY_TARGET = {
   codex: { evidenceLevel: 'verified' },
   copilot: { evidenceLevel: 'verified' },
   cursor: { evidenceLevel: 'verified' },
-  'claude-code': { evidenceLevel: 'verified' }
+  'claude-code': {
+    evidenceLevel: 'config-verified',
+    configEvidence: 'settings-hook-present',
+    runtimeEvidence: 'not-measured'
+  }
 };
 
 function hookEvidence(projection) {
@@ -276,6 +280,18 @@ function hookEvidence(projection) {
       message: `Official hook documentation has not been verified for ${projection.target}.`
     }
   );
+}
+
+function formatHookProblem(target, inspected) {
+  if (
+    target === 'claude-code' &&
+    typeof inspected?.configTarget === 'string' &&
+    /^Hook config\b/.test(inspected.message ?? '')
+  ) {
+    return `${target}: ${inspected.parentSkillName}: ${inspected.message} Expected Harness-managed hook settings at ${inspected.configTarget}.`;
+  }
+
+  return `${target}: ${inspected.parentSkillName}: ${inspected.message}`;
 }
 
 function publicUpstreamStatus(upstream = {}) {
@@ -662,13 +678,23 @@ async function inspectSkillProfileContext(
   return entry;
 }
 
-function buildHookPayloadEnv(rootDir, homeDir) {
-  return {
+function buildHookPayloadEnv(rootDir, homeDir, projection) {
+  const env = {
     PATH: process.env.PATH ?? '',
     HOME: homeDir,
     TMPDIR: process.env.TMPDIR ?? '/tmp',
     HARNESS_PROJECT_ROOT: rootDir
   };
+
+  if (projection?.target === 'claude-code') {
+    env.CLAUDE_PLUGIN_ROOT = path.dirname(projection.scriptTargetRoot ?? rootDir);
+  } else if (projection?.target === 'cursor') {
+    env.CURSOR_PLUGIN_ROOT = path.dirname(projection.scriptTargetRoot ?? rootDir);
+  } else if (projection?.target === 'copilot') {
+    env.COPILOT_CLI = '1';
+  }
+
+  return env;
 }
 
 function selectRuntimeSourcePath(projection) {
@@ -966,7 +992,7 @@ function formatDuplicateSkillMessage(duplicate) {
   ].join(' ');
 }
 
-async function runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir) {
+async function runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir, projection) {
   const controller = new AbortController();
   let timedOut = false;
   const timeout = setTimeout(() => {
@@ -978,7 +1004,7 @@ async function runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir) {
   try {
     const { stdout } = await execFileAsync('bash', [runtimePath, ...args], {
       cwd: rootDir,
-      env: buildHookPayloadEnv(rootDir, homeDir),
+      env: buildHookPayloadEnv(rootDir, homeDir, projection),
       signal: controller.signal,
       maxBuffer: 1024 * 1024
     });
@@ -1295,7 +1321,7 @@ async function inspectLocalHookPayloads(
     }
 
     for (const request of selectHookPayloadRequests(projection)) {
-      const result = await runHookPayloadMeasurement(runtimePath, request.args, rootDir, homeDir);
+      const result = await runHookPayloadMeasurement(runtimePath, request.args, rootDir, homeDir, projection);
       const output = result.stdout ?? '';
       const measurement = measureText(output);
 
@@ -1529,7 +1555,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
       const inspected = await inspectHook(projection);
       hooks.push(inspected);
       if (!['ok', 'unsupported'].includes(inspected.status)) {
-        problems.push(`${target}: ${inspected.parentSkillName}: ${inspected.message}`);
+        problems.push(formatHookProblem(target, inspected));
       }
     }
 

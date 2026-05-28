@@ -44,6 +44,8 @@ Claude Code receives the Harness planning-with-files task-scoped hook and the ve
 
 Claude Code remains the native owner of `.claude/settings*.json`. VS Code and Cursor can read Claude-format hooks as a compatibility surface, but Harness treats these settings files as the Claude Code contract and keeps other targets on their native hook adapters.
 
+Scripts in `.claude/hooks/` are inert until Claude Code settings reference them through the `hooks` field. Projected scripts alone do not prove that the active Claude Code runtime will invoke them.
+
 Run:
 
 ```bash
@@ -72,6 +74,27 @@ Run with hooks:
 ./scripts/harness doctor --check-only
 bash .claude/hooks/task-scoped-hook.sh claude-code user-prompt-submit
 ```
+
+## Verification levels
+
+Claude Code support is verified in layers:
+
+1. Projection: `CLAUDE.md` and `.claude/skills` exist.
+2. Hook configuration: `.claude/settings.json` or `~/.claude/settings.json` contains Harness-managed `hooks`.
+3. Local hook payload: Harness can execute the projected hook script and parse the expected JSON payload.
+4. Runtime invocation: the active Claude Code process is observed invoking the hook.
+
+Harness can verify the first three layers locally. Runtime invocation requires evidence from Claude Code itself, so `runtime=not-measured` means the configuration and local payload checks passed but the running Claude Code session has not been directly observed invoking the hook.
+
+`doctorPassed` and `Harness installation is healthy` report Harness health checks only. They do not claim that Claude Code has already invoked the hook in a live session.
+
+For a manual hook smoke test, enable hooks, run `./scripts/harness doctor --check-only`, then execute:
+
+```bash
+bash .claude/hooks/task-scoped-hook.sh claude-code user-prompt-submit
+```
+
+If the command returns a JSON payload with `hookSpecificOutput.additionalContext`, the local payload layer is working. It still does not prove live runtime invocation.
 
 By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a backup and continue:
 

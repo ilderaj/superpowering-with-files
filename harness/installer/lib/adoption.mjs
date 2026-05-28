@@ -232,7 +232,12 @@ export async function createSuccessReceipt(rootDir, state, options = {}) {
     skillProfile: state.skillProfile,
     targets: enabledTargetsFromState(state),
     doctorPassed: true,
-    verificationReportPath: options.verificationReportPath ?? '.harness/adoption/verification/latest.json'
+    verificationReportPath: options.verificationReportPath ?? '.harness/adoption/verification/latest.json',
+    verification: options.verification ?? {
+      doctorPassed: true,
+      runtimeInvocationVerified: false,
+      hookEvidence: {}
+    }
   };
 }
 
@@ -319,6 +324,16 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
     if (status === 'in_sync' && receipt.repoHead && repoHead && receipt.repoHead !== repoHead) {
       status = 'needs_apply';
       reasons.push(`Current repo HEAD ${repoHead} differs from receipt HEAD ${receipt.repoHead}.`);
+    }
+
+    if (
+      state.hookMode === 'on' &&
+      targets.includes('claude-code') &&
+      receipt.verification?.runtimeInvocationVerified === false
+    ) {
+      reasons.push(
+        'Claude Code runtime hook invocation is not measured; local settings and payload checks passed only.'
+      );
     }
   }
 
