@@ -134,6 +134,31 @@ test('task-scoped-hook emits Codex hookSpecificOutput payload', async () => {
   }
 });
 
+test('task-scoped-hook records Codex runtime evidence on session start', async () => {
+  const { fixtureRoot } = await createFixture('codex-runtime-evidence', activeTaskFiles());
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    await execFileAsync('bash', [scriptPath, 'codex', 'session-start'], {
+      cwd: fixtureRoot
+    });
+
+    const runtimeLog = JSON.parse(
+      await readFile(path.join(fixtureRoot, '.harness/runtime-hooks/codex.jsonl'), 'utf8')
+    );
+
+    assert.equal(runtimeLog.target, 'codex');
+    assert.equal(runtimeLog.parentSkillName, 'planning-with-files');
+    assert.equal(runtimeLog.eventName, 'SessionStart');
+    assert.match(runtimeLog.scriptPath, /task-scoped-hook\.sh$/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
 for (const target of ['codex', 'cursor', 'claude-code']) {
   test(`task-scoped-hook keeps ${target} session-start compact and defers hot context`, async () => {
     const { fixtureRoot } = await createFixture(`${target}-compact-session-start`, activeTaskFiles());

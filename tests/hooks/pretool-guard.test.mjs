@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -43,6 +43,16 @@ function addUpstream(cwd, remoteDir) {
   execFileSync('git', ['init', '--bare', remoteDir]);
   execFileSync('git', ['remote', 'add', 'origin', remoteDir], { cwd });
   execFileSync('git', ['push', '-u', 'origin', 'HEAD'], { cwd });
+}
+
+async function readRuntimeEvidence(rootDir, target = 'codex') {
+  const logPath = path.join(rootDir, '.harness/runtime-hooks', `${target}.jsonl`);
+  const contents = await readFile(logPath, 'utf8');
+  return contents
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
 }
 
 async function writeTaskPlan(rootDir, withRiskAssessment) {
@@ -118,6 +128,28 @@ test('pretool-guard allows safe commands inside a repository', async () => {
     const result = runGuard(scriptPath, root, { cwd: root, tool: 'Bash', command: 'git status' });
 
     assert.equal(result.permissionDecision, 'allow');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard records runtime evidence with the payload cwd', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-evidence-'));
+  const nested = path.join(root, 'nested');
+  try {
+    await mkdir(nested, { recursive: true });
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuard(scriptPath, root, { cwd: nested, tool: 'Bash', command: 'git status' });
+
+    assert.equal(result.permissionDecision, 'allow');
+    const entries = await readRuntimeEvidence(root);
+    const lastEntry = entries.at(-1);
+    assert.equal(lastEntry.parentSkillName, 'safety');
+    assert.equal(lastEntry.eventName, 'PreToolUse');
+    assert.equal(lastEntry.cwd, nested);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

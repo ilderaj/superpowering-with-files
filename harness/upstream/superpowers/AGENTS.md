@@ -1,1 +1,1 @@
-/home/runner/work/superpowering-with-files/superpowering-with-files/.harness/upstream-candidates/superpowers/CLAUDE.md
+CLAUDE.md

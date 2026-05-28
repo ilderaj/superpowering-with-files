@@ -32,6 +32,7 @@ test('planHookProjections returns cursor planning hook config when hooks are on'
   );
   assert.equal(planning.configTarget, path.join(process.cwd(), '.cursor/hooks.json'));
   assert.deepEqual(planning.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/runtime-hook-evidence.sh'),
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'),
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/render-hot-context.mjs'),
     path.join(process.cwd(), 'harness/core/hooks/planning-with-files/scripts/render-brief-context.mjs'),
@@ -124,6 +125,7 @@ test('planHookProjections returns codex superpowers hook config under .codex', a
   assert.equal(superpowers.status, 'planned');
   assert.equal(superpowers.configTarget, path.join(process.cwd(), '.codex/hooks.json'));
   assert.deepEqual(superpowers.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/runtime-hook-evidence.sh'),
     path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/session-start'),
     path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/run-hook.cmd')
   ]);
@@ -143,6 +145,7 @@ test('planHookProjections returns copilot superpowers hook config under .github/
   assert.equal(superpowers.status, 'planned');
   assert.equal(superpowers.configTarget, path.join(process.cwd(), '.github/hooks/superpowers.json'));
   assert.deepEqual(superpowers.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/runtime-hook-evidence.sh'),
     path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/session-start'),
     path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/run-hook.cmd')
   ]);
@@ -166,6 +169,7 @@ test('planHookProjections returns cursor superpowers hook config from compact Ha
     path.join(process.cwd(), 'harness/core/hooks/superpowers/cursor-hooks.json')
   );
   assert.deepEqual(superpowers.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/runtime-hook-evidence.sh'),
     path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/session-start'),
     path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/run-hook.cmd')
   ]);
@@ -190,6 +194,7 @@ test('planHookProjections returns Claude Code superpowers hook config from compa
     path.join(process.cwd(), 'harness/core/hooks/superpowers/claude-hooks.json')
   );
   assert.deepEqual(superpowers.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/runtime-hook-evidence.sh'),
     path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/session-start'),
     path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/run-hook.cmd')
   ]);
@@ -210,6 +215,7 @@ test('planHookProjections adds copilot safety hooks under .github/hooks', async 
   assert.equal(safety.status, 'planned');
   assert.equal(safety.configTarget, path.join(process.cwd(), '.github/hooks/safety.json'));
   assert.deepEqual(safety.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/runtime-hook-evidence.sh'),
     path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh'),
     path.join(process.cwd(), 'harness/core/hooks/safety/scripts/session-checkpoint.sh')
   ]);
@@ -230,6 +236,7 @@ test('planHookProjections adds safety hooks when the safety policy profile is ac
   assert.equal(safety.status, 'planned');
   assert.equal(safety.configTarget, path.join(process.cwd(), '.codex/hooks.json'));
   assert.deepEqual(safety.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/runtime-hook-evidence.sh'),
     path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh'),
     path.join(process.cwd(), 'harness/core/hooks/safety/scripts/session-checkpoint.sh')
   ]);
@@ -250,6 +257,7 @@ test('planHookProjections adds copilot safety hooks under .github/hooks when the
   assert.equal(safety.status, 'planned');
   assert.equal(safety.configTarget, path.join(process.cwd(), '.github/hooks/safety.json'));
   assert.deepEqual(safety.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/runtime-hook-evidence.sh'),
     path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh'),
     path.join(process.cwd(), 'harness/core/hooks/safety/scripts/session-checkpoint.sh')
   ]);

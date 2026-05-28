@@ -1674,7 +1674,7 @@ test('readHarnessHealth validates Claude Code settings hooks after sync', async 
   }
 });
 
-test('readHarnessHealth reports Claude Code hookMode on with missing settings hooks', async () => {
+test('readHarnessHealth reports Claude Code runtime evidence when a trace is present', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -1688,19 +1688,160 @@ test('readHarnessHealth reports Claude Code hookMode on with missing settings ho
       upstream: {}
     });
 
+    await mkdir(path.join(root, '.harness/runtime-hooks'), { recursive: true });
+    await writeFile(
+      path.join(root, '.harness/runtime-hooks/claude-code.jsonl'),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: 'harness-runtime-hook',
+        target: 'claude-code',
+        parentSkillName: 'planning-with-files',
+        eventName: 'UserPromptSubmit',
+        observedAt: '2026-05-28T02:02:21.000Z',
+        projectRoot: root,
+        cwd: root,
+        scriptName: 'task-scoped-hook.sh',
+        scriptPath: path.join(root, '.claude/hooks/task-scoped-hook.sh')
+      })}\n`
+    );
+
+    await withCwd(root, () => sync([]));
     const health = await readHarnessHealth(root, '/home/user');
     const planning = health.targets['claude-code'].hooks.find(
       (hook) => hook.parentSkillName === 'planning-with-files'
     );
 
-    assert.equal(planning.status, 'missing');
-    assert.match(planning.message, /Hook config is missing/);
+    assert.equal(planning.status, 'ok');
+    assert.equal(planning.evidenceLevel, 'config-verified');
+    assert.equal(planning.configEvidence, 'settings-hook-present');
+    assert.equal(planning.runtimeEvidence, 'runtime-invocation-verified');
+    assert.equal(planning.runtimeInvocationVerified, true);
+    assert.equal(planning.lastObservedAt, '2026-05-28T02:02:21.000Z');
+    assert.deepEqual(planning.observedEvents, ['UserPromptSubmit']);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports Codex runtime evidence when a trace is present', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, '.harness/runtime-hooks'), { recursive: true });
+    await writeFile(
+      path.join(root, '.harness/runtime-hooks/codex.jsonl'),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: 'harness-runtime-hook',
+        target: 'codex',
+        parentSkillName: 'planning-with-files',
+        eventName: 'UserPromptSubmit',
+        observedAt: '2026-05-28T03:03:03.000Z',
+        projectRoot: root,
+        cwd: root,
+        scriptName: 'task-scoped-hook.sh',
+        scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh')
+      })}\n`
+    );
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+    const planning = health.targets.codex.hooks.find((hook) => hook.parentSkillName === 'planning-with-files');
+
+    assert.equal(planning.status, 'ok');
+    assert.equal(planning.runtimeEvidence, 'runtime-invocation-verified');
+    assert.equal(planning.runtimeInvocationVerified, true);
+    assert.equal(planning.lastObservedAt, '2026-05-28T03:03:03.000Z');
+    assert.deepEqual(planning.observedEvents, ['UserPromptSubmit']);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth warns when planning hot context cannot be measured across multiple active tasks', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    for (const taskId of ['task-one', 'task-two']) {
+      await mkdir(path.join(root, 'planning/active', taskId), { recursive: true });
+      await writeFile(
+        path.join(root, 'planning/active', taskId, 'task_plan.md'),
+        '# Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+      );
+      await writeFile(path.join(root, 'planning/active', taskId, 'findings.md'), '# Findings\n');
+      await writeFile(path.join(root, 'planning/active', taskId, 'progress.md'), '# Progress\n');
+    }
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.context.summary.planning.verdict, 'ok');
+    assert.equal(health.context.planning.length, 0);
     assert.ok(
-      health.problems.some((problem) =>
-        problem.includes('claude-code') && problem.includes('.claude/settings.json')
+      health.warnings.some((warning) =>
+        warning.includes('Planning hot context measurement skipped because 2 active tasks are present under planning/active.')
       )
     );
   } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth warns when Codex user-global installs keep the full skill profile', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  const previousHome = process.env.HOME;
+  try {
+    await mkdir(homeDir, { recursive: true });
+    process.env.HOME = homeDir;
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'user-global',
+      projectionMode: 'link',
+      hookMode: 'off',
+      skillProfile: 'full',
+      targets: {
+        codex: { enabled: true, paths: [path.join(homeDir, '.codex/AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, homeDir);
+
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes(
+          'Codex user-global installs default to minimal-global; full is heavier than necessary unless you intentionally need the full skill surface.'
+        )
+      )
+    );
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
     await removeHarnessFixture(root);
   }
 });

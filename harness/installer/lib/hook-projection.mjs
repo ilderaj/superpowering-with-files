@@ -59,6 +59,7 @@ function taskScopedPlanningProjection({ rootDir, root, target, parentSkillName, 
     configTarget: hookConfigTarget(root, target, parentSkillName),
     configFormat: target === 'claude-code' ? 'settings' : 'hooks',
     scriptSourcePaths: [
+      path.join(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
       path.join(sourceRoot, 'scripts/task-scoped-hook.sh'),
       path.join(sourceRoot, 'scripts/render-hot-context.mjs'),
       path.join(sourceRoot, 'scripts/render-brief-context.mjs'),
@@ -96,7 +97,10 @@ function configuredHookProjection({ rootDir, root, target, parentSkillName, hook
     configSource: path.join(sourceRoot, hookConfig.config),
     configTarget: hookConfigTarget(root, target, parentSkillName),
     configFormat: target === 'claude-code' ? 'settings' : 'hooks',
-    scriptSourcePaths: scripts.map((script) => path.join(scriptRoot, script)),
+    scriptSourcePaths: [
+      path.join(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
+      ...scripts.map((script) => path.join(scriptRoot, script))
+    ],
     scriptTargetRoot: scriptTargetRoot(root, target),
     status: 'planned'
   };
@@ -129,6 +133,7 @@ function safetyHookProjection({ rootDir, root, target }) {
     configTarget: hookConfigTarget(root, target, 'safety'),
     configFormat: target === 'claude-code' ? 'settings' : 'hooks',
     scriptSourcePaths: [
+      path.join(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
       path.join(sourceRoot, 'scripts/pretool-guard.sh'),
       path.join(sourceRoot, 'scripts/session-checkpoint.sh')
     ],

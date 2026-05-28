@@ -25,9 +25,17 @@ Skill roots:
 
 These are the same shared Harness skill roots used by GitHub Copilot.
 
-Codex hooks are officially documented and remain gated behind `codex_hooks = true` in Codex `config.toml`. Codex can load hooks from `hooks.json` or inline `[hooks]` tables in `config.toml` at both repo and user config layers.
-Harness projects Codex hooks only when `--hooks=on` is selected.
-Harness projects only the currently verified Codex hook events. Today that means the superpowers `SessionStart` wrapper plus the planning-with-files `SessionStart` and `UserPromptSubmit` events; the planning `Stop` event is intentionally omitted until a schema-safe adapter exists.
+Harness does not assume a single Codex feature-gate name. Check the installed Codex build first:
+
+```bash
+codex features list | rg '^hooks\s'
+```
+
+Expected on current builds: a `hooks` row marked enabled. If your Codex version uses a different gate name or config shape, follow the upstream Codex docs for that build instead of assuming Harness can enable it for you.
+
+Harness projects Codex hooks only when `--hooks=on` is selected. It projects the verified planning-with-files `SessionStart` and `UserPromptSubmit` events, plus the superpowers `SessionStart` wrapper. When the `safety` profile is active, Harness can also project Codex `SessionStart` and `PreToolUse` safety hooks. Those remain repository-owned policy checks and do not replace host-platform approvals.
+
+When these hooks run in a live Codex session, Harness writes runtime trace evidence under `.harness/runtime-hooks/codex.jsonl` and surfaces it in `doctor` and `verify` as runtime evidence instead of guessing.
 
 Hook files:
 
@@ -63,6 +71,8 @@ For user-global adoption, the default skill profile is the lean `minimal-global`
 ./scripts/harness install --targets=codex --scope=user-global
 ./scripts/harness sync
 ```
+
+If `doctor --check-only` warns that Codex is paired with `full` at user-global or `both` scope, treat that as a nudge to prefer `minimal-global` unless you really need the larger surface.
 
 Run with hooks:
 

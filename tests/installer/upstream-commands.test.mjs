@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readlink, lstat, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -144,6 +144,41 @@ test('updateCommand applies candidate only to harness upstream path', async () =
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(source, { recursive: true, force: true });
+  }
+});
+
+test('updateCommand preserves relative symlinks from the candidate', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-symlink-'));
+  try {
+    await mkdir(path.join(root, '.harness/upstream-candidates/superpowers'), { recursive: true });
+    await mkdir(path.join(root, 'harness/upstream'), { recursive: true });
+    await writeFile(
+      path.join(root, 'harness/upstream/sources.json'),
+      JSON.stringify({
+        schemaVersion: 1,
+        sources: {
+          superpowers: {
+            type: 'git',
+            url: 'https://example.invalid/superpowers.git',
+            path: 'harness/upstream/superpowers'
+          }
+        }
+      })
+    );
+    await writeFile(
+      path.join(root, '.harness/upstream-candidates/superpowers/CLAUDE.md'),
+      '# candidate\n'
+    );
+    await symlink('CLAUDE.md', path.join(root, '.harness/upstream-candidates/superpowers/AGENTS.md'));
+
+    await withCwd(root, () => updateCommand(['--source=superpowers']));
+
+    const agentsPath = path.join(root, 'harness/upstream/superpowers/AGENTS.md');
+    const agentsStat = await lstat(agentsPath);
+    assert.equal(agentsStat.isSymbolicLink(), true);
+    assert.equal(await readlink(agentsPath), 'CLAUDE.md');
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 

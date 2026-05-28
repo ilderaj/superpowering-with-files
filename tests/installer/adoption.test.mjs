@@ -324,12 +324,13 @@ test('adopt-global stores Claude Code verification details in the success receip
     assert.equal(receipt.verification.runtimeInvocationVerified, false);
     assert.equal(
       receipt.verification.hookEvidence['claude-code']['planning-with-files'].runtime,
-      'not-measured'
+      'runtime-invocation-verified'
     );
     assert.equal(
       receipt.verification.hookEvidence['claude-code']['planning-with-files'].payload,
       'local-payload-verified'
     );
+    assert.equal(receipt.verification.hookEvidence['claude-code'].superpowers.runtime, 'not-measured');
   } finally {
     await removeHarnessFixture(root);
   }

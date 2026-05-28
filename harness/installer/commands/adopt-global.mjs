@@ -63,6 +63,11 @@ export async function adoptGlobal(args = []) {
   await verify([`--output=${verificationOutput}`]);
 
   const health = await readHarnessHealth(rootDir, homeDir);
+  const hookEvidence = summarizeHookEvidence(health);
+  const runtimeEvidenceRows = Object.values(hookEvidence).flatMap((targetHooks) => Object.values(targetHooks));
+  const runtimeInvocationVerified =
+    runtimeEvidenceRows.length > 0 &&
+    runtimeEvidenceRows.every((row) => row.runtime === 'runtime-invocation-verified');
   if (health.problems.length > 0) {
     await writeAdoptionFailure(rootDir, {
       schemaVersion: 1,
@@ -77,8 +82,8 @@ export async function adoptGlobal(args = []) {
     verificationReportPath: path.join(verificationOutput, 'latest.json'),
     verification: {
       doctorPassed: true,
-      runtimeInvocationVerified: false,
-      hookEvidence: summarizeHookEvidence(health)
+      runtimeInvocationVerified,
+      hookEvidence
     }
   });
   await writeAdoptionReceipt(rootDir, receipt);

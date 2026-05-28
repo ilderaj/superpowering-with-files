@@ -81,7 +81,7 @@ export async function stageLocalCandidate(rootDir, sourceName, fromPath) {
   const candidatePath = candidatePathForSource(rootDir, sourceName);
   await rm(candidatePath, { recursive: true, force: true });
   await mkdir(path.dirname(candidatePath), { recursive: true });
-  await cp(path.resolve(fromPath), candidatePath, { recursive: true });
+  await cp(path.resolve(fromPath), candidatePath, { recursive: true, verbatimSymlinks: true });
   return candidatePath;
 }
 
@@ -121,7 +121,7 @@ export async function applyCandidate(rootDir, sourceName, source) {
   const overlayPath = overlayPathForSource(rootDir, sourceName, source);
   await rm(targetPath, { recursive: true, force: true });
   await mkdir(path.dirname(targetPath), { recursive: true });
-  await cp(candidatePath, targetPath, { recursive: true });
+  await cp(candidatePath, targetPath, { recursive: true, verbatimSymlinks: true });
 
   if (overlayPath) {
     await cp(overlayPath, targetPath, { recursive: true, force: true });
