@@ -127,7 +127,7 @@ async function inspectBackupGovernance(rootDir, homeDir) {
   };
 }
 
-async function findSingleActiveTaskDir(rootDir) {
+async function inspectActiveTaskState(rootDir) {
   const activeRoot = path.join(rootDir, 'planning/active');
   const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
   const matches = [];
@@ -150,7 +150,10 @@ async function findSingleActiveTaskDir(rootDir) {
     }
   }
 
-  return matches.length === 1 ? matches[0] : null;
+  return {
+    activeTaskCount: matches.length,
+    activeTaskDir: matches.length === 1 ? matches[0] : null
+  };
 }
 
 function isPlainObject(value) {
@@ -597,6 +600,7 @@ async function inspectSkillLedger(rootDir, profileName, target, skills) {
 
 async function inspectPlanningHotContext(
   activeTaskDir,
+  activeTaskCount,
   planningBudget,
   hookMode,
   target,
@@ -606,6 +610,13 @@ async function inspectPlanningHotContext(
   problems
 ) {
   if (hookMode !== 'on' || !planningBudget || !activeTaskDir) {
+    if (hookMode === 'on' && planningBudget && activeTaskCount > 1) {
+      const message =
+        `Planning hot context measurement skipped because ${activeTaskCount} active tasks are present under planning/active. ` +
+        'Harness can only measure planning hot context when exactly one active task is active.';
+      addUniqueMessage(contextWarnings, message);
+      addUniqueMessage(warnings, message);
+    }
     return null;
   }
 
@@ -702,7 +713,7 @@ function selectRuntimeSourcePath(projection) {
   return (
     projection.scriptSourcePaths?.find((sourcePath) => {
       const base = path.basename(sourcePath);
-      return !base.endsWith('.mjs') && !base.endsWith('.cmd');
+      return base !== 'runtime-hook-evidence.sh' && !base.endsWith('.mjs') && !base.endsWith('.cmd');
     }) ?? null
   );
 }
@@ -1399,7 +1410,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     targets: []
   };
   let budgetLoadProblem = null;
-  const activeTaskDir = await findSingleActiveTaskDir(rootDir);
+  const activeTaskState = await inspectActiveTaskState(rootDir);
   const budgetPolicies = await loadContextBudgetPolicies(rootDir).catch(() => ({}));
   const entryTotalsByTarget = new Map();
   const hookTotalsByTarget = new Map();
@@ -1553,21 +1564,22 @@ export async function readHarnessHealth(rootDir, homeDir) {
       hookMode: state.hookMode,
       policyProfile: activeSafetyPolicyProfile(state)
     })) {
-      const inspected = await inspectHook(projection);
-      hooks.push(inspected);
-      if (!['ok', 'unsupported'].includes(inspected.status)) {
-        problems.push(formatHookProblem(target, inspected));
-      }
+    const inspected = await inspectHook(projection);
+    hooks.push(inspected);
+    if (!['ok', 'unsupported'].includes(inspected.status)) {
+      problems.push(formatHookProblem(target, inspected));
     }
+  }
 
-    if (target === 'claude-code') {
-      const runtimeEvidence = await readRuntimeHookEvidence(rootDir, target);
-      hooks = hooks.map((hook) =>
-        hook.status === 'ok'
-          ? { ...hook, ...summarizeRuntimeEvidenceForProjection(hook, runtimeEvidence, rootDir) }
-          : hook
-      );
+    const runtimeEvidence = await readRuntimeHookEvidence(rootDir, target);
+    for (const warning of runtimeEvidence.warnings ?? []) {
+      addUniqueMessage(warnings, warning);
     }
+    hooks = hooks.map((hook) =>
+      hook.status === 'ok'
+        ? { ...hook, ...summarizeRuntimeEvidenceForProjection(hook, runtimeEvidence, rootDir) }
+        : hook
+    );
 
     targets[target] = { entries, skills, hooks };
 
@@ -1578,7 +1590,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     const hookEntries = await inspectLocalHookPayloads(
       rootDir,
       homeDir,
-      activeTaskDir,
+      activeTaskState.activeTaskDir,
       hookBudget,
       state.hookMode,
       hooks,
@@ -1604,7 +1616,8 @@ export async function readHarnessHealth(rootDir, homeDir) {
       hookWorstByTarget.get(target) ?? createEmptyMeasurement(target);
 
     const planningEntry = await inspectPlanningHotContext(
-      activeTaskDir,
+      activeTaskState.activeTaskDir,
+      activeTaskState.activeTaskCount,
       budgets?.budgets?.planningHotContext,
       state.hookMode,
       target,
@@ -1739,6 +1752,17 @@ export async function readHarnessHealth(rootDir, homeDir) {
     addUniqueMessage(
       problems,
       `Harness backup archive/index drift detected under user-global roots: ${backupGovernance.archiveIndexDrift.join(', ')}`
+    );
+  }
+
+  if (
+    state.scope !== 'workspace' &&
+    state.skillProfile === 'full' &&
+    state.targets.codex?.enabled
+  ) {
+    addUniqueMessage(
+      warnings,
+      'Codex user-global installs default to minimal-global; full is heavier than necessary unless you intentionally need the full skill surface.'
     );
   }
 

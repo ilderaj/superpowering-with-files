@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 
 export const RUNTIME_HOOK_EVIDENCE_SCHEMA_VERSION = 1;
@@ -9,7 +10,23 @@ export function runtimeEvidenceLogPath(rootDir, target = 'claude-code') {
 }
 
 function normalizeRoot(rootDir) {
-  return path.resolve(rootDir);
+  const resolvedRoot = path.resolve(rootDir);
+
+  try {
+    return realpathSync(resolvedRoot);
+  } catch {
+    return resolvedRoot;
+  }
+}
+
+function normalizeExistingPath(filePath) {
+  const resolvedPath = path.resolve(filePath);
+
+  try {
+    return realpathSync(resolvedPath);
+  } catch {
+    return resolvedPath;
+  }
 }
 
 function parseRecord(line, rootDir, target, lineNumber) {
@@ -32,7 +49,7 @@ function parseRecord(line, rootDir, target, lineNumber) {
 
   const normalizedRoot = normalizeRoot(rootDir);
   const observedAt = typeof record.observedAt === 'string' ? new Date(record.observedAt) : null;
-  const projectRoot = typeof record.projectRoot === 'string' ? path.resolve(record.projectRoot) : null;
+  const projectRoot = typeof record.projectRoot === 'string' ? normalizeExistingPath(record.projectRoot) : null;
 
   if (
     record.schemaVersion !== RUNTIME_HOOK_EVIDENCE_SCHEMA_VERSION ||
@@ -136,7 +153,7 @@ export function summarizeRuntimeEvidenceForProjection(projection, evidence, root
       return false;
     }
 
-    if (path.resolve(record.projectRoot ?? '') !== normalizeRoot(rootDir)) {
+    if (normalizeExistingPath(record.projectRoot ?? '') !== normalizeRoot(rootDir)) {
       return false;
     }
 

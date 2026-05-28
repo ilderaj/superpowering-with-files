@@ -486,6 +486,65 @@ test('verify writes stable Claude Code hook evidence summary into the JSON repor
   }
 });
 
+test('verify writes Codex runtime evidence into the JSON report when a matching trace exists', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await mkdir(path.join(root, '.harness/runtime-hooks'), { recursive: true });
+    await writeFile(
+      path.join(root, '.harness/runtime-hooks/codex.jsonl'),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: 'harness-runtime-hook',
+        target: 'codex',
+        parentSkillName: 'planning-with-files',
+        eventName: 'UserPromptSubmit',
+        observedAt: '2026-05-28T03:03:03.000Z',
+        projectRoot: root,
+        cwd: root,
+        scriptName: 'task-scoped-hook.sh',
+        scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh')
+      })}\n`
+    );
+
+    await harnessCommand(root, 'sync');
+    await harnessCommand(root, 'verify', '--output=.harness/codex-verification');
+
+    const report = JSON.parse(
+      await readFile(path.join(root, '.harness/codex-verification/latest.json'), 'utf8')
+    );
+
+    assert.equal(
+      report.verification.hookEvidence['codex']['planning-with-files'].runtime,
+      'runtime-invocation-verified'
+    );
+    assert.equal(
+      report.verification.hookEvidence['codex']['planning-with-files'].payload,
+      'local-payload-verified'
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('verify tolerates malformed context budgets and records a problem', async () => {
   const root = await createHarnessFixture();
   try {
@@ -746,6 +805,59 @@ test('doctor prints Claude Code hook evidence levels without claiming runtime in
     assert.match(stdout, /payload=local-payload-verified/);
     assert.match(stdout, /runtime=not-measured/);
   } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('doctor prints Codex hook evidence runtime and advisory warnings when runtime evidence is present', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  const previousHome = process.env.HOME;
+  try {
+    await mkdir(homeDir, { recursive: true });
+    process.env.HOME = homeDir;
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'user-global',
+      projectionMode: 'link',
+      hookMode: 'on',
+      skillProfile: 'full',
+      targets: {
+        codex: { enabled: true, paths: [path.join(homeDir, '.codex/AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, '.harness/runtime-hooks'), { recursive: true });
+    await writeFile(
+      path.join(root, '.harness/runtime-hooks/codex.jsonl'),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: 'harness-runtime-hook',
+        target: 'codex',
+        parentSkillName: 'planning-with-files',
+        eventName: 'UserPromptSubmit',
+        observedAt: '2026-05-28T03:03:03.000Z',
+        projectRoot: root,
+        cwd: root,
+        scriptName: 'task-scoped-hook.sh',
+        scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh')
+      })}\n`
+    );
+
+    await harnessCommandWithEnv(root, { HOME: homeDir }, 'sync');
+    const { stdout, stderr } = await harnessCommandWithEnv(root, { HOME: homeDir }, 'doctor', '--check-only');
+
+    assert.match(stdout, /Hook evidence:/);
+    assert.match(stdout, /codex \/ planning-with-files/);
+    assert.match(stdout, /runtime=runtime-invocation-verified/);
+    assert.match(stderr, /Codex user-global installs default to minimal-global/);
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = previousHome;
+    }
     await removeHarnessFixture(root);
   }
 });

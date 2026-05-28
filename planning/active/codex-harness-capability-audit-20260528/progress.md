@@ -86,3 +86,17 @@
   - `tests/installer/health.test.mjs`
   - `planning/active/codex-harness-capability-audit-20260528/findings.md`
   - `planning/active/codex-harness-capability-audit-20260528/progress.md`
+
+### 阶段 6：Codex hardening plan 执行与回归验证
+- **状态：** complete
+- 执行的操作：
+  - 修正 runtime evidence 的路径归一化，让 `/var` 与 `/private/var` 这类 macOS 别名不再把同一份记录误判成不同根。
+  - 让 `verify` / `doctor` 报告重新稳定显示 Codex runtime evidence。
+  - 将多 active task 的 planning hot context 行为保留为 warning，并同步修正测试断言。
+  - 运行 `tests/installer/runtime-hook-evidence.test.mjs`、`tests/installer/health.test.mjs`、`tests/installer/commands.test.mjs`，确认全部通过。
+- 创建/修改的文件：
+  - `harness/installer/lib/runtime-hook-evidence.mjs`
+  - `tests/installer/health.test.mjs`
+  - `planning/active/codex-harness-capability-audit-20260528/task_plan.md`
+  - `planning/active/codex-harness-capability-audit-20260528/findings.md`
+  - `planning/active/codex-harness-capability-audit-20260528/progress.md`

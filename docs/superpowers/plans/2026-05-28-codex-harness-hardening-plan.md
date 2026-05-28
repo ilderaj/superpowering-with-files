@@ -42,7 +42,7 @@
 
 ### Core implementation files
 
-- Create: `harness/installer/lib/runtime-hook-evidence.mjs`
+- Modify: `harness/installer/lib/runtime-hook-evidence.mjs`
   - 负责读取、归一化、过滤、汇总 Harness-managed hook 的运行时 evidence。
 - Modify: `harness/installer/lib/health.mjs`
   - 把 Codex runtime evidence、multiple-active-task measurement skip reason、Codex profile advisory 纳入 health 输出。
@@ -157,10 +157,10 @@ git commit -m "docs: refresh codex support guidance"
 
 ---
 
-### Task 2: Land The Missing Runtime Hook Evidence Module And Wire It To Codex
+### Task 2: Wire The Existing Runtime Hook Evidence Module And Codex
 
 **Files:**
-- Create: `harness/installer/lib/runtime-hook-evidence.mjs`
+- Modify: `harness/installer/lib/runtime-hook-evidence.mjs`
 - Modify: `harness/installer/lib/health.mjs`
 - Modify: `harness/installer/lib/hook-evidence-summary.mjs`
 - Modify: `harness/installer/commands/doctor.mjs`
@@ -169,74 +169,13 @@ git commit -m "docs: refresh codex support guidance"
 - Test: `tests/installer/health.test.mjs`
 - Test: `tests/installer/commands.test.mjs`
 
-- [ ] **Step 1: Run the currently failing runtime-evidence test to capture the baseline defect**
+- [ ] **Step 1: Confirm the current runtime-evidence baseline and the remaining Codex wiring gap**
 
-Run:
+The runtime evidence module already exists, so the remaining work is to wire Codex and the other supported targets into it, then verify that the health and doctor surfaces report runtime evidence instead of leaving it implied.
 
-```bash
-node --test tests/installer/runtime-hook-evidence.test.mjs
-```
+- [ ] **Step 2: Extend the runtime evidence module and wire its readout to Codex**
 
-Expected:
-
-```text
-ERR_MODULE_NOT_FOUND
-Cannot find module '.../harness/installer/lib/runtime-hook-evidence.mjs'
-```
-
-- [ ] **Step 2: Create `runtime-hook-evidence.mjs` with the three functions already referenced by tests**
-
-Implement the file with these exports:
-
-```js
-import { mkdir, readFile } from 'node:fs/promises';
-import path from 'node:path';
-
-export function runtimeEvidenceLogPath(rootDir, target) {
-  return path.join(rootDir, '.harness', 'runtime-hook-evidence', `${target}.jsonl`);
-}
-
-export async function readRuntimeHookEvidence(rootDir, target) {
-  const logPath = runtimeEvidenceLogPath(rootDir, target);
-  const text = await readFile(logPath, 'utf8').catch(() => '');
-  const records = [];
-  const warnings = [];
-
-  for (const [index, line] of text.split(/\r?\n/).entries()) {
-    if (!line.trim()) continue;
-    try {
-      const row = JSON.parse(line);
-      if (row?.schemaVersion === 1 && row?.source === 'harness-runtime-hook' && row?.target === target) {
-        records.push(row);
-      } else {
-        warnings.push(`Ignored unsupported runtime hook evidence row ${index + 1} in ${logPath}`);
-      }
-    } catch {
-      warnings.push(`Ignored invalid runtime hook evidence row ${index + 1} in ${logPath}`);
-    }
-  }
-
-  return { logPath, records, warnings };
-}
-
-export function summarizeRuntimeEvidenceForProjection(projection, evidence, rootDir) {
-  const matched = (evidence.records ?? []).filter(
-    (row) =>
-      row.target === projection.target &&
-      row.parentSkillName === projection.parentSkillName &&
-      (projection.eventNames ?? []).includes(row.eventName) &&
-      row.projectRoot === rootDir
-  );
-
-  return matched.length === 0
-    ? { runtimeEvidence: 'not-measured', lastObservedAt: null, observedEvents: [] }
-    : {
-        runtimeEvidence: 'runtime-invocation-verified',
-        lastObservedAt: matched.map((row) => row.observedAt).sort().at(-1) ?? null,
-        observedEvents: [...new Set(matched.map((row) => row.eventName))].sort()
-      };
-}
-```
+Keep the existing module shape stable, but make sure the target path, runtime trace parsing, and health summary logic all agree on `.harness/runtime-hooks/<target>.jsonl` and on Codex as a first-class target.
 
 - [ ] **Step 3: Re-run the focused test and extend it with Codex coverage**
 

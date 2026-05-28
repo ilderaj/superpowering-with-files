@@ -9,7 +9,7 @@ Archive Eligible: no
 Close Reason:
 
 ## 当前阶段
-阶段 1
+阶段 6
 
 ## 各阶段
 
@@ -41,6 +41,13 @@ Close Reason:
 - [x] 形成按严重度排序的发现列表
 - [x] 补充假设、开放问题与验证状态
 - [x] 向用户交付审计结论
+- **状态：** complete
+
+### 阶段 6：Codex hardening plan 执行与回归验证
+- [x] 修正 runtime evidence 在 `verify`/`doctor` 中的根路径归一化问题
+- [x] 让 Codex runtime evidence 在 JSON/markdown verification report 中稳定可见
+- [x] 将多 active task 的 planning hot context 降级为 warning 并保留可读诊断
+- [x] 运行 runtime、health、commands 三组回归测试
 - **状态：** complete
 
 ## 关键问题

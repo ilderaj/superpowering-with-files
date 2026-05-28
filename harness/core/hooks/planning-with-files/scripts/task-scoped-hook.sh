@@ -3,10 +3,51 @@ set -euo pipefail
 
 target="${1:-generic}"
 event="${2:-}"
-root="${HARNESS_PROJECT_ROOT:-$(pwd)}"
+root=""
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+script_name="$(basename "${BASH_SOURCE[0]}")"
+script_path="$script_dir/$script_name"
+
+source_runtime_hook_evidence_helper() {
+  local helper
+  for helper in \
+    "$script_dir/runtime-hook-evidence.sh" \
+    "$script_dir/../../runtime-hook-evidence.sh"; do
+    if [ -f "$helper" ]; then
+      # shellcheck source=/dev/null
+      . "$helper"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+source_runtime_hook_evidence_helper || true
+
+if declare -F harness_resolve_project_root >/dev/null 2>&1; then
+  root="$(harness_resolve_project_root)"
+else
+  root="${HARNESS_PROJECT_ROOT:-$(pwd)}"
+fi
+
 active_root="$root/planning/active"
 runtime_root="$root/.harness/planning-with-files"
+
+record_runtime_hook_evidence() {
+  local parent_skill_name="$1"
+  local event_name="$2"
+  if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
+    harness_record_runtime_hook_evidence \
+      "$target" \
+      "$parent_skill_name" \
+      "$event_name" \
+      "$root" \
+      "$(pwd)" \
+      "$script_name" \
+      "$script_path" || true
+  fi
+}
 
 json_escape() {
   node -e 'let input = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", chunk => { input += chunk; }); process.stdin.on("end", () => { process.stdout.write(JSON.stringify(input)); });'
@@ -126,6 +167,7 @@ emit_context() {
   hook_event="$(canonical_hook_event_name "$2")"
   if [ -z "$context" ]; then
     printf '{}\n'
+    record_runtime_hook_evidence "planning-with-files" "$hook_event"
     return 0
   fi
 
@@ -156,6 +198,8 @@ emit_context() {
       printf '{"additionalContext":%s}\n' "$escaped"
       ;;
   esac
+
+  record_runtime_hook_evidence "planning-with-files" "$hook_event"
 }
 
 task_count=0
@@ -172,6 +216,16 @@ EOF
 
 if [ "$task_count" -eq 0 ]; then
   printf '{}\n'
+  if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
+    harness_record_runtime_hook_evidence \
+      "$target" \
+      "planning-with-files" \
+      "$(canonical_hook_event_name "$event")" \
+      "$root" \
+      "$(pwd)" \
+      "$script_name" \
+      "$script_path" || true
+  fi
   exit 0
 fi
 

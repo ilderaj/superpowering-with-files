@@ -12,6 +12,8 @@ Use this guide to choose a safe Harness adoption profile, verify the result, and
 
 Default to `minimal-global` for personal bootstrap and `full-local` only for repos that need the complete projected skill set. Cloud-dev is a separate remote staging lane, not a replacement for local verification.
 
+For Codex user-global or `both` scope installs, `minimal-global` is the expected default. Use `full` only when you intentionally want the wider skill surface and accept the extra context cost.
+
 ## Safe Adoption Flow
 
 ```bash

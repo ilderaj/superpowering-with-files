@@ -23,6 +23,8 @@ Use `sync --dry-run` to inspect the desired projection diff without writing file
 ./scripts/harness verify --output=.harness/verification
 ```
 
+When hooks are enabled, `doctor` and `verify` surface hook evidence in three layers: config, local payload, and runtime trace evidence. If multiple active tasks prevent planning hot context measurement, the report will say so directly instead of leaving the field ambiguous.
+
 ## Cloud Dev Harness Maintenance
 
 Use these controls when maintaining the remote-only `cloud-dev` lane:

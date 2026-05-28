@@ -5,7 +5,8 @@ import path from 'node:path';
 import {
   readRuntimeHookEvidence,
   runtimeEvidenceLogPath,
-  summarizeRuntimeEvidenceForProjection
+  summarizeRuntimeEvidenceForProjection,
+  writeRuntimeHookEvidence
 } from '../../harness/installer/lib/runtime-hook-evidence.mjs';
 import { createHarnessFixture, removeHarnessFixture } from '../helpers/harness-fixture.mjs';
 
@@ -86,6 +87,33 @@ test('summarizeRuntimeEvidenceForProjection keeps mismatched runtime evidence un
     assert.equal(summary.runtimeEvidence, 'not-measured');
     assert.equal(summary.lastObservedAt, null);
     assert.deepEqual(summary.observedEvents, []);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('writeRuntimeHookEvidence appends Codex runtime traces in the expected log file', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeRuntimeHookEvidence(root, 'codex', {
+      schemaVersion: 1,
+      source: 'harness-runtime-hook',
+      target: 'codex',
+      parentSkillName: 'planning-with-files',
+      eventName: 'SessionStart',
+      observedAt: '2026-05-28T03:03:03.000Z',
+      projectRoot: root,
+      cwd: root,
+      scriptName: 'task-scoped-hook.sh',
+      scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh')
+    });
+
+    const evidence = await readRuntimeHookEvidence(root, 'codex');
+
+    assert.equal(evidence.records.length, 1);
+    assert.equal(evidence.records[0].target, 'codex');
+    assert.equal(evidence.records[0].parentSkillName, 'planning-with-files');
+    assert.deepEqual(evidence.warnings, []);
   } finally {
     await removeHarnessFixture(root);
   }

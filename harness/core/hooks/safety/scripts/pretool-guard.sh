@@ -5,6 +5,25 @@ set -euo pipefail
 platform="${1:-unknown}"
 payload="$(cat)"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+script_name="$(basename "${BASH_SOURCE[0]}")"
+script_path="$script_dir/$script_name"
+
+source_runtime_hook_evidence_helper() {
+  local helper
+  for helper in \
+    "$script_dir/runtime-hook-evidence.sh" \
+    "$script_dir/../../runtime-hook-evidence.sh"; do
+    if [ -f "$helper" ]; then
+      # shellcheck source=/dev/null
+      . "$helper"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+source_runtime_hook_evidence_helper || true
 
 project_root="${HARNESS_PROJECT_ROOT:-}"
 if [ -z "$project_root" ] && command -v git >/dev/null 2>&1; then
@@ -489,3 +508,14 @@ if (dangerousPatterns.some((pattern) => pattern.test(command))) {
 
 emit('allow', 'Command did not trigger a safety restriction.', cwd, command);
 NODE
+
+if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
+  harness_record_runtime_hook_evidence \
+    "$platform" \
+    "safety" \
+    "PreToolUse" \
+    "$project_root" \
+    "$cwd" \
+    "$script_name" \
+    "$script_path" || true
+fi

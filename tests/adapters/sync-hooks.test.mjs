@@ -154,6 +154,10 @@ test('sync installs codex planning hooks when hookMode is on', async () => {
     assert.match(JSON.stringify(hooks), /Harness-managed planning-with-files hook/);
     assert.match(await readFile(path.join(root, '.codex/hooks/task-scoped-hook.sh'), 'utf8'), /planning\/active/);
     assert.match(
+      await readFile(path.join(root, '.codex/hooks/runtime-hook-evidence.sh'), 'utf8'),
+      /harness_record_runtime_hook_evidence/
+    );
+    assert.match(
       await readFile(path.join(root, '.codex/hooks/planning-hot-context.mjs'), 'utf8'),
       /buildPlanningHotContext/
     );
@@ -277,6 +281,10 @@ test('sync installs copilot safety hooks when the safety profile is active', asy
     assert.match(JSON.stringify(hooks), /Harness-managed safety hook/);
     assert.match(await readFile(path.join(root, '.github/hooks/pretool-guard.sh'), 'utf8'), /permissionDecision/);
     assert.match(await readFile(path.join(root, '.github/hooks/session-checkpoint.sh'), 'utf8'), /checkpoint/);
+    assert.match(
+      await readFile(path.join(root, '.github/hooks/runtime-hook-evidence.sh'), 'utf8'),
+      /harness_record_runtime_hook_evidence/
+    );
   } finally {
     await removeHarnessFixture(root);
   }

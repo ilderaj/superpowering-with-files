@@ -326,14 +326,40 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
       reasons.push(`Current repo HEAD ${repoHead} differs from receipt HEAD ${receipt.repoHead}.`);
     }
 
-    if (
-      state.hookMode === 'on' &&
-      targets.includes('claude-code') &&
-      receipt.verification?.runtimeInvocationVerified === false
-    ) {
-      reasons.push(
-        'Claude Code runtime hook invocation is not measured; local settings and payload checks passed only.'
-      );
+    if (state.hookMode === 'on' && receipt.verification?.runtimeInvocationVerified === false) {
+      const unresolvedRuntimeTargets = [];
+
+      for (const [target, targetHealth] of Object.entries(health.targets ?? {})) {
+        if (!state.targets?.[target]?.enabled) {
+          continue;
+        }
+
+        const runtimeMeasured = (targetHealth.hooks ?? []).some(
+          (hook) => hook.status === 'ok' && hook.runtimeEvidence === 'runtime-invocation-verified'
+        );
+        const runtimeRelevant = (targetHealth.hooks ?? []).some((hook) => hook.status === 'ok');
+        if (!runtimeRelevant || runtimeMeasured) {
+          continue;
+        }
+
+        unresolvedRuntimeTargets.push(
+          target === 'claude-code'
+            ? 'Claude Code'
+            : target === 'codex'
+              ? 'Codex'
+              : target === 'copilot'
+                ? 'GitHub Copilot'
+                : target === 'cursor'
+                  ? 'Cursor'
+                  : target
+        );
+      }
+
+      if (unresolvedRuntimeTargets.length > 0) {
+        reasons.push(
+          `${unresolvedRuntimeTargets.join(', ')} runtime hook invocation is not measured; local settings and payload checks passed only.`
+        );
+      }
     }
   }
 

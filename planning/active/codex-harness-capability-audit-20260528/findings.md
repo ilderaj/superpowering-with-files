@@ -23,6 +23,9 @@
 - `harness/installer/lib/health.mjs` 现在会在 Claude Code 目标上读取 `.harness/runtime-hooks/claude-code.jsonl`，并把匹配的 metadata-only trace 汇总为 `runtime-invocation-verified`；没有 trace 时仍保持 `not-measured`。
 - `tests/installer/runtime-hook-evidence.test.mjs` 已覆盖 runtime trace 读取、无效行告警与 projection 不匹配仍不测量的语义。
 - `tests/installer/health.test.mjs` 新增 Claude Code runtime trace 断言；当 runtime evidence 存在时，`readHarnessHealth()` 会把 hook runtime 状态提升为 `runtime-invocation-verified`。
+- `verify` / `doctor` 之前在 Codex runtime evidence 上出现过“report 层显示 not-measured，但 direct health 已能看到 verified”的分裂，根因是 runtime record 的 `projectRoot` 与 health 侧 root 归一化存在 macOS `/var` 与 `/private/var` 别名差异；这会把同一份路径误判成不同根。
+- 已通过 `realpath` 归一化修正 runtime evidence 比对逻辑后，`verify` 与 `doctor` 的 Codex runtime evidence 重新稳定显示为 `runtime-invocation-verified`，相关回归测试已恢复为全绿。
+- `readHarnessHealth()` 在多 active task 场景下不会再尝试测量 planning hot context，但会保留明确 warning；当前实现的 verdict 仍保持 `ok`，因为这里只是“测量受限”而不是“检查失败”。
 
 ## 遇到的问题
 | 问题 | 解决方案 |
