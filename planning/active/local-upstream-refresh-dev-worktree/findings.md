@@ -184,3 +184,12 @@
 - 当前开放 PR 是 `#70`：head `dev` → base `main`。
 - 本地 `dev` 在完成 review follow-up commit `101fa32` 后相对 `origin/dev` 处于 `ahead 1`，因此只需正常 push 即可把修复带进 PR，无需额外分支或 cherry-pick。
 - 这两条 inline comments 适合在线程里直接回复“已修复 + 具体验证结果”，不需要另开顶层评论。
+
+## Findings Record: 2026-05-28 17:18:34 UTC+8
+
+### PR Thread Closure Result
+- 已将本轮 follow-up 连同 tracking 更新一起 push 到 `origin/dev`，远端从 `d0b32dd` 前进到 `695f9df`。
+- 已在两个 review thread 中逐条回复处理结果：
+  - `pretool-guard.sh` thread reply: `discussion_r3316666439`
+  - `session-checkpoint.sh` thread reply: `discussion_r3316666443`
+- 因为 PR head 仍是 `dev`，所以这两条回复都自动附着在同一个 PR `#70` 的最新代码线上，无需额外开新 PR。
