@@ -1,6 +1,7 @@
 import os from 'node:os';
 import { readFile } from 'node:fs/promises';
 import { readHarnessHealth } from '../lib/health.mjs';
+import { listHookEvidenceRows } from '../lib/hook-evidence-summary.mjs';
 
 const HOME_PATH_PATTERNS = [
   /(?:^|[^A-Za-z0-9])\/Users\/[^/\n\r]+\/(?:[^ \n\r\t"'`<>]|$)/,
@@ -47,6 +48,23 @@ function renderHookPayloadSection(health) {
   if (health.scopeOverlap?.recommendedAction) {
     lines.push(`Recommended action: ${health.scopeOverlap.recommendedAction}`);
   }
+  return `${lines.join('\n')}\n`;
+}
+
+function renderHookEvidenceSection(health) {
+  const rows = listHookEvidenceRows(health);
+  const lines = ['Hook evidence:'];
+
+  if (rows.length === 0) {
+    lines.push('- none');
+  } else {
+    for (const row of rows) {
+      lines.push(
+        `- ${row.target} / ${row.parentSkillName}: config=${row.config}, payload=${row.payload}, runtime=${row.runtime}`
+      );
+    }
+  }
+
   return `${lines.join('\n')}\n`;
 }
 
@@ -121,6 +139,7 @@ export async function doctor(args = []) {
       console.log(safetySection);
     }
     console.log(renderHookPayloadSection(health));
+    console.log(renderHookEvidenceSection(health));
     console.log(renderBudgetLedgerSection(health));
     console.error(uniqueProblems.join('\n'));
     process.exitCode = 1;
@@ -132,6 +151,7 @@ export async function doctor(args = []) {
     console.log(safetySection);
   }
   console.log(renderHookPayloadSection(health));
+  console.log(renderHookEvidenceSection(health));
   console.log(renderBudgetLedgerSection(health));
   console.log(checkOnly ? 'Harness check passed.' : 'Harness installation is healthy.');
 }

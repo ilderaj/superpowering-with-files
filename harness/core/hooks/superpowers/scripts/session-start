@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
+# Emits compact superpowers context for session start.
+# Usage: session-start [TARGET]
+# TARGET: codex (default), copilot, cursor, or claude-code.
+#         cursor uses additional_context payload; others use hookSpecificOutput.
 set -euo pipefail
 
+target="${1:-codex}"
 root="${HARNESS_PROJECT_ROOT:-$(pwd)}"
 
 json_escape() {
@@ -19,4 +24,11 @@ EOF
 )"
 escaped="$(printf '%s' "$context" | json_escape)"
 
-printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":%s}}\n' "$escaped"
+case "$target" in
+  cursor)
+    printf '{"additional_context":%s}\n' "$escaped"
+    ;;
+  *)
+    printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":%s}}\n' "$escaped"
+    ;;
+esac

@@ -721,6 +721,61 @@ test('readHarnessHealth records measured hook payloads in context', async () => 
   }
 });
 
+test('readHarnessHealth measures compact superpowers hook payloads for all supported targets', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] },
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] },
+        cursor: { enabled: true, paths: [path.join(root, '.cursor/rules/harness.mdc')] },
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      [
+        '# Compact Task',
+        '',
+        '## Goal',
+        '- Measure all hook payload targets.',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+
+    for (const target of ['codex', 'copilot', 'cursor', 'claude-code']) {
+      const payload = health.context.hooks.find(
+        (hook) =>
+          hook.target === target &&
+          hook.parentSkillName === 'superpowers' &&
+          /sessionstart/i.test(hook.eventName)
+      );
+
+      assert.ok(payload, `expected superpowers payload for ${target}`);
+      assert.equal(payload.status, 'ok', target);
+      assert.ok(payload.measurement.approxTokens > 0, target);
+      assert.ok(payload.measurement.approxTokens < 500, target);
+    }
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth measures Copilot hook payloads and reports worst hook target', async () => {
   const root = await createHarnessFixture();
   try {
@@ -766,6 +821,74 @@ test('readHarnessHealth measures Copilot hook payloads and reports worst hook ta
     assert.match(health.context.hooks[0].target, /copilot/);
     assert.ok(health.context.hooks.some((hook) => hook.category === 'planning-hot'));
     assert.ok(health.context.hooks.some((hook) => hook.category === 'planning-brief'));
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth evaluates hook summary by worst event instead of cumulative lifecycle total', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      [
+        '# Compact Task',
+        '',
+        '## Goal',
+        '- Keep individual hook events under budget while cumulative lifecycle payload is larger.',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '### Phase 1: Old work',
+        '- **Status:** complete',
+        ...Array.from({ length: 20 }, (_, index) => `- [ ] Old incomplete item ${index + 1}.`),
+        '',
+        '### Phase 2: Current work',
+        '- **Status:** in_progress',
+        '- [ ] Current incomplete item.'
+      ].join('\n')
+    );
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/findings.md'),
+      ['# Findings', '', ...Array.from({ length: 30 }, (_, index) => `- Finding ${index + 1}.`)].join('\n')
+    );
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/progress.md'),
+      ['# Progress', '', ...Array.from({ length: 30 }, (_, index) => `- Progress ${index + 1}.`)].join('\n')
+    );
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+    const copilotHookEvents = health.context.hooks.filter((hook) => hook.target === 'copilot' && hook.measurement);
+    const copilotLedger = health.context.ledger.targets.find((target) => target.target === 'copilot');
+    const cumulativeTokens = copilotHookEvents.reduce(
+      (sum, hook) => sum + hook.measurement.approxTokens,
+      0
+    );
+    const worstEventTokens = Math.max(...copilotHookEvents.map((hook) => hook.measurement.approxTokens));
+
+    assert.ok(cumulativeTokens > worstEventTokens);
+    assert.ok(copilotLedger.turn.hookPayload.approxTokens > copilotLedger.turn.hookPayloadWorstEvent.approxTokens);
+    assert.equal(health.context.summary.hooks.target, 'copilot');
+    assert.equal(health.context.summary.hooks.approxTokens, worstEventTokens);
+    assert.equal(health.context.summary.hooks.verdict, 'ok');
+    assert.equal(health.context.summary.hooks.accounting, 'worst-event');
+    assert.ok(!health.problems.some((problem) => /context hook summary/i.test(problem)));
   } finally {
     await removeHarnessFixture(root);
   }
@@ -1002,6 +1125,7 @@ test('readHarnessHealth summarizes hook, planning, and skill profile context led
     assert.ok(health.context.summary.planning.approxTokens > 0);
     assert.ok(health.context.summary.skillProfiles.approxTokens > 0);
     assert.equal(health.context.summary.hooks.verdict, 'ok');
+    assert.equal(health.context.summary.hooks.accounting, 'worst-event');
     assert.equal(health.context.summary.planning.verdict, 'ok');
     assert.equal(health.context.summary.skillProfiles.verdict, 'ok');
     assert.equal(health.context.ledger.scope, 'workspace');
@@ -1017,6 +1141,7 @@ test('readHarnessHealth summarizes hook, planning, and skill profile context led
     assert.ok(health.context.ledger.targets[0].session.skillSource.approxTokens > 0);
     assert.ok(health.context.ledger.targets[0].session.planningHotContext.approxTokens > 0);
     assert.ok(health.context.ledger.targets[0].turn.hookPayload.approxTokens > 0);
+    assert.ok(health.context.ledger.targets[0].turn.hookPayloadWorstEvent.approxTokens > 0);
     assert.ok(health.context.ledger.targets[0].turn.planningHotContext.approxTokens > 0);
   } finally {
     await removeHarnessFixture(root);
@@ -1440,6 +1565,9 @@ test('readHarnessHealth reports a problem when hook config exists without the ma
     assert.equal(planning.status, 'problem');
     assert.match(planning.message, /missing Harness-managed planning-with-files hook/);
     assert.ok(health.problems.some((problem) => problem.includes('planning-with-files')));
+    assert.ok(
+      !health.problems.some((problem) => problem.includes('Expected Harness-managed hook settings at'))
+    );
   } finally {
     await removeHarnessFixture(root);
   }
@@ -1537,7 +1665,81 @@ test('readHarnessHealth validates Claude Code settings hooks after sync', async 
     );
 
     assert.equal(planning.status, 'ok');
+    assert.equal(planning.evidenceLevel, 'config-verified');
+    assert.equal(planning.configEvidence, 'settings-hook-present');
+    assert.equal(planning.runtimeEvidence, 'not-measured');
     assert.equal(health.problems.length, 0);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports Claude Code hookMode on with missing settings hooks', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const planning = health.targets['claude-code'].hooks.find(
+      (hook) => hook.parentSkillName === 'planning-with-files'
+    );
+
+    assert.equal(planning.status, 'missing');
+    assert.match(planning.message, /Hook config is missing/);
+    assert.ok(
+      health.problems.some((problem) =>
+        problem.includes('claude-code') && problem.includes('.claude/settings.json')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth measures Claude Code local hook payloads after sync', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await withCwd(root, () => sync([]));
+    const health = await readHarnessHealth(root, '/home/user');
+
+    const measured = health.context.hooks.find(
+      (hook) =>
+        hook.target === 'claude-code' &&
+        hook.parentSkillName === 'planning-with-files' &&
+        hook.status === 'ok'
+    );
+
+    assert.ok(measured);
+    assert.equal(measured.eventName, 'UserPromptSubmit');
+    assert.ok(measured.measurement.approxTokens >= 0);
   } finally {
     await removeHarnessFixture(root);
   }

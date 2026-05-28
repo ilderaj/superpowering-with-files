@@ -149,6 +149,53 @@ test('planHookProjections returns copilot superpowers hook config under .github/
   assert.equal(superpowers.scriptTargetRoot, path.join(process.cwd(), '.github/hooks'));
 });
 
+test('planHookProjections returns cursor superpowers hook config from compact Harness source', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'cursor',
+    hookMode: 'on'
+  });
+  const superpowers = plans.find((plan) => plan.parentSkillName === 'superpowers');
+
+  assert.equal(superpowers.status, 'planned');
+  assert.equal(superpowers.configTarget, path.join(process.cwd(), '.cursor/hooks.json'));
+  assert.equal(
+    superpowers.configSource,
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/cursor-hooks.json')
+  );
+  assert.deepEqual(superpowers.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/session-start'),
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/run-hook.cmd')
+  ]);
+  assert.equal(superpowers.scriptTargetRoot, path.join(process.cwd(), '.cursor/hooks'));
+});
+
+test('planHookProjections returns Claude Code superpowers hook config from compact Harness source', async () => {
+  const plans = await planHookProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'claude-code',
+    hookMode: 'on'
+  });
+  const superpowers = plans.find((plan) => plan.parentSkillName === 'superpowers');
+
+  assert.equal(superpowers.status, 'planned');
+  assert.equal(superpowers.configTarget, path.join(process.cwd(), '.claude/settings.json'));
+  assert.equal(superpowers.configFormat, 'settings');
+  assert.equal(
+    superpowers.configSource,
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/claude-hooks.json')
+  );
+  assert.deepEqual(superpowers.scriptSourcePaths, [
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/session-start'),
+    path.join(process.cwd(), 'harness/core/hooks/superpowers/scripts/run-hook.cmd')
+  ]);
+  assert.equal(superpowers.scriptTargetRoot, path.join(process.cwd(), '.claude/hooks'));
+});
+
 test('planHookProjections adds copilot safety hooks under .github/hooks', async () => {
   const plans = await planHookProjections({
     rootDir: process.cwd(),

@@ -299,6 +299,42 @@ test('adopt-global remains in_sync after backup-based takeover without leaving s
   }
 });
 
+test('adopt-global stores Claude Code verification details in the success receipt', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await initGitRepo(root);
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await harnessCommand(root, homeDir, 'adopt-global', '--targets=claude-code', '--hooks=on');
+
+    const receipt = JSON.parse(
+      await readFile(path.join(root, '.harness/adoption/global.json'), 'utf8')
+    );
+
+    assert.equal(receipt.doctorPassed, true);
+    assert.equal(receipt.verification.runtimeInvocationVerified, false);
+    assert.equal(
+      receipt.verification.hookEvidence['claude-code']['planning-with-files'].runtime,
+      'not-measured'
+    );
+    assert.equal(
+      receipt.verification.hookEvidence['claude-code']['planning-with-files'].payload,
+      'local-payload-verified'
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('adoption-status reports in_sync after a successful global adoption', async () => {
   const root = await createHarnessFixture();
   const homeDir = path.join(root, 'home');
@@ -313,6 +349,37 @@ test('adoption-status reports in_sync after a successful global adoption', async
     assert.equal(status.status, 'in_sync');
     assert.equal(status.scope, 'user-global');
     assert.equal(status.repoHead, await currentHead(root));
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('adoption-status keeps Claude Code runtime evidence as a non-failing reason', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await initGitRepo(root);
+
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
+    await harnessCommand(root, homeDir, 'adopt-global', '--targets=claude-code', '--hooks=on');
+
+    const { stdout } = await harnessCommand(root, homeDir, 'adoption-status');
+    const status = JSON.parse(stdout);
+
+    assert.equal(status.status, 'in_sync');
+    assert.ok(
+      status.reasons.some((reason) =>
+        /Claude Code runtime hook invocation is not measured; local settings and payload checks passed only\./.test(reason)
+      )
+    );
   } finally {
     await removeHarnessFixture(root);
   }

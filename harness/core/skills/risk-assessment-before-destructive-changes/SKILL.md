@@ -8,6 +8,13 @@ description: Use when destructive changes, cleanup commands, hard resets, broad 
 ## Overview
 Destructive work starts only after the rollback path is written down. The active task plan must capture the exact command, target, blast radius, checkpoint, and rollback steps before execution.
 
+## Outcome Contract
+
+- **Outcome:** destructive or broad work has a written rollback path before execution.
+- **Done when:** the active task record names the command, target, blast radius, checkpoint path, and rollback steps.
+- **Evidence:** current task plan, generated checkpoint path, and progress or findings record for the rollback path.
+- **Output:** a concise risk record that lets another agent stop, retry, or roll back without guessing.
+
 ## When to Use
 - `rm -rf`, `git clean`, `git reset --hard`, `chmod`, `chown`, cleanup scripts, or broad file rewrites
 - Commands that can delete, rewrite, or desync more than one generated file

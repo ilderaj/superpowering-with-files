@@ -11,6 +11,7 @@ import {
   writeAdoptionFailure,
   writeAdoptionReceipt
 } from '../lib/adoption.mjs';
+import { summarizeHookEvidence } from '../lib/hook-evidence-summary.mjs';
 import { readHarnessHealth } from '../lib/health.mjs';
 
 function readOption(args, name, fallback) {
@@ -73,7 +74,12 @@ export async function adoptGlobal(args = []) {
   }
 
   const receipt = await createSuccessReceipt(rootDir, nextState, {
-    verificationReportPath: path.join(verificationOutput, 'latest.json')
+    verificationReportPath: path.join(verificationOutput, 'latest.json'),
+    verification: {
+      doctorPassed: true,
+      runtimeInvocationVerified: false,
+      hookEvidence: summarizeHookEvidence(health)
+    }
   });
   await writeAdoptionReceipt(rootDir, receipt);
 

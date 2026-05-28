@@ -6,6 +6,7 @@ const MAX_COMPACT_VALUE_LENGTH = 180;
 const SUMMARY_HEADING = '[planning-with-files] SESSION SUMMARY';
 const CURRENT_STATE_HEADING_NAMES = ['Current State', '当前状态'];
 const ERROR_LOG_HEADING_NAMES = ['Error Log', '错误日志'];
+const PHASE_HEADING_PATTERN = /^###\s+(Phase\s+\d+\b.*)$/i;
 
 export function normalizeText(text) {
   return String(text ?? '')
@@ -51,6 +52,14 @@ function normalizeTitle(rawTitle) {
 function statusFromHeading(rawTitle) {
   const match = rawTitle.match(/\[(complete|pending|in_progress)\]/i);
   return match?.[1]?.toLowerCase() ?? null;
+}
+
+function phaseHeadingTitle(line) {
+  return line.trim().match(PHASE_HEADING_PATTERN)?.[1]?.trim() ?? '';
+}
+
+function isLevelThreeHeading(line) {
+  return /^###\s+/.test(line.trim());
 }
 
 export function sectionBody(text, headingNames) {
@@ -178,6 +187,35 @@ export function firstIncompleteChecklistItem(taskPlan) {
   return '';
 }
 
+export function firstIncompleteChecklistItemInPhase(taskPlan, phaseTitle) {
+  if (!phaseTitle || phaseTitle === '—') {
+    return '';
+  }
+
+  const lines = normalizeText(taskPlan).split('\n');
+  const normalizedPhaseTitle = normalizeTitle(phaseTitle);
+  let insidePhase = false;
+
+  for (const line of lines) {
+    const rawPhaseTitle = phaseHeadingTitle(line);
+    if (rawPhaseTitle) {
+      insidePhase = normalizeTitle(rawPhaseTitle) === normalizedPhaseTitle;
+      continue;
+    }
+
+    if (!insidePhase) {
+      continue;
+    }
+
+    const checklistItem = line.trim().match(/^[-*+]\s+\[( |~)\]\s+(.+)$/)?.[2];
+    if (checklistItem) {
+      return compactText(checklistItem);
+    }
+  }
+
+  return '';
+}
+
 export function latestOpenError(progress) {
   const errorRows = tableRowsInSection(progress, ERROR_LOG_HEADING_NAMES);
   const openRow = [...errorRows]
@@ -208,21 +246,22 @@ export function extractPhases(taskPlan) {
   const phases = [];
 
   for (let index = 0; index < lines.length; index += 1) {
-    const headingMatch = lines[index].trim().match(/^###\s+(Phase.+)$/i);
-    if (!headingMatch) {
+    const rawTitle = phaseHeadingTitle(lines[index]);
+    if (!rawTitle) {
       continue;
     }
 
-    const rawTitle = headingMatch[1].trim();
     let status = statusFromHeading(rawTitle);
 
     for (let cursor = index + 1; cursor < lines.length; cursor += 1) {
       const line = lines[cursor].trim();
-      if (/^###\s+/.test(line)) {
+      if (isLevelThreeHeading(line)) {
         break;
       }
 
-      const statusMatch = line.match(/^(?:[-*+]\s+)?\*\*Status:\*\*\s*(complete|pending|in_progress)$/i);
+      const statusMatch = line.match(
+        /^(?:[-*+]\s+)?(?:\*\*)?Status:(?:\*\*)?\s*(complete|pending|in_progress)$/i
+      );
       if (statusMatch) {
         status = statusMatch[1].toLowerCase();
         break;

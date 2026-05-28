@@ -172,6 +172,7 @@ Harness now separates IDE projection from agent runtime access:
 | Claude Code | `.claude/skills` | `~/.claude/skills` | materialized |
 
 Codex, GitHub Copilot, and Cursor share `.agents/skills` / `~/.agents/skills` for skill projection. Claude Code remains on `.claude/skills`.
+Claude Code support is layered: entry file and skills are projected by default, hooks are only configured when `--hooks=on`, local hook payload validation is reported separately from settings checks, and live runtime invocation evidence is reported independently when available.
 For GitHub-origin cloud usage, keep the default table above and follow the optional deployment guidance in [GitHub Copilot installation](docs/install/copilot.md).
 
 ## Safety

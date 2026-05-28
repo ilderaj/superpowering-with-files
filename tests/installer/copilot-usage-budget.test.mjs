@@ -145,7 +145,7 @@ test('doctor reports Copilot hook ledger detail and overlap as recoverable warni
   }
 });
 
-test('copilot hook payload budget fails when planning-hot exceeds the copilot threshold', async () => {
+test('copilot hook payload budget fails when compact planning-hot exceeds a tight copilot threshold', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -167,8 +167,8 @@ test('copilot hook payload budget fails when planning-hot exceeds the copilot th
       problem: { chars: 18000, lines: 240, tokens: 4500 },
       targets: {
         copilot: {
-          warn: { chars: 1200, lines: 24, tokens: 300 },
-          problem: { chars: 2000, lines: 40, tokens: 500 }
+          warn: { chars: 1200, lines: 24, tokens: 100 },
+          problem: { chars: 2000, lines: 40, tokens: 150 }
         }
       }
     });

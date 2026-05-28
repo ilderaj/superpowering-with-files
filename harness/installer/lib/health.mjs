@@ -27,7 +27,7 @@ import { readUserManaged } from './user-managed.mjs';
 const execFileAsync = promisify(execFile);
 const HOOK_PAYLOAD_TIMEOUT_MS = 2000;
 const MEASURED_HOOK_PAYLOAD_SKILLS = new Set(['superpowers', 'planning-with-files']);
-const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot']);
+const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
 const COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION =
   'choose one canonical scope for Copilot unless the workspace install is intentionally overriding safety policy.';
 const CONTEXT_BUDGET_POLICIES_PATH = 'harness/core/context-budget-policies.json';
@@ -266,7 +266,11 @@ const HOOK_EVIDENCE_BY_TARGET = {
   codex: { evidenceLevel: 'verified' },
   copilot: { evidenceLevel: 'verified' },
   cursor: { evidenceLevel: 'verified' },
-  'claude-code': { evidenceLevel: 'verified' }
+  'claude-code': {
+    evidenceLevel: 'config-verified',
+    configEvidence: 'settings-hook-present',
+    runtimeEvidence: 'not-measured'
+  }
 };
 
 function hookEvidence(projection) {
@@ -276,6 +280,18 @@ function hookEvidence(projection) {
       message: `Official hook documentation has not been verified for ${projection.target}.`
     }
   );
+}
+
+function formatHookProblem(target, inspected) {
+  if (
+    target === 'claude-code' &&
+    typeof inspected?.configTarget === 'string' &&
+    /^Hook config\b/.test(inspected.message ?? '')
+  ) {
+    return `${target}: ${inspected.parentSkillName}: ${inspected.message} Expected Harness-managed hook settings at ${inspected.configTarget}.`;
+  }
+
+  return `${target}: ${inspected.parentSkillName}: ${inspected.message}`;
 }
 
 function publicUpstreamStatus(upstream = {}) {
@@ -391,6 +407,18 @@ function reportBudgetSelectionIssues(scopeName, budget, contextWarnings, warning
   addUniqueMessage(problems, message);
 }
 
+function compareMeasurements(left, right) {
+  if ((left?.approxTokens ?? 0) !== (right?.approxTokens ?? 0)) {
+    return (left?.approxTokens ?? 0) - (right?.approxTokens ?? 0);
+  }
+
+  if ((left?.chars ?? 0) !== (right?.chars ?? 0)) {
+    return (left?.chars ?? 0) - (right?.chars ?? 0);
+  }
+
+  return (left?.lines ?? 0) - (right?.lines ?? 0);
+}
+
 function addMeasurement(targets, target, measurement) {
   const current = targets.get(target) ?? {
     target,
@@ -403,6 +431,13 @@ function addMeasurement(targets, target, measurement) {
   current.lines += measurement.lines;
   current.approxTokens += measurement.approxTokens;
   targets.set(target, current);
+}
+
+function addWorstMeasurement(targets, target, measurement) {
+  const current = targets.get(target);
+  if (!current || compareMeasurements(measurement, current) > 0) {
+    targets.set(target, { ...measurement, target });
+  }
 }
 
 function chooseWorstContextTotal(totals) {
@@ -643,13 +678,23 @@ async function inspectSkillProfileContext(
   return entry;
 }
 
-function buildHookPayloadEnv(rootDir, homeDir) {
-  return {
+function buildHookPayloadEnv(rootDir, homeDir, projection) {
+  const env = {
     PATH: process.env.PATH ?? '',
     HOME: homeDir,
     TMPDIR: process.env.TMPDIR ?? '/tmp',
     HARNESS_PROJECT_ROOT: rootDir
   };
+
+  if (projection?.target === 'claude-code') {
+    env.CLAUDE_PLUGIN_ROOT = path.dirname(projection.scriptTargetRoot ?? rootDir);
+  } else if (projection?.target === 'cursor') {
+    env.CURSOR_PLUGIN_ROOT = path.dirname(projection.scriptTargetRoot ?? rootDir);
+  } else if (projection?.target === 'copilot') {
+    env.COPILOT_CLI = '1';
+  }
+
+  return env;
 }
 
 function selectRuntimeSourcePath(projection) {
@@ -734,7 +779,7 @@ function createHookPayloadFailureEntry(projection, runtimePath, message, eventNa
   };
 }
 
-function parseHookPayloadOutput(output, runtimePath) {
+function parseHookPayloadOutput(output, runtimePath, expectedEventName = null) {
   let payload;
   try {
     payload = JSON.parse(output);
@@ -742,6 +787,18 @@ function parseHookPayloadOutput(output, runtimePath) {
     return {
       payload: null,
       problem: `Hook payload output is not valid JSON: ${runtimePath}`
+    };
+  }
+
+  if (typeof payload.additional_context === 'string') {
+    return {
+      payload: {
+        hookSpecificOutput: {
+          hookEventName: expectedEventName ?? 'unknown',
+          additionalContext: payload.additional_context
+        }
+      },
+      problem: null
     };
   }
 
@@ -794,19 +851,6 @@ function pathScope(rootDir, homeDir, targetPath) {
 function mergeUnique(values = [], additions = []) {
   return [...new Set([...(values ?? []), ...(additions ?? [])])];
 }
-
-function compareMeasurements(left, right) {
-  if ((left?.approxTokens ?? 0) !== (right?.approxTokens ?? 0)) {
-    return (left?.approxTokens ?? 0) - (right?.approxTokens ?? 0);
-  }
-
-  if ((left?.chars ?? 0) !== (right?.chars ?? 0)) {
-    return (left?.chars ?? 0) - (right?.chars ?? 0);
-  }
-
-  return (left?.lines ?? 0) - (right?.lines ?? 0);
-}
-
 function aggregateHookPayloadEntries(entries, hookPayloadBudget, contextWarnings, warnings, problems) {
   const aggregated = new Map();
   const passthrough = [];
@@ -948,7 +992,7 @@ function formatDuplicateSkillMessage(duplicate) {
   ].join(' ');
 }
 
-async function runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir) {
+async function runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir, projection) {
   const controller = new AbortController();
   let timedOut = false;
   const timeout = setTimeout(() => {
@@ -960,7 +1004,7 @@ async function runHookPayloadMeasurement(runtimePath, args, rootDir, homeDir) {
   try {
     const { stdout } = await execFileAsync('bash', [runtimePath, ...args], {
       cwd: rootDir,
-      env: buildHookPayloadEnv(rootDir, homeDir),
+      env: buildHookPayloadEnv(rootDir, homeDir, projection),
       signal: controller.signal,
       maxBuffer: 1024 * 1024
     });
@@ -1277,7 +1321,7 @@ async function inspectLocalHookPayloads(
     }
 
     for (const request of selectHookPayloadRequests(projection)) {
-      const result = await runHookPayloadMeasurement(runtimePath, request.args, rootDir, homeDir);
+      const result = await runHookPayloadMeasurement(runtimePath, request.args, rootDir, homeDir, projection);
       const output = result.stdout ?? '';
       const measurement = measureText(output);
 
@@ -1305,7 +1349,7 @@ async function inspectLocalHookPayloads(
         continue;
       }
 
-      const { payload, problem } = parseHookPayloadOutput(output, runtimePath);
+      const { payload, problem } = parseHookPayloadOutput(output, runtimePath, request.eventName);
       if (problem) {
         const entry = createHookPayloadFailureEntry(projection, runtimePath, problem, request.eventName);
         entry.measurement = measurement;
@@ -1358,6 +1402,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
   const budgetPolicies = await loadContextBudgetPolicies(rootDir).catch(() => ({}));
   const entryTotalsByTarget = new Map();
   const hookTotalsByTarget = new Map();
+  const hookWorstByTarget = new Map();
   const hookBudgetsByTarget = new Map();
   const planningTotalsByTarget = new Map();
   const skillProfileTotalsByTarget = new Map();
@@ -1399,6 +1444,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
       },
       turn: {
         hookPayload: createEmptyMeasurement(target),
+        hookPayloadWorstEvent: createEmptyMeasurement(target),
         planningHotContext: createEmptyMeasurement(target)
       }
     };
@@ -1509,7 +1555,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
       const inspected = await inspectHook(projection);
       hooks.push(inspected);
       if (!['ok', 'unsupported'].includes(inspected.status)) {
-        problems.push(`${target}: ${inspected.parentSkillName}: ${inspected.message}`);
+        problems.push(formatHookProblem(target, inspected));
       }
     }
 
@@ -1534,6 +1580,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     for (const hookEntry of hookEntries) {
       if (hookEntry.measurement) {
         addMeasurement(hookTotalsByTarget, hookEntry.target, hookEntry.measurement);
+        addWorstMeasurement(hookWorstByTarget, hookEntry.target, hookEntry.measurement);
       }
     }
     targetLedger.turn.hookPayload = sumMeasurements(
@@ -1543,6 +1590,8 @@ export async function readHarnessHealth(rootDir, homeDir) {
         .filter(Boolean),
       target
     );
+    targetLedger.turn.hookPayloadWorstEvent =
+      hookWorstByTarget.get(target) ?? createEmptyMeasurement(target);
 
     const planningEntry = await inspectPlanningHotContext(
       activeTaskDir,
@@ -1594,7 +1643,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
   }
 
   const hookBudget = budgets?.budgets?.hookPayload;
-  const hookTargetTotals = [...hookTotalsByTarget.values()].map((measurement) => {
+  const hookTargetTotals = [...hookWorstByTarget.values()].map((measurement) => {
     const targetHookBudget = hookBudgetsByTarget.get(measurement.target) ?? hookBudget;
     if (!targetHookBudget) {
       return { ...measurement, verdict: 'unknown', evaluation: null };
@@ -1608,6 +1657,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     };
   });
   applyContextSummary(context.summary.hooks, hookTargetTotals, hookBudget);
+  context.summary.hooks.accounting = 'worst-event';
 
   const planningBudget = budgets?.budgets?.planningHotContext;
   const planningTargetTotals = [...planningTotalsByTarget.values()].map((measurement) => {
