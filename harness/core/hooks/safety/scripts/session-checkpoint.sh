@@ -24,12 +24,27 @@ source_runtime_hook_evidence_helper() {
 
 source_runtime_hook_evidence_helper || true
 
+record_runtime_hook_evidence() {
+  if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
+    harness_record_runtime_hook_evidence \
+      "$platform" \
+      "safety" \
+      "SessionStart" \
+      "$project_root" \
+      "$(pwd)" \
+      "$script_name" \
+      "$script_path" || true
+  fi
+}
+
 if command -v git >/dev/null 2>&1; then
   git_root="$(git -C "$project_root" rev-parse --show-toplevel 2>/dev/null || true)"
   if [ -n "$git_root" ]; then
     project_root="$git_root"
   fi
 fi
+
+record_runtime_hook_evidence
 
 if [ -x "$project_root/scripts/harness" ]; then
   "$project_root/scripts/harness" checkpoint "$project_root" --quiet --skip-if-clean >/dev/null 2>&1 || true
@@ -38,17 +53,6 @@ fi
 
 if [ -f "$script_dir/../../../safety/bin/checkpoint" ]; then
   bash "$script_dir/../../../safety/bin/checkpoint" "$project_root" --quiet --skip-if-clean >/dev/null 2>&1 || true
-fi
-
-if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
-  harness_record_runtime_hook_evidence \
-    "$platform" \
-    "safety" \
-    "SessionStart" \
-    "$project_root" \
-    "$(pwd)" \
-    "$script_name" \
-    "$script_path" || true
 fi
 
 exit 0

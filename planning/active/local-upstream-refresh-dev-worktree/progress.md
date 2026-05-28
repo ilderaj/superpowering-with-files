@@ -133,3 +133,30 @@
   - `planning/active/local-upstream-refresh-dev-worktree/task_plan.md` (modified)
   - `planning/active/local-upstream-refresh-dev-worktree/findings.md` (modified)
   - `planning/active/local-upstream-refresh-dev-worktree/progress.md` (modified)
+
+## Session: 2026-05-28 17:05:00 UTC+8
+
+### Phase 9: PR review follow-up
+- **Status:** complete
+- **Started:** 2026-05-28 17:05:00 UTC+8
+- Actions taken:
+  - 通过 `gh pr view 70 --comments` 与 `gh api repos/ilderaj/superpowering-with-files/pulls/70/comments` 拉取并核实 `chatgpt-codex-connector` 的 2 条 inline comments。
+  - 对照当前实现确认：
+    - `pretool-guard.sh` 确实在 `set -u` 下引用未定义 `$cwd`；
+    - `session-checkpoint.sh` 确实在 `scripts/harness` 早退路径上跳过了 `SessionStart` runtime evidence。
+  - 按 TDD 先补回归测试：
+    - 在 `tests/hooks/pretool-guard.test.mjs` 新增“runtime evidence 使用 payload cwd”断言；
+    - 新增 `tests/hooks/session-checkpoint.test.mjs`，覆盖 `scripts/harness` 早退路径仍应写 evidence。
+  - 先跑红确认问题存在：
+    - `tests/hooks/pretool-guard.test.mjs` 修复前 `0 pass / 21 fail`
+    - `tests/hooks/session-checkpoint.test.mjs` 修复前因 evidence 文件缺失失败
+  - 做最小修复：
+    - `harness/core/hooks/safety/scripts/pretool-guard.sh`
+    - `harness/core/hooks/safety/scripts/session-checkpoint.sh`
+  - 重新验证：
+    - `node --test tests/hooks/pretool-guard.test.mjs tests/hooks/session-checkpoint.test.mjs` → `22 pass / 0 fail`
+    - `npm run verify` → `431 pass / 0 fail`
+- Files created/modified:
+  - `planning/active/local-upstream-refresh-dev-worktree/task_plan.md` (modified)
+  - `planning/active/local-upstream-refresh-dev-worktree/findings.md` (modified)
+  - `planning/active/local-upstream-refresh-dev-worktree/progress.md` (modified)

@@ -149,3 +149,31 @@
   - 同步测试契约到当前实现；
   - 修正 `adoption-status` 的 advisory 聚合逻辑；
   - 顺带修掉完整 verify 过程中额外暴露的 Copilot hook payload measurement 2 秒假阳性超时，把阈值调到 5 秒。
+
+## Findings Record: 2026-05-28 17:05:00 UTC+8
+
+### PR Review Comment Evaluation
+- PR `#70` 上 `chatgpt-codex-connector` 留下了 2 条 inline comments，均指向 safety hook 新接入的 runtime evidence 记录逻辑。
+- 这两条 comment 都成立，不建议 push back：
+  - `pretool-guard.sh` 在 Bash 层引用了未定义的 `$cwd`，而脚本顶部启用了 `set -u`，导致 hook 在输出 allow/deny JSON 之后仍以 `cwd: unbound variable` 非零退出。
+  - `session-checkpoint.sh` 在检测到 `scripts/harness` 时会先跑 checkpoint 然后 `exit 0`，使新增的 `SessionStart` runtime evidence 记录块在常见 workspace 路径上永远无法触发。
+
+### Local Verification Evidence
+- 第一条 comment 不只是“潜在问题”，而是当前主工作区可直接复现的真实回归：
+  - `node --test tests/hooks/pretool-guard.test.mjs` 在修复前是 `0 pass / 21 fail`，全部失败都落在 `cwd: unbound variable`。
+- 第二条 comment 也被新的回归测试直接证明：
+  - 在存在可执行 `scripts/harness` 的最小 fixture 中，`session-checkpoint.sh` 修复前不会生成 `.harness/runtime-hooks/codex.jsonl`。
+
+### Accepted Fix Shape
+- `pretool-guard.sh` 采用“复用 Node 已解析出的真实 `cwd`”而不是简单用 `$(pwd)` 兜底：
+  - Node 判定逻辑本来就会从 payload 的 `cwd` / `workingDirectory` / `toolInput.cwd` 等字段算出标准化路径。
+  - 修复时把这个解析结果写入临时文件，再由 Bash runtime evidence 调用读取，以保证记录值与实际判定值一致。
+- `session-checkpoint.sh` 则把 `SessionStart` evidence 提前到所有早退分支之前，并保持只记录一次。
+- 为避免路径别名噪音，新的 `session-checkpoint` 测试按 `realpath` 比较记录值与 fixture root，而不是硬比 `/var` 或 `/private/var` 文本。
+
+### Verification After Fix
+- 直接相关测试：
+  - `node --test tests/hooks/pretool-guard.test.mjs tests/hooks/session-checkpoint.test.mjs` → `22 pass / 0 fail`
+- 完整仓库验证：
+  - `npm run verify` → `431 pass / 0 fail`
+  - `node --test --test-concurrency=1 tests/mcp/*.test.mjs`（包含在上面的 verify 中）→ `21 pass / 0 fail`

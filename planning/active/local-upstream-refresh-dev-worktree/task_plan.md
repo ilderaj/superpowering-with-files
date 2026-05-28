@@ -64,6 +64,13 @@ Complete
 - [x] 重新跑完整 `npm run verify` 直到 fresh 全绿
 - **Status:** complete
 
+### Phase 9: PR review follow-up
+- [x] 拉取并核实 `chatgpt-codex-connector` 留下的 inline comments
+- [x] 评估 comment 是否成立，并区分真实缺陷与测试/路径噪音
+- [x] 修复 safety hook runtime evidence 的 `cwd` 与 `SessionStart` 记录缺口
+- [x] 追加回归测试并重新跑完整 `npm run verify`
+- **Status:** complete
+
 ## Key Questions
 1. 当前本地 upstream update 的规范入口命令是什么？
 2. 本次 update 是否只产生预期的 vendor/projection/skill 变更？
@@ -87,6 +94,7 @@ Complete
 | `adoption-status` 需要把“部分 hook 未测到 runtime evidence”也作为 advisory 输出 | 否则 receipt 已表明总体未 fully verified，但用户态 status reasons 仍为空，语义不一致 |
 | Copilot 双作用域 hook payload measurement timeout 从 2000ms 放宽到 5000ms | 空载运行约 300ms，但全量 verify 压力下 2 秒阈值会产生假阳性超时 |
 | worktree 分支 `202605280557-local-upstream-refresh-dev-worktree-001` 直接 fast-forward merge 回 `dev` | worktree 上已经拿到 fresh `npm run verify` 全绿结果，且主工作区合并前已清理仅 tracking 的本地脏状态，适合无冲突集成 |
+| 接受并修复 `chatgpt-codex-connector` 的两条 safety hook review comments | 两条 comment 都能在本地复现或从代码路径直接证明成立，不属于需要 push back 的误报 |
 
 ## Blockers
 - 当前无 blocker；task 已完成并可在需要时移入 archive。
@@ -97,3 +105,4 @@ Complete
 - worktree 当前变更规模为 78 个文件，主要来自 `planning-with-files` upstream baseline 更新，外加 `superpowers` baseline 变更，以及 `verbatimSymlinks` 修复与对应测试。
 - `sync --dry-run` 结果仍为零 projection 变更；`doctor --check-only` 通过，只有 pre-existing companion-plan warnings。
 - 在补齐基线测试后，worktree 上重新执行 `npm run verify`，得到 `431 pass / 0 fail` 与 `21 pass / 0 fail` 的 fresh 结果。
+- 后续 PR review 又发现 safety hook 的 runtime evidence 两处缺口；修复后在主工作区 fresh `npm run verify` 再次得到 `431 pass / 0 fail` 与 `21 pass / 0 fail`。

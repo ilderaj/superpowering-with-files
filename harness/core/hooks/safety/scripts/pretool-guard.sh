@@ -7,6 +7,13 @@ payload="$(cat)"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 script_name="$(basename "${BASH_SOURCE[0]}")"
 script_path="$script_dir/$script_name"
+runtime_evidence_cwd_file="$(mktemp)"
+
+cleanup_runtime_evidence_cwd_file() {
+  rm -f "$runtime_evidence_cwd_file"
+}
+
+trap cleanup_runtime_evidence_cwd_file EXIT
 
 source_runtime_hook_evidence_helper() {
   local helper
@@ -56,6 +63,7 @@ PLATFORM="$platform" \
 PROJECT_ROOT="$project_root" \
 CONFIG_DIR="$config_dir" \
 LOG_DIR="$log_dir" \
+HARNESS_RUNTIME_EVIDENCE_CWD_FILE="$runtime_evidence_cwd_file" \
 node <<'NODE'
 const fs = require('node:fs');
 const os = require('node:os');
@@ -377,6 +385,10 @@ const cwd = path.resolve(
   firstString(['cwd', 'workingDirectory', 'workspace.cwd', 'toolInput.cwd', 'tool_input.cwd']) ||
     process.cwd()
 );
+const runtimeEvidenceCwdFile = process.env.HARNESS_RUNTIME_EVIDENCE_CWD_FILE ?? '';
+if (runtimeEvidenceCwdFile) {
+  fs.writeFileSync(runtimeEvidenceCwdFile, cwd);
+}
 const command = commandFromPayload(rawText);
 const repoRoot = currentRepoRoot(cwd);
 const protectedPaths = expandHomePatterns(
@@ -509,13 +521,18 @@ if (dangerousPatterns.some((pattern) => pattern.test(command))) {
 emit('allow', 'Command did not trigger a safety restriction.', cwd, command);
 NODE
 
+runtime_evidence_cwd="$project_root"
+if [ -s "$runtime_evidence_cwd_file" ]; then
+  runtime_evidence_cwd="$(cat "$runtime_evidence_cwd_file")"
+fi
+
 if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
   harness_record_runtime_hook_evidence \
     "$platform" \
     "safety" \
     "PreToolUse" \
     "$project_root" \
-    "$cwd" \
+    "$runtime_evidence_cwd" \
     "$script_name" \
     "$script_path" || true
 fi
