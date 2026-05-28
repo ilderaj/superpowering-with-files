@@ -22,6 +22,7 @@ import {
 } from './skill-projection.mjs';
 import { isSafetyPolicyProfile, resolveAgentConfigRoots } from './safety-projection.mjs';
 import { activeSafetyPolicyProfile, readState } from './state.mjs';
+import { readRuntimeHookEvidence, summarizeRuntimeEvidenceForProjection } from './runtime-hook-evidence.mjs';
 import { readUserManaged } from './user-managed.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -1543,7 +1544,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     targetLedger.session.skillSource = skillLedger.source;
     targetLedger.skills = skillLedger.skills;
 
-    const hooks = [];
+    let hooks = [];
     for (const projection of await planHookProjections({
       rootDir,
       homeDir,
@@ -1557,6 +1558,15 @@ export async function readHarnessHealth(rootDir, homeDir) {
       if (!['ok', 'unsupported'].includes(inspected.status)) {
         problems.push(formatHookProblem(target, inspected));
       }
+    }
+
+    if (target === 'claude-code') {
+      const runtimeEvidence = await readRuntimeHookEvidence(rootDir, target);
+      hooks = hooks.map((hook) =>
+        hook.status === 'ok'
+          ? { ...hook, ...summarizeRuntimeEvidenceForProjection(hook, runtimeEvidence, rootDir) }
+          : hook
+      );
     }
 
     targets[target] = { entries, skills, hooks };

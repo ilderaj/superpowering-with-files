@@ -1,0 +1,124 @@
+# Findings
+
+## Findings Record: 2026-05-28 09:29:29 UTC+8
+
+### Current Facts
+- 当前主工作区：`/Users/jared/SuperpoweringWithFiles`。
+- 当前主工作区 branch / HEAD：`dev @ 40b3a3d`。
+- 当前 linked worktrees 至少包括：主工作区 `dev`、独立 `main` worktree、`codex/202605080601-upstream-refresh-6-failure-repair-001`、`codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`、`202605081401-harness-runtime-facade-mcp-001`、`202605160358-homepage-redesign-prototype-001`、`harness-reconcile-execution`。
+- 初始 divergence 快照：
+  - `dev...origin/dev = 0 0`
+  - `main...origin/main = 0 9`
+  - `dev...main = 8 13`
+- 当前 `origin/main = 41bb6dd`，`local main = 43c245c`；该结论仍需在一次显式 `fetch --all --prune` 后复核。
+- 当前 `main` worktree `git status --short --branch` 显示 clean，仅有 `## main...origin/main [behind 9]`。
+- 显式执行 `git fetch --all --prune` 后，`origin/main` 仍为 `41bb6dd`，说明本地缓存没有过期。
+- 已在独立 `main` worktree 中执行 `git merge --ff-only origin/main`，现在 `local main = origin/main = 41bb6dd`，并且 worktree 仍 clean。
+- 执行 `./scripts/harness sync --conflict=backup` 后，再跑 `./scripts/harness adopt-global` 已恢复到 `in_sync`；当前 `health.problems = []`，仅剩 companion-plan warnings。
+- 当前 `./scripts/harness adoption-status` 返回：
+  - `status = apply_failed`
+  - `scope = user-global`
+  - `skillProfile = full`
+  - `hookMode = on`
+  - receipt 仍指向 2026-05-26 的 `dev` HEAD `50f486d...`
+  - 当前失败原因集中在 `claude-code` hooks 缺失，而不是 projection ownership 冲突。
+- 直接执行 `./scripts/harness adopt-global` 的实际失败点早于上述 drift 输出：Harness 拒绝覆盖 non-Harness-owned 的 `/Users/jared/.codex/AGENTS.md`。
+- `./scripts/harness sync --help` 明确支持 `--conflict=backup`，这是仓库为这类 ownership guard 设计的修复路径。
+- 已在执行前创建 checkpoint：`/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-28T01-31-49Z`。
+
+### Reused Historical Constraints
+- `branch-head-sync-latest` 记录表明：本仓库历史上已经有过一次 `main` 吸收 `dev` 的同步，不应机械假设 `main` 与 `dev` 同 SHA。
+- `local-branch-cleanup-audit` 记录表明：2026-05-11 之后，本地分支 / worktree 曾收敛到较小集合；当前再次膨胀说明需要重新盘点，而不是复用旧结论。
+- repo memory 要求：做任何 branch-readiness 结论前，必须记录 `pwd`、当前 branch、当前 HEAD、`git worktree list`。
+
+### Working Hypotheses
+- 假设 1：本轮 `local main` 只需要在其独立 worktree 中 fast-forward 到 fetch 后的 `origin/main`。
+- 假设 2：本轮 `adopt-global` 很可能不会失败在 ownership takeover，而是会继续暴露 hooks drift；执行后需要以 `adoption-status` 结果验证是否恢复到 `in_sync`。
+- 假设 3：当前 worktree / branch 集合里应当存在一批已合入但仍被本地保留的候选对象，但需要排除 active task、脏 worktree 和 backup / automation lanes。
+
+### Validated Outcomes
+- 假设 1 已验证成立：`main` 只需 fast-forward，同步后 `main...origin/main = 0 0`。
+- 假设 2 已被当前执行结果部分证伪：本轮 adoption 的第一阻塞不是 hooks drift，而是 `/Users/jared/.codex/AGENTS.md` ownership conflict。
+
+## Branch And Worktree Audit
+
+### Current Snapshot
+- 本地 branches: 10
+- Linked worktrees: 7
+
+### Clean And Already Merged
+- `harness-reconcile-execution`
+  - branch 已被 `dev` / `main` 吸收。
+  - 对应 worktree clean。
+  - 但 task `planning/active/harness-reconcile-roadmap-evolution/` 仍是 `waiting_review`，因此更适合列为 review candidate，而不是立即删除。
+
+### Merged But Blocked By Dirty Worktrees
+- `codex/202605080601-upstream-refresh-6-failure-repair-001`
+  - branch 已被 `dev` / `main` 吸收。
+  - task 已 `closed` 且 `Archive Eligible: yes`。
+  - 但 worktree 内存在大量未提交修改，因此不能直接清理。
+- `codex/202605061308-roadmap-v1-4-safety-overlay-governance-002`
+  - branch 已被 `dev` / `main` 吸收。
+  - task 已 `closed` 且 `Archive Eligible: yes`。
+  - 但 worktree 仍有未提交修改，因此不能直接清理。
+
+### Clean But Not Merged
+- `202605081401-harness-runtime-facade-mcp-001`
+  - branch 不在 `dev` / `main` 中。
+  - worktree clean。
+  - task 状态 `waiting_review`，应继续保留。
+- `202605160358-homepage-redesign-prototype-001`
+  - branch 不在 `dev` / `main` 中，且相对 `main` 仍有 8 个左侧提交。
+  - worktree clean。
+  - task 文件写的是“已集成到 main”，但当前 git 事实不支持直接删 branch，需要先 reconcile 这处状态不一致。
+
+### Keep By Semantics
+- `dev` / `main`: 主线分支。
+- `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main`: 当前已同步好的 `main` worktree，可保留为独立主线落点。
+- `automation/upstream-refresh`: 已被主线吸收，但它承载 automation lane 语义，不建议按普通 merged feature branch 处理。
+- `backup/dev-before-origin-align-20260504`、`backup/main-before-sync-20260524-204954`: 本地恢复点，不建议在本轮报告里直接纳入清理。
+
+## Claude Code Adopt Review: 2026-05-28 09:50:20 UTC+8
+
+### Effective Evidence
+- `./scripts/harness adoption-status` 当前返回 `status = in_sync`、`scope = user-global`，receipt 绑定 `repoBranch = dev` 与 `repoHead = 40b3a3d44e0879b7c6cd61908631a00e9478f145`。
+- adoption receipt 的 verification 明确记录 `doctorPassed = true`，但 `runtimeInvocationVerified = false`。
+- Claude Code 的 `planning-with-files` 与 `superpowers` hook evidence 均为 `config = settings-hook-present`、`payload = local-payload-verified`、`runtime = not-measured`。
+- `./scripts/harness doctor --check-only` 当前通过，`health.problems = []`；输出已包含 Claude Code payload detail：`claude-code / bootstrap / ok` 与 `claude-code / planning-hot / ok`。
+- `/Users/jared/.claude/settings.json` 已包含 Claude Code 预期 hook event keys：`UserPromptSubmit`、`PreToolUse`、`PostToolUse`、`Stop`、`SessionStart`，每类各 1 个 entry。
+- `/Users/jared/.claude/hooks` 已 materialize global hook scripts，包括 `session-start`、`task-scoped-hook.sh`、`planning-hot-context.mjs`、`render-hot-context.mjs` 等。
+
+### Remaining Caveats
+- 仍不能声称 Claude Code runtime invocation 已被真实测量；当前系统正确报告为 `runtime = not-measured`，且 adoption-status 保留 reason：local settings and payload checks passed only。
+- workspace `.claude/settings.json` 不存在，`.claude/settings.local.json` 无 hooks；这与本轮 user-global adoption 不冲突，但报告中应明确全局与 workspace settings 的区别。
+- `doctor --check-only` 仍有 pre-existing companion-plan warnings，与 Claude Code hooks adoption 本身无关。
+- `Hook payload target: copilot` 与后续 detail 中同时出现 Claude Code payload 的组合略易误解，属于后续报告语义优化点。
+
+## Companion Plan Draft: 2026-05-28 10:08:51 UTC+8
+
+### Created Artifact
+- 新 companion plan 已写入：`docs/superpowers/plans/2026-05-28-claude-code-runtime-evidence.md`。
+- 该 plan 明确是 review-only：implementation 未开始，未修改实现代码、Claude Code hooks 或 user-global 配置。
+
+### Plan Scope
+- 为 Claude Code 增加真实 runtime invocation evidence：Harness-managed Claude Code hook entrypoints 在真实被 Claude Code 调用时写入 metadata-only JSONL trace。
+- 将 runtime trace 读入 `readHarnessHealth()`，并同步到 `doctor`、`verify`、`adopt-global` receipt 与 `adoption-status` 语义。
+- 修正当前 `Hook payload target: copilot` 这类 singular summary 在多 target 测量场景下的误导性。
+- 增加 Claude Code settings resolution 报告，明确 workspace/user-global/settings.local 的参与状态，避免把 user-global 生效误读为 workspace hook 生效。
+- 把 companion-plan warning hygiene 保持为独立任务，不把历史 orphan/missing-back-reference 清理混入 runtime evidence 主线。
+
+### Code Locations Inspected For The Plan
+- `harness/installer/lib/health.mjs`
+- `harness/installer/lib/hook-evidence-summary.mjs`
+- `harness/installer/commands/doctor.mjs`
+- `harness/installer/commands/verify.mjs`
+- `harness/installer/lib/adoption.mjs`
+- `harness/installer/commands/adopt-global.mjs`
+- `harness/installer/lib/hook-projection.mjs`
+- `harness/installer/lib/paths.mjs`
+- `harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh`
+- `harness/core/hooks/superpowers/scripts/session-start`
+- `harness/core/hooks/*/claude-hooks.json`
+- `tests/installer/health.test.mjs`
+- `tests/installer/commands.test.mjs`
+- `tests/installer/adoption.test.mjs`

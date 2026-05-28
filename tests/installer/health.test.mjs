@@ -1674,7 +1674,7 @@ test('readHarnessHealth validates Claude Code settings hooks after sync', async 
   }
 });
 
-test('readHarnessHealth reports Claude Code hookMode on with missing settings hooks', async () => {
+test('readHarnessHealth reports Claude Code runtime evidence when a trace is present', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -1688,18 +1688,36 @@ test('readHarnessHealth reports Claude Code hookMode on with missing settings ho
       upstream: {}
     });
 
+    await mkdir(path.join(root, '.harness/runtime-hooks'), { recursive: true });
+    await writeFile(
+      path.join(root, '.harness/runtime-hooks/claude-code.jsonl'),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: 'harness-runtime-hook',
+        target: 'claude-code',
+        parentSkillName: 'planning-with-files',
+        eventName: 'UserPromptSubmit',
+        observedAt: '2026-05-28T02:02:21.000Z',
+        projectRoot: root,
+        cwd: root,
+        scriptName: 'task-scoped-hook.sh',
+        scriptPath: path.join(root, '.claude/hooks/task-scoped-hook.sh')
+      })}\n`
+    );
+
+    await withCwd(root, () => sync([]));
     const health = await readHarnessHealth(root, '/home/user');
     const planning = health.targets['claude-code'].hooks.find(
       (hook) => hook.parentSkillName === 'planning-with-files'
     );
 
-    assert.equal(planning.status, 'missing');
-    assert.match(planning.message, /Hook config is missing/);
-    assert.ok(
-      health.problems.some((problem) =>
-        problem.includes('claude-code') && problem.includes('.claude/settings.json')
-      )
-    );
+    assert.equal(planning.status, 'ok');
+    assert.equal(planning.evidenceLevel, 'config-verified');
+    assert.equal(planning.configEvidence, 'settings-hook-present');
+    assert.equal(planning.runtimeEvidence, 'runtime-invocation-verified');
+    assert.equal(planning.runtimeInvocationVerified, true);
+    assert.equal(planning.lastObservedAt, '2026-05-28T02:02:21.000Z');
+    assert.deepEqual(planning.observedEvents, ['UserPromptSubmit']);
   } finally {
     await removeHarnessFixture(root);
   }
