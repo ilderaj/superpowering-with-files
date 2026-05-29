@@ -17,7 +17,7 @@ export const homepageContent = {
     brandHref: '/superpowering-with-files/',
     links: [
       {
-        label: 'Docs',
+        label: 'Workflow',
         href: canonicalLinks.docs
       },
       {
@@ -27,99 +27,99 @@ export const homepageContent = {
     ]
   },
   hero: {
-    kicker: 'Planning with Files × Superpowers',
+    kicker: 'Claude Code workflow kit',
     headingId: 'hero-title',
-    headline: 'Stop losing good judgment.',
+    headline: 'Give agents a memory they can open.',
     lede:
-      'Hard tasks need better reasoning. Decisions need a visible trail. This workflow keeps both in the repo.',
+      'Superpowering with Files turns deep reasoning into planning files, so local coding agents can pause, resume, and hand off without losing the trail.',
     actions: [
       {
-        label: 'View source',
+        label: 'Star the repo',
         href: canonicalLinks.github
       },
       {
-        label: 'Read workflow',
+        label: 'Read the workflow',
         href: canonicalLinks.docs
       }
     ]
   },
   proof: {
     breadth: {
-      label: 'Breadth',
-      title: 'Files keep state.',
-      detail: 'Plans and progress stay visible across sessions.'
+      label: 'Files',
+      title: 'State stays visible.',
+      detail: 'Plans, findings, and progress live beside the code.'
     },
     depth: {
-      label: 'Depth',
-      title: 'Superpowers sharpen hard calls.',
-      detail: 'Deeper reasoning appears only when the task earns it.'
+      label: 'Superpowers',
+      title: 'Depth appears on demand.',
+      detail: 'Heavy reasoning is reserved for tasks that need it.'
     },
     hybrid: {
       label: 'Hybrid',
-      title: 'One workflow. Routed by complexity.',
-      detail: 'Escalate for hard work, then write the result back.'
+      title: 'Depth becomes durable state.',
+      detail: 'Reason carefully, record the judgment, then resume from the repo.'
     }
   },
   comparison: [
     {
-      label: 'Only breadth',
-      title: 'State survives, judgment stays flat.',
+      label: 'Reason',
+      title: 'Use Superpowers when the task earns depth.',
       detail: ''
     },
     {
-      label: 'Only depth',
-      title: 'Reasoning sharpens, memory fades.',
+      label: 'Record',
+      title: 'Write decisions into files the repo can carry.',
       detail: ''
     },
     {
-      label: 'Both',
-      title: 'Better judgment lands in files.',
+      label: 'Resume',
+      title: 'Let any local agent pick up the thread.',
       detail: ''
     }
   ],
   routing: {
     headingId: 'routing-title',
-    eyebrow: 'How routing works',
-    title: 'Keep the fast lane fast.',
+    eyebrow: 'Routing model',
+    title: 'Keep simple work simple.',
     body:
-      'Cheap work stays lightweight. Complex work escalates, then writes back into repo-native state.',
+      'Most changes should stay fast. The workflow only escalates when uncertainty, architecture, or recovery risk makes deeper reasoning worth it.',
     bullets: [
-      'Start local.',
-      'Escalate only for hard work.',
-      'Write the result back.'
+      'Start with the local task.',
+      'Escalate only when complexity earns it.',
+      'Write the result back into planning files.'
     ]
   },
   repoProof: {
     headingId: 'repo-proof-title',
-    eyebrow: 'What lives in files',
-    title: 'The trail is part of the product.',
+    eyebrow: 'Repo-native proof',
+    title: 'The system is inspectable.',
     body:
-      'Plans, findings, and execution stay inspectable in the repo.',
+      'No hidden service owns the memory. The trail stays in files your editor, agents, reviews, and future sessions can open.',
     items: [
       {
-        label: 'Plans',
-        detail: 'Route before execution starts.'
+        label: 'Task plan',
+        detail: 'Scope, phase, and verification stay explicit.'
       },
       {
         label: 'Findings',
-        detail: 'Research and constraints stay durable.'
+        detail: 'Research and decisions survive context loss.'
       },
       {
         label: 'Progress',
-        detail: 'Execution stays resumable across sessions.'
+        detail: 'Execution can stop, resume, or hand off cleanly.'
       }
     ]
   },
   closing: {
     headingId: 'closing-title',
-    title: 'Route by complexity. Keep the trail.',
+    title: 'If your agents lose context, give them files.',
     links: [
       {
-        label: 'GitHub',
+        label: 'Star on GitHub',
         href: canonicalLinks.github
       },
       {
-        label: 'Docs',
+        label: 'Study the workflow',
         href: canonicalLinks.docs
       }
     ]

@@ -174,6 +174,23 @@
   - `planning/active/homepage-cloudflare-worker/progress.md`
   - `planning/active/homepage-cloudflare-worker/findings.md`
 
+## Session: 2026-05-29 09:18:27 UTC+8
+
+### Phase 6: Review Follow-up for Workflow Smoke Check
+- **Status:** complete
+- **Started:** 2026-05-29 09:18:27 UTC+8
+- Actions taken:
+  - 检查 `.github/workflows/homepage-deploy.yml` 与 `tests/automation/homepage-deploy-workflow.test.mjs` 的 diff，确认最新 review 指向 smoke check 仍匹配旧 title。
+  - 对照 `homepage/index.html` 与 `homepage/src/homepage-seo.test.mjs`，确认当前 canonical SEO title 已统一为 `Superpowering with Files | Claude Code workflow kit`。
+  - 同步更新 workflow 与 workflow contract test，使 deploy 后 smoke check 和测试契约都匹配当前生产 title。
+  - 运行 `node --test tests/automation/homepage-deploy-workflow.test.mjs`、`npm test --prefix homepage` 与 `git diff --check -- .github/workflows/homepage-deploy.yml tests/automation/homepage-deploy-workflow.test.mjs`，确认修复通过且无 patch hygiene 问题。
+- Files created/modified:
+  - `.github/workflows/homepage-deploy.yml`
+  - `tests/automation/homepage-deploy-workflow.test.mjs`
+  - `planning/active/homepage-cloudflare-worker/task_plan.md`
+  - `planning/active/homepage-cloudflare-worker/progress.md`
+  - `planning/active/homepage-cloudflare-worker/findings.md`
+
 ---
 
 *Update after completing each phase or encountering errors*

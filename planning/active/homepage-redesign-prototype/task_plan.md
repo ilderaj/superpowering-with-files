@@ -4,15 +4,15 @@
 结合仓库现有 `DESIGN.md` 持续重构 `homepage/`，先完成本地可预览 prototype，再在用户确认后将最新 homepage 变更集成并发布到 `origin/main`。
 
 ## Current State
-Status: complete
-Archive Eligible: yes
-Close Reason: homepage manifesto redesign implementation 已在隔离 worktree 中完成并验证通过。
+Status: blocked
+Archive Eligible: no
+Close Reason:
 Companion plan: `docs/superpowers/plans/2026-05-15-homepage-redesign-prototype.md`
 Companion summary: 四步实现计划已全部执行完成，覆盖内容契约、`App.tsx` 五段结构重建、dark manifesto 样式系统替换和最终验证。
-Sync-back status: companion plan 已执行并同步回 task 目录；实现与验证完成。
+Sync-back status: Phase 6 Claude DesignMD redesign / SEO 已验证通过，并已本地提交为 `bf41d0b`；尝试推送到 `origin/dev` 时被当前环境的 GitHub CONNECT tunnel 403 阻止，等待具备网络访问的会话继续 push 或由用户手动推送。
 
 ## Current Phase
-Execution complete
+Phase 6: Local commit created, dev push blocked
 
 ## Phases
 
@@ -45,6 +45,13 @@ Execution complete
 - [x] 根据最新用户反馈继续压缩信息结构并调整首屏密度。
 - [x] 运行发布前验证与独立 code review。
 - [x] 将最新 homepage 变更提交并集成到 `origin/main`。
+- **Status:** complete
+
+### Phase 6: Claude DesignMD Redesign and SEO
+- [x] 执行用户要求的 Claude DesignMD 获取流程；npm registry 返回 403 后，改用仓库根 `DESIGN.md` 作为本轮 Claude source of truth。
+- [x] 按 TDD 更新 homepage 内容、结构、样式和 SEO 契约测试。
+- [x] 将 homepage 切换到 Claude-inspired cream / coral / dark product-surface 视觉系统，并补齐 canonical、Open Graph、Twitter card、robots、theme-color、structured data 与真实 `og-image.png`。
+- [x] 运行 homepage test/typecheck/build/diff hygiene，并用 Preview server 完成桌面与移动视口抽检。
 - **Status:** complete
 
 ## Risks
@@ -133,6 +140,20 @@ Execution complete
 - 由于本地 `main` 被另一个 superpowers worktree 占用，最终采用该 `main` worktree 进行精确 cherry-pick，而不是在当前 `dev` 工作区直接切分支。
 - 本轮最新 homepage polish 在 `origin/dev` 上的提交为 `18580da`（`feat: tighten homepage hybrid landing page`），在 `origin/main` 上对应的 cherry-pick 提交为 `c1ff5a5`。
 - 已直接读取 `origin/main:homepage/src/App.tsx` 与 `origin/main:homepage/src/styles.css` 验证 marker，确认最新设计已真实进入远端 `main`。
+
+## Plan Record: 2026-05-28 18:27:05 UTC+8
+
+- Phase 6 已完成：homepage 内容、结构、样式和 SEO 均已切换到 Claude DesignMD 方向。
+- `npx getdesign@latest add claude` 仍被 npm registry 403 阻止；本轮采用根 `DESIGN.md` 中的 Claude DesignMD 作为 source of truth。
+- 验证通过：homepage `npm test`（19 tests）、`npm run typecheck`、`npm run build`、`git diff --check -- homepage`、Preview server 桌面/移动快照与控制台错误检查。
+- 当前状态改为 `waiting_review`，未执行提交、推送或部署。
+
+## Plan Record: 2026-05-28 20:07:20 UTC+8
+
+- 用户已明确要求将当前 homepage Claude DesignMD redesign / SEO 结果提交并推送到 `origin/dev`。
+- 提交前再次验证通过：homepage `npm test`（19 tests）、`npm run typecheck`、`npm run build`、`git diff --check -- homepage`。
+- 本轮提交范围保持聚焦在 homepage 交付物与对应 planning 记录；`.claude/launch.json` 继续保留为本地 Preview 配置，不纳入版本提交。
+- 本 task 当前状态切换为 `waiting_integration`：结果将进入 `origin/dev`，但尚未按本轮指令推进到 `main` 或执行部署。
 
 ## Errors Encountered
 

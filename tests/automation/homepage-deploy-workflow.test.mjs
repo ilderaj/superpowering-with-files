@@ -102,7 +102,7 @@ test('homepage deploy workflow builds, tests, and deploys the homepage Worker', 
   assert.match(smokeBlock, /^\s{10}url="https:\/\/vibing\.paymond\.me\/superpowering-with-files"\s*$/m);
   assert.match(smokeBlock, /^\s{10}for attempt in 1 2 3 4 5; do\s*$/m);
   assert.match(smokeBlock, /^\s{12}status=\$\(curl -sS -o \/tmp\/homepage-smoke\.html -w "%\{http_code\}" -L --max-redirs 5 --connect-timeout 20 "\$url"\)\s*$/m);
-  assert.match(smokeBlock, /^\s{12}if \[ "\$status" = "200" \] && grep -q "<title>Superpowering with Files<\/title>" \/tmp\/homepage-smoke\.html; then\s*$/m);
+  assert.match(smokeBlock, /^\s{12}if \[ "\$status" = "200" \] && grep -q "<title>Superpowering with Files \| Claude Code workflow kit<\/title>" \/tmp\/homepage-smoke\.html; then\s*$/m);
   assert.match(smokeBlock, /^\s{14}exit 0\s*$/m);
   assert.match(smokeBlock, /^\s{12}if \[ "\$attempt" -lt 5 \]; then\s*$/m);
   assert.match(smokeBlock, /^\s{14}sleep 5\s*$/m);
