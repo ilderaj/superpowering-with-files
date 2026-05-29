@@ -55,7 +55,7 @@ jobs:
           url="https://vibing.paymond.me/superpowering-with-files"
           for attempt in 1 2 3 4 5; do
             status=$(curl -sS -o /tmp/homepage-smoke.html -w "%{http_code}" -L --max-redirs 5 --connect-timeout 20 "$url")
-            if [ "$status" = "200" ] && grep -q "<title>Superpowering with Files</title>" /tmp/homepage-smoke.html; then
+            if [ "$status" = "200" ] && grep -q "<title>Superpowering with Files | Claude Code workflow kit</title>" /tmp/homepage-smoke.html; then
               exit 0
             fi
             if [ "$attempt" -lt 5 ]; then

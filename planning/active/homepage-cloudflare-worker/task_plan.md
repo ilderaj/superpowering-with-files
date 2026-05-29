@@ -146,6 +146,13 @@ Phase 6
 - 已从本机可用的 Wrangler OAuth 配置 `~/Library/Preferences/.wrangler/config/default.toml` 提取当前 `oauth_token`，覆盖 GitHub secret 后重新触发 workflow。
 - 重跑 run `25715271686` 已完成并成功，说明 `main` 驱动的 homepage 自动部署链路现已恢复到健康状态。
 
+## Plan Record: 2026-05-29 09:18:27 UTC+8
+
+- 最新 review 修复聚焦在 deploy workflow 的生产 smoke check：它仍匹配旧版 `<title>Superpowering with Files</title>`，而当前 homepage SEO title 已变为 `Superpowering with Files | Claude Code workflow kit`。
+- 已同步更新 `.github/workflows/homepage-deploy.yml` 与 `tests/automation/homepage-deploy-workflow.test.mjs`，让 workflow contract 与真实 homepage title 保持一致。
+- 本轮窄验证通过：`node --test tests/automation/homepage-deploy-workflow.test.mjs`、`npm test --prefix homepage`、`git diff --check -- .github/workflows/homepage-deploy.yml tests/automation/homepage-deploy-workflow.test.mjs`。
+- 当前修复已完成并可重新提交；任务生命周期保持完成态，等待把这次 review fix 落成新的提交边界。
+
 ## Errors Encountered
 
 | Error | Attempt | Resolution |

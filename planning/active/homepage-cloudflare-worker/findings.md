@@ -85,6 +85,12 @@
 - 本机 Wrangler 认证与 GitHub Actions secret 可以漂移。这里的具体表现是：本机 `wrangler whoami` 仍正常，但 repo secret 中的旧 `CLOUDFLARE_API_TOKEN` 已失效。
 - 当前可重复的修复路径已经验证成功：从 `~/Library/Preferences/.wrangler/config/default.toml` 提取当前 `oauth_token`，更新 repo secret，随后重跑 `homepage-deploy.yml`。
 
+## Findings Record: 2026-05-29 09:18:27 UTC+8
+
+- 最新 review 指向的是 deploy workflow smoke check 与当前 homepage SEO title 脱节，而不是部署链路本身坏掉：workflow 仍匹配旧 `<title>Superpowering with Files</title>`，但 `homepage/index.html` 已是 `Superpowering with Files | Claude Code workflow kit`。
+- 对这种 contract drift，最稳的修复是同时更新 `.github/workflows/homepage-deploy.yml` 和 `tests/automation/homepage-deploy-workflow.test.mjs`，让 smoke check 与测试契约都直接锁定当前生产 title，避免下次 review 只修一边。
+- 本轮窄验证已经足够覆盖风险面：workflow contract test、homepage test suite 和 `git diff --check` 都通过，说明这次变更只修正 CI smoke-check 预期，没有引入新的 homepage contract 回归。
+
 ## Technical Decisions
 
 | Decision | Rationale |
