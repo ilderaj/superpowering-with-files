@@ -14,6 +14,14 @@
   1. Git / 网络请求通过受限本地代理，导致访问 GitHub 时出现 `CONNECT tunnel failed, response 403`
   2. `gh` 本地认证 token 已失效，导致即使网络通了，GitHub CLI 仍会报 invalid token / Forbidden
 
+## Findings Record: 2026-05-29 12:10:54 UTC+8
+
+- 用户提供了参考 issue：`https://github.com/farion1231/cc-switch/issues/2016`。
+- 本次会话内尝试抓取该 issue 内容时，外部网页读取工具返回的是第三方套餐到期错误，而不是 GitHub issue 内容本身，因此当前没有拿到该 issue 的正文证据。
+- 在未读到 issue 正文前，不能严谨地下结论说“就是同一个问题”。
+- 但从当前已知症状看，如果那个 issue 讨论的是 Claude Code / cc-switch 会话中的代理注入、localhost proxy、GitHub CONNECT 403、或会话与宿主机网络不一致，那么与你这里的问题高度相似。
+- 如果那个 issue 讨论的是单纯 `gh` token 失效、GitHub OAuth 过期、或 CLI keyring 异常，那么它只覆盖了你这里的第二层问题，而不能解释 `git push` 的 `CONNECT tunnel failed, response 403`。
+
 ## Comparative Interpretation
 
 - Codex、Copilot、Cursor 没遇到同样问题，最可能的原因不是“GitHub 对 Claude Code 特别封禁”，而是这些工具没有复用当前会话的同一套代理/沙箱/凭据状态。
