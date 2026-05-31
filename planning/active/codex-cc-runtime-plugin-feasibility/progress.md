@@ -165,4 +165,4 @@
 - **Actions:** Fast-forwarded local `dev` from `9cde389` to `57ece20` using branch `runtime-plugin/202605310547-codex-cc-runtime-plugin-feasibility-001`.
 - **Local state handling:** Main checkout had unrelated dirty homepage work and older untracked runtime-plugin planning files. Stashed only the untracked files that would block the fast-forward under stash message `pre-runtime-plugin-dev-merge-blocking-untracked`; homepage edits remained untouched.
 - **Verification:** `node --test tests/plugin-kit/*.test.mjs` passed after the fast-forward: 19 tests, 0 failures.
-- **Next step:** Commit this integration planning record and push `dev` to `origin/dev`.
+- **Push result:** `git push origin dev` succeeded and moved `origin/dev` to `07e522b`. GitHub reported the branch rule was bypassed because changes normally must be made through a pull request.
