@@ -33,6 +33,11 @@ test('buildPlugin creates self-contained plugin roots without runtime planning s
 
     const mcpConfig = JSON.parse(await readFile(path.join(build.pluginRoot, '.mcp.json'), 'utf8'));
     assert.equal(mcpConfig.mcpServers['harness-runtime'].command, 'node');
+    const hookConfig = JSON.parse(await readFile(path.join(build.pluginRoot, 'hooks/hooks.json'), 'utf8'));
+    const hookConfigText = JSON.stringify(hookConfig);
+    assert.ok(Object.values(hookConfig.hooks).some((entries) => Array.isArray(entries) && entries.length > 0));
+    assert.match(hookConfigText, /\.\/hooks\/task-scoped-hook\.sh/);
+    assert.doesNotMatch(hookConfigText, /\.(codex|claude|cursor|github)\/hooks\/task-scoped-hook\.sh/);
 
     await access(path.join(build.pluginRoot, 'runtime/harness/mcp/stdio.mjs'));
     await access(path.join(build.pluginRoot, 'runtime/scripts/harness'));
@@ -54,11 +59,11 @@ test('Codex plugin manifest follows the supported manifest shape', async () => {
   assert.equal(manifest.version, '1.0.6');
   assert.equal(manifest.skills, './skills/');
   assert.equal(manifest.mcpServers, './.mcp.json');
+  assert.equal(manifest.hooks, './hooks/hooks.json');
   assert.equal(manifest.interface.displayName, 'Harness for Codex');
   assert.ok(Array.isArray(manifest.interface.defaultPrompt));
   assert.ok(manifest.interface.defaultPrompt.length > 0);
   assert.equal(manifest.components, undefined);
-  assert.equal(manifest.hooks, undefined);
 });
 
 test('Claude Code plugin manifest avoids ignored Codex interface metadata', async () => {

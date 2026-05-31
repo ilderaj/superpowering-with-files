@@ -251,3 +251,10 @@ plugins/
 - GitHub release `1.0.6` was created from branch `runtime-plugin/202605310547-codex-cc-runtime-plugin-feasibility-001` and is published as a non-draft, non-prerelease release.
 - Release asset upload was verified through `gh release view 1.0.6`; all five packed runtime/plugin artifacts plus `manifest.json`, `release-notes.md`, and `SHA256SUMS` are present.
 - The release tag currently points at the implementation commit before this post-release planning update; the follow-up planning commit records release metadata for traceability in the PR branch.
+
+## Findings Record: 2026-05-31 14:48:04 UTC+8
+
+- PR #73 review comments correctly identified a functional gap in `packages/plugin-kit/src/build-plugin.mjs`: packed plugins were shipping `hooks/hooks.json` with empty hook arrays, so hook registration succeeded but no planning hook callback could ever run.
+- The same review also caught that Codex plugin manifests were omitting `hooks`, which meant Codex would not discover the bundled hook config even after the hook payload was populated.
+- The safe remediation is to treat `harness/core/hooks/planning-with-files/*-hooks.json` as the hook source of truth and transform those platform-native configs into plugin-bundled configs by copying referenced scripts and rewriting only the script paths. Re-synthesizing commands in the packer introduced an immediate regression (`CLAUDE_PLUGIN_ROOT` string interpolation at build time), so template inheritance is the lower-risk design.
+- Regression coverage now asserts three contracts for every built plugin artifact: hook config contains non-empty entries, bundled commands reference `./hooks/task-scoped-hook.sh`, and no built hook config leaks workspace install paths such as `.codex/hooks/...`, `.claude/hooks/...`, `.cursor/hooks/...`, or `.github/hooks/...`.

@@ -91,3 +91,12 @@ Status: in_progress
 - 已完成：最终完整 verification rerun、release artifact checksum verification。
 - 已完成：git commit/push、PR、GitHub release。
 - 当前状态：release published；仅剩提交并推送 post-release planning metadata update。
+
+## Plan Record: 2026-05-31 14:48:04 UTC+8
+
+### Phase 9：PR review remediation
+Status: complete
+- 检查 PR #73 的 review comments，并逐条确认是否为真实回归。
+- 用 TDD 先让定向测试对空 hook config / 缺失 Codex `manifest.hooks` 失败，再修复实现。
+- 将 plugin hook 打包逻辑切换为“复用 source-of-truth hook 模板 + 重写脚本路径到 bundled hooks”，避免重新发明跨平台命令。
+- 重新运行 plugin-kit 定向与整套测试，确认 review 修复没有破坏 release artifact smoke 路径。

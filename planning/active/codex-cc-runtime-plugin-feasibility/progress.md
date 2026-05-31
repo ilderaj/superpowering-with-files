@@ -141,3 +141,19 @@
 - **GitHub release:** https://github.com/ilderaj/superpowering-with-files/releases/tag/1.0.6
 - **Release assets confirmed:** `harness-runtime-1.0.6.tgz`, `harness-codex-plugin-1.0.6.tgz`, `harness-claude-code-plugin-1.0.6.tgz`, `harness-cursor-plugin-1.0.6.tgz`, `harness-copilot-plugin-1.0.6.tgz`, `manifest.json`, `release-notes.md`, `SHA256SUMS`.
 - **Release visibility:** non-draft, non-prerelease.
+
+## Session: 2026-05-31 14:48:04 UTC+8
+
+- **Status:** active
+- **Goal:** Address PR #73 review comments on plugin hook packaging and retrigger review with verified fixes.
+- **Review findings addressed:**
+  - `P1`: `packages/plugin-kit/src/build-plugin.mjs` emitted placeholder `hooks/hooks.json` entries with empty arrays, so packed plugins would register no-op hooks.
+  - `P2`: Codex manifest omitted `hooks`, preventing host discovery of the bundled hook config.
+- **Actions:** Added TDD coverage for non-empty hook configs and Codex `manifest.hooks`; reworked plugin hook generation to copy the real planning hook scripts, load the per-target source hook templates from `harness/core/hooks/planning-with-files/*-hooks.json`, preserve their verified hook structure, and rewrite source install paths to bundled `./hooks/task-scoped-hook.sh`.
+- **Debugging note:** The first remediation attempt tried to synthesize per-host shell commands and failed with `ReferenceError: CLAUDE_PLUGIN_ROOT is not defined`; replaced that approach with template inheritance plus minimal path rewriting.
+- **Verification:**
+  - Initial expected-red test: `node --test tests/plugin-kit/build-plugin.test.mjs` failed with empty hook config and missing Codex `manifest.hooks`.
+  - Final green tests:
+    - `node --test tests/plugin-kit/build-plugin.test.mjs`
+    - `node --test tests/plugin-kit/*.test.mjs`
+- **Next step:** Commit and push the review fix so GitHub re-runs PR review/CI on the updated branch.

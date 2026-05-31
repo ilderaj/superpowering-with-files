@@ -18,7 +18,7 @@ export async function buildPlugin({ target, version, outDir, rootDir = process.c
   await writeMcpConfig({ pluginRoot, target, config });
   await writeHarnessSkill({ pluginRoot, target, config });
   await writeMcpWrapper(pluginRoot);
-  await writeHookConfig(pluginRoot, target);
+  await writeHookConfig({ pluginRoot, rootDir, target });
   await writePlatformExtras(pluginRoot, target);
   await writeReadme({ pluginRoot, contract, config });
   await copyRuntime({ rootDir, pluginRoot });
@@ -60,9 +60,7 @@ async function writePlatformManifest({ pluginRoot, contract, config, version }) 
     };
   }
 
-  if (contract.id !== 'codex') {
-    manifest.hooks = './hooks/hooks.json';
-  }
+  manifest.hooks = './hooks/hooks.json';
 
   await mkdir(path.dirname(path.join(pluginRoot, contract.manifestPath)), { recursive: true });
   await writeFile(
@@ -134,13 +132,18 @@ async function writeMcpWrapper(pluginRoot) {
   );
 }
 
-async function writeHookConfig(pluginRoot, target) {
-  await mkdir(path.join(pluginRoot, 'hooks'), { recursive: true });
-  const eventName = target === 'claude-code' ? 'UserPromptSubmit' : 'userPromptSubmit';
-  await writeFile(
-    path.join(pluginRoot, 'hooks/hooks.json'),
-    `${JSON.stringify({ hooks: { [eventName]: [] } }, null, 2)}\n`
+async function writeHookConfig({ pluginRoot, rootDir, target }) {
+  const hooksRoot = path.join(pluginRoot, 'hooks');
+  const planningHooksRoot = path.join(rootDir, 'harness/core/hooks/planning-with-files');
+  await mkdir(hooksRoot, { recursive: true });
+  await cp(path.join(planningHooksRoot, 'scripts'), hooksRoot, { recursive: true });
+  await cp(path.join(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'), path.join(hooksRoot, 'runtime-hook-evidence.sh'));
+
+  const template = JSON.parse(
+    await readFile(path.join(planningHooksRoot, planningHookTemplateFile(target)), 'utf8')
   );
+  const hookConfig = rewritePlanningHookTemplate(template, target);
+  await writeFile(path.join(hooksRoot, 'hooks.json'), `${JSON.stringify(hookConfig, null, 2)}\n`);
 }
 
 async function writePlatformExtras(pluginRoot, target) {
@@ -185,4 +188,82 @@ async function copyRuntime({ rootDir, pluginRoot }) {
   });
   await cp(path.join(rootDir, 'scripts'), path.join(runtimeRoot, 'scripts'), { recursive: true });
   await cp(path.join(rootDir, 'node_modules'), path.join(runtimeRoot, 'node_modules'), { recursive: true });
+}
+
+function planningHookTemplateFile(target) {
+  switch (target) {
+    case 'codex':
+      return 'codex-hooks.json';
+    case 'claude-code':
+      return 'claude-hooks.json';
+    case 'cursor':
+      return 'cursor-hooks.json';
+    case 'copilot':
+      return 'copilot-hooks.json';
+    default:
+      throw new Error(`Unsupported planning hook template target: ${target}`);
+  }
+}
+
+function rewritePlanningHookTemplate(template, target) {
+  const hooks = {};
+
+  for (const [eventName, entries] of Object.entries(template.hooks ?? {})) {
+    hooks[eventName] = entries.map((entry) => rewriteHookEntry(entry, target));
+  }
+
+  return template.version ? { version: template.version, hooks } : { hooks };
+}
+
+function rewriteHookEntry(entry, target) {
+  const nextEntry = structuredClone(entry);
+
+  if (Array.isArray(nextEntry.hooks)) {
+    nextEntry.hooks = nextEntry.hooks.map((hook) => rewriteNestedHook(hook, target));
+    return nextEntry;
+  }
+
+  if (typeof nextEntry.command === 'string') {
+    nextEntry.command = rewriteHookCommandString(nextEntry.command, target);
+  }
+
+  if (typeof nextEntry.bash === 'string') {
+    nextEntry.bash = rewriteHookCommandString(nextEntry.bash, target);
+  }
+
+  return nextEntry;
+}
+
+function rewriteNestedHook(hook, target) {
+  const nextHook = { ...hook };
+  if (typeof nextHook.command === 'string') {
+    nextHook.command = rewriteHookCommandString(nextHook.command, target);
+  }
+  if (typeof nextHook.bash === 'string') {
+    nextHook.bash = rewriteHookCommandString(nextHook.bash, target);
+  }
+  return nextHook;
+}
+
+function rewriteHookCommandString(command, target) {
+  let nextCommand = command;
+  for (const scriptPath of sourceHookScriptPaths(target)) {
+    nextCommand = nextCommand.replaceAll(scriptPath, './hooks/task-scoped-hook.sh');
+  }
+  return nextCommand;
+}
+
+function sourceHookScriptPaths(target) {
+  switch (target) {
+    case 'codex':
+      return ['.codex/hooks/task-scoped-hook.sh', '$HOME/.codex/hooks/task-scoped-hook.sh'];
+    case 'claude-code':
+      return ['.claude/hooks/task-scoped-hook.sh', '$HOME/.claude/hooks/task-scoped-hook.sh'];
+    case 'cursor':
+      return ['.cursor/hooks/task-scoped-hook.sh', '$HOME/.cursor/hooks/task-scoped-hook.sh'];
+    case 'copilot':
+      return ['.github/hooks/task-scoped-hook.sh', '$HOME/.copilot/hooks/task-scoped-hook.sh'];
+    default:
+      throw new Error(`Unsupported hook command target: ${target}`);
+  }
 }
