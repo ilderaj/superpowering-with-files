@@ -18,6 +18,7 @@ import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { activeSummary } from './active-summary.mjs';
 import { mcpApprove } from './mcp-approve.mjs';
+import { plugin } from './plugin.mjs';
 
 const commands = {
   install,
@@ -33,6 +34,7 @@ const commands = {
   'active-summary': activeSummary,
   record,
   'mcp-approve': mcpApprove,
+  plugin,
   'cloud-bootstrap': cloudBootstrap,
   'link-personal': linkPersonal,
   'worktree-name': worktreeName,
@@ -57,6 +59,7 @@ function usage() {
     '  active-summary  Print lifecycle summary for all tasks under planning/active',
     '  record   Append a timestamped record block to task_plan, findings, progress, or reconciliation',
     '  mcp-approve  Sign a write plan out-of-band for MCP apply operations',
+    '  plugin  Inspect and plan plugin adoption',
     '  checkpoint  Create a safety checkpoint',
     '  checkpoint-push  Verify, record review evidence, commit, and push a recovery branch',
     '  cloud-bootstrap  Generate safety bootstrap files for cloud workspaces',

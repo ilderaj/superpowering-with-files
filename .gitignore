@@ -3,6 +3,7 @@
 .codex-worktrees/
 homepage/node_modules/
 homepage/dist/
+dist/
 .agent-config/checkpoints/
 .agent-config/logs/
 reports/checkpoints/

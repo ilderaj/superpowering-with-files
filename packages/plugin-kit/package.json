@@ -1,0 +1,10 @@
+{
+  "name": "@superpowering-with-files/plugin-kit",
+  "version": "1.0.6",
+  "type": "module",
+  "description": "Build, pack, and validate Harness editor plugin artifacts.",
+  "private": true,
+  "exports": {
+    ".": "./src/index.mjs"
+  }
+}

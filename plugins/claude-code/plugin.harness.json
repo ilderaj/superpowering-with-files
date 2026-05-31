@@ -1,0 +1,19 @@
+{
+  "target": "claude-code",
+  "name": "harness-claude-code-plugin",
+  "displayName": "Harness for Claude Code",
+  "version": "1.0.6",
+  "description": "Runtime governance, planning skills, hooks, and MCP tools for Claude Code.",
+  "components": {
+    "skills": {
+      "profile": "minimal-global"
+    },
+    "hooks": {
+      "enabled": true
+    },
+    "mcp": {
+      "serverName": "harness-runtime",
+      "transport": "stdio"
+    }
+  }
+}
