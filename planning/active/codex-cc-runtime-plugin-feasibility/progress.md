@@ -157,3 +157,12 @@
     - `node --test tests/plugin-kit/build-plugin.test.mjs`
     - `node --test tests/plugin-kit/*.test.mjs`
 - **Next step:** Commit and push the review fix so GitHub re-runs PR review/CI on the updated branch.
+
+## Session: 2026-05-31 15:36:57 UTC+8
+
+- **Status:** integrated
+- **Goal:** Merge the runtime plugin worktree branch into local `dev` and push `origin/dev`.
+- **Actions:** Fast-forwarded local `dev` from `9cde389` to `57ece20` using branch `runtime-plugin/202605310547-codex-cc-runtime-plugin-feasibility-001`.
+- **Local state handling:** Main checkout had unrelated dirty homepage work and older untracked runtime-plugin planning files. Stashed only the untracked files that would block the fast-forward under stash message `pre-runtime-plugin-dev-merge-blocking-untracked`; homepage edits remained untouched.
+- **Verification:** `node --test tests/plugin-kit/*.test.mjs` passed after the fast-forward: 19 tests, 0 failures.
+- **Next step:** Commit this integration planning record and push `dev` to `origin/dev`.

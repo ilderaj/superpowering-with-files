@@ -100,3 +100,11 @@ Status: complete
 - 用 TDD 先让定向测试对空 hook config / 缺失 Codex `manifest.hooks` 失败，再修复实现。
 - 将 plugin hook 打包逻辑切换为“复用 source-of-truth hook 模板 + 重写脚本路径到 bundled hooks”，避免重新发明跨平台命令。
 - 重新运行 plugin-kit 定向与整套测试，确认 review 修复没有破坏 release artifact smoke 路径。
+
+## Plan Record: 2026-05-31 15:36:57 UTC+8
+
+### Phase 10：Local dev integration
+Status: in_progress
+- 按用户要求将 worktree 分支 fast-forward merge 到本地 `dev`。
+- 在合并后的 `dev` 上运行 plugin-kit 测试。
+- 提交 integration planning record 后推送 `origin/dev`。
