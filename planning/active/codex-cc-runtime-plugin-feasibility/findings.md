@@ -245,3 +245,9 @@ plugins/
 - Direct MCP wrapper startup failed until runtime dependencies were bundled. Self-contained direct-install plugin artifacts now include `runtime/node_modules` so `runtime/harness/mcp/stdio.mjs` can resolve `@modelcontextprotocol/sdk`, `zod`, `ws`, and transitive dependencies.
 - Host CLI install semantics differ by platform: Codex validates via local marketplace, Claude validates plugin directory/archive, Cursor and Copilot support local `--plugin-dir` session loading. Packed `.tgz` artifacts are release assets; some hosts still require unpacking or marketplace/repo indirection for local CLI validation.
 - Bundling dependencies increases each compressed artifact to roughly 6-7 MB, which is acceptable for direct-install reliability in this release. Future optimization can replace whole `node_modules` copying with exact dependency closure staging.
+
+## Findings Record: 2026-05-31 14:23:33 UTC+8
+
+- GitHub release `1.0.6` was created from branch `runtime-plugin/202605310547-codex-cc-runtime-plugin-feasibility-001` and is published as a non-draft, non-prerelease release.
+- Release asset upload was verified through `gh release view 1.0.6`; all five packed runtime/plugin artifacts plus `manifest.json`, `release-notes.md`, and `SHA256SUMS` are present.
+- The release tag currently points at the implementation commit before this post-release planning update; the follow-up planning commit records release metadata for traceability in the PR branch.

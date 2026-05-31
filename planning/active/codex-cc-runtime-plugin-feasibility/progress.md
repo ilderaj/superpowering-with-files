@@ -131,3 +131,13 @@
   - `./scripts/harness doctor --check-only`: pass with historical companion-plan metadata warnings only.
   - `shasum -a 256 -c SHA256SUMS`: pass for all five `.tgz` assets.
 - **Residual warnings:** Doctor still reports historical companion-plan metadata warnings unrelated to this task. No current release artifact gate failed.
+
+## Session: 2026-05-31 14:23:33 UTC+8
+
+- **Status:** released
+- **Commit:** `6bc4e6e` (`Add runtime harness plugin release packaging`)
+- **Branch pushed:** `runtime-plugin/202605310547-codex-cc-runtime-plugin-feasibility-001`
+- **PR:** https://github.com/ilderaj/superpowering-with-files/pull/73
+- **GitHub release:** https://github.com/ilderaj/superpowering-with-files/releases/tag/1.0.6
+- **Release assets confirmed:** `harness-runtime-1.0.6.tgz`, `harness-codex-plugin-1.0.6.tgz`, `harness-claude-code-plugin-1.0.6.tgz`, `harness-cursor-plugin-1.0.6.tgz`, `harness-copilot-plugin-1.0.6.tgz`, `manifest.json`, `release-notes.md`, `SHA256SUMS`.
+- **Release visibility:** non-draft, non-prerelease.

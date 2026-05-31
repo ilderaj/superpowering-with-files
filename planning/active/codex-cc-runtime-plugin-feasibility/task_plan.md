@@ -89,4 +89,5 @@ Status: in_progress
 - 已完成：baseline verification、platform fact-check、package boundary、runtime package shell、plugin-kit foundations、四平台 plugin source config、plugin root generation。
 - 已完成：packer、release build、preflight/smoke、migration docs/commands、Codex/Claude/Cursor/Copilot host CLI validation evidence。
 - 已完成：最终完整 verification rerun、release artifact checksum verification。
-- 下一步：git commit/push、PR、GitHub release。
+- 已完成：git commit/push、PR、GitHub release。
+- 当前状态：release published；仅剩提交并推送 post-release planning metadata update。
