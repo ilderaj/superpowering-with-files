@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Superpowering With Files — Homepage Design Draft</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #111827;
+      --muted: #667085;
+      --soft: #f6f3ee;
+      --paper: #fffaf2;
+      --card: rgba(255, 255, 255, 0.82);
+      --line: rgba(17, 24, 39, 0.1);
+      --accent: #ff5f3d;
+      --accent-dark: #ce3f25;
+      --blue: #305cde;
+      --green: #0f8a66;
+      --plum: #5b3b8c;
+      --shadow: 0 24px 70px rgba(17, 24, 39, 0.12);
+      --radius: 28px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(255, 95, 61, 0.16), transparent 34rem),
+        radial-gradient(circle at 82% 8%, rgba(48, 92, 222, 0.14), transparent 31rem),
+        linear-gradient(180deg, #fffaf2 0%, #f7f4ed 54%, #ffffff 100%);
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+
+    .nav {
+      position: sticky;
+      top: 16px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-top: 16px;
+      padding: 12px 14px 12px 18px;
+      border: 1px solid rgba(17, 24, 39, 0.09);
+      border-radius: 999px;
+      background: rgba(255, 250, 242, 0.78);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 12px 42px rgba(17, 24, 39, 0.08);
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 780; letter-spacing: -0.03em; }
+    .mark {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      color: white;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--ink), #3a4557);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.16);
+      font-size: 15px;
+    }
+
+    .nav-links { display: flex; align-items: center; gap: 22px; color: #475467; font-size: 14px; }
+    .nav-links a:hover { color: var(--ink); }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 720;
+      letter-spacing: -0.01em;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .button:hover { transform: translateY(-2px); }
+    .button.primary { color: white; background: var(--ink); box-shadow: 0 12px 28px rgba(17, 24, 39, 0.18); }
+    .button.primary:hover { background: #202b3c; }
+    .button.secondary { color: var(--ink); background: rgba(255,255,255,0.66); border-color: var(--line); }
+
+    .hero { padding: 88px 0 58px; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.03fr) minmax(340px, 0.82fr); gap: 44px; align-items: center; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(17, 24, 39, 0.09);
+      color: #344054;
+      font-size: 13px;
+      font-weight: 680;
+      box-shadow: 0 8px 26px rgba(17, 24, 39, 0.06);
+    }
+    .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 6px rgba(15, 138, 102, 0.12); }
+    h1 { margin: 24px 0 18px; font-size: clamp(48px, 7vw, 86px); line-height: 0.92; letter-spacing: -0.075em; max-width: 880px; }
+    .hero-copy { max-width: 680px; margin: 0; color: #475467; font-size: clamp(18px, 2vw, 22px); line-height: 1.55; letter-spacing: -0.02em; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 30px; }
+
+    .proof-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 36px; max-width: 720px; }
+    .proof {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.58);
+    }
+    .proof strong { display: block; font-size: 20px; letter-spacing: -0.04em; }
+    .proof span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+
+    .product-card {
+      position: relative;
+      border: 1px solid rgba(17, 24, 39, 0.1);
+      border-radius: 36px;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.7);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .product-card::before {
+      content: "";
+      position: absolute;
+      inset: -45% -30% auto auto;
+      width: 300px;
+      height: 300px;
+      background: radial-gradient(circle, rgba(255, 95, 61, 0.22), transparent 68%);
+      pointer-events: none;
+    }
+    .terminal {
+      position: relative;
+      border-radius: 26px;
+      overflow: hidden;
+      background: #111827;
+      color: #e5e7eb;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+    }
+    .terminal-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); color: #98a2b3; font-size: 13px; }
+    .dots { display: flex; gap: 7px; }
+    .dots i { width: 10px; height: 10px; border-radius: 50%; background: #ff6b57; display: block; }
+    .dots i:nth-child(2) { background: #f7c948; }
+    .dots i:nth-child(3) { background: #37c275; }
+    .terminal-body { padding: 22px; font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; line-height: 1.72; }
+    .cmd { color: #9ae6b4; }
+    .dim { color: #98a2b3; }
+    .hot { color: #ffd6a8; }
+    .blue { color: #a9c4ff; }
+
+    .route-card {
+      margin-top: 16px;
+      border-radius: 26px;
+      background: #ffffff;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      padding: 18px;
+    }
+    .route-title { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 14px; font-weight: 760; }
+    .pill { padding: 5px 9px; border-radius: 999px; color: var(--green); background: rgba(15, 138, 102, 0.1); font-size: 12px; }
+    .flow { display: grid; gap: 10px; margin-top: 16px; }
+    .flow-step { display: grid; grid-template-columns: 34px 1fr; gap: 11px; align-items: start; color: #475467; font-size: 13px; line-height: 1.4; }
+    .num { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 12px; color: white; background: var(--ink); font-weight: 800; }
+    .flow-step strong { color: var(--ink); display: block; margin-bottom: 2px; }
+
+    section { padding: 58px 0; }
+    .section-head { max-width: 780px; margin-bottom: 26px; }
+    .kicker { color: var(--accent-dark); font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; font-size: 12px; }
+    h2 { margin: 10px 0 12px; font-size: clamp(34px, 4.5vw, 58px); line-height: 1; letter-spacing: -0.06em; }
+    .section-head p { margin: 0; color: var(--muted); font-size: 18px; line-height: 1.55; }
+
+    .problem-grid { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 18px; }
+    .quote-card {
+      padding: 30px;
+      border-radius: var(--radius);
+      background: #111827;
+      color: white;
+      min-height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+    .quote-card::after { content: ""; position: absolute; right: -80px; bottom: -110px; width: 270px; height: 270px; border-radius: 50%; background: rgba(255,95,61,0.24); }
+    .quote-card h3 { margin: 0; font-size: 34px; line-height: 1.04; letter-spacing: -0.05em; position: relative; z-index: 1; }
+    .quote-card p { color: #cbd5e1; font-size: 16px; line-height: 1.6; position: relative; z-index: 1; }
+    .pain-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .pain { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: rgba(255,255,255,0.72); box-shadow: 0 14px 40px rgba(17,24,39,0.06); }
+    .icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 15px; margin-bottom: 18px; background: rgba(255,95,61,0.12); color: var(--accent-dark); font-weight: 900; }
+    .pain:nth-child(2) .icon { background: rgba(48,92,222,0.12); color: var(--blue); }
+    .pain:nth-child(3) .icon { background: rgba(15,138,102,0.12); color: var(--green); }
+    .pain:nth-child(4) .icon { background: rgba(91,59,140,0.12); color: var(--plum); }
+    .pain h3 { margin: 0 0 8px; font-size: 20px; letter-spacing: -0.03em; }
+    .pain p { margin: 0; color: var(--muted); line-height: 1.55; font-size: 15px; }
+
+    .system {
+      border-radius: 36px;
+      padding: 28px;
+      background: linear-gradient(135deg, #fff 0%, #fff7ec 100%);
+      border: 1px solid rgba(17,24,39,0.09);
+      box-shadow: var(--shadow);
+    }
+    .system-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
+    .module { padding: 20px; border-radius: 24px; background: rgba(255,255,255,0.78); border: 1px solid rgba(17,24,39,0.08); min-height: 210px; }
+    .module small { color: var(--accent-dark); font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; }
+    .module h3 { margin: 28px 0 10px; font-size: 22px; letter-spacing: -0.04em; }
+    .module p { margin: 0; color: var(--muted); line-height: 1.52; font-size: 15px; }
+
+    .lanes { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 22px; }
+    .lane { text-align: center; padding: 13px 8px; border-radius: 16px; background: #111827; color: white; font-size: 13px; font-weight: 760; }
+    .lane:nth-child(even) { background: #273244; }
+
+    .split { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: 24px; align-items: stretch; }
+    .feature-card { padding: 28px; border-radius: 32px; background: rgba(255,255,255,0.78); border: 1px solid var(--line); box-shadow: 0 16px 48px rgba(17,24,39,0.07); }
+    .feature-card h3 { margin: 0 0 12px; font-size: 28px; letter-spacing: -0.05em; }
+    .feature-card p { margin: 0; color: var(--muted); line-height: 1.58; }
+    .matrix { display: grid; gap: 10px; margin-top: 22px; }
+    .matrix-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .matrix-cell { padding: 14px; border-radius: 17px; background: #f8fafc; border: 1px solid rgba(17,24,39,0.06); color: #475467; font-size: 14px; }
+    .matrix-cell strong { display: block; color: var(--ink); margin-bottom: 3px; }
+
+    .install-card { background: #111827; color: white; border-radius: 34px; padding: 30px; box-shadow: var(--shadow); }
+    .install-card h3 { margin: 0 0 12px; font-size: 30px; letter-spacing: -0.05em; }
+    .install-card p { color: #cbd5e1; line-height: 1.58; margin: 0 0 20px; }
+    .code-block { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; padding: 18px; color: #e5e7eb; font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; line-height: 1.8; overflow-x: auto; }
+
+    .cta {
+      margin: 58px 0 70px;
+      padding: 44px;
+      border-radius: 40px;
+      color: white;
+      background:
+        radial-gradient(circle at 78% 18%, rgba(255,255,255,0.18), transparent 24rem),
+        linear-gradient(135deg, #111827 0%, #233044 56%, #ff5f3d 150%);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+    .cta h2 { margin: 0 0 12px; font-size: clamp(32px, 5vw, 60px); }
+    .cta p { margin: 0; color: #d0d5dd; font-size: 18px; line-height: 1.55; max-width: 680px; }
+    .cta .button { background: white; color: var(--ink); }
+
+    footer { padding: 26px 0 40px; color: #667085; font-size: 14px; }
+    .footer-row { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 22px; }
+
+    @media (max-width: 920px) {
+      .hero-grid, .problem-grid, .split, .cta { grid-template-columns: 1fr; }
+      .proof-row, .system-grid { grid-template-columns: repeat(2, 1fr); }
+      .lanes { grid-template-columns: repeat(2, 1fr); }
+      .nav-links { display: none; }
+    }
+
+    @media (max-width: 620px) {
+      .shell { width: min(100% - 24px, 1180px); }
+      .hero { padding-top: 56px; }
+      .proof-row, .pain-list, .system-grid, .matrix-row { grid-template-columns: 1fr; }
+      .product-card, .system, .cta { border-radius: 26px; padding: 20px; }
+      h1 { font-size: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav shell" aria-label="Main navigation">
+    <a class="brand" href="#top" aria-label="Superpowering With Files home">
+      <span class="mark">SWF</span>
+      <span>Superpowering With Files</span>
+    </a>
+    <div class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#system">System</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#start">Start</a>
+    </div>
+    <a class="button primary" href="#start">Install harness</a>
+  </nav>
+
+  <main id="top">
+    <header class="hero shell">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow"><span class="pulse"></span> Governance harness for local coding agents</div>
+          <h1>One control layer for every coding agent you actually use.</h1>
+          <p class="hero-copy">Superpowering With Files turns a shared workflow policy into native instructions, projected skills, optional hooks, and durable task state across Codex, GitHub Copilot, Cursor, and Claude Code.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#start">Start with the CLI</a>
+            <a class="button secondary" href="#system">See how it works</a>
+          </div>
+          <div class="proof-row" aria-label="Project highlights">
+            <div class="proof"><strong>4</strong><span>agent surfaces governed from one policy</span></div>
+            <div class="proof"><strong>3</strong><span>task files preserve durable state</span></div>
+            <div class="proof"><strong>0</strong><span>always-on superpowers by default</span></div>
+            <div class="proof"><strong>1</strong><span>reconcile gate before finish</span></div>
+          </div>
+        </div>
+
+        <aside class="product-card" aria-label="Harness preview">
+          <div class="terminal">
+            <div class="terminal-top">
+              <div class="dots"><i></i><i></i><i></i></div>
+              <span>./scripts/harness</span>
+            </div>
+            <div class="terminal-body">
+              <div><span class="cmd">$</span> ./scripts/harness install --targets=all</div>
+              <div class="dim">rendering shared policy...</div>
+              <div><span class="hot">✓</span> AGENTS.md for Codex</div>
+              <div><span class="hot">✓</span> copilot-instructions.md for GitHub Copilot</div>
+              <div><span class="hot">✓</span> .cursor/rules/harness.mdc for Cursor</div>
+              <div><span class="hot">✓</span> CLAUDE.md for Claude Code</div>
+              <br />
+              <div><span class="cmd">$</span> ./scripts/harness doctor --check-only</div>
+              <div><span class="blue">policy</span> synced · <span class="blue">skills</span> projected · <span class="blue">hooks</span> opt-in</div>
+            </div>
+          </div>
+          <div class="route-card">
+            <div class="route-title">Tracked task route <span class="pill">durable by default</span></div>
+            <div class="flow">
+              <div class="flow-step"><span class="num">1</span><span><strong>Classify the task</strong>Quick tasks stay light; tracked tasks get file-backed state.</span></div>
+              <div class="flow-step"><span class="num">2</span><span><strong>Write the active plan</strong>State lives in task_plan.md, findings.md, and progress.md.</span></div>
+              <div class="flow-step"><span class="num">3</span><span><strong>Verify and reconcile</strong>Intent, diff, checks, and follow-ups align before finish.</span></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </header>
+
+    <section id="problem" class="shell">
+      <div class="section-head">
+        <span class="kicker">Why it exists</span>
+        <h2>Agent workflows break when every tool invents its own memory.</h2>
+        <p>Local coding agents are powerful, but their instructions, hooks, skills, and planning habits drift across platforms. The harness makes the workflow explicit, portable, and auditable.</p>
+      </div>
+      <div class="problem-grid">
+        <div class="quote-card">
+          <h3>The problem is not lack of capability. It is lack of governance.</h3>
+          <p>When plans live in chat, policies are copied by hand, and deep reasoning is always-on, teams pay in context bloat, hidden state, inconsistent behavior, and risky automation.</p>
+        </div>
+        <div class="pain-list">
+          <article class="pain"><div class="icon">01</div><h3>Policy drift</h3><p>Codex, Copilot, Cursor, and Claude Code can each read different instructions unless there is one canonical source.</p></article>
+          <article class="pain"><div class="icon">02</div><h3>Lost task state</h3><p>Long-running work needs durable files that survive interruptions, compaction, and session handoff.</p></article>
+          <article class="pain"><div class="icon">03</div><h3>Overloaded reasoning</h3><p>Superpowers are useful, but only when a task really needs deep structured thinking.</p></article>
+          <article class="pain"><div class="icon">04</div><h3>Unsafe finish</h3><p>Implementation, verification, docs, and release state need a reconcile step before the task is closed.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="system" class="shell">
+      <div class="section-head">
+        <span class="kicker">What it provides</span>
+        <h2>A small operating system for agentic coding work.</h2>
+        <p>Harness separates the always-on policy core from optional execution lanes, runtime services, and safety controls.</p>
+      </div>
+      <div class="system">
+        <div class="system-grid">
+          <article class="module"><small>Core</small><h3>Shared policy</h3><p>Platform-neutral rules, templates, schemas, and skill metadata remain the source of truth.</p></article>
+          <article class="module"><small>Adapters</small><h3>Native projections</h3><p>Each target gets its expected files, roots, and configuration shape without manual copy-paste.</p></article>
+          <article class="module"><small>Runtime</small><h3>Typed services</h3><p>Status, doctor, summaries, dry-runs, approvals, receipts, and registry checks share one business layer.</p></article>
+          <article class="module"><small>MCP</small><h3>Audited facade</h3><p>External agents can access governed tools and resources without bypassing the harness model.</p></article>
+        </div>
+        <div class="lanes" aria-label="Workflow lanes">
+          <div class="lane">plan</div>
+          <div class="lane">review</div>
+          <div class="lane">verify</div>
+          <div class="lane">reconcile</div>
+          <div class="lane">finish</div>
+          <div class="lane">release</div>
+          <div class="lane">archive</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow" class="shell">
+      <div class="section-head">
+        <span class="kicker">How it feels</span>
+        <h2>Light when work is simple. Durable when work gets real.</h2>
+      </div>
+      <div class="split">
+        <article class="feature-card">
+          <h3>Quick tasks stay quick.</h3>
+          <p>If the task is single-stage, clear, and low-risk, the harness keeps execution direct. No heavyweight routing, no unnecessary planning ceremony, no default superpowers.</p>
+          <div class="matrix">
+            <div class="matrix-row"><div class="matrix-cell"><strong>Best for</strong>Small edits, formatting, simple fixes</div><div class="matrix-cell"><strong>State</strong>Conversation and normal verification</div></div>
+            <div class="matrix-row"><div class="matrix-cell"><strong>Reasoning</strong>Standard execution path</div><div class="matrix-cell"><strong>Finish</strong>Report result after checks</div></div>
+          </div>
+        </article>
+        <article class="feature-card">
+          <h3>Tracked tasks become recoverable.</h3>
+          <p>Multi-phase work, research, subagents, worktree isolation, and durable decisions get a task-scoped file system: plan, findings, progress, verification, and reconciliation.</p>
+          <div class="matrix">
+            <div class="matrix-row"><div class="matrix-cell"><strong>Best for</strong>Long tasks, architecture, comparisons</div><div class="matrix-cell"><strong>State</strong>planning/active/&lt;task-id&gt;/</div></div>
+            <div class="matrix-row"><div class="matrix-cell"><strong>Reasoning</strong>Superpowers only when justified</div><div class="matrix-cell"><strong>Finish</strong>Reconcile before archive</div></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="start" class="shell">
+      <div class="split">
+        <div class="section-head">
+          <span class="kicker">Start here</span>
+          <h2>Install once. Keep every local agent on the same rails.</h2>
+          <p>Use the harness CLI to render native entry files, sync skill projections, run doctor checks, and verify changes before pushing workflow updates.</p>
+        </div>
+        <div class="install-card">
+          <h3>Quick start</h3>
+          <p>These commands mirror the project’s documented flow and are positioned as the primary homepage CTA.</p>
+          <div class="code-block">
+            <div>./scripts/harness install --scope=workspace --targets=all --projection=link</div>
+            <div>./scripts/harness sync</div>
+            <div>./scripts/harness doctor</div>
+            <br />
+            <div>npm run verify</div>
+          </div>
+        </div>
+      </div>
+      <div class="cta">
+        <div>
+          <h2>Bring governance to the agents already in your editor.</h2>
+          <p>Shared policy, native files, durable planning, optional hooks, and a safer path from intent to verified finish.</p>
+        </div>
+        <a class="button" href="#top">Review the draft</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell">
+    <div class="footer-row">
+      <span>Homepage concept draft for superpowering-with-files.</span>
+      <span>Modern product page · independent HTML prototype</span>
+    </div>
+  </footer>
+</body>
+</html>

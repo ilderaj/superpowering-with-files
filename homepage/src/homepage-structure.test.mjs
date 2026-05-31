@@ -24,11 +24,15 @@ test('defines renderers for every approved homepage section in contract order', 
   assert.deepEqual(rendererPositions, sortedPositions)
 })
 
-test('wires key hero and downstream content from homepageContent', () => {
+test('wires the product-page modules introduced by the HTML draft', () => {
   assert.ok(source.includes("from './homepage-content.mjs'"))
-  assert.ok(source.includes('homepageContent.hero.headline'))
-  assert.ok(source.includes('homepageContent.proof.hybrid.title'))
-  assert.ok(source.includes('homepageContent.routing.bullets.map'))
-  assert.ok(source.includes('homepageContent.repoProof.items.map'))
-  assert.ok(source.includes('homepageContent.closing.links.map'))
+  assert.ok(source.includes('homepageContent.topbar.cta'))
+  assert.ok(source.includes('homepageContent.hero.proofPoints.map'))
+  assert.ok(source.includes('homepageContent.hero.terminal.lines.map'))
+  assert.ok(source.includes('homepageContent.hero.route.steps.map'))
+  assert.ok(source.includes('homepageContent.problem.pains.map'))
+  assert.ok(source.includes('homepageContent.system.modules.map'))
+  assert.ok(source.includes('homepageContent.workflow.tracks.map'))
+  assert.ok(source.includes('homepageContent.start.commands.map'))
+  assert.ok(source.includes('homepageContent.start.cta'))
 })
