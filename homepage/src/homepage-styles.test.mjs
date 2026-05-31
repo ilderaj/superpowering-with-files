@@ -4,40 +4,32 @@ import { readFileSync } from 'node:fs'
 
 const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8')
 
-test('uses the Claude DesignMD warm canvas with a restrained coral accent', () => {
+test('keeps the draft-inspired warm product palette and elevated surfaces', () => {
   assert.ok(css.includes('color-scheme: light'))
-  assert.ok(css.includes('--canvas: oklch(0.985 0.008 90)'))
-  assert.ok(css.includes('--surface-card: oklch(0.94 0.018 82)'))
-  assert.ok(css.includes('--surface-dark: oklch(0.18 0.012 76)'))
-  assert.ok(css.includes('--accent: oklch(0.62 0.12 35)'))
+  assert.ok(css.includes('--accent: #ff5f3d'))
+  assert.ok(css.includes('--paper: #fffaf2'))
+  assert.ok(css.includes('--card: rgba(255, 255, 255, 0.82)'))
+  assert.ok(css.includes('--shadow: 0 24px 70px rgba(17, 24, 39, 0.12)'))
 })
 
-test('defines the key Claude product-surface layout hooks used by App.tsx', () => {
-  assert.ok(css.includes('.hero-equation'))
-  assert.ok(css.includes('.routing-grid'))
-  assert.ok(css.includes('.repo-proof-list'))
-  assert.ok(css.includes('.hero-button--primary'))
-  assert.ok(css.includes('.section-heading'))
-  assert.ok(css.includes('.topbar-links'))
-  assert.ok(css.includes('.product-surface'))
+test('defines the key layout hooks used by the refactored homepage', () => {
+  assert.ok(css.includes('.nav'))
+  assert.ok(css.includes('.hero-grid'))
+  assert.ok(css.includes('.proof-row'))
+  assert.ok(css.includes('.product-card'))
+  assert.ok(css.includes('.terminal'))
+  assert.ok(css.includes('.route-card'))
+  assert.ok(css.includes('.problem-grid'))
+  assert.ok(css.includes('.system-grid'))
+  assert.ok(css.includes('.split'))
+  assert.ok(css.includes('.install-card'))
+  assert.ok(css.includes('.cta'))
 })
 
-test('includes reduced-motion handling and responsive single-column collapse', () => {
-  assert.ok(css.includes('@media (prefers-reduced-motion: reduce)'))
-  assert.ok(css.includes('scroll-behavior: auto'))
-  assert.ok(css.includes('@media (max-width: 900px)'))
+test('includes responsive collapse and sticky navigation behavior from the draft', () => {
+  assert.ok(css.includes('position: sticky'))
+  assert.ok(css.includes('@media (max-width: 920px)'))
+  assert.ok(css.includes('@media (max-width: 620px)'))
   assert.ok(css.includes('grid-template-columns: 1fr'))
-  assert.ok(css.includes('.hero-equation'))
-})
-
-test('makes the narrow-screen topbar link behavior explicit', () => {
-  assert.match(css, /@media \(max-width: 640px\)[\s\S]*\.topbar-links \{[\s\S]*flex-wrap: wrap;[\s\S]*justify-content: flex-start;/)
-})
-
-test('removes BMW M and pure black or white color remnants', () => {
-  assert.equal(css.includes('--m-blue'), false)
-  assert.equal(css.includes('--m-red'), false)
-  assert.equal(css.includes('#000000'), false)
-  assert.equal(css.includes('#ffffff'), false)
-  assert.equal(css.includes('color-scheme: dark'), false)
+  assert.ok(css.includes('.nav-links { display: none; }'))
 })

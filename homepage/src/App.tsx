@@ -3,137 +3,235 @@ import { homepageContent, homepageSectionOrder } from './homepage-content.mjs';
 export default function App() {
   const sectionContent = {
     hero: (
-      <section key="hero" className="hero" aria-labelledby={homepageContent.hero.headingId}>
-        <div className="hero-layout">
-          <div className="hero-copy">
-            <p className="kicker">{homepageContent.hero.kicker}</p>
+      <header key="hero" className="hero shell" aria-labelledby={homepageContent.hero.headingId}>
+        <div className="hero-grid">
+          <div>
+            <div className="eyebrow">
+              <span className="pulse" aria-hidden="true"></span>
+              {homepageContent.hero.eyebrow}
+            </div>
             <h1 id={homepageContent.hero.headingId}>{homepageContent.hero.headline}</h1>
-            <p className="lede">{homepageContent.hero.lede}</p>
-
+            <p className="hero-copy">{homepageContent.hero.lede}</p>
             <div className="hero-actions" aria-label="Primary actions">
-              {homepageContent.hero.actions.map((action, index) => (
+              {homepageContent.hero.actions.map((action) => (
                 <a
                   key={action.label}
-                  className={index === 0 ? 'hero-button hero-button--primary' : 'hero-button'}
+                  className={`button ${action.variant === 'primary' ? 'primary' : 'secondary'}`}
                   href={action.href}
                 >
                   {action.label}
                 </a>
               ))}
             </div>
+            <div className="proof-row" aria-label="Project highlights">
+              {homepageContent.hero.proofPoints.map((point) => (
+                <div className="proof" key={point.label}>
+                  <strong>{point.value}</strong>
+                  <span>{point.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <aside className="hero-proof product-surface" aria-label="Hybrid workflow proof">
-            <div className="hero-equation">
-              <article className="equation-card">
-                <span className="equation-label">{homepageContent.proof.breadth.label}</span>
-                <h2>{homepageContent.proof.breadth.title}</h2>
-                <p>{homepageContent.proof.breadth.detail}</p>
-              </article>
+          <aside className="product-card" aria-label="Harness preview">
+            <div className="terminal">
+              <div className="terminal-top">
+                <div className="dots" aria-hidden="true">
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                </div>
+                <span>{homepageContent.hero.terminal.title}</span>
+              </div>
+              <div className="terminal-body">
+                {homepageContent.hero.terminal.lines.map((line, index) => {
+                  if (line.tone === 'break') {
+                    return <br key={`break-${index}`} />;
+                  }
 
-              <span className="equation-operator" aria-hidden="true">+</span>
+                  if (line.tone === 'mix') {
+                    return (
+                      <div key={`mix-${index}`}>
+                        {(line.segments ?? []).map((segment) => (
+                          <span key={`${index}-${segment.text}`} className={segment.tone}>
+                            {segment.text}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  }
 
-              <article className="equation-card">
-                <span className="equation-label">{homepageContent.proof.depth.label}</span>
-                <h2>{homepageContent.proof.depth.title}</h2>
-                <p>{homepageContent.proof.depth.detail}</p>
-              </article>
+                  return (
+                    <div key={`${line.text}-${index}`} className={line.tone}>
+                      {line.prefix ? <span className="cmd">{line.prefix}</span> : null}
+                      {line.prefix ? ' ' : null}
+                      {line.text}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <article className="equation-result">
-              <span className="equation-label equation-label--accent">{homepageContent.proof.hybrid.label}</span>
-              <h2>{homepageContent.proof.hybrid.title}</h2>
-              <p>{homepageContent.proof.hybrid.detail}</p>
-            </article>
+            <div className="route-card">
+              <div className="route-title">
+                {homepageContent.hero.route.title}
+                <span className="pill">{homepageContent.hero.route.badge}</span>
+              </div>
+              <div className="flow">
+                {homepageContent.hero.route.steps.map((step) => (
+                  <div className="flow-step" key={step.number}>
+                    <span className="num">{step.number}</span>
+                    <span>
+                      <strong>{step.title}</strong>
+                      {step.body}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </aside>
         </div>
-      </section>
+      </header>
     ),
-    comparison: (
-      <section key="comparison" className="comparison" aria-labelledby="comparison-title">
-        <div className="section-shell">
-          <h2 id="comparison-title" className="sr-only">Hybrid comparison</h2>
-          <div className="comparison-strip">
-            {homepageContent.comparison.map((item) => (
-              <article className="comparison-item" key={item.label}>
-                <span>{item.label}</span>
-                <h3>{item.title}</h3>
-                {item.detail ? <p>{item.detail}</p> : null}
+    problem: (
+      <section key="problem" id={homepageContent.problem.id} className="shell" aria-labelledby="problem-title">
+        <div className="section-head">
+          <span className="kicker">{homepageContent.problem.kicker}</span>
+          <h2 id="problem-title">{homepageContent.problem.title}</h2>
+          <p>{homepageContent.problem.body}</p>
+        </div>
+        <div className="problem-grid">
+          <div className="quote-card">
+            <h3>{homepageContent.problem.quoteTitle}</h3>
+            <p>{homepageContent.problem.quoteBody}</p>
+          </div>
+          <div className="pain-list">
+            {homepageContent.problem.pains.map((pain) => (
+              <article className="pain" key={pain.title}>
+                <div className="icon">{pain.icon}</div>
+                <h3>{pain.title}</h3>
+                <p>{pain.body}</p>
               </article>
             ))}
           </div>
         </div>
       </section>
     ),
-    routing: (
-      <section key="routing" className="routing" aria-labelledby={homepageContent.routing.headingId}>
-        <div className="section-shell routing-grid">
-          <div className="section-heading">
-            <p className="section-eyebrow">{homepageContent.routing.eyebrow}</p>
-            <h2 id={homepageContent.routing.headingId}>{homepageContent.routing.title}</h2>
+    system: (
+      <section key="system" id={homepageContent.system.id} className="shell" aria-labelledby="system-title">
+        <div className="section-head">
+          <span className="kicker">{homepageContent.system.kicker}</span>
+          <h2 id="system-title">{homepageContent.system.title}</h2>
+          <p>{homepageContent.system.body}</p>
+        </div>
+        <div className="system">
+          <div className="system-grid">
+            {homepageContent.system.modules.map((module) => (
+              <article className="module" key={module.title}>
+                <small>{module.label}</small>
+                <h3>{module.title}</h3>
+                <p>{module.body}</p>
+              </article>
+            ))}
           </div>
-
-          <div className="routing-flow">
-            <p className="section-body routing-body">{homepageContent.routing.body}</p>
-            <ul className="routing-list">
-              {homepageContent.routing.bullets.map((item) => (
-                <li key={item}>{item}</li>
+          <div className="lanes" aria-label="Workflow lanes">
+            {homepageContent.system.lanes.map((lane) => (
+              <div className="lane" key={lane}>
+                {lane}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    ),
+    workflow: (
+      <section key="workflow" id={homepageContent.workflow.id} className="shell" aria-labelledby="workflow-title">
+        <div className="section-head">
+          <span className="kicker">{homepageContent.workflow.kicker}</span>
+          <h2 id="workflow-title">{homepageContent.workflow.title}</h2>
+        </div>
+        <div className="split">
+          {homepageContent.workflow.tracks.map((track) => (
+            <article className="feature-card" key={track.title}>
+              <h3>{track.title}</h3>
+              <p>{track.body}</p>
+              <div className="matrix">
+                {track.rows.map((row, rowIndex) => (
+                  <div className="matrix-row" key={`${track.title}-${rowIndex}`}>
+                    {row.map((cell) => (
+                      <div className="matrix-cell" key={cell.title}>
+                        <strong>{cell.title}</strong>
+                        {cell.body}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    ),
+    start: (
+      <section key="start" id={homepageContent.start.id} className="shell" aria-labelledby="start-title">
+        <div className="split">
+          <div className="section-head">
+            <span className="kicker">{homepageContent.start.kicker}</span>
+            <h2 id="start-title">{homepageContent.start.title}</h2>
+            <p>{homepageContent.start.body}</p>
+          </div>
+          <div className="install-card">
+            <h3>{homepageContent.start.quickStartTitle}</h3>
+            <p>{homepageContent.start.quickStartBody}</p>
+            <div className="code-block">
+              {homepageContent.start.commands.map((command) => (
+                <div key={command}>{command}</div>
               ))}
-            </ul>
+            </div>
           </div>
         </div>
-      </section>
-    ),
-    repoProof: (
-      <section key="repoProof" className="repo-proof" aria-labelledby={homepageContent.repoProof.headingId}>
-        <div className="section-shell repo-proof-grid">
-          <div className="section-heading">
-            <p className="section-eyebrow">{homepageContent.repoProof.eyebrow}</p>
-            <h2 id={homepageContent.repoProof.headingId}>{homepageContent.repoProof.title}</h2>
-            <p className="section-body">{homepageContent.repoProof.body}</p>
+        <div className="cta">
+          <div>
+            <h2>{homepageContent.start.cta.title}</h2>
+            <p>{homepageContent.start.cta.body}</p>
           </div>
-
-          <div className="repo-proof-list" role="list">
-            {homepageContent.repoProof.items.map((item) => (
-              <article className="repo-proof-item" key={item.label} role="listitem">
-                <span>{item.label}</span>
-                <p>{item.detail}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-    ),
-    closing: (
-      <section key="closing" className="closing" aria-labelledby={homepageContent.closing.headingId}>
-        <div className="section-shell closing-layout">
-          <h2 id={homepageContent.closing.headingId}>{homepageContent.closing.title}</h2>
-          <div className="link-row" aria-label="Project links">
-            {homepageContent.closing.links.map((link) => (
-              <a key={link.label} href={link.href}>{link.label}</a>
-            ))}
-          </div>
+          <a className="button" href={homepageContent.start.cta.action.href}>
+            {homepageContent.start.cta.action.label}
+          </a>
         </div>
       </section>
     )
   };
 
   return (
-    <main className="page-shell">
-      <header className="topbar" aria-label="Primary navigation">
-        <a className="brand" href={homepageContent.topbar.brandHref} aria-label="Superpowering with Files home">
-          <span className="brand-mark" aria-hidden="true">S</span>
+    <>
+      <nav className="nav shell" aria-label="Main navigation">
+        <a className="brand" href={homepageContent.topbar.brandHref} aria-label="Superpowering With Files home">
+          <span className="mark">SWF</span>
           <span>{homepageContent.topbar.brandLabel}</span>
         </a>
-
-        <nav className="topbar-links" aria-label="Topbar links">
+        <div className="nav-links">
           {homepageContent.topbar.links.map((link) => (
-            <a key={link.label} href={link.href}>{link.label}</a>
+            <a key={link.label} href={link.href}>
+              {link.label}
+            </a>
           ))}
-        </nav>
-      </header>
+        </div>
+        <a className="button primary" href={homepageContent.topbar.cta.href}>
+          {homepageContent.topbar.cta.label}
+        </a>
+      </nav>
 
-      {homepageSectionOrder.map((sectionKey) => sectionContent[sectionKey as keyof typeof sectionContent])}
-    </main>
+      <main id="top">
+        {homepageSectionOrder.map((sectionKey) => sectionContent[sectionKey as keyof typeof sectionContent])}
+      </main>
+
+      <footer className="shell">
+        <div className="footer-row">
+          <span>{homepageContent.footer.left}</span>
+          <span>{homepageContent.footer.right}</span>
+        </div>
+      </footer>
+    </>
   );
 }

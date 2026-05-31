@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { homepageContent, homepageSectionOrder } from './homepage-content.mjs';
 
 test('defines the approved five-section homepage flow with matching content keys', () => {
-  const sectionKeys = ['hero', 'comparison', 'routing', 'repoProof', 'closing'];
+  const sectionKeys = ['hero', 'problem', 'system', 'workflow', 'start'];
 
   assert.deepEqual(homepageSectionOrder, sectionKeys);
 
@@ -12,51 +12,33 @@ test('defines the approved five-section homepage flow with matching content keys
   }
 });
 
-test('locks the Claude DesignMD hero claim and keeps exit paths aligned', () => {
-  const githubUrl = 'https://github.com/ilderaj/superpowering-with-files';
-  const docsUrl = 'https://github.com/ilderaj/superpowering-with-files/blob/main/docs/workflows.md';
+test('locks the governance-first hero messaging and navigation routes', () => {
+  assert.equal(homepageContent.topbar.brandLabel, 'Superpowering With Files');
+  assert.deepEqual(homepageContent.topbar.links.map(({ label }) => label), ['Problem', 'System', 'Workflow', 'Start']);
+  assert.deepEqual(homepageContent.topbar.links.map(({ href }) => href), ['#problem', '#system', '#workflow', '#start']);
+  assert.equal(homepageContent.topbar.cta.label, 'Install harness');
+  assert.equal(homepageContent.topbar.cta.href, '#start');
 
-  assert.equal(homepageContent.hero.kicker, 'Claude Code workflow kit');
-  assert.equal(homepageContent.hero.headline, 'Give agents a memory they can open.');
+  assert.equal(homepageContent.hero.eyebrow, 'Governance harness for local coding agents');
+  assert.equal(homepageContent.hero.headline, 'One control layer for every coding agent you actually use.');
   assert.equal(
     homepageContent.hero.lede,
-    'Superpowering with Files turns deep reasoning into planning files, so local coding agents can pause, resume, and hand off without losing the trail.'
+    'Superpowering With Files turns a shared workflow policy into native instructions, projected skills, optional hooks, and durable task state across Codex, GitHub Copilot, Cursor, and Claude Code.'
   );
-  assert.deepEqual(
-    homepageContent.hero.actions.map(({ label }) => label),
-    ['Star the repo', 'Read the workflow']
-  );
-  assert.deepEqual(
-    homepageContent.hero.actions.map(({ href }) => href),
-    [githubUrl, docsUrl]
-  );
-  assert.deepEqual(homepageContent.topbar.links, [
-    { label: 'Workflow', href: docsUrl },
-    { label: 'GitHub', href: githubUrl }
-  ]);
-  assert.deepEqual(homepageContent.closing.links, [
-    { label: 'Star on GitHub', href: githubUrl },
-    { label: 'Study the workflow', href: docsUrl }
-  ]);
-  assert.deepEqual(
-    [...new Set(homepageContent.topbar.links.concat(homepageContent.hero.actions, homepageContent.closing.links).map(({ href }) => href))],
-    [docsUrl, githubUrl]
-  );
+  assert.deepEqual(homepageContent.hero.actions.map(({ label }) => label), ['Start with the CLI', 'See how it works']);
+  assert.deepEqual(homepageContent.hero.proofPoints.map(({ value }) => value), ['4', '3', '0', '1']);
 });
 
-test('keeps the product argument concise and specific to the hybrid workflow', () => {
-  assert.deepEqual(
-    homepageContent.comparison.map(({ label }) => label),
-    ['Reason', 'Record', 'Resume']
-  );
-  assert.deepEqual(
-    homepageContent.comparison.map(({ title }) => title),
-    [
-      'Use Superpowers when the task earns depth.',
-      'Write decisions into files the repo can carry.',
-      'Let any local agent pick up the thread.'
-    ]
-  );
-  assert.equal(homepageContent.proof.hybrid.title, 'Depth becomes durable state.');
-  assert.equal(homepageContent.closing.title, 'If your agents lose context, give them files.');
+test('captures the modern product-page story from problem to start', () => {
+  assert.equal(homepageContent.problem.title, 'Agent workflows break when every tool invents its own memory.');
+  assert.equal(homepageContent.system.title, 'A small operating system for agentic coding work.');
+  assert.equal(homepageContent.workflow.title, 'Light when work is simple. Durable when work gets real.');
+  assert.equal(homepageContent.start.title, 'Install once. Keep every local agent on the same rails.');
+  assert.equal(homepageContent.start.cta.title, 'Bring governance to the agents already in your editor.');
+  assert.deepEqual(homepageContent.start.commands, [
+    './scripts/harness install --scope=workspace --targets=all --projection=link',
+    './scripts/harness sync',
+    './scripts/harness doctor',
+    'npm run verify'
+  ]);
 });
