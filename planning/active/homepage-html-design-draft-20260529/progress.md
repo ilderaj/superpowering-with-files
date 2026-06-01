@@ -35,9 +35,10 @@
 - 已通过 `npm --prefix homepage test` 与 `npm --prefix homepage run typecheck`。
 - 浏览器验证结果：favicon 链接在 DOM 中为 `/superpowering-with-files/favicon.svg`，请求返回 `200` 且 content-type 为 `image/svg+xml`；hero、topbar、footer 的 GitHub 链接均指向仓库主页并使用 `_blank` 打开；移动端 `.nav-links` 仍正确隐藏，CTA 双按钮布局正常。
 
-## Session: 2026-05-31 11:34:00 UTC+8
+## Session: 2026-06-01 09:57:42 UTC+8
 
-- 已按用户确认的方向新增 3 个 favicon 候选：`favicon-corner-spark.svg`、`favicon-folded-file.svg`、`favicon-stacked-files.svg`。
-- 用户最终选择 `favicon-stacked-files.svg` 作为正式方案，已将其内容覆盖到 `homepage/public/favicon.svg`。
-- 已重新通过 `npm --prefix homepage test` 与 `npm --prefix homepage run typecheck`。
-- 浏览器验证结果：favicon 仍由 `/superpowering-with-files/favicon.svg` 提供，且 SVG 内容已包含 stacked files 方案对应的前后双文件轮廓与 spark 路径。
+- 用户选择 stacked files 细化候选中的 `favicon-stacked-files-layered.svg` 作为正式 favicon。
+- 已将 layered 方案内容覆盖到 `homepage/public/favicon.svg`，保留其他候选文件用于后续回退或比较。
+- 已通过 `npm --prefix homepage test` 与 `npm --prefix homepage run typecheck`。
+- 浏览器验证结果：`/superpowering-with-files/favicon.svg` 返回的 SVG 已包含 layered 方案的三层文件轮廓与 spark 路径；控制台无错误，预览服务无错误。
+

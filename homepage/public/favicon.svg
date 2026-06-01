@@ -10,7 +10,8 @@
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="18" fill="url(#bg)" />
-  <path d="M19 22h16l6 6v18H19V22Zm14 2v6h6" fill="#dbe4f0" opacity="0.65" />
-  <path d="M24 17h16l6 6v20H24V17Zm14 2v6h6" fill="#fffaf2" opacity="0.97" />
-  <path d="M46 14l1.6 4.5 4.5 1.6-4.5 1.6L46 26l-1.6-4.5-4.5-1.6 4.5-1.6L46 14Z" fill="url(#spark)" />
+  <path d="M17 24h15l6 6v16H17V24Zm13 2v6h6" fill="#c8d3e0" opacity="0.48" />
+  <path d="M22 20h15l6 6v18H22V20Zm13 2v6h6" fill="#e7edf4" opacity="0.72" />
+  <path d="M27 16h15l6 6v21H27V16Zm13 2v6h6" fill="#fffaf2" opacity="0.98" />
+  <path d="M47 14l1.5 4.2 4.2 1.5-4.2 1.5L47 25l-1.5-4.2-4.2-1.5 4.2-1.5L47 14Z" fill="url(#spark)" />
 </svg>
