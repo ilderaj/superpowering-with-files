@@ -1,5 +1,7 @@
 export const homepageSectionOrder = ['hero', 'problem', 'system', 'workflow', 'start'];
 
+const githubUrl = 'https://github.com/ilderaj/superpowering-with-files';
+
 export const homepageContent = {
   topbar: {
     brandLabel: 'Superpowering With Files',
@@ -13,6 +15,10 @@ export const homepageContent = {
     cta: {
       label: 'Install harness',
       href: '#start'
+    },
+    github: {
+      label: 'GitHub',
+      href: githubUrl
     }
   },
   hero: {
@@ -23,7 +29,8 @@ export const homepageContent = {
       'Superpowering With Files turns a shared workflow policy into native instructions, projected skills, optional hooks, and durable task state across Codex, GitHub Copilot, Cursor, and Claude Code.',
     actions: [
       { label: 'Start with the CLI', href: '#start', variant: 'primary' },
-      { label: 'See how it works', href: '#system', variant: 'secondary' }
+      { label: 'See how it works', href: '#system', variant: 'secondary' },
+      { label: 'Star on GitHub', href: githubUrl, variant: 'secondary', external: true }
     ],
     proofPoints: [
       { value: '4', label: 'agent surfaces governed from one policy' },
@@ -42,14 +49,17 @@ export const homepageContent = {
         { tone: 'hot', text: '✓ CLAUDE.md for Claude Code' },
         { tone: 'break' },
         { tone: 'cmd', prefix: '$', text: './scripts/harness doctor --check-only' },
-        { tone: 'mix', segments: [
-          { tone: 'blue', text: 'policy' },
-          { tone: 'dim', text: ' synced · ' },
-          { tone: 'blue', text: 'skills' },
-          { tone: 'dim', text: ' projected · ' },
-          { tone: 'blue', text: 'hooks' },
-          { tone: 'dim', text: ' opt-in' }
-        ] }
+        {
+          tone: 'mix',
+          segments: [
+            { tone: 'blue', text: 'policy' },
+            { tone: 'dim', text: ' synced · ' },
+            { tone: 'blue', text: 'skills' },
+            { tone: 'dim', text: ' projected · ' },
+            { tone: 'blue', text: 'hooks' },
+            { tone: 'dim', text: ' opt-in' }
+          ]
+        }
       ]
     },
     route: {
@@ -190,11 +200,16 @@ export const homepageContent = {
     cta: {
       title: 'Bring governance to the agents already in your editor.',
       body: 'Shared policy, native files, durable planning, optional hooks, and a safer path from intent to verified finish.',
-      action: { label: 'Review the draft', href: '#top' }
+      action: { label: 'Review the draft', href: '#top' },
+      secondaryAction: { label: 'Open GitHub and star the repo', href: githubUrl }
     }
   },
   footer: {
     left: 'Homepage concept evolved into the live homepage.',
-    right: 'Modern product page · governed workflow harness'
+    right: 'Modern product page · governed workflow harness',
+    github: {
+      label: 'Star on GitHub',
+      href: githubUrl
+    }
   }
 };

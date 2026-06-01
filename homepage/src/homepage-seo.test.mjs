@@ -34,9 +34,27 @@ test('defines Open Graph and Twitter metadata for repository sharing', () => {
   }
 })
 
-test('points social sharing metadata at a published image asset', () => {
+test('links a local favicon asset from the homepage shell', () => {
+  assert.match(compactHtml, /<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg" \/>/)
+})
+
+test('points social sharing metadata at a published image asset and favicon files', () => {
   const publicImagePath = new URL('../public/og-image.png', import.meta.url)
+  const faviconPath = new URL('../public/favicon.svg', import.meta.url)
+  const faviconCornerSparkPath = new URL('../public/favicon-corner-spark.svg', import.meta.url)
+  const faviconFoldedFilePath = new URL('../public/favicon-folded-file.svg', import.meta.url)
+  const faviconStackedFilesPath = new URL('../public/favicon-stacked-files.svg', import.meta.url)
+  const faviconStackedFilesCompactPath = new URL('../public/favicon-stacked-files-compact.svg', import.meta.url)
+  const faviconStackedFilesFoldedPath = new URL('../public/favicon-stacked-files-folded.svg', import.meta.url)
+  const faviconStackedFilesLayeredPath = new URL('../public/favicon-stacked-files-layered.svg', import.meta.url)
 
   assert.equal(existsSync(publicImagePath), true)
+  assert.equal(existsSync(faviconPath), true)
+  assert.equal(existsSync(faviconCornerSparkPath), true)
+  assert.equal(existsSync(faviconFoldedFilePath), true)
+  assert.equal(existsSync(faviconStackedFilesPath), true)
+  assert.equal(existsSync(faviconStackedFilesCompactPath), true)
+  assert.equal(existsSync(faviconStackedFilesFoldedPath), true)
+  assert.equal(existsSync(faviconStackedFilesLayeredPath), true)
 })
 

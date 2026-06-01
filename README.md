@@ -63,6 +63,13 @@ Notes:
 - Use `--scope=both` when you want a shared user-global baseline plus repo-local entry files.
 - User-global and `--scope=both` installs default to the lean `minimal-global` skill profile; use `--skills-profile=full` only when the target workspace intentionally needs the complete skill surface.
 
+### Packed Plugins
+
+Harness also ships packed plugin artifacts for Codex, Claude Code, Cursor, and GitHub Copilot.
+
+- Download and install guide: [Harness packed plugin installation](docs/install/plugin-packages.md)
+- Release asset inventory: [Harness plugin release artifacts](docs/release-plugin-artifacts.md)
+
 ## Workflow Lanes
 
 Harness exposes operator-facing lanes:
@@ -231,6 +238,7 @@ More detail:
 - [Office templates](docs/office-templates.md)
 - [Release](docs/release.md)
 - [Platform support](docs/install/platform-support.md)
+- [Harness packed plugin installation](docs/install/plugin-packages.md)
 - [Codex installation](docs/install/codex.md)
 - [GitHub Copilot installation](docs/install/copilot.md)
 - [Cursor installation](docs/install/cursor.md)

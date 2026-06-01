@@ -108,3 +108,11 @@ Status: complete
 - 按用户要求将 worktree 分支 fast-forward merge 到本地 `dev`。
 - 在合并后的 `dev` 上运行 plugin-kit 测试。
 - 推送 `origin/dev`，远端已更新到本地 `dev`。
+
+## Plan Record: 2026-05-31 16:33:00 UTC+8
+
+### Phase 11：Packed plugin install docs
+Status: complete
+- 新增一个面向最终用户的 packed plugin 下载与安装说明页。
+- 在 README 首页增加入口，让用户能从首页跳转到该文档。
+- 为文档入口和四个 IDE 的安装覆盖补一个轻量契约测试。

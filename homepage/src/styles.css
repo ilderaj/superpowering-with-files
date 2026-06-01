@@ -665,6 +665,24 @@ h2 {
   color: var(--ink);
 }
 
+ .cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cta-actions .button.secondary {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: white;
+}
+
+.cta-actions .button.secondary:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: white;
+}
+
 footer {
   padding: 26px 0 40px;
   color: #667085;
@@ -678,6 +696,22 @@ footer {
   flex-wrap: wrap;
   border-top: 1px solid var(--line);
   padding-top: 22px;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.footer-links a:hover {
+  color: var(--accent-dark);
 }
 
 @media (max-width: 920px) {

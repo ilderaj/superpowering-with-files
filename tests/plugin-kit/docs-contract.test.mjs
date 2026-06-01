@@ -20,3 +20,21 @@ test('release artifact docs list all packed plugin assets and verification gates
   assert.match(docs, /SHA256SUMS/);
   assert.match(docs, /npm run plugin:smoke/);
 });
+
+test('packed plugin install docs cover all supported IDE targets and README links to them', async () => {
+  const [docs, readme] = await Promise.all([
+    readFile('docs/install/plugin-packages.md', 'utf8'),
+    readFile('README.md', 'utf8')
+  ]);
+
+  assert.match(readme, /\[Harness packed plugin installation\]\(docs\/install\/plugin-packages\.md\)/);
+  assert.match(docs, /github\.com\/ilderaj\/superpowering-with-files\/releases\/latest/);
+  assert.match(docs, /harness-codex-plugin-<version>\.tgz/);
+  assert.match(docs, /harness-claude-code-plugin-<version>\.tgz/);
+  assert.match(docs, /harness-cursor-plugin-<version>\.tgz/);
+  assert.match(docs, /harness-copilot-plugin-<version>\.tgz/);
+  assert.match(docs, /codex plugin marketplace add/);
+  assert.match(docs, /claude-code --plugin-dir/);
+  assert.match(docs, /Cursor Agent supports loading a local plugin directory with `--plugin-dir`/);
+  assert.match(docs, /copilot --plugin-dir/);
+});

@@ -26,3 +26,18 @@
 - 已启动预览服务 `homepage` 并完成浏览器验证：页面结构正确、控制台无报错、服务日志无错误、桌面与移动端均可渲染，移动端 `.nav-links` 已折叠为 `display: none`。
 - 已完成锚点交互验证，点击 `#system` 链接后页面内容正常可见。
 - 验证证据：预览快照确认各 section 文案与结构存在；样式检查显示 `.nav` 为 `position: sticky`、`top: 16px`、背景模糊生效；已抓取桌面与移动端截图用于交付说明。
+
+## Session: 2026-05-31 09:25:02 UTC+8
+
+- 已新增 `homepage/public/favicon.svg`，采用深色圆角底 + coral spark + 字母 `P` 的 SVG favicon，并在 `homepage/index.html` 中接入 `<link rel="icon">`。
+- 已通过 TDD 先补 favicon 与 GitHub/Star 引导相关测试，再更新 `homepage/src/homepage-content.mjs`、`homepage/src/App.tsx`、`homepage/src/styles.css`。
+- 首页现在新增三层 GitHub 引导：顶部导航 GitHub 链接、hero 区 `Star on GitHub` 按钮、底部 CTA 区 `Open GitHub and star the repo` 按钮，footer 也补充了 `Star on GitHub` 链接。
+- 已通过 `npm --prefix homepage test` 与 `npm --prefix homepage run typecheck`。
+- 浏览器验证结果：favicon 链接在 DOM 中为 `/superpowering-with-files/favicon.svg`，请求返回 `200` 且 content-type 为 `image/svg+xml`；hero、topbar、footer 的 GitHub 链接均指向仓库主页并使用 `_blank` 打开；移动端 `.nav-links` 仍正确隐藏，CTA 双按钮布局正常。
+
+## Session: 2026-05-31 11:34:00 UTC+8
+
+- 已按用户确认的方向新增 3 个 favicon 候选：`favicon-corner-spark.svg`、`favicon-folded-file.svg`、`favicon-stacked-files.svg`。
+- 用户最终选择 `favicon-stacked-files.svg` 作为正式方案，已将其内容覆盖到 `homepage/public/favicon.svg`。
+- 已重新通过 `npm --prefix homepage test` 与 `npm --prefix homepage run typecheck`。
+- 浏览器验证结果：favicon 仍由 `/superpowering-with-files/favicon.svg` 提供，且 SVG 内容已包含 stacked files 方案对应的前后双文件轮廓与 spark 路径。

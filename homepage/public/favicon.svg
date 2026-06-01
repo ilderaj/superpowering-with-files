@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Superpowering With Files favicon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff8a63" />
+      <stop offset="100%" stop-color="#ff5f3d" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#bg)" />
+  <path d="M19 22h16l6 6v18H19V22Zm14 2v6h6" fill="#dbe4f0" opacity="0.65" />
+  <path d="M24 17h16l6 6v20H24V17Zm14 2v6h6" fill="#fffaf2" opacity="0.97" />
+  <path d="M46 14l1.6 4.5 4.5 1.6-4.5 1.6L46 26l-1.6-4.5-4.5-1.6 4.5-1.6L46 14Z" fill="url(#spark)" />
+</svg>

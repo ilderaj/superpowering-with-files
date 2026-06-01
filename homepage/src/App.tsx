@@ -18,6 +18,8 @@ export default function App() {
                   key={action.label}
                   className={`button ${action.variant === 'primary' ? 'primary' : 'secondary'}`}
                   href={action.href}
+                  target={action.external ? '_blank' : undefined}
+                  rel={action.external ? 'noreferrer' : undefined}
                 >
                   {action.label}
                 </a>
@@ -195,9 +197,19 @@ export default function App() {
             <h2>{homepageContent.start.cta.title}</h2>
             <p>{homepageContent.start.cta.body}</p>
           </div>
-          <a className="button" href={homepageContent.start.cta.action.href}>
-            {homepageContent.start.cta.action.label}
-          </a>
+          <div className="cta-actions">
+            <a className="button" href={homepageContent.start.cta.action.href}>
+              {homepageContent.start.cta.action.label}
+            </a>
+            <a
+              className="button secondary"
+              href={homepageContent.start.cta.secondaryAction.href}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {homepageContent.start.cta.secondaryAction.label}
+            </a>
+          </div>
         </div>
       </section>
     )
@@ -216,6 +228,9 @@ export default function App() {
               {link.label}
             </a>
           ))}
+          <a href={homepageContent.topbar.github.href} target="_blank" rel="noreferrer">
+            {homepageContent.topbar.github.label}
+          </a>
         </div>
         <a className="button primary" href={homepageContent.topbar.cta.href}>
           {homepageContent.topbar.cta.label}
@@ -229,7 +244,12 @@ export default function App() {
       <footer className="shell">
         <div className="footer-row">
           <span>{homepageContent.footer.left}</span>
-          <span>{homepageContent.footer.right}</span>
+          <div className="footer-links">
+            <span>{homepageContent.footer.right}</span>
+            <a href={homepageContent.footer.github.href} target="_blank" rel="noreferrer">
+              {homepageContent.footer.github.label}
+            </a>
+          </div>
         </div>
       </footer>
     </>

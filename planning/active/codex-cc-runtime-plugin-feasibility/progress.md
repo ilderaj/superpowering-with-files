@@ -166,3 +166,11 @@
 - **Local state handling:** Main checkout had unrelated dirty homepage work and older untracked runtime-plugin planning files. Stashed only the untracked files that would block the fast-forward under stash message `pre-runtime-plugin-dev-merge-blocking-untracked`; homepage edits remained untouched.
 - **Verification:** `node --test tests/plugin-kit/*.test.mjs` passed after the fast-forward: 19 tests, 0 failures.
 - **Push result:** `git push origin dev` succeeded and moved `origin/dev` to `07e522b`. GitHub reported the branch rule was bypassed because changes normally must be made through a pull request.
+
+## Session: 2026-05-31 16:33:00 UTC+8
+
+- **Status:** active
+- **Goal:** Add end-user docs for downloading and installing the packed IDE plugin artifacts from README.
+- **Actions:** Added `docs/install/plugin-packages.md` as the dedicated packed-plugin guide; linked it from the README quick-start area and docs index; linked `docs/release-plugin-artifacts.md` back to the new install page; added a docs-contract test so the README link and per-IDE install coverage stay enforced.
+- **Doc scope:** The new guide covers release download, local `npm run release:pack`, unpacking `.tgz` assets, Codex local marketplace registration, Claude Code `--plugin-dir`, Cursor Agent `--plugin-dir`, GitHub Copilot `--plugin-dir`, and checksum verification.
+- **Verification:** `node --test tests/plugin-kit/docs-contract.test.mjs` passed: 3 tests, 0 failures.

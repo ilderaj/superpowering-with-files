@@ -2,6 +2,8 @@
 
 Release `1.0.6` ships a runtime package and packed plugin packages for all supported IDE targets.
 
+For end-user download and IDE-specific install steps, see [Harness Packed Plugin Installation](install/plugin-packages.md).
+
 ## Artifacts
 
 - `harness-runtime-1.0.6.tgz`

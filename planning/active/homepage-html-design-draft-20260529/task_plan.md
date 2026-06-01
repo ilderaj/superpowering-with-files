@@ -18,6 +18,9 @@ Close Reason:
 4. 运行 homepage 子应用测试与类型检查，修正失败项。 ✅
 5. 启动预览并验证页面结构、视觉层次与关键 CTA。 ✅
 6. 将验证结果与后续注意事项写回 planning 文件。 ✅
+7. 为站点增加 favicon，并在入口文件中接入。 ✅
+8. 在首页增加 GitHub/Star 引导按钮与链接。 ✅
+9. 重新完成测试与浏览器验证。 ✅
 
 ## 约束
 
@@ -32,6 +35,7 @@ Close Reason:
 - 主要修改 `homepage/src/homepage-content.mjs`、`homepage/src/App.tsx`、`homepage/src/styles.css`。
 - 需要同步更新结构/内容/样式测试；SEO 测试仅在必要时调整。
 - 使用 homepage 子应用的 Vite 预览进行可视化验证。
+- 增加 `homepage/public/favicon.svg` 静态资源，并在 `homepage/index.html` 中挂载。
 
 ## 初始判断
 

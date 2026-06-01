@@ -258,3 +258,13 @@ plugins/
 - The same review also caught that Codex plugin manifests were omitting `hooks`, which meant Codex would not discover the bundled hook config even after the hook payload was populated.
 - The safe remediation is to treat `harness/core/hooks/planning-with-files/*-hooks.json` as the hook source of truth and transform those platform-native configs into plugin-bundled configs by copying referenced scripts and rewriting only the script paths. Re-synthesizing commands in the packer introduced an immediate regression (`CLAUDE_PLUGIN_ROOT` string interpolation at build time), so template inheritance is the lower-risk design.
 - Regression coverage now asserts three contracts for every built plugin artifact: hook config contains non-empty entries, bundled commands reference `./hooks/task-scoped-hook.sh`, and no built hook config leaks workspace install paths such as `.codex/hooks/...`, `.claude/hooks/...`, `.cursor/hooks/...`, or `.github/hooks/...`.
+
+## Findings Record: 2026-05-31 16:33:00 UTC+8
+
+- README already listed the traditional per-target install docs, but there was no single entry point for the new packed plugin release artifacts. A dedicated install page is the clearest shape because the packed-plugin workflow crosses release, download, unpack, and IDE-specific loading.
+- Current host consumption semantics differ enough that the install guide should be explicit about unpacked-directory workflows:
+  - Codex local validation is marketplace-root based and expects `<root>/.agents/plugins/marketplace.json` plus `<root>/plugins/<plugin-name>`.
+  - Claude Code can load a local plugin directory with `--plugin-dir` and can validate a plugin root with `claude plugin validate`.
+  - Cursor Agent accepts `--plugin-dir` for a local plugin directory.
+  - GitHub Copilot CLI accepts `--plugin-dir` for a local plugin directory, while its managed `plugin install` flow is oriented around marketplaces and repositories.
+- Because the release assets are `.tgz` archives, the end-user docs need to say plainly that most local IDE flows consume an unpacked plugin directory even when the release distribution format is a tarball.

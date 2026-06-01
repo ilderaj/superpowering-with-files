@@ -24,6 +24,8 @@ test('defines the key layout hooks used by the refactored homepage', () => {
   assert.ok(css.includes('.split'))
   assert.ok(css.includes('.install-card'))
   assert.ok(css.includes('.cta'))
+  assert.ok(css.includes('.cta-actions'))
+  assert.ok(css.includes('.footer-links'))
 })
 
 test('includes responsive collapse and sticky navigation behavior from the draft', () => {

@@ -27,6 +27,7 @@ test('defines renderers for every approved homepage section in contract order', 
 test('wires the product-page modules introduced by the HTML draft', () => {
   assert.ok(source.includes("from './homepage-content.mjs'"))
   assert.ok(source.includes('homepageContent.topbar.cta'))
+  assert.ok(source.includes('homepageContent.topbar.github'))
   assert.ok(source.includes('homepageContent.hero.proofPoints.map'))
   assert.ok(source.includes('homepageContent.hero.terminal.lines.map'))
   assert.ok(source.includes('homepageContent.hero.route.steps.map'))
@@ -34,5 +35,6 @@ test('wires the product-page modules introduced by the HTML draft', () => {
   assert.ok(source.includes('homepageContent.system.modules.map'))
   assert.ok(source.includes('homepageContent.workflow.tracks.map'))
   assert.ok(source.includes('homepageContent.start.commands.map'))
-  assert.ok(source.includes('homepageContent.start.cta'))
+  assert.ok(source.includes('homepageContent.start.cta.secondaryAction'))
+  assert.ok(source.includes('homepageContent.footer.github'))
 })
