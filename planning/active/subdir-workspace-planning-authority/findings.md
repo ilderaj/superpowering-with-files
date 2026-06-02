@@ -29,6 +29,9 @@
 | shell hook 的 project root 解析收敛到共享 helper，而不是各脚本各自猜测 `pwd` / git root | 这样 task-scoped hook、session checkpoint、safety guard 才能一起遵守同一条 authority-root 解析链 |
 
 ## Implementation Findings
+- 2026-06-02 23:01:36 UTC+8 续跑核查时，当前 `dev` 已包含 `d89c388 Implement authority-root support for leaf workspaces`，且后续 `163ec2f Use source-root for packed runtime and plugin hooks` 未回退这条能力线。
+- 按 companion plan 重新抽样运行 authority-root / root-policy / workspace-link、planning-critical CLI、hooks、MCP resources、workspace-mutating commands、upstream commands 与 read-only MCP 注册测试后，全部通过，说明 shared authority-root discovery、CLI/hook/runtime 迁移，以及 `workspace-link` 命令已经在主线稳定落地。
+- 因为本轮没有发现真实缺口，所以没有强行新增“先红后绿”的伪测试；继续补测试只会重复覆盖已存在行为，而不是推动新的最小实现。
 - `status` / `doctor` 的首个失败并不是解析逻辑错误，而是临时目录在 macOS 上存在 `/var` 与 `/private/var` 的真实路径差异；测试需要统一做 `realpath` 断言。
 - `resource-service` 之前虽然复用了 `status-service` / `summary-service`，但它自己对固定资源文件仍直接回落到 `process.cwd()`，所以 MCP 读资源在 leaf workspace 下仍会偏到子目录。
 - upstream `fetch` / `update` 在没有 `.git` 的轻量 fixture 中，需要显式补一个 ancestor marker（如 `scripts/harness`）才能覆盖 authority-root 上溯路径；这也验证了“marker 优先于 git”的设计是必要的。

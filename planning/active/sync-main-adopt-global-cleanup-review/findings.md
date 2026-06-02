@@ -126,6 +126,22 @@
 - 最接近 ready 的仍是 `harness-reconcile-execution`，但因为 active task 仍 `waiting_review`，它现在更适合作为“等 owner 明确 review 通过后即可清理”的 next candidate。
 - 最值得继续分析的不是 merged/dirty 两个 codex lanes，而是 `homepage-redesign-prototype`：它 clean、task 标记 complete/archivable，但 git branch 事实尚未收敛，若不先解释清楚 cherry-pick/merge 关系，直接删 branch/worktree 风险最高。
 
+## Findings Record: 2026-06-02 21:47:01 UTC+8
+
+### Main Fast-Forward Re-Audit
+- `git fetch origin --prune` 后，`origin/main` 已从 `41bb6dd` 前进到 `dabbb82`。
+- 随后本地 `main` worktree `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main` 已成功 `git merge --ff-only origin/main`，当前 `main = origin/main = dabbb82`。
+- `dev` 仍保持 `d8b9f9a`，并继续与 `origin/dev` 一致。
+- 最新复核结果：
+  - `dev...origin/dev = 0 0`
+  - `main...origin/main = 0 0`
+  - `git merge-base --is-ancestor dev main` 返回成功
+- 这意味着本地两个主线 head 现在都和各自的远端最新版本一致，且 `main` 已再次吸收当前 `dev` 的内容集。
+
+### Cleanup Implication
+- 本轮重新快进 `main` 后，之前基于 `41bb6dd` 的任何 cleanup 判断都要作废并以 `dabbb82` 重新审视。
+- 不过截至这次 re-audit，branch/worktree 的分类边界没有出现新的立即可删对象；现有 keep/review 结论保持不变。
+
 
 ### Created Artifact
 - 新 companion plan 已写入：`docs/superpowers/plans/2026-05-28-claude-code-runtime-evidence.md`。

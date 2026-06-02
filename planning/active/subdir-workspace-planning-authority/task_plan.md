@@ -12,6 +12,7 @@ Reconcile: done
 - Companion plan: `docs/superpowers/plans/2026-06-02-subdir-workspace-planning-authority.md`
 - Companion summary: 首版同时交付 in-repo leaf workspace 自动回指 authority root，以及显式 `.harness/authority-root.json` override 能力。
 - Sync-back status: closed at 2026-06-02 15:49:23 UTC+8 after local dev merge, main-worktree verification, and isolated worktree cleanup.
+- Revalidated: 2026-06-02 23:01:36 UTC+8 on current `dev`; targeted authority-root, CLI, hook, MCP, and workspace-mutating command suites all passed, so no additional implementation was required.
 
 ## Current Phase
 Phase 5
@@ -75,3 +76,4 @@ Phase 5
 - 重点比较自动发现与显式声明两类机制的协作成本。
 - 当前实现已经覆盖 CLI、runtime/MCP resource、hook helper、checkpoint/adoption/upstream 命令，以及显式 `workspace-link` override 入口。
 - 文档与验证已经收口完成；剩余仅是后续如需继续扩展更多非核心入口时的增量工作。
+- 2026-06-02 23:01:36 UTC+8 续跑核查确认当前主线已包含实现提交 `d89c388`，因此本轮工作只做验证与 planning 同步，不重复改动代码。

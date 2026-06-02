@@ -16,6 +16,20 @@
   - `planning/active/sync-main-adopt-global-cleanup-review/task_plan.md` (modified)
   - `planning/active/sync-main-adopt-global-cleanup-review/progress.md` (modified)
 
+## Session: 2026-06-02 21:47:01 UTC+8
+
+### Main Fast-Forward Re-Audit
+- **Status:** complete
+- **Started:** 2026-06-02 21:47:01 UTC+8
+- Actions taken:
+  - 再次执行 `git fetch origin --prune`，发现 `origin/main` 已前进到 `dabbb82`。
+  - 在主线 `main` worktree 中执行 `git merge --ff-only origin/main`，将本地 `main` 快进到 `dabbb82`。
+  - 复核 `dev...origin/dev = 0 0`、`main...origin/main = 0 0`，并确认 `git merge-base --is-ancestor dev main` 成功。
+- Files created/modified:
+  - `planning/active/sync-main-adopt-global-cleanup-review/task_plan.md` (updated)
+  - `planning/active/sync-main-adopt-global-cleanup-review/findings.md` (updated)
+  - `planning/active/sync-main-adopt-global-cleanup-review/progress.md` (updated)
+
 
 ### Phase 7 follow-up: cleanup readiness live re-audit
 - **Status:** complete

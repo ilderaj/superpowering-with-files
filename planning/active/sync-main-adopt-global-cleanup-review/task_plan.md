@@ -81,7 +81,7 @@ Phase 7
 
 ## Notes
 - 当前主工作区在 `/Users/jared/SuperpoweringWithFiles`，task 启动时为 `dev @ 40b3a3d`；经 live re-audit，当前已前进到 `dev @ 23804de`，因此 cleanup readiness 结论需以实时 git 状态为准。
-- 当前 `main` worktree 位于 `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main`，已快进到 `41bb6dd`，与 `origin/main` 对齐。
+- 当前 `main` worktree 位于 `/Users/jared/.config/superpowers/worktrees/SuperpoweringWithFiles/20260504-upstream-refresh-layout-compat-main`，已快进到 `dabbb82`，与最新的 `origin/main` 对齐。
 - `./scripts/harness sync --conflict=backup` 后重新执行 `./scripts/harness adopt-global` 已成功；当前 `adoption-status = in_sync`，receipt HEAD 已更新到 `40b3a3d44e0879b7c6cd61908631a00e9478f145`。
 - 当前本地共 10 个分支、7 个 linked worktrees。多数 feature branches 已被 `main` / `dev` 吸收，但当前“可立即清理”的对象仍很少，因为合并后的两个 codex worktrees 仍有未提交修改，`harness-reconcile-execution` 虽 clean 且已合并，但 task 仍处于 `waiting_review`。
 - Claude Code user-global adopt 已生效到配置与本地 payload 验证层：`adoption-status = in_sync`，`doctor --check-only` 通过，`~/.claude/settings.json` 已有 5 类 hook event entries，`~/.claude/hooks` 已 materialize scripts。当前仍未证明真实 Claude Code runtime invocation，receipt 明确记录 `runtimeInvocationVerified = false` / `runtime = not-measured`。
@@ -93,3 +93,4 @@ Phase 7
 | Time | Command | Target Path(s) | Workspace Boundary | Checkpoint | Rollback | Status |
 |---|---|---|---|---|---|---|
 | 2026-05-28 09:31:51 UTC+8 | `./scripts/harness sync --conflict=backup && ./scripts/harness adopt-global` | `/Users/jared/.codex/AGENTS.md` plus any configured user-global Harness target paths | Touches user-global files outside the workspace | `/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-05-28T01-31-49Z` | Restore repo state from the checkpoint bundle if needed, inspect `~/.harness/backups/` and `~/.harness/backup-index.json` for the pre-takeover Codex entry, then rerun `./scripts/harness adoption-status` to verify recovery | pending user confirmation |
+| 2026-06-02 21:51:00 UTC+8 | `./scripts/harness adopt-global` | `/Users/jared/.codex/AGENTS.md` plus any configured user-global Harness target paths | Touches user-global files outside the workspace | `/Users/jared/.agent-config/checkpoints/SuperpoweringWithFiles/2026-06-02T13-51-05Z` | If ownership guard or drift reappears, rerun `./scripts/harness sync --conflict=backup` from the recorded checkpoint, then `./scripts/harness adoption-status` to verify recovery | ready |

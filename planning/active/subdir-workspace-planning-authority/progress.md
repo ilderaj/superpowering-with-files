@@ -254,3 +254,26 @@
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
 | Main worktree merge gate | `npm run verify` in `/Users/jared/SuperpoweringWithFiles` | Merged `dev` remains green after local merge | 459 installer/core/automation tests, 23 MCP tests, and 20 plugin-kit tests all passed; exit code 0 | ✓ |
+
+## Session: 2026-06-02 23:01:36 UTC+8
+
+### Phase 5: Implementation & Verification
+- **Status:** complete
+- Actions taken:
+  - 按用户要求继续同一 tracked task，但先核对现状，确认当前 `dev` 已包含 `d89c388 Implement authority-root support for leaf workspaces`，不需要重复落地生产代码。
+  - 重新检查 active task、companion plan、task-scoped planning，并确认本轮仅做续跑审计与验证同步。
+  - 跑绿 targeted tests：
+    - `node --test tests/installer/authority-root.test.mjs tests/mcp/root-policy.test.mjs tests/installer/workspace-link.test.mjs`
+    - `node --test tests/installer/summary-command.test.mjs tests/installer/record-command.test.mjs tests/installer/active-summary-command.test.mjs tests/installer/worktree-name.test.mjs tests/installer/workspace-link.test.mjs tests/hooks/task-scoped-hook.test.mjs tests/hooks/session-checkpoint.test.mjs tests/hooks/pretool-guard.test.mjs tests/mcp/resources.test.mjs`
+    - `node --test tests/installer/commands.test.mjs tests/installer/adoption.test.mjs tests/installer/plugin-command.test.mjs tests/installer/upstream-commands.test.mjs tests/mcp/read-only-tools.test.mjs`
+- Files created/modified:
+  - `planning/active/subdir-workspace-planning-authority/task_plan.md` (updated)
+  - `planning/active/subdir-workspace-planning-authority/findings.md` (updated)
+  - `planning/active/subdir-workspace-planning-authority/progress.md` (updated)
+
+## Test Results
+| Test | Input | Expected | Actual | Status |
+|------|-------|----------|--------|--------|
+| Continuation audit | `node --test tests/installer/authority-root.test.mjs tests/mcp/root-policy.test.mjs tests/installer/workspace-link.test.mjs` | Confirm resolver, MCP boundary, and `workspace-link` still work on current `dev` | 13 tests passed; exit code 0 | ✓ |
+| Continuation audit | `node --test tests/installer/summary-command.test.mjs tests/installer/record-command.test.mjs tests/installer/active-summary-command.test.mjs tests/installer/worktree-name.test.mjs tests/installer/workspace-link.test.mjs tests/hooks/task-scoped-hook.test.mjs tests/hooks/session-checkpoint.test.mjs tests/hooks/pretool-guard.test.mjs tests/mcp/resources.test.mjs` | Confirm planning-critical CLI, hooks, and MCP resources still resolve authority root from leaf workspaces | 81 tests passed; exit code 0 | ✓ |
+| Continuation audit | `node --test tests/installer/commands.test.mjs tests/installer/adoption.test.mjs tests/installer/plugin-command.test.mjs tests/installer/upstream-commands.test.mjs tests/mcp/read-only-tools.test.mjs` | Confirm workspace-mutating commands, adoption flow, upstream sync path, plugin doctor, and read-only MCP mode still honor authority root | 61 tests passed; exit code 0 | ✓ |
