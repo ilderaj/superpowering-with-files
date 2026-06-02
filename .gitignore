@@ -1,6 +1,9 @@
 .harness/
 .worktrees/
 .codex-worktrees/
+planning/active/
+planning/archive/
+docs/superpowers/plans/
 homepage/node_modules/
 homepage/dist/
 dist/
