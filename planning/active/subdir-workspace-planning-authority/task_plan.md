@@ -4,13 +4,14 @@
 给出一套可 review 的方案，使用户可以在大型仓库的子目录打开 workspace，同时仍稳定读取并写入仓库根目录下唯一 authoritative 的 `planning/active/<task-id>/`。
 
 ## Current State
-Status: waiting_integration
-Archive Eligible: no
-Close Reason:
+Status: closed
+Archive Eligible: yes
+Close Reason: Merged into local dev, verified on the main worktree, and isolated worktree cleanup completed.
+Closed At: 2026-06-02 15:49:23 UTC+8
 Reconcile: done
 - Companion plan: `docs/superpowers/plans/2026-06-02-subdir-workspace-planning-authority.md`
 - Companion summary: 首版同时交付 in-repo leaf workspace 自动回指 authority root，以及显式 `.harness/authority-root.json` override 能力。
-- Sync-back status: Companion implementation plan updated and synced back on 2026-06-02 15:22:00 UTC+8 after implementation, verification, and integration prep.
+- Sync-back status: closed at 2026-06-02 15:49:23 UTC+8 after local dev merge, main-worktree verification, and isolated worktree cleanup.
 
 ## Current Phase
 Phase 5

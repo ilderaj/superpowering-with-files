@@ -8,13 +8,13 @@
 
 **Tech Stack:** Node.js ESM, shell hooks, `node:test`, Git root discovery.
 
-**Active task path:** `planning/active/subdir-workspace-planning-authority/`
+- Active task path: `planning/active/subdir-workspace-planning-authority/`
 
-**Companion plan path:** `docs/superpowers/plans/2026-06-02-subdir-workspace-planning-authority.md`
+- Companion plan path: `docs/superpowers/plans/2026-06-02-subdir-workspace-planning-authority.md`
 
-**Lifecycle state:** waiting_execution after the user approved including leaf override support in the first implementation plan.
+- Lifecycle state: closed
 
-**Sync-back status:** Companion plan updated on 2026-06-02 11:53:21 UTC+8 to include Slice B in the first implementation scope; durable summary synced back to the active task files.
+- Sync-back status: closed at 2026-06-02 15:49:23 UTC+8 after local dev merge, main-worktree verification, and isolated worktree cleanup.
 
 ---
 
