@@ -6,6 +6,7 @@ planning/archive/
 docs/superpowers/plans/
 homepage/node_modules/
 homepage/dist/
+homepage/.wrangler/
 dist/
 .agent-config/checkpoints/
 .agent-config/logs/
