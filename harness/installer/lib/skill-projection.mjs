@@ -1,6 +1,7 @@
 import { access, lstat, readdir, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { resolveSkillTargetPaths } from './paths.mjs';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const strategies = new Set(['link', 'materialize']);
 const SKILL_PROFILES_PATH = 'harness/core/skills/profiles.json';
@@ -84,7 +85,7 @@ function validateSkillProfileEntries(profileName, profileEntries, index, childNa
 }
 
 export async function loadSkillProfiles(rootDir) {
-  const config = JSON.parse(await readFile(path.join(rootDir, SKILL_PROFILES_PATH), 'utf8'));
+  const config = JSON.parse(await readFile(resolveHarnessSourcePath(rootDir, SKILL_PROFILES_PATH), 'utf8'));
   validateSkillProfilesConfig(config);
   return config;
 }
@@ -147,11 +148,15 @@ function selectedCollectionChildren(profileSelection, parentSkillName, childName
 }
 
 async function loadSkillIndex(rootDir) {
-  return JSON.parse(await readFile(path.join(rootDir, 'harness/core/skills/index.json'), 'utf8'));
+  return JSON.parse(
+    await readFile(resolveHarnessSourcePath(rootDir, 'harness/core/skills/index.json'), 'utf8')
+  );
 }
 
 async function loadPlatformsMetadata(rootDir) {
-  return JSON.parse(await readFile(path.join(rootDir, 'harness/core/metadata/platforms.json'), 'utf8'));
+  return JSON.parse(
+    await readFile(resolveHarnessSourcePath(rootDir, 'harness/core/metadata/platforms.json'), 'utf8')
+  );
 }
 
 function strategyFor(skill, target) {

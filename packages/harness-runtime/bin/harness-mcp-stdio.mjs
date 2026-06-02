@@ -6,6 +6,10 @@ import { runtimePackageRoot } from '../src/index.mjs';
 const serverPath = path.join(runtimePackageRoot, 'harness/mcp/stdio.mjs');
 const result = spawnSync(process.execPath, [serverPath, ...process.argv.slice(2)], {
   cwd: process.cwd(),
+  env: {
+    ...process.env,
+    HARNESS_SOURCE_ROOT: runtimePackageRoot
+  },
   stdio: 'inherit'
 });
 

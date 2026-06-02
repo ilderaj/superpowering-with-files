@@ -1,6 +1,7 @@
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const SUPPORTED_TARGETS = new Set(['codespaces']);
 const GITIGNORE_ENTRIES = ['.agent-config/checkpoints/', '.agent-config/logs/', 'reports/checkpoints/'];
@@ -22,7 +23,7 @@ function usage() {
 }
 
 async function readTemplate(rootDir, relativePath) {
-  return readFile(path.join(rootDir, relativePath), 'utf8');
+  return readFile(resolveHarnessSourcePath(rootDir, relativePath), 'utf8');
 }
 
 async function writeOrSuggest(targetPath, content, mode) {

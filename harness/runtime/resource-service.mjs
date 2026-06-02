@@ -5,6 +5,7 @@ import { getHarnessStatus } from './status-service.mjs';
 import { resolveHarnessRoot } from './root-policy.mjs';
 import { runHarnessVerify } from './verify-service.mjs';
 import { sanitizeText } from './redaction.mjs';
+import { resolveHarnessSourcePath } from './source-root.mjs';
 
 function taskUri(taskId, fileName) {
   return `harness://task/${taskId}/${fileName}`;
@@ -41,17 +42,26 @@ export async function readHarnessResource(uri, input = {}) {
   }
 
   if (uri === 'harness://policy/base') {
-    const text = await readFile(path.join(resolved.rootDir, 'harness/core/policy/base.md'), 'utf8');
+    const text = await readFile(
+      resolveHarnessSourcePath(resolved.rootDir, 'harness/core/policy/base.md'),
+      'utf8'
+    );
     return buildContents(uri, sanitizeText(text, input));
   }
 
   if (uri === 'harness://adapters') {
-    const text = await readFile(path.join(resolved.rootDir, 'harness/core/metadata/platforms.json'), 'utf8');
+    const text = await readFile(
+      resolveHarnessSourcePath(resolved.rootDir, 'harness/core/metadata/platforms.json'),
+      'utf8'
+    );
     return buildContents(uri, sanitizeText(text, input));
   }
 
   if (uri === 'harness://commands') {
-    const text = await readFile(path.join(resolved.rootDir, 'harness/installer/commands/harness.mjs'), 'utf8');
+    const text = await readFile(
+      resolveHarnessSourcePath(resolved.rootDir, 'harness/installer/commands/harness.mjs'),
+      'utf8'
+    );
     return buildContents(uri, sanitizeText(text, input));
   }
 

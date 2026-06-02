@@ -119,9 +119,14 @@ async function writeMcpWrapper(pluginRoot) {
       "import { fileURLToPath } from 'node:url';",
       '',
       'const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");',
+      'const runtimeRoot = path.join(pluginRoot, "runtime");',
       'const serverPath = path.join(pluginRoot, "runtime/harness/mcp/stdio.mjs");',
       'const result = spawnSync(process.execPath, [serverPath, ...process.argv.slice(2)], {',
       '  cwd: process.cwd(),',
+      '  env: {',
+      '    ...process.env,',
+      '    HARNESS_SOURCE_ROOT: runtimeRoot',
+      '  },',
       "  stdio: 'inherit'",
       '});',
       '',
@@ -247,7 +252,7 @@ function rewriteNestedHook(hook, target) {
 
 function rewriteHookCommandString(command, target) {
   let nextCommand = command;
-  for (const scriptPath of sourceHookScriptPaths(target)) {
+  for (const scriptPath of [...sourceHookScriptPaths(target)].sort((left, right) => right.length - left.length)) {
     nextCommand = nextCommand.replaceAll(scriptPath, './hooks/task-scoped-hook.sh');
   }
   return nextCommand;

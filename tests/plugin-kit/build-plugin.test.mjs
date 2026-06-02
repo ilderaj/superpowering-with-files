@@ -38,6 +38,7 @@ test('buildPlugin creates self-contained plugin roots without runtime planning s
     assert.ok(Object.values(hookConfig.hooks).some((entries) => Array.isArray(entries) && entries.length > 0));
     assert.match(hookConfigText, /\.\/hooks\/task-scoped-hook\.sh/);
     assert.doesNotMatch(hookConfigText, /\.(codex|claude|cursor|github)\/hooks\/task-scoped-hook\.sh/);
+    assert.doesNotMatch(hookConfigText, /\$HOME\/\.\/hooks\/task-scoped-hook\.sh/);
 
     await access(path.join(build.pluginRoot, 'runtime/harness/mcp/stdio.mjs'));
     await access(path.join(build.pluginRoot, 'runtime/scripts/harness'));

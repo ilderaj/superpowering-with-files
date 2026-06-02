@@ -3,6 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -162,11 +163,11 @@ export async function activeSummary(args = []) {
 
   const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const outputPath = readOption(args, 'output');
-  const scanScript = path.join(
+  const scanScript = resolveHarnessSourcePath(
     rootDir,
     'harness/core/upstream-overlays/planning-with-files/scripts/scan-active.py'
   );
-  const statusScript = path.join(
+  const statusScript = resolveHarnessSourcePath(
     rootDir,
     'harness/core/upstream-overlays/planning-with-files/scripts/task-status.py'
   );

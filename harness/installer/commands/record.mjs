@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import path from 'node:path';
 import { resolveActiveTaskDirectory } from '../lib/planning-task.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const execFileAsync = promisify(execFile);
 const VALID_FILES = new Set(['task_plan', 'findings', 'progress', 'reconciliation']);
@@ -66,7 +67,7 @@ export async function record(args = []) {
   const taskDir = await resolveActiveTaskDirectory(rootDir, taskId);
   const resolvedTaskId = path.basename(taskDir);
   const title = readOption(args, 'title');
-  const scriptPath = path.join(
+  const scriptPath = resolveHarnessSourcePath(
     rootDir,
     'harness/core/upstream-overlays/planning-with-files/scripts/planning_record.py'
   );

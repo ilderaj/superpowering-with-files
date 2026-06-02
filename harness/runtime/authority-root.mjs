@@ -69,10 +69,6 @@ async function readOverrideFile(overridePath) {
   return resolvedRoot;
 }
 
-async function findOverrideRoot(cwd) {
-  return findOverrideRootWithinBoundary(cwd);
-}
-
 async function findOverrideRootWithinBoundary(cwd, boundaryDir = undefined) {
   for (const candidateDir of parentDirectories(cwd)) {
     if (!isWithinBoundary(candidateDir, boundaryDir)) {
@@ -91,10 +87,6 @@ async function findOverrideRootWithinBoundary(cwd, boundaryDir = undefined) {
   }
 
   return null;
-}
-
-async function findAncestorMarkerRoot(cwd) {
-  return findAncestorMarkerRootWithinBoundary(cwd);
 }
 
 async function findAncestorMarkerRootWithinBoundary(cwd, boundaryDir = undefined) {

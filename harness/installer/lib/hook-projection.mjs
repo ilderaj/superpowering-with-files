@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { resolveHookRoots } from './paths.mjs';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const PLANNING_SUPPORTED_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
 const SAFETY_SUPPORTED_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
@@ -14,7 +15,9 @@ const PLANNING_EVENTS_BY_TARGET = {
 };
 
 async function loadSkillIndex(rootDir) {
-  return JSON.parse(await readFile(path.join(rootDir, 'harness/core/skills/index.json'), 'utf8'));
+  return JSON.parse(
+    await readFile(resolveHarnessSourcePath(rootDir, 'harness/core/skills/index.json'), 'utf8')
+  );
 }
 
 function hookConfigTarget(root, target, parentSkillName) {
@@ -48,7 +51,7 @@ function taskScopedPlanningProjection({ rootDir, root, target, parentSkillName, 
     };
   }
 
-  const sourceRoot = path.join(rootDir, hookConfig.source);
+  const sourceRoot = resolveHarnessSourcePath(rootDir, hookConfig.source);
   const configName = target === 'claude-code' ? 'claude-hooks.json' : `${target}-hooks.json`;
   return {
     kind: 'hook',
@@ -59,7 +62,7 @@ function taskScopedPlanningProjection({ rootDir, root, target, parentSkillName, 
     configTarget: hookConfigTarget(root, target, parentSkillName),
     configFormat: target === 'claude-code' ? 'settings' : 'hooks',
     scriptSourcePaths: [
-      path.join(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
+      resolveHarnessSourcePath(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
       path.join(sourceRoot, 'scripts/task-scoped-hook.sh'),
       path.join(sourceRoot, 'scripts/render-hot-context.mjs'),
       path.join(sourceRoot, 'scripts/render-brief-context.mjs'),
@@ -84,7 +87,7 @@ function configuredHookProjection({ rootDir, root, target, parentSkillName, hook
     };
   }
 
-  const sourceRoot = path.join(rootDir, hookConfig.source);
+  const sourceRoot = resolveHarnessSourcePath(rootDir, hookConfig.source);
   const scriptRoot = hookConfig.scriptRoot
     ? path.join(sourceRoot, hookConfig.scriptRoot)
     : sourceRoot;
@@ -98,7 +101,7 @@ function configuredHookProjection({ rootDir, root, target, parentSkillName, hook
     configTarget: hookConfigTarget(root, target, parentSkillName),
     configFormat: target === 'claude-code' ? 'settings' : 'hooks',
     scriptSourcePaths: [
-      path.join(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
+      resolveHarnessSourcePath(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
       ...scripts.map((script) => path.join(scriptRoot, script))
     ],
     scriptTargetRoot: scriptTargetRoot(root, target),
@@ -117,7 +120,7 @@ function safetyHookProjection({ rootDir, root, target }) {
     };
   }
 
-  const sourceRoot = path.join(rootDir, 'harness/core/hooks/safety');
+  const sourceRoot = resolveHarnessSourcePath(rootDir, 'harness/core/hooks/safety');
   const configName = target === 'claude-code' ? 'claude-hooks.json' : `${target}-hooks.json`;
   return {
     kind: 'hook',
@@ -133,7 +136,7 @@ function safetyHookProjection({ rootDir, root, target }) {
     configTarget: hookConfigTarget(root, target, 'safety'),
     configFormat: target === 'claude-code' ? 'settings' : 'hooks',
     scriptSourcePaths: [
-      path.join(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
+      resolveHarnessSourcePath(rootDir, 'harness/core/hooks/runtime-hook-evidence.sh'),
       path.join(sourceRoot, 'scripts/pretool-guard.sh'),
       path.join(sourceRoot, 'scripts/session-checkpoint.sh')
     ],

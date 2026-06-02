@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const scopes = new Set(['workspace', 'user-global', 'both']);
 
 export async function loadPlatforms(rootDir) {
-  const file = path.join(rootDir, 'harness/core/metadata/platforms.json');
+  const file = resolveHarnessSourcePath(rootDir, 'harness/core/metadata/platforms.json');
   return JSON.parse(await readFile(file, 'utf8'));
 }
 

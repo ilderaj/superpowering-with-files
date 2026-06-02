@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const BUDGET_DIMENSIONS = [
   { measurementKey: 'chars', budgetKey: 'chars', label: 'chars' },
@@ -128,7 +128,7 @@ function validateContextBudgetsShape(config) {
 }
 
 export async function loadContextBudgets(rootDir) {
-  const file = path.join(rootDir, 'harness/core/context-budgets.json');
+  const file = resolveHarnessSourcePath(rootDir, 'harness/core/context-budgets.json');
   let config;
 
   try {
