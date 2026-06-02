@@ -113,6 +113,37 @@ test('fetchCommand stages git planning-with-files candidate without touching cor
   }
 });
 
+test('fetchCommand resolves the authority root from a nested leaf directory', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fetch-leaf-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await mkdir(path.join(root, 'scripts'), { recursive: true });
+    await writeFile(path.join(root, 'scripts/harness'), '#!/usr/bin/env bash\n');
+    await writeSources(root, source);
+    await createGitSource(source, '# Planning With Files\n');
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await withCwd(leafDir, () => fetchCommand(['--source=planning-with-files']));
+
+    assert.equal(
+      await readFile(path.join(root, '.harness/upstream-candidates/planning-with-files/SKILL.md'), 'utf8'),
+      '# Planning With Files\n'
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});
+
 test('updateCommand applies candidate only to harness upstream path', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-'));
   const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
@@ -141,6 +172,30 @@ test('updateCommand applies candidate only to harness upstream path', async () =
     assert.equal(state.upstream['planning-with-files'].appliedPath, 'harness/upstream/planning-with-files');
     assert.match(state.upstream['planning-with-files'].lastFetch, /^\d{4}-\d{2}-\d{2}T/);
     assert.equal(state.upstream['planning-with-files'].lastUpdate, state.lastUpdate);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});
+
+test('updateCommand resolves the authority root from a nested leaf directory', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-leaf-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await mkdir(path.join(root, 'scripts'), { recursive: true });
+    await writeFile(path.join(root, 'scripts/harness'), '#!/usr/bin/env bash\n');
+    await writeSources(root, source);
+    await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
+    await createGitSource(source, 'new skill');
+
+    await withCwd(leafDir, async () => {
+      await fetchCommand(['--source=planning-with-files']);
+      await updateCommand(['--source=planning-with-files']);
+    });
+
+    assert.equal(await readFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'utf8'), 'new skill');
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(source, { recursive: true, force: true });

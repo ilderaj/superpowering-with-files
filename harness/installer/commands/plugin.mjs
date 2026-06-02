@@ -1,5 +1,6 @@
 import os from 'node:os';
 import { computeAdoptionStatus } from '../lib/adoption.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 const SUPPORTED_TARGETS = ['codex', 'claude-code', 'cursor', 'copilot'];
 
@@ -53,7 +54,8 @@ export async function plugin(args = []) {
 }
 
 async function pluginDoctor() {
-  const adoption = await computeAdoptionStatus(process.cwd(), os.homedir()).catch((error) => ({
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+  const adoption = await computeAdoptionStatus(rootDir, os.homedir()).catch((error) => ({
     error: error instanceof Error ? error.message : String(error)
   }));
 

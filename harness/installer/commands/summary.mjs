@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { buildSessionSummary } from '../lib/session-summary.mjs';
 import { resolveActiveTaskDirectory } from '../lib/planning-task.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 function hasFlag(args, ...names) {
   return names.some((name) => args.includes(name));
@@ -53,7 +54,7 @@ export async function summary(args = []) {
     return;
   }
 
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const taskId = parseTaskId(args);
   const taskDir = await resolveActiveTaskDirectory(rootDir, taskId);
   const output = await buildSessionSummary({

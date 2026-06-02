@@ -1,5 +1,6 @@
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 const SUPPORTED_TARGETS = new Set(['codespaces']);
 const GITIGNORE_ENTRIES = ['.agent-config/checkpoints/', '.agent-config/logs/', 'reports/checkpoints/'];
@@ -71,7 +72,7 @@ export async function cloudBootstrap(args = []) {
     return;
   }
 
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const target = readOption(args, 'target', 'codespaces');
   if (!SUPPORTED_TARGETS.has(target)) {
     throw new Error(`Unsupported cloud bootstrap target: ${target}`);

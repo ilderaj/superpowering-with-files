@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -16,9 +16,13 @@ function git(cwd, ...args) {
   return execFileAsync('git', args, { cwd });
 }
 
-function harness(cwd, ...args) {
-  return execFileAsync('node', [path.join(cwd, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd
+function harness(root, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
+  return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
+    cwd: options.cwd ?? root
   });
 }
 
@@ -89,7 +93,10 @@ function resolveOutputPath(root, targetPath) {
 
 async function runCheckpointPush(root, ...args) {
   try {
-    const result = await harness(root, 'checkpoint-push', '--json', ...args);
+    const maybeOptions = args.at(-1);
+    const options =
+      maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+    const result = await harness(root, 'checkpoint-push', '--json', ...args, options);
     return {
       exitCode: 0,
       stdout: result.stdout,
@@ -107,7 +114,12 @@ async function runCheckpointPush(root, ...args) {
 }
 
 async function expectCheckpointPushResult(root, options) {
-  const execution = await runCheckpointPush(root, `--message=${options.message ?? 'chore: checkpoint push'}`, ...(options.args ?? []));
+  const execution = await runCheckpointPush(
+    root,
+    `--message=${options.message ?? 'chore: checkpoint push'}`,
+    ...(options.args ?? []),
+    options.cwd ? { cwd: options.cwd } : {}
+  );
 
   assert.ok(
     execution.payload,
@@ -574,5 +586,38 @@ test('checkpoint-push creates a review artifact, commit, and upstream push for e
     assert.match(reviewMarkdown, /- Upstream before push: none/);
   } finally {
     await cleanupFixture(root, worktree, remote);
+  }
+});
+
+test('checkpoint-push resolves the authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  let remote;
+  try {
+    remote = await createBareRemote();
+    await initRepo(root);
+    await addOrigin(root, remote);
+    await pushCurrentBranch(root);
+    await git(root, 'checkout', '-b', 'feature/leaf-run');
+    await writeFile(path.join(root, 'leaf.txt'), 'changed\n');
+    await git(root, 'add', 'leaf.txt');
+    await git(root, 'commit', '-m', 'leaf change');
+    await git(root, 'push', '-u', 'origin', 'HEAD');
+    await writeFile(path.join(root, 'leaf.txt'), 'changed again\n');
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+
+    const { result } = await expectCheckpointPushResult(root, {
+      status: 'success',
+      exitCode: 0,
+      args: ['--dry-run'],
+      cwd: leafDir
+    });
+
+    assert.equal(result.status, 'success');
+  } finally {
+    if (remote) {
+      await rm(remote, { recursive: true, force: true });
+    }
+    await removeHarnessFixture(root);
   }
 });

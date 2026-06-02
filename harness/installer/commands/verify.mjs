@@ -4,6 +4,7 @@ import path from 'node:path';
 import { readHarnessHealth } from '../lib/health.mjs';
 import { summarizeHookEvidence } from '../lib/hook-evidence-summary.mjs';
 import { readState } from '../lib/state.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 function readOption(args, name, fallback) {
   const prefix = `--${name}=`;
@@ -112,7 +113,7 @@ export async function verify(args = []) {
     return;
   }
 
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const state = await readState(rootDir);
   const health = await readHarnessHealth(rootDir, os.homedir());
   const report = {

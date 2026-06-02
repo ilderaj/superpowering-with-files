@@ -25,8 +25,16 @@ async function removeFixture(root) {
 }
 
 async function harnessCommand(root, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root
+    cwd: options.cwd ?? root,
+    env: {
+      ...process.env,
+      HARNESS_PROJECT_ROOT: root
+    }
   });
 }
 
@@ -101,6 +109,22 @@ test('harness summary prints SESSION SUMMARY for a single active task', async ()
     assert.match(stdout, /Task: Task One \(t1\)/);
     assert.match(stdout, /Status: active  Phases: 1\/2  Duration: unavailable/);
     assert.ok(stdout.endsWith('\n'));
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('harness summary resolves the authority root when run from a nested leaf directory', async () => {
+  const root = await createFixture('summary-nested-cwd');
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await writeTask(root, 't1', activeTaskFiles('Task One'));
+
+    const { stdout, stderr } = await harnessCommand(root, 'summary', { cwd: leafDir });
+
+    assert.equal(stderr, '');
+    assert.match(stdout, /Task: Task One \(t1\)/);
   } finally {
     await removeFixture(root);
   }

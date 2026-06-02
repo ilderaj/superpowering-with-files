@@ -18,6 +18,8 @@ User-global scope projects skills only.
 
 Cursor uses both rules and skills when available. Cursor's official docs list `.agents/skills` and `~/.agents/skills` as auto-discovered skill directories, so Harness uses the same shared skill roots as Codex and GitHub Copilot. Cursor's native `.cursor/skills` roots remain official compatibility discovery paths, but Harness no longer projects a duplicate Cursor-specific skill tree there.
 
+If Cursor opens a leaf workspace such as `apps/foo/`, Harness still resolves planning and `.harness` state against the current git worktree root by default. See [Leaf Workspaces](leaf-workspaces.md) for the exact resolution order and the explicit `workspace-link` escape hatch.
+
 Cursor official discovery roots:
 
 ```text
@@ -52,6 +54,8 @@ When you create a manual branch or worktree for Cursor-driven work, resolve the 
 ```bash
 ./scripts/harness worktree-name --task <task-id> --namespace cursor
 ```
+
+Leaf workspaces are for narrow context only. `planning/active/<task-id>/` stays single-homed at the authority root, and commands that mutate Harness state still write there by default.
 
 For user-global adoption, the default skill profile is the lean `minimal-global` projection. Use `--skills-profile=full` only when you intentionally want the complete skill surface:
 

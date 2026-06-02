@@ -23,7 +23,7 @@ function harness(root, ...args) {
     maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
 
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root,
+    cwd: options.cwd ?? root,
     env: {
       ...process.env,
       ...(options.env ?? {})
@@ -208,6 +208,27 @@ test('worktree-preflight --task resolves naming when multiple active tasks exist
     await writeFile(path.join(root, 'planning/active/second-task/progress.md'), '# Progress\n');
 
     const { stdout } = await harness(root, 'worktree-preflight', '--task', 'preflight-task', '--json', {
+      env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
+    });
+    const output = JSON.parse(stdout);
+
+    assert.equal(output.naming.taskId, 'preflight-task');
+    assert.equal(output.naming.canonicalLabel, '202604281159-preflight-task-001');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('worktree-preflight resolves authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await initRepo(root);
+    await writeActiveTask(root, true);
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+
+    const { stdout } = await harness(root, 'worktree-preflight', '--json', {
+      cwd: leafDir,
       env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
     });
     const output = JSON.parse(stdout);

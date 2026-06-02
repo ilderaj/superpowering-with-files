@@ -2,6 +2,8 @@
 
 Maintenance is the operator-facing `verify`, `archive`, and upkeep surface of Harness. For the full lane map, start with [Workflows](workflows.md).
 
+If you run maintenance commands from a leaf workspace inside a repository, Harness still resolves the default authority root to the current git worktree root. It does not walk upward beyond that git boundary unless you explicitly provide `--root`, `HARNESS_PROJECT_ROOT`, or a repo-local `.harness/authority-root.json`. See [Leaf Workspaces](install/leaf-workspaces.md).
+
 Maintenance flow:
 
 ```bash
@@ -15,12 +17,20 @@ Maintenance flow:
 
 `fetch` retrieves upstream candidates. `update` applies accepted candidates. `sync` regenerates installed projections and garbage-collects stale Harness-managed paths that are no longer desired.
 
+From a linked or nested leaf workspace, these mutating commands still target the authority root by default rather than creating duplicate projections under the leaf directory.
+
 Use `sync --dry-run` to inspect the desired projection diff without writing files. Use `sync --check` when you want a non-zero exit code if projections are out of sync.
 
 `verify` prints its report to stdout by default. Write files only when you ask for them explicitly:
 
 ```bash
 ./scripts/harness verify --output=.harness/verification
+```
+
+For explicit advanced leaf linking:
+
+```bash
+./scripts/harness workspace-link --root /path/to/repo
 ```
 
 When hooks are enabled, `doctor` and `verify` surface hook evidence in three layers: config, local payload, and runtime trace evidence. If multiple active tasks prevent planning hot context measurement, the report will say so directly instead of leaving the field ambiguous.

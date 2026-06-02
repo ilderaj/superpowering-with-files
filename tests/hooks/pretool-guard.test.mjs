@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -150,6 +150,27 @@ test('pretool-guard records runtime evidence with the payload cwd', async () => 
     assert.equal(lastEntry.parentSkillName, 'safety');
     assert.equal(lastEntry.eventName, 'PreToolUse');
     assert.equal(lastEntry.cwd, nested);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('pretool-guard resolves the authority root from a nested leaf directory', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-pretool-leaf-root-'));
+  const leafDir = path.join(root, 'packages/demo');
+  try {
+    await mkdir(leafDir, { recursive: true });
+    await writeFile(path.join(root, 'README.md'), '# fixture\n');
+    initGitRepo(root);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/pretool-guard.sh');
+    const result = runGuard(scriptPath, leafDir, { cwd: leafDir, tool: 'Bash', command: 'git status' });
+
+    assert.equal(result.permissionDecision, 'allow');
+    const entries = await readRuntimeEvidence(root);
+    const lastEntry = entries.at(-1);
+    assert.equal(await realpath(lastEntry.projectRoot), await realpath(root));
+    assert.equal(lastEntry.cwd, leafDir);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

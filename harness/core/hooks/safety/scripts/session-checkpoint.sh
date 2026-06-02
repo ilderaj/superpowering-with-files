@@ -3,7 +3,6 @@ set -euo pipefail
 
 platform="${1:-unknown}"
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-project_root="${HARNESS_PROJECT_ROOT:-$(pwd)}"
 script_name="$(basename "${BASH_SOURCE[0]}")"
 script_path="$script_dir/$script_name"
 
@@ -24,6 +23,12 @@ source_runtime_hook_evidence_helper() {
 
 source_runtime_hook_evidence_helper || true
 
+if declare -F harness_resolve_project_root >/dev/null 2>&1; then
+  project_root="$(harness_resolve_project_root)"
+else
+  project_root="${HARNESS_PROJECT_ROOT:-$(pwd)}"
+fi
+
 record_runtime_hook_evidence() {
   if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
     harness_record_runtime_hook_evidence \
@@ -36,13 +41,6 @@ record_runtime_hook_evidence() {
       "$script_path" || true
   fi
 }
-
-if command -v git >/dev/null 2>&1; then
-  git_root="$(git -C "$project_root" rev-parse --show-toplevel 2>/dev/null || true)"
-  if [ -n "$git_root" ]; then
-    project_root="$git_root"
-  fi
-fi
 
 record_runtime_hook_evidence
 
