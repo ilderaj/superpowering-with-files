@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const SAFETY_POLICY_PROFILES = new Set(['safety', 'cloud-safe']);
 const SAFETY_FILES = [
@@ -55,7 +56,7 @@ export function planSafetyProjections({ rootDir, homeDir, scope, policyProfile }
         kind: 'safety-file',
         strategy: 'materialize',
         scope: scopeName,
-        sourcePath: path.join(rootDir, 'harness/core/safety', fileName),
+        sourcePath: resolveHarnessSourcePath(rootDir, 'harness/core/safety', fileName),
         targetPath: path.join(root, 'safety', fileName)
       });
     }
@@ -65,7 +66,7 @@ export function planSafetyProjections({ rootDir, homeDir, scope, policyProfile }
       strategy: 'materialize',
       scope: scopeName,
       executable: true,
-      sourcePath: path.join(rootDir, 'harness/core/safety/bin/checkpoint'),
+      sourcePath: resolveHarnessSourcePath(rootDir, 'harness/core/safety/bin/checkpoint'),
       targetPath: path.join(root, 'bin/checkpoint')
     });
 
@@ -73,7 +74,10 @@ export function planSafetyProjections({ rootDir, homeDir, scope, policyProfile }
       kind: 'safety-file',
       strategy: 'materialize',
       scope: scopeName,
-      sourcePath: path.join(rootDir, 'harness/core/templates/safety/vscode-settings.safety.jsonc'),
+      sourcePath: resolveHarnessSourcePath(
+        rootDir,
+        'harness/core/templates/safety/vscode-settings.safety.jsonc'
+      ),
       targetPath: path.join(root, 'templates/vscode-settings.safety.jsonc')
     });
 
@@ -82,7 +86,7 @@ export function planSafetyProjections({ rootDir, homeDir, scope, policyProfile }
         kind: 'safety-file',
         strategy: 'materialize',
         scope: scopeName,
-        sourcePath: path.join(rootDir, 'docs/safety', fileName),
+        sourcePath: resolveHarnessSourcePath(rootDir, 'docs/safety', fileName),
         targetPath: path.join(root, 'docs/safety', fileName)
       });
     }

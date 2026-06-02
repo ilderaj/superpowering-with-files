@@ -32,12 +32,16 @@ source_runtime_hook_evidence_helper() {
 
 source_runtime_hook_evidence_helper || true
 
-project_root="${HARNESS_PROJECT_ROOT:-}"
-if [ -z "$project_root" ] && command -v git >/dev/null 2>&1; then
-  project_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
-fi
-if [ -z "$project_root" ]; then
-  project_root="$(pwd)"
+if declare -F harness_resolve_project_root >/dev/null 2>&1; then
+  project_root="$(harness_resolve_project_root)"
+else
+  project_root="${HARNESS_PROJECT_ROOT:-}"
+  if [ -z "$project_root" ] && command -v git >/dev/null 2>&1; then
+    project_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+  fi
+  if [ -z "$project_root" ]; then
+    project_root="$(pwd)"
+  fi
 fi
 
 config_dir="${HARNESS_SAFETY_CONFIG_DIR:-}"

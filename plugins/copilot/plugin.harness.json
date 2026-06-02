@@ -1,0 +1,20 @@
+{
+  "target": "copilot",
+  "name": "harness-copilot-plugin",
+  "displayName": "Harness for GitHub Copilot",
+  "version": "1.0.6",
+  "description": "Runtime governance, planning skills, hooks, instructions, and MCP tools for GitHub Copilot.",
+  "components": {
+    "skills": {
+      "profile": "minimal-global"
+    },
+    "hooks": {
+      "enabled": true
+    },
+    "mcp": {
+      "serverName": "harness-runtime",
+      "transport": "stdio",
+      "cloudMode": "tools-only"
+    }
+  }
+}

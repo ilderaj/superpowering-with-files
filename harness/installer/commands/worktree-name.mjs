@@ -1,4 +1,5 @@
 import { resolveWorktreeNaming } from '../lib/worktree-name.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 function hasFlag(args, ...names) {
   return names.some((name) => args.includes(name));
@@ -53,7 +54,8 @@ export async function worktreeName(args = []) {
     return;
   }
 
-  const naming = await resolveWorktreeNaming(process.cwd(), {
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+  const naming = await resolveWorktreeNaming(rootDir, {
     taskId: readOption(args, 'task'),
     namespace: readOption(args, 'namespace')
   });

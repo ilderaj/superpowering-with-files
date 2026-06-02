@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -77,20 +77,20 @@ function normalizeProfileNames(profileNames, defaultProfile) {
 
 export async function loadPolicyProfiles(rootDir) {
   return JSON.parse(
-    await readFile(path.join(rootDir, 'harness/core/policy/entry-profiles.json'), 'utf8')
+    await readFile(resolveHarnessSourcePath(rootDir, 'harness/core/policy/entry-profiles.json'), 'utf8')
   );
 }
 
 async function renderIncludedPolicyFiles(rootDir, include) {
   const contents = await Promise.all(
-    include.map((file) => readFile(path.join(rootDir, 'harness/core/policy', file), 'utf8'))
+    include.map((file) => readFile(resolveHarnessSourcePath(rootDir, 'harness/core/policy', file), 'utf8'))
   );
   return contents.join('\n\n').trim();
 }
 
 export async function renderPolicyProfile(rootDir, profileNames) {
   const [basePolicy, entryProfiles] = await Promise.all([
-    readFile(path.join(rootDir, 'harness/core/policy/base.md'), 'utf8'),
+    readFile(resolveHarnessSourcePath(rootDir, 'harness/core/policy/base.md'), 'utf8'),
     loadPolicyProfiles(rootDir)
   ]);
   const resolvedProfileNames = normalizeProfileNames(profileNames, entryProfiles.defaultProfile);

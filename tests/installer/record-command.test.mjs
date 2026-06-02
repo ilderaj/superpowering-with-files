@@ -26,8 +26,16 @@ async function removeFixture(root) {
 }
 
 async function harnessCommand(root, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root
+    cwd: options.cwd ?? root,
+    env: {
+      ...process.env,
+      HARNESS_PROJECT_ROOT: root
+    }
   });
 }
 
@@ -105,6 +113,33 @@ test('harness record appends a timestamped progress block for the active task', 
     assert.match(progress, /### Phase 2: Verification/);
     assert.match(progress, /- Actions taken:\n  -/);
     assert.match(progress, /- Files created\/modified:\n  -/);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('harness record appends to root planning when run from a nested leaf directory', async () => {
+  const root = await createFixture('record-nested-cwd');
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await writeTask(root, 't1', activeTaskFiles('Task One'));
+
+    const { stdout, stderr } = await harnessCommand(
+      root,
+      'record',
+      '--file',
+      'progress',
+      '--title',
+      'Nested Leaf Update',
+      { cwd: leafDir }
+    );
+
+    assert.equal(stderr, '');
+    assert.match(stdout, /planning\/active\/t1\/progress\.md/);
+
+    const progress = await readFile(path.join(root, 'planning/active/t1/progress.md'), 'utf8');
+    assert.match(progress, /### Nested Leaf Update/);
   } finally {
     await removeFixture(root);
   }

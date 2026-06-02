@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import {
   loadUpstreamSources,
   parseFromPath,
@@ -21,7 +22,7 @@ function relativeStatePath(rootDir, targetPath) {
 }
 
 export async function fetchCommand(args = []) {
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const sources = await loadUpstreamSources(rootDir);
   const filter = parseSourceFilter(args);
   const fromPath = parseFromPath(args);

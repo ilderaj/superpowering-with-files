@@ -1,0 +1,19 @@
+{
+  "target": "cursor",
+  "name": "harness-cursor-plugin",
+  "displayName": "Harness for Cursor",
+  "version": "1.0.6",
+  "description": "Runtime governance, planning skills, hooks, rules, and MCP tools for Cursor.",
+  "components": {
+    "skills": {
+      "profile": "minimal-global"
+    },
+    "hooks": {
+      "enabled": true
+    },
+    "mcp": {
+      "serverName": "harness-runtime",
+      "transport": "stdio"
+    }
+  }
+}

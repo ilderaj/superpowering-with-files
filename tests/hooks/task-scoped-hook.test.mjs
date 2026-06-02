@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -129,6 +129,32 @@ test('task-scoped-hook emits Codex hookSpecificOutput payload', async () => {
     assert.match(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
     assert.match(payload.hookSpecificOutput.additionalContext, /Goal: Keep hook output compact\./);
     assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /Archive Eligible/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('task-scoped-hook resolves the authority root from a nested leaf directory', async () => {
+  const { fixtureRoot } = await createFixture('codex-leaf-workspace', activeTaskFiles());
+
+  try {
+    const leafDir = path.join(fixtureRoot, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: leafDir
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.match(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+    assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, new RegExp(escapeRegExp(leafDir)));
+    const runtimeLog = JSON.parse(
+      await readFile(path.join(fixtureRoot, '.harness/runtime-hooks/codex.jsonl'), 'utf8')
+    );
+    assert.equal(await realpath(runtimeLog.projectRoot), await realpath(fixtureRoot));
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }

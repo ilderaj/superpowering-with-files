@@ -8,6 +8,7 @@ import {
   evaluateCheckpointPushReadiness
 } from '../lib/checkpoint-push.mjs';
 import { resolveWorktreeNaming } from '../lib/worktree-name.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -195,7 +196,7 @@ function renderText(snapshot, recommendation, naming, safety) {
 }
 
 export async function worktreePreflight(args = []) {
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const snapshot = await collectGitBaseSnapshot(rootDir);
   const recommendation = recommendWorktreeBase(snapshot, { baseRef: parseBase(args) });
   const naming = await resolveWorktreeNaming(rootDir, {

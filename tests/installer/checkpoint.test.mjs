@@ -13,8 +13,12 @@ import {
 const execFileAsync = promisify(execFile);
 
 function harnessCommand(root, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root
+    cwd: options.cwd ?? root
   });
 }
 
@@ -97,5 +101,30 @@ test('harness checkpoint archives non-git directories as tarballs', async () => 
   } finally {
     await removeHarnessFixture(root);
     await rm(externalDir, { recursive: true, force: true });
+  }
+});
+
+test('harness checkpoint resolves the authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await writeFile(path.join(root, 'tracked.txt'), 'initial\n');
+    await initGitRepo(root);
+    await writeFile(path.join(root, 'tracked.txt'), 'changed\n');
+
+    const { stdout } = await harnessCommand(
+      root,
+      'checkpoint',
+      root,
+      '--out=.harness/checkpoints/leaf-fixture',
+      { cwd: leafDir }
+    );
+
+    const outDir = stdout.trim();
+    assert.match(outDir, /\.harness\/checkpoints\/leaf-fixture$/);
+    await access(path.join(outDir, 'manifest.json'));
+  } finally {
+    await removeHarnessFixture(root);
   }
 });

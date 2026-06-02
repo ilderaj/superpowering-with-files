@@ -118,6 +118,16 @@ Codex can consume `AGENTS.md` as the primary instruction entrypoint.
 
 Use rendered `AGENTS.md` files for both workspace and user-global scopes. Project Codex skills into `.agents/skills` and `~/.agents/skills`, and materialize them to keep discovery aligned with the current Codex skill model.
 
+## Leaf Workspace Root Policy
+
+- A narrow leaf workspace is allowed for context control, but durable Harness state remains rooted at one authority root.
+- By default, when the current directory is inside a git worktree, treat that git top-level as the authority-root boundary.
+- Do not keep walking above the git root looking for a different project root unless one of these explicit overrides is present:
+  - `--root`
+  - `HARNESS_PROJECT_ROOT`
+  - `.harness/authority-root.json` inside the current git worktree
+- `planning/active/<task-id>/` stays single-homed at the authority root.
+- `install`, `sync`, `verify`, `record`, `summary`, `doctor`, and related commands should still act on the authority root even when launched from a linked leaf workspace.
 
 
 

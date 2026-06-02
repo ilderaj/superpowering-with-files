@@ -16,8 +16,12 @@ import {
 const execFileAsync = promisify(execFile);
 
 function harnessCommand(root, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root
+    cwd: options.cwd ?? root
   });
 }
 
@@ -107,6 +111,24 @@ test('cloud-bootstrap writes suggested files instead of overwriting existing dev
       await readFile(path.join(root, '.devcontainer/postCreateCommand.sh.harness.suggested'), 'utf8'),
       /install --scope=workspace --profile=cloud-safe --deployment-profile=github-cloud --hooks=on/
     );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('cloud-bootstrap writes files at the authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+
+    await harnessCommand(root, 'cloud-bootstrap', '--target=codespaces', { cwd: leafDir });
+
+    assert.match(
+      await readFile(path.join(root, '.devcontainer/devcontainer.json'), 'utf8'),
+      /chat\.tools\.global\.autoApprove/
+    );
+    await assert.rejects(readFile(path.join(leafDir, '.devcontainer/devcontainer.json'), 'utf8'), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }

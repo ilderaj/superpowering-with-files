@@ -1,9 +1,11 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { createPolicyDigest, verifyPolicySignature } from './policy-signature.mjs';
+import { resolveHarnessSourcePath } from './source-root.mjs';
 
 export async function loadRegistrySchema(rootDir) {
-  return JSON.parse(await readFile(path.join(rootDir, 'harness/core/registry/schema.json'), 'utf8'));
+  return JSON.parse(
+    await readFile(resolveHarnessSourcePath(rootDir, 'harness/core/registry/schema.json'), 'utf8')
+  );
 }
 
 export function diffPolicies(currentPolicy, nextPolicy) {

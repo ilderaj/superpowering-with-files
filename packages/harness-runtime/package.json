@@ -1,0 +1,25 @@
+{
+  "name": "@superpowering-with-files/harness-runtime",
+  "version": "1.0.6",
+  "type": "module",
+  "description": "Self-contained Harness runtime CLI and MCP server for editor plugins.",
+  "bin": {
+    "harness": "./bin/harness",
+    "harness-mcp-stdio": "./bin/harness-mcp-stdio.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "harness",
+    "scripts",
+    "README.md"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "ws": "^8.20.0",
+    "zod": "^3.25.76"
+  }
+}

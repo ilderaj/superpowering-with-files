@@ -5,6 +5,7 @@ import { promisify } from 'node:util';
 import { buildSessionSummary } from '../installer/lib/session-summary.mjs';
 import { resolveActiveTaskDirectory } from '../installer/lib/planning-task.mjs';
 import { resolveHarnessRoot } from './root-policy.mjs';
+import { resolveHarnessSourcePath } from './source-root.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -77,11 +78,11 @@ export async function getTaskSummary(input = {}) {
 
 export async function getActiveTaskSummary(input = {}) {
   const resolved = await resolveHarnessRoot(input.root, input);
-  const scanScript = path.join(
+  const scanScript = resolveHarnessSourcePath(
     resolved.rootDir,
     'harness/core/upstream-overlays/planning-with-files/scripts/scan-active.py'
   );
-  const statusScript = path.join(
+  const statusScript = resolveHarnessSourcePath(
     resolved.rootDir,
     'harness/core/upstream-overlays/planning-with-files/scripts/task-status.py'
   );

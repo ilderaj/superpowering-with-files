@@ -22,7 +22,7 @@ function harness(root, ...args) {
     maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
 
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root,
+    cwd: options.cwd ?? root,
     env: {
       ...process.env,
       ...(options.env ?? {})
@@ -225,6 +225,27 @@ test('worktree-name command prints the naming contract as JSON', async () => {
       branchName: 'copilot/202604281159-codex-app-compatibility-design-001',
       worktreeBasename: '202604281159-codex-app-compatibility-design-001'
     });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('worktree-name command resolves authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await initRepo(root);
+    await writeActiveTask(root, 'leaf-authority-task');
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+
+    const { stdout } = await harness(root, 'worktree-name', '--json', {
+      cwd: leafDir,
+      env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
+    });
+    const output = JSON.parse(stdout);
+
+    assert.equal(output.taskId, 'leaf-authority-task');
+    assert.equal(output.canonicalLabel, '202604281159-leaf-authority-task-001');
   } finally {
     await removeHarnessFixture(root);
   }

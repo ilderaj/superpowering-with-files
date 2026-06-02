@@ -4,6 +4,7 @@ import { loadPolicyProfiles } from '../lib/policy-render.mjs';
 import { resolveTargetPaths } from '../lib/paths.mjs';
 import { defaultSkillProfileForTargets, loadSkillProfiles } from '../lib/skill-projection.mjs';
 import { isSafetyPolicyProfile } from '../lib/safety-projection.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import {
   DEFAULT_DEPLOYMENT_PROFILE,
   normalizePolicySelection,
@@ -19,7 +20,7 @@ function readOption(args, name, fallback) {
 }
 
 export async function install(args = []) {
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const metadata = await loadPlatforms(rootDir);
   const policyProfiles = await loadPolicyProfiles(rootDir);
   const skillProfiles = await loadSkillProfiles(rootDir);

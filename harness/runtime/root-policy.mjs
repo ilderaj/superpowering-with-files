@@ -1,5 +1,6 @@
 import { access, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { discoverAuthorityRoot } from './authority-root.mjs';
 
 function splitRoots(rawValue) {
   return rawValue
@@ -18,7 +19,8 @@ async function pathExists(targetPath) {
 }
 
 async function resolveAllowedRoots(cwd) {
-  const roots = [cwd];
+  const discovered = await discoverAuthorityRoot(cwd);
+  const roots = [cwd, discovered.rootDir];
   const extraRoots = process.env.HARNESS_MCP_ROOTS ? splitRoots(process.env.HARNESS_MCP_ROOTS) : [];
 
   for (const extraRoot of extraRoots) {
@@ -38,8 +40,8 @@ function isWithinAllowedRoot(candidateRoot, allowedRoot) {
 
 export async function resolveHarnessRoot(inputRoot, options = {}) {
   const cwd = options.cwd ? path.resolve(options.cwd) : process.cwd();
-  const rawRoot = inputRoot ?? cwd;
-  const requestedRoot = path.resolve(cwd, rawRoot);
+  const authority = await discoverAuthorityRoot(cwd, { inputRoot });
+  const requestedRoot = authority.requestedRoot;
 
   if (!(await pathExists(requestedRoot))) {
     throw new Error(`Harness MCP root does not exist: ${requestedRoot}`);
@@ -53,9 +55,11 @@ export async function resolveHarnessRoot(inputRoot, options = {}) {
   }
 
   return {
-    cwd,
+    cwd: authority.cwd,
     requestedRoot,
     rootDir: resolvedRoot,
-    allowedRoots
+    allowedRoots,
+    source: authority.source,
+    markerPath: authority.markerPath ?? null
   };
 }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { readState, writeState } from '../../harness/installer/lib/state.mjs';
@@ -13,8 +13,12 @@ import {
 const execFileAsync = promisify(execFile);
 
 function harnessCommand(root, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root
+    cwd: options.cwd ?? root
   });
 }
 
@@ -62,6 +66,128 @@ test('verify --help prints usage without writing reports', async () => {
     const { stdout } = await harnessCommand(root, 'verify', '--help');
     assert.match(stdout, /Usage: \.\/scripts\/harness verify/);
     await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('status resolves authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+    const { stdout } = await harnessCommand(root, 'status', { cwd: leafDir });
+    const report = JSON.parse(stdout);
+
+    assert.equal(await realpath(report.targets.codex.entries[0].path), await realpath(path.join(root, 'AGENTS.md')));
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('doctor resolves authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+    const { stdout } = await harnessCommand(root, 'doctor', '--check-only', { cwd: leafDir });
+
+    assert.match(stdout, /Harness check passed\./);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install writes workspace state to the authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+
+    await harnessCommand(root, 'install', '--scope=workspace', '--targets=codex', { cwd: leafDir });
+
+    const state = await readState(root);
+    assert.equal(state.scope, 'workspace');
+    assert.equal(state.targets.codex.enabled, true);
+    await assert.rejects(access(path.join(leafDir, '.harness/state.json')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync writes projections only at the authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync', { cwd: leafDir });
+
+    assert.match(await readFile(path.join(root, 'AGENTS.md'), 'utf8'), /Harness Policy For Codex/);
+    await assert.rejects(access(path.join(leafDir, 'AGENTS.md')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('verify writes reports under the authority root when run from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+    await harnessCommand(root, 'verify', '--output=.harness/verification-from-leaf', { cwd: leafDir });
+
+    const report = JSON.parse(
+      await readFile(path.join(root, '.harness/verification-from-leaf/latest.json'), 'utf8')
+    );
+    assert.equal(report.checks.scope, 'workspace');
+    await assert.rejects(access(path.join(leafDir, '.harness/verification-from-leaf/latest.json')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }

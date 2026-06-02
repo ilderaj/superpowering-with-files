@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Superpowering With Files favicon stacked files folded">
+  <defs>
+    <linearGradient id="bg-folded-stack" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <linearGradient id="spark-folded-stack" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff8a63" />
+      <stop offset="100%" stop-color="#ff5f3d" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#bg-folded-stack)" />
+  <path d="M18 23h15l6 6v17H18V23Zm13 2v6h6" fill="#dbe4f0" opacity="0.55" />
+  <path d="M24 17h14l8 8v22H24V17Zm14 2v7h7" fill="#fffaf2" opacity="0.98" />
+  <path d="M38 19v7h7" fill="#d6dfeb" />
+  <path d="M47 14l1.6 4.5 4.5 1.6-4.5 1.6L47 26l-1.6-4.5-4.5-1.6 4.5-1.6L47 14Z" fill="url(#spark-folded-stack)" />
+</svg>

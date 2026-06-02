@@ -24,6 +24,7 @@ import { isSafetyPolicyProfile, resolveAgentConfigRoots } from './safety-project
 import { activeSafetyPolicyProfile, readState } from './state.mjs';
 import { readRuntimeHookEvidence, summarizeRuntimeEvidenceForProjection } from './runtime-hook-evidence.mjs';
 import { readUserManaged } from './user-managed.mjs';
+import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const execFileAsync = promisify(execFile);
 const HOOK_PAYLOAD_TIMEOUT_MS = 5000;
@@ -316,7 +317,7 @@ function publicUpstreamStatus(upstream = {}) {
 
 async function loadContextBudgetPolicies(rootDir) {
   const config = JSON.parse(
-    await readFile(path.join(rootDir, CONTEXT_BUDGET_POLICIES_PATH), 'utf8')
+    await readFile(resolveHarnessSourcePath(rootDir, CONTEXT_BUDGET_POLICIES_PATH), 'utf8')
   );
   return config.targets ?? {};
 }

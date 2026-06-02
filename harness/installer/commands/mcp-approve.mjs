@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import { createApprovalToken } from '../../runtime/approval-token.mjs';
 
 function usage() {
@@ -40,7 +41,8 @@ export async function mcpApprove(args = []) {
   }
 
   const plan = JSON.parse(await readFile(planFile, 'utf8'));
-  const token = await createApprovalToken(process.cwd(), plan, {
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+  const token = await createApprovalToken(rootDir, plan, {
     actor: readOption(args, 'actor') ?? 'local-operator'
   });
   process.stdout.write(`${JSON.stringify(token, null, 2)}\n`);

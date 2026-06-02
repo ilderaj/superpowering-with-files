@@ -1,8 +1,12 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+import { resolveHarnessSourcePath } from '../runtime/source-root.mjs';
 
 export async function loadMcpProfile(rootDir, profileName = 'local') {
-  const profilePath = path.join(rootDir, 'harness/core/mcp/profiles', `${profileName}.json`);
+  const profilePath = resolveHarnessSourcePath(
+    rootDir,
+    'harness/core/mcp/profiles',
+    `${profileName}.json`
+  );
   return JSON.parse(await readFile(profilePath, 'utf8'));
 }
 
