@@ -19,6 +19,7 @@ import { worktreeName } from './worktree-name.mjs';
 import { activeSummary } from './active-summary.mjs';
 import { mcpApprove } from './mcp-approve.mjs';
 import { plugin } from './plugin.mjs';
+import { workspaceLink } from './workspace-link.mjs';
 
 const commands = {
   install,
@@ -40,7 +41,8 @@ const commands = {
   'worktree-name': worktreeName,
   'worktree-preflight': worktreePreflight,
   'adopt-global': adoptGlobal,
-  'adoption-status': adoptionStatus
+  'adoption-status': adoptionStatus,
+  'workspace-link': workspaceLink
 };
 
 function usage() {
@@ -66,6 +68,7 @@ function usage() {
     '  link-personal    Link personal user-managed config into the global install',
     '  adopt-global     Apply the current repo baseline to the user-global install',
     '  adoption-status  Report user-global adoption drift and health',
+    '  workspace-link  Link the current leaf workspace back to an authority root',
     '  worktree-name  Suggest a canonical worktree label and branch name for the active task',
     '  worktree-preflight  Recommend an explicit base before creating a Git worktree'
   ].join('\n');

@@ -13,8 +13,12 @@ import {
 const execFileAsync = promisify(execFile);
 
 function harnessCommand(root, homeDir, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root,
+    cwd: options.cwd ?? root,
     env: {
       ...process.env,
       HOME: homeDir
@@ -74,6 +78,29 @@ test('adopt-global bootstraps user-global state, verification output, and receip
     assert.deepEqual(receipt.targets, ['claude-code', 'codex', 'copilot', 'cursor']);
     assert.equal(receipt.repoHead, await currentHead(root));
     assert.equal(verification.health.problems.length, 0);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('adopt-global and adoption-status resolve the authority root from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(homeDir, { recursive: true });
+    await mkdir(leafDir, { recursive: true });
+    await initGitRepo(root);
+
+    await harnessCommand(root, homeDir, 'adopt-global', { cwd: leafDir });
+
+    const state = await readState(root);
+    const { stdout } = await harnessCommand(root, homeDir, 'adoption-status', { cwd: leafDir });
+    const status = JSON.parse(stdout);
+
+    assert.equal(state.scope, 'user-global');
+    assert.equal(status.scope, 'user-global');
+    assert.equal(status.status, 'in_sync');
   } finally {
     await removeHarnessFixture(root);
   }

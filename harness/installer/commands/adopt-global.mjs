@@ -2,6 +2,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { sync } from './sync.mjs';
 import { verify } from './verify.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import {
   adoptionReceiptPath,
   computeAdoptionStatus,
@@ -46,7 +47,7 @@ export async function adoptGlobal(args = []) {
     return;
   }
 
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const homeDir = os.homedir();
   const verificationOutput = readOption(args, 'output', '.harness/adoption/verification');
   const nextState = await ensureUserGlobalState(rootDir, {

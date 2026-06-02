@@ -51,6 +51,23 @@ test('readHarnessResource returns active task data', async () => {
   assert.match(result.contents[0].text, /counts/);
 });
 
+test('resource services resolve the authority root from a nested leaf cwd', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(leafDir, { recursive: true });
+
+    const resources = await listHarnessResources({ cwd: leafDir });
+    const uris = resources.map((resource) => resource.uri);
+    assert(uris.includes('harness://task/task-with-reconciliation/reconciliation'));
+
+    const adapters = await readHarnessResource('harness://adapters', { cwd: leafDir });
+    assert.match(adapters.contents[0].text, /"platforms"/);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
 
 test('listHarnessResources exposes task reconciliation resources when present', async () => {
   const root = await createHarnessFixture();

@@ -16,6 +16,8 @@ User-global scope writes:
 
 Hooks are optional and are not installed unless explicitly selected.
 
+If Claude Code opens a leaf workspace such as `packages/demo/`, Harness still uses the current git worktree root as the default authority root for planning and `.harness` state. See [Leaf Workspaces](leaf-workspaces.md) for the bounded resolution order and explicit override flow.
+
 Skill roots:
 
 ```text
@@ -58,6 +60,8 @@ When you create a manual branch or worktree for Claude Code-driven work, resolve
 ```bash
 ./scripts/harness worktree-name --task <task-id> --namespace claude-code
 ```
+
+Leaf workspaces do not create a second planning tree. `planning/active/<task-id>/` remains authoritative at the root, and commands such as `install`, `sync`, `verify`, and `record` still target that authority root by default.
 
 For user-global adoption, the default skill profile is the lean `minimal-global` projection. Use `--skills-profile=full` only when you intentionally want the complete skill surface:
 

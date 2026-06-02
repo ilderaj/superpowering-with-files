@@ -16,6 +16,8 @@ User-global scope writes:
 
 Codex projects skills into the shared Harness roots `.agents/skills` and `~/.agents/skills` to keep discovery stable and avoid symlink-specific duplication.
 
+If Codex opens a leaf workspace such as `packages/demo/`, Harness still treats the current git worktree root as the default authority root for planning and `.harness` state. See [Leaf Workspaces](leaf-workspaces.md) for the resolution order and explicit override flow.
+
 Skill roots:
 
 ```text
@@ -64,6 +66,8 @@ For manual branches or extra worktrees created from inside the repo, resolve the
 ```
 
 Codex App may already provide an isolated workspace or its own worktree model. Treat the helper as a supplementary naming tool for manual branch or worktree creation inside that workspace, not as a replacement for host-owned workspace identity.
+
+Leaf workspaces do not create a second planning tree. `planning/active/<task-id>/` remains single-homed at the authority root, and mutating commands such as `install`, `sync`, and `verify` still target that root by default.
 
 For user-global adoption, the default skill profile is the lean `minimal-global` projection. Use `--skills-profile=full` only when you intentionally want the complete skill surface:
 

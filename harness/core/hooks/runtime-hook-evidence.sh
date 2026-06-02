@@ -4,7 +4,97 @@ harness_resolve_project_root() {
     return 0
   fi
 
-  pwd
+  HARNESS_AUTHORITY_START_DIR="${1:-$(pwd)}" node <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const { execSync } = require('node:child_process');
+
+const startDir = process.env.HARNESS_AUTHORITY_START_DIR || process.cwd();
+const overrideRelativePath = path.join('.harness', 'authority-root.json');
+const authorityMarkers = [
+  path.join('.harness', 'state.json'),
+  path.join('planning', 'active'),
+  path.join('scripts', 'harness')
+];
+
+function pathExists(targetPath) {
+  try {
+    fs.accessSync(targetPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function resolveRealPath(targetPath) {
+  try {
+    return (fs.realpathSync.native ?? fs.realpathSync)(targetPath);
+  } catch {
+    return path.resolve(targetPath);
+  }
+}
+
+function parentDirectories(startPath) {
+  const directories = [];
+  let current = path.resolve(startPath);
+
+  while (true) {
+    directories.push(current);
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+
+  return directories;
+}
+
+function readOverrideRoot(overridePath) {
+  const parsed = JSON.parse(fs.readFileSync(overridePath, 'utf8'));
+  if (!parsed || typeof parsed !== 'object' || parsed.schemaVersion !== 1) {
+    throw new Error(`Invalid authority-root override: ${overridePath}`);
+  }
+  if (typeof parsed.authorityRoot !== 'string' || !parsed.authorityRoot.trim()) {
+    throw new Error(`Invalid authority-root override target: ${overridePath}`);
+  }
+  return resolveRealPath(path.resolve(path.dirname(overridePath), parsed.authorityRoot));
+}
+
+const cwd = resolveRealPath(startDir);
+
+for (const candidateDir of parentDirectories(cwd)) {
+  const overridePath = path.join(candidateDir, overrideRelativePath);
+  if (pathExists(overridePath)) {
+    process.stdout.write(`${readOverrideRoot(overridePath)}\n`);
+    process.exit(0);
+  }
+}
+
+for (const candidateDir of parentDirectories(cwd)) {
+  for (const marker of authorityMarkers) {
+    if (pathExists(path.join(candidateDir, marker))) {
+      process.stdout.write(`${resolveRealPath(candidateDir)}\n`);
+      process.exit(0);
+    }
+  }
+}
+
+try {
+  const gitRoot = execSync('git rev-parse --show-toplevel', {
+    cwd,
+    stdio: ['ignore', 'pipe', 'ignore']
+  })
+    .toString()
+    .trim();
+  if (gitRoot) {
+    process.stdout.write(`${resolveRealPath(gitRoot)}\n`);
+    process.exit(0);
+  }
+} catch {}
+
+process.stdout.write(`${cwd}\n`);
+NODE
 }
 
 harness_record_runtime_hook_evidence() {

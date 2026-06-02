@@ -8,6 +8,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { createHarnessMcpServer } from './server.mjs';
 import { loadMcpProfile, validateProfileRequest } from './profile-policy.mjs';
 import { validateBearerToken } from './auth.mjs';
+import { discoverAuthorityRoot } from '../runtime/authority-root.mjs';
 
 function readOption(args, name, fallback) {
   const inline = args.find((arg) => arg.startsWith(`--${name}=`));
@@ -154,7 +155,8 @@ export async function runHttpSelfTest({ rootDir, profileName = 'local', live = f
 async function main() {
   const args = process.argv.slice(2);
   const profileName = readOption(args, 'profile', 'local');
-  const rootDir = readOption(args, 'root', process.cwd());
+  const requestedRoot = readOption(args, 'root', undefined);
+  const { rootDir } = await discoverAuthorityRoot(process.cwd(), { inputRoot: requestedRoot });
   if (hasFlag(args, '--self-test')) {
     const result = await runHttpSelfTest({ rootDir, profileName });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

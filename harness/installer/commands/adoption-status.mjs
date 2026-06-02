@@ -1,5 +1,6 @@
 import os from 'node:os';
 import { computeAdoptionStatus } from '../lib/adoption.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 function hasFlag(args, ...names) {
   return names.some((name) => args.includes(name));
@@ -22,6 +23,7 @@ export async function adoptionStatus(args = []) {
     return;
   }
 
-  const status = await computeAdoptionStatus(process.cwd(), os.homedir());
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+  const status = await computeAdoptionStatus(rootDir, os.homedir());
   console.log(JSON.stringify(status, null, 2));
 }

@@ -2,6 +2,7 @@ import os from 'node:os';
 import { realpathSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import { entriesForScope, loadAdapter, renderEntry } from '../lib/adapters.mjs';
 import { applyCopilotPlanningPatch } from '../lib/copilot-planning-patch.mjs';
 import { applyPlanningWithFilesCompanionPlanPatch } from '../lib/planning-with-files-companion-plan-patch.mjs';
@@ -487,7 +488,7 @@ export async function sync(args = []) {
     return;
   }
 
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const homeDir = os.homedir();
   const state = await readState(rootDir);
   const conflictMode = readOption(args, 'conflict', 'reject');

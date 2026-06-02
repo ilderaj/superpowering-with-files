@@ -1,8 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { writeState } from '../../harness/installer/lib/state.mjs';
 import {
   createHarnessFixture,
   removeHarnessFixture
@@ -11,8 +13,12 @@ import {
 const execFileAsync = promisify(execFile);
 
 function harnessCommand(root, ...args) {
+  const maybeOptions = args.at(-1);
+  const options =
+    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
+
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: root,
+    cwd: options.cwd ?? root,
     env: { ...process.env, HOME: path.join(root, 'home') }
   });
 }
@@ -57,6 +63,34 @@ test('plugin migrate requires dry-run for now and produces a cutover plan', asyn
       'cutover',
       'cleanup'
     ]);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('plugin doctor resolves the authority root from a nested leaf directory', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(path.join(root, 'home'), { recursive: true });
+    await mkdir(leafDir, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'user-global',
+      projectionMode: 'link',
+      hookMode: 'off',
+      policyProfile: 'always-on-core',
+      skillProfile: 'minimal-global',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'home/.codex/AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    const { stdout } = await harnessCommand(root, 'plugin', 'doctor', { cwd: leafDir });
+    const result = JSON.parse(stdout);
+    assert.equal(result.globalAdoption.status.scope, 'user-global');
+    assert.equal(result.globalAdoption.status.targets[0], 'codex');
   } finally {
     await removeHarnessFixture(root);
   }

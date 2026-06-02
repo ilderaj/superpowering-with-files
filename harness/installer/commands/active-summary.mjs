@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -159,7 +160,7 @@ export async function activeSummary(args = []) {
     return;
   }
 
-  const rootDir = process.cwd();
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const outputPath = readOption(args, 'output');
   const scanScript = path.join(
     rootDir,

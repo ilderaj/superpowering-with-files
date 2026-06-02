@@ -44,3 +44,30 @@ test('session-checkpoint records SessionStart evidence before scripts/harness ea
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('session-checkpoint resolves the authority root from a nested leaf directory', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-session-checkpoint-leaf-'));
+  try {
+    const canonicalRoot = await realpath(root);
+    const scriptsDir = path.join(root, 'scripts');
+    const leafDir = path.join(root, 'packages/demo');
+    await mkdir(scriptsDir, { recursive: true });
+    await mkdir(leafDir, { recursive: true });
+    const harnessPath = path.join(scriptsDir, 'harness');
+    await writeFile(harnessPath, '#!/usr/bin/env bash\nexit 0\n');
+    await chmod(harnessPath, 0o755);
+
+    const scriptPath = path.join(process.cwd(), 'harness/core/hooks/safety/scripts/session-checkpoint.sh');
+    execFileSync('bash', [scriptPath, 'codex'], {
+      cwd: leafDir,
+      env: process.env
+    });
+
+    const entries = await readRuntimeEvidence(root);
+    const lastEntry = entries.at(-1);
+    assert.equal(await realpath(lastEntry.projectRoot), canonicalRoot);
+    assert.equal(await realpath(lastEntry.cwd), await realpath(leafDir));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

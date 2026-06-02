@@ -2,6 +2,7 @@ import os from 'node:os';
 import { readFile } from 'node:fs/promises';
 import { readHarnessHealth } from '../lib/health.mjs';
 import { listHookEvidenceRows } from '../lib/hook-evidence-summary.mjs';
+import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 
 const HOME_PATH_PATTERNS = [
   /(?:^|[^A-Za-z0-9])\/Users\/[^/\n\r]+\/(?:[^ \n\r\t"'`<>]|$)/,
@@ -103,7 +104,8 @@ function renderedScopeOverlapWarnings(health) {
 
 export async function doctor(args = []) {
   const checkOnly = args.includes('--check-only');
-  const health = await readHarnessHealth(process.cwd(), os.homedir());
+  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+  const health = await readHarnessHealth(rootDir, os.homedir());
   const problems = [];
   const warnings = [...health.warnings];
 
