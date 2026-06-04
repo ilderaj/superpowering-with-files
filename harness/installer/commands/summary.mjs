@@ -1,8 +1,5 @@
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { buildSessionSummary } from '../lib/session-summary.mjs';
-import { resolveActiveTaskDirectory } from '../lib/planning-task.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { getTaskSummary } from '../../runtime/summary-service.mjs';
 
 function hasFlag(args, ...names) {
   return names.some((name) => args.includes(name));
@@ -37,17 +34,6 @@ function usage() {
   ].join('\n');
 }
 
-async function readSessionStartEpoch(taskDir) {
-  const rawValue = await readFile(path.join(taskDir, '.session-start'), 'utf8').catch(() => '');
-  const normalized = rawValue.trim();
-  if (!normalized) {
-    return Number.NaN;
-  }
-
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : Number.NaN;
-}
-
 export async function summary(args = []) {
   if (hasFlag(args, '--help', '-h')) {
     console.log(usage());
@@ -56,14 +42,7 @@ export async function summary(args = []) {
 
   const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const taskId = parseTaskId(args);
-  const taskDir = await resolveActiveTaskDirectory(rootDir, taskId);
-  const output = await buildSessionSummary({
-    taskPlanPath: path.join(taskDir, 'task_plan.md'),
-    findingsPath: path.join(taskDir, 'findings.md'),
-    progressPath: path.join(taskDir, 'progress.md'),
-    sessionStartEpoch: await readSessionStartEpoch(taskDir),
-    now: Date.now()
-  });
+  const { summary: output } = await getTaskSummary({ root: rootDir, taskId });
 
   process.stdout.write(`${output}\n`);
 }

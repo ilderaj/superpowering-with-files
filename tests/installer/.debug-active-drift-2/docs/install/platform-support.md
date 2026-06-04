@@ -1,0 +1,27 @@
+# Platform Support
+
+superpowering-with-files currently supports installer-managed projections for:
+
+- Codex
+- GitHub Copilot
+- Cursor
+- Claude Code
+
+superpowering-with-files does not currently support installer-managed Gemini CLI projections.
+
+That means:
+
+- no rendered `GEMINI.md` entry file is generated,
+- no installer-managed Gemini user-global entry is written,
+- no Gemini skill root or hook root is projected by `install` or `sync`.
+
+If you pass `--targets=gemini`, the installer reports Gemini as unsupported instead of silently creating partial state.
+
+For choosing between minimal-global, full-local, and cloud-dev adoption profiles, start with the [Adoption Starter Kit](adoption-starter-kit.md).
+
+Hook availability depends on target-specific prerequisites:
+
+- Codex: requires hooks to be enabled in the installed Codex build. Check with `codex features list | rg '^hooks\\s'` and follow the upstream Codex docs for builds that use a different gate name or config shape.
+- GitHub Copilot / VS Code: hooks are preview functionality and may be disabled by org policy.
+- Cursor: native hooks are official; Claude-compatible hooks additionally require the Third-party skills feature.
+- Claude Code: hooks are native in `.claude/settings*.json`.

@@ -1,0 +1,9 @@
+{
+  "name": "local",
+  "mode": "read-only",
+  "allowedHosts": ["127.0.0.1", "localhost"],
+  "allowedOrigins": ["http://127.0.0.1", "http://localhost"],
+  "requireAuth": false,
+  "allowUserGlobal": false,
+  "maxResponseBytes": 262144
+}

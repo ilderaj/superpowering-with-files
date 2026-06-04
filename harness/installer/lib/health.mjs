@@ -25,6 +25,7 @@ import { activeSafetyPolicyProfile, readState } from './state.mjs';
 import { readRuntimeHookEvidence, summarizeRuntimeEvidenceForProjection } from './runtime-hook-evidence.mjs';
 import { readUserManaged } from './user-managed.mjs';
 import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
+import { parseExecutionContract, validateExecutionContract } from '../../runtime/execution-contract.mjs';
 
 const execFileAsync = promisify(execFile);
 const HOOK_PAYLOAD_TIMEOUT_MS = 5000;
@@ -155,6 +156,92 @@ async function inspectActiveTaskState(rootDir) {
     activeTaskCount: matches.length,
     activeTaskDir: matches.length === 1 ? matches[0] : null
   };
+}
+
+async function inspectCompanionSyncHealth(rootDir) {
+  const activeRoot = path.join(rootDir, 'planning/active');
+  const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
+  const statusScript = resolveHarnessSourcePath(
+    rootDir,
+    'harness/core/upstream-overlays/planning-with-files/scripts/task-status.py'
+  );
+  const results = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const taskId = entry.name;
+    const taskPlanPath = path.join(activeRoot, taskId, 'task_plan.md');
+    let statusReport;
+    try {
+      const { stdout } = await execFileAsync('python3', [statusScript, rootDir, taskId, '--json'], {
+        cwd: rootDir
+      });
+      statusReport = JSON.parse(stdout);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      results.push({
+        type: 'companion-sync-inspection-error',
+        path: path.relative(rootDir, taskPlanPath),
+        severity: 'problem',
+        message: `Companion sync inspection failed: ${message}`
+      });
+      continue;
+    }
+
+    const companion = statusReport?.companion;
+    if (!companion?.has_companion || companion.ok) {
+      continue;
+    }
+
+    results.push({
+      type: statusReport.safe_to_archive ? 'companion-sync-block' : 'companion-sync-warning',
+      path: path.relative(rootDir, taskPlanPath),
+      severity: statusReport.safe_to_archive ? 'problem' : 'warning',
+      message: `${
+        statusReport.safe_to_archive ? 'Companion sync blocks archive readiness' : 'Companion sync needs attention'
+      }: ${(companion.reasons || []).join('; ') || 'companion sync check failed'}`,
+      taskId,
+      reasons: companion.reasons || []
+    });
+  }
+
+  return results;
+}
+
+async function inspectExecutionContractHealth(rootDir) {
+  const activeRoot = path.join(rootDir, 'planning/active');
+  const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
+  const results = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const taskPlanPath = path.join(activeRoot, entry.name, 'task_plan.md');
+    const markdown = await readFile(taskPlanPath, 'utf8').catch(() => null);
+    if (!markdown || !markdown.includes('## Execution Contract')) {
+      continue;
+    }
+
+    const parsed = parseExecutionContract(markdown);
+    const validation = validateExecutionContract(parsed);
+    if (validation.ok) {
+      continue;
+    }
+
+    results.push({
+      type: 'execution-contract-warning',
+      path: path.relative(rootDir, taskPlanPath),
+      severity: 'warning',
+      message: `Execution contract needs attention: ${validation.reasons.join('; ')}`
+    });
+  }
+
+  return results;
 }
 
 function isPlainObject(value) {
@@ -1398,7 +1485,11 @@ export async function readHarnessHealth(rootDir, homeDir) {
   const targets = {};
   const problems = [];
   const warnings = [];
-  const planLocations = await inspectPlanLocations(rootDir);
+  const planLocations = [
+    ...(await inspectPlanLocations(rootDir)),
+    ...(await inspectCompanionSyncHealth(rootDir)),
+    ...(await inspectExecutionContractHealth(rootDir))
+  ];
   const context = createEmptyContext();
   context.ledger = {
     scope: state.scope,

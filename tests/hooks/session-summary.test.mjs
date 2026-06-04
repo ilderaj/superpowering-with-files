@@ -276,6 +276,93 @@ const summaryFixtures = [
     assertSummary(summary) {
       assert.equal(summary, this.expected);
     }
+  },
+  {
+    name: 'buildSessionSummary ignores routing decision and execution contract details in the rendered summary',
+    taskId: 'execution-contract-task',
+    sessionStartEpoch: 1_000,
+    now: 65_000,
+    files: {
+      taskPlan: [
+        '# Execution Contract Task',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '### Phase 1: Extend templates',
+        '- **Status:** in_progress',
+        '',
+        '## Routing Decision',
+        '- Selected Route: tracked-lean',
+        '- Route Reason: task requires durable planning without deep reasoning',
+        '- Promotion Trigger: none',
+        '- Route Evidence Surface: planning + summary',
+        '',
+        '## Execution Contract',
+        '### Unit: unit-01',
+        '- Kind: implementation',
+        '- Scope:',
+        '  - Do: update planning templates',
+        '  - Not do: add receipts',
+        '- Owner Mode: inline',
+        '- Allowed Ops:',
+        '  - Files: harness/core/**',
+        '  - Commands: node --test',
+        '  - External effects: none',
+        '- Dependencies:',
+        '  - none',
+        '- Verification Plan:',
+        '  - node --test tests/hooks/session-summary.test.mjs',
+        '- Return Artifacts:',
+        '  - patch',
+        '- Integration Target:',
+        '  - progress.md',
+        '- Exit Criteria:',
+        '  - templates updated'
+      ].join('\n'),
+      findings: [
+        '## Findings',
+        '- Execution Contract details should remain out of the compact session summary.'
+      ].join('\n'),
+      progress: [
+        '## Progress',
+        '- Added the execution contract regression fixture.'
+      ].join('\n')
+    },
+    expected: [
+      '[planning-with-files] SESSION SUMMARY',
+      'Task: Execution Contract Task (execution-contract-task)',
+      'Status: active  Phases: 0/1  Duration: 1m',
+      '',
+      'Conclusion:',
+      '- Added the execution contract regression fixture.',
+      '',
+      'Checklist:',
+      '- [~] Phase 1: Extend templates',
+      '',
+      'Key findings:',
+      '- Execution Contract details should remain out of the compact session summary.',
+      '',
+      'Verification:',
+      '- Tests: none recorded',
+      '- Errors logged: 0',
+      '',
+      'Next:',
+      '- —',
+      '',
+      'Sources: planning/active/execution-contract-task/{task_plan.md,progress.md,findings.md}'
+    ].join('\n'),
+    assertSummary(summary) {
+      assert.equal(summary, this.expected);
+      assert.doesNotMatch(summary, /Selected Route:/);
+      assert.doesNotMatch(summary, /Route Reason:/);
+      assert.doesNotMatch(summary, /Promotion Trigger:/);
+      assert.doesNotMatch(summary, /Route Evidence Surface:/);
+      assert.doesNotMatch(summary, /Owner Mode: inline/);
+      assert.doesNotMatch(summary, /Allowed Ops:/);
+    }
   }
 ];
 

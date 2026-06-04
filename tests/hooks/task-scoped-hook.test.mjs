@@ -338,6 +338,87 @@ test('task-scoped-hook treats active status lines with extra whitespace as activ
   }
 });
 
+test('tracked-lean uses brief context on first prompt', async () => {
+  const { fixtureRoot } = await createFixture('tracked-lean-first-prompt', {
+    taskPlan: [
+      '# Codex Hooks',
+      '',
+      '## Goal',
+      '- Keep route behavior economical.',
+      '',
+      '## Current State',
+      'Status: active',
+      'Archive Eligible: no',
+      'Close Reason:',
+      'Reconcile: open',
+      '',
+      '## Routing Decision',
+      '- Selected Route: tracked-lean',
+      '- Route Reason: task is durable but not deep',
+      '- Promotion Trigger: none',
+      '- Route Evidence Surface: planning + summary'
+    ].join('\n'),
+    findings: '## Notes\n- Prefer brief route-aware context.\n',
+    progress: '## Progress\n- Keep the first prompt compact.\n'
+  });
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.match(payload.hookSpecificOutput.additionalContext, /BRIEF CONTEXT/);
+    assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('deep-rich keeps hot context on first prompt', async () => {
+  const { fixtureRoot } = await createFixture('deep-rich-first-prompt', {
+    taskPlan: [
+      '# Codex Hooks',
+      '',
+      '## Goal',
+      '- Keep route behavior rich when needed.',
+      '',
+      '## Current State',
+      'Status: active',
+      'Archive Eligible: no',
+      'Close Reason:',
+      'Reconcile: open',
+      '',
+      '## Routing Decision',
+      '- Selected Route: deep-rich',
+      '- Route Reason: architecture is unclear',
+      '- Promotion Trigger: architecture unclear',
+      '- Route Evidence Surface: planning + summary + active-summary'
+    ].join('\n'),
+    findings: '## Notes\n- Keep the richer context.\n',
+    progress: '## Progress\n- Deep route requires hot context.\n'
+  });
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.match(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
 test('task-scoped-hook canonicalizes Codex SessionStart when multiple active tasks exist', async () => {
   const { fixtureRoot } = await createFixture('codex-multiple-active-session-start', activeTaskFiles());
   await addActiveTask(fixtureRoot, 'second-task');

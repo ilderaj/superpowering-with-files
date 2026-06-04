@@ -1,0 +1,14 @@
+^\s*rm\s+-rf?\b
+^\s*rmdir\b
+\bfind\b.*\b-delete\b
+^\s*git\s+clean\b
+^\s*git\s+reset\s+--hard\b
+^\s*sudo\b
+^\s*chmod\b
+^\s*chown\b
+^\s*dd\b
+^\s*curl\b
+^\s*wget\b
+^\s*(bash|sh)\s+-c\b
+^\s*npm\s+(install|i|uninstall|rm)\b
+^\s*pnpm\s+(add|remove|install)\b

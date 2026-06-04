@@ -1,0 +1,8 @@
+/
+/Users
+/Users/jared
+$HOME
+~/Documents
+~/Desktop
+~/Downloads
+~/Library

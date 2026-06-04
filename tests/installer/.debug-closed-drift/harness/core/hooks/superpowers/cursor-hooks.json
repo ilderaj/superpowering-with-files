@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "sh -c '[ -f .cursor/hooks/session-start ] && sh .cursor/hooks/session-start cursor || sh \"$HOME/.cursor/hooks/session-start\" cursor'",
+        "timeout": 5,
+        "description": "Harness-managed superpowers hook"
+      }
+    ]
+  }
+}

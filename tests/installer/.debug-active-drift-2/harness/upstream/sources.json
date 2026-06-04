@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "superpowers": {
+      "type": "git",
+      "url": "https://github.com/obra/superpowers",
+      "path": "harness/upstream/superpowers"
+    },
+    "planning-with-files": {
+      "type": "git",
+      "url": "https://github.com/OthmanAdi/planning-with-files",
+      "path": "harness/upstream/planning-with-files",
+      "overlayPath": "harness/core/upstream-overlays/planning-with-files"
+    }
+  }
+}

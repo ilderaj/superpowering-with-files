@@ -1,0 +1,6 @@
+/workspaces/..
+/workspaces/*/..
+$HOME
+~/.ssh
+~/.aws
+~/.config/gcloud

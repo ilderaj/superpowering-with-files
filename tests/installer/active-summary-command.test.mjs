@@ -56,6 +56,62 @@ async function writeTask(root, taskId, files = {}) {
   }
 }
 
+async function writeExecutionReceiptArtifact(root, taskId, unitId, overrides = {}) {
+  const receiptDir = path.join(root, '.harness', 'execution', 'receipts', taskId);
+  await mkdir(receiptDir, { recursive: true });
+  const receiptPath = path.join(receiptDir, `2026-06-04T04-00-00.000Z-${unitId}.json`);
+  await writeFile(
+    receiptPath,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        taskId,
+        unitId,
+        actor: 'codex',
+        mode: 'inline',
+        resultStatus: 'blocked',
+        startedAt: '2026-06-04T04:00:00.000Z',
+        finishedAt: '2026-06-04T04:05:00.000Z',
+        changedFiles: [],
+        verificationCommands: [],
+        artifactsProduced: [],
+        followups: [{ type: 'integration', status: 'open', target: 'progress.md' }],
+        syncBackRef: 'progress.md#unit-01',
+        ...overrides
+      },
+      null,
+      2
+    )}\n`
+  );
+}
+
+async function writeFollowupClosureArtifact(root, taskId, unitId, overrides = {}) {
+  const closureDir = path.join(root, '.harness', 'execution', 'followup-closures', taskId);
+  await mkdir(closureDir, { recursive: true });
+  const closurePath = path.join(closureDir, `2026-06-04T10-00-00.000Z-${unitId}.json`);
+  await writeFile(
+    closurePath,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        taskId,
+        unitId,
+        followupId: `${unitId}:integration:progress.md`,
+        closureStatus: 'resolved',
+        actor: 'codex',
+        mode: 'inline',
+        closedAt: '2026-06-04T10:00:00.000Z',
+        reason: 'reconciliation.md now records the accepted closure path',
+        evidenceRef: 'reconciliation.md#followup-closure',
+        syncBackRef: 'progress.md#followup-closure',
+        ...overrides
+      },
+      null,
+      2
+    )}\n`
+  );
+}
+
 function taskFiles(title, status, archiveEligible = 'no') {
   return {
     taskPlan: [
@@ -232,6 +288,97 @@ test('harness active-summary --json and --output marks unsynced companions as no
   }
 });
 
+test('harness active-summary surfaces companion drift for active tasks before archive readiness', async () => {
+  const root = await createFixture('active-summary-companion-drift-active');
+  try {
+    await writeTask(root, 'task-active-drift', {
+      ...taskFiles('Task Active Drift', 'active'),
+      taskPlan: [
+        '# Task Active Drift',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '## Companion Plan',
+        '- Companion plan: `docs/superpowers/plans/task-active-drift.md`',
+        '- Companion summary: strategic notes are in flight',
+        '- Sync-back status: active at 2026-06-04T10:00:00: initial draft',
+        '',
+        '### Phase 1: Audit',
+        '- **Status:** complete'
+      ].join('\n')
+    });
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/task-active-drift.md'),
+      [
+        '# Task Active Drift Companion',
+        '',
+        'Lifecycle state: active',
+        'Sync-back status: active at 2026-06-04T10:00:00: initial draft'
+      ].join('\n')
+    );
+
+    const { stdout } = await harnessCommand(root, 'active-summary', '--json');
+    const report = JSON.parse(stdout);
+    const driftTask = report.tasks.find((task) => task.task_id === 'task-active-drift');
+
+    assert.equal(driftTask.archive_ready, false);
+    assert.equal(driftTask.companion.has_companion, true);
+    assert.equal(driftTask.companion.ok, false);
+    assert.match(
+      driftTask.companion.reasons.join('\n'),
+      /Companion plan is missing Active task path/
+    );
+    assert(
+      report.anomalies.some(
+        (anomaly) => anomaly.taskId === 'task-active-drift' && anomaly.kind === 'companion_sync_warning'
+      )
+    );
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('active-summary surfaces route metadata without changing reconciliation semantics', async () => {
+  const root = await createFixture('active-summary-routing-decision');
+  try {
+    await writeTask(root, 'task-a', {
+      taskPlan: [
+        '# Task A',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Routing Decision',
+        '- Selected Route: tracked-lean',
+        '- Route Reason: durable task without deep reasoning',
+        '- Promotion Trigger: none',
+        '- Route Evidence Surface: planning + active-summary',
+        '',
+        '### Phase 1: Audit',
+        '- **Status:** complete'
+      ].join('\n'),
+      findings: '# Findings\n',
+      progress: '# Progress\n'
+    });
+
+    const { stdout, stderr } = await harnessCommand(root, 'active-summary', '--json');
+    const report = JSON.parse(stdout);
+
+    assert.equal(stderr, '');
+    assert.equal(report.tasks[0].routingDecision.selectedRoute, 'tracked-lean');
+    assert.equal(report.tasks[0].reconciliationStatus, 'open');
+  } finally {
+    await removeFixture(root);
+  }
+});
+
 
 test('harness active-summary exposes reconciliation lifecycle status and anomalies', async () => {
   const root = await createFixture('active-summary-reconciliation');
@@ -307,6 +454,224 @@ test('harness active-summary exposes reconciliation lifecycle status and anomali
     assert.equal(readyArtifactTask.reconciliationStatus, 'complete');
     assert.equal(readyArtifactTask.reconciliationReady, true);
     assert(report.anomalies.some((anomaly) => anomaly.taskId === 'task-open' && anomaly.kind === 'reconciliation_open'));
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('harness active-summary keeps reconciliation authority semantics stable when Execution Contract is present', async () => {
+  const root = await createFixture('active-summary-reconciliation-execution-contract');
+  try {
+    await writeTask(root, 'task-contract-open', {
+      ...taskFiles('Task Contract Open', 'closed', 'yes'),
+      taskPlan: [
+        '# Task Contract Open',
+        '',
+        '## Current State',
+        'Status: closed',
+        'Archive Eligible: yes',
+        'Close Reason: implementation landed',
+        '',
+        '## Execution Contract',
+        '',
+        '### Unit: unit-01',
+        '- Kind: implementation',
+        '- Status: integrated',
+        '- Scope:',
+        '  - Do: Keep the archive-ready task wired into the contract surface.',
+        '  - Not do: Declare reconciliation complete on behalf of the task.',
+        '- Owner Mode: inline',
+        '- Allowed Ops:',
+        '  - Files: planning/active/task-contract-open/*',
+        '  - Commands: node --test',
+        '- Dependencies:',
+        '  - None.',
+        '- Verification Plan:',
+        '  - node --test tests/installer/active-summary-command.test.mjs',
+        '- Return Artifacts:',
+        '  - regression test',
+        '- Integration Target:',
+        '  - progress.md',
+        '- Exit Criteria:',
+        '  - The contract unit is integrated without changing task-level reconciliation truth.',
+        '',
+        '### Phase 1: Audit',
+        '- **Status:** complete'
+      ].join('\n')
+    });
+    await writeTask(root, 'task-contract-complete', {
+      ...taskFiles('Task Contract Complete', 'closed', 'yes'),
+      taskPlan: [
+        '# Task Contract Complete',
+        '',
+        '## Current State',
+        'Status: closed',
+        'Archive Eligible: yes',
+        'Close Reason: audit documented',
+        'Reconcile: complete',
+        '',
+        '## Execution Contract',
+        '',
+        '### Unit: unit-01',
+        '- Kind: implementation',
+        '- Status: planned',
+        '- Scope:',
+        '  - Do: Leave task-level reconciliation authority unchanged.',
+        '  - Not do: Override task readiness from unit state alone.',
+        '- Owner Mode: inline',
+        '- Allowed Ops:',
+        '  - Files: planning/active/task-contract-complete/*',
+        '  - Commands: node --test',
+        '- Dependencies:',
+        '  - None.',
+        '- Verification Plan:',
+        '  - node --test tests/installer/active-summary-command.test.mjs',
+        '- Return Artifacts:',
+        '  - regression test',
+        '- Integration Target:',
+        '  - progress.md',
+        '- Exit Criteria:',
+        '  - Reconciliation remains complete even when the unit itself is still planned.',
+        '',
+        '### Phase 1: Audit',
+        '- **Status:** complete'
+      ].join('\n')
+    });
+
+    const { stdout } = await harnessCommand(root, 'active-summary', '--json');
+    const report = JSON.parse(stdout);
+
+    const contractOpenTask = report.tasks.find((task) => task.task_id === 'task-contract-open');
+    const contractCompleteTask = report.tasks.find((task) => task.task_id === 'task-contract-complete');
+
+    assert.equal(contractOpenTask.reconciliationStatus, 'open');
+    assert.equal(contractOpenTask.reconciliationReady, false);
+    assert.equal(contractOpenTask.archive_ready, false);
+    assert(
+      report.anomalies.some(
+        (anomaly) => anomaly.taskId === 'task-contract-open' && anomaly.kind === 'reconciliation_open'
+      )
+    );
+
+    assert.equal(contractCompleteTask.reconciliationStatus, 'complete');
+    assert.equal(contractCompleteTask.reconciliationReady, true);
+    assert.equal(contractCompleteTask.archive_ready, true);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('harness active-summary surfaces execution receipt signals', async () => {
+  const root = await createFixture('active-summary-execution-signals');
+  try {
+    await writeTask(root, 'task-execution-signals', {
+      ...taskFiles('Task Execution Signals', 'active'),
+      taskPlan: [
+        '# Task Execution Signals',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '## Execution Contract',
+        '',
+        '### Unit: unit-01',
+        '- Kind: implementation',
+        '- Status: blocked',
+        '- Scope:',
+        '  - Do: keep execution receipts visible in active-summary.',
+        '  - Not do: let receipt status replace reconciliation authority.',
+        '- Owner Mode: inline',
+        '- Allowed Ops:',
+        '  - Files: harness/**',
+        '  - Commands: node --test',
+        '- Dependencies:',
+        '  - None.',
+        '- Verification Plan:',
+        '  - node --test tests/installer/active-summary-command.test.mjs',
+        '- Return Artifacts:',
+        '  - receipt',
+        '- Integration Target:',
+        '  - progress.md',
+        '- Exit Criteria:',
+        '  - Active summary reflects execution receipt state.'
+      ].join('\n')
+    });
+    await writeExecutionReceiptArtifact(root, 'task-execution-signals', 'unit-01');
+
+    const { stdout } = await harnessCommand(root, 'active-summary', '--json');
+    const report = JSON.parse(stdout);
+    const task = report.tasks.find((entry) => entry.task_id === 'task-execution-signals');
+
+    assert.equal(task.executionSignals.receiptCount, 1);
+    assert.equal(task.executionSignals.blockedUnits, 1);
+    assert.equal(task.executionSignals.openFollowups, 1);
+    assert(
+      report.anomalies.some(
+        (anomaly) => anomaly.taskId === 'task-execution-signals' && anomaly.kind === 'execution_receipt_blocked'
+      )
+    );
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('harness active-summary suppresses open-followup anomalies when closure evidence resolves them', async () => {
+  const root = await createFixture('active-summary-followup-closure');
+  try {
+    await writeTask(root, 'task-followup-closure', {
+      ...taskFiles('Task Follow-Up Closure', 'active'),
+      taskPlan: [
+        '# Task Follow-Up Closure',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '## Execution Contract',
+        '',
+        '### Unit: unit-01',
+        '- Kind: integration',
+        '- Status: done',
+        '- Scope:',
+        '  - Do: surface closure-aware execution signals.',
+        '  - Not do: redefine reconciliation authority.',
+        '- Owner Mode: inline',
+        '- Allowed Ops:',
+        '  - Files: planning/**',
+        '  - Commands: node --test',
+        '- Dependencies:',
+        '  - goal-3-receipts',
+        '- Verification Plan:',
+        '  - node --test tests/installer/active-summary-command.test.mjs',
+        '- Return Artifacts:',
+        '  - receipt',
+        '- Integration Target:',
+        '  - reconciliation.md',
+        '- Exit Criteria:',
+        '  - active-summary no longer reports open followups for resolved closures.'
+      ].join('\n')
+    });
+    await writeExecutionReceiptArtifact(root, 'task-followup-closure', 'unit-01', {
+      resultStatus: 'done_with_evidence'
+    });
+    await writeFollowupClosureArtifact(root, 'task-followup-closure', 'unit-01');
+
+    const { stdout } = await harnessCommand(root, 'active-summary', '--json');
+    const report = JSON.parse(stdout);
+    const task = report.tasks.find((entry) => entry.task_id === 'task-followup-closure');
+
+    assert.equal(task.executionSignals.openFollowups, 0);
+    assert.equal(task.executionSignals.resolvedFollowups, 1);
+    assert.equal(task.executionSignals.waivedFollowups, 0);
+    assert.equal(
+      report.anomalies.some(
+        (anomaly) => anomaly.taskId === 'task-followup-closure' && anomaly.kind === 'execution_followup_open'
+      ),
+      false
+    );
   } finally {
     await removeFixture(root);
   }

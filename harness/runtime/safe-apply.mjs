@@ -5,6 +5,8 @@ import { checkpointCommand } from '../installer/commands/checkpoint.mjs';
 import { sync } from '../installer/commands/sync.mjs';
 import { record } from '../installer/commands/record.mjs';
 import { writeAuditReceipt } from './audit-receipt.mjs';
+import { writeExecutionReceipt } from './execution-receipt.mjs';
+import { writeFollowupClosure } from './followup-closure.mjs';
 import { verifyApprovalToken } from './approval-token.mjs';
 import { writeRegistry } from './registry-service.mjs';
 
@@ -31,6 +33,9 @@ async function writeDeniedReceipt(rootDir, plan, token, reason) {
 }
 
 export async function applyWritePlan(plan, token) {
+  let executionReceiptPath = null;
+  let followupClosurePath = null;
+
   try {
     await verifyApprovalToken(plan.rootDir, plan, token);
   } catch (error) {
@@ -46,6 +51,16 @@ export async function applyWritePlan(plan, token) {
     await checkpointCommand(plan.payload.args ?? []);
   } else if (plan.operation === 'record_progress') {
     await record(plan.payload.args ?? []);
+  } else if (plan.operation === 'record_execution_receipt') {
+    executionReceiptPath = await writeExecutionReceipt(plan.rootDir, {
+      ...plan.payload.receipt,
+      actor: token.actor
+    });
+  } else if (plan.operation === 'record_followup_closure') {
+    followupClosurePath = await writeFollowupClosure(plan.rootDir, {
+      ...plan.payload.closure,
+      actor: token.actor
+    });
   } else if (plan.operation === 'distribution') {
     await writeRegistry(plan.rootDir, plan.payload.bundle, plan.payload.channel);
   } else {
@@ -67,5 +82,5 @@ export async function applyWritePlan(plan, token) {
     resultStatus: 'success'
   });
 
-  return { receiptPath };
+  return { receiptPath, executionReceiptPath, followupClosurePath };
 }

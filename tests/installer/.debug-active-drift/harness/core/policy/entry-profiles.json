@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "defaultProfile": "always-on-core",
+  "profiles": {
+    "always-on-core": [
+      "Default Behavior",
+      "Rule Precedence",
+      "Task Classification",
+      "When Superpowers Is Allowed",
+      "When Superpowers Is Not Allowed",
+      "Communication Guidelines",
+      "Tool Preferences",
+      "Compact Instructions",
+      "Shell And Token-Saving Preferences"
+    ],
+    "copilot-always-on-thin": [
+      "Default Behavior",
+      "Rule Precedence",
+      "Task Classification",
+      "Communication Guidelines",
+      "Compact Instructions",
+      "Shell And Token-Saving Preferences"
+    ],
+    "copilot-concise-output": [],
+    "tracked-task-extended": [
+      "Plan Location Boundaries",
+      "Planning-With-Files Lifecycle Rule",
+      "Complex Task Orchestration",
+      "Cross-IDE Portability",
+      "Hard Constraints"
+    ],
+    "deep-reasoning-reference": [
+      "Mandatory Sync-Back Rule",
+      "Companion Plan Model"
+    ],
+    "safety": {
+      "include": ["base.md", "safety.md"]
+    },
+    "cloud-safe": {
+      "include": ["base.md", "safety.md", "cloud-safe.md"]
+    }
+  }
+}

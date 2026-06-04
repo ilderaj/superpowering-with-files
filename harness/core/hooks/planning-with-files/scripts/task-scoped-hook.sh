@@ -240,6 +240,7 @@ progress="$task_dir/progress.md"
 hot_context_helper="$script_dir/render-hot-context.mjs"
 summary_helper="$script_dir/render-session-summary.mjs"
 brief_context_helper="$script_dir/render-brief-context.mjs"
+route_helper="$script_dir/render-routing-decision.mjs"
 
 render_hot_context() {
   node "$hot_context_helper" "$plan" "$findings" "$progress"
@@ -257,6 +258,32 @@ render_session_summary() {
   local sidecar_epoch
   sidecar_epoch="$(read_session_sidecar "$task_dir")"
   node "$summary_helper" "$plan" "$findings" "$progress" "${sidecar_epoch:-}"
+}
+
+render_route_json() {
+  node "$route_helper" "$plan"
+}
+
+selected_route() {
+  local route_json
+  route_json="$(render_route_json)"
+  printf '%s' "$route_json" | node -e 'let input="";process.stdin.setEncoding("utf8");process.stdin.on("data",chunk=>{input+=chunk;});process.stdin.on("end",()=>{process.stdout.write(JSON.parse(input).selectedRoute || "tracked-lean");});'
+}
+
+first_prompt_context() {
+  local route
+  route="$(selected_route)"
+  case "$route" in
+    tracked-lean)
+      render_brief_context
+      ;;
+    deep-rich)
+      render_hot_context
+      ;;
+    *)
+      render_hot_context
+      ;;
+  esac
 }
 
 relative_path() {
@@ -312,7 +339,7 @@ case "$event" in
       if [ -n "$fingerprint" ] && [ "$fingerprint" = "$previous_fingerprint" ]; then
         context="$(render_brief_context)"
       else
-        context="$(render_hot_context)"
+        context="$(first_prompt_context)"
       fi
       [ -n "$fingerprint" ] && write_last_hot_context_fingerprint "$task_dir" "$fingerprint"
     else

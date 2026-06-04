@@ -25,6 +25,19 @@ async function markdownFilesIn(dirPath) {
   }
 }
 
+async function directoriesIn(dirPath) {
+  try {
+    const entries = await readdir(dirPath, { withFileTypes: true });
+    return entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.join(dirPath, entry.name))
+      .sort();
+  } catch (error) {
+    if (error && error.code === 'ENOENT') return [];
+    throw error;
+  }
+}
+
 function relative(rootDir, targetPath) {
   return path.relative(rootDir, targetPath) || path.basename(targetPath);
 }
@@ -59,8 +72,8 @@ function extractLabeledReferenceValue(line, labels) {
   return match ? match[1].trim() : null;
 }
 
-async function collectActivePlanningReferences(rootDir) {
-  const planningDir = path.join(rootDir, 'planning/active');
+async function collectPlanningReferences(rootDir, planningSubdir) {
+  const planningDir = path.join(rootDir, planningSubdir);
   const references = new Map();
   const unreadable = [];
 
@@ -97,9 +110,18 @@ async function collectActivePlanningReferences(rootDir) {
   return { references, unreadable };
 }
 
-function referencesForCompanionPlan(referenceTexts, companionRelativePath) {
+async function collectActivePlanningReferences(rootDir) {
+  return collectPlanningReferences(rootDir, 'planning/active');
+}
+
+async function collectArchivedPlanningReferences(rootDir) {
+  return collectPlanningReferences(rootDir, 'planning/archive');
+}
+
+function referencesForCompanionPlan(referenceTexts, companionRelativePath, options = {}) {
   const normalizedPath = normalizeForMatch(companionRelativePath);
   const matches = [];
+  const archiveMode = options.archive === true;
 
   for (const [planningPath, text] of referenceTexts.entries()) {
     const normalizedLines = normalizeForMatch(text)
@@ -115,10 +137,24 @@ function referencesForCompanionPlan(referenceTexts, companionRelativePath) {
           'Companion plan path',
           'Companion path',
           'Plan path',
-          'Path'
+          'Path',
+          ...(archiveMode ? ['companion plan 路径', '计划路径', '路径', 'Implementation plan'] : [])
         ]);
 
-        return labeledReference ? matchesLiteralOrLink(labeledReference, normalizedPath) : false;
+        if (labeledReference ? matchesLiteralOrLink(labeledReference, normalizedPath) : false) {
+          return true;
+        }
+
+        if (!archiveMode) {
+          return false;
+        }
+
+        const backtickedPath = line.match(/`([^`]+)`/)?.[1];
+        if (!backtickedPath || !matchesLiteralOrLink(backtickedPath, normalizedPath)) {
+          return false;
+        }
+
+        return /\b(companion|implementation plan|plan)\b|路径|计划|added\b|saved\b|created\b/i.test(line);
       })
     ) {
       matches.push(planningPath);
@@ -163,10 +199,65 @@ function companionPlanBackReferences(companionText, referencedBy) {
   return matches.sort();
 }
 
+function companionActiveTaskPath(companionText) {
+  const normalizedLines = normalizeForMatch(companionText)
+    .split('\n')
+    .map((line) => line.trim());
+
+  for (const line of normalizedLines) {
+    const labeledReference = extractLabeledReferenceValue(line, [
+      'Active task',
+      'Active task path',
+      'Planning path',
+      'Task path'
+    ]);
+    if (labeledReference) {
+      return normalizeForMatch(labeledReference).replace(/^`|`$/g, '');
+    }
+  }
+
+  return '';
+}
+
+function taskIdFromActiveTaskPath(activeTaskPath) {
+  const match = normalizeForMatch(activeTaskPath).match(/^planning\/active\/([^/]+)\/?$/);
+  return match?.[1] ?? '';
+}
+
+function candidateTaskIdsFromCompanionPath(companionRelativePath) {
+  const fileName = path.posix.basename(normalizeForMatch(companionRelativePath), '.md');
+  const withoutDatePrefix = fileName.replace(/^\d{4}-\d{2}-\d{2}-/, '');
+  const candidates = new Set([withoutDatePrefix]);
+
+  for (const candidate of [...candidates]) {
+    if (candidate.endsWith('-implementation-plan')) {
+      candidates.add(candidate.slice(0, -'-implementation-plan'.length));
+    }
+    if (candidate.endsWith('-plan')) {
+      candidates.add(candidate.slice(0, -'-plan'.length));
+    }
+  }
+
+  return [...candidates].filter(Boolean);
+}
+
+async function archivedTaskMatches(rootDir, taskId) {
+  if (!taskId) {
+    return [];
+  }
+
+  const archiveDirs = await directoriesIn(path.join(rootDir, 'planning/archive'));
+  return archiveDirs
+    .map((dirPath) => relative(rootDir, dirPath))
+    .filter((archivePath) => archivePath.endsWith(`-${taskId}`))
+    .sort();
+}
+
 export async function inspectPlanLocations(rootDir) {
   const results = [];
   const { references: planningReferences, unreadable: unreadablePlanningFiles } =
     await collectActivePlanningReferences(rootDir);
+  const { references: archivedPlanningReferences } = await collectArchivedPlanningReferences(rootDir);
 
   for (const fileName of ['task_plan.md', 'findings.md', 'progress.md']) {
     const filePath = path.join(rootDir, fileName);
@@ -192,21 +283,21 @@ export async function inspectPlanLocations(rootDir) {
   const companionDir = path.join(rootDir, 'docs/superpowers/plans');
   for (const filePath of await markdownFilesIn(companionDir)) {
     const relativePath = relative(rootDir, filePath);
+    let companionText = '';
+    try {
+      companionText = await readFile(filePath, 'utf8');
+    } catch (error) {
+      results.push({
+        type: 'companion-plan-read-error',
+        path: relativePath,
+        severity: 'problem',
+        message: `Companion plan exists but could not be read: ${error.message}`
+      });
+      continue;
+    }
+
     const referencedBy = referencesForCompanionPlan(planningReferences, relativePath);
     if (referencedBy.length > 0) {
-      let companionText;
-      try {
-        companionText = await readFile(filePath, 'utf8');
-      } catch (error) {
-        results.push({
-          type: 'companion-plan-read-error',
-          path: relativePath,
-          severity: 'problem',
-          message: `Companion plan exists but could not be read: ${error.message}`
-        });
-        continue;
-      }
-
       const pointsBackTo = companionPlanBackReferences(companionText, referencedBy);
       if (pointsBackTo.length === 0) {
         results.push({
@@ -238,6 +329,45 @@ export async function inspectPlanLocations(rootDir) {
         severity: 'problem',
         message:
           'Companion plan reference status could not be determined because one or more canonical planning files are unreadable.'
+      });
+      continue;
+    }
+
+    const activeTaskPath = companionActiveTaskPath(companionText);
+    const archivedReferencedBy = referencesForCompanionPlan(archivedPlanningReferences, relativePath, {
+      archive: true
+    });
+    if (archivedReferencedBy.length > 0) {
+      results.push({
+        type: 'archived-companion-plan',
+        path: relativePath,
+        severity: 'ok',
+        message: 'Companion plan is referenced by archived task planning files.',
+        referencedBy: archivedReferencedBy
+      });
+      continue;
+    }
+
+    const explicitTaskId = taskIdFromActiveTaskPath(activeTaskPath);
+    const candidateTaskIds = explicitTaskId
+      ? [explicitTaskId]
+      : candidateTaskIdsFromCompanionPath(relativePath);
+    const archivedMatches = [
+      ...new Set(
+        (
+          await Promise.all(candidateTaskIds.map((taskId) => archivedTaskMatches(rootDir, taskId)))
+        ).flat()
+      )
+    ].sort();
+    if (archivedMatches.length > 0) {
+      results.push({
+        type: 'orphan-companion-plan-archived-task',
+        path: relativePath,
+        severity: 'warning',
+        message:
+          `Companion plan is not referenced by any active task planning file and appears to belong to archived task ${archivedMatches[0]}. Move it into that archive directory as companion_plan.md or remove it.`,
+        archivedMatches,
+        activeTaskPath
       });
       continue;
     }
