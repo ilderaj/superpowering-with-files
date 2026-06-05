@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -96,6 +97,96 @@ def _archive_readiness_status(reconciliation_markdown: str) -> str:
     return ""
 
 
+def _execution_receipt_directory(plan_dir: Path) -> Path:
+    project_path = plan_dir.parent.parent.parent
+    return project_path / ".harness" / "execution" / "receipts" / plan_dir.name
+
+
+def _followup_closure_directory(plan_dir: Path) -> Path:
+    project_path = plan_dir.parent.parent.parent
+    return project_path / ".harness" / "execution" / "followup-closures" / plan_dir.name
+
+
+def _derive_followup_id(unit_id: str, followup: Dict[str, Any]) -> str:
+    followup_type = str(followup.get("type") or "unknown")
+    followup_target = str(followup.get("target") or "unknown")
+    return f"{unit_id}:{followup_type}:{followup_target}"
+
+
+def _read_followup_closures(plan_dir: Path) -> Dict[str, Dict[str, Any]]:
+    closure_dir = _followup_closure_directory(plan_dir)
+    closures: Dict[str, Dict[str, Any]] = {}
+    if not closure_dir.exists():
+        return closures
+
+    for closure_path in sorted(closure_dir.glob("*.json")):
+        try:
+            closure = json.loads(_read_text(closure_path))
+        except json.JSONDecodeError:
+            continue
+
+        followup_id = str(closure.get("followupId") or "").strip()
+        if followup_id:
+            closures[followup_id] = closure
+
+    return closures
+
+
+def _detect_execution_signals(plan_dir: Path) -> Dict[str, int]:
+    receipt_dir = _execution_receipt_directory(plan_dir)
+    if not receipt_dir.exists():
+        return {
+            "receipt_count": 0,
+            "blocked_units": 0,
+            "failed_units": 0,
+            "open_followups": 0,
+            "resolved_followups": 0,
+            "waived_followups": 0,
+        }
+
+    closures = _read_followup_closures(plan_dir)
+    summary = {
+        "receipt_count": 0,
+        "blocked_units": 0,
+        "failed_units": 0,
+        "open_followups": 0,
+        "resolved_followups": 0,
+        "waived_followups": 0,
+    }
+    for receipt_path in sorted(receipt_dir.glob("*.json")):
+        try:
+            receipt = json.loads(_read_text(receipt_path))
+        except json.JSONDecodeError:
+            continue
+
+        summary["receipt_count"] += 1
+        if receipt.get("resultStatus") == "blocked":
+            summary["blocked_units"] += 1
+        if receipt.get("resultStatus") == "failed":
+            summary["failed_units"] += 1
+        unit_id = str(receipt.get("unitId") or "unknown")
+        followups = receipt.get("followups") or []
+        for followup in followups:
+            if followup.get("status") != "open":
+                continue
+
+            followup_id = _derive_followup_id(unit_id, followup)
+            closure = closures.get(followup_id)
+            if not closure:
+                summary["open_followups"] += 1
+                continue
+
+            closure_status = str(closure.get("closureStatus") or "").strip().lower()
+            if closure_status == "resolved":
+                summary["resolved_followups"] += 1
+            elif closure_status == "waived":
+                summary["waived_followups"] += 1
+            else:
+                summary["open_followups"] += 1
+
+    return summary
+
+
 def _detect_reconciliation(plan_dir: Path, task_plan_markdown: str, safe_to_archive: bool) -> Dict[str, Any]:
     progress_path = plan_dir / "progress.md"
     progress_markdown = _read_text(progress_path) if progress_path.exists() else ""
@@ -133,12 +224,22 @@ def _detect_reconciliation(plan_dir: Path, task_plan_markdown: str, safe_to_arch
         reason = "no reconciliation signal recorded yet"
         evidence = ""
 
+    execution_signals = _detect_execution_signals(plan_dir)
+    if execution_signals["open_followups"] > 0:
+        status = "open"
+        reason = "execution receipts leave open followups"
+        evidence = str(_execution_receipt_directory(plan_dir))
+
     return {
         "reconciliation_status": status,
         "reconciliation_ready": status in {"complete", "not_required", "waived"},
         "reconciliation_reason": reason,
         "reconciliation_artifact": str(artifact_path) if artifact_path.exists() else "",
         "reconciliation_evidence": evidence,
+        "execution_receipt_count": execution_signals["receipt_count"],
+        "execution_blocked_units": execution_signals["blocked_units"],
+        "execution_failed_units": execution_signals["failed_units"],
+        "execution_open_followups": execution_signals["open_followups"],
     }
 
 

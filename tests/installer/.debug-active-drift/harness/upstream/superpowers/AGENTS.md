@@ -1,0 +1,1 @@
+/Users/jared/SuperpoweringWithFiles/harness/upstream/superpowers/CLAUDE.md

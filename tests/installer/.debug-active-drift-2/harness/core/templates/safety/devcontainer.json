@@ -1,0 +1,10 @@
+{
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "chat.tools.global.autoApprove": false,
+        "chat.tools.terminal.blockDetectedFileWrites": "outsideWorkspace"
+      }
+    }
+  }
+}

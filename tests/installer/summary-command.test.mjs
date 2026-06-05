@@ -114,6 +114,82 @@ test('harness summary prints SESSION SUMMARY for a single active task', async ()
   }
 });
 
+test('harness summary surfaces a compact companion warning for active tasks with drift', async () => {
+  const root = await createFixture('summary-companion-drift');
+  try {
+    await writeTask(root, 't1', {
+      taskPlan: [
+        '# Task One',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '## Companion Plan',
+        '- Companion plan: `docs/superpowers/plans/task-one.md`',
+        '- Companion summary: reasoning notes',
+        '- Sync-back status: active draft',
+        '',
+        '### Phase 1: Gather context',
+        '- **Status:** complete',
+        '',
+        '### Phase 2: Render summary',
+        '- **Status:** pending'
+      ].join('\n'),
+      findings: ['## Findings', '- Keep output compact.'].join('\n'),
+      progress: ['## Progress', '- Added command coverage.'].join('\n')
+    });
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/task-one.md'),
+      '# Task One Companion\n\nLifecycle state: active\nSync-back status: active draft\n'
+    );
+
+    const { stdout, stderr } = await harnessCommand(root, 'summary');
+
+    assert.equal(stderr, '');
+    assert.match(stdout, /Companion: needs attention - Companion plan is missing Active task path/);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('summary --task renders a compact route line when a routing decision exists', async () => {
+  const root = await createFixture('summary-routing-decision');
+  try {
+    await writeTask(root, 'demo-task', {
+      taskPlan: [
+        '# Task Plan: Demo',
+        '',
+        '## Goal',
+        'Keep routing visible.',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Routing Decision',
+        '- Selected Route: tracked-lean',
+        '- Route Reason: durable task without deep reasoning',
+        '- Promotion Trigger: none',
+        '- Route Evidence Surface: planning + summary'
+      ].join('\n'),
+      findings: '## Findings\n- Keep route visible.\n',
+      progress: '## Progress\n- Added routing record.\n'
+    });
+
+    const { stdout, stderr } = await harnessCommand(root, 'summary', '--task', 'demo-task');
+
+    assert.equal(stderr, '');
+    assert.match(stdout, /Route: tracked-lean - durable task without deep reasoning/);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
 test('harness summary resolves the authority root when run from a nested leaf directory', async () => {
   const root = await createFixture('summary-nested-cwd');
   try {

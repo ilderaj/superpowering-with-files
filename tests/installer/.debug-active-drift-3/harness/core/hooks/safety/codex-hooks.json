@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .codex/hooks/session-checkpoint.sh ] && bash .codex/hooks/session-checkpoint.sh codex || bash \"$HOME/.codex/hooks/session-checkpoint.sh\" codex'"
+          }
+        ],
+        "description": "Harness-managed safety hook"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .codex/hooks/pretool-guard.sh ] && bash .codex/hooks/pretool-guard.sh codex || bash \"$HOME/.codex/hooks/pretool-guard.sh\" codex'"
+          }
+        ],
+        "description": "Harness-managed safety hook"
+      }
+    ]
+  }
+}

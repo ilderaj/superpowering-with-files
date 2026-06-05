@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .codex/hooks/session-start ] && sh .codex/hooks/session-start || sh \"$HOME/.codex/hooks/session-start\"'"
+          }
+        ],
+        "description": "Harness-managed superpowers hook"
+      }
+    ]
+  }
+}

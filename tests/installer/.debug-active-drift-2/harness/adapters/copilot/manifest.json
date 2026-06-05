@@ -1,0 +1,11 @@
+{
+  "target": "copilot",
+  "template": "harness/core/templates/copilot-instructions.md.hbs",
+  "override": "harness/core/policy/platform-overrides/copilot.md",
+  "workspaceEntries": [".github/copilot-instructions.md"],
+  "globalEntries": [".copilot/instructions/harness.instructions.md"],
+  "skills": {
+    "superpowers": "materialize",
+    "planning-with-files": "materialize"
+  }
+}

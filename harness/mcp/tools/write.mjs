@@ -153,6 +153,135 @@ export function registerWriteTools(server) {
   );
 
   server.registerTool(
+    'harness_record_execution_receipt',
+    {
+      description: 'Persist an execution-unit receipt through the approved write path.',
+      inputSchema: z
+        .object({
+          root: z.string().optional(),
+          taskId: z.string(),
+          unitId: z.string(),
+          mode: z.enum(['inline', 'subagent', 'manual', 'external']),
+          resultStatus: z.enum(['done_with_evidence', 'blocked', 'failed', 'abandoned']),
+          startedAt: z.string(),
+          finishedAt: z.string(),
+          changedFiles: z.array(z.string()).default([]),
+          verificationCommands: z.array(z.any()).default([]),
+          artifactsProduced: z.array(z.any()).default([]),
+          followups: z.array(z.any()).default([]),
+          syncBackRef: z.string(),
+          notes: z.string().optional(),
+          approvalToken: z.string()
+        })
+        .strict()
+    },
+    async ({
+      root,
+      taskId,
+      unitId,
+      mode,
+      resultStatus,
+      startedAt,
+      finishedAt,
+      changedFiles,
+      verificationCommands,
+      artifactsProduced,
+      followups,
+      syncBackRef,
+      notes,
+      approvalToken
+    }) => {
+      const resolved = await resolveHarnessRoot(root);
+      const plan = buildWritePlan({
+        operation: 'record_execution_receipt',
+        rootDir: resolved.rootDir,
+        payload: {
+          taskId,
+          receipt: {
+            schemaVersion: 1,
+            taskId,
+            unitId,
+            actor: 'pending-approval-token',
+            mode,
+            resultStatus,
+            startedAt,
+            finishedAt,
+            changedFiles,
+            verificationCommands,
+            artifactsProduced,
+            followups,
+            syncBackRef,
+            ...(notes ? { notes } : {})
+          }
+        },
+        preview: { taskId, unitId, resultStatus, syncBackRef }
+      });
+      const result = await applyWritePlan(plan, parseToken(approvalToken));
+      return textResult('Execution receipt recorded.', result);
+    }
+  );
+
+  server.registerTool(
+    'harness_record_followup_closure',
+    {
+      description: 'Persist follow-up closure evidence through the approved write path.',
+      inputSchema: z
+        .object({
+          root: z.string().optional(),
+          taskId: z.string(),
+          unitId: z.string(),
+          followupId: z.string(),
+          mode: z.enum(['inline', 'subagent', 'manual', 'external']),
+          closureStatus: z.enum(['resolved', 'waived']),
+          closedAt: z.string(),
+          reason: z.string(),
+          evidenceRef: z.string(),
+          syncBackRef: z.string(),
+          approvalToken: z.string()
+        })
+        .strict()
+    },
+    async ({
+      root,
+      taskId,
+      unitId,
+      followupId,
+      mode,
+      closureStatus,
+      closedAt,
+      reason,
+      evidenceRef,
+      syncBackRef,
+      approvalToken
+    }) => {
+      const resolved = await resolveHarnessRoot(root);
+      const plan = buildWritePlan({
+        operation: 'record_followup_closure',
+        rootDir: resolved.rootDir,
+        payload: {
+          taskId,
+          closure: {
+            schemaVersion: 1,
+            taskId,
+            unitId,
+            followupId,
+            closureStatus,
+            actor: 'pending-approval-token',
+            mode,
+            closedAt,
+            reason,
+            evidenceRef,
+            syncBackRef
+          }
+        },
+        preview: { taskId, followupId, closureStatus, syncBackRef }
+      });
+      const result = await applyWritePlan(plan, parseToken(approvalToken));
+      return textResult('Follow-up closure recorded.', result);
+    }
+  );
+
+  server.registerTool(
     'harness_debug_approve_plan',
     {
       description: 'Development-only helper that signs a plan out-of-band for tests.',

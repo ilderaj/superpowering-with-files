@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
@@ -13,6 +13,64 @@ import {
 
 async function assertExists(targetPath) {
   await stat(targetPath);
+}
+
+async function writeExecutionReceipt(root, taskId, unitId, overrides = {}) {
+  const receiptDir = path.join(root, '.harness', 'execution', 'receipts', taskId);
+  await mkdir(receiptDir, { recursive: true });
+  const receiptPath = path.join(receiptDir, `2026-06-04T04-00-00.000Z-${unitId}.json`);
+  await writeFile(
+    receiptPath,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        taskId,
+        unitId,
+        actor: 'codex',
+        mode: 'inline',
+        resultStatus: 'done_with_evidence',
+        startedAt: '2026-06-04T04:00:00.000Z',
+        finishedAt: '2026-06-04T04:05:00.000Z',
+        changedFiles: [],
+        verificationCommands: [],
+        artifactsProduced: [],
+        followups: [{ type: 'integration', status: 'open', target: 'progress.md' }],
+        syncBackRef: 'progress.md#unit-01',
+        ...overrides
+      },
+      null,
+      2
+    )}\n`,
+    'utf8'
+  );
+}
+
+async function writeFollowupClosure(root, taskId, unitId, overrides = {}) {
+  const closureDir = path.join(root, '.harness', 'execution', 'followup-closures', taskId);
+  await mkdir(closureDir, { recursive: true });
+  const closurePath = path.join(closureDir, `2026-06-04T10-00-00.000Z-${unitId}.json`);
+  await writeFile(
+    closurePath,
+    `${JSON.stringify(
+      {
+        schemaVersion: 1,
+        taskId,
+        unitId,
+        followupId: `${unitId}:integration:progress.md`,
+        closureStatus: 'resolved',
+        actor: 'codex',
+        mode: 'inline',
+        closedAt: '2026-06-04T10:00:00.000Z',
+        reason: 'reconciliation.md now records the accepted closure path',
+        evidenceRef: 'reconciliation.md#followup-closure',
+        syncBackRef: 'progress.md#followup-closure',
+        ...overrides
+      },
+      null,
+      2
+    )}\n`,
+    'utf8'
+  );
 }
 
 test('close-task succeeds for tasks without a companion plan', async () => {
@@ -29,6 +87,39 @@ test('close-task succeeds for tasks without a companion plan', async () => {
     );
 
     assert.match(stdout, /Closed task and marked archive eligible/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('close-task still succeeds when execution receipts leave open followups', async () => {
+  const fixture = await createPlanningLifecycleFixture();
+  try {
+    await writeActiveTask(fixture.root, 'task-a', {
+      taskPlan: '# Task\n\n## Current State\nStatus: active\nArchive Eligible: no\nClose Reason:\n',
+      progress: '# Progress\n'
+    });
+    await writeExecutionReceipt(fixture.root, 'task-a', 'unit-01');
+
+    const { stdout } = await runPythonScript(
+      fixture.root,
+      'harness/upstream/planning-with-files/scripts/close-task.py',
+      ['task-a', '--reason', 'done']
+    );
+    assert.match(stdout, /Closed task and marked archive eligible/);
+
+    const { stdout: statusStdout } = await runPythonScript(
+      fixture.root,
+      'harness/upstream/planning-with-files/scripts/task-status.py',
+      ['task-a', '--json']
+    );
+    const status = JSON.parse(statusStdout);
+
+    assert.equal(status.status, 'closed');
+    assert.equal(status.archive_eligible, true);
+    assert.equal(status.safe_to_archive, false);
+    assert.equal(status.reconciliation_status, 'open');
+    assert.match(status.reconciliation_reason, /execution receipts leave open followups/i);
   } finally {
     await fixture.cleanup();
   }
@@ -131,6 +222,107 @@ test('task-status exposes unsynced companion state and archive-task blocks archi
     );
 
     await assertExists(path.join(fixture.root, 'planning', 'active', 'task-a', 'task_plan.md'));
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('archive-task blocks archive when execution receipts leave open followups', async () => {
+  const fixture = await createPlanningLifecycleFixture();
+  try {
+    await writeActiveTask(fixture.root, 'task-a', {
+      taskPlan: '# Task\n\n## Current State\nStatus: closed\nArchive Eligible: yes\nClose Reason: done\n',
+      progress: '# Progress\n'
+    });
+    await writeExecutionReceipt(fixture.root, 'task-a', 'unit-01');
+    await writeFile(
+      path.join(fixture.root, 'planning/active/task-a/reconciliation.md'),
+      '# Reconciliation: task-a\n\n## Archive Readiness\nReady, reason: execution followup fixture is otherwise reconciled.\n',
+      'utf8'
+    );
+
+    const { stdout: statusStdout } = await runPythonScript(
+      fixture.root,
+      'harness/upstream/planning-with-files/scripts/task-status.py',
+      ['task-a', '--json']
+    );
+    const status = JSON.parse(statusStdout);
+
+    assert.equal(status.reconciliation_status, 'open');
+    assert.equal(status.reconciliation_ready, false);
+    assert.equal(status.safe_to_archive, false);
+    assert.match(status.reconciliation_reason, /execution receipts leave open followups/i);
+
+    await assert.rejects(
+      () => runShellScript(fixture.root, 'harness/upstream/planning-with-files/scripts/archive-task.sh', ['task-a']),
+      /not safe to archive|open followups|reconciliation/i
+    );
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('archive-task succeeds when every open followup is covered by resolved closure evidence', async () => {
+  const fixture = await createPlanningLifecycleFixture();
+  try {
+    await writeActiveTask(fixture.root, 'task-a', {
+      taskPlan: '# Task\n\n## Current State\nStatus: closed\nArchive Eligible: yes\nClose Reason: done\n',
+      progress: '# Progress\n'
+    });
+    await writeExecutionReceipt(fixture.root, 'task-a', 'unit-01');
+    await writeFollowupClosure(fixture.root, 'task-a', 'unit-01');
+    await writeFile(
+      path.join(fixture.root, 'planning/active/task-a/reconciliation.md'),
+      '# Reconciliation: task-a\n\n## Archive Readiness\nReady, reason: follow-up closure accepted.\n',
+      'utf8'
+    );
+
+    const { stdout: statusStdout } = await runPythonScript(
+      fixture.root,
+      'harness/upstream/planning-with-files/scripts/task-status.py',
+      ['task-a', '--json']
+    );
+    const status = JSON.parse(statusStdout);
+
+    assert.equal(status.reconciliation_status, 'complete');
+    assert.equal(status.reconciliation_ready, true);
+    assert.equal(status.safe_to_archive, true);
+
+    const { stdout } = await runShellScript(
+      fixture.root,
+      'harness/upstream/planning-with-files/scripts/archive-task.sh',
+      ['task-a']
+    );
+
+    assert.match(stdout, /Archived active planning files to:/);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('task-status keeps reconciliation open when a followup lacks matching closure evidence', async () => {
+  const fixture = await createPlanningLifecycleFixture();
+  try {
+    await writeActiveTask(fixture.root, 'task-a', {
+      taskPlan: '# Task\n\n## Current State\nStatus: closed\nArchive Eligible: yes\nClose Reason: done\n',
+      progress: '# Progress\n'
+    });
+    await writeExecutionReceipt(fixture.root, 'task-a', 'unit-01');
+    await writeFollowupClosure(fixture.root, 'task-a', 'unit-01', {
+      followupId: 'unit-01:integration:other.md'
+    });
+
+    const { stdout } = await runPythonScript(
+      fixture.root,
+      'harness/upstream/planning-with-files/scripts/task-status.py',
+      ['task-a', '--json']
+    );
+    const status = JSON.parse(stdout);
+
+    assert.equal(status.reconciliation_status, 'open');
+    assert.equal(status.reconciliation_ready, false);
+    assert.equal(status.safe_to_archive, false);
+    assert.match(status.reconciliation_reason, /open followups/i);
   } finally {
     await fixture.cleanup();
   }

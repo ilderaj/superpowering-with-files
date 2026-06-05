@@ -1,0 +1,11 @@
+{
+  "target": "cursor",
+  "template": "harness/core/templates/cursor-rule.mdc.hbs",
+  "override": "harness/core/policy/platform-overrides/cursor.md",
+  "workspaceEntries": [".cursor/rules/harness.mdc"],
+  "globalEntries": [],
+  "skills": {
+    "superpowers": "materialize",
+    "planning-with-files": "materialize"
+  }
+}

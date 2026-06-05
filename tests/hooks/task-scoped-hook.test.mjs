@@ -134,6 +134,31 @@ test('task-scoped-hook emits Codex hookSpecificOutput payload', async () => {
   }
 });
 
+test('task-scoped hook stays empty when no tracked task exists', async () => {
+  const fixtureRoot = path.join(process.cwd(), 'tests/hooks/.artifacts/lean-direct-no-active-task');
+
+  await rm(fixtureRoot, { recursive: true, force: true });
+  await mkdir(fixtureRoot, { recursive: true });
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot,
+      env: {
+        ...process.env,
+        HARNESS_PROJECT_ROOT: fixtureRoot
+      }
+    });
+
+    assert.equal(stdout.trim(), '{}');
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
 test('task-scoped-hook resolves the authority root from a nested leaf directory', async () => {
   const { fixtureRoot } = await createFixture('codex-leaf-workspace', activeTaskFiles());
 
@@ -332,6 +357,87 @@ test('task-scoped-hook treats active status lines with extra whitespace as activ
 
     const payload = JSON.parse(stdout);
     assert.equal(payload.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
+    assert.match(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('tracked-lean uses brief context on first prompt', async () => {
+  const { fixtureRoot } = await createFixture('tracked-lean-first-prompt', {
+    taskPlan: [
+      '# Codex Hooks',
+      '',
+      '## Goal',
+      '- Keep route behavior economical.',
+      '',
+      '## Current State',
+      'Status: active',
+      'Archive Eligible: no',
+      'Close Reason:',
+      'Reconcile: open',
+      '',
+      '## Routing Decision',
+      '- Selected Route: tracked-lean',
+      '- Route Reason: task is durable but not deep',
+      '- Promotion Trigger: none',
+      '- Route Evidence Surface: planning + summary'
+    ].join('\n'),
+    findings: '## Notes\n- Prefer brief route-aware context.\n',
+    progress: '## Progress\n- Keep the first prompt compact.\n'
+  });
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.match(payload.hookSpecificOutput.additionalContext, /BRIEF CONTEXT/);
+    assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('deep-rich keeps hot context on first prompt', async () => {
+  const { fixtureRoot } = await createFixture('deep-rich-first-prompt', {
+    taskPlan: [
+      '# Codex Hooks',
+      '',
+      '## Goal',
+      '- Keep route behavior rich when needed.',
+      '',
+      '## Current State',
+      'Status: active',
+      'Archive Eligible: no',
+      'Close Reason:',
+      'Reconcile: open',
+      '',
+      '## Routing Decision',
+      '- Selected Route: deep-rich',
+      '- Route Reason: architecture is unclear',
+      '- Promotion Trigger: architecture unclear',
+      '- Route Evidence Surface: planning + summary + active-summary'
+    ].join('\n'),
+    findings: '## Notes\n- Keep the richer context.\n',
+    progress: '## Progress\n- Deep route requires hot context.\n'
+  });
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
     assert.match(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });

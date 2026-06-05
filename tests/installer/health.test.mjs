@@ -1807,7 +1807,7 @@ test('readHarnessHealth warns when planning hot context cannot be measured acros
   }
 });
 
-test('readHarnessHealth warns when Codex user-global installs keep the full skill profile', async () => {
+test('readHarnessHealth distinguishes heavy install baseline from runtime route correctness', async () => {
   const root = await createHarnessFixture();
   const homeDir = path.join(root, 'home');
   const previousHome = process.env.HOME;
@@ -1832,8 +1832,13 @@ test('readHarnessHealth warns when Codex user-global installs keep the full skil
     assert.ok(
       health.warnings.some((warning) =>
         warning.includes(
-          'Codex user-global installs default to minimal-global; full is heavier than necessary unless you intentionally need the full skill surface.'
+          'Install baseline is heavier than the recommended default: user-global installs should usually prefer minimal-global unless you intentionally need the broader baseline capability package.'
         )
+      )
+    );
+    assert.ok(
+      !health.warnings.some((warning) =>
+        warning.includes('routing is wrong because install state is full')
       )
     );
   } finally {
@@ -2048,6 +2053,257 @@ test('readHarnessHealth warns about orphan companion plans', async () => {
   }
 });
 
+test('readHarnessHealth gives archive-specific remediation for orphan companions tied to archived tasks', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/archive/20260602-232501-cloud-dev-harness-feasibility'), {
+      recursive: true
+    });
+    await writeFile(
+      path.join(
+        root,
+        'planning/archive/20260602-232501-cloud-dev-harness-feasibility/task_plan.md'
+      ),
+      '# Archived task\n'
+    );
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/cloud-dev-harness-feasibility.md'),
+      '# Orphan companion\n\nActive task path: `planning/active/cloud-dev-harness-feasibility/`\n'
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes(
+          'docs/superpowers/plans/cloud-dev-harness-feasibility.md: Companion plan is not referenced by any active task planning file and appears to belong to archived task'
+        )
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth can infer archive-specific remediation from companion filenames when active task path is absent', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/archive/20260602-232501-alma-thin-adapter-implementation-plan'), {
+      recursive: true
+    });
+    await writeFile(
+      path.join(
+        root,
+        'planning/archive/20260602-232501-alma-thin-adapter-implementation-plan/task_plan.md'
+      ),
+      '# Archived task\n'
+    );
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/2026-05-15-alma-thin-adapter-implementation-plan.md'),
+      '# Orphan companion\n'
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes(
+          'docs/superpowers/plans/2026-05-15-alma-thin-adapter-implementation-plan.md: Companion plan is not referenced by any active task planning file and appears to belong to archived task planning/archive/20260602-232501-alma-thin-adapter-implementation-plan'
+        )
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth treats archived planning references as a valid closed-task companion link', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    const archiveDir = path.join(root, 'planning/archive/20260602-232502-harness-token-cost-analysis');
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(
+      path.join(archiveDir, 'task_plan.md'),
+      [
+        '# Archived task',
+        '',
+        '## Companion Plan',
+        '- Path: `docs/superpowers/plans/2026-05-20-harness-token-output-compression-plan.md`'
+      ].join('\n')
+    );
+    await writeFile(path.join(archiveDir, 'findings.md'), '# Findings\n');
+    await writeFile(path.join(archiveDir, 'progress.md'), '# Progress\n');
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/2026-05-20-harness-token-output-compression-plan.md'),
+      '# Companion plan\n'
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      !health.warnings.some((warning) =>
+        warning.includes('docs/superpowers/plans/2026-05-20-harness-token-output-compression-plan.md')
+      )
+    );
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'archived-companion-plan' &&
+          location.path === 'docs/superpowers/plans/2026-05-20-harness-token-output-compression-plan.md' &&
+          location.referencedBy.includes(
+            'planning/archive/20260602-232502-harness-token-cost-analysis/task_plan.md'
+          )
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth accepts archived planning references that use Chinese companion-path labels', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    const archiveDir = path.join(root, 'planning/archive/20260602-232501-alma-goal-a-mcp-readonly-adoption');
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(
+      path.join(archiveDir, 'task_plan.md'),
+      [
+        '# Archived task',
+        '',
+        '## Companion Plan',
+        '- companion plan 路径：`docs/superpowers/plans/2026-05-15-alma-goal-a-mcp-readonly-adoption-plan.md`'
+      ].join('\n')
+    );
+    await writeFile(path.join(archiveDir, 'findings.md'), '# Findings\n');
+    await writeFile(path.join(archiveDir, 'progress.md'), '# Progress\n');
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/2026-05-15-alma-goal-a-mcp-readonly-adoption-plan.md'),
+      '# Companion plan\n'
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      !health.warnings.some((warning) =>
+        warning.includes('docs/superpowers/plans/2026-05-15-alma-goal-a-mcp-readonly-adoption-plan.md')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth accepts archived planning progress references that mention implementation plans in prose', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    const archiveDir = path.join(root, 'planning/archive/20260603-231516-harness-reconcile-roadmap-evolution');
+    await mkdir(archiveDir, { recursive: true });
+    await writeFile(path.join(archiveDir, 'task_plan.md'), '# Archived task\n');
+    await writeFile(path.join(archiveDir, 'findings.md'), '# Findings\n');
+    await writeFile(
+      path.join(archiveDir, 'progress.md'),
+      '## Progress\n- Added long implementation plan at `docs/superpowers/plans/2026-05-17-harness-reconcile-roadmap-evolution-implementation-plan.md`.\n'
+    );
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/2026-05-17-harness-reconcile-roadmap-evolution-implementation-plan.md'),
+      '# Companion plan\n'
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      !health.warnings.some((warning) =>
+        warning.includes(
+          'docs/superpowers/plans/2026-05-17-harness-reconcile-roadmap-evolution-implementation-plan.md'
+        )
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth accepts markdown links for companion plan back-references', async () => {
   const root = await createHarnessFixture();
   try {
@@ -2130,6 +2386,171 @@ test('readHarnessHealth accepts generic Path labels and emphasized active task l
           location.path === 'docs/superpowers/plans/feature-plan.md' &&
           location.referencedBy.includes('planning/active/task-a/task_plan.md') &&
           location.pointsBackTo.includes('planning/active/task-a/')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth warns when an active task companion is declared but unsynced', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/task-a/task_plan.md'),
+      [
+        '# Task A',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '## Companion Plan',
+        '- Companion plan: `docs/superpowers/plans/task-a.md`',
+        '- Companion summary: lifecycle notes',
+        '- Sync-back status: active draft'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/task-a.md'),
+      '# Companion plan\n\nLifecycle state: active\nSync-back status: active draft\n'
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes('planning/active/task-a/task_plan.md: Companion sync needs attention: Companion plan is missing Active task path')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth warns when an Execution Contract unit is malformed', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/demo-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/demo-task/task_plan.md'),
+      [
+        '# Task Plan: Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Execution Contract',
+        '### Unit: unit-01',
+        '- Kind: implementation'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/demo-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/demo-task/progress.md'), '# Progress\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      health.warnings.some((warning) => warning.includes('Execution contract needs attention'))
+    );
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'execution-contract-warning' &&
+          location.path === 'planning/active/demo-task/task_plan.md' &&
+          location.message.includes('Execution contract needs attention')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth reports archive-ready companion drift as a problem', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/task-a/task_plan.md'),
+      [
+        '# Task A',
+        '',
+        '## Current State',
+        'Status: closed',
+        'Archive Eligible: yes',
+        'Close Reason: done',
+        '',
+        '## Companion Plan',
+        '- Companion plan: `docs/superpowers/plans/task-a.md`',
+        '- Companion summary: lifecycle notes',
+        '- Sync-back status: closed at 2026-06-04T10:00:00: done',
+        '',
+        '### Phase 1: Audit',
+        '- **Status:** complete'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await writeFile(
+      path.join(root, 'planning/active/task-a/reconciliation.md'),
+      '# Reconciliation: task-a\n\n## Archive Readiness\nReady, reason: reconciled.\n'
+    );
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/task-a.md'),
+      [
+        '# Companion plan',
+        '',
+        'Active task path: `planning/active/task-a/`',
+        'Lifecycle state: active',
+        'Sync-back status: closed at 2026-06-04T10:00:00: done'
+      ].join('\n')
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.ok(
+      health.problems.some((problem) =>
+        problem.includes(
+          'planning/active/task-a/task_plan.md: Companion sync blocks archive readiness: Companion plan Lifecycle state'
+        )
       )
     );
   } finally {

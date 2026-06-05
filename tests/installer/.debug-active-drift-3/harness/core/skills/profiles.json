@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "defaultProfile": "full",
+  "profiles": {
+    "full": [
+      "risk-assessment-before-destructive-changes",
+      "safe-bypass-flow",
+      "superpowers",
+      "planning-with-files"
+    ],
+    "minimal-global": [
+      "planning-with-files",
+      "superpowers:using-superpowers",
+      "superpowers:writing-plans",
+      "superpowers:executing-plans",
+      "superpowers:verification-before-completion"
+    ],
+    "copilot-default": [
+      "planning-with-files",
+      "risk-assessment-before-destructive-changes",
+      "superpowers:using-superpowers",
+      "superpowers:writing-plans",
+      "superpowers:executing-plans",
+      "superpowers:verification-before-completion"
+    ]
+  }
+}

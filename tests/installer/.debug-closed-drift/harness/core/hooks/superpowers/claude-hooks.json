@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "description": "Harness-managed superpowers hook",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -f .claude/hooks/session-start ] && sh .claude/hooks/session-start claude-code || sh \"$HOME/.claude/hooks/session-start\" claude-code'"
+          }
+        ]
+      }
+    ]
+  }
+}

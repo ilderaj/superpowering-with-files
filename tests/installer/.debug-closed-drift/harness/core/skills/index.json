@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "skills": {
+    "superpowers": {
+      "source": "https://github.com/obra/superpowers",
+      "baselinePath": "harness/upstream/superpowers/skills",
+      "layout": "collection",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      },
+      "childPatches": {
+        "finishing-a-development-branch": {
+          "type": "superpowers-finishing-a-development-branch",
+          "marker": "Harness Superpowers finishing-a-development-branch base patch"
+        },
+        "using-git-worktrees": {
+          "type": "superpowers-using-git-worktrees",
+          "marker": "Harness Superpowers using-git-worktrees naming patch"
+        },
+        "writing-plans": {
+          "type": "superpowers-writing-plans",
+          "marker": "Harness Superpowers writing-plans location patch"
+        }
+      },
+      "hooks": {
+        "copilot": {
+          "source": "harness/core/hooks/superpowers",
+          "config": "copilot-hooks.json",
+          "scriptRoot": "scripts",
+          "scripts": ["session-start", "run-hook.cmd"],
+          "events": ["sessionStart"]
+        },
+        "cursor": {
+          "source": "harness/core/hooks/superpowers",
+          "config": "cursor-hooks.json",
+          "scriptRoot": "scripts",
+          "scripts": ["session-start", "run-hook.cmd"],
+          "events": ["sessionStart"]
+        },
+        "claude-code": {
+          "source": "harness/core/hooks/superpowers",
+          "config": "claude-hooks.json",
+          "scriptRoot": "scripts",
+          "scripts": ["session-start", "run-hook.cmd"],
+          "events": ["SessionStart"]
+        },
+        "codex": {
+          "source": "harness/core/hooks/superpowers",
+          "config": "codex-hooks.json",
+          "scriptRoot": "scripts",
+          "scripts": ["session-start", "run-hook.cmd"],
+          "events": ["SessionStart"]
+        }
+      }
+    },
+    "planning-with-files": {
+      "source": "https://github.com/OthmanAdi/planning-with-files",
+      "baselinePath": "harness/upstream/planning-with-files",
+      "layout": "single",
+      "targetName": "planning-with-files",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      },
+      "patches": {
+        "default": {
+          "type": "planning-with-files-companion-plan",
+          "marker": "Harness planning-with-files companion-plan patch"
+        },
+        "codex": {
+          "type": "planning-with-files-skill-root",
+          "marker": "Harness planning-with-files skill-root resolution patch"
+        },
+        "copilot": {
+          "type": "planning-with-files-skill-root",
+          "marker": "Harness planning-with-files skill-root resolution patch"
+        },
+        "cursor": {
+          "type": "planning-with-files-skill-root",
+          "marker": "Harness planning-with-files skill-root resolution patch"
+        }
+      },
+      "hooks": {
+        "default": {
+          "source": "harness/core/hooks/planning-with-files",
+          "adapter": "task-scoped-planning"
+        }
+      }
+    },
+    "risk-assessment-before-destructive-changes": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/risk-assessment-before-destructive-changes",
+      "layout": "single",
+      "targetName": "risk-assessment-before-destructive-changes",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
+    },
+    "safe-bypass-flow": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/safe-bypass-flow",
+      "layout": "single",
+      "targetName": "safe-bypass-flow",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
+    }
+  }
+}
