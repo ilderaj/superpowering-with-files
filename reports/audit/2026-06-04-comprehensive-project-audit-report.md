@@ -1,7 +1,7 @@
 # Comprehensive Project Audit Report
 
 Date: 2026-06-05
-Scope: `/Users/jared/SuperpoweringWithFiles`
+Scope: `SuperpoweringWithFiles` repository
 Audit basis: repository code, task-planning artifacts, verification outputs, targeted implementation work completed during this audit, and current runtime behavior.
 
 ## Executive Summary
@@ -40,7 +40,7 @@ This report is based on five evidence classes.
    - `./scripts/harness sync --dry-run`
    - `./scripts/harness doctor --check-only`
 3. Current planning and recovery artifacts:
-   - `planning/active/comprehensive-project-audit-20260603/`
+   - `planning/archive/20260605-160352-comprehensive-project-audit-20260603/`
    - `planning/archive/`
 4. Strategic and implementation artifacts created during this audit:
    - `docs/superpowers/plans/2026-06-04-comprehensive-project-audit-strategic-plan.md`
@@ -424,36 +424,36 @@ The biggest remaining job is no longer "prove the idea works." That proof alread
 
 ## Source Index
 
-- `/Users/jared/SuperpoweringWithFiles/README.md`
-- `/Users/jared/SuperpoweringWithFiles/docs/architecture.md`
-- `/Users/jared/SuperpoweringWithFiles/docs/workflows.md`
-- `/Users/jared/SuperpoweringWithFiles/docs/roadmap.md`
-- `/Users/jared/SuperpoweringWithFiles/docs/backlog.md`
-- `/Users/jared/SuperpoweringWithFiles/harness/installer/commands/harness.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/runtime/summary-service.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/runtime/sync-plan-service.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/runtime/write-plan.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/runtime/authority-root.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/runtime/execution-contract.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/runtime/execution-receipt.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/runtime/safe-apply.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health-planning-diagnostics.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health-context-budgets.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health-governance.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health-projection-inspection.mjs`
-- `/Users/jared/SuperpoweringWithFiles/harness/mcp/tools/write.mjs`
-- `/Users/jared/SuperpoweringWithFiles/docs/superpowers/specs/2026-06-04-execution-contract-design.md`
-- `/Users/jared/SuperpoweringWithFiles/docs/superpowers/specs/2026-06-05-health-first-boundary-hardening-design.md`
-- `/Users/jared/SuperpoweringWithFiles/docs/superpowers/plans/2026-06-04-comprehensive-project-audit-strategic-plan.md`
-- `/Users/jared/SuperpoweringWithFiles/docs/superpowers/plans/2026-06-05-health-first-boundary-hardening-implementation-plan.md`
-- `/Users/jared/SuperpoweringWithFiles/docs/superpowers/plans/2026-06-04-goal-3-execution-receipts-implementation-plan.md`
-- `/Users/jared/SuperpoweringWithFiles/planning/active/comprehensive-project-audit-20260603/task_plan.md`
-- `/Users/jared/SuperpoweringWithFiles/planning/active/comprehensive-project-audit-20260603/findings.md`
-- `/Users/jared/SuperpoweringWithFiles/planning/active/comprehensive-project-audit-20260603/progress.md`
-- `/Users/jared/SuperpoweringWithFiles/planning/active/comprehensive-project-audit-20260603/reconciliation.md`
-- `/Users/jared/SuperpoweringWithFiles/.harness/verification-audit/latest.md`
-- `/Users/jared/SuperpoweringWithFiles/.harness/verification-audit/latest.json`
+- `README.md`
+- `docs/architecture.md`
+- `docs/workflows.md`
+- `docs/roadmap.md`
+- `docs/backlog.md`
+- `harness/installer/commands/harness.mjs`
+- `harness/runtime/summary-service.mjs`
+- `harness/runtime/sync-plan-service.mjs`
+- `harness/runtime/write-plan.mjs`
+- `harness/runtime/authority-root.mjs`
+- `harness/runtime/execution-contract.mjs`
+- `harness/runtime/execution-receipt.mjs`
+- `harness/runtime/safe-apply.mjs`
+- `harness/installer/lib/health.mjs`
+- `harness/installer/lib/health-planning-diagnostics.mjs`
+- `harness/installer/lib/health-context-budgets.mjs`
+- `harness/installer/lib/health-governance.mjs`
+- `harness/installer/lib/health-projection-inspection.mjs`
+- `harness/mcp/tools/write.mjs`
+- `docs/superpowers/specs/2026-06-04-execution-contract-design.md`
+- `docs/superpowers/specs/2026-06-05-health-first-boundary-hardening-design.md`
+- `docs/superpowers/plans/2026-06-04-comprehensive-project-audit-strategic-plan.md`
+- `planning/archive/20260605-160352-comprehensive-project-audit-20260603/companion_plan.md`
+- `docs/superpowers/plans/2026-06-04-goal-3-execution-receipts-implementation-plan.md`
+- `planning/archive/20260605-160352-comprehensive-project-audit-20260603/task_plan.md`
+- `planning/archive/20260605-160352-comprehensive-project-audit-20260603/findings.md`
+- `planning/archive/20260605-160352-comprehensive-project-audit-20260603/progress.md`
+- `planning/archive/20260605-160352-comprehensive-project-audit-20260603/reconciliation.md`
+- `.harness/verification-audit/latest.md`
+- `.harness/verification-audit/latest.json`
 - runtime command observations collected during this audit:
   - `npm run verify`
   - `./scripts/harness active-summary`

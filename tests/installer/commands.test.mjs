@@ -977,7 +977,10 @@ test('doctor prints Codex hook evidence runtime and advisory warnings when runti
     assert.match(stdout, /Hook evidence:/);
     assert.match(stdout, /codex \/ planning-with-files/);
     assert.match(stdout, /runtime=runtime-invocation-verified/);
-    assert.match(stderr, /Codex user-global installs default to minimal-global/);
+    assert.match(
+      stderr,
+      /Install baseline is heavier than the recommended default: user-global installs should usually prefer minimal-global/
+    );
   } finally {
     if (previousHome === undefined) {
       delete process.env.HOME;
