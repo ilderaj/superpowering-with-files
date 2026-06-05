@@ -373,6 +373,7 @@ test('active-summary surfaces route metadata without changing reconciliation sem
 
     assert.equal(stderr, '');
     assert.equal(report.tasks[0].routingDecision.selectedRoute, 'tracked-lean');
+    assert.equal(Object.hasOwn(report.tasks[0].routingDecision, 'installBaseline'), false);
     assert.equal(report.tasks[0].reconciliationStatus, 'open');
   } finally {
     await removeFixture(root);

@@ -1,6 +1,6 @@
 # Comprehensive Project Audit Report
 
-Date: 2026-06-04
+Date: 2026-06-05
 Scope: `/Users/jared/SuperpoweringWithFiles`
 Audit basis: repository code, task-planning artifacts, verification outputs, targeted implementation work completed during this audit, and current runtime behavior.
 
@@ -8,7 +8,7 @@ Audit basis: repository code, task-planning artifacts, verification outputs, tar
 
 Harness is already a strong local governance substrate for coding-agent workflows. It is not a concept repository: it has a real command surface, real runtime services, real verification coverage, and real durable task-memory behavior. The project's strongest asset is that its core governance claims are backed by code, tests, and executable diagnostics rather than prose alone.
 
-At the same time, the project is not yet the full local task operating system described by the user's target state. It can already enforce and inspect planning authority, verification, reconciliation, and controlled writes. What it still lacks is a complete product-level execution core that makes heavy-task orchestration, execution receipts, integration signals, and token-aware routing feel native rather than partially procedural.
+At the same time, the project is still not the full local task operating system described by the user's target state. It can now enforce and inspect planning authority, verification, reconciliation, controlled writes, execution contracts, execution receipts, follow-up closure, route-aware task behavior, and one full structural hardening slice around `health`. What it still lacks is a complete native orchestration runtime for heavy-task decomposition plus a fully hygienic default lightweight posture across every operator surface and install baseline.
 
 This audit therefore concludes:
 
@@ -16,11 +16,11 @@ This audit therefore concludes:
 2. The architectural direction is sound.
 3. The practical workflow is already effective for real tracked work.
 4. The main remaining gaps are product-shaping gaps rather than missing engineering discipline.
-5. The highest-value next steps are:
-   - tighten authoritative-memory closure,
-   - formalize heavy-task execution truth,
-   - turn token economy into routing behavior,
-   - then harden structural boundaries around the behavior that proves out.
+5. The highest-value next steps are now:
+   - validate the execution kernel against more real tracked tasks,
+   - tighten the remaining lightweight-default hygiene,
+   - carry structural boundary hardening into `sync`,
+   - and only then expand outward again.
 
 ## Audit Method
 
@@ -49,8 +49,9 @@ This report is based on five evidence classes.
 5. Fresh implementation proof performed during the audit itself:
    - companion-drift governance closure
    - execution-contract landing
-   - execution-receipt landing
-   - real tracked-task receipt proof
+   - execution-receipt and follow-up-closure landing
+   - decision-plane routing and `lean-direct` proof
+   - `health-first` structural boundary hardening
 
 The conclusions below are written in the form:
 
@@ -131,25 +132,36 @@ These boundaries reduce the probability that one new feature must be implemented
 
 This architectural base is good enough to support a heavier execution core, provided future work continues to build through runtime services rather than surface-specific shortcuts.
 
-### 4. Structural Complexity Is Starting To Concentrate
+### 4. Structural Complexity Was Starting To Concentrate, And The First Hardening Slice Is Now Complete
 
 **Judgment**
 
-The architecture is sound, but some operating logic is beginning to accumulate into central modules.
+The architecture is sound, and the project has now proven that it can harden one of its biggest structural hot spots without drifting behavior.
 
 **Evidence**
 
-- `health` and `sync` logic have become recurring aggregation points during this audit.
-- The project already needed targeted follow-on work to keep `active-summary`, runtime summary, `doctor`, and archive semantics aligned.
-- The audit's Goal 1 and Goal 3 work both had to defend against surface divergence.
+- Early in the audit, `health` and `sync` were the clearest coordination hot spots.
+- During Track 4, `harness/installer/lib/health.mjs` was split into:
+  - `health-planning-diagnostics.mjs`
+  - `health-context-budgets.mjs`
+  - `health-governance.mjs`
+  - `health-projection-inspection.mjs`
+- After the split, `health.mjs` shrank to an orchestrator of about 435 lines from the earlier hotspot size of about 1882 lines captured during the audit.
+- Fresh verification after the split passed:
+  - the new focused seam tests,
+  - full `tests/installer/health.test.mjs`,
+  - live `doctor --check-only`,
+  - live `summary --task comprehensive-project-audit-20260603`,
+  - live `active-summary --json`.
+- The only regression found during the split was a markdown-link companion back-reference false positive, and it was resolved inside the new planning-diagnostics seam rather than by broadening lifecycle logic.
 
 **Reasoning**
 
-This is not a failure of current architecture. It is a normal stage transition: once governance becomes real product behavior, policy aggregation points grow quickly. If left unchecked, this eventually increases regression risk and slows evolution.
+This changes the strategic reading of the codebase. Structural pressure is still real, but it is no longer only a forecast. The repository now has concrete evidence that behavior-first boundary hardening works: seams can be extracted, the public health API can remain stable, and operator surfaces can stay green while the internal structure becomes clearer.
 
 **Strategic implication**
 
-Structural hardening should remain a mainline future track, but only after the execution and token-routing behaviors are clearer.
+Track 4 remains valid as a mainline, but its next slice should target `sync` rather than revisiting `health` again. The project has already harvested the highest-confidence structural win from the first hotspot.
 
 ## Compatibility And Extension Assessment
 
@@ -270,25 +282,29 @@ Receipts should remain evidence-only, but their existence opens the path to rich
 
 ## Token Economy Assessment
 
-### 10. Token Governance Exists, But Default Behavioral Routing Is Not Finished
+### 10. Token Governance Exists And Routing Now Exists, But Lightweight Hygiene Is Not Fully Closed
 
 **Judgment**
 
-Harness has already achieved measurable token governance, but not yet automatic token-appropriate behavior.
+Harness has now crossed from token governance into token-aware routing behavior, but it has not yet made the lightweight path fully clean by default across install state and every target surface.
 
 **Evidence**
 
-- `.harness/verification-audit/latest.md` records passing budget checks across entry, hook payload, planning hot context, and skill profile surfaces.
-- `doctor --check-only` can still warn when user-global configuration is heavier than the recommended default.
-- The repository has explicit concepts such as `scope`, `projectionMode`, `hookMode`, `policyProfile`, and `skillProfile` in `state.mjs`.
+- `decision-plane-router.mjs` now exists and is exercised by tracked-task proofs.
+- planning templates and runtime surfaces now carry route evidence such as `lean-direct`, `tracked-lean`, and `deep-rich`.
+- `task-scoped-hook` behavior now distinguishes quick-task emptiness from tracked/deep task context behavior.
+- `summary` and `active-summary` expose route truth without leaking install baseline as task truth.
+- `.harness/verification-audit/latest.md` still records budget checks across entry, hook payload, planning hot context, and skill profile surfaces.
+- `doctor --check-only` still warns that the current install baseline is heavier than the recommended default.
+- `doctor --check-only` also still reports a Copilot `session-summary` hook payload warning.
 
 **Reasoning**
 
-This means the project understands token economy at a policy and measurement level. What it does not yet fully do is route lightweight versus heavy work automatically and consistently enough that the cheaper correct path becomes the default product behavior.
+The important change since the earlier report is that the project no longer only measures token cost. It now has a real decision plane and real route evidence surfaces. The remaining gap is narrower: the install baseline and some payload surfaces are still heavier than the ideal steady state, so the cheapest correct path is not yet fully normalized across the whole product.
 
 **Strategic implication**
 
-The next real step is not "more budget reports." It is to turn budget policy into execution routing.
+The next token-economy work should not re-open routing design. It should focus on hygiene and operational convergence: install baseline choices, payload trimming where warranted, and more real quick-task proofs.
 
 ## Delivery Against The User's North Star
 
@@ -309,13 +325,13 @@ This audit evaluates current fit as follows.
 | Controlled writes and verification | Strong | good |
 | Heavy-task execution truth model | Newly established | moderate |
 | Durable execution evidence | Newly established | moderate |
-| Default token-aware routing | Measured but not fully behavioral | moderate-to-weak |
-| Native subagent/task orchestration | Not yet first-class | weak |
-| Structural maintainability under future growth | Manageable but needs boundary hardening | moderate |
+| Default token-aware routing | Real and behaviorally surfaced, but not fully hygienic by default | moderate |
+| Native subagent/task orchestration | Still not first-class as a runtime | weak-to-moderate |
+| Structural maintainability under future growth | Improved by one proven hardening slice; `sync` remains the next hotspot | moderate-to-good |
 
 **Reasoning**
 
-The project already supports real tracked work and durable reflection. The largest remaining gap to the user's target is not memory anymore; it is execution-kernel maturity plus low-cost default routing behavior.
+The project already supports real tracked work, durable reflection, route-aware behavior, and one completed structure-hardening slice. The largest remaining gap to the user's target is no longer memory closure or the absence of routing. It is execution-kernel maturity plus the remaining lightweight-default hygiene and the next structural hotspot around `sync`.
 
 ## Gaps And Risks
 
@@ -325,12 +341,13 @@ The project already supports real tracked work and durable reflection. The large
    - The system can now describe execution units and receipts.
    - It does not yet provide a full native orchestration layer for subagent decomposition and execution management.
 
-2. **Token economy is still more measured than routed**
-   - The governance layer knows what "too heavy" looks like.
-   - The product does not yet always self-route into the lean path by default.
+2. **Lightweight-default hygiene is not fully closed**
+   - The routing model now exists and is surfaced in planning, summary, and active-summary.
+   - The product still carries a heavier-than-recommended install baseline and one persistent Copilot payload warning in the live repository.
 
-3. **Structural pressure will increase as new execution behavior lands**
-   - Summary, doctor, sync, and health surfaces already demonstrate the tendency for policy concentration.
+3. **Structural pressure has been reduced in `health`, but not yet in `sync`**
+   - The first hardening slice is done.
+   - The next coordination hotspot is now more clearly `sync` and adjacent plan/apply/report/cleanup behavior.
 
 4. **The project still depends on disciplined planning hygiene**
    - Much less than before Goal 1, but not zero.
@@ -350,17 +367,17 @@ The recommended mainline remains **Balanced Kernel-First**.
 
 Sequence:
 
-1. Close authoritative-memory drift enough that planning can safely hold richer task truth.
-2. Formalize heavy-task execution truth through execution contracts and receipts.
-3. Turn token economy into behavioral routing rather than diagnostics-only policy.
-4. Split central modules along proven behavior boundaries, not speculative abstractions.
+1. Close authoritative-memory drift enough that planning can safely hold richer task truth. Completed.
+2. Formalize heavy-task execution truth through execution contracts and receipts. Completed for v1.
+3. Turn token economy into behavioral routing rather than diagnostics-only policy. Functionally completed, with hygiene still open.
+4. Split central modules along proven behavior boundaries, not speculative abstractions. Started and validated through the `health-first` slice.
 
 ### 15. Why This Direction Is Correct
 
 **Evidence**
 
 - Governance and verification are already stronger than orchestration.
-- Goal 1-3 work during this audit proved that memory closure and execution evidence can be improved incrementally without breaking authority.
+- Goal 1-4 work during this audit proved that memory closure, execution evidence, route-aware behavior, and one structural-hardening slice can all be improved incrementally without breaking authority.
 - The user's explicit priority correction moved cloud expansion out of the mainline.
 
 **Reasoning**
@@ -371,18 +388,19 @@ This is the route that compounds existing strengths while directly attacking the
 
 ### 16. Near-Term Priorities
 
-1. **Operationalize receipt-aware reconciliation**
-   - Make sure receipt follow-ups, verification state, and integration state are consistently visible where operators make close/archive decisions.
+1. **Carry boundary hardening into `sync`**
+   - Treat `sync` as the next structural hotspot.
+   - Separate planning, apply, cleanup, and report concerns without reopening `health`.
 
-2. **Design task-routing policy for light versus heavy work**
-   - Promote measured token policy into default runtime behavior.
-   - Define the lean path, the rich path, and the promotion rules between them.
+2. **Validate the execution kernel on more real tracked tasks**
+   - Use additional real tasks to prove that execution-contract fields, receipts, follow-up closure, and routing signals are sufficient outside this audit thread.
 
-3. **Add one more layer of execution integration**
-   - Use a small number of real tracked tasks to validate whether execution-contract fields and receipt fields are sufficient in daily use.
+3. **Close the remaining lightweight-default hygiene**
+   - Decide whether the install baseline should converge toward `minimal-global`.
+   - Reduce the persistent Copilot `session-summary` payload warning if the operator-cost tradeoff justifies it.
 
-4. **Prepare boundary hardening around proven hot spots**
-   - Split policy evaluators, signal aggregators, and planning inspectors only after the richer execution path stabilizes.
+4. **Keep cloud and breadth work in backlog**
+   - Only re-open broader parity work if it directly unblocks the local kernel roadmap.
 
 ### 17. Backlog Priorities
 
@@ -394,9 +412,9 @@ These should remain secondary unless they directly unblock the local core:
 
 ## Final Conclusion
 
-Harness is already a serious and effective local workflow-governance platform. It now also has early but real execution-kernel elements: execution contracts, execution receipts, and live execution signals. The audit therefore judges the project as fundamentally strong and strategically promising.
+Harness is already a serious and effective local workflow-governance platform. It now also has real execution-kernel elements and one completed structure-hardening slice: execution contracts, execution receipts, follow-up closure, route-aware task behavior, and a narrowed `health` orchestrator. The audit therefore judges the project as fundamentally strong and strategically promising.
 
-The biggest remaining job is no longer "prove the idea works." That proof already exists. The job now is to finish turning governed task memory into a genuinely complete local task operating system:
+The biggest remaining job is no longer "prove the idea works." That proof already exists, and it now extends through one concrete structural hardening cycle. The job now is to finish turning governed task memory into a genuinely complete local task operating system:
 
 - cheap by default for small work,
 - structured and recoverable for heavy work,
@@ -419,9 +437,16 @@ The biggest remaining job is no longer "prove the idea works." That proof alread
 - `/Users/jared/SuperpoweringWithFiles/harness/runtime/execution-contract.mjs`
 - `/Users/jared/SuperpoweringWithFiles/harness/runtime/execution-receipt.mjs`
 - `/Users/jared/SuperpoweringWithFiles/harness/runtime/safe-apply.mjs`
+- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health.mjs`
+- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health-planning-diagnostics.mjs`
+- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health-context-budgets.mjs`
+- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health-governance.mjs`
+- `/Users/jared/SuperpoweringWithFiles/harness/installer/lib/health-projection-inspection.mjs`
 - `/Users/jared/SuperpoweringWithFiles/harness/mcp/tools/write.mjs`
 - `/Users/jared/SuperpoweringWithFiles/docs/superpowers/specs/2026-06-04-execution-contract-design.md`
+- `/Users/jared/SuperpoweringWithFiles/docs/superpowers/specs/2026-06-05-health-first-boundary-hardening-design.md`
 - `/Users/jared/SuperpoweringWithFiles/docs/superpowers/plans/2026-06-04-comprehensive-project-audit-strategic-plan.md`
+- `/Users/jared/SuperpoweringWithFiles/docs/superpowers/plans/2026-06-05-health-first-boundary-hardening-implementation-plan.md`
 - `/Users/jared/SuperpoweringWithFiles/docs/superpowers/plans/2026-06-04-goal-3-execution-receipts-implementation-plan.md`
 - `/Users/jared/SuperpoweringWithFiles/planning/active/comprehensive-project-audit-20260603/task_plan.md`
 - `/Users/jared/SuperpoweringWithFiles/planning/active/comprehensive-project-audit-20260603/findings.md`

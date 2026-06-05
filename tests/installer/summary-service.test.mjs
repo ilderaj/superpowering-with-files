@@ -184,7 +184,7 @@ test('getActiveTaskSummary surfaces blocked execution receipts and open followup
   }
 });
 
-test('getActiveTaskSummary includes routing decision metadata for tracked tasks', async () => {
+test('route metadata stays route-centered and does not expose install baseline as task route truth', async () => {
   const root = await createFixture('summary-service-routing-decision');
   try {
     await writeTask(root, 'task-routing', {
@@ -215,6 +215,7 @@ test('getActiveTaskSummary includes routing decision metadata for tracked tasks'
 
     assert.equal(task.routingDecision.selectedRoute, 'tracked-lean');
     assert.equal(task.routingDecision.routeEvidenceSurface, 'planning + active-summary');
+    assert.equal(Object.hasOwn(task.routingDecision, 'installBaseline'), false);
     assert.equal(task.reconciliationStatus, 'open');
   } finally {
     await removeFixture(root);

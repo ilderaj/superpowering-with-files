@@ -1807,7 +1807,7 @@ test('readHarnessHealth warns when planning hot context cannot be measured acros
   }
 });
 
-test('readHarnessHealth warns when Codex user-global installs keep the full skill profile', async () => {
+test('readHarnessHealth distinguishes heavy install baseline from runtime route correctness', async () => {
   const root = await createHarnessFixture();
   const homeDir = path.join(root, 'home');
   const previousHome = process.env.HOME;
@@ -1832,8 +1832,13 @@ test('readHarnessHealth warns when Codex user-global installs keep the full skil
     assert.ok(
       health.warnings.some((warning) =>
         warning.includes(
-          'Codex user-global installs default to minimal-global; full is heavier than necessary unless you intentionally need the full skill surface.'
+          'Install baseline is heavier than the recommended default: user-global installs should usually prefer minimal-global unless you intentionally need the broader baseline capability package.'
         )
+      )
+    );
+    assert.ok(
+      !health.warnings.some((warning) =>
+        warning.includes('routing is wrong because install state is full')
       )
     );
   } finally {

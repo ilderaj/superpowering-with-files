@@ -134,6 +134,31 @@ test('task-scoped-hook emits Codex hookSpecificOutput payload', async () => {
   }
 });
 
+test('task-scoped hook stays empty when no tracked task exists', async () => {
+  const fixtureRoot = path.join(process.cwd(), 'tests/hooks/.artifacts/lean-direct-no-active-task');
+
+  await rm(fixtureRoot, { recursive: true, force: true });
+  await mkdir(fixtureRoot, { recursive: true });
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot,
+      env: {
+        ...process.env,
+        HARNESS_PROJECT_ROOT: fixtureRoot
+      }
+    });
+
+    assert.equal(stdout.trim(), '{}');
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
 test('task-scoped-hook resolves the authority root from a nested leaf directory', async () => {
   const { fixtureRoot } = await createFixture('codex-leaf-workspace', activeTaskFiles());
 
