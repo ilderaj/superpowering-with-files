@@ -40,9 +40,47 @@ class CodexHooksTests(unittest.TestCase):
 
         payload = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))
         self.assertEqual(
-            {"SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"},
+            {
+                "SessionStart",
+                "UserPromptSubmit",
+                "PreToolUse",
+                "PermissionRequest",
+                "PostToolUse",
+                "Stop",
+            },
             set(payload["hooks"]),
         )
+
+    def test_permission_request_adapter_emits_plan_reminder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root.joinpath("task_plan.md").write_text(
+                "# Task Plan\n### Phase 1\n- **Status:** in_progress\n",
+                encoding="utf-8",
+            )
+
+            result = self.run_python_hook(
+                "permission_request.py",
+                {"cwd": str(root), "tool_name": "Bash"},
+                root,
+            )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertIn("systemMessage", payload)
+        self.assertIn("Active plan", payload["systemMessage"])
+
+    def test_permission_request_silent_without_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            result = self.run_python_hook(
+                "permission_request.py",
+                {"cwd": str(root), "tool_name": "Bash"},
+                root,
+            )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("", result.stdout.strip())
 
     def test_session_start_reuses_plan_context(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as home:

@@ -8,6 +8,13 @@ description: Use when starting bypass, autopilot, or long-running risky coding w
 ## Overview
 Bypass-style work belongs in an isolated worktree with a recovery path and a remote backup. The main checkout stays clean; risky execution happens only in the dedicated branch/worktree.
 
+## Outcome Contract
+
+- **Outcome:** risky or long-running agent work runs away from the main checkout with a recovery path.
+- **Done when:** the task records its base ref and SHA, uses a dedicated worktree backed by its task branch, and has a local or remote recovery checkpoint.
+- **Evidence:** worktree preflight output, active task progress, checkpoint path or pushed branch, and final verification notes.
+- **Output:** an isolated execution surface that can be reviewed, merged, or abandoned without damaging the main checkout.
+
 ## When to Use
 - Long-running agent sessions
 - Risky refactors, wide edits, or destructive cleanups
