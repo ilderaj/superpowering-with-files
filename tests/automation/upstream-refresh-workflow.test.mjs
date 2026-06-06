@@ -101,10 +101,10 @@ test('upstream refresh workflow grants only the PR update permissions it needs',
   });
 });
 
-test('upstream refresh workflow runs on ubuntu and checks out full main history', async () => {
+test('upstream refresh workflow runs on ubuntu and checks out full triggering-ref history', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
   const jobBlock = extractJobBlock(workflow, 'upstream-refresh');
-  const checkoutBlock = extractStepBlock(workflow, 'Check out main');
+  const checkoutBlock = extractStepBlock(workflow, 'Check out workflow ref');
   const setupNodeBlock = extractStepBlock(workflow, 'Set up Node.js');
   const installBlock = extractStepBlock(workflow, 'Install dependencies');
 
@@ -114,8 +114,8 @@ test('upstream refresh workflow runs on ubuntu and checks out full main history'
   );
   assert.match(jobBlock, /^\s{4}runs-on:\s*ubuntu-latest\s*$/m);
   assert.match(checkoutBlock, /^\s{8}uses:\s*actions\/checkout@v6\s*$/m);
-  assert.match(checkoutBlock, /^\s{10}ref:\s*main\s*$/m);
   assert.match(checkoutBlock, /^\s{10}fetch-depth:\s*0\s*$/m);
+  assert.doesNotMatch(checkoutBlock, /^\s{10}ref:\s*main\s*$/m);
   assert.match(setupNodeBlock, /^\s{8}uses:\s*actions\/setup-node@v6\s*$/m);
   assert.match(setupNodeBlock, /^\s{10}node-version:\s*'22'\s*$/m);
   assert.match(setupNodeBlock, /^\s{10}cache:\s*npm\s*$/m);
@@ -126,7 +126,7 @@ test('upstream refresh workflow keeps the expected step order', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
 
   assert.deepEqual(extractStepNames(workflow), [
-    'Check out main',
+    'Check out workflow ref',
     'Set up Node.js',
     'Install dependencies',
     'Run upstream refresh',
