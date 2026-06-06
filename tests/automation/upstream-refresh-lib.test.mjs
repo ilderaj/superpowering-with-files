@@ -231,6 +231,22 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
   assert.deepEqual(writtenResults, [result]);
 });
 
+test('filterEligibleChanges ignores runtime node_modules artifacts before enforcing the allowlist', async () => {
+  const { filterEligibleChanges } = await loadUpstreamRefreshModule();
+
+  const filtered = filterEligibleChanges([
+    { path: 'node_modules/.bin/harness', tracked: false },
+    { path: 'node_modules/.cache/wrangler/wrangler-account.json', tracked: false },
+    { path: 'node_modules/@superpowering-with-files/harness-runtime', tracked: false },
+    { path: 'harness/upstream/.source-heads.json', tracked: true }
+  ]);
+
+  assert.deepEqual(filtered, {
+    eligibleFiles: ['harness/upstream/.source-heads.json'],
+    excludedFiles: []
+  });
+});
+
 test('runUpstreamRefresh writes a failure result and rejects when verification fails', async () => {
   const { filterEligibleChanges } = await loadUpstreamRefreshModule();
   const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');

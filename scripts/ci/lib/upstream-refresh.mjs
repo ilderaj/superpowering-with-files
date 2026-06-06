@@ -38,8 +38,14 @@ const repoLocalEntryFiles = new Set([
   '.github/copilot-instructions.md'
 ]);
 
+function isIgnoredRuntimeArtifact(filePath) {
+  return filePath === 'node_modules' || filePath.startsWith('node_modules/');
+}
+
 function isIgnoredGeneratedCacheFile(filePath) {
-  return filePath.includes('/__pycache__/') || filePath.endsWith('.pyc');
+  return isIgnoredRuntimeArtifact(filePath)
+    || filePath.includes('/__pycache__/')
+    || filePath.endsWith('.pyc');
 }
 
 export function buildRefreshCommandChain() {
