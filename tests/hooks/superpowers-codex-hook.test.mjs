@@ -14,6 +14,7 @@ test('superpowers codex session-start emits hookSpecificOutput payload', async (
   assert.equal(payload.hookSpecificOutput.hookEventName, 'SessionStart');
   assert.ok(payload.hookSpecificOutput.additionalContext.length < 4000);
   assert.match(payload.hookSpecificOutput.additionalContext, /You have superpowers/);
+  assert.match(payload.hookSpecificOutput.additionalContext, /reclassify the round/i);
   assert.doesNotMatch(
     payload.hookSpecificOutput.additionalContext,
     /description: Use when starting any conversation/
@@ -29,6 +30,7 @@ test('superpowers cursor session-start emits Cursor additional_context payload',
   const payload = JSON.parse(stdout);
   assert.ok(payload.additional_context.length < 4000);
   assert.match(payload.additional_context, /You have superpowers/);
+  assert.match(payload.additional_context, /reclassify the round/i);
   assert.doesNotMatch(payload.additional_context, /description: Use when starting any conversation/);
 });
 
@@ -42,6 +44,7 @@ test('superpowers claude-code session-start keeps hookSpecificOutput payload com
   assert.equal(payload.hookSpecificOutput.hookEventName, 'SessionStart');
   assert.ok(payload.hookSpecificOutput.additionalContext.length < 4000);
   assert.match(payload.hookSpecificOutput.additionalContext, /You have superpowers/);
+  assert.match(payload.hookSpecificOutput.additionalContext, /reclassify the round/i);
   assert.doesNotMatch(
     payload.hookSpecificOutput.additionalContext,
     /description: Use when starting any conversation/

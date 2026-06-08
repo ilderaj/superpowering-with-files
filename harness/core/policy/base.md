@@ -42,6 +42,21 @@ Classify the task before choosing the workflow:
 
 Tool-call count is only a supporting signal. Exceeding five meaningful tool calls may indicate tracked work, but it does not override the task classification above by itself.
 
+## Goal Round Start Protocol
+
+Before each substantive goal round, continuation tick, or phase boundary:
+
+1. Restore context from `planning/active/<task-id>/` first. Read `task_plan.md`, `progress.md`, and `findings.md`. If those files reference a companion plan, read only the relevant compact section you need for the current round.
+2. Reclassify the current round using the existing `quick`, `tracked`, and `deep-reasoning` model. A task can stay tracked overall while a specific round is quick or deep.
+3. Route the round by its current classification:
+   - `quick`: stay lightweight. Do not create a companion plan and do not add subagents just because a goal loop is running.
+   - `tracked`: keep `planning/active/<task-id>/` authoritative and update the planning files after meaningful progress, phase changes, validation results, or durable decisions.
+   - `deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`, verify the plan before execution, and use read-only verifier subagents only when they are useful and available. Verifiers may review plan completeness, architecture fit, risks, rollback, or validation commands, but they must not edit code or planning files. Integrate their feedback before execution.
+4. Bound plan-polishing loops. Attempt 1 revises from verifier feedback. Attempt 2 re-verifies the failed areas. Attempt 3 performs a broader rethink. After three failed verification rounds, record blockers and unresolved assumptions in the authoritative planning files and stop instead of looping forever.
+5. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
+
+This protocol is repository-owned guidance, not a separate runner. Hooks may inject reminders or compact context, but they do not replace round-start restore, reclassification, routing, or sync-back discipline.
+
 ## When Superpowers Is Allowed
 
 Use superpowers only when:

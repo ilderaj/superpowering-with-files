@@ -15,6 +15,7 @@ test('each declared policy profile renders independently', async () => {
   const deepReasoningReference = await renderPolicyProfile(rootDir, 'deep-reasoning-reference');
 
   assert.match(alwaysOnCore, /Rule Precedence/);
+  assert.match(alwaysOnCore, /Goal Round Start Protocol/);
   assert.match(trackedTaskExtended, /Planning-With-Files Lifecycle Rule/);
   assert.match(deepReasoningReference, /Companion Plan Model/);
 });
@@ -34,9 +35,11 @@ test('renderEntry uses a thinner always-on profile for Copilot by default', asyn
 
   assert.match(copilotRendered, /Task Classification/);
   assert.match(copilotRendered, /Communication Guidelines/);
+  assert.doesNotMatch(copilotRendered, /Goal Round Start Protocol/);
   assert.doesNotMatch(copilotRendered, /When Superpowers Is Allowed/);
   assert.doesNotMatch(copilotRendered, /When Superpowers Is Not Allowed/);
   assert.doesNotMatch(copilotRendered, /Tool Preferences/);
+  assert.match(codexRendered, /Goal Round Start Protocol/);
   assert.match(codexRendered, /When Superpowers Is Allowed/);
   assert.match(codexRendered, /Tool Preferences/);
   assert.ok(measureText(copilotRendered).approxTokens < measureText(codexRendered).approxTokens);
@@ -121,6 +124,9 @@ test('project docs keep shared defaults while documenting the optional Copilot g
   assert.doesNotMatch(copilotInstall, /~\/\.copilot\/skills/);
   assert.match(codexInstall, /`\.agents\/skills`/);
   assert.match(codexInstall, /`~\/\.agents\/skills`/);
+  assert.match(codexInstall, /Goal Round Start Protocol/);
+  assert.match(codexInstall, /Codex `\/goal` stays native/);
+  assert.match(codexInstall, /planning\/active\/<task-id>/);
 });
 
 

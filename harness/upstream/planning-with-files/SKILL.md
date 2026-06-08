@@ -283,6 +283,25 @@ Helper scripts for automation:
 - `scripts/check-complete.sh` — Verify all phases complete
 - `scripts/session-catchup.py` — Recover context from previous session (v2.2.0)
 
+## Goal-like Continuation Rounds
+
+If your host offers native goal, auto-continue, or loop primitives, keep them native. Do not build an external runner around them.
+
+Before each substantive goal round, continuation tick, or phase:
+
+1. Resolve `planning/active/<task-id>/` and re-read `task_plan.md`, `progress.md`, and `findings.md`.
+2. If the planning files reference a companion plan, read only the relevant compact section for the current round.
+3. Reclassify the current round:
+   - `Quick`: clear single-stage path, low risk, no durable research trail
+   - `Tracked`: multi-phase work, durable decisions, verification trail, recovery needs
+   - `Deep-reasoning`: unclear architecture, ambiguous requirements, complex debugging, repeated validation failure, risky integration, or explicit deep reasoning request
+4. Route the round from that classification:
+   - `Quick`: stay lightweight; no companion plan and no subagents
+   - `Tracked`: keep `planning/active/<task-id>/` authoritative and update it after meaningful progress
+   - `Deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`, verify the plan before execution, and use read-only verifier subagents only when useful
+5. Bound plan polishing to three verification rounds, then record blockers and stop instead of looping forever.
+6. Sync durable decisions, lifecycle and phase status, validation results, and companion-plan summary data back into `planning/active/<task-id>/` after each phase.
+
 ## Advanced Topics
 
 - **Manus Principles:** See [reference.md](reference.md)

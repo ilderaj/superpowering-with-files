@@ -47,6 +47,22 @@ Classify the task before choosing the workflow:
 
 Tool-call count is only a supporting signal. Exceeding five meaningful tool calls may indicate tracked work, but it does not override the task classification above by itself.
 
+## Goal Round Start Protocol
+
+
+Before each substantive goal round, continuation tick, or phase boundary:
+
+1. Restore context from `planning/active/<task-id>/` first. Read `task_plan.md`, `progress.md`, and `findings.md`. If those files reference a companion plan, read only the relevant compact section you need for the current round.
+2. Reclassify the current round using the existing `quick`, `tracked`, and `deep-reasoning` model. A task can stay tracked overall while a specific round is quick or deep.
+3. Route the round by its current classification:
+   - `quick`: stay lightweight. Do not create a companion plan and do not add subagents just because a goal loop is running.
+   - `tracked`: keep `planning/active/<task-id>/` authoritative and update the planning files after meaningful progress, phase changes, validation results, or durable decisions.
+   - `deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`, verify the plan before execution, and use read-only verifier subagents only when they are useful and available. Verifiers may review plan completeness, architecture fit, risks, rollback, or validation commands, but they must not edit code or planning files. Integrate their feedback before execution.
+4. Bound plan-polishing loops. Attempt 1 revises from verifier feedback. Attempt 2 re-verifies the failed areas. Attempt 3 performs a broader rethink. After three failed verification rounds, record blockers and unresolved assumptions in the authoritative planning files and stop instead of looping forever.
+5. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
+
+This protocol is repository-owned guidance, not a separate runner. Hooks may inject reminders or compact context, but they do not replace round-start restore, reclassification, routing, or sync-back discipline.
+
 ## When Superpowers Is Allowed
 
 
@@ -118,17 +134,9 @@ Codex can consume `AGENTS.md` as the primary instruction entrypoint.
 
 Use rendered `AGENTS.md` files for both workspace and user-global scopes. Project Codex skills into `.agents/skills` and `~/.agents/skills`, and materialize them to keep discovery aligned with the current Codex skill model.
 
-## Leaf Workspace Root Policy
+Codex `/goal` remains the native long-running executor. Harness does not wrap it with an external runner and does not modify Codex internals.
 
-- A narrow leaf workspace is allowed for context control, but durable Harness state remains rooted at one authority root.
-- By default, when the current directory is inside a git worktree, treat that git top-level as the authority-root boundary.
-- Do not keep walking above the git root looking for a different project root unless one of these explicit overrides is present:
-  - `--root`
-  - `HARNESS_PROJECT_ROOT`
-  - `.harness/authority-root.json` inside the current git worktree
-- `planning/active/<task-id>/` stays single-homed at the authority root.
-- `install`, `sync`, `verify`, `record`, `summary`, `doctor`, and related commands should still act on the authority root even when launched from a linked leaf workspace.
+When Codex uses `/goal`, repository-local `/plan-goal`, or any goal-like continuation flow, apply the Goal Round Start Protocol at each observable round, checkpoint, or phase boundary: restore the task-scoped planning files, reclassify the current round, keep quick rounds lightweight, use companion-plan plus verifier gating only for deep-reasoning rounds, and sync durable state back to `planning/active/<task-id>/`.
 
-
-
+Hooks stay lightweight in Codex. They may inject compact planning reminders or hot context for the next prompt, but the core round-start discipline lives in rendered guidance and task-scoped planning files.
 
