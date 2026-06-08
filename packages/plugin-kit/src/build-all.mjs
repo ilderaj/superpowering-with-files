@@ -8,7 +8,7 @@ import { sha256File } from './sha256.mjs';
 import { supportedPluginTargets } from './platform-contracts.mjs';
 
 export async function buildAll({
-  version = '1.0.6',
+  version = '1.0.8',
   release = false,
   outDir,
   rootDir = process.cwd(),

@@ -11,7 +11,7 @@ test('runtime package declares public bins and a files allowlist', async () => {
   const pkg = JSON.parse(await readFile('packages/harness-runtime/package.json', 'utf8'));
 
   assert.equal(pkg.name, '@superpowering-with-files/harness-runtime');
-  assert.equal(pkg.version, '1.0.6');
+  assert.equal(pkg.version, '1.0.8');
   assert.equal(pkg.type, 'module');
   assert.equal(pkg.bin.harness, './bin/harness');
   assert.equal(pkg.bin['harness-mcp-stdio'], './bin/harness-mcp-stdio.mjs');

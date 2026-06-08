@@ -39,17 +39,17 @@ Expected on current builds: a `hooks` row marked enabled. If your Codex version 
 
 Codex `/goal` stays native. Harness does not add an external runner and does not modify Codex internals.
 
-The rendered Codex `AGENTS.md` applies the Goal Round Start Protocol to `/goal`, `/plan-goal`, and similar continuation flows at each substantive round, checkpoint, or phase boundary:
+Apply the Goal Round Start Protocol to `/goal`, projected `/plan-goal`, and similar continuation flows:
 
-- restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` first
-- if a companion plan is referenced, read only the relevant compact section for the current round
-- reclassify the round as `quick`, `tracked`, or `deep-reasoning`
-- keep quick rounds lightweight
-- keep `planning/active/<task-id>/` authoritative for tracked rounds
-- use the companion plan plus optional read-only verifier subagents only for deep-reasoning rounds
-- sync durable decisions, validation, and sync-back status into `planning/active/<task-id>/` after each phase
+1. Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` first.
+2. If a companion plan is referenced, read only the compact section needed for the current round.
+3. Reclassify the round as `quick`, `tracked`, or `deep-reasoning`.
+4. Keep quick rounds lightweight, keep `planning/active/<task-id>/` authoritative for tracked rounds, and use companion-plan plus optional read-only verifier subagents only for deep-reasoning rounds.
+5. After each phase, sync durable decisions, validation, companion-plan linkage, and sync-back status into `planning/active/<task-id>/`.
 
 Codex hooks support this flow with lightweight reminders and context injection only. They are not the sole enforcement mechanism.
+
+`/plan-goal` is a projected planning-aware wrapper when the relevant skill/command surface exists. It composes with native `/goal`; it does not replace it.
 
 Harness projects Codex hooks only when `--hooks=on` is selected. It projects the verified planning-with-files `SessionStart` and `UserPromptSubmit` events, plus the superpowers `SessionStart` wrapper. When the `safety` profile is active, Harness can also project Codex `SessionStart` and `PreToolUse` safety hooks. Those remain repository-owned policy checks and do not replace host-platform approvals.
 

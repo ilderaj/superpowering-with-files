@@ -16,18 +16,24 @@ npm run verify
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness sync --dry-run
 ./scripts/harness doctor --check-only
+git push origin dev
+gh pr create --base main --head dev --title "<release title>"
+npm run release:pack
+gh release create <version> --notes-file dist/release/<version>/release-notes.md dist/release/<version>/*
 git switch main
 git merge --ff-only dev
-git push origin main
 ```
 
-Only promote to `main` after verification passes. If the release includes upstream baseline changes, also attach an [Upstream Update Compatibility](upstream-update-compatibility.md) report covering changed upstream files, affected projections, required resync, risk level, patch drift warnings, and checks.
+Push `origin/main` only when you are actually promoting `main`. A local fast-forward is enough when you only need parity with the verified release candidate while the PR is still open.
+
+Only cut a release from the exact verified commit. If the release includes upstream baseline changes, also attach an [Upstream Update Compatibility](upstream-update-compatibility.md) report covering changed upstream files, affected projections, required resync, risk level, patch drift warnings, and checks.
 
 Release lane expectations:
 
 - `plan` and `review` work should already be complete before promotion starts.
 - `verify` artifacts must be current for the exact `dev` commit being promoted.
 - `finish` should already have merged scoped work back to `dev`.
+- The PR to `main`, the release tag, and any local `main` fast-forward should all reference the same verified commit.
 - `archive` should close any planning-only tasks whose durable conclusions have been transferred.
 
 For feature or Superpowers worktrees, run `./scripts/harness worktree-preflight --task <task-id>` while still on the intended source branch when the repo has multiple active tasks. In this repository, ongoing implementation starts from `dev` unless a task explicitly says it should start from `main`.

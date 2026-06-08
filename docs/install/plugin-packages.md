@@ -13,7 +13,7 @@ This page explains:
 Download from the latest GitHub release:
 
 - Release page: [github.com/ilderaj/superpowering-with-files/releases/latest](https://github.com/ilderaj/superpowering-with-files/releases/latest)
-- Current verified release: [1.0.6](https://github.com/ilderaj/superpowering-with-files/releases/tag/1.0.6)
+- Pick the published tag you want to install and set it as `VERSION` in the examples below.
 
 Artifacts:
 
@@ -46,7 +46,7 @@ Most IDEs use an unpacked plugin directory for local loading, even when the rele
 Example:
 
 ```sh
-VERSION=1.0.6
+VERSION=<version>
 PLUGIN=harness-claude-code-plugin
 ARCHIVE="$HOME/Downloads/${PLUGIN}-${VERSION}.tgz"
 DEST="$HOME/.cache/harness-plugins/${PLUGIN}-${VERSION}"
@@ -63,7 +63,7 @@ After extraction, `DEST` is the plugin root directory.
 Codex currently uses a marketplace workflow rather than a direct `--plugin-dir` flag. For a local release artifact, unpack the plugin into a local marketplace root and register that marketplace with Codex.
 
 ```sh
-VERSION=1.0.6
+VERSION=<version>
 MARKETPLACE_ROOT="$HOME/.local/share/harness-codex-marketplace"
 PLUGIN_ROOT="$MARKETPLACE_ROOT/plugins/harness-codex-plugin"
 ARCHIVE="$HOME/Downloads/harness-codex-plugin-${VERSION}.tgz"
@@ -115,7 +115,7 @@ Notes:
 Claude Code supports loading a local plugin directory or zip for development and validation. With the release asset, unpack the `.tgz` and point Claude Code at the extracted directory.
 
 ```sh
-VERSION=1.0.6
+VERSION=<version>
 PLUGIN_ROOT="$HOME/.cache/harness-plugins/harness-claude-code-plugin-${VERSION}"
 
 npx @anthropic-ai/claude-code plugin validate "$PLUGIN_ROOT"
@@ -132,7 +132,7 @@ Useful variants:
 Cursor Agent supports loading a local plugin directory with `--plugin-dir`. Unpack the release asset, then launch Cursor Agent with that directory.
 
 ```sh
-VERSION=1.0.6
+VERSION=<version>
 PLUGIN_ROOT="$HOME/.cache/harness-plugins/harness-cursor-plugin-${VERSION}"
 
 '/Applications/Cursor.app/Contents/Resources/app/bin/cursor' agent \
@@ -152,7 +152,7 @@ Notes:
 GitHub Copilot CLI supports loading a local plugin directory with `--plugin-dir`. Unpack the release asset, then point `copilot` at the extracted directory.
 
 ```sh
-VERSION=1.0.6
+VERSION=<version>
 PLUGIN_ROOT="$HOME/.cache/harness-plugins/harness-copilot-plugin-${VERSION}"
 
 copilot --plugin-dir "$PLUGIN_ROOT" version
@@ -180,7 +180,8 @@ shasum -a 256 -c SHA256SUMS
 If you downloaded only one package, compare its checksum manually:
 
 ```sh
-shasum -a 256 "$HOME/Downloads/harness-cursor-plugin-1.0.6.tgz"
+VERSION=<version>
+shasum -a 256 "$HOME/Downloads/harness-cursor-plugin-${VERSION}.tgz"
 ```
 
 ## Related Docs

@@ -14,9 +14,9 @@ test('plugin migration docs cover global adoption cutover and rollback', async (
 test('release artifact docs list all packed plugin assets and verification gates', async () => {
   const docs = await readFile('docs/release-plugin-artifacts.md', 'utf8');
   for (const target of ['codex', 'claude-code', 'cursor', 'copilot']) {
-    assert.match(docs, new RegExp(`harness-${target}-plugin-1\\.0\\.6\\.tgz`));
+    assert.match(docs, new RegExp(`harness-${target}-plugin-<version>\\.tgz`));
   }
-  assert.match(docs, /harness-runtime-1\.0\.6\.tgz/);
+  assert.match(docs, /harness-runtime-<version>\.tgz/);
   assert.match(docs, /SHA256SUMS/);
   assert.match(docs, /npm run plugin:smoke/);
 });

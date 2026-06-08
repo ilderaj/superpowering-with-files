@@ -11,7 +11,7 @@ test('validateBuiltPlugin accepts generated plugin roots for every supported tar
   const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-preflight-'));
 
   for (const target of supportedPluginTargets) {
-    const build = await buildPlugin({ target, version: '1.0.6', outDir: path.join(workDir, 'plugins') });
+    const build = await buildPlugin({ target, version: '1.0.8', outDir: path.join(workDir, 'plugins') });
     const result = await validateBuiltPlugin({ target, pluginRoot: build.pluginRoot });
     assert.equal(result.ok, true);
     assert.deepEqual(result.errors, []);
@@ -20,7 +20,7 @@ test('validateBuiltPlugin accepts generated plugin roots for every supported tar
 
 test('validateBuiltPlugin reports missing required files', async () => {
   const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-preflight-missing-'));
-  const build = await buildPlugin({ target: 'cursor', version: '1.0.6', outDir: path.join(workDir, 'plugins') });
+  const build = await buildPlugin({ target: 'cursor', version: '1.0.8', outDir: path.join(workDir, 'plugins') });
   await rm(path.join(build.pluginRoot, 'skills/harness/SKILL.md'));
 
   const result = await validateBuiltPlugin({ target: 'cursor', pluginRoot: build.pluginRoot });
@@ -30,7 +30,7 @@ test('validateBuiltPlugin reports missing required files', async () => {
 
 test('validateBuiltPlugin rejects runtime planning state', async () => {
   const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-preflight-state-'));
-  const build = await buildPlugin({ target: 'codex', version: '1.0.6', outDir: path.join(workDir, 'plugins') });
+  const build = await buildPlugin({ target: 'codex', version: '1.0.8', outDir: path.join(workDir, 'plugins') });
   await mkdir(path.join(build.pluginRoot, 'runtime/planning'), { recursive: true });
   await writeFile(path.join(build.pluginRoot, 'runtime/planning/active'), 'bad state\n');
 
