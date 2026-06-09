@@ -9,8 +9,10 @@ The Stop hook in SKILL.md frontmatter passes the resolved plan path
 explicitly, so this was silent: only user-driven invocations or third-party
 tooling that called check-complete with no args hit the bug.
 
-v2.40 wires check-complete.sh into resolve-plan-dir.sh when no explicit path is
-passed, restoring slug-mode parity.
+v2.40 wires check-complete.sh into the active-plan resolver when no explicit
+path is passed, restoring slug-mode parity. The completion report must also
+respect lifecycle gates from task_lifecycle.py before claiming archive-ready
+completion.
 """
 from __future__ import annotations
 
@@ -47,6 +49,12 @@ PLAN_WITH_FIVE_PHASES = """# Task Plan: Smoke
 
 PLAN_ALL_COMPLETE = """# Task Plan: Done
 
+## Current State
+Status: closed
+Archive Eligible: yes
+Close Reason: done
+Reconcile: complete
+
 ## Phases
 
 ### Phase 1
@@ -56,11 +64,45 @@ PLAN_ALL_COMPLETE = """# Task Plan: Done
 - **Status:** complete
 """
 
+PLAN_COMPLETE_BUT_ACTIVE = """# Task Plan: Nearly Done
+
+## Current State
+Status: active
+Archive Eligible: no
+Close Reason:
+Reconcile: open
+
+## Phases
+
+### Phase 1
+- **Status:** complete
+
+### Phase 2
+- **Status:** complete
+"""
+
+PLAN_ACTIVE_DIR_INCOMPLETE = """# Task Plan: Scoped
+
+## Current State
+Status: active
+Archive Eligible: no
+Close Reason:
+Reconcile: open
+
+## Phases
+
+### Phase 1
+- **Status:** in_progress
+"""
+
 
 class CheckCompleteResolverTests(unittest.TestCase):
     def run_check(self, cwd: Path, plan_id: str | None = None, arg: str | None = None) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env.pop("PLAN_ID", None)
+        env.pop("PLANNING_TASK_ID", None)
+        env.pop("CODEX_THREAD_ID", None)
+        env.pop("CLAUDE_SESSION_ID", None)
         if plan_id is not None:
             env["PLAN_ID"] = plan_id
         cmd = ["sh", str(CHECK_COMPLETE)]
@@ -84,7 +126,7 @@ class CheckCompleteResolverTests(unittest.TestCase):
             (root / "task_plan.md").write_text(PLAN_WITH_FIVE_PHASES, encoding="utf-8")
             result = self.run_check(root, arg="task_plan.md")
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("0/5 phases complete", result.stdout)
+            self.assertIn("phases=0/5", result.stdout)
 
     def test_no_args_resolves_slug_plan_via_active_pointer(self) -> None:
         # Regression for v2.40: with only .planning/<slug>/task_plan.md and an
@@ -98,7 +140,7 @@ class CheckCompleteResolverTests(unittest.TestCase):
             (root / ".planning" / ".active_plan").write_text("2026-05-21-smoke\n", encoding="utf-8")
             result = self.run_check(root)
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("0/5 phases complete", result.stdout)
+            self.assertIn("phases=0/5", result.stdout)
             self.assertNotIn("No task_plan.md found", result.stdout)
 
     def test_no_args_resolves_via_plan_id_env(self) -> None:
@@ -127,7 +169,7 @@ class CheckCompleteResolverTests(unittest.TestCase):
             (root / "task_plan.md").write_text(PLAN_WITH_FIVE_PHASES, encoding="utf-8")
             result = self.run_check(root)
             self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("0/5 phases complete", result.stdout)
+            self.assertIn("phases=0/5", result.stdout)
 
     def test_no_args_no_plan_anywhere_clean_message(self) -> None:
         # If no plan exists in either location, the script must say so and exit
@@ -137,6 +179,34 @@ class CheckCompleteResolverTests(unittest.TestCase):
             result = self.run_check(root)
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertIn("No task_plan.md found", result.stdout)
+
+    def test_no_args_resolves_single_active_task_dir(self) -> None:
+        # planning/active/<task-id>/ is the canonical active-task layout. If
+        # exactly one active task exists and no explicit env selector is set,
+        # no-args invocation should still find that task.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_dir = root / "planning" / "active" / "demo"
+            plan_dir.mkdir(parents=True)
+            (plan_dir / "task_plan.md").write_text(PLAN_ACTIVE_DIR_INCOMPLETE, encoding="utf-8")
+            result = self.run_check(root)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn("status=active", result.stdout)
+            self.assertIn("phases=0/1", result.stdout)
+            self.assertNotIn("No task_plan.md found", result.stdout)
+
+    def test_all_complete_but_not_closed_stays_active(self) -> None:
+        # Regression for the lifecycle gate: all phases complete is not enough
+        # to claim completion when Current State / Archive Eligible / Reconcile
+        # still keep the task active.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "task_plan.md").write_text(PLAN_COMPLETE_BUT_ACTIVE, encoding="utf-8")
+            result = self.run_check(root)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertNotIn("ALL PHASES COMPLETE", result.stdout)
+            self.assertIn("safe_to_archive=no", result.stdout)
+            self.assertIn("Leave this task in planning/active", result.stdout)
 
 
 if __name__ == "__main__":

@@ -38,10 +38,12 @@ SHARED_SCRIPTS = (
     "init-session.ps1",
     "check-complete.sh",
     "check-complete.ps1",
+    "planning_paths.py",
     "resolve-plan-dir.sh",
     "resolve-plan-dir.ps1",
     "set-active-plan.sh",
     "set-active-plan.ps1",
+    "task_lifecycle.py",
     "attest-plan.sh",
     "attest-plan.ps1",
 )

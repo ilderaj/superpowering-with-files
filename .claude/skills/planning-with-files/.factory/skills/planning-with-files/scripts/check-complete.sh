@@ -1,69 +1,59 @@
 #!/usr/bin/env bash
-# Check if all phases in task_plan.md are complete
-# Always exits 0 — uses stdout for status reporting
-# Used by Stop hook to report task completion status
-#
-# Plan-file resolution (v2.40+):
-#   1. $1 (explicit path)
-#   2. resolve-plan-dir.sh: $PLAN_ID env → .planning/.active_plan → newest mtime
-#   3. Legacy ./task_plan.md
-#
-# This restores slug-mode parity: the Stop hook and any caller invoking with
-# zero args now respects the active plan dir instead of silently defaulting to
-# the legacy root path.
+# Report completion and lifecycle readiness for the active planning task.
+# Always exits 0 because incomplete tasks are a normal state.
 
-if [ -n "${1:-}" ]; then
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PYTHON_BIN="$(command -v python3 || command -v python)"
+
+if [ -z "$PYTHON_BIN" ]; then
+    echo "[planning-with-files] Python is required to check planning task status."
+    exit 0
+fi
+
+PLAN_FILE=""
+if [ $# -gt 0 ] && [ -n "${1:-}" ]; then
     PLAN_FILE="$1"
 else
-    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd 2>/dev/null)" || SCRIPT_DIR="."
-    RESOLVER="${SCRIPT_DIR}/resolve-plan-dir.sh"
     PLAN_DIR=""
-    if [ -f "${RESOLVER}" ]; then
-        PLAN_DIR="$(sh "${RESOLVER}" 2>/dev/null)"
+    RESOLVER="$SCRIPT_DIR/resolve-plan-dir.sh"
+    if [ -f "$RESOLVER" ]; then
+        PLAN_DIR="$(sh "$RESOLVER" 2>/dev/null || true)"
     fi
-    if [ -n "${PLAN_DIR}" ] && [ -f "${PLAN_DIR}/task_plan.md" ]; then
-        PLAN_FILE="${PLAN_DIR}/task_plan.md"
-    else
+    if [ -z "$PLAN_DIR" ]; then
+        PLAN_DIR="$("$PYTHON_BIN" "$SCRIPT_DIR/planning_paths.py" active-dir "$(pwd)" 2>/dev/null || true)"
+    fi
+    if [ -n "$PLAN_DIR" ] && [ -f "$PLAN_DIR/task_plan.md" ]; then
+        PLAN_FILE="$PLAN_DIR/task_plan.md"
+    elif [ -f "task_plan.md" ]; then
         PLAN_FILE="task_plan.md"
     fi
 fi
 
-if [ ! -f "$PLAN_FILE" ]; then
+if [ -z "$PLAN_FILE" ] || [ ! -f "$PLAN_FILE" ]; then
     echo "[planning-with-files] No task_plan.md found — no active planning session."
     exit 0
 fi
 
-# Count total phases
-TOTAL=$(grep -c "### Phase" "$PLAN_FILE" || true)
+"$PYTHON_BIN" - <<'PY' "$PLAN_FILE" "$SCRIPT_DIR"
+import sys
+from pathlib import Path
 
-# Check for **Status:** format first
-COMPLETE=$(grep -cF "**Status:** complete" "$PLAN_FILE" || true)
-IN_PROGRESS=$(grep -cF "**Status:** in_progress" "$PLAN_FILE" || true)
-PENDING=$(grep -cF "**Status:** pending" "$PLAN_FILE" || true)
+sys.path.insert(0, sys.argv[2])
 
-# Fallback: check for [complete] inline format if **Status:** not found
-if [ "$COMPLETE" -eq 0 ] && [ "$IN_PROGRESS" -eq 0 ] && [ "$PENDING" -eq 0 ]; then
-    COMPLETE=$(grep -c "\[complete\]" "$PLAN_FILE" || true)
-    IN_PROGRESS=$(grep -c "\[in_progress\]" "$PLAN_FILE" || true)
-    PENDING=$(grep -c "\[pending\]" "$PLAN_FILE" || true)
-fi
+from task_lifecycle import format_summary, inspect_plan_dir
 
-# Default to 0 if empty
-: "${TOTAL:=0}"
-: "${COMPLETE:=0}"
-: "${IN_PROGRESS:=0}"
-: "${PENDING:=0}"
+plan_file = Path(sys.argv[1]).resolve()
+status = inspect_plan_dir(plan_file.parent)
 
-# Report status (always exit 0 — incomplete task is a normal state)
-if [ "$COMPLETE" -eq "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
-    echo "[planning-with-files] ALL PHASES COMPLETE ($COMPLETE/$TOTAL). If the user has additional work, add new phases to task_plan.md before starting."
-else
-    echo "[planning-with-files] Task in progress ($COMPLETE/$TOTAL phases complete). Update progress.md before stopping."
-    if [ "$IN_PROGRESS" -gt 0 ]; then
-        echo "[planning-with-files] $IN_PROGRESS phase(s) still in progress."
-    fi
-    if [ "$PENDING" -gt 0 ]; then
-        echo "[planning-with-files] $PENDING phase(s) pending."
-    fi
-fi
+if status.get("safe_to_archive") and status.get("looks_complete"):
+    print(
+        "[planning-with-files] ALL PHASES COMPLETE "
+        f"({status['phase_complete']}/{status['phase_total']}). "
+        "If the user has additional work, add new phases to task_plan.md before starting."
+    )
+else:
+    print(format_summary(status))
+PY
 exit 0
