@@ -30,9 +30,17 @@ test('init-session.sh writes progress sessions with a UTC+8 timestamp', async ()
       path.join(root, 'planning/active/timestamp-demo/progress.md'),
       'utf8'
     );
+    const taskPlan = await readFile(
+      path.join(root, 'planning/active/timestamp-demo/task_plan.md'),
+      'utf8'
+    );
 
     assert.match(progress, new RegExp(`^## Session: ${utc8TimestampPattern.source}$`, 'm'));
     assert.doesNotMatch(progress, /\[(?:DATE|TIMESTAMP)\]/);
+    assert.match(taskPlan, /^## Current State$/m);
+    assert.match(taskPlan, /^Status: active$/m);
+    assert.match(taskPlan, /^Archive Eligible: no$/m);
+    assert.match(taskPlan, /^Reconcile: open$/m);
   } finally {
     await removeHarnessFixture(root);
   }

@@ -108,6 +108,20 @@ class CanonicalScriptSyncTests(unittest.TestCase):
         self.assertIn("task_lifecycle", script)
         self.assertIn("safe_to_archive", script)
 
+    def test_init_session_overlay_uses_active_dir_and_template_lifecycle(self) -> None:
+        script = (TOP_SCRIPTS / "init-session.sh").read_text(encoding="utf-8")
+        self.assertIn('planning_paths.py" ensure-active-dir', script)
+        self.assertIn('planning_paths.py" task-id', script)
+        self.assertIn('../templates/task_plan.md', script)
+        self.assertNotIn(".planning/", script)
+
+    def test_init_session_ps1_overlay_uses_active_dir_and_template_lifecycle(self) -> None:
+        script = (TOP_SCRIPTS / "init-session.ps1").read_text(encoding="utf-8")
+        self.assertIn('planning_paths.py" ensure-active-dir', script)
+        self.assertIn('planning_paths.py" task-id', script)
+        self.assertIn('../templates/task_plan.md', script)
+        self.assertNotIn(".planning\\", script)
+
 
 if __name__ == "__main__":
     unittest.main()
