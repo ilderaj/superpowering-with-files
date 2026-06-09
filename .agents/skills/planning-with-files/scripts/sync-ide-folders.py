@@ -129,12 +129,7 @@ IDE_MANIFESTS = {
     # .openclaw, .kilocode, .adal, .agent removed in v2.24.0 (IDE audit)
     # These IDEs use the standard Agent Skills spec — install via npx skills add
 
-    ".pi": _build_manifest(
-        ".pi/skills/planning-with-files",
-        ref_style="flat",
-        include_scripts=True,
-        # package.json and README.md are IDE-specific, not synced
-    ),
+    # Pi is intentionally excluded from the current repo-local support scope.
 
     ".continue": _build_manifest(
         ".continue/skills/planning-with-files",

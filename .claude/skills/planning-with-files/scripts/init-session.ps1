@@ -1,69 +1,166 @@
-# Initialize planning files for the active task.
-# Usage: .\init-session.ps1 [project-path] [task-id]
+# Initialize planning files for a new session
+# Usage: .\init-session.ps1 [-Template TYPE] [project-name]
+# Templates: default, analytics
 
 param(
-    [string]$ProjectPath = (Get-Location).Path,
-    [string]$TaskId = ""
+    [string]$ProjectName = "project",
+    [string]$Template = "default"
 )
 
+$DATE = Get-Date -Format "yyyy-MM-dd"
+
+# Resolve template directory (skill root is one level up from scripts/)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$PythonCmd = Get-Command python -ErrorAction SilentlyContinue
-if (-not $PythonCmd) {
-    $PythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
+$SkillRoot = Split-Path -Parent $ScriptDir
+$TemplateDir = Join-Path $SkillRoot "templates"
+
+Write-Host "Initializing planning files for: $ProjectName (template: $Template)"
+
+# Validate template
+if ($Template -ne "default" -and $Template -ne "analytics") {
+    Write-Host "Unknown template: $Template (available: default, analytics). Using default."
+    $Template = "default"
 }
 
-if (-not $PythonCmd) {
-    Write-Host '[planning-with-files] Python is required to initialize planning files.'
-    exit 1
-}
+# Create task_plan.md if it doesn't exist
+if (-not (Test-Path "task_plan.md")) {
+    $AnalyticsPlan = Join-Path $TemplateDir "analytics_task_plan.md"
+    if ($Template -eq "analytics" -and (Test-Path $AnalyticsPlan)) {
+        Copy-Item $AnalyticsPlan "task_plan.md"
+    } else {
+        @"
+# Task Plan: [Brief Description]
 
-$Timestamp = & $PythonCmd.Source "$ScriptDir/planning_record.py" timestamp
+## Goal
+[One sentence describing the end state]
 
-$PlanDir = & $PythonCmd.Source "$ScriptDir/planning_paths.py" ensure-active-dir $ProjectPath $TaskId
-$TaskSlug = & $PythonCmd.Source "$ScriptDir/planning_paths.py" task-id $ProjectPath $TaskId
+## Current Phase
+Phase 1
 
-Write-Host ("Initializing planning files for task: " + $TaskSlug)
-Write-Host ("Active planning dir: " + $PlanDir)
+## Phases
 
-if (-not (Test-Path "$PlanDir/task_plan.md")) {
-    Copy-Item "$ScriptDir/../templates/task_plan.md" "$PlanDir/task_plan.md"
-    @"
+### Phase 1: Requirements & Discovery
+- [ ] Understand user intent
+- [ ] Identify constraints
+- [ ] Document in findings.md
+- **Status:** in_progress
 
-## Task Metadata
-- Task ID: $TaskSlug
-- Planning Directory: $PlanDir
-"@ | Add-Content "$PlanDir/task_plan.md"
-    Write-Host ("Created " + $PlanDir + "/task_plan.md")
+### Phase 2: Planning & Structure
+- [ ] Define approach
+- [ ] Create project structure
+- **Status:** pending
+
+### Phase 3: Implementation
+- [ ] Execute the plan
+- [ ] Write to files before executing
+- **Status:** pending
+
+### Phase 4: Testing & Verification
+- [ ] Verify requirements met
+- [ ] Document test results
+- **Status:** pending
+
+### Phase 5: Delivery
+- [ ] Review outputs
+- [ ] Deliver to user
+- **Status:** pending
+
+## Decisions Made
+| Decision | Rationale |
+|----------|-----------|
+
+## Errors Encountered
+| Error | Resolution |
+|-------|------------|
+"@ | Out-File -FilePath "task_plan.md" -Encoding UTF8
+    }
+    Write-Host "Created task_plan.md"
 } else {
-    Write-Host ($PlanDir + "/task_plan.md already exists, skipping")
+    Write-Host "task_plan.md already exists, skipping"
 }
 
-if (-not (Test-Path "$PlanDir/findings.md")) {
-    Copy-Item "$ScriptDir/../templates/findings.md" "$PlanDir/findings.md"
-    @"
+# Create findings.md if it doesn't exist
+if (-not (Test-Path "findings.md")) {
+    $AnalyticsFindings = Join-Path $TemplateDir "analytics_findings.md"
+    if ($Template -eq "analytics" -and (Test-Path $AnalyticsFindings)) {
+        Copy-Item $AnalyticsFindings "findings.md"
+    } else {
+        @"
+# Findings & Decisions
 
-## Task Metadata
-- Task ID: $TaskSlug
-- Planning Directory: $PlanDir
-"@ | Add-Content "$PlanDir/findings.md"
-    Write-Host ("Created " + $PlanDir + "/findings.md")
+## Requirements
+-
+
+## Research Findings
+-
+
+## Technical Decisions
+| Decision | Rationale |
+|----------|-----------|
+
+## Issues Encountered
+| Issue | Resolution |
+|-------|------------|
+
+## Resources
+-
+"@ | Out-File -FilePath "findings.md" -Encoding UTF8
+    }
+    Write-Host "Created findings.md"
 } else {
-    Write-Host ($PlanDir + "/findings.md already exists, skipping")
+    Write-Host "findings.md already exists, skipping"
 }
 
-if (-not (Test-Path "$PlanDir/progress.md")) {
-    (Get-Content "$ScriptDir/../templates/progress.md" -Raw).Replace("[TIMESTAMP]", $Timestamp).Replace("[DATE]", $Timestamp) | Out-File -FilePath "$PlanDir/progress.md" -Encoding UTF8
-    @"
+# Create progress.md if it doesn't exist
+if (-not (Test-Path "progress.md")) {
+    if ($Template -eq "analytics") {
+        @"
+# Progress Log
 
-## Task Metadata
-- Task ID: $TaskSlug
-- Planning Directory: $PlanDir
-"@ | Add-Content "$PlanDir/progress.md"
-    Write-Host ("Created " + $PlanDir + "/progress.md")
+## Session: $DATE
+
+### Current Status
+- **Phase:** 1 - Data Discovery
+- **Started:** $DATE
+
+### Actions Taken
+-
+
+### Query Log
+| Query | Result Summary | Interpretation |
+|-------|---------------|----------------|
+
+### Errors
+| Error | Resolution |
+|-------|------------|
+"@ | Out-File -FilePath "progress.md" -Encoding UTF8
+    } else {
+        @"
+# Progress Log
+
+## Session: $DATE
+
+### Current Status
+- **Phase:** 1 - Requirements & Discovery
+- **Started:** $DATE
+
+### Actions Taken
+-
+
+### Test Results
+| Test | Expected | Actual | Status |
+|------|----------|--------|--------|
+
+### Errors
+| Error | Resolution |
+|-------|------------|
+"@ | Out-File -FilePath "progress.md" -Encoding UTF8
+    }
+    Write-Host "Created progress.md"
 } else {
-    Write-Host ($PlanDir + "/progress.md already exists, skipping")
+    Write-Host "progress.md already exists, skipping"
 }
 
 Write-Host ""
 Write-Host "Planning files initialized!"
-Write-Host ("Files: " + $PlanDir + "/task_plan.md, " + $PlanDir + "/findings.md, " + $PlanDir + "/progress.md")
+Write-Host "Files: task_plan.md, findings.md, progress.md"

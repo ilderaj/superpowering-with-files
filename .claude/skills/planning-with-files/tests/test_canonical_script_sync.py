@@ -18,6 +18,7 @@ honest after every commit.
 from __future__ import annotations
 
 import filecmp
+import runpy
 import subprocess
 import sys
 import unittest
@@ -30,12 +31,14 @@ SKILL_SCRIPTS = REPO_ROOT / "skills" / "planning-with-files" / "scripts"
 
 # Files that exist in both locations and must stay byte-identical.
 # Excluded intentionally:
-#   session-catchup.py — canonical carries Codex-specific logic not in top-level
-#   check-continue.sh  — repo CI/validation script, not a user-facing skill script
-#   sync-ide-folders.py — repo maintenance tool, not a user-facing skill script
+#   init-session.sh/.ps1 — top-level scripts are repo-local overlays that write
+#                          task-scoped planning under planning/active/<task-id>/;
+#                          canonical skill copies keep the upstream slug-mode
+#                          workflow that ships to IDE mirrors.
+#   session-catchup.py   — canonical carries Codex-specific logic not in top-level
+#   check-continue.sh    — repo CI/validation script, not a user-facing skill script
+#   sync-ide-folders.py  — repo maintenance tool, not a user-facing skill script
 SHARED_SCRIPTS = (
-    "init-session.sh",
-    "init-session.ps1",
     "check-complete.sh",
     "check-complete.ps1",
     "planning_paths.py",
@@ -93,6 +96,17 @@ class CanonicalScriptSyncTests(unittest.TestCase):
             "Run `python scripts/sync-ide-folders.py` from the repo root to fix.\n"
             f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}",
         )
+
+    def test_sync_manifest_excludes_pi(self) -> None:
+        namespace = runpy.run_path(str(REPO_ROOT / "scripts" / "sync-ide-folders.py"))
+        self.assertNotIn(".pi", namespace["IDE_MANIFESTS"])
+
+    def test_check_complete_ps1_uses_resolver_and_lifecycle_contract(self) -> None:
+        script = (TOP_SCRIPTS / "check-complete.ps1").read_text(encoding="utf-8")
+        self.assertIn("resolve-plan-dir.ps1", script)
+        self.assertIn("planning_paths.py", script)
+        self.assertIn("task_lifecycle", script)
+        self.assertIn("safe_to_archive", script)
 
 
 if __name__ == "__main__":
