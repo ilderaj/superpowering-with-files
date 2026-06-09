@@ -163,12 +163,14 @@ def build_hook_yaml_block() -> str:
     post = yaml_escape(POST_TOOL_USE_BASH)
     pre_compact = yaml_escape(PRE_COMPACT_BASH)
     stop_command = (
-        'SKILL_PS1=\\"${CLAUDE_SKILL_DIR}/scripts/check-complete.ps1\\"; '
-        'SKILL_SH=\\"${CLAUDE_SKILL_DIR}/scripts/check-complete.sh\\"; '
-        'KNOWN_PS1=$(ls \\"$HOME/.claude/skills/planning-with-files/scripts/check-complete.ps1\\" \\"$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/check-complete.ps1\\" 2>/dev/null | head -1); '
-        'KNOWN_SH=$(ls \\"$HOME/.claude/skills/planning-with-files/scripts/check-complete.sh\\" \\"$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/check-complete.sh\\" 2>/dev/null | head -1); '
-        'TARGET_PS1=\\"${SKILL_PS1:-$KNOWN_PS1}\\"; '
-        'TARGET_SH=\\"${SKILL_SH:-$KNOWN_SH}\\"; '
+        'CODEX_PS1=\\"${CODEX_SKILL_DIR:+${CODEX_SKILL_DIR}/scripts/check-complete.ps1}\\"; '
+        'CODEX_SH=\\"${CODEX_SKILL_DIR:+${CODEX_SKILL_DIR}/scripts/check-complete.sh}\\"; '
+        'CLAUDE_PS1=\\"${CLAUDE_SKILL_DIR:+${CLAUDE_SKILL_DIR}/scripts/check-complete.ps1}\\"; '
+        'CLAUDE_SH=\\"${CLAUDE_SKILL_DIR:+${CLAUDE_SKILL_DIR}/scripts/check-complete.sh}\\"; '
+        'KNOWN_PS1=$(ls \\"$HOME/.codex/skills/planning-with-files/scripts/check-complete.ps1\\" \\"$HOME/.codex/plugins/marketplaces/planning-with-files/scripts/check-complete.ps1\\" \\"$HOME/.claude/skills/planning-with-files/scripts/check-complete.ps1\\" \\"$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/check-complete.ps1\\" 2>/dev/null | head -1); '
+        'KNOWN_SH=$(ls \\"$HOME/.codex/skills/planning-with-files/scripts/check-complete.sh\\" \\"$HOME/.codex/plugins/marketplaces/planning-with-files/scripts/check-complete.sh\\" \\"$HOME/.claude/skills/planning-with-files/scripts/check-complete.sh\\" \\"$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/check-complete.sh\\" 2>/dev/null | head -1); '
+        'TARGET_PS1=\\"${CODEX_PS1:-${CLAUDE_PS1:-$KNOWN_PS1}}\\"; '
+        'TARGET_SH=\\"${CODEX_SH:-${CLAUDE_SH:-$KNOWN_SH}}\\"; '
         'if [ -n \\"$TARGET_PS1\\" ] && [ -f \\"$TARGET_PS1\\" ]; then '
         'powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File \\"$TARGET_PS1\\" 2>/dev/null; '
         'elif [ -n \\"$TARGET_SH\\" ] && [ -f \\"$TARGET_SH\\" ]; then '

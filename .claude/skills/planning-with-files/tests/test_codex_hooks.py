@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,14 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 CODEX_ROOT = REPO_ROOT / ".codex"
 HOOKS_JSON = CODEX_ROOT / "hooks.json"
 HOOKS_DIR = CODEX_ROOT / "hooks"
+CODEX_SKILL = CODEX_ROOT / "skills" / "planning-with-files" / "SKILL.md"
+
+
+def extract_stop_hook_command() -> str:
+    text = CODEX_SKILL.read_text(encoding="utf-8")
+    match = re.search(r'Stop:\n(?:.*?\n)*?\s*command: "((?:[^"\\]|\\.)*)"', text)
+    assert match, "Stop hook command not found in Codex SKILL.md"
+    return match.group(1).replace('\\"', '"').replace("\\\\", "\\")
 
 
 class CodexHooksTests(unittest.TestCase):
@@ -28,6 +37,16 @@ class CodexHooksTests(unittest.TestCase):
     def run_shell_hook(self, script_name: str, cwd: Path, env: dict | None = None) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             ["sh", str(HOOKS_DIR / script_name)],
+            text=True,
+            capture_output=True,
+            cwd=str(cwd),
+            env=env,
+            check=False,
+        )
+
+    def run_skill_stop_command(self, cwd: Path, env: dict) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["sh", "-c", extract_stop_hook_command()],
             text=True,
             capture_output=True,
             cwd=str(cwd),
@@ -206,6 +225,27 @@ class CodexHooksTests(unittest.TestCase):
         self.assertEqual("block", first_payload["decision"])
         self.assertIn("Task incomplete", first_payload["reason"])
         self.assertIn("Task incomplete", second_payload["systemMessage"])
+
+    def test_skill_stop_hook_falls_back_to_codex_skill_install(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as home:
+            root = Path(tmpdir)
+            script_dir = Path(home) / ".codex" / "skills" / "planning-with-files" / "scripts"
+            script_dir.mkdir(parents=True)
+            marker = "[planning-with-files] CODEX skill stop marker"
+            script_dir.joinpath("check-complete.sh").write_text(
+                f"#!/bin/sh\necho '{{\"followup_message\": \"{marker}\"}}'\n",
+                encoding="utf-8",
+            )
+
+            env = os.environ.copy()
+            env["HOME"] = home
+            env.pop("CLAUDE_SKILL_DIR", None)
+            env.pop("CODEX_SKILL_DIR", None)
+
+            result = self.run_skill_stop_command(root, env)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(marker, result.stdout)
 
 
 if __name__ == "__main__":
