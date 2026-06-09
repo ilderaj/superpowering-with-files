@@ -16,7 +16,7 @@ Re-read `task_plan.md`, `progress.md`, and the most recent relevant section of `
 If the planning files reference a companion plan, read only the compact section needed for the current round.
 
 Run the completion check:
-- On Linux/macOS/Git Bash: `sh ${CLAUDE_PLUGIN_ROOT}/scripts/check-complete.sh` (or the matching skill path)
+- On Linux/macOS/Git Bash: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/check-complete.sh` (or the matching skill path)
 - On Windows: equivalent `.ps1`
 
 After reading:

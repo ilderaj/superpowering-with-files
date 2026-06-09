@@ -174,7 +174,7 @@ def build_hook_yaml_block() -> str:
         'if [ -n \\"$TARGET_PS1\\" ] && [ -f \\"$TARGET_PS1\\" ]; then '
         'powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File \\"$TARGET_PS1\\" 2>/dev/null; '
         'elif [ -n \\"$TARGET_SH\\" ] && [ -f \\"$TARGET_SH\\" ]; then '
-        'sh \\"$TARGET_SH\\" 2>/dev/null; '
+        'bash \\"$TARGET_SH\\" 2>/dev/null; '
         'fi'
     )
 

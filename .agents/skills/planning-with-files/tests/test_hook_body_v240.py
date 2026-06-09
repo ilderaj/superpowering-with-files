@@ -52,6 +52,10 @@ def have_sh() -> bool:
     return shutil.which("sh") is not None
 
 
+def have_bash() -> bool:
+    return shutil.which("bash") is not None
+
+
 @unittest.skipUnless(have_sh(), "sh not available on this platform")
 class HookBodyV240Tests(unittest.TestCase):
     def setUp(self) -> None:
@@ -77,6 +81,17 @@ class HookBodyV240Tests(unittest.TestCase):
             text=True,
             capture_output=True,
             env=self.env,
+            check=False,
+        )
+
+    def _run_stop_hook(self, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+        body = extract_hook_body("Stop")
+        return subprocess.run(
+            ["sh", "-c", body],
+            cwd=str(self.tmp),
+            text=True,
+            capture_output=True,
+            env=env,
             check=False,
         )
 
@@ -222,6 +237,27 @@ class HookBodyV240Tests(unittest.TestCase):
         self.assertIn("===BEGIN PLAN DATA===", result.stdout)
         self.assertIn("Pre Tool Plan", result.stdout)
         self.assertIn("===END PLAN DATA===", result.stdout)
+
+    @unittest.skipUnless(have_bash(), "bash not available on this platform")
+    def test_stop_hook_runs_check_complete_with_bash(self) -> None:
+        home = self.tmp / "home"
+        script_dir = home / ".claude" / "skills" / "planning-with-files" / "scripts"
+        script_dir.mkdir(parents=True)
+        marker = "[planning-with-files] bash stop marker"
+        script_dir.joinpath("check-complete.sh").write_text(
+            "#!/usr/bin/env bash\n"
+            "set -euo pipefail\n"
+            f"echo '{marker}'\n",
+            encoding="utf-8",
+        )
+
+        env = self.env.copy()
+        env["HOME"] = str(home)
+        env.pop("CLAUDE_SKILL_DIR", None)
+
+        result = self._run_stop_hook(env)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(marker, result.stdout)
 
 
 if __name__ == "__main__":

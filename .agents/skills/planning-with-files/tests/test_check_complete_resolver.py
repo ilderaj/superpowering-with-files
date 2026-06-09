@@ -17,6 +17,7 @@ completion.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -25,6 +26,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CHECK_COMPLETE = REPO_ROOT / "scripts" / "check-complete.sh"
+
+
+def have_bash() -> bool:
+    return shutil.which("bash") is not None
 
 
 PLAN_WITH_FIVE_PHASES = """# Task Plan: Smoke
@@ -96,6 +101,7 @@ Reconcile: open
 """
 
 
+@unittest.skipUnless(have_bash(), "bash not available on this platform")
 class CheckCompleteResolverTests(unittest.TestCase):
     def run_check(self, cwd: Path, plan_id: str | None = None, arg: str | None = None) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
@@ -105,7 +111,7 @@ class CheckCompleteResolverTests(unittest.TestCase):
         env.pop("CLAUDE_SESSION_ID", None)
         if plan_id is not None:
             env["PLAN_ID"] = plan_id
-        cmd = ["sh", str(CHECK_COMPLETE)]
+        cmd = ["bash", str(CHECK_COMPLETE)]
         if arg is not None:
             cmd.append(arg)
         return subprocess.run(

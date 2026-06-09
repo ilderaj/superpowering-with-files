@@ -224,6 +224,29 @@ class CodexHooksTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn(marker, result.stdout)
 
+    def test_skill_stop_hook_runs_checker_under_bash(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as home:
+            root = Path(tmpdir)
+            script_dir = Path(home) / ".codex" / "skills" / "planning-with-files" / "scripts"
+            script_dir.mkdir(parents=True)
+            marker = "[planning-with-files] CODEX bash stop marker"
+            script_dir.joinpath("check-complete.sh").write_text(
+                "#!/usr/bin/env bash\n"
+                "set -euo pipefail\n"
+                f"echo '{{\"followup_message\": \"{marker}\"}}'\n",
+                encoding="utf-8",
+            )
+
+            env = os.environ.copy()
+            env["HOME"] = home
+            env.pop("CLAUDE_SKILL_DIR", None)
+            env.pop("CODEX_SKILL_DIR", None)
+
+            result = self.run_skill_stop_command(root, env)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn(marker, result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
