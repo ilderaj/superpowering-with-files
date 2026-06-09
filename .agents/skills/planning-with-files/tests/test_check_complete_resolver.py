@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -26,6 +27,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CHECK_COMPLETE = REPO_ROOT / "scripts" / "check-complete.sh"
+CLOSE_TASK = REPO_ROOT / "scripts" / "close-task.py"
 
 
 def have_bash() -> bool:
@@ -100,6 +102,12 @@ Reconcile: open
 - **Status:** in_progress
 """
 
+RECONCILIATION_NOT_READY = """# Reconciliation: demo
+
+## Archive Readiness
+- Not ready — follow-up evidence is still pending.
+"""
+
 
 @unittest.skipUnless(have_bash(), "bash not available on this platform")
 class CheckCompleteResolverTests(unittest.TestCase):
@@ -116,6 +124,21 @@ class CheckCompleteResolverTests(unittest.TestCase):
             cmd.append(arg)
         return subprocess.run(
             cmd,
+            cwd=str(cwd),
+            text=True,
+            capture_output=True,
+            env=env,
+            check=False,
+        )
+
+    def run_close(self, cwd: Path, task_id: str, reason: str = "done") -> subprocess.CompletedProcess[str]:
+        env = os.environ.copy()
+        env.pop("PLAN_ID", None)
+        env.pop("PLANNING_TASK_ID", None)
+        env.pop("CODEX_THREAD_ID", None)
+        env.pop("CLAUDE_SESSION_ID", None)
+        return subprocess.run(
+            [sys.executable, str(CLOSE_TASK), str(cwd), task_id, "--reason", reason],
             cwd=str(cwd),
             text=True,
             capture_output=True,
@@ -213,6 +236,53 @@ class CheckCompleteResolverTests(unittest.TestCase):
             self.assertNotIn("ALL PHASES COMPLETE", result.stdout)
             self.assertIn("safe_to_archive=no", result.stdout)
             self.assertIn("Leave this task in planning/active", result.stdout)
+
+    def test_close_task_adds_default_reconciliation_ready_signal(self) -> None:
+        # The official close-task flow should remain archivable without asking
+        # the user to manually add a separate reconciliation marker.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_dir = root / "planning" / "active" / "demo"
+            plan_dir.mkdir(parents=True)
+            task_plan = plan_dir / "task_plan.md"
+            task_plan.write_text(PLAN_COMPLETE_BUT_ACTIVE, encoding="utf-8")
+
+            close_result = self.run_close(root, "demo")
+            self.assertEqual(0, close_result.returncode, close_result.stderr)
+
+            updated = task_plan.read_text(encoding="utf-8")
+            self.assertIn("Status: closed", updated)
+            self.assertIn("Archive Eligible: yes", updated)
+            self.assertIn("Reconcile: complete", updated)
+
+            result = self.run_check(root)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn("ALL PHASES COMPLETE", result.stdout)
+
+    def test_close_task_keeps_explicit_not_ready_reconciliation_open(self) -> None:
+        # If a task already has an explicit reconciliation artifact that says
+        # archive readiness is not ready, close-task must not silently mark it
+        # complete just to satisfy the default path.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_dir = root / "planning" / "active" / "demo"
+            plan_dir.mkdir(parents=True)
+            task_plan = plan_dir / "task_plan.md"
+            task_plan.write_text(PLAN_COMPLETE_BUT_ACTIVE, encoding="utf-8")
+            (plan_dir / "reconciliation.md").write_text(RECONCILIATION_NOT_READY, encoding="utf-8")
+
+            close_result = self.run_close(root, "demo")
+            self.assertEqual(0, close_result.returncode, close_result.stderr)
+
+            updated = task_plan.read_text(encoding="utf-8")
+            self.assertIn("Status: closed", updated)
+            self.assertIn("Archive Eligible: yes", updated)
+            self.assertIn("Reconcile: open", updated)
+
+            result = self.run_check(root)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertNotIn("ALL PHASES COMPLETE", result.stdout)
+            self.assertIn("safe_to_archive=no", result.stdout)
 
 
 if __name__ == "__main__":
