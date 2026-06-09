@@ -16,6 +16,7 @@ completion.
 """
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -188,6 +189,35 @@ class CheckCompleteResolverTests(unittest.TestCase):
             result = self.run_check(root, plan_id="alpha")
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertIn("ALL PHASES COMPLETE", result.stdout)
+
+    def test_slug_mode_open_receipts_keep_task_active(self) -> None:
+        # Execution receipts live under the repo root even for .planning/<slug>
+        # tasks. Open followups there must keep the task out of archive-ready.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_dir = root / ".planning" / "demo"
+            plan_dir.mkdir(parents=True)
+            (plan_dir / "task_plan.md").write_text(PLAN_ALL_COMPLETE, encoding="utf-8")
+            (root / ".planning" / ".active_plan").write_text("demo\n", encoding="utf-8")
+
+            receipt_dir = root / ".harness" / "execution" / "receipts" / "demo"
+            receipt_dir.mkdir(parents=True)
+            (receipt_dir / "receipt.json").write_text(
+                json.dumps(
+                    {
+                        "unitId": "unit-01",
+                        "resultStatus": "success",
+                        "followups": [{"type": "integration", "status": "open", "target": "progress.md"}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = self.run_check(root)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertNotIn("ALL PHASES COMPLETE", result.stdout)
+            self.assertIn("safe_to_archive=no", result.stdout)
+            self.assertIn("reconciliation=open", result.stdout)
 
     def test_no_args_legacy_root_plan_still_works(self) -> None:
         # Backward compat: when no slug-mode plans exist but a root-level
