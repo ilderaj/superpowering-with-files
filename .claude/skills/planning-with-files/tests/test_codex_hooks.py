@@ -82,6 +82,29 @@ class CodexHooksTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertEqual("", result.stdout.strip())
 
+    def test_permission_request_uses_active_plan_resolution(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            plan_root = root / ".planning"
+            active_dir = plan_root / "isolated-task"
+            active_dir.mkdir(parents=True)
+            active_dir.joinpath("task_plan.md").write_text(
+                "# Task Plan\n### Phase 1\n- **Status:** in_progress\n",
+                encoding="utf-8",
+            )
+            plan_root.joinpath(".active_plan").write_text("isolated-task\n", encoding="utf-8")
+
+            result = self.run_python_hook(
+                "permission_request.py",
+                {"cwd": str(root), "tool_name": "Bash"},
+                root,
+            )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertIn("systemMessage", payload)
+        self.assertIn("Active plan", payload["systemMessage"])
+
     def test_session_start_reuses_plan_context(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir, tempfile.TemporaryDirectory() as home:
             root = Path(tmpdir)
