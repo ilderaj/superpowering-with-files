@@ -75,7 +75,7 @@ def resolve_plan_dir(project_path: Path, task_id: Optional[str] = None) -> Path:
         return plan_dir
 
     active_root = project_path / ACTIVE_ROOT
-    if task_id or os.getenv("PLANNING_TASK_ID") or os.getenv("CODEX_THREAD_ID") or os.getenv("CLAUDE_SESSION_ID"):
+    if task_id or os.getenv("PLANNING_TASK_ID"):
         return plan_dir
 
     if active_root.exists():

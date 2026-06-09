@@ -17,12 +17,15 @@ if [ $# -gt 0 ] && [ -n "${1:-}" ]; then
     PLAN_FILE="$1"
 else
     PLAN_DIR=""
-    RESOLVER="$SCRIPT_DIR/resolve-plan-dir.sh"
-    if [ -f "$RESOLVER" ]; then
-        PLAN_DIR="$(sh "$RESOLVER" 2>/dev/null || true)"
+    PLAN_DIR="$("$PYTHON_BIN" "$SCRIPT_DIR/planning_paths.py" active-dir "$(pwd)" 2>/dev/null || true)"
+    if [ ! -f "${PLAN_DIR}/task_plan.md" ]; then
+        PLAN_DIR=""
     fi
     if [ -z "$PLAN_DIR" ]; then
-        PLAN_DIR="$("$PYTHON_BIN" "$SCRIPT_DIR/planning_paths.py" active-dir "$(pwd)" 2>/dev/null || true)"
+        RESOLVER="$SCRIPT_DIR/resolve-plan-dir.sh"
+        if [ -f "$RESOLVER" ]; then
+            PLAN_DIR="$(sh "$RESOLVER" 2>/dev/null || true)"
+        fi
     fi
     if [ -n "$PLAN_DIR" ] && [ -f "$PLAN_DIR/task_plan.md" ]; then
         PLAN_FILE="$PLAN_DIR/task_plan.md"

@@ -112,7 +112,13 @@ RECONCILIATION_NOT_READY = """# Reconciliation: demo
 
 @unittest.skipUnless(have_bash(), "bash not available on this platform")
 class CheckCompleteResolverTests(unittest.TestCase):
-    def run_check(self, cwd: Path, plan_id: str | None = None, arg: str | None = None) -> subprocess.CompletedProcess[str]:
+    def run_check(
+        self,
+        cwd: Path,
+        plan_id: str | None = None,
+        arg: str | None = None,
+        env_extra: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         env = os.environ.copy()
         env.pop("PLAN_ID", None)
         env.pop("PLANNING_TASK_ID", None)
@@ -120,6 +126,8 @@ class CheckCompleteResolverTests(unittest.TestCase):
         env.pop("CLAUDE_SESSION_ID", None)
         if plan_id is not None:
             env["PLAN_ID"] = plan_id
+        if env_extra:
+            env.update(env_extra)
         cmd = ["bash", str(CHECK_COMPLETE)]
         if arg is not None:
             cmd.append(arg)
@@ -253,6 +261,39 @@ class CheckCompleteResolverTests(unittest.TestCase):
             self.assertIn("status=active", result.stdout)
             self.assertIn("phases=0/1", result.stdout)
             self.assertNotIn("No task_plan.md found", result.stdout)
+
+    def test_no_args_prefers_single_active_task_dir_over_mismatched_thread_env(self) -> None:
+        # Codex and Claude often set session/thread identifiers that do not
+        # match the task slug. Those implicit selectors must not hide the only
+        # existing active task directory from status checks.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan_dir = root / "planning" / "active" / "demo"
+            plan_dir.mkdir(parents=True)
+            (plan_dir / "task_plan.md").write_text(PLAN_ACTIVE_DIR_INCOMPLETE, encoding="utf-8")
+            result = self.run_check(root, env_extra={"CODEX_THREAD_ID": "thread-without-plan"})
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn("status=active", result.stdout)
+            self.assertIn("phases=0/1", result.stdout)
+            self.assertNotIn("No task_plan.md found", result.stdout)
+
+    def test_no_args_prefers_active_task_dir_over_legacy_slug_dir(self) -> None:
+        # When both layouts exist during migration, planning/active is the
+        # authoritative active-task root and must win over legacy .planning.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            legacy_dir = root / ".planning" / "legacy"
+            active_dir = root / "planning" / "active" / "current"
+            legacy_dir.mkdir(parents=True)
+            active_dir.mkdir(parents=True)
+            (root / ".planning" / ".active_plan").write_text("legacy\n", encoding="utf-8")
+            (legacy_dir / "task_plan.md").write_text(PLAN_ACTIVE_DIR_INCOMPLETE, encoding="utf-8")
+            (active_dir / "task_plan.md").write_text(PLAN_ALL_COMPLETE, encoding="utf-8")
+
+            result = self.run_check(root)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn("ALL PHASES COMPLETE", result.stdout)
+            self.assertNotIn("Task legacy", result.stdout)
 
     def test_all_complete_but_not_closed_stays_active(self) -> None:
         # Regression for the lifecycle gate: all phases complete is not enough
