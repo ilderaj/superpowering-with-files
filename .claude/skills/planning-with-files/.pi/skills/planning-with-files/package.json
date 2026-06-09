@@ -1,6 +1,6 @@
 {
-  "name": "@tomxprime/planning-with-files",
-  "version": "1.1.0",
+  "name": "pi-planning-with-files",
+  "version": "1.0.1",
   "description": "Manus-style file-based planning for Pi Coding Agent",
   "keywords": [
     "pi-package",
@@ -12,9 +12,6 @@
   "pi": {
     "skills": [
       "SKILL.md"
-    ],
-    "extensions": [
-      "extensions/planning-with-files/index.ts"
     ]
   },
   "files": [
@@ -23,12 +20,8 @@
     "examples.md",
     "reference.md",
     "scripts/",
-    "templates/",
-    "extensions/"
+    "templates/"
   ],
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OthmanAdi/planning-with-files.git"

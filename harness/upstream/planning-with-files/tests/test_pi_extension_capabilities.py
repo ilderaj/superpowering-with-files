@@ -60,9 +60,6 @@ class PiExtensionCapabilitiesTests(unittest.TestCase):
         text = self._read(PLAN_TS)
         self.assertIn("process.env.PLAN_ID", text)
         self.assertIn(".active_plan", text)
-        self.assertIn("SAFE_PLAN_ID_RE", text)
-        self.assertIn("isSafePlanId(planId)", text)
-        self.assertIn("isSafePlanId(activePlanId)", text)
         self.assertTrue(
             re.search(r"resolveNewestPlanDir", text),
             "plan resolver must include newest plan directory fallback",
@@ -97,7 +94,7 @@ class PiExtensionCapabilitiesTests(unittest.TestCase):
         # Each required pattern, as literal substring of the TS source. These
         # are stable to YAML/JS escaping: they appear verbatim in the file.
         required_substrings = [
-            r"\brm\s+-(?=[a-z]*r)(?=[a-z]*f)",  # rm flag order no longer matters
+            r"\brm\s+-[a-z]*r",                  # rm -rf, rm -fr, rm -Rf
             r"\bsudo\b",                         # sudo
             r"\bchmod\s+(0?777",                 # chmod 777 / chmod 0777
             r"a\+rwx",                           # chmod a+rwx

@@ -25,8 +25,6 @@ export interface PlanStatus extends PlanPaths {
 	progressTail20: string;
 }
 
-const SAFE_PLAN_ID_RE = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
-
 function safeRead(path: string): string {
 	try {
 		return readFileSync(path, "utf-8");
@@ -35,15 +33,11 @@ function safeRead(path: string): string {
 	}
 }
 
-function isSafePlanId(value: string | undefined): value is string {
-	return Boolean(value) && SAFE_PLAN_ID_RE.test(value);
-}
-
 function resolveNewestPlanDir(planRoot: string): string | undefined {
 	if (!existsSync(planRoot)) return undefined;
 
 	const dirs = readdirSync(planRoot, { withFileTypes: true })
-		.filter((entry) => entry.isDirectory() && isSafePlanId(entry.name))
+		.filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
 		.map((entry) => join(planRoot, entry.name))
 		.filter((dir) => existsSync(join(dir, "task_plan.md")))
 		.map((dir) => {
@@ -84,7 +78,7 @@ export function resolvePlanPaths(cwd: string): PlanPaths {
 	});
 
 	const planId = process.env.PLAN_ID?.trim();
-	if (isSafePlanId(planId)) {
+	if (planId) {
 		const candidate = join(planRoot, planId);
 		if (existsSync(join(candidate, "task_plan.md"))) {
 			return makeScoped(candidate);
@@ -94,7 +88,7 @@ export function resolvePlanPaths(cwd: string): PlanPaths {
 	const activePlanFile = join(planRoot, ".active_plan");
 	if (existsSync(activePlanFile)) {
 		const activePlanId = safeRead(activePlanFile).trim();
-		if (isSafePlanId(activePlanId)) {
+		if (activePlanId) {
 			const candidate = join(planRoot, activePlanId);
 			if (existsSync(join(candidate, "task_plan.md"))) {
 				return makeScoped(candidate);

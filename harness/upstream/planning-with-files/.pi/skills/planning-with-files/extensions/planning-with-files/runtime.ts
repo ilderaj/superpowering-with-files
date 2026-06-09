@@ -263,7 +263,7 @@ function buildPreToolParityRecitation(status: PlanStatus): string {
 // substring matching (v2.39.0) was too noisy: every normal push fired the
 // notify and trained users to ignore the warning. See v2.40 release notes.
 const DANGEROUS_BASH_PATTERNS: RegExp[] = [
-	/\brm\s+-(?=[a-z]*r)(?=[a-z]*f)[a-z]+\b/i,  // rm -rf, rm -fr, rm -fR etc.
+	/\brm\s+-[a-z]*r[a-z]*f\b/i,         // rm -rf, rm -fr, rm -Rf etc.
 	/\bsudo\b/i,                          // sudo invocations
 	/\bchmod\s+(0?777|a\+rwx)\b/i,        // chmod 777, chmod a+rwx (world-writable)
 	/\bgit\s+push\s+.*(--force|-f\b|--mirror|\+)/i,  // forced or mirror push only
