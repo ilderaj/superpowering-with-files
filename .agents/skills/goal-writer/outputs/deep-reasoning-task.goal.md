@@ -1,3 +1,4 @@
+```text
 /goal Objective: Resolve the architecture-heavy goal-loop problem without changing Codex internals and without letting the root deliverable drift.
 Context: The work spans policy, projected guidance, validation surfaces, and architecture choices that may require deeper reasoning than a normal tracked round.
 Constraints: Stay inside repo-owned guidance surfaces, treat `planning/active/<task-id>/` as authoritative memory, and use deeper reasoning only when the current round truly needs it.
@@ -16,3 +17,4 @@ Done Criteria:
 Stop/Escalate:
 - Stop and escalate if the repo-owned guidance cannot reconcile the conflict within `3` verifier rounds or if the change would require Codex internals.
 Next Step: Re-open the active planning files, isolate the architecture conflict, and write the first companion-plan revision only if the current round is truly deep-reasoning.
+```

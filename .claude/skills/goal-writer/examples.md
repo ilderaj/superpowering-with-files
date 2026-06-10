@@ -4,17 +4,18 @@ These examples are intentionally short and contract-focused. Full fixture output
 
 ## Quick Round Example
 - Fixture: `quick-task`
-- Key behavior: keep the round lightweight, forbid companion-plan/subagent escalation unless the round stops being quick
+- Key behavior: use the compact frame, keep the round lightweight, and wrap the prompt in a fenced block
 - Numeric target: `2 validation checks pass`
+- Length target: inner prompt stays under `1200` chars
 
 ## Tracked Round Example
 - Fixture: `tracked-task`
-- Key behavior: keep `planning/active/<task-id>/` authoritative and require phase-by-phase sync-back
+- Key behavior: use the standard frame, keep `planning/active/<task-id>/` authoritative, and require phase-by-phase sync-back
 - Numeric target: `6 fixture prompts pass all hard checks`
 
 ## Deep-Reasoning Round Example
 - Fixture: `deep-reasoning-task`
-- Key behavior: allow companion plan and optional read-only verifier subagents only when the round is deep-reasoning
+- Key behavior: use the standard frame and allow companion plan plus optional read-only verifier subagents only when the round is deep-reasoning
 - Numeric target: `3 verifier rounds max`
 
 ## Context-Heavy Example
