@@ -28,12 +28,12 @@ After reading:
 2. Route the round:
    - `Quick`: stay lightweight; no companion plan and no subagents
    - `Tracked`: keep `planning/active/<task-id>/` authoritative and update it after meaningful progress
-   - `Deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`, verify the plan before execution, and use read-only verifier subagents only when useful
+   - `Deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`; if the plan is new or materially revised, require 1 read-only reviewer subagent before execution, then execute only from an approved plan using normal Superpowers execution and worktree discipline
 3. If no entry was appended to `progress.md` since the last loop tick, append one summarizing what changed (commits, files modified, errors).
 4. If a phase finished since the last tick, update its `**Status:**` line in `task_plan.md` to `complete`.
 5. If `check-complete` reports remaining phases, advance the next pending phase to `in_progress` and continue work.
 6. If `check-complete` reports `ALL PHASES COMPLETE`, do nothing. The loop can stop naturally through `/plan-goal` termination or a user-issued `/loop` stop.
-7. If deep-reasoning plan verification fails three rounds in a row, record blockers in the authoritative planning files and stop instead of looping forever.
+7. If deep-reasoning plan review fails three rounds in a row, record blockers in the authoritative planning files and stop instead of looping forever.
 
 Notes:
 

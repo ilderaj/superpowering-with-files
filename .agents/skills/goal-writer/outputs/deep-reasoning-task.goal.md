@@ -7,7 +7,7 @@ Work Discipline:
 - Reclassify each round as `quick`, `tracked`, or `deep-reasoning`.
 - Keep quick rounds lightweight; do not create a companion plan or subagents just because `/goal` is running.
 - Keep `planning/active/<task-id>/` authoritative for tracked rounds and sync durable state after each phase.
-- If a round is deep-reasoning, create or update `docs/superpowers/plans/<date>-<task-id>.md`, use optional read-only verifier subagents only for that round, and cap plan-polishing at `3` verifier rounds.
+- If a round is deep-reasoning, create or update `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, execute only from the approved plan, and cap plan-polishing at `3` verifier rounds.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
 Validation:
 - Verify the design against policy, projected guidance, and targeted tests before claiming completion.

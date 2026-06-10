@@ -6,7 +6,7 @@
   "requireDeepArtifacts": true,
   "expectedFocusTerms": [
     "docs/superpowers/plans/<date>-<task-id>.md",
-    "read-only verifier subagents",
+    "read-only reviewer subagent",
     "3 verifier rounds"
   ]
 }

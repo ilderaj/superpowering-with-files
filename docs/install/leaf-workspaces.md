@@ -9,6 +9,13 @@ Two roots matter:
 
 `planning/active/<task-id>/` stays single-homed under the authority root. Harness does not duplicate planning files into leaf directories.
 
+This boundary matters because it prevents a class of subtle failures:
+
+- duplicated planning state under leaf directories
+- wrong-root writes to `.harness` state or verification artifacts
+- session recovery that follows the workspace cwd instead of the authoritative task root
+- false impressions that a nested workspace should own a second active-task queue
+
 ## Default resolution order
 
 When a command or hook starts from a leaf workspace, Harness resolves the authority root in this order:
@@ -78,3 +85,4 @@ Use this only as an explicit escape hatch. Normal in-repo leaf workspaces should
 - keep planning only under the authority root
 - treat `workspace-link` as advanced configuration, not the default install path
 - if directories move, rerun `workspace-link` instead of hand-editing the JSON
+- if a leaf workspace appears to “lose” planning context, verify the authority-root resolution first before creating new planning files

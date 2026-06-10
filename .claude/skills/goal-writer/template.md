@@ -12,7 +12,7 @@ Context: [1-2 short facts]. [Optional `Assumptions: ...`]
 Constraints: [scope boundary plus any non-goal]. [Optional `Inferred acceptance metric: ...`]
 Work Discipline:
 - Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` before each substantive round.
-- Reclassify each round as `quick`, `tracked`, or `deep-reasoning`; keep quick rounds lightweight and use companion-plan plus optional read-only verifier subagents only if a round becomes deep-reasoning.
+- Reclassify each round as `quick`, `tracked`, or `deep-reasoning`; keep quick rounds lightweight, and if a round becomes deep-reasoning use `docs/superpowers/plans/<date>-<task-id>.md` plus 1 read-only reviewer subagent before executing any new or materially revised companion plan.
 - Keep `planning/active/<task-id>/` authoritative, sync durable state after each phase, and do not allow goal drift.
 Validation: [1-2 exact checks]
 Done Criteria:
@@ -34,7 +34,7 @@ Work Discipline:
 - Reclassify each round as `quick`, `tracked`, or `deep-reasoning`.
 - Keep quick rounds lightweight; do not create a companion plan or subagents just because `/goal` is running.
 - Keep `planning/active/<task-id>/` authoritative for tracked rounds and sync durable state after each phase.
-- Use `docs/superpowers/plans/<date>-<task-id>.md` plus optional read-only verifier subagents only for deep-reasoning rounds.
+- For deep-reasoning rounds, use `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, and execute approved plans with normal Superpowers execution, worktree, and git-progress discipline.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
 Validation:
 - [1-3 exact commands, evidence checks, or runtime validations]

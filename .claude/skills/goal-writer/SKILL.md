@@ -57,7 +57,8 @@ Do not use this skill when:
    - reclassify each round as `quick`, `tracked`, or `deep-reasoning`
    - keep quick rounds lightweight
    - keep `planning/active/<task-id>/` authoritative for tracked rounds
-   - use `docs/superpowers/plans/<date>-<task-id>.md` plus optional read-only verifier subagents only for deep-reasoning rounds
+   - for deep-reasoning rounds, require 1 read-only reviewer subagent before execution whenever the companion plan is new or materially revised
+   - execute approved companion plans with normal Superpowers execution, worktree, and git-progress discipline
    - sync durable state back to `planning/active/<task-id>/` after each phase
 10. Keep the root goal stable. The prompt may allow planning or replanning, but it must forbid goal drift.
 11. Every prompt must contain a numeric done target. If the user did not supply one, derive an acceptable metric from tests, file counts, command counts, artifact counts, retry limits, checklist counts, or another defensible measurable boundary, and label it `Inferred acceptance metric`.

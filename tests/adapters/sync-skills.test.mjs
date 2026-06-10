@@ -78,9 +78,13 @@ test('sync projects workspace entries and skills', async () => {
     );
     assert.match(
       writingPlans,
-      /use read-only verifier subagents only when they are useful and available/
+      /require 1 read-only reviewer subagent before execution/
     );
     assert.match(writingPlans, /Bound plan-polishing to three verification rounds/);
+    assert.match(
+      writingPlans,
+      /execute from that companion plan using normal Superpowers execution discipline/
+    );
     assert.doesNotMatch(writingPlans, /you may additionally create a companion plan/);
     assert.doesNotMatch(writingPlans, /\*\*Save plans to:\*\* `docs\/superpowers\/plans/);
 
@@ -123,6 +127,8 @@ test('sync projects workspace entries and skills', async () => {
     assert.match(goalWriterTemplate, /Compact Frame for Simple \/ Quick Goals/);
     assert.match(goalWriterTemplate, /Return exactly one markdown fenced block/);
     assert.match(goalWriterTemplate, /Done Criteria:/);
+    assert.match(goalWriterTemplate, /new or materially revised companion plan/);
+    assert.match(goalWriterTemplate, /normal Superpowers execution, worktree, and git-progress discipline/);
 
     const goalWriterRubric = await readFile(path.join(root, '.agents/skills/goal-writer/rubric.md'), 'utf8');
     assert.match(goalWriterRubric, /Hard Checks/);

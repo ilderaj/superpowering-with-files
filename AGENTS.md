@@ -57,9 +57,9 @@ Before each substantive goal round, continuation tick, or phase boundary:
 3. Route the round by its current classification:
    - `quick`: stay lightweight. Do not create a companion plan and do not add subagents just because a goal loop is running.
    - `tracked`: keep `planning/active/<task-id>/` authoritative and update the planning files after meaningful progress, phase changes, validation results, or durable decisions.
-   - `deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`, verify the plan before execution, and use read-only verifier subagents only when they are useful and available. Verifiers may review plan completeness, architecture fit, risks, rollback, or validation commands, but they must not edit code or planning files. Integrate their feedback before execution.
+   - `deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`. If that companion plan is new or materially revised, require 1 read-only reviewer subagent before execution. The reviewer may assess plan completeness, architecture fit, scope alignment, rollback, or validation commands, but must not edit code or planning files. Revise from the review, re-review when needed, and execute only from an approved companion plan. After approval, follow normal Superpowers execution discipline: choose inline execution or subagents as appropriate, honor worktree isolation guidance when needed, and preserve progress with commits, checkpoints, pushes, or PR handoff when useful.
 4. Bound plan-polishing loops. Attempt 1 revises from verifier feedback. Attempt 2 re-verifies the failed areas. Attempt 3 performs a broader rethink. After three failed verification rounds, record blockers and unresolved assumptions in the authoritative planning files and stop instead of looping forever.
-5. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
+5. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, review verdicts, execution mode, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
 
 This protocol is repository-owned guidance, not a separate runner. Hooks may inject reminders or compact context, but they do not replace round-start restore, reclassification, routing, or sync-back discipline.
 
@@ -136,7 +136,6 @@ Use rendered `AGENTS.md` files for both workspace and user-global scopes. Projec
 
 Codex `/goal` remains the native long-running executor. Harness does not wrap it with an external runner and does not modify Codex internals.
 
-When Codex uses `/goal`, repository-local `/plan-goal`, or any goal-like continuation flow, apply the Goal Round Start Protocol at each observable round, checkpoint, or phase boundary: restore the task-scoped planning files, reclassify the current round, keep quick rounds lightweight, use companion-plan plus verifier gating only for deep-reasoning rounds, and sync durable state back to `planning/active/<task-id>/`.
+When Codex uses `/goal`, repository-local `/plan-goal`, or any goal-like continuation flow, apply the Goal Round Start Protocol at each observable round, checkpoint, or phase boundary: restore the task-scoped planning files, reclassify the current round, keep quick rounds lightweight, require reviewer-gated companion plans only for deep-reasoning rounds, execute approved plans with normal Superpowers execution discipline, and sync durable state back to `planning/active/<task-id>/`.
 
 Hooks stay lightweight in Codex. They may inject compact planning reminders or hot context for the next prompt, but the core round-start discipline lives in rendered guidance and task-scoped planning files.
-

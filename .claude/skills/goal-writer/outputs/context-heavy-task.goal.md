@@ -7,7 +7,7 @@ Work Discipline:
 - Reclassify each round as `quick`, `tracked`, or `deep-reasoning`.
 - Keep quick rounds lightweight; do not create a companion plan or subagents just because `/goal` is running.
 - Keep `planning/active/<task-id>/` authoritative for tracked rounds and sync durable state after each phase.
-- Use `docs/superpowers/plans/<date>-<task-id>.md` plus optional read-only verifier subagents only for deep-reasoning rounds.
+- For deep-reasoning rounds, use `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, and execute approved plans with normal Superpowers execution, worktree, and git-progress discipline.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
 Validation:
 - Run `3` validations that cover policy render, Codex docs wording, and the targeted installer or projection test.

@@ -15,7 +15,7 @@ These examples are intentionally short and contract-focused. Full fixture output
 
 ## Deep-Reasoning Round Example
 - Fixture: `deep-reasoning-task`
-- Key behavior: use the standard frame and allow companion plan plus optional read-only verifier subagents only when the round is deep-reasoning
+- Key behavior: use the standard frame and require a reviewer-gated companion plan only when the round is deep-reasoning
 - Numeric target: `3 verifier rounds max`
 
 ## Context-Heavy Example

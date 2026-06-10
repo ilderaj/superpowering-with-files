@@ -121,8 +121,10 @@ export function evaluatePrompt(fixture, prompt) {
   maybeAdd(
     hardFailures,
     workDiscipline.includes('docs/superpowers/plans/<date>-<task-id>.md')
-      && /verifier/i.test(workDiscipline)
-      && /only/i.test(workDiscipline),
+      && /(reviewer|verifier)/i.test(workDiscipline)
+      && /deep-reasoning[\s\S]{0,240}(reviewer|verifier)|(reviewer|verifier)[\s\S]{0,240}deep-reasoning/i.test(
+        workDiscipline
+      ),
     'Work Discipline must limit companion-plan/verifier behavior to deep-reasoning rounds'
   );
   maybeAdd(hardFailures, validation.length > 0, 'Validation section must be non-empty');

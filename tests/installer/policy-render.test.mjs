@@ -127,6 +127,9 @@ test('project docs keep shared defaults while documenting the optional Copilot g
   assert.match(codexInstall, /Goal Round Start Protocol/);
   assert.match(codexInstall, /Codex `\/goal` stays native/);
   assert.match(codexInstall, /planning\/active\/<task-id>/);
+  assert.match(codexInstall, /new or materially revised/);
+  assert.match(codexInstall, /read-only reviewer subagent/);
+  assert.match(codexInstall, /normal Superpowers execution discipline/);
 });
 
 

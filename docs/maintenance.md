@@ -75,6 +75,13 @@ Checklist:
 6. Confirm `active` tasks still have unfinished phases, concurrent edits, or an external time/dependency gate.
 7. Close and archive only the tasks whose durable conclusions are already transferred and whose lifecycle state is explicit.
 
+Lifecycle preflight heuristics:
+
+- Treat `all phases complete` as a claim, not as archive readiness. Cross-check lifecycle state, reconcile status, companion sync, and any live PR/release/follow-up evidence before changing archive state.
+- Treat `waiting_review` as a claim, not as proof. Before keeping or promoting that status, confirm there is still a real review, PR, approval, or merge gate rather than a stale planning label.
+- If planning queue state and git/PR reality disagree, reconcile the task first. Do not silently trust the older surface.
+- Use `reconciliation_open` and similar active-summary anomalies as decision prompts, not as noise. They mean the queue still lacks durable readiness evidence.
+
 `active-summary` is the operator-facing queue audit. `summary` remains a single-task session context tool and should not be repurposed as a multi-task audit surface. Use [State Convergence](state-convergence.md) when the audit also needs roadmap/backlog alignment decisions.
 
 Before policy extraction, reread the current global policy source and compare it with `harness/core/policy/base.md`.

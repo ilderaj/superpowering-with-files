@@ -25,8 +25,9 @@ const HARNESS_SAVE_BLOCK = [
   'The companion plan must also point back to `planning/active/<task-id>/` so execution can move from summary to detail and back.',
   '',
   'For Deep-reasoning rounds, restore the authoritative planning files before revising the companion plan.',
-  'Then verify the plan before execution: use read-only verifier subagents only when they are useful and available, keep them out of code and planning-file edits, and integrate their feedback before implementation starts.',
-  'Bound plan-polishing to three verification rounds. After the third failed verification round, record blockers and unresolved assumptions back in `planning/active/<task-id>/` and stop instead of looping forever.'
+  'If the companion plan is new or materially revised, require 1 read-only reviewer subagent before execution. Keep the reviewer out of code and planning-file edits, integrate feedback before implementation starts, and re-review after each substantial revision.',
+  'Bound plan-polishing to three verification rounds. After the third failed verification round, record blockers and unresolved assumptions back in `planning/active/<task-id>/` and stop instead of looping forever.',
+  'Once the plan is approved, execute from that companion plan using normal Superpowers execution discipline: choose inline execution or subagents as appropriate, honor worktree isolation guidance, and preserve progress with commits, pushes, checkpoints, or PR handoff when useful.'
 ].join('\n');
 
 export async function applySuperpowersWritingPlansPatch(targetDir) {
