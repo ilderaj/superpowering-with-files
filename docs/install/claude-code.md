@@ -1,5 +1,9 @@
 # Claude Code Installation
 
+This page is the Claude Code-specific install and behavior guide.
+
+Use it for `CLAUDE.md`, Claude skill roots, settings-backed hooks, and leaf-workspace behavior. For the general Harness model, start with the repository README instead.
+
 Claude Code receives rendered `CLAUDE.md` files.
 
 Workspace scope writes:

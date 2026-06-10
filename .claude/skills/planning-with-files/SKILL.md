@@ -7,6 +7,29 @@ metadata:
   version: "2.34.0"
 ---
 
+# Harness planning-with-files skill-root resolution patch
+
+This materialized copy is maintained by Harness for Agent Skills compatible tools.
+It keeps task state under `planning/active/<task-id>/` and resolves helper scripts from the projected skill directory.
+
+```bash
+HARNESS_PLANNING_WITH_FILES_ROOT="${HARNESS_AGENT_SKILL_ROOT:-${GITHUB_COPILOT_SKILL_ROOT:-.agents/skills/planning-with-files}}"
+if [ ! -f "$HARNESS_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ] && [ -n "${HOME:-}" ]; then
+  HARNESS_PLANNING_WITH_FILES_ROOT="$HOME/.agents/skills/planning-with-files"
+fi
+if [ ! -f "$HARNESS_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ]; then
+  HARNESS_PLANNING_WITH_FILES_ROOT=".github/skills/planning-with-files"
+fi
+if [ ! -f "$HARNESS_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py" ] && [ -n "${HOME:-}" ]; then
+  for candidate in "$HOME/.cursor/skills/planning-with-files" "$HOME/.copilot/skills/planning-with-files" "$HOME/.claude/skills/planning-with-files"; do
+    if [ -f "$candidate/scripts/session-catchup.py" ]; then
+      HARNESS_PLANNING_WITH_FILES_ROOT="$candidate"
+      break
+    fi
+  done
+fi
+```
+
 # Planning with Files
 
 This shared copy intentionally keeps the planning workflow in the skill body
@@ -26,12 +49,25 @@ Work like Manus: Use persistent markdown files as your "working memory on disk."
 
 ```bash
 # Linux/macOS
-$(command -v python3 || command -v python) ${CLAUDE_PLUGIN_ROOT}/scripts/session-catchup.py "$(pwd)"
+$(command -v python3 || command -v python) $HARNESS_PLANNING_WITH_FILES_ROOT/scripts/session-catchup.py "$(pwd)"
 ```
 
 ```powershell
 # Windows PowerShell
-& (Get-Command python -ErrorAction SilentlyContinue).Source "$env:USERPROFILE\.claude\skills\planning-with-files\scripts\session-catchup.py" (Get-Location)
+$planningWithFilesCandidates = @(
+  $env:HARNESS_AGENT_SKILL_ROOT,
+  $env:GITHUB_COPILOT_SKILL_ROOT,
+  '.agents/skills/planning-with-files',
+  '.github/skills/planning-with-files',
+  (Join-Path $env:USERPROFILE '.agents/skills/planning-with-files'),
+  (Join-Path $env:USERPROFILE '.cursor/skills/planning-with-files'),
+  (Join-Path $env:USERPROFILE '.copilot/skills/planning-with-files'),
+  (Join-Path $env:USERPROFILE '.claude/skills/planning-with-files')
+) | Where-Object { $_ }
+$planningWithFilesRoot = $planningWithFilesCandidates | Where-Object {
+  Test-Path (Join-Path $_ 'scripts/session-catchup.py')
+} | Select-Object -First 1
+& (Get-Command python -ErrorAction SilentlyContinue).Source (Join-Path $planningWithFilesRoot 'scripts/session-catchup.py') (Get-Location)
 ```
 
 If catchup report shows unsynced context:
@@ -42,12 +78,12 @@ If catchup report shows unsynced context:
 
 ## Important: Where Files Go
 
-- **Templates** are in `${CLAUDE_PLUGIN_ROOT}/templates/`
+- **Templates** are in `$HARNESS_PLANNING_WITH_FILES_ROOT/templates/`
 - **Your planning files** go in **your active task directory** inside the project
 
 | Location | What Goes There |
 |----------|-----------------|
-| Skill directory (`${CLAUDE_PLUGIN_ROOT}/`) | Templates, scripts, reference docs |
+| Skill directory (`$HARNESS_PLANNING_WITH_FILES_ROOT/`) | Templates, scripts, reference docs |
 | Your active task directory (`planning/active/<task-id>/`) | `task_plan.md`, `findings.md`, `progress.md` |
 
 ## Manual timestamp guard
@@ -68,7 +104,7 @@ If you must edit a planning file manually, first get the current timestamp from
 tooling instead of guessing from the system date:
 
 ```bash
-$(command -v python3 || command -v python) ${CLAUDE_PLUGIN_ROOT}/scripts/planning_record.py timestamp
+$(command -v python3 || command -v python) $HARNESS_PLANNING_WITH_FILES_ROOT/scripts/planning_record.py timestamp
 date '+%Y-%m-%d %H:%M:%S UTC%z'
 ```
 
@@ -290,6 +326,25 @@ Helper scripts for automation:
 - `scripts/migrate-legacy-root.py` — Move old project-root planning files into task-scoped storage
 - `scripts/check-complete.sh` — Verify all phases complete
 - `scripts/session-catchup.py` — Recover context from previous session (v2.2.0)
+
+## Goal-like Continuation Rounds
+
+If your host offers native goal, auto-continue, or loop primitives, keep them native. Do not build an external runner around them.
+
+Before each substantive goal round, continuation tick, or phase:
+
+1. Resolve `planning/active/<task-id>/` and re-read `task_plan.md`, `progress.md`, and `findings.md`.
+2. If the planning files reference a companion plan, read only the relevant compact section for the current round.
+3. Reclassify the current round:
+   - `Quick`: clear single-stage path, low risk, no durable research trail
+   - `Tracked`: multi-phase work, durable decisions, verification trail, recovery needs
+   - `Deep-reasoning`: unclear architecture, ambiguous requirements, complex debugging, repeated validation failure, risky integration, or explicit deep reasoning request
+4. Route the round from that classification:
+   - `Quick`: stay lightweight; no companion plan and no subagents
+   - `Tracked`: keep `planning/active/<task-id>/` authoritative and update it after meaningful progress
+   - `Deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`; if the plan is new or materially revised, require 1 read-only reviewer subagent before execution, then execute only from an approved plan using normal Superpowers execution and worktree discipline
+5. Bound plan polishing to three verification rounds, then record blockers and stop instead of looping forever.
+6. Sync durable decisions, lifecycle and phase status, validation results, review verdicts, execution mode, and companion-plan summary data back into `planning/active/<task-id>/` after each phase.
 
 ## Advanced Topics
 

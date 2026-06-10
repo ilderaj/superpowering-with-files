@@ -1,5 +1,9 @@
 # Codex Installation
 
+This page is the Codex-specific install and behavior guide.
+
+Use it for Codex entry files, skill roots, hooks, leaf-workspace behavior, and goal-like continuation notes. For the general Harness model, start with the repository README instead.
+
 Codex receives rendered `AGENTS.md` files.
 
 Workspace scope writes:
@@ -44,14 +48,17 @@ Apply the Goal Round Start Protocol to `/goal`, projected `/plan-goal`, and simi
 1. Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` first.
 2. If a companion plan is referenced, read only the compact section needed for the current round.
 3. Reclassify the round as `quick`, `tracked`, or `deep-reasoning`.
-4. Keep quick rounds lightweight, keep `planning/active/<task-id>/` authoritative for tracked rounds, and use companion-plan plus optional read-only verifier subagents only for deep-reasoning rounds.
-5. After each phase, sync durable decisions, validation, companion-plan linkage, and sync-back status into `planning/active/<task-id>/`.
+4. Keep quick rounds lightweight, keep `planning/active/<task-id>/` authoritative for tracked rounds, and for deep-reasoning rounds require 1 read-only reviewer subagent before execution whenever the companion plan is new or materially revised.
+5. Execute only from an approved companion plan, using normal Superpowers execution discipline for inline versus subagent work, worktree isolation, and git-progress preservation when useful.
+6. After each phase, sync durable decisions, validation, review verdicts, companion-plan linkage, execution mode, and sync-back status into `planning/active/<task-id>/`.
 
 Codex hooks support this flow with lightweight reminders and context injection only. They are not the sole enforcement mechanism.
 
 `/plan-goal` is a projected planning-aware wrapper when the relevant skill/command surface exists. It composes with native `/goal`; it does not replace it.
 
 When the user intent is too sparse to hand-write a stable `/goal`, the projected `goal-writer` skill can draft one compact prompt that preserves SWF memory rules, includes numeric done criteria, and stays within Codex's size limits.
+
+`goal-writer` is a prompt-contract helper, not a replacement for the Goal Round Start Protocol. The prompt may help start the goal cleanly, but each substantive round still needs the same restore/reclassify/sync-back discipline described above.
 
 Harness projects Codex hooks only when `--hooks=on` is selected. It projects the verified planning-with-files `SessionStart` and `UserPromptSubmit` events, plus the superpowers `SessionStart` wrapper. When the `safety` profile is active, Harness can also project Codex `SessionStart` and `PreToolUse` safety hooks. Those remain repository-owned policy checks and do not replace host-platform approvals.
 

@@ -1,6 +1,29 @@
 # Goal Writer Template
 
-Use this exact frame and keep the final prompt `<=4000` characters.
+Return exactly one markdown fenced block and keep the inner `/goal` prompt `<=4000` characters.
+
+## Compact Frame for Simple / Quick Goals
+
+Use this when the goal is single-surface, low-risk, or otherwise clearly simple. Keep it short. The inner prompt should usually stay below `1200` characters.
+
+```text
+/goal Objective: [one stable sentence]
+Context: [1-2 short facts]. [Optional `Assumptions: ...`]
+Constraints: [scope boundary plus any non-goal]. [Optional `Inferred acceptance metric: ...`]
+Work Discipline:
+- Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` before each substantive round.
+- Reclassify each round as `quick`, `tracked`, or `deep-reasoning`; keep quick rounds lightweight, and if a round becomes deep-reasoning use `docs/superpowers/plans/<date>-<task-id>.md` plus 1 read-only reviewer subagent before executing any new or materially revised companion plan.
+- Keep `planning/active/<task-id>/` authoritative, sync durable state after each phase, and do not allow goal drift.
+Validation: [1-2 exact checks]
+Done Criteria:
+- [At least one numeric target]
+Stop/Escalate: [one short boundary condition]
+Next Step: [the immediate first action]
+```
+
+## Standard Frame for Tracked / Full Goals
+
+Use this when the work is tracked, context-heavy, or deep-reasoning.
 
 ```text
 /goal Objective: [one stable sentence describing the root outcome]
@@ -11,7 +34,7 @@ Work Discipline:
 - Reclassify each round as `quick`, `tracked`, or `deep-reasoning`.
 - Keep quick rounds lightweight; do not create a companion plan or subagents just because `/goal` is running.
 - Keep `planning/active/<task-id>/` authoritative for tracked rounds and sync durable state after each phase.
-- Use `docs/superpowers/plans/<date>-<task-id>.md` plus optional read-only verifier subagents only for deep-reasoning rounds.
+- For deep-reasoning rounds, use `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, and execute approved plans with normal Superpowers execution, worktree, and git-progress discipline.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
 Validation:
 - [1-3 exact commands, evidence checks, or runtime validations]
@@ -24,10 +47,12 @@ Next Step: [the immediate first action once the goal starts]
 ```
 
 ## Compression Rules
+- Choose the compact frame first for genuinely simple goals instead of filling the standard frame mechanically.
 - Prefer one short paragraph for `Context` and `Constraints`.
 - Keep `Validation` and `Done Criteria` to the smallest set that still proves success.
 - Remove narration, rationale, and history that do not change execution.
 - If a section grows large, compress it instead of dropping the section.
+- When returning to the user, wrap whichever frame you used inside one fenced block and do not add prose outside it.
 
 ## Numeric Target Rules
 - `Done Criteria` must contain at least one digit.

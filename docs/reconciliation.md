@@ -1,5 +1,15 @@
 # Post-Implementation Reconciliation And SOT Policy
 
+This page defines the verify-to-finish gate for tracked work.
+
+Use it when you need to answer:
+
+- whether implementation, evidence, and task state are aligned
+- which artifact is authoritative for a conflict
+- whether a task is actually ready for finish or archive
+
+For the operator lane map, start with [Workflows](workflows.md). This page is the boundary and decision model behind that gate.
+
 This document captures the Harness direction for keeping coding projects traceable after implementation. It is intentionally small: reconciliation is a control point, not a new documentation tax.
 
 ## Problem

@@ -293,6 +293,25 @@ Composes with Claude Code's `/loop`. Default 10-minute tick re-reads the plannin
 
 For a "babysit until done" workflow, combine `/plan-loop` (cadence) with `/plan-goal` (termination criterion).
 
+### Goal Round Start Protocol
+
+Keep `/goal` and `/loop` native. The planning-aware wrappers do not replace Claude Code's executor.
+
+Before each substantive `/goal` round, `/loop` tick that will continue real work, or phase boundary:
+
+1. Re-read `task_plan.md`, `progress.md`, and `findings.md` from the active task directory.
+2. If those files reference a companion plan, read only the relevant compact section for the current round.
+3. Reclassify the round:
+   - `Quick`: clear single-stage path, low risk, no durable research trail
+   - `Tracked`: multi-phase work, durable decisions, verification trail, or recovery needs
+   - `Deep-reasoning`: unclear architecture, ambiguous requirements, complex debugging, repeated validation failure, risky integration, or explicit deep reasoning request
+4. Route from the round classification:
+   - `Quick`: stay lightweight; no companion plan and no subagents
+   - `Tracked`: keep `planning/active/<task-id>/` authoritative and update it after meaningful progress
+   - `Deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`; if the plan is new or materially revised, require 1 read-only reviewer subagent before execution, then execute only from an approved plan using normal Superpowers execution and worktree discipline
+5. Bound plan-polishing loops to three verification rounds, then record blockers in the authoritative planning files and stop instead of looping forever.
+6. After each phase, sync durable decisions, validation results, review verdicts, execution mode, companion-plan path, summary, and sync-back status back into `planning/active/<task-id>/`.
+
 ### Manual fallback when `/plan-goal` / `/plan-loop` are unavailable (v2.42.0)
 
 For skill-only installs (no `commands/` folder) or sessions where the slash command refuses to fire, the model can produce the same effect by executing the wrapper steps inline.
@@ -300,19 +319,21 @@ For skill-only installs (no `commands/` folder) or sessions where the slash comm
 **Manual `/plan-goal` procedure:**
 
 1. Resolve the active plan: prefer `${PLAN_ID}` env var, then `.planning/.active_plan`, then newest `.planning/<dir>/`, then legacy `./task_plan.md`.
-2. Read the resolved `task_plan.md`.
-3. Compose a goal condition. Default: `"all phases in task_plan.md report Status: complete and check-complete.sh reports ALL PHASES COMPLETE"`. If the user passed additional clauses, append them.
-4. Issue Claude Code's native `/goal <condition>` (CC primitive, always available).
-5. Confirm to the user: print the condition + active plan ID + remind that `/goal clear` cancels.
-6. Refuse if `task_plan.md` does not exist; direct the user to run init first.
+2. Read the resolved `task_plan.md`, plus `progress.md` and `findings.md` from the same active task directory.
+3. Apply the Goal Round Start Protocol above before issuing `/goal`: restore context, reclassify the current round, and choose the `quick` / `tracked` / `deep-reasoning` route.
+4. Compose a goal condition. Default: `"all phases in task_plan.md report Status: complete and check-complete.sh reports ALL PHASES COMPLETE"`. If the user passed additional clauses, append them.
+5. Issue Claude Code's native `/goal <condition>` (CC primitive, always available).
+6. Confirm to the user: print the condition + active plan ID + remind that `/goal clear` cancels.
+7. Refuse if `task_plan.md` does not exist; direct the user to run init first.
 
 **Manual `/plan-loop` procedure:**
 
 1. Parse args: first arg matching `^\d+[smhd]$` is the interval (default `10m`), remaining args are an optional task prompt.
 2. Resolve the active plan as above.
-3. Compose the loop tick prompt. If user passed a task prompt, use it verbatim. Otherwise use the planning-aware default that re-reads `task_plan.md` and `progress.md`, runs `scripts/check-complete.sh`, and writes a `progress.md` entry if no progress was logged since the last tick.
-4. Issue Claude Code's native `/loop <interval> <prompt>` (CC primitive, always available).
-5. Confirm to the user: print interval + active plan ID + remind that bare `/loop` runs the built-in maintenance prompt.
+3. Re-read `task_plan.md`, `progress.md`, and `findings.md`, then apply the Goal Round Start Protocol before composing the loop tick prompt.
+4. Compose the loop tick prompt. If user passed a task prompt, use it verbatim. Otherwise use the planning-aware default that restores planning context, reclassifies the round, runs `scripts/check-complete.sh`, and writes a `progress.md` entry if no progress was logged since the last tick.
+5. Issue Claude Code's native `/loop <interval> <prompt>` (CC primitive, always available).
+6. Confirm to the user: print interval + active plan ID + remind that bare `/loop` runs the built-in maintenance prompt.
 
 Both procedures match what the `commands/plan-goal.md` and `commands/plan-loop.md` files would have fed the model when invoked. The native `/loop` and `/goal` primitives are always available in Claude Code; only the planning-aware wrapper is plugin-scoped.
 

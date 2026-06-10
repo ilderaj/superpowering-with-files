@@ -12,11 +12,18 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+async function initGitRepo(root) {
+  await execFileAsync('git', ['init'], { cwd: root });
+  await execFileAsync('git', ['config', 'user.name', 'Harness Test'], { cwd: root });
+  await execFileAsync('git', ['config', 'user.email', 'harness@example.com'], { cwd: root });
+}
+
 async function createFixture(fixtureName, { taskId = 'codex-hooks', taskPlan, findings, progress } = {}) {
   const fixtureRoot = path.join(artifactsRoot, fixtureName);
   const taskRoot = path.join(fixtureRoot, 'planning/active', taskId);
   await rm(fixtureRoot, { recursive: true, force: true });
   await mkdir(taskRoot, { recursive: true });
+  await initGitRepo(fixtureRoot);
 
   if (taskPlan) {
     await writeFile(path.join(taskRoot, 'task_plan.md'), taskPlan);
@@ -185,6 +192,42 @@ test('task-scoped-hook resolves the authority root from a nested leaf directory'
   }
 });
 
+test('task-scoped-hook does not escape a nested git repo to outer planning markers', async () => {
+  const outerRoot = path.join(artifactsRoot, 'codex-git-boundary-outer');
+  const repoRoot = path.join(outerRoot, 'repo');
+  const leafDir = path.join(repoRoot, 'packages/demo');
+  const outerTaskRoot = path.join(outerRoot, 'planning/active/outer-task');
+
+  await rm(outerRoot, { recursive: true, force: true });
+  await mkdir(outerTaskRoot, { recursive: true });
+  await mkdir(leafDir, { recursive: true });
+  await initGitRepo(repoRoot);
+
+  const outerFiles = activeTaskFiles();
+  outerFiles.taskPlan = outerFiles.taskPlan.replace('# Codex Hooks', '# Outer Task');
+
+  await writeFile(path.join(outerTaskRoot, 'task_plan.md'), outerFiles.taskPlan);
+  await writeFile(path.join(outerTaskRoot, 'findings.md'), outerFiles.findings);
+  await writeFile(path.join(outerTaskRoot, 'progress.md'), outerFiles.progress);
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    await execFileAsync('bash', [scriptPath, 'codex', 'session-start'], {
+      cwd: leafDir
+    });
+
+    assert.equal((await readFile(path.join(repoRoot, '.harness/runtime-hooks/codex.jsonl'), 'utf8')).trim().length > 0, true);
+    const repoLog = JSON.parse(await readFile(path.join(repoRoot, '.harness/runtime-hooks/codex.jsonl'), 'utf8'));
+    assert.equal(await realpath(repoLog.projectRoot), await realpath(repoRoot));
+    await assert.rejects(readFile(path.join(outerRoot, '.harness/runtime-hooks/codex.jsonl'), 'utf8'), /ENOENT/);
+  } finally {
+    await rm(outerRoot, { recursive: true, force: true });
+  }
+});
+
 test('task-scoped-hook records Codex runtime evidence on session start', async () => {
   const { fixtureRoot } = await createFixture('codex-runtime-evidence', activeTaskFiles());
 
@@ -205,6 +248,27 @@ test('task-scoped-hook records Codex runtime evidence on session start', async (
     assert.equal(runtimeLog.parentSkillName, 'planning-with-files');
     assert.equal(runtimeLog.eventName, 'SessionStart');
     assert.match(runtimeLog.scriptPath, /task-scoped-hook\.sh$/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('task-scoped-hook post-tool reminder steers fresh progress records away from midnight placeholders', async () => {
+  const { fixtureRoot } = await createFixture('codex-post-tool-reminder', activeTaskFiles());
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'post-tool-use'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.equal(payload.hookSpecificOutput.hookEventName, 'PostToolUse');
+    assert.match(payload.hookSpecificOutput.additionalContext, /record --task codex-hooks --file progress/);
+    assert.match(payload.hookSpecificOutput.additionalContext, /00:00:00 UTC\+8/);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }

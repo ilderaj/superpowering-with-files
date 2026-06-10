@@ -1,5 +1,14 @@
 # Maintenance
 
+This page is the upkeep and lifecycle guide for Harness.
+
+Use it when you need to:
+
+- audit `planning/active/`
+- run update/sync/doctor flows safely
+- decide whether work is ready to close or archive
+- maintain release, adoption, or upstream-refresh hygiene
+
 Maintenance is the operator-facing `verify`, `archive`, and upkeep surface of Harness. For the full lane map, start with [Workflows](workflows.md).
 
 If you run maintenance commands from a leaf workspace inside a repository, Harness still resolves the default authority root to the current git worktree root. It does not walk upward beyond that git boundary unless you explicitly provide `--root`, `HARNESS_PROJECT_ROOT`, or a repo-local `.harness/authority-root.json`. See [Leaf Workspaces](install/leaf-workspaces.md).
@@ -74,6 +83,13 @@ Checklist:
 5. Confirm `waiting_review` tasks still have a real review, PR, or approval gate.
 6. Confirm `active` tasks still have unfinished phases, concurrent edits, or an external time/dependency gate.
 7. Close and archive only the tasks whose durable conclusions are already transferred and whose lifecycle state is explicit.
+
+Lifecycle preflight heuristics:
+
+- Treat `all phases complete` as a claim, not as archive readiness. Cross-check lifecycle state, reconcile status, companion sync, and any live PR/release/follow-up evidence before changing archive state.
+- Treat `waiting_review` as a claim, not as proof. Before keeping or promoting that status, confirm there is still a real review, PR, approval, or merge gate rather than a stale planning label.
+- If planning queue state and git/PR reality disagree, reconcile the task first. Do not silently trust the older surface.
+- Use `reconciliation_open` and similar active-summary anomalies as decision prompts, not as noise. They mean the queue still lacks durable readiness evidence.
 
 `active-summary` is the operator-facing queue audit. `summary` remains a single-task session context tool and should not be repurposed as a multi-task audit surface. Use [State Convergence](state-convergence.md) when the audit also needs roadmap/backlog alignment decisions.
 

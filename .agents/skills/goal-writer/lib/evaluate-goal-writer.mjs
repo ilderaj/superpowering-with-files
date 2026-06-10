@@ -17,6 +17,15 @@ function defaultSkillRoot() {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 }
 
+function extractFencedPrompt(markdown) {
+  const trimmed = markdown.trim();
+  const match = trimmed.match(/^```(?:text|md|markdown)?\n([\s\S]*?)\n```$/);
+  if (!match) {
+    return null;
+  }
+  return match[1].trim();
+}
+
 function extractSections(prompt) {
   const sections = new Map();
 
@@ -78,20 +87,26 @@ function sectionOrderIsValid(prompt) {
 
 export function evaluatePrompt(fixture, prompt) {
   const notes = [];
-  const sections = extractSections(prompt);
+  const fencedPrompt = extractFencedPrompt(prompt);
+  const innerPrompt = fencedPrompt ?? prompt;
+  const sections = extractSections(innerPrompt);
   const doneCriteria = sections.get('Done Criteria') ?? '';
   const workDiscipline = sections.get('Work Discipline') ?? '';
   const validation = sections.get('Validation') ?? '';
   const stopEscalate = sections.get('Stop/Escalate') ?? '';
   const nextStep = sections.get('Next Step') ?? '';
-  const promptLength = prompt.length;
+  const promptLength = innerPrompt.length;
   const missingSections = SECTION_LABELS.filter((label) => !sections.get(label));
   const hardFailures = [];
 
-  maybeAdd(hardFailures, prompt.startsWith('/goal'), 'prompt must start with `/goal`');
+  maybeAdd(hardFailures, fencedPrompt !== null, 'response must be exactly one markdown fenced block');
+  maybeAdd(hardFailures, innerPrompt.startsWith('/goal'), 'inner prompt must start with `/goal`');
   maybeAdd(hardFailures, promptLength <= 4000, `prompt exceeds 4000 characters (${promptLength})`);
+  if (typeof fixture.maxLength === 'number') {
+    maybeAdd(hardFailures, promptLength <= fixture.maxLength, `prompt exceeds fixture maxLength (${fixture.maxLength})`);
+  }
   maybeAdd(hardFailures, missingSections.length === 0, `missing sections: ${missingSections.join(', ')}`);
-  maybeAdd(hardFailures, sectionOrderIsValid(prompt), 'section labels must appear in the required order');
+  maybeAdd(hardFailures, sectionOrderIsValid(innerPrompt), 'section labels must appear in the required order');
   maybeAdd(hardFailures, hasNumericTarget(doneCriteria), 'Done Criteria must include at least one numeric target');
   maybeAdd(
     hardFailures,
@@ -106,8 +121,10 @@ export function evaluatePrompt(fixture, prompt) {
   maybeAdd(
     hardFailures,
     workDiscipline.includes('docs/superpowers/plans/<date>-<task-id>.md')
-      && /verifier/i.test(workDiscipline)
-      && /only/i.test(workDiscipline),
+      && /(reviewer|verifier)/i.test(workDiscipline)
+      && /deep-reasoning[\s\S]{0,240}(reviewer|verifier)|(reviewer|verifier)[\s\S]{0,240}deep-reasoning/i.test(
+        workDiscipline
+      ),
     'Work Discipline must limit companion-plan/verifier behavior to deep-reasoning rounds'
   );
   maybeAdd(hardFailures, validation.length > 0, 'Validation section must be non-empty');
@@ -115,13 +132,13 @@ export function evaluatePrompt(fixture, prompt) {
   maybeAdd(hardFailures, nextStep.length > 0, 'Next Step section must be non-empty');
 
   if (fixture.requireAssumptions) {
-    maybeAdd(hardFailures, prompt.includes('Assumptions:'), 'fixture requires explicit assumptions');
+    maybeAdd(hardFailures, innerPrompt.includes('Assumptions:'), 'fixture requires explicit assumptions');
   }
 
   if (fixture.requireInferredMetricLabel) {
     maybeAdd(
       hardFailures,
-      /Inferred acceptance metric/i.test(prompt),
+      /Inferred acceptance metric/i.test(innerPrompt),
       'fixture requires an `Inferred acceptance metric` label'
     );
   }
@@ -129,7 +146,7 @@ export function evaluatePrompt(fixture, prompt) {
   if (fixture.mustStayLightweight) {
     maybeAdd(
       hardFailures,
-      /do not create a companion plan or subagents/i.test(prompt),
+      /do not create a companion plan or subagents/i.test(innerPrompt),
       'quick fixture must explicitly keep quick rounds lightweight'
     );
   }
@@ -137,7 +154,7 @@ export function evaluatePrompt(fixture, prompt) {
   if (fixture.requireDeepArtifacts) {
     maybeAdd(
       hardFailures,
-      prompt.includes('docs/superpowers/plans/<date>-<task-id>.md') && /`?3`? verifier rounds/.test(prompt),
+      innerPrompt.includes('docs/superpowers/plans/<date>-<task-id>.md') && /`?3`? verifier rounds/.test(innerPrompt),
       'deep-reasoning fixture must mention companion-plan path and verifier-round cap'
     );
   }
@@ -145,23 +162,24 @@ export function evaluatePrompt(fixture, prompt) {
   if (fixture.expectedFocusTerms?.length) {
     maybeAdd(
       hardFailures,
-      includesAll(prompt, fixture.expectedFocusTerms),
+      includesAll(innerPrompt, fixture.expectedFocusTerms),
       `prompt is missing expected focus terms: ${fixture.expectedFocusTerms.join(', ')}`
     );
   }
 
   let score = 0;
 
-  if (prompt.startsWith('/goal') && missingSections.length === 0 && sectionOrderIsValid(prompt)) score += 2;
+  if (fencedPrompt !== null && innerPrompt.startsWith('/goal') && missingSections.length === 0 && sectionOrderIsValid(innerPrompt)) score += 2;
   if (hasNumericTarget(doneCriteria) && (!fixture.requireInferredMetricLabel || /Inferred acceptance metric/i.test(prompt))) score += 2;
   if (
     workDiscipline.includes('planning/active/<task-id>/')
     && includesAll(workDiscipline, ['quick', 'tracked', 'deep-reasoning'])
-    && /goal drift/i.test(prompt)
+    && /goal drift/i.test(innerPrompt)
   ) {
     score += 2;
   }
-  if (/goal drift/i.test(prompt)) score += 1;
+  if (typeof fixture.maxLength === 'number' ? promptLength <= fixture.maxLength : promptLength < 2000) score += 1;
+  if (/goal drift/i.test(innerPrompt)) score += 1;
   if (/`?\d+`?.*(check|validation|test|command)/i.test(validation) || /Run /.test(validation)) score += 1;
   if (/stop|ask|escalate/i.test(stopEscalate)) score += 1;
   if (nextStep.length > 0) score += 1;
@@ -175,6 +193,7 @@ export function evaluatePrompt(fixture, prompt) {
     category: fixture.category,
     expectedRoute: fixture.expectedRoute,
     length: promptLength,
+    usesFencedBlock: fencedPrompt !== null,
     score,
     pass,
     hasNumericTarget: hasNumericTarget(doneCriteria),

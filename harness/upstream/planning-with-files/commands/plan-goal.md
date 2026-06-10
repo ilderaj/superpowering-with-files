@@ -15,7 +15,7 @@ Steps:
    - reclassify the round as `quick`, `tracked`, or `deep-reasoning`
    - keep quick rounds lightweight
    - keep `planning/active/<task-id>/` authoritative for tracked rounds
-   - use companion-plan plus read-only verifier gating only for deep-reasoning rounds
+   - for deep-reasoning rounds, require reviewer-gated companion plans when they are new or materially revised, then execute approved plans with normal Superpowers execution and worktree discipline
 4. Derive a goal condition from the plan content:
    - Default: "all phases in task_plan.md report Status: complete and check-complete.sh reports ALL PHASES COMPLETE"
    - If user passed an argument: use that as an additional clause (e.g., `/plan-goal until all tests pass`)

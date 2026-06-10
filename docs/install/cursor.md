@@ -1,5 +1,9 @@
 # Cursor Installation
 
+This page is the Cursor-specific install and behavior guide.
+
+Use it for Cursor rules, shared skill roots, native hooks, and leaf-workspace behavior. For the general Harness model, start with the repository README instead.
+
 Cursor receives rules and skill projections.
 
 Workspace scope writes:

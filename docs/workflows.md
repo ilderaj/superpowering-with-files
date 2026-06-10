@@ -1,6 +1,14 @@
 # Workflows
 
-Harness keeps policy rendering, projection, and planning state separate from the operator-facing workflow surface. This page is the productized map of that surface.
+This page is the operator-facing map of Harness.
+
+Use it when you already understand the project at a high level and need to answer:
+
+- which lane applies now?
+- what is the boundary of that lane?
+- which command surfaces usually prove the work?
+
+Harness keeps policy rendering, projection, and planning state separate from this operator layer. This page is about how to move work, not how the implementation is wired internally.
 
 ## Workflow Lanes
 

@@ -4,6 +4,7 @@
   "category": "quick",
   "expectedRoute": "quick",
   "mustStayLightweight": true,
+  "maxLength": 1200,
   "expectedFocusTerms": [
     "If the current round stays quick",
     "do not create a companion plan or subagents",

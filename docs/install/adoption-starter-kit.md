@@ -1,5 +1,7 @@
 # Adoption Starter Kit
 
+This page is the shortest safe path for choosing an adoption profile, rehearsing rollout, and verifying the result.
+
 Use this guide to choose a safe Harness adoption profile, verify the result, and roll back if needed.
 
 ## Choose A Profile
@@ -34,6 +36,32 @@ export HOME=/path/to/disposable-home
 ./scripts/harness doctor --check-only
 ./scripts/harness adoption-status
 ```
+
+## Repo-Local Vs User-Global Boundary
+
+Keep repo-local refresh work and user-global adoption as separate decisions:
+
+- Repo-local docs, policy, or projection refresh work should prefer repo-local rebuild or workspace-scoped sync when that is enough to prove the change.
+- User-global adoption should be treated as rollout work with its own rehearsal and receipt, not as a side effect of ordinary repo maintenance.
+- If live user-global ownership blocks `sync`, stop and decide explicitly whether the work needs:
+  - a repo-local rebuild only;
+  - a disposable-home rehearsal;
+  - or a real user-global takeover using `sync --conflict=backup`.
+
+Do not use a repo-scoped documentation or policy update as implicit permission to mutate the operator's real user-global state.
+
+## Adoption Verification Receipt
+
+For rollout-oriented adoption work, keep a short receipt that records:
+
+- chosen profile: `minimal-global`, `full-local`, or `cloud-dev`
+- scope used: `workspace`, `user-global`, or `both`
+- whether the run used a disposable home
+- result of `./scripts/harness sync --dry-run`
+- result of `./scripts/harness doctor --check-only`
+- result of `./scripts/harness adoption-status`
+- whether `sync --conflict=backup` was needed
+- any expected remaining gaps or follow-up actions
 
 ## Smoke Check
 

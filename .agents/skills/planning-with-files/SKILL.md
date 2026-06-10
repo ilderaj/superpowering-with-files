@@ -342,9 +342,9 @@ Before each substantive goal round, continuation tick, or phase:
 4. Route the round from that classification:
    - `Quick`: stay lightweight; no companion plan and no subagents
    - `Tracked`: keep `planning/active/<task-id>/` authoritative and update it after meaningful progress
-   - `Deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`, verify the plan before execution, and use read-only verifier subagents only when useful
+   - `Deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`; if the plan is new or materially revised, require 1 read-only reviewer subagent before execution, then execute only from an approved plan using normal Superpowers execution and worktree discipline
 5. Bound plan polishing to three verification rounds, then record blockers and stop instead of looping forever.
-6. Sync durable decisions, lifecycle and phase status, validation results, and companion-plan summary data back into `planning/active/<task-id>/` after each phase.
+6. Sync durable decisions, lifecycle and phase status, validation results, review verdicts, execution mode, and companion-plan summary data back into `planning/active/<task-id>/` after each phase.
 
 ## Advanced Topics
 

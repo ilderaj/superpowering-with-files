@@ -1,5 +1,14 @@
 # Architecture
 
+This page is the implementation map of Harness.
+
+Use it when you need to answer:
+
+- where a behavior lives
+- which layer owns a rule
+- which artifact is authoritative
+- how projection, runtime, MCP, hooks, and upstream baselines fit together
+
 superpowering-with-files uses six layers:
 
 - `harness/core`: platform-neutral policy, skills metadata, templates, and schemas.
@@ -110,7 +119,6 @@ This separation is intentional:
 - optional integrations such as browser automation or eval harnesses remain contracts until the project intentionally adopts a concrete runtime
 
 Browser and eval are therefore architecture extension points, not baseline install requirements.
-
 
 ## Source-Of-Truth And Reconciliation
 

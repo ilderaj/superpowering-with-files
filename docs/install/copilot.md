@@ -1,5 +1,9 @@
 # GitHub Copilot Installation
 
+This page is the GitHub Copilot-specific install and behavior guide.
+
+Use it for Copilot entry files, skill roots, hooks, GitHub-cloud deployment shape, and `cloud-dev` constraints. For the general Harness model, start with the repository README instead.
+
 Copilot receives rendered `copilot-instructions.md` files.
 
 Workspace scope writes:
