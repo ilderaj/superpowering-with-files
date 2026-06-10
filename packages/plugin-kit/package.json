@@ -1,6 +1,6 @@
 {
   "name": "@superpowering-with-files/plugin-kit",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "type": "module",
   "description": "Build, pack, and validate Harness editor plugin artifacts.",
   "private": true,

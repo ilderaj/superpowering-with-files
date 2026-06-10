@@ -30,6 +30,10 @@ Keep the detailed implementation plan and execution checklist in that companion 
 Whenever a companion plan exists, write its path, a short summary, and the current sync-back status into the task-scoped planning files under `planning/active/<task-id>/`.
 The companion plan must also point back to `planning/active/<task-id>/` so execution can move from summary to detail and back.
 
+For Deep-reasoning rounds, restore the authoritative planning files before revising the companion plan.
+Then verify the plan before execution: use read-only verifier subagents only when they are useful and available, keep them out of code and planning-file edits, and integrate their feedback before implementation starts.
+Bound plan-polishing to three verification rounds. After the third failed verification round, record blockers and unresolved assumptions back in `planning/active/<task-id>/` and stop instead of looping forever.
+
 ## Scope Check
 
 If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.

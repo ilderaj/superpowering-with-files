@@ -2,7 +2,7 @@
 # planning-with-files: User prompt submit hook for Codex
 
 HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
-PLAN_DIR="$(sh "${HOOK_DIR}/resolve-plan-dir.sh" 2>/dev/null)"
+PLAN_DIR="$(sh "${HOOK_DIR}/resolve-active-plan-dir.sh" 2>/dev/null)"
 PLAN_FILE="${PLAN_DIR:+${PLAN_DIR}/}task_plan.md"
 PROGRESS_FILE="${PLAN_DIR:+${PLAN_DIR}/}progress.md"
 

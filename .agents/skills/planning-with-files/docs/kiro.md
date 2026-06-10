@@ -78,7 +78,7 @@ All paths are relative to the **project root** after you have copied `.kiro/skil
 Examples:
 
 ```bash
-sh .kiro/skills/planning-with-files/assets/scripts/check-complete.sh
+bash .kiro/skills/planning-with-files/assets/scripts/check-complete.sh
 $(command -v python3 || command -v python) \
   .kiro/skills/planning-with-files/assets/scripts/session-catchup.py "$(pwd)"
 ```

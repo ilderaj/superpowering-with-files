@@ -44,6 +44,16 @@ Rules:
 3. Deep-reasoning work may use `superpowers`, but only as a temporary reasoning layer.
 4. When Superpowers is actually used, the detailed companion plan lives in `docs/superpowers/plans/<date>-<task-id>.md` and syncs back to the active task.
 
+### Goal-like Continuations
+
+Harness keeps `/goal`, `/plan-goal`, and similar continuation flows native. It does not add a second runner.
+
+At each substantive round, checkpoint, or phase boundary:
+
+1. Reopen `task_plan.md`, `progress.md`, and `findings.md`.
+2. Reclassify the round as `quick`, `tracked`, or `deep-reasoning`.
+3. Keep quick rounds light, use companion-plan plus verifier gating only for deep-reasoning rounds, and sync durable state back to `planning/active/<task-id>/`.
+
 ## Quick Start
 
 ```bash
@@ -79,7 +89,7 @@ Harness exposes operator-facing lanes:
 - `verify`: focused checks, full repository verification, projection dry-runs, and doctor output
 - `reconcile`: align intent, actual changes, verification, and follow-up before finish/archive
 - `finish`: branch push, merge back to `dev`, and task record updates
-- `release`: `dev` to `main` promotion plus adoption and release-document alignment
+- `release`: verified `dev` candidate, PR/release alignment, and `main` parity
 - `archive`: explicit close-and-archive lifecycle flow
 
 See [Workflows](docs/workflows.md) for the lane map, reconcile gate, and optional browser/eval contracts.

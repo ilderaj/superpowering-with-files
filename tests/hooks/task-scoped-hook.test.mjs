@@ -238,6 +238,7 @@ for (const target of ['codex', 'cursor', 'claude-code']) {
       }
       assert.doesNotMatch(sessionStart.additionalContext, /HOT CONTEXT/);
       assert.match(sessionStart.additionalContext, /next user prompt/i);
+      assert.match(sessionStart.additionalContext, /reclassify the round/i);
       assert.match(sessionStart.additionalContext, /planning\/active\/codex-hooks/);
       assert.doesNotMatch(sessionStart.additionalContext, new RegExp(escapeRegExp(fixtureRoot)));
       assert.match(prompt.additionalContext, /HOT CONTEXT/);
@@ -515,6 +516,7 @@ test('task-scoped-hook keeps Copilot session-start compact and defers hot contex
     assert.equal(sessionStartPayload.hookSpecificOutput.hookEventName, 'SessionStart');
     assert.doesNotMatch(sessionStartPayload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
     assert.match(sessionStartPayload.hookSpecificOutput.additionalContext, /next user prompt/i);
+    assert.match(sessionStartPayload.hookSpecificOutput.additionalContext, /reclassify the round/i);
     assert.match(sessionStartPayload.hookSpecificOutput.additionalContext, /planning\/active\/codex-hooks/);
     assert.doesNotMatch(
       sessionStartPayload.hookSpecificOutput.additionalContext,

@@ -3,12 +3,6 @@
 ## 目標
 [用一句話描述最終狀態]
 
-## Routing Decision
-- Selected Route: tracked-lean
-- Route Reason: 此任務需要持久 planning，但暫時還不需要 deep reasoning。
-- Promotion Trigger: none
-- Route Evidence Surface: planning + summary
-
 ## 目前階段
 階段 1
 
@@ -43,35 +37,6 @@
 - [ ] 確保交付物完整
 - [ ] 交付給使用者
 - **狀態：** pending
-
-## Execution Contract
-<!--
-  WHAT: 僅在任務需要結構化拆解時定義重任務執行單元。
-  WHY: 讓執行意圖保留在權威 planning 中，而不是散落在備註或進度 prose 中。
-  WHEN: 重型 tracked task 填寫此節；輕任務可以省略或保留為 stub。
--->
-
-### Unit: unit-01
-- Kind: implementation
-- Status: planned
-- Scope:
-  - Do: 描述這個執行單元負責的精確交付物
-  - Not do: 描述這個執行單元不應吸收的相鄰工作
-- Owner Mode: inline
-- Allowed Ops:
-  - Files: 列出允許觸達的精確檔案或路徑類別
-  - Commands: 列出允許執行的精確命令
-  - External effects: 除非明確允許，否則寫 none
-- Dependencies:
-  - 列出依賴的 unit id 或證據引用
-- Verification Plan:
-  - 列出能證明這個單元成立的精確命令或證據要求
-- Return Artifacts:
-  - 寫出具體產物名稱，例如 patch、report、note 或 follow-up
-- Integration Target:
-  - 明確結果要回寫到哪裡，例如 progress.md 或 findings.md
-- Exit Criteria:
-  - 定義從 done 進入 verified 的精確條件
 
 ## 關鍵問題
 1. [待回答的問題]

@@ -13,12 +13,6 @@
 -->
 [جملة واحدة تصف الحالة النهائية]
 
-## Routing Decision
-- Selected Route: tracked-lean
-- Route Reason: هذه المهمة تحتاج إلى تخطيط دائم، لكن لا يوجد بعد ما يبرر deep reasoning.
-- Promotion Trigger: none
-- Route Evidence Surface: planning + summary
-
 ## المرحلة الحالية
 <!-- 
   ماذا: أي مرحلة تعمل عليها حالياً (مثلاً "المرحلة 1"، "المرحلة 3").
@@ -88,35 +82,6 @@
 - [ ] التأكد من اكتمال المخرجات
 - [ ] التسليم للمستخدم
 - **الحالة:** pending
-
-## Execution Contract
-<!--
-  WHAT: Define heavy-task execution units only when the task needs structured decomposition.
-  WHY: This keeps execution intent in authoritative planning rather than scattering it across notes.
-  WHEN: Fill this section for heavy tracked tasks; omit or leave as a stub for quick tasks.
--->
-
-### Unit: unit-01
-- Kind: implementation
-- Status: planned
-- Scope:
-  - Do: describe the exact deliverable this unit owns
-  - Not do: describe the adjacent work this unit must not absorb
-- Owner Mode: inline
-- Allowed Ops:
-  - Files: list the exact files or path classes this unit may touch
-  - Commands: list the exact commands this unit may run
-  - External effects: say "none" unless the unit is explicitly allowed to change external state
-- Dependencies:
-  - list required unit ids or evidence refs
-- Verification Plan:
-  - list the exact command or evidence requirement that proves the unit
-- Return Artifacts:
-  - name the concrete artifacts, such as patch, report, note, or follow-up
-- Integration Target:
-  - state exactly where the result must sync back, such as progress.md or findings.md
-- Exit Criteria:
-  - define the exact condition for moving from done toward verified
 
 ## الأسئلة الرئيسية
 <!-- 

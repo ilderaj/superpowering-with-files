@@ -1,16 +1,16 @@
 # Harness Plugin Release Artifacts
 
-Release `1.0.6` ships a runtime package and packed plugin packages for all supported IDE targets.
+Each release ships a runtime package and packed plugin packages for all supported IDE targets.
 
 For end-user download and IDE-specific install steps, see [Harness Packed Plugin Installation](install/plugin-packages.md).
 
 ## Artifacts
 
-- `harness-runtime-1.0.6.tgz`
-- `harness-codex-plugin-1.0.6.tgz`
-- `harness-claude-code-plugin-1.0.6.tgz`
-- `harness-cursor-plugin-1.0.6.tgz`
-- `harness-copilot-plugin-1.0.6.tgz`
+- `harness-runtime-<version>.tgz`
+- `harness-codex-plugin-<version>.tgz`
+- `harness-claude-code-plugin-<version>.tgz`
+- `harness-cursor-plugin-<version>.tgz`
+- `harness-copilot-plugin-<version>.tgz`
 - `manifest.json`
 - `SHA256SUMS`
 - `release-notes.md`
@@ -23,7 +23,7 @@ Run:
 npm run release:pack
 ```
 
-The build writes release assets to `dist/release/1.0.6/`.
+The build writes release assets to `dist/release/<version>/`.
 
 ## Verification Gates
 

@@ -75,8 +75,17 @@ def resolve_plan_dir(project_path: Path, task_id: Optional[str] = None) -> Path:
         return plan_dir
 
     active_root = project_path / ACTIVE_ROOT
-    if task_id or os.getenv("PLANNING_TASK_ID") or os.getenv("CODEX_THREAD_ID") or active_root.exists():
+    if task_id or os.getenv("PLANNING_TASK_ID"):
         return plan_dir
+
+    if active_root.exists():
+        active_dirs = sorted(
+            candidate
+            for candidate in active_root.iterdir()
+            if candidate.is_dir() and (candidate / "task_plan.md").exists()
+        )
+        if len(active_dirs) == 1:
+            return active_dirs[0]
 
     if legacy_planning_exists(project_path):
         return project_path

@@ -1,44 +1,70 @@
-# Check if all phases in task_plan.md are complete
-# Always exits 0 -- uses stdout for status reporting
-# Used by Stop hook to report task completion status
+# Report completion and lifecycle readiness for the active planning task.
+# Always exits 0 because incomplete tasks are a normal state.
 
 param(
-    [string]$PlanFile = "task_plan.md"
+    [string]$PlanFile = ""
 )
 
-if (-not (Test-Path $PlanFile)) {
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$PythonCmd = Get-Command python -ErrorAction SilentlyContinue
+if (-not $PythonCmd) {
+    $PythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
+}
+
+if (-not $PythonCmd) {
+    Write-Host '[planning-with-files] Python is required to check planning task status.'
+    exit 0
+}
+
+if (-not $PlanFile) {
+    $PlanDir = ""
+    $Resolver = Join-Path $ScriptDir "resolve-plan-dir.ps1"
+    if (Test-Path $Resolver) {
+        $ResolvedPlanDir = & $Resolver 2>$null
+        if ($ResolvedPlanDir) {
+            $PlanDir = ($ResolvedPlanDir | Select-Object -First 1).Trim()
+        }
+    }
+
+    if (-not $PlanDir) {
+        $ResolvedPlanDir = & $PythonCmd.Source "$ScriptDir/planning_paths.py" active-dir (Get-Location).Path 2>$null
+        if ($ResolvedPlanDir) {
+            $PlanDir = ($ResolvedPlanDir | Select-Object -First 1).Trim()
+        }
+    }
+
+    if ($PlanDir) {
+        $Candidate = Join-Path $PlanDir "task_plan.md"
+        if (Test-Path $Candidate) {
+            $PlanFile = $Candidate
+        }
+    }
+
+    if ((-not $PlanFile) -and (Test-Path "task_plan.md")) {
+        $PlanFile = "task_plan.md"
+    }
+}
+
+if (-not $PlanFile -or -not (Test-Path $PlanFile)) {
     Write-Host '[planning-with-files] No task_plan.md found -- no active planning session.'
     exit 0
 }
 
-# Read file content
-$content = Get-Content $PlanFile -Raw
-
-# Count total phases
-$TOTAL = ([regex]::Matches($content, "### Phase")).Count
-
-# Check for **Status:** format first
-$COMPLETE = ([regex]::Matches($content, "\*\*Status:\*\* complete")).Count
-$IN_PROGRESS = ([regex]::Matches($content, "\*\*Status:\*\* in_progress")).Count
-$PENDING = ([regex]::Matches($content, "\*\*Status:\*\* pending")).Count
-
-# Fallback: check for [complete] inline format if **Status:** not found
-if ($COMPLETE -eq 0 -and $IN_PROGRESS -eq 0 -and $PENDING -eq 0) {
-    $COMPLETE = ([regex]::Matches($content, "\[complete\]")).Count
-    $IN_PROGRESS = ([regex]::Matches($content, "\[in_progress\]")).Count
-    $PENDING = ([regex]::Matches($content, "\[pending\]")).Count
-}
-
-# Report status -- always exit 0, incomplete task is a normal state
-if ($COMPLETE -eq $TOTAL -and $TOTAL -gt 0) {
-    Write-Host ('[planning-with-files] ALL PHASES COMPLETE (' + $COMPLETE + '/' + $TOTAL + '). If the user has additional work, add new phases to task_plan.md before starting.')
-} else {
-    Write-Host ('[planning-with-files] Task in progress (' + $COMPLETE + '/' + $TOTAL + ' phases complete). Update progress.md before stopping.')
-    if ($IN_PROGRESS -gt 0) {
-        Write-Host ('[planning-with-files] ' + $IN_PROGRESS + ' phase(s) still in progress.')
-    }
-    if ($PENDING -gt 0) {
-        Write-Host ('[planning-with-files] ' + $PENDING + ' phase(s) pending.')
-    }
-}
+$Code = @"
+import sys
+from pathlib import Path
+sys.path.insert(0, sys.argv[2])
+from task_lifecycle import format_summary, inspect_plan_dir
+plan_file = Path(sys.argv[1]).resolve()
+status = inspect_plan_dir(plan_file.parent)
+if status.get("safe_to_archive") and status.get("looks_complete"):
+    print(
+        "[planning-with-files] ALL PHASES COMPLETE "
+        f"({status['phase_complete']}/{status['phase_total']}). "
+        "If the user has additional work, add new phases to task_plan.md before starting."
+    )
+else:
+    print(format_summary(status))
+"@
+& $PythonCmd.Source -c $Code $PlanFile $ScriptDir
 exit 0

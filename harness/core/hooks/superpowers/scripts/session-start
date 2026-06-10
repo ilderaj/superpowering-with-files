@@ -44,6 +44,7 @@ You have superpowers.
 Before acting, check the projected skill relevant to the task.
 Keep simple tasks lightweight.
 For complex tasks, use the right process skill and sync durable state back to planning/active/<task-id>/.
+Before each substantive goal round or continuation phase, restore the active planning files, reclassify the round, and keep quick rounds lightweight.
 </EXTREMELY_IMPORTANT>
 EOF
 )"

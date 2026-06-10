@@ -301,7 +301,7 @@ relative_path() {
 render_copilot_session_start_context() {
   local relative_dir
   relative_dir="$(relative_path "$task_dir")"
-  printf '%s' "[planning-with-files] Active task detected at ${relative_dir}. Hot context will be injected on the next user prompt. Keep ${relative_dir}/task_plan.md, ${relative_dir}/findings.md, and ${relative_dir}/progress.md authoritative."
+  printf '%s' "[planning-with-files] Active task detected at ${relative_dir}. Hot context will be injected on the next user prompt. Before the next substantive prompt, goal round, or loop tick, restore ${relative_dir}/task_plan.md, ${relative_dir}/findings.md, and ${relative_dir}/progress.md, then reclassify the round. Keep those files authoritative."
 }
 
 render_copilot_pretool_context() {

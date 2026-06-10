@@ -72,6 +72,15 @@ test('sync projects workspace entries and skills', async () => {
       writingPlans,
       /The companion plan must also point back to `planning\/active\/<task-id>\/`/
     );
+    assert.match(
+      writingPlans,
+      /For Deep-reasoning rounds, restore the authoritative planning files before revising the companion plan/
+    );
+    assert.match(
+      writingPlans,
+      /use read-only verifier subagents only when they are useful and available/
+    );
+    assert.match(writingPlans, /Bound plan-polishing to three verification rounds/);
     assert.doesNotMatch(writingPlans, /you may additionally create a companion plan/);
     assert.doesNotMatch(writingPlans, /\*\*Save plans to:\*\* `docs\/superpowers\/plans/);
 
