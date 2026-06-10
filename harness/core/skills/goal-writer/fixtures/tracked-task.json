@@ -1,0 +1,11 @@
+{
+  "id": "tracked-task",
+  "title": "Tracked task",
+  "category": "tracked",
+  "expectedRoute": "tracked",
+  "expectedFocusTerms": [
+    "6 fixture prompts",
+    "planning/active/<task-id>/",
+    "sync durable state"
+  ]
+}

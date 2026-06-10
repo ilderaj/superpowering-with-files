@@ -119,6 +119,19 @@
         "codex": "materialize",
         "claude-code": "materialize"
       }
+    },
+    "goal-writer": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/goal-writer",
+      "layout": "single",
+      "targetName": "goal-writer",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
     }
   }
 }

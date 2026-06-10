@@ -1,0 +1,12 @@
+{
+  "id": "deep-reasoning-task",
+  "title": "Deep reasoning task",
+  "category": "deep-reasoning",
+  "expectedRoute": "deep-reasoning",
+  "requireDeepArtifacts": true,
+  "expectedFocusTerms": [
+    "docs/superpowers/plans/<date>-<task-id>.md",
+    "read-only verifier subagents",
+    "3 verifier rounds"
+  ]
+}

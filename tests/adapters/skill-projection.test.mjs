@@ -52,6 +52,12 @@ test('projectionForSkill returns materialize for Codex superpowers', async () =>
   assert.match(result.source, /harness\/upstream\/superpowers\/skills/);
 });
 
+test('projectionForSkill returns materialize for local goal-writer skill', async () => {
+  const result = await projectionForSkill(process.cwd(), 'goal-writer', 'codex');
+  assert.equal(result.strategy, 'materialize');
+  assert.match(result.source, /harness\/core\/skills\/goal-writer/);
+});
+
 test('projectionForSkill rejects unknown targets', async () => {
   await assert.rejects(
     projectionForSkill(process.cwd(), 'superpowers', 'unknown'),
@@ -87,6 +93,23 @@ test('planSkillProjections marks Superpowers writing-plans for Harness plan-loca
   assert.ok(writingPlans);
   assert.deepEqual(writingPlans.patches.map((patch) => patch.type), ['superpowers-writing-plans']);
   assert.equal(writingPlans.patches[0].marker, 'Harness Superpowers writing-plans location patch');
+});
+
+test('planSkillProjections includes local goal-writer in the full Codex workspace profile', async () => {
+  const plan = await planSkillProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex'
+  });
+
+  const goalWriter = plan.find((entry) => entry.skillName === 'goal-writer');
+  assert.ok(goalWriter);
+  assert.equal(goalWriter.parentSkillName, 'goal-writer');
+  assert.equal(goalWriter.strategy, 'materialize');
+  assert.deepEqual(goalWriter.patches, []);
+  assert.match(goalWriter.sourcePath, /harness\/core\/skills\/goal-writer$/);
+  assert.match(goalWriter.targetPath, /\.agents\/skills\/goal-writer$/);
 });
 
 test('planSkillProjections applies the writing-plans patch for every supported target', async () => {

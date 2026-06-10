@@ -1,0 +1,11 @@
+{
+  "id": "context-heavy-task",
+  "title": "Context-heavy task",
+  "category": "context-heavy",
+  "expectedRoute": "tracked",
+  "expectedFocusTerms": [
+    "harness/core/policy/base.md",
+    "docs/install/codex.md",
+    "tests/installer/policy-render.test.mjs"
+  ]
+}
