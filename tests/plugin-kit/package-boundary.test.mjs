@@ -6,7 +6,7 @@ test('root package is a private workspace orchestrator at release version', asyn
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
 
   assert.equal(pkg.name, 'superpowering-with-files');
-  assert.equal(pkg.version, '1.0.8');
+  assert.equal(pkg.version, '1.0.9');
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ['packages/*']);
   assert.equal(pkg.scripts['plugin:build'], 'node packages/plugin-kit/src/build-all.mjs');

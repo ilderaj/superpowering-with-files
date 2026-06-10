@@ -2,7 +2,7 @@
   "target": "claude-code",
   "name": "harness-claude-code-plugin",
   "displayName": "Harness for Claude Code",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Runtime governance, planning skills, hooks, and MCP tools for Claude Code.",
   "components": {
     "skills": {

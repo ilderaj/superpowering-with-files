@@ -2,7 +2,7 @@
   "target": "cursor",
   "name": "harness-cursor-plugin",
   "displayName": "Harness for Cursor",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Runtime governance, planning skills, hooks, rules, and MCP tools for Cursor.",
   "components": {
     "skills": {

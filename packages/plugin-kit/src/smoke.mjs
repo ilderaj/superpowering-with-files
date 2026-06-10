@@ -9,7 +9,7 @@ import { validateBuiltPlugin } from './preflight.mjs';
 
 const execFileAsync = promisify(execFile);
 
-export async function smokeReleaseArtifacts({ version = '1.0.8', rootDir = process.cwd() } = {}) {
+export async function smokeReleaseArtifacts({ version = '1.0.9', rootDir = process.cwd() } = {}) {
   const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-smoke-'));
   const release = await buildAll({
     version,

@@ -10,7 +10,7 @@ test('plugin source configs exist for every supported target', async () => {
   for (const target of supportedPluginTargets) {
     const config = JSON.parse(await readFile(`plugins/${target}/plugin.harness.json`, 'utf8'));
     assert.equal(config.target, target);
-    assert.equal(config.version, '1.0.8');
+    assert.equal(config.version, '1.0.9');
     assert.equal(config.components.mcp.serverName, 'harness-runtime');
     assert.equal(config.components.skills.profile, 'minimal-global');
   }
@@ -20,11 +20,11 @@ test('buildPlugin creates self-contained plugin roots without runtime planning s
   const outDir = path.join(await fsMkdtemp('harness-build-plugin-'), 'plugins');
 
   for (const target of supportedPluginTargets) {
-    const build = await buildPlugin({ target, version: '1.0.8', outDir });
+    const build = await buildPlugin({ target, version: '1.0.9', outDir });
     const contract = platformContracts[target];
 
     assert.equal(build.target, target);
-    assert.equal(build.version, '1.0.8');
+    assert.equal(build.version, '1.0.9');
     assert.equal(build.pluginRoot, path.join(outDir, contract.packageName));
 
     for (const requiredFile of contract.requiredFiles) {
@@ -53,11 +53,11 @@ test('buildPlugin creates self-contained plugin roots without runtime planning s
 
 test('Codex plugin manifest follows the supported manifest shape', async () => {
   const outDir = path.join(await fsMkdtemp('harness-codex-manifest-'), 'plugins');
-  const build = await buildPlugin({ target: 'codex', version: '1.0.8', outDir });
+  const build = await buildPlugin({ target: 'codex', version: '1.0.9', outDir });
   const manifest = JSON.parse(await readFile(path.join(build.pluginRoot, '.codex-plugin/plugin.json'), 'utf8'));
 
   assert.equal(manifest.name, 'harness-codex-plugin');
-  assert.equal(manifest.version, '1.0.8');
+  assert.equal(manifest.version, '1.0.9');
   assert.equal(manifest.skills, './skills/');
   assert.equal(manifest.mcpServers, './.mcp.json');
   assert.equal(manifest.hooks, './hooks/hooks.json');
@@ -69,11 +69,11 @@ test('Codex plugin manifest follows the supported manifest shape', async () => {
 
 test('Claude Code plugin manifest avoids ignored Codex interface metadata', async () => {
   const outDir = path.join(await fsMkdtemp('harness-claude-manifest-'), 'plugins');
-  const build = await buildPlugin({ target: 'claude-code', version: '1.0.8', outDir });
+  const build = await buildPlugin({ target: 'claude-code', version: '1.0.9', outDir });
   const manifest = JSON.parse(await readFile(path.join(build.pluginRoot, '.claude-plugin/plugin.json'), 'utf8'));
 
   assert.equal(manifest.name, 'harness-claude-code-plugin');
-  assert.equal(manifest.version, '1.0.8');
+  assert.equal(manifest.version, '1.0.9');
   assert.equal(manifest.interface, undefined);
 });
 

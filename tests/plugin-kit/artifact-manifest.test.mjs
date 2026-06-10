@@ -19,11 +19,11 @@ test('sha256File returns a lowercase hex digest', async () => {
 
 test('buildArtifactManifest records versioned artifact names and checksums', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-manifest-'));
-  const artifactPath = path.join(dir, 'harness-codex-plugin-1.0.8.tgz');
+  const artifactPath = path.join(dir, 'harness-codex-plugin-1.0.9.tgz');
   await writeFile(artifactPath, 'codex plugin\n');
 
   const manifest = await buildArtifactManifest({
-    version: '1.0.8',
+    version: '1.0.9',
     artifacts: [
       {
         target: 'codex',
@@ -33,9 +33,9 @@ test('buildArtifactManifest records versioned artifact names and checksums', asy
     ]
   });
 
-  assert.equal(manifest.version, '1.0.8');
+  assert.equal(manifest.version, '1.0.9');
   assert.equal(manifest.artifacts.length, 1);
-  assert.equal(manifest.artifacts[0].name, 'harness-codex-plugin-1.0.8.tgz');
+  assert.equal(manifest.artifacts[0].name, 'harness-codex-plugin-1.0.9.tgz');
   assert.equal(manifest.artifacts[0].target, 'codex');
   assert.equal(manifest.artifacts[0].type, 'plugin');
   assert.equal(manifest.artifacts[0].sha256, await sha256File(artifactPath));

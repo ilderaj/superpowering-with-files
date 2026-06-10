@@ -2,7 +2,7 @@
   "target": "copilot",
   "name": "harness-copilot-plugin",
   "displayName": "Harness for GitHub Copilot",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Runtime governance, planning skills, hooks, instructions, and MCP tools for GitHub Copilot.",
   "components": {
     "skills": {
