@@ -210,6 +210,27 @@ test('task-scoped-hook records Codex runtime evidence on session start', async (
   }
 });
 
+test('task-scoped-hook post-tool reminder steers fresh progress records away from midnight placeholders', async () => {
+  const { fixtureRoot } = await createFixture('codex-post-tool-reminder', activeTaskFiles());
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'post-tool-use'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.equal(payload.hookSpecificOutput.hookEventName, 'PostToolUse');
+    assert.match(payload.hookSpecificOutput.additionalContext, /record --task codex-hooks --file progress/);
+    assert.match(payload.hookSpecificOutput.additionalContext, /00:00:00 UTC\+8/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
 for (const target of ['codex', 'cursor', 'claude-code']) {
   test(`task-scoped-hook keeps ${target} session-start compact and defers hot context`, async () => {
     const { fixtureRoot } = await createFixture(`${target}-compact-session-start`, activeTaskFiles());

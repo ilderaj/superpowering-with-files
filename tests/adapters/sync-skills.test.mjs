@@ -120,6 +120,8 @@ test('sync projects workspace entries and skills', async () => {
 
     const goalWriterTemplate = await readFile(path.join(root, '.agents/skills/goal-writer/template.md'), 'utf8');
     assert.match(goalWriterTemplate, /Goal Writer Template/);
+    assert.match(goalWriterTemplate, /Compact Frame for Simple \/ Quick Goals/);
+    assert.match(goalWriterTemplate, /Return exactly one markdown fenced block/);
     assert.match(goalWriterTemplate, /Done Criteria:/);
 
     const goalWriterRubric = await readFile(path.join(root, '.agents/skills/goal-writer/rubric.md'), 'utf8');
@@ -136,7 +138,7 @@ test('sync projects workspace entries and skills', async () => {
       path.join(root, '.agents/skills/goal-writer/outputs/tracked-task.goal.md'),
       'utf8'
     );
-    assert.match(goalWriterOutput, /^\/goal Objective:/);
+    assert.match(goalWriterOutput, /^```(?:text|md|markdown)?\n\/goal Objective:/);
     assert.match(goalWriterOutput, /All `6` fixture prompts pass/);
   } finally {
     await removeHarnessFixture(root);

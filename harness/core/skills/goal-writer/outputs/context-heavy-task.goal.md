@@ -1,3 +1,4 @@
+```text
 /goal Objective: Update the context-heavy Codex goal workflow so the authoritative docs, policy, and tests agree on one stable execution contract.
 Context: The relevant repo surfaces are `harness/core/policy/base.md`, `docs/install/codex.md`, `docs/compatibility/hooks.md`, and `tests/installer/policy-render.test.mjs`; broader repo history is out of scope unless one of these surfaces forces it. Assumptions: these files remain the smallest authoritative set for this contract.
 Constraints: Keep `planning/active/<task-id>/` authoritative, do not treat hooks as the only enforcement mechanism, and do not widen the task beyond the listed surfaces unless a failing test proves another authority is required.
@@ -16,3 +17,4 @@ Done Criteria:
 Stop/Escalate:
 - Stop and escalate if a fifth authoritative surface becomes necessary or if any validation proves the assumed authority set is incomplete.
 Next Step: Re-open the active planning files, confirm the four named authority surfaces, and edit the smallest one that defines the contract first.
+```
