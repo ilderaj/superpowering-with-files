@@ -1,0 +1,12 @@
+{
+  "id": "quick-task",
+  "title": "Quick task",
+  "category": "quick",
+  "expectedRoute": "quick",
+  "mustStayLightweight": true,
+  "expectedFocusTerms": [
+    "If the current round stays quick",
+    "do not create a companion plan or subagents",
+    "planning/active/<task-id>/"
+  ]
+}

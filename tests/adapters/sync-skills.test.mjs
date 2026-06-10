@@ -110,6 +110,34 @@ test('sync projects workspace entries and skills', async () => {
 
     const bypassSkill = await readFile(path.join(root, '.agents/skills/safe-bypass-flow/SKILL.md'), 'utf8');
     assert.match(bypassSkill, /Use when starting bypass/);
+
+    const goalWriter = await readFile(path.join(root, '.agents/skills/goal-writer/SKILL.md'), 'utf8');
+    assert.match(goalWriter, /name: goal-writer/);
+    assert.match(goalWriter, /Use when preparing a Codex `\/goal` prompt/);
+    assert.match(goalWriter, /## Outcome Contract/);
+    assert.match(goalWriter, /## When to Use/);
+    assert.match(goalWriter, /## Common Mistakes/);
+
+    const goalWriterTemplate = await readFile(path.join(root, '.agents/skills/goal-writer/template.md'), 'utf8');
+    assert.match(goalWriterTemplate, /Goal Writer Template/);
+    assert.match(goalWriterTemplate, /Done Criteria:/);
+
+    const goalWriterRubric = await readFile(path.join(root, '.agents/skills/goal-writer/rubric.md'), 'utf8');
+    assert.match(goalWriterRubric, /Hard Checks/);
+    assert.match(goalWriterRubric, /score `>=9\/10`/);
+
+    const goalWriterFixture = await readFile(
+      path.join(root, '.agents/skills/goal-writer/fixtures/deep-reasoning-task.json'),
+      'utf8'
+    );
+    assert.match(goalWriterFixture, /deep-reasoning/);
+
+    const goalWriterOutput = await readFile(
+      path.join(root, '.agents/skills/goal-writer/outputs/tracked-task.goal.md'),
+      'utf8'
+    );
+    assert.match(goalWriterOutput, /^\/goal Objective:/);
+    assert.match(goalWriterOutput, /All `6` fixture prompts pass/);
   } finally {
     await removeHarnessFixture(root);
   }

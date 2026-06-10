@@ -51,6 +51,8 @@ Codex hooks support this flow with lightweight reminders and context injection o
 
 `/plan-goal` is a projected planning-aware wrapper when the relevant skill/command surface exists. It composes with native `/goal`; it does not replace it.
 
+When the user intent is too sparse to hand-write a stable `/goal`, the projected `goal-writer` skill can draft one compact prompt that preserves SWF memory rules, includes numeric done criteria, and stays within Codex's size limits.
+
 Harness projects Codex hooks only when `--hooks=on` is selected. It projects the verified planning-with-files `SessionStart` and `UserPromptSubmit` events, plus the superpowers `SessionStart` wrapper. When the `safety` profile is active, Harness can also project Codex `SessionStart` and `PreToolUse` safety hooks. Those remain repository-owned policy checks and do not replace host-platform approvals.
 
 When these hooks run in a live Codex session, Harness writes runtime trace evidence under `.harness/runtime-hooks/codex.jsonl` and surfaces it in `doctor` and `verify` as runtime evidence instead of guessing.

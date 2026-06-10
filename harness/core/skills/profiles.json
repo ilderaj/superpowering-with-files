@@ -5,6 +5,7 @@
     "full": [
       "risk-assessment-before-destructive-changes",
       "safe-bypass-flow",
+      "goal-writer",
       "superpowers",
       "planning-with-files"
     ],
