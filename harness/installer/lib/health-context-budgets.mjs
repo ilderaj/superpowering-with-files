@@ -10,7 +10,10 @@ import {
 } from './skill-projection.mjs';
 
 const execFileAsync = promisify(execFile);
-const HOOK_PAYLOAD_TIMEOUT_MS = 5000;
+// Hook payload measurement is a health signal, not an interactive request path.
+// Give projected hook scripts enough budget to survive cold Node startup and
+// heavier fixture/suite environments before classifying them as broken.
+const HOOK_PAYLOAD_TIMEOUT_MS = 15000;
 const MEASURED_HOOK_PAYLOAD_SKILLS = new Set(['superpowers', 'planning-with-files']);
 const MEASURED_HOOK_PAYLOAD_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
 const VERDICT_RANK = {
@@ -494,6 +497,59 @@ function selectHookPayloadRequests(projection) {
   return eventName ? [{ eventName, args: [projection.target, toHookPayloadEventArg(eventName)] }] : [];
 }
 
+function hookPayloadCandidateKey(projection, eventName) {
+  return [
+    projection.target,
+    projection.parentSkillName,
+    eventName,
+    classifyHookPayload({ parentSkillName: projection.parentSkillName, eventName })
+  ].join('\0');
+}
+
+function hookPayloadScopeRank(scope) {
+  switch (scope) {
+    case 'user-global':
+      return 2;
+    case 'workspace':
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+function choosePreferredHookPayloadCandidate(current, candidate) {
+  if (!current) {
+    return candidate;
+  }
+
+  current.runtimePaths = mergeUnique(current.runtimePaths, candidate.runtimePaths);
+  current.scopes = mergeUnique(current.scopes, candidate.scopes);
+
+  const currentHasRuntime = Boolean(current.runtimeSourcePath);
+  const candidateHasRuntime = Boolean(candidate.runtimeSourcePath);
+  if (candidateHasRuntime !== currentHasRuntime) {
+    if (candidateHasRuntime) {
+      candidate.runtimePaths = mergeUnique(candidate.runtimePaths, current.runtimePaths);
+      candidate.scopes = mergeUnique(candidate.scopes, current.scopes);
+      return candidate;
+    }
+    return current;
+  }
+
+  const currentScopeRank = hookPayloadScopeRank(current.scope);
+  const candidateScopeRank = hookPayloadScopeRank(candidate.scope);
+  if (candidateScopeRank !== currentScopeRank) {
+    if (candidateScopeRank > currentScopeRank) {
+      candidate.runtimePaths = mergeUnique(candidate.runtimePaths, current.runtimePaths);
+      candidate.scopes = mergeUnique(candidate.scopes, current.scopes);
+      return candidate;
+    }
+    return current;
+  }
+
+  return current;
+}
+
 function createHookPayloadFailureEntry(projection, runtimePath, message, eventNameOverride = null) {
   const eventName = eventNameOverride ?? selectHookPayloadEventName(projection);
   return {
@@ -722,6 +778,7 @@ export async function inspectLocalHookPayloads(
   }
 
   const measurements = [];
+  const dedupedCandidates = new Map();
 
   for (const projection of hookProjections) {
     if (!MEASURED_HOOK_PAYLOAD_TARGETS.has(projection.target)) {
@@ -741,9 +798,32 @@ export async function inspectLocalHookPayloads(
       ? path.join(projection.scriptTargetRoot, path.basename(runtimeSourcePath))
       : null;
 
+    for (const request of selectHookPayloadRequests(projection)) {
+      const scope = runtimePath ? pathScope(rootDir, homeDir, runtimePath) : 'external';
+      const key = hookPayloadCandidateKey(projection, request.eventName);
+      const candidate = {
+        key,
+        projection,
+        request,
+        runtimeSourcePath,
+        runtimePath,
+        scope,
+        runtimePaths: runtimePath ? [runtimePath] : [],
+        scopes: [scope]
+      };
+      dedupedCandidates.set(
+        key,
+        choosePreferredHookPayloadCandidate(dedupedCandidates.get(key), candidate)
+      );
+    }
+  }
+
+  for (const candidate of dedupedCandidates.values()) {
+    const { projection, request, runtimeSourcePath, runtimePath } = candidate;
+
     if (!runtimeSourcePath) {
       const message = `Hook payload measurement could not select a projected runtime script for ${projection.parentSkillName}.`;
-      const entry = createHookPayloadFailureEntry(projection, runtimePath, message);
+      const entry = createHookPayloadFailureEntry(projection, runtimePath, message, request.eventName);
       if (projection.status === 'ok') {
         addUniqueMessage(contextWarnings, message);
         addUniqueMessage(warnings, message);
@@ -755,7 +835,7 @@ export async function inspectLocalHookPayloads(
 
     if (!(await exists(runtimePath))) {
       const message = `Hook payload measurement runtime script is missing: ${runtimePath}`;
-      const entry = createHookPayloadFailureEntry(projection, runtimePath, message);
+      const entry = createHookPayloadFailureEntry(projection, runtimePath, message, request.eventName);
       if (projection.status === 'ok') {
         addUniqueMessage(contextWarnings, message);
         addUniqueMessage(warnings, message);
@@ -765,8 +845,7 @@ export async function inspectLocalHookPayloads(
       continue;
     }
 
-    for (const request of selectHookPayloadRequests(projection)) {
-      const result = await runHookPayloadMeasurement(runtimePath, request.args, rootDir, homeDir, projection);
+    const result = await runHookPayloadMeasurement(runtimePath, request.args, rootDir, homeDir, projection);
       const output = result.stdout ?? '';
       const measurement = measureText(output);
 
@@ -812,13 +891,12 @@ export async function inspectLocalHookPayloads(
         eventName,
         category: classifyHookPayload({ parentSkillName: projection.parentSkillName, eventName }),
         runtimePath,
-        runtimePaths: [runtimePath],
-        scopes: [pathScope(rootDir, homeDir, runtimePath)],
+        runtimePaths: candidate.runtimePaths,
+        scopes: candidate.scopes,
         measurement,
         evaluation: null,
         status: 'ok'
       });
-    }
   }
 
   return aggregateHookPayloadEntries(measurements, hookPayloadBudget, contextWarnings, warnings, problems);

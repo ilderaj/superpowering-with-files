@@ -174,12 +174,19 @@ test('copilot hook payload budget fails when compact planning-hot exceeds a tigh
     });
 
     await harnessCommand(root, {}, 'sync');
-    await harnessCommand(root, {}, 'verify', '--output=.harness/verification-ledger');
+    let error;
+    try {
+      await harnessCommand(root, {}, 'verify', '--output=.harness/verification-ledger');
+      assert.fail('verify should exit non-zero when hook payload health becomes a problem');
+    } catch (caught) {
+      error = caught;
+    }
 
     const report = JSON.parse(
       await readFile(path.join(root, '.harness/verification-ledger/latest.json'), 'utf8')
     );
 
+    assert.equal(error.code, 1);
     assert.equal(report.health.context.summary.hooks.target, 'copilot');
     assert.equal(report.health.context.summary.hooks.verdict, 'problem');
     assert.equal(report.health.context.summary.hooks.evaluation.verdict, 'problem');
