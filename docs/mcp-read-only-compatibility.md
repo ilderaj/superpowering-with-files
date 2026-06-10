@@ -1,5 +1,13 @@
 # MCP Read-Only Compatibility
 
+This page defines the conservative compatibility tier for platforms that can inspect Harness state but do not yet justify a native adapter.
+
+Use it when you need to answer:
+
+- whether a platform belongs in native adapter, MCP read-only, or docs-only/manual
+- what MCP may expose safely
+- what must be true before any write capability exists
+
 MCP read-only is the conservative compatibility tier for agents or IDEs that need Harness state but do not yet justify a native adapter. MCP is a runtime facade; it does not own IDE projection and does not replace Codex, Copilot, Cursor, or Claude Code entry-file rendering.
 
 This tier exists to keep compatibility expansion evidence-gated:

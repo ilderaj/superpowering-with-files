@@ -1,5 +1,7 @@
 # Adoption Starter Kit
 
+This page is the shortest safe path for choosing an adoption profile, rehearsing rollout, and verifying the result.
+
 Use this guide to choose a safe Harness adoption profile, verify the result, and roll back if needed.
 
 ## Choose A Profile

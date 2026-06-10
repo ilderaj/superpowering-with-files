@@ -50,6 +50,15 @@ function parentDirectories(startPath) {
   return directories;
 }
 
+function isWithinBoundary(candidateDir, boundaryDir) {
+  if (!boundaryDir) {
+    return true;
+  }
+
+  const relative = path.relative(boundaryDir, candidateDir);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
 function readOverrideRoot(overridePath) {
   const parsed = JSON.parse(fs.readFileSync(overridePath, 'utf8'));
   if (!parsed || typeof parsed !== 'object' || parsed.schemaVersion !== 1) {
@@ -61,9 +70,28 @@ function readOverrideRoot(overridePath) {
   return resolveRealPath(path.resolve(path.dirname(overridePath), parsed.authorityRoot));
 }
 
+function resolveGitTopLevel(cwd) {
+  try {
+    const gitRoot = execSync('git rev-parse --show-toplevel', {
+      cwd,
+      stdio: ['ignore', 'pipe', 'ignore']
+    })
+      .toString()
+      .trim();
+    return gitRoot ? resolveRealPath(gitRoot) : null;
+  } catch {
+    return null;
+  }
+}
+
 const cwd = resolveRealPath(startDir);
+const gitRoot = resolveGitTopLevel(cwd);
+const boundaryDir = gitRoot;
 
 for (const candidateDir of parentDirectories(cwd)) {
+  if (!isWithinBoundary(candidateDir, boundaryDir)) {
+    continue;
+  }
   const overridePath = path.join(candidateDir, overrideRelativePath);
   if (pathExists(overridePath)) {
     process.stdout.write(`${readOverrideRoot(overridePath)}\n`);
@@ -71,7 +99,15 @@ for (const candidateDir of parentDirectories(cwd)) {
   }
 }
 
+if (gitRoot) {
+  process.stdout.write(`${gitRoot}\n`);
+  process.exit(0);
+}
+
 for (const candidateDir of parentDirectories(cwd)) {
+  if (!isWithinBoundary(candidateDir, boundaryDir)) {
+    continue;
+  }
   for (const marker of authorityMarkers) {
     if (pathExists(path.join(candidateDir, marker))) {
       process.stdout.write(`${resolveRealPath(candidateDir)}\n`);
@@ -79,19 +115,6 @@ for (const candidateDir of parentDirectories(cwd)) {
     }
   }
 }
-
-try {
-  const gitRoot = execSync('git rev-parse --show-toplevel', {
-    cwd,
-    stdio: ['ignore', 'pipe', 'ignore']
-  })
-    .toString()
-    .trim();
-  if (gitRoot) {
-    process.stdout.write(`${resolveRealPath(gitRoot)}\n`);
-    process.exit(0);
-  }
-} catch {}
 
 process.stdout.write(`${cwd}\n`);
 NODE

@@ -1,13 +1,27 @@
 # Platform Support
 
-superpowering-with-files currently supports installer-managed projections for:
+This page is the support matrix for installer-managed Harness targets.
+
+Use it to answer:
+
+- which targets Harness supports directly
+- which surfaces are compatibility-only
+- which targets are currently unsupported
+
+Current installer-managed targets:
 
 - Codex
 - GitHub Copilot
 - Cursor
 - Claude Code
 
-superpowering-with-files does not currently support installer-managed Gemini CLI projections.
+Compatibility and boundary notes:
+
+- MCP is a runtime compatibility layer, not a projection target
+- cloud-dev is an operator lane, not a separate installer target
+- hooks still depend on target-specific prerequisites even when the target itself is supported
+
+Harness does not currently support installer-managed Gemini CLI projections.
 
 That means:
 

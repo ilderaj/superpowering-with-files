@@ -1,5 +1,14 @@
 # Maintenance
 
+This page is the upkeep and lifecycle guide for Harness.
+
+Use it when you need to:
+
+- audit `planning/active/`
+- run update/sync/doctor flows safely
+- decide whether work is ready to close or archive
+- maintain release, adoption, or upstream-refresh hygiene
+
 Maintenance is the operator-facing `verify`, `archive`, and upkeep surface of Harness. For the full lane map, start with [Workflows](workflows.md).
 
 If you run maintenance commands from a leaf workspace inside a repository, Harness still resolves the default authority root to the current git worktree root. It does not walk upward beyond that git boundary unless you explicitly provide `--root`, `HARNESS_PROJECT_ROOT`, or a repo-local `.harness/authority-root.json`. See [Leaf Workspaces](install/leaf-workspaces.md).

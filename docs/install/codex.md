@@ -1,5 +1,9 @@
 # Codex Installation
 
+This page is the Codex-specific install and behavior guide.
+
+Use it for Codex entry files, skill roots, hooks, leaf-workspace behavior, and goal-like continuation notes. For the general Harness model, start with the repository README instead.
+
 Codex receives rendered `AGENTS.md` files.
 
 Workspace scope writes:
