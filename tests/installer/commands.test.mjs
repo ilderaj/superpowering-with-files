@@ -671,7 +671,7 @@ test('verify writes Codex runtime evidence into the JSON report when a matching 
   }
 });
 
-test('verify tolerates malformed context budgets and records a problem', async () => {
+test('verify exits non-zero for malformed context budgets but still writes a report', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -687,14 +687,20 @@ test('verify tolerates malformed context budgets and records a problem', async (
 
     await harnessCommand(root, 'sync');
     await writeFile(path.join(root, 'harness/core/context-budgets.json'), '{\n');
-
-    await harnessCommand(root, 'verify', '--output=.harness/broken-verification');
+    let error;
+    try {
+      await harnessCommand(root, 'verify', '--output=.harness/broken-verification');
+      assert.fail('verify should exit non-zero when health.problems is not empty');
+    } catch (caught) {
+      error = caught;
+    }
 
     const report = JSON.parse(
       await readFile(path.join(root, '.harness/broken-verification/latest.json'), 'utf8')
     );
     const markdown = await readFile(path.join(root, '.harness/broken-verification/latest.md'), 'utf8');
 
+    assert.equal(error.code, 1);
     assert.match(markdown, /Context entries:/);
     assert.ok(
       report.health.problems.some((problem) => problem.includes('context-budgets.json is malformed JSON'))
@@ -705,7 +711,7 @@ test('verify tolerates malformed context budgets and records a problem', async (
   }
 });
 
-test('verify tolerates structurally invalid context budgets and records a problem', async () => {
+test('verify exits non-zero for invalid context budget shape but still writes a report', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -748,12 +754,19 @@ test('verify tolerates structurally invalid context budgets and records a proble
       )}\n`
     );
 
-    await harnessCommand(root, 'verify', '--output=.harness/invalid-shape-verification');
+    let error;
+    try {
+      await harnessCommand(root, 'verify', '--output=.harness/invalid-shape-verification');
+      assert.fail('verify should exit non-zero when health.problems is not empty');
+    } catch (caught) {
+      error = caught;
+    }
 
     const report = JSON.parse(
       await readFile(path.join(root, '.harness/invalid-shape-verification/latest.json'), 'utf8')
     );
 
+    assert.equal(error.code, 1);
     assert.ok(
       report.health.problems.some((problem) => problem.includes('context-budgets.json is invalid'))
     );

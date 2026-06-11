@@ -132,6 +132,19 @@
         "codex": "materialize",
         "claude-code": "materialize"
       }
+    },
+    "goal2plan": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/goal2plan",
+      "layout": "single",
+      "targetName": "goal2plan",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
     }
   }
 }

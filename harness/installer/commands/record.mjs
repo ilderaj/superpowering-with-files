@@ -53,7 +53,7 @@ function validateFileKind(fileKind) {
   }
 }
 
-export async function record(args = []) {
+export async function record(args = [], options = {}) {
   if (hasFlag(args, '--help', '-h')) {
     console.log(usage());
     return;
@@ -62,7 +62,7 @@ export async function record(args = []) {
   const fileKind = readOption(args, 'file');
   validateFileKind(fileKind);
 
-  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+  const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
   const taskId = readOption(args, 'task');
   const taskDir = await resolveActiveTaskDirectory(rootDir, taskId);
   const resolvedTaskId = path.basename(taskDir);

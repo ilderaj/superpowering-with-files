@@ -5,8 +5,8 @@ import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const execFileAsync = promisify(execFile);
 
-export async function checkpointCommand(args = []) {
-  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+export async function checkpointCommand(args = [], options = {}) {
+  const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
   const scriptPath = resolveHarnessSourcePath(rootDir, 'harness/core/safety/bin/checkpoint');
   const { stdout, stderr } = await execFileAsync('bash', [scriptPath, ...args], { cwd: rootDir });
   if (stdout) process.stdout.write(stdout);

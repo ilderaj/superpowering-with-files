@@ -49,6 +49,7 @@ test('full and default profile still project the full skill set', async () => {
 
   assert.deepEqual(defaultKeys, fullKeys);
   assert.ok(fullKeys.includes('goal-writer:goal-writer'));
+  assert.ok(fullKeys.includes('goal2plan:goal2plan'));
   assert.ok(fullKeys.includes('planning-with-files:planning-with-files'));
   assert.ok(fullKeys.includes('superpowers:using-superpowers'));
   assert.ok(!fullKeys.includes('superpowers:goal-writer'));
