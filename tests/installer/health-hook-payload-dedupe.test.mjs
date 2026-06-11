@@ -75,11 +75,77 @@ test('inspectLocalHookPayloads measures overlapping Copilot planning hook payloa
       []
     );
 
-    const callEvents = (await readFile(callLog, 'utf8')).trim().split('\n');
+    const callEvents = (await readFile(callLog, 'utf8').catch(() => '')).trim();
+
+    assert.deepEqual(callEvents ? callEvents.split('\n') : [], ['session-start', 'user-prompt-submit', 'stop']);
+    assert.equal(hooks.length, 3);
+    assert.ok(hooks.every((hook) => hook.runtimePath.startsWith(globalHookRoot)));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('inspectLocalHookPayloads falls back to the workspace Copilot hook when the user-global script is missing', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-hook-fallback-'));
+  const home = path.join(root, 'home');
+  const workspaceHookRoot = path.join(root, '.github/hooks');
+  const globalHookRoot = path.join(home, '.copilot/hooks');
+  const activeTaskDir = path.join(root, 'planning/active/copilot-overlap-tax');
+  const callLog = path.join(root, 'hook-calls.log');
+
+  try {
+    await mkdir(workspaceHookRoot, { recursive: true });
+    await mkdir(globalHookRoot, { recursive: true });
+    await mkdir(activeTaskDir, { recursive: true });
+
+    await writeFile(path.join(workspaceHookRoot, 'task-scoped-hook.sh'), hookScript(callLog));
+
+    const hookProjections = [
+      {
+        target: 'copilot',
+        parentSkillName: 'planning-with-files',
+        eventNames: ['sessionStart', 'userPromptSubmit', 'stop'],
+        scriptSourcePaths: [
+          path.join(root, 'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh')
+        ],
+        scriptTargetRoot: workspaceHookRoot,
+        status: 'ok'
+      },
+      {
+        target: 'copilot',
+        parentSkillName: 'planning-with-files',
+        eventNames: ['sessionStart', 'userPromptSubmit', 'stop'],
+        scriptSourcePaths: [
+          path.join(root, 'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh')
+        ],
+        scriptTargetRoot: globalHookRoot,
+        status: 'ok'
+      }
+    ];
+
+    const warnings = [];
+    const problems = [];
+    const hooks = await inspectLocalHookPayloads(
+      root,
+      home,
+      activeTaskDir,
+      HOOK_PAYLOAD_BUDGET,
+      'on',
+      hookProjections,
+      [],
+      warnings,
+      problems
+    );
+
+    const callLogText = (await readFile(callLog, 'utf8').catch(() => '')).trim();
+    const callEvents = callLogText ? callLogText.split('\n') : [];
 
     assert.deepEqual(callEvents, ['session-start', 'user-prompt-submit', 'stop']);
     assert.equal(hooks.length, 3);
-    assert.ok(hooks.every((hook) => hook.runtimePath.startsWith(globalHookRoot)));
+    assert.ok(hooks.every((hook) => hook.status === 'ok'));
+    assert.ok(hooks.every((hook) => hook.runtimePath.startsWith(workspaceHookRoot)));
+    assert.deepEqual(warnings, []);
+    assert.deepEqual(problems, []);
   } finally {
     await rm(root, { recursive: true, force: true });
   }

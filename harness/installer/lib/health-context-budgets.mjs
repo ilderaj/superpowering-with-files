@@ -550,6 +550,39 @@ function choosePreferredHookPayloadCandidate(current, candidate) {
   return current;
 }
 
+function compareHookPayloadCandidates(left, right) {
+  const leftHasRuntime = Boolean(left.runtimeSourcePath);
+  const rightHasRuntime = Boolean(right.runtimeSourcePath);
+  if (leftHasRuntime !== rightHasRuntime) {
+    return leftHasRuntime ? -1 : 1;
+  }
+
+  const leftScopeRank = hookPayloadScopeRank(left.scope);
+  const rightScopeRank = hookPayloadScopeRank(right.scope);
+  if (leftScopeRank !== rightScopeRank) {
+    return rightScopeRank - leftScopeRank;
+  }
+
+  return 0;
+}
+
+function mergeHookPayloadCandidateSet(current, candidate) {
+  if (!current) {
+    return {
+      key: candidate.key,
+      runtimePaths: [...candidate.runtimePaths],
+      scopes: [...candidate.scopes],
+      candidates: [candidate]
+    };
+  }
+
+  current.runtimePaths = mergeUnique(current.runtimePaths, candidate.runtimePaths);
+  current.scopes = mergeUnique(current.scopes, candidate.scopes);
+  current.candidates.push(candidate);
+  current.candidates.sort(compareHookPayloadCandidates);
+  return current;
+}
+
 function createHookPayloadFailureEntry(projection, runtimePath, message, eventNameOverride = null) {
   const eventName = eventNameOverride ?? selectHookPayloadEventName(projection);
   return {
@@ -811,20 +844,41 @@ export async function inspectLocalHookPayloads(
         runtimePaths: runtimePath ? [runtimePath] : [],
         scopes: [scope]
       };
-      dedupedCandidates.set(
-        key,
-        choosePreferredHookPayloadCandidate(dedupedCandidates.get(key), candidate)
-      );
+      dedupedCandidates.set(key, mergeHookPayloadCandidateSet(dedupedCandidates.get(key), candidate));
     }
   }
 
-  for (const candidate of dedupedCandidates.values()) {
-    const { projection, request, runtimeSourcePath, runtimePath } = candidate;
+  for (const candidateSet of dedupedCandidates.values()) {
+    const mergedRuntimePaths = candidateSet.runtimePaths;
+    const mergedScopes = candidateSet.scopes;
+    let selectedCandidate = null;
+    let preferredFailure = candidateSet.candidates[0] ?? null;
 
-    if (!runtimeSourcePath) {
-      const message = `Hook payload measurement could not select a projected runtime script for ${projection.parentSkillName}.`;
-      const entry = createHookPayloadFailureEntry(projection, runtimePath, message, request.eventName);
-      if (projection.status === 'ok') {
+    for (const candidate of candidateSet.candidates) {
+      if (!candidate.runtimeSourcePath) {
+        preferredFailure = choosePreferredHookPayloadCandidate(preferredFailure, candidate);
+        continue;
+      }
+
+      if (!(await exists(candidate.runtimePath))) {
+        preferredFailure = choosePreferredHookPayloadCandidate(preferredFailure, candidate);
+        continue;
+      }
+
+      selectedCandidate = candidate;
+      break;
+    }
+
+    if (!selectedCandidate) {
+      const projection = preferredFailure?.projection ?? candidateSet.candidates[0]?.projection;
+      const request = preferredFailure?.request ?? candidateSet.candidates[0]?.request;
+      const runtimeSourcePath = preferredFailure?.runtimeSourcePath ?? null;
+      const runtimePath = preferredFailure?.runtimePath ?? null;
+      const message = runtimeSourcePath
+        ? `Hook payload measurement runtime script is missing: ${runtimePath}`
+        : `Hook payload measurement could not select a projected runtime script for ${projection.parentSkillName}.`;
+      const entry = createHookPayloadFailureEntry(projection, runtimePath, message, request?.eventName);
+      if (projection?.status === 'ok') {
         addUniqueMessage(contextWarnings, message);
         addUniqueMessage(warnings, message);
         addUniqueMessage(problems, message);
@@ -833,18 +887,7 @@ export async function inspectLocalHookPayloads(
       continue;
     }
 
-    if (!(await exists(runtimePath))) {
-      const message = `Hook payload measurement runtime script is missing: ${runtimePath}`;
-      const entry = createHookPayloadFailureEntry(projection, runtimePath, message, request.eventName);
-      if (projection.status === 'ok') {
-        addUniqueMessage(contextWarnings, message);
-        addUniqueMessage(warnings, message);
-        addUniqueMessage(problems, message);
-      }
-      measurements.push(entry);
-      continue;
-    }
-
+    const { projection, request, runtimePath } = selectedCandidate;
     const result = await runHookPayloadMeasurement(runtimePath, request.args, rootDir, homeDir, projection);
       const output = result.stdout ?? '';
       const measurement = measureText(output);
@@ -891,8 +934,8 @@ export async function inspectLocalHookPayloads(
         eventName,
         category: classifyHookPayload({ parentSkillName: projection.parentSkillName, eventName }),
         runtimePath,
-        runtimePaths: candidate.runtimePaths,
-        scopes: candidate.scopes,
+        runtimePaths: mergedRuntimePaths,
+        scopes: mergedScopes,
         measurement,
         evaluation: null,
         status: 'ok'
