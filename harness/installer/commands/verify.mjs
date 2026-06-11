@@ -136,6 +136,9 @@ export async function verify(args = []) {
 
   if (output === 'stdout' || output === '-') {
     process.stdout.write(markdown);
+    if (health.problems.length > 0) {
+      process.exitCode = 1;
+    }
     return;
   }
 
@@ -145,4 +148,7 @@ export async function verify(args = []) {
   await writeFile(path.join(dir, 'latest.md'), markdown);
 
   console.log(`Verification report written to ${path.relative(rootDir, path.join(dir, 'latest.md'))}`);
+  if (health.problems.length > 0) {
+    process.exitCode = 1;
+  }
 }

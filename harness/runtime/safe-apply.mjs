@@ -44,13 +44,13 @@ export async function applyWritePlan(plan, token) {
   }
 
   if (plan.operation === 'sync') {
-    await sync([]);
+    await sync([], { rootDir: plan.rootDir });
   } else if (plan.operation === 'install') {
-    await install(plan.payload.args ?? []);
+    await install(plan.payload.args ?? [], { rootDir: plan.rootDir });
   } else if (plan.operation === 'checkpoint') {
-    await checkpointCommand(plan.payload.args ?? []);
+    await checkpointCommand(plan.payload.args ?? [], { rootDir: plan.rootDir });
   } else if (plan.operation === 'record_progress') {
-    await record(plan.payload.args ?? []);
+    await record(plan.payload.args ?? [], { rootDir: plan.rootDir });
   } else if (plan.operation === 'record_execution_receipt') {
     executionReceiptPath = await writeExecutionReceipt(plan.rootDir, {
       ...plan.payload.receipt,
