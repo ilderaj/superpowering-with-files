@@ -60,6 +60,10 @@ When the user intent is too sparse to hand-write a stable `/goal`, the projected
 
 `goal-writer` is a prompt-contract helper, not a replacement for the Goal Round Start Protocol. The prompt may help start the goal cleanly, but each substantive round still needs the same restore/reclassify/sync-back discipline described above.
 
+When the user intent is too sparse to write a credible implementation plan, the projected `goal2plan` skill can gather missing intake, shape one native Codex `/goal` prompt, and require that goal loop to produce a reviewed implementation plan under `docs/superpowers/plans/<date>-<task-id>.md`.
+
+`goal2plan` is still not a runner. It does not replace native Codex `/goal`, and it does not execute implementation by itself. After the reviewed plan is approved, execution should be reclassified normally as direct, tracked, or deep-reasoning work.
+
 Harness projects Codex hooks only when `--hooks=on` is selected. It projects the verified planning-with-files `SessionStart` and `UserPromptSubmit` events, plus the superpowers `SessionStart` wrapper. When the `safety` profile is active, Harness can also project Codex `SessionStart` and `PreToolUse` safety hooks. Those remain repository-owned policy checks and do not replace host-platform approvals.
 
 When these hooks run in a live Codex session, Harness writes runtime trace evidence under `.harness/runtime-hooks/codex.jsonl` and surfaces it in `doctor` and `verify` as runtime evidence instead of guessing.

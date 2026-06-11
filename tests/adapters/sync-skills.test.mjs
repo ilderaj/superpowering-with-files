@@ -146,6 +146,22 @@ test('sync projects workspace entries and skills', async () => {
     );
     assert.match(goalWriterOutput, /^```(?:text|md|markdown)?\n\/goal Objective:/);
     assert.match(goalWriterOutput, /All `6` fixture prompts pass/);
+
+    const goal2plan = await readFile(path.join(root, '.agents/skills/goal2plan/SKILL.md'), 'utf8');
+    assert.match(goal2plan, /name: goal2plan/);
+    assert.match(goal2plan, /Mode B Contract/);
+    assert.match(goal2plan, /native Codex `\/goal` prompt/);
+    assert.match(goal2plan, /reviewed implementation plan/);
+    assert.match(goal2plan, /planning\/active\/<task-id>\//);
+
+    const goal2planTemplate = await readFile(path.join(root, '.agents/skills/goal2plan/template.md'), 'utf8');
+    assert.match(goal2planTemplate, /native \/goal/);
+    assert.match(goal2planTemplate, /do not execute implementation/i);
+    assert.match(goal2planTemplate, /docs\/superpowers\/plans\/<date>-<task-id>\.md/);
+
+    const goal2planRubric = await readFile(path.join(root, '.agents/skills/goal2plan/rubric.md'), 'utf8');
+    assert.match(goal2planRubric, /Hard Checks/);
+    assert.match(goal2planRubric, /does not implement a runner/i);
   } finally {
     await removeHarnessFixture(root);
   }

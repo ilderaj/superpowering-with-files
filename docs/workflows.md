@@ -19,6 +19,7 @@ Use `plan` when the work is tracked, multi-phase, or likely to outlive the curre
 - Create or reuse `planning/active/<task-id>/`.
 - Keep `planning-with-files` as the only durable task-memory system.
 - Use Superpowers only for deep-reasoning phases, then sync decisions back.
+- If the task is clearly complex but the intake is too sparse to write a credible implementation plan, call the projected `goal2plan` skill first to enrich intake and produce a reviewed plan before execution.
 - Record worktree base before isolated implementation starts.
 
 Typical commands:
@@ -28,6 +29,8 @@ Typical commands:
 ./scripts/harness worktree-preflight --task <task-id>
 ./scripts/harness worktree-name --task <task-id> --namespace <prefix>
 ```
+
+`goal2plan` is a planning skill, not a separate lane. It prepares one native Codex `/goal` prompt, requires a reviewed implementation plan artifact, and then hands execution back to the normal direct/tracked/deep-reasoning classification instead of creating a second execution system.
 
 ### `cloud-dev`
 

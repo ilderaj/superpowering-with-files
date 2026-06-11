@@ -55,6 +55,8 @@ It does not create a second planning system. It does not read root-level `task_p
 
 Goal-loop discipline does not depend on hooks. The Goal Round Start Protocol for `/goal`, `/plan-goal`, `/plan-loop`, and similar continuation flows lives in rendered policy and skill guidance. Hooks only inject compact reminders to reopen the authoritative planning files, reclassify the current round, and resume from the current task state.
 
+Hooks also do not auto-launch `goal2plan`. When intake is too sparse for a credible implementation plan, operators invoke the projected `goal2plan` skill explicitly; hooks may remind the round to restore planning context, but they do not create a separate plan-generation runner.
+
 Plan-location diagnostics are separate from hook behavior. `./scripts/harness doctor` warns when it sees root-level task files, `docs/superpowers/plans/*.md`, or `docs/plans/*.md`, but these warnings do not fail health checks because those files may be historical or explicitly requested project documentation.
 
 ## Safety Hook Behavior

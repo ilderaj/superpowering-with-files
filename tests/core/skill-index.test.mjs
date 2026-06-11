@@ -16,6 +16,8 @@ test('skill index defines required v1 skills and projections', async () => {
   assert.equal(index.skills.superpowers.projection['claude-code'], 'materialize');
   assert.equal(index.skills['goal-writer'].projection.codex, 'materialize');
   assert.equal(index.skills['goal-writer'].source, 'local');
+  assert.equal(index.skills['goal2plan'].projection.codex, 'materialize');
+  assert.equal(index.skills['goal2plan'].source, 'local');
 });
 
 test('skill index declares layouts required for filesystem projection', async () => {
@@ -30,6 +32,8 @@ test('skill index declares layouts required for filesystem projection', async ()
   assert.equal(index.skills['planning-with-files'].patches.cursor.type, 'planning-with-files-skill-root');
   assert.equal(index.skills['goal-writer'].layout, 'single');
   assert.equal(index.skills['goal-writer'].targetName, 'goal-writer');
+  assert.equal(index.skills['goal2plan'].layout, 'single');
+  assert.equal(index.skills['goal2plan'].targetName, 'goal2plan');
 });
 
 test('skill index declares hook projection metadata', async () => {
