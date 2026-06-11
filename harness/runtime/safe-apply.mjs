@@ -10,16 +10,6 @@ import { writeFollowupClosure } from './followup-closure.mjs';
 import { verifyApprovalToken } from './approval-token.mjs';
 import { writeRegistry } from './registry-service.mjs';
 
-async function withRootDir(rootDir, fn) {
-  const previousCwd = process.cwd();
-  process.chdir(rootDir);
-  try {
-    return await fn();
-  } finally {
-    process.chdir(previousCwd);
-  }
-}
-
 async function changedFilesFromGit(rootDir) {
   const headFile = path.join(rootDir, '.git');
   await readFile(headFile, 'utf8').catch(() => '');
@@ -54,13 +44,13 @@ export async function applyWritePlan(plan, token) {
   }
 
   if (plan.operation === 'sync') {
-    await withRootDir(plan.rootDir, () => sync([]));
+    await sync([], { rootDir: plan.rootDir });
   } else if (plan.operation === 'install') {
-    await withRootDir(plan.rootDir, () => install(plan.payload.args ?? []));
+    await install(plan.payload.args ?? [], { rootDir: plan.rootDir });
   } else if (plan.operation === 'checkpoint') {
-    await withRootDir(plan.rootDir, () => checkpointCommand(plan.payload.args ?? []));
+    await checkpointCommand(plan.payload.args ?? [], { rootDir: plan.rootDir });
   } else if (plan.operation === 'record_progress') {
-    await withRootDir(plan.rootDir, () => record(plan.payload.args ?? []));
+    await record(plan.payload.args ?? [], { rootDir: plan.rootDir });
   } else if (plan.operation === 'record_execution_receipt') {
     executionReceiptPath = await writeExecutionReceipt(plan.rootDir, {
       ...plan.payload.receipt,

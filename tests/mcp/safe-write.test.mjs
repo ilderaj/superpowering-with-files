@@ -7,7 +7,7 @@ import { buildWritePlan } from '../../harness/runtime/write-plan.mjs';
 import { createApprovalToken } from '../../harness/runtime/approval-token.mjs';
 import { applyWritePlan } from '../../harness/runtime/safe-apply.mjs';
 import { writeState } from '../../harness/installer/lib/state.mjs';
-import { createHarnessFixture, removeHarnessFixture, withCwd } from '../helpers/harness-fixture.mjs';
+import { createHarnessFixture, removeHarnessFixture } from '../helpers/harness-fixture.mjs';
 
 test('sync apply rejects when approval token is missing or invalid', async () => {
   const root = await createHarnessFixture();
@@ -70,9 +70,12 @@ test('sync apply executes against plan.rootDir instead of the current cwd', asyn
   const invocationDir = await mkdtemp(path.join(os.tmpdir(), 'harness-mcp-cwd-'));
   const root = await createHarnessFixture();
   const originalHome = process.env.HOME;
+  const originalChdir = process.chdir.bind(process);
+  const previousCwd = process.cwd();
   process.env.HOME = tempHome;
   t.mock.method(os, 'homedir', () => tempHome);
   t.after(async () => {
+    originalChdir(previousCwd);
     process.env.HOME = originalHome;
     await rm(tempHome, { recursive: true, force: true });
     await rm(invocationDir, { recursive: true, force: true });
@@ -98,11 +101,52 @@ test('sync apply executes against plan.rootDir instead of the current cwd', asyn
   });
   const token = await createApprovalToken(root, plan, { actor: 'test-runner', ttlMs: 60000 });
 
-  const result = await withCwd(invocationDir, () => applyWritePlan(plan, token));
+  originalChdir(invocationDir);
+  t.mock.method(process, 'chdir', () => {
+    throw new Error('applyWritePlan should not call process.chdir');
+  });
+  const result = await applyWritePlan(plan, token);
   const receipt = JSON.parse(await readFile(result.receiptPath, 'utf8'));
   const manifest = JSON.parse(await readFile(path.join(root, '.harness/projections.json'), 'utf8'));
 
   assert.equal(receipt.rootDir, root);
   assert.ok(manifest.entries.length > 0);
   await assert.rejects(access(path.join(invocationDir, '.harness/projections.json')), /ENOENT/);
+});
+
+test('install apply executes against plan.rootDir without changing process cwd', async (t) => {
+  const tempHome = await mkdtemp(path.join(os.tmpdir(), 'harness-mcp-home-'));
+  const invocationDir = await mkdtemp(path.join(os.tmpdir(), 'harness-mcp-install-cwd-'));
+  const root = await createHarnessFixture();
+  const originalHome = process.env.HOME;
+  const originalChdir = process.chdir.bind(process);
+  const previousCwd = process.cwd();
+  process.env.HOME = tempHome;
+  t.mock.method(os, 'homedir', () => tempHome);
+  t.after(async () => {
+    originalChdir(previousCwd);
+    process.env.HOME = originalHome;
+    await rm(tempHome, { recursive: true, force: true });
+    await rm(invocationDir, { recursive: true, force: true });
+    await removeHarnessFixture(root);
+  });
+
+  const plan = buildWritePlan({
+    operation: 'install',
+    rootDir: root,
+    payload: { args: ['--scope=workspace', '--targets=codex'] },
+    preview: { scope: 'workspace', targets: ['codex'] }
+  });
+  const token = await createApprovalToken(root, plan, { actor: 'test-runner', ttlMs: 60000 });
+
+  originalChdir(invocationDir);
+  t.mock.method(process, 'chdir', () => {
+    throw new Error('applyWritePlan should not call process.chdir');
+  });
+  const result = await applyWritePlan(plan, token);
+  const receipt = JSON.parse(await readFile(result.receiptPath, 'utf8'));
+
+  assert.equal(receipt.rootDir, root);
+  assert.match(await readFile(path.join(root, 'AGENTS.md'), 'utf8'), /Harness Policy For Codex/);
+  await assert.rejects(access(path.join(invocationDir, 'AGENTS.md')), /ENOENT/);
 });

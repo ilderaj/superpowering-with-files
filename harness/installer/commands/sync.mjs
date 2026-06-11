@@ -482,13 +482,13 @@ async function cleanupStaleProjection(entry) {
   await rm(entry.targetPath, { recursive: true, force: true });
 }
 
-export async function sync(args = []) {
+export async function sync(args = [], options = {}) {
   if (hasFlag(args, '--help', '-h')) {
     console.log(usage());
     return;
   }
 
-  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+  const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
   const homeDir = os.homedir();
   const state = await readState(rootDir);
   const conflictMode = readOption(args, 'conflict', 'reject');

@@ -19,8 +19,8 @@ function readOption(args, name, fallback) {
   return value ? value.slice(prefix.length) : fallback;
 }
 
-export async function install(args = []) {
-  const { rootDir } = await discoverAuthorityRoot(process.cwd());
+export async function install(args = [], options = {}) {
+  const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
   const metadata = await loadPlatforms(rootDir);
   const policyProfiles = await loadPolicyProfiles(rootDir);
   const skillProfiles = await loadSkillProfiles(rootDir);
@@ -103,6 +103,6 @@ export async function install(args = []) {
   }
 
   await writeState(rootDir, state);
-  await sync(mode === 'force' ? ['--takeover'] : []);
+  await sync(mode === 'force' ? ['--takeover'] : [], { rootDir });
   console.log(`Installed Harness state for ${targets.join(', ')} using ${scope} scope.`);
 }
