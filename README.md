@@ -64,7 +64,7 @@ Harness uses one shared proof vocabulary across six mode families.
 
 | Mode Family | Where It Sits | Primary Proof | Existing Lane Or Gate Coverage |
 | --- | --- | --- | --- |
-| design/planning | task intake, `plan`, companion-plan authoring | review proof plus lifecycle/governance proof for acceptance design | `planning-with-files`, `goal2plan`, reviewer-gated companion plans |
+| design/planning | task intake, `plan`, companion-plan authoring | review proof | `planning-with-files`, `goal2plan`, reviewer-gated companion plans |
 | execution | implementation and narrow rollout slices | unit/invariant proof | focused tests, fixtures, diffs, targeted checks |
 | review | plan review, diff review, PR review | review proof | `review` lane and reviewer gates |
 | acceptance/verify | focused verification and user-visible checks | BDD/acceptance proof | `verify` lane, `npm run verify`, `./scripts/harness verify` |
@@ -72,6 +72,7 @@ Harness uses one shared proof vocabulary across six mode families.
 | operations/release/adoption | `cloud-dev`, install/adoption flows, `finish`, `release` | operational proof | `sync --dry-run`, `doctor --check-only`, adoption and release checks |
 
 Tracked and deep-reasoning tasks may name a `Mode-Aware Verification Contract` with `Primary Proof`, `Backstop Proof`, `Unacceptable Substitute`, and `Evidence Sink`. Quick tasks stay lightweight and usually omit the declaration.
+For `design/planning`, `review proof` stays primary. `lifecycle/governance proof` becomes the backstop when acceptance-design quality or durable task-state alignment is part of the residual risk.
 
 Proof choice follows failure risk, not habit. Green unit or BDD results are not enough when the real risk is scope review, lifecycle drift, release safety, or adoption/recovery behavior. In those cases, review, reconciliation, or operational evidence becomes the primary proof instead of a nice-to-have extra.
 

@@ -42,10 +42,11 @@ Expected on current builds: a `hooks` row marked enabled. If your Codex version 
 ## Mode-Aware Verification Contract
 
 Codex uses the same repo-owned `Mode-Aware Verification Contract` vocabulary as the rest of Harness.
+Canonical proof semantics live in the shared policy/docs; this table only maps those semantics onto Codex-specific surfaces.
 
 | Mode Family | Codex Surface | Primary Proof | Existing Coverage |
 | --- | --- | --- | --- |
-| design/planning | `planning/active/<task-id>/`, `/goal` intake shaping, companion-plan authoring | review proof plus lifecycle/governance proof for acceptance design | Goal Round Start Protocol, `goal-writer`, `goal2plan`, reviewer-gated companion plans |
+| design/planning | `planning/active/<task-id>/`, `/goal` intake shaping, companion-plan authoring | review proof | Goal Round Start Protocol, `goal-writer`, `goal2plan`, reviewer-gated companion plans |
 | execution | inline implementation or subagent execution | unit/invariant proof | focused tests, narrow fixtures, diffs, targeted commands |
 | review | read-only reviewer subagent, PR review, diff review | review proof | reviewer gate for new/materially revised companion plans, normal review flow |
 | acceptance/verify | focused validation inside the task round | BDD/acceptance proof | `node --test`, `npm run verify`, `./scripts/harness verify` |
@@ -53,6 +54,7 @@ Codex uses the same repo-owned `Mode-Aware Verification Contract` vocabulary as 
 | operations/release/adoption | install, sync, doctor, adoption, release, backup/takeover work | operational proof | `sync --dry-run`, `doctor --check-only`, adoption/release checks |
 
 When a tracked or deep-reasoning Codex task needs explicit proof design, it may declare `Primary Proof`, `Backstop Proof`, `Unacceptable Substitute`, and `Evidence Sink` in task-scoped planning. Quick rounds stay lightweight and usually omit the declaration.
+For `design/planning` in Codex, `review proof` remains primary; `lifecycle/governance proof` is only the backstop when acceptance design or durable planning-state alignment carries residual risk.
 
 This vocabulary does not change Codex native `/goal` positioning. It only makes proof expectations explicit so review, reconciliation, and operational evidence can be primary when unit or BDD checks are not the highest-value proof.
 

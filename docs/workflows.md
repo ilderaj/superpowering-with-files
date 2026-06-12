@@ -16,7 +16,7 @@ Harness uses one shared proof vocabulary across workflow modes.
 
 | Mode Family | Where It Sits | Primary Proof | Existing Lane Or Gate Coverage | When Unit/BDD Are Not Enough |
 | --- | --- | --- | --- | --- |
-| design/planning | intake, `plan`, companion-plan authoring | review proof plus lifecycle/governance proof for acceptance design | `planning-with-files`, `goal2plan`, reviewer-gated companion plans | when architecture, scope, rollback, or acceptance design risk matters more than code behavior |
+| design/planning | intake, `plan`, companion-plan authoring | review proof | `planning-with-files`, `goal2plan`, reviewer-gated companion plans | when architecture, scope, rollback, or acceptance-design risk matters more than code behavior; lifecycle/governance proof then backstops durable task-state alignment |
 | execution | implementation slices and narrow rollout work | unit/invariant proof | focused tests, diffs, fixtures, targeted commands | when a green local check says nothing about operator intent or release safety |
 | review | plan review, diff review, PR review | review proof | `review` lane and reviewer checkpoints | when tests pass but the change can still be wrong, unsafe, or out of scope |
 | acceptance/verify | focused verification and user-visible workflow checks | BDD/acceptance proof | `verify` lane, `npm run verify`, `./scripts/harness verify` | when behavior checks pass but lifecycle state, docs, or rollout evidence still drift |
