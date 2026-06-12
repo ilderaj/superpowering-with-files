@@ -100,7 +100,10 @@ test('sync projects workspace entries and skills', async () => {
       /classify it first: `implementation issue`, `plan issue`, `acceptance proof issue`, or `governance proof issue`/
     );
     assert.match(executingPlans, /Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop/);
-    assert.match(executingPlans, /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/);
+    assert.doesNotMatch(
+      executingPlans,
+      /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/
+    );
 
     const verificationBeforeCompletion = await readFile(
       path.join(root, '.agents/skills/verification-before-completion/SKILL.md'),
@@ -225,6 +228,11 @@ test('sync materializes executing-plans replan guidance for shared and Claude sk
       assert.match(skill, /Keep the root goal stable instead of reopening broad planning or route selection\./, target);
       assert.match(skill, /acceptance proof issue/, target);
       assert.match(skill, /governance proof issue/, target);
+      assert.doesNotMatch(
+        skill,
+        /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/,
+        target
+      );
     }
 
     const verificationTargets = {

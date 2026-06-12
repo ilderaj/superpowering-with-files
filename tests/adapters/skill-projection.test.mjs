@@ -740,10 +740,10 @@ test('applySuperpowersExecutingPlansReplanPatch materializes Harness replan guid
     assert.match(skill, /An `implementation issue` means the approved plan is still sound but the code or local fix is not there yet/);
     assert.match(skill, /An `acceptance proof issue` means the declared proof target is still unproven/);
     assert.match(skill, /A `governance proof issue` means the evidence sink, reconcile rule, or handoff record is incomplete/);
-    assert.match(skill, /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/);
     assert.match(skill, /Keep the root goal stable/);
     assert.match(skill, /Sync durable changes back to `planning\/active\/<task-id>\/`/);
     assert.match(skill, /stop and record blockers instead of looping forever/);
+    assert.doesNotMatch(skill, /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/);
     assert.match(
       skill,
       /## Harness Superpowers executing-plans replan patch[\s\S]*## Remember/

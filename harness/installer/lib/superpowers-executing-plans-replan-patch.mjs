@@ -12,7 +12,6 @@ const PATCH_BLOCK = [
   '- Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop.',
   '- An `acceptance proof issue` means the declared proof target is still unproven; rerun or expand the declared `primary proof` and use the declared `backstop proof` only when its escalation trigger is met.',
   '- A `governance proof issue` means the evidence sink, reconcile rule, or handoff record is incomplete; repair the recorded proof chain before claiming completion.',
-  '- Do not invoke `finishing-a-development-branch` just because verification feels incomplete. Keep that finish lane deferred unless a finish-lane-specific proof gap is actually demonstrated.',
   '- Keep the root goal stable instead of reopening broad planning or route selection.',
   '- Sync durable changes back to `planning/active/<task-id>/`.',
   '- If the mini-loop still fails, stop and record blockers instead of looping forever.',
