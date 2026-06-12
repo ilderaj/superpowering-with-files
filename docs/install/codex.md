@@ -39,6 +39,23 @@ codex features list | rg '^hooks\s'
 
 Expected on current builds: a `hooks` row marked enabled. If your Codex version uses a different gate name or config shape, follow the upstream Codex docs for that build instead of assuming Harness can enable it for you.
 
+## Mode-Aware Verification Contract
+
+Codex uses the same repo-owned `Mode-Aware Verification Contract` vocabulary as the rest of Harness.
+
+| Mode Family | Codex Surface | Primary Proof | Existing Coverage |
+| --- | --- | --- | --- |
+| design/planning | `planning/active/<task-id>/`, `/goal` intake shaping, companion-plan authoring | review proof plus lifecycle/governance proof for acceptance design | Goal Round Start Protocol, `goal-writer`, `goal2plan`, reviewer-gated companion plans |
+| execution | inline implementation or subagent execution | unit/invariant proof | focused tests, narrow fixtures, diffs, targeted commands |
+| review | read-only reviewer subagent, PR review, diff review | review proof | reviewer gate for new/materially revised companion plans, normal review flow |
+| acceptance/verify | focused validation inside the task round | BDD/acceptance proof | `node --test`, `npm run verify`, `./scripts/harness verify` |
+| reconcile/lifecycle | verify-to-finish transition in task memory | lifecycle/governance proof | `reconciliation.md`, lifecycle status, `active-summary` |
+| operations/release/adoption | install, sync, doctor, adoption, release, backup/takeover work | operational proof | `sync --dry-run`, `doctor --check-only`, adoption/release checks |
+
+When a tracked or deep-reasoning Codex task needs explicit proof design, it may declare `Primary Proof`, `Backstop Proof`, `Unacceptable Substitute`, and `Evidence Sink` in task-scoped planning. Quick rounds stay lightweight and usually omit the declaration.
+
+This vocabulary does not change Codex native `/goal` positioning. It only makes proof expectations explicit so review, reconciliation, and operational evidence can be primary when unit or BDD checks are not the highest-value proof.
+
 ## Goal-like Continuations
 
 Codex `/goal` stays native. Harness does not add an external runner and does not modify Codex internals.

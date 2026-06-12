@@ -61,6 +61,46 @@ Before each substantive goal round, continuation tick, or phase boundary:
 
 This protocol is repository-owned guidance, not a separate runner. Hooks may inject reminders or compact context, but they do not replace round-start restore, reclassification, routing, or sync-back discipline.
 
+### Mode-Aware Verification Contract
+
+The `Mode-Aware Verification Contract` is the repo-owned vocabulary for choosing proof by failure risk. It explains which evidence is supposed to catch the most dangerous failure for the current kind of work. It does not create a second runner, replace native `/goal`, or force heavy process onto quick tasks.
+
+Harness uses six mode families:
+
+| Mode Family | Typical Surface | Typical Failure Risk |
+| --- | --- | --- |
+| design/planning | intake shaping, task memory, companion plans, acceptance design | wrong scope, missing constraints, or unverifiable success criteria |
+| execution | implementation, templates, adapters, focused checks | broken invariants, wrong files, partial rollout |
+| review | plan review, diff review, PR review, architecture review | accepted-but-wrong scope, unsafe change, weak rollback or review blind spots |
+| acceptance/verify | focused verification, fixtures, user-visible workflow checks | unmet acceptance criteria, broken workflow, silent user-facing regressions |
+| reconcile/lifecycle | reconciliation, finish, archive, task-state transitions | drift between intent, implementation, evidence, and lifecycle state |
+| operations/release/adoption | install, sync, doctor, backup/takeover, release, adoption | rollout, recovery, migration, or support regressions |
+
+Harness distinguishes proof types so the contract can match the risk:
+
+- `unit/invariant proof`: code-level or structural evidence that narrow logic, schemas, parsers, adapters, and invariants still hold.
+- `BDD/acceptance proof`: scenario or workflow evidence that user-visible outcomes still match the claim.
+- `review proof`: reviewer evidence about scope fit, architecture, rollback, docs, and risk framing.
+- `lifecycle/governance proof`: evidence that task state, reconciliation, ownership, backlog/docs updates, and archive readiness are correctly aligned.
+- `operational proof`: evidence that install, sync, doctor, release, adoption, recovery, or takeover behavior is safe in practice.
+
+Use these fields when a tracked or deep-reasoning task needs an explicit proof design:
+
+- `Primary Proof`: the evidence most likely to catch the highest-risk failure for the current mode family.
+- `Backstop Proof`: secondary evidence that covers residual or adjacent risk without pretending to replace the primary proof.
+- `Unacceptable Substitute`: evidence that may look green or busy but does not actually close the relevant risk.
+- `Evidence Sink`: where the proof result is recorded so future review, reconciliation, or operations work can find it.
+
+Proof choice must match failure risk rather than defaulting to unit versus BDD:
+
+- if the risk is local invariant breakage, `unit/invariant proof` can be primary and BDD may only be a backstop
+- if the risk is user-facing behavior drift, `BDD/acceptance proof` should be primary and unit checks are only a backstop
+- if the risk is scope, architecture, rollback, policy, or approval drift, `review proof` must be primary even when tests are green
+- if the risk is lifecycle state, source-of-truth alignment, or archive readiness, `lifecycle/governance proof` must be primary
+- if the risk is install, release, adoption, or recovery failure, `operational proof` must be primary
+
+Quick tasks stay lightweight. They usually rely on direct proof in-session and may omit a declared verification contract entirely. Tracked and deep-reasoning tasks may declare a `Mode-Aware Verification Contract` when the proof stack, evidence sink, or unacceptable substitutes need to be explicit. Declaring the contract documents proof design only; it does not add a new runner.
+
 ## When Superpowers Is Allowed
 
 Use superpowers only when:

@@ -12,6 +12,18 @@ For the operator lane map, start with [Workflows](workflows.md). This page is th
 
 This document captures the Harness direction for keeping coding projects traceable after implementation. It is intentionally small: reconciliation is a control point, not a new documentation tax.
 
+## Mode-Aware Verification Contract
+
+Reconciliation belongs to the `reconcile/lifecycle` mode family in the repo-owned `Mode-Aware Verification Contract`.
+
+- `Primary Proof`: lifecycle/governance proof recorded in durable task memory.
+- `Backstop Proof`: targeted review proof plus the acceptance/verify evidence that led into reconciliation.
+- `Unacceptable Substitute`: green unit tests, a passing BDD run, or a merged PR without task-state and source-of-truth alignment.
+- `Evidence Sink`: `planning/active/<task-id>/reconciliation.md`, a labeled `## Reconciliation` block in `progress.md`, lifecycle status, and any recorded follow-up owner/waiver.
+- Existing coverage: the `verify` lane feeds evidence into this gate, the `review` lane covers scope/approval risk when needed, and lifecycle tooling such as `active-summary` checks the resulting readiness signal.
+
+Unit and BDD checks still matter here, but they are backstops. When the real risk is spec drift, backlog drift, archive readiness, approval state, or release/adoption follow-through, reconciliation or review becomes the primary proof because tests alone cannot close that risk.
+
 ## Problem
 
 Harness already has durable task memory in `planning/active/<task-id>/`, companion deep-reasoning plans in `docs/superpowers/plans/`, workflow lanes, verification evidence, and roadmap/backlog intent. Coding work still has a common failure mode: after implementation, the actual code, the original spec, the active plan, verification evidence, and roadmap/backlog status can drift apart.
@@ -26,7 +38,7 @@ The drift is harmful for both humans and agents:
 
 ## Decision
 
-Add a `reconcile` workflow gate after implementation and verification, before finish/archive. It may be presented as an operator-facing lane only after `docs/workflows.md`, README, maintenance docs, and lifecycle tooling are updated together. Until then, treat it as a required gate in the verify-to-finish transition, not as a silently added eighth workflow lane.
+Add a `reconcile` workflow gate after implementation and verification, before finish/archive. Harness documents it in the workflow map so operators can find it, but it remains a verify-to-finish gate rather than a second runner or a generic eighth execution engine.
 
 Reconciliation is the step that compares intended behavior, actual implementation, and evidence, then records the result in durable task memory.
 
@@ -128,6 +140,8 @@ Reconciliation may be marked `not required` for:
 - tasks where the active task plan explicitly records why reconciliation adds no value.
 
 Docs-only changes that alter governance, roadmap, backlog, architecture, workflow, safety, MCP, cloud-dev, or maintenance behavior require reconciliation or an explicit owner waiver.
+
+This is why reconciliation is not optional evidence layering. When the risk lives in ownership, lifecycle, or source-of-truth drift, unit/invariant proof and BDD/acceptance proof are insufficient by themselves.
 
 ## Non-Goals
 

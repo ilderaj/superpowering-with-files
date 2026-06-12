@@ -58,6 +58,23 @@ At each substantive round:
 4. keep `planning/active/<task-id>/` authoritative for tracked rounds
 5. use companion-plan + reviewer discipline only for deep-reasoning rounds
 
+## Mode-Aware Verification Contract
+
+Harness uses one shared proof vocabulary across six mode families.
+
+| Mode Family | Where It Sits | Primary Proof | Existing Lane Or Gate Coverage |
+| --- | --- | --- | --- |
+| design/planning | task intake, `plan`, companion-plan authoring | review proof plus lifecycle/governance proof for acceptance design | `planning-with-files`, `goal2plan`, reviewer-gated companion plans |
+| execution | implementation and narrow rollout slices | unit/invariant proof | focused tests, fixtures, diffs, targeted checks |
+| review | plan review, diff review, PR review | review proof | `review` lane and reviewer gates |
+| acceptance/verify | focused verification and user-visible checks | BDD/acceptance proof | `verify` lane, `npm run verify`, `./scripts/harness verify` |
+| reconcile/lifecycle | between `verify` and `finish` / `archive` | lifecycle/governance proof | reconciliation gate, lifecycle status, `active-summary` |
+| operations/release/adoption | `cloud-dev`, install/adoption flows, `finish`, `release` | operational proof | `sync --dry-run`, `doctor --check-only`, adoption and release checks |
+
+Tracked and deep-reasoning tasks may name a `Mode-Aware Verification Contract` with `Primary Proof`, `Backstop Proof`, `Unacceptable Substitute`, and `Evidence Sink`. Quick tasks stay lightweight and usually omit the declaration.
+
+Proof choice follows failure risk, not habit. Green unit or BDD results are not enough when the real risk is scope review, lifecycle drift, release safety, or adoption/recovery behavior. In those cases, review, reconciliation, or operational evidence becomes the primary proof instead of a nice-to-have extra.
+
 ## Quick Start
 
 ### Workspace install
@@ -94,7 +111,7 @@ Harness exposes a small operator-facing lane map:
 - `release`: align verified `dev`, release docs, adoption state, and `main`
 - `archive`: close and archive only after lifecycle and reconcile gates pass
 
-See [Workflows](docs/workflows.md) for when to use each lane.
+See [Workflows](docs/workflows.md) for where each mode family sits, which lane owns its primary proof, and when reconciliation or review is required because unit/BDD evidence is not enough.
 
 ## Implementation Shape
 

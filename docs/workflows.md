@@ -10,6 +10,21 @@ Use it when you already understand the project at a high level and need to answe
 
 Harness keeps policy rendering, projection, and planning state separate from this operator layer. This page is about how to move work, not how the implementation is wired internally.
 
+## Mode-Aware Verification Contract
+
+Harness uses one shared proof vocabulary across workflow modes.
+
+| Mode Family | Where It Sits | Primary Proof | Existing Lane Or Gate Coverage | When Unit/BDD Are Not Enough |
+| --- | --- | --- | --- | --- |
+| design/planning | intake, `plan`, companion-plan authoring | review proof plus lifecycle/governance proof for acceptance design | `planning-with-files`, `goal2plan`, reviewer-gated companion plans | when architecture, scope, rollback, or acceptance design risk matters more than code behavior |
+| execution | implementation slices and narrow rollout work | unit/invariant proof | focused tests, diffs, fixtures, targeted commands | when a green local check says nothing about operator intent or release safety |
+| review | plan review, diff review, PR review | review proof | `review` lane and reviewer checkpoints | when tests pass but the change can still be wrong, unsafe, or out of scope |
+| acceptance/verify | focused verification and user-visible workflow checks | BDD/acceptance proof | `verify` lane, `npm run verify`, `./scripts/harness verify` | when behavior checks pass but lifecycle state, docs, or rollout evidence still drift |
+| reconcile/lifecycle | verify-to-finish transition before `finish` or `archive` | lifecycle/governance proof | `reconcile` gate, lifecycle state, `active-summary`, `reconciliation.md` | when archive readiness, SOT alignment, or follow-up ownership is the real risk |
+| operations/release/adoption | `cloud-dev`, install/adoption flows, `finish`, `release` | operational proof | `sync --dry-run`, `doctor --check-only`, adoption and release checks | when unit/BDD cannot prove takeover safety, backup behavior, rollout readiness, or recovery |
+
+When a tracked or deep-reasoning task needs explicit proof design, use the `Mode-Aware Verification Contract` fields: `Primary Proof`, `Backstop Proof`, `Unacceptable Substitute`, and `Evidence Sink`. Quick tasks stay lightweight and usually do not need the declaration.
+
 ## Workflow Lanes
 
 ### `plan`
@@ -79,6 +94,22 @@ Typical commands:
 npm run verify
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness sync --dry-run
+./scripts/harness doctor --check-only
+```
+
+### `reconcile`
+
+Use `reconcile` as the verify-to-finish gate when tracked work changes behavior, policy, lifecycle state, or source-of-truth expectations.
+
+- Treat reconciliation as the primary lifecycle/governance proof for archive readiness and SOT alignment.
+- Use review proof when the unresolved risk is scope, architecture, approval, or rollback rather than user-visible behavior.
+- Do not treat passing unit or BDD checks as an acceptable substitute for reconciliation when task state, docs, backlog, or adoption evidence still drift.
+
+Typical commands:
+
+```bash
+./scripts/harness active-summary
+./scripts/harness record --file reconciliation --task <task-id>
 ./scripts/harness doctor --check-only
 ```
 
