@@ -11,6 +11,7 @@ import { applyPlanningWithFilesSkillRootPatch } from '../../harness/installer/li
 import { applySuperpowersExecutingPlansReplanPatch } from '../../harness/installer/lib/superpowers-executing-plans-replan-patch.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../../harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs';
 import { applySuperpowersUsingGitWorktreesPatch } from '../../harness/installer/lib/superpowers-using-git-worktrees-patch.mjs';
+import { applySuperpowersVerificationBeforeCompletionPatch } from '../../harness/installer/lib/superpowers-verification-before-completion-patch.mjs';
 import {
   classifySkillProjectionDuplicates,
   planSkillProjections,
@@ -100,6 +101,26 @@ test('planSkillProjections marks Superpowers writing-plans for Harness plan-loca
   assert.ok(writingPlans);
   assert.deepEqual(writingPlans.patches.map((patch) => patch.type), ['superpowers-writing-plans']);
   assert.equal(writingPlans.patches[0].marker, 'Harness Superpowers writing-plans location patch');
+});
+
+test('planSkillProjections marks Superpowers verification-before-completion for proof patching', async () => {
+  const plan = await planSkillProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex'
+  });
+
+  const verificationSkill = plan.find((entry) => entry.skillName === 'verification-before-completion');
+  assert.ok(verificationSkill);
+  assert.deepEqual(
+    verificationSkill.patches.map((patch) => patch.type),
+    ['superpowers-verification-before-completion']
+  );
+  assert.equal(
+    verificationSkill.patches[0].marker,
+    'Harness Superpowers verification-before-completion proof patch'
+  );
 });
 
 test('planSkillProjections includes local goal-writer in the full Codex workspace profile', async () => {
@@ -277,6 +298,45 @@ test('planSkillProjections applies the executing-plans replan patch for every su
       target
     );
     assert.match(executingPlans.targetPath, targetPathPattern, target);
+  }
+});
+
+test('planSkillProjections applies the verification-before-completion proof patch for every supported target', async () => {
+  const expectations = {
+    codex: /\.agents\/skills\/verification-before-completion$/,
+    copilot: /\.agents\/skills\/verification-before-completion$/,
+    cursor: /\.agents\/skills\/verification-before-completion$/,
+    'claude-code': /\.claude\/skills\/verification-before-completion$/
+  };
+
+  for (const [target, targetPathPattern] of Object.entries(expectations)) {
+    const plan = await planSkillProjections({
+      rootDir: process.cwd(),
+      homeDir: '/home/user',
+      scope: 'workspace',
+      target
+    });
+
+    const verificationSkill = plan.find((entry) => entry.skillName === 'verification-before-completion');
+    assert.ok(verificationSkill, target);
+    assert.equal(verificationSkill.parentSkillName, 'superpowers', target);
+    assert.equal(verificationSkill.strategy, 'materialize', target);
+    assert.deepEqual(
+      verificationSkill.patches.map((patch) => patch.type),
+      ['superpowers-verification-before-completion'],
+      target
+    );
+    assert.equal(
+      verificationSkill.patches[0].marker,
+      'Harness Superpowers verification-before-completion proof patch',
+      target
+    );
+    assert.match(
+      verificationSkill.sourcePath,
+      /harness\/upstream\/superpowers\/skills\/verification-before-completion$/,
+      target
+    );
+    assert.match(verificationSkill.targetPath, targetPathPattern, target);
   }
 });
 
@@ -672,8 +732,15 @@ test('applySuperpowersExecutingPlansReplanPatch materializes Harness replan guid
     const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
 
     assert.match(skill, /## Harness Superpowers executing-plans replan patch/);
-    assert.match(skill, /distinguish an `execution issue` from a `plan issue`/);
+    assert.match(
+      skill,
+      /classify it first: `implementation issue`, `plan issue`, `acceptance proof issue`, or `governance proof issue`/
+    );
     assert.match(skill, /Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop/);
+    assert.match(skill, /An `implementation issue` means the approved plan is still sound but the code or local fix is not there yet/);
+    assert.match(skill, /An `acceptance proof issue` means the declared proof target is still unproven/);
+    assert.match(skill, /A `governance proof issue` means the evidence sink, reconcile rule, or handoff record is incomplete/);
+    assert.match(skill, /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/);
     assert.match(skill, /Keep the root goal stable/);
     assert.match(skill, /Sync durable changes back to `planning\/active\/<task-id>\/`/);
     assert.match(skill, /stop and record blockers instead of looping forever/);
@@ -732,6 +799,88 @@ test('applySuperpowersExecutingPlansReplanPatch fails when Remember anchor canno
     await assert.rejects(
       applySuperpowersExecutingPlansReplanPatch(target),
       /Unable to apply Harness Superpowers executing-plans replan patch/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersVerificationBeforeCompletionPatch materializes declared-proof guidance', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-verification-before-completion-patch-'));
+  try {
+    const target = path.join(dir, 'verification-before-completion');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/verification-before-completion'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersVerificationBeforeCompletionPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.match(skill, /## Harness Superpowers verification-before-completion proof patch/);
+    assert.match(skill, /Start from the declared proof stack, not from a convenient command/);
+    assert.match(skill, /Identify the `proof target`, `primary proof`, `backstop proof`, `escalation trigger`, `evidence sink`, `reconcile rule`, and `unacceptable substitute`/);
+    assert.match(skill, /Run the declared `primary proof` first/);
+    assert.match(skill, /Only use the declared `backstop proof` when the `escalation trigger` is actually met/);
+    assert.match(skill, /Store the result in the declared `evidence sink` and apply the declared `reconcile rule` before claiming success/);
+    assert.match(skill, /Treat the declared `unacceptable substitute` as disallowed evidence even if it is faster or greener/);
+    assert.match(
+      skill,
+      /## Harness Superpowers verification-before-completion proof patch[\s\S]*## Common Failures/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersVerificationBeforeCompletionPatch is idempotent', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-verification-before-completion-idempotent-'));
+  try {
+    const target = path.join(dir, 'verification-before-completion');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/verification-before-completion'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersVerificationBeforeCompletionPatch(target);
+    const once = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    await applySuperpowersVerificationBeforeCompletionPatch(target);
+    const twice = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.equal(twice, once);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersVerificationBeforeCompletionPatch fails when Common Failures anchor cannot be found', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-verification-before-completion-missing-anchor-'));
+  try {
+    const target = path.join(dir, 'verification-before-completion');
+    await mkdir(target, { recursive: true });
+    await writeFile(
+      path.join(target, 'SKILL.md'),
+      [
+        '# Verification Before Completion',
+        '',
+        '## Overview',
+        '',
+        'Broken anchor surface.',
+        '',
+        '## Missing Section',
+        '',
+        'Still missing the expected section.'
+      ].join('\n')
+    );
+
+    await assert.rejects(
+      applySuperpowersVerificationBeforeCompletionPatch(target),
+      /Unable to apply Harness Superpowers verification-before-completion proof patch/
     );
   } finally {
     await rm(dir, { recursive: true, force: true });

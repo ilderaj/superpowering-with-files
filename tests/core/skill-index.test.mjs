@@ -51,4 +51,8 @@ test('skill index registers the executing-plans replan patch on the superpowers 
     type: 'superpowers-executing-plans-replan',
     marker: 'Harness Superpowers executing-plans replan patch'
   });
+  assert.deepEqual(index.skills.superpowers.childPatches['verification-before-completion'], {
+    type: 'superpowers-verification-before-completion',
+    marker: 'Harness Superpowers verification-before-completion proof patch'
+  });
 });

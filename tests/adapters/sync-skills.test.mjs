@@ -63,6 +63,11 @@ test('sync projects workspace entries and skills', async () => {
     assert.match(writingPlans, /\*\*Save durable task state to:\*\* `planning\/active\/<task-id>\/task_plan\.md`/);
     assert.match(
       writingPlans,
+      /Declare the proof stack explicitly: `proof target`, `primary proof`, `backstop proof`, `escalation trigger`, `evidence sink`, `reconcile rule`, and `unacceptable substitute`\./
+    );
+    assert.match(writingPlans, /Do not stop at listing commands;/);
+    assert.match(
+      writingPlans,
       /If a Deep-reasoning task actually uses Superpowers, create a companion plan/
     );
     assert.match(writingPlans, /secondary artifact for reasoning and review, not the primary task-memory record/);
@@ -90,8 +95,27 @@ test('sync projects workspace entries and skills', async () => {
 
     const executingPlans = await readFile(path.join(root, '.agents/skills/executing-plans/SKILL.md'), 'utf8');
     assert.match(executingPlans, /Harness Superpowers executing-plans replan patch/);
-    assert.match(executingPlans, /distinguish an `execution issue` from a `plan issue`/);
+    assert.match(
+      executingPlans,
+      /classify it first: `implementation issue`, `plan issue`, `acceptance proof issue`, or `governance proof issue`/
+    );
     assert.match(executingPlans, /Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop/);
+    assert.match(executingPlans, /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/);
+
+    const verificationBeforeCompletion = await readFile(
+      path.join(root, '.agents/skills/verification-before-completion/SKILL.md'),
+      'utf8'
+    );
+    assert.match(
+      verificationBeforeCompletion,
+      /Harness Superpowers verification-before-completion proof patch/
+    );
+    assert.match(verificationBeforeCompletion, /Start from the declared proof stack, not from a convenient command/);
+    assert.match(verificationBeforeCompletion, /Run the declared `primary proof` first/);
+    assert.match(
+      verificationBeforeCompletion,
+      /Only use the declared `backstop proof` when the `escalation trigger` is actually met/
+    );
 
     const usingGitWorktrees = await readFile(path.join(root, '.agents/skills/using-git-worktrees/SKILL.md'), 'utf8');
     assert.match(usingGitWorktrees, /Harness Superpowers using-git-worktrees naming patch/);
@@ -199,6 +223,20 @@ test('sync materializes executing-plans replan guidance for shared and Claude sk
       const skill = await readFile(skillPath, 'utf8');
       assert.match(skill, /Harness Superpowers executing-plans replan patch/, target);
       assert.match(skill, /Keep the root goal stable instead of reopening broad planning or route selection\./, target);
+      assert.match(skill, /acceptance proof issue/, target);
+      assert.match(skill, /governance proof issue/, target);
+    }
+
+    const verificationTargets = {
+      shared: path.join(root, '.agents/skills/verification-before-completion/SKILL.md'),
+      claude: path.join(root, '.claude/skills/verification-before-completion/SKILL.md')
+    };
+
+    for (const [target, skillPath] of Object.entries(verificationTargets)) {
+      const skill = await readFile(skillPath, 'utf8');
+      assert.match(skill, /Harness Superpowers verification-before-completion proof patch/, target);
+      assert.match(skill, /declared proof stack/, target);
+      assert.match(skill, /declared `unacceptable substitute`/, target);
     }
 
     assert.match(
