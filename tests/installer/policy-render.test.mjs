@@ -56,6 +56,24 @@ test('default always-on entries keep tracked and deep reasoning details opt-in',
   }
 });
 
+test('codex rendered guidance keeps quick rounds lightweight while documenting bounded replan loops', async () => {
+  const rendered = await renderEntry(process.cwd(), 'codex', 'always-on-core');
+
+  assert.match(rendered, /distinguish a `plan issue` from an `execution issue`\./);
+  assert.match(
+    rendered,
+    /a bounded mini review\/revise\/verify loop may run inside normal Superpowers execution discipline\./
+  );
+  assert.match(
+    rendered,
+    /`quick`: stay lightweight\. Do not create a companion plan and do not add subagents just because a goal loop is running\./
+  );
+  assert.match(
+    rendered,
+    /`quick`: stay lightweight and resolve ordinary execution issues directly\. Do not trigger a replan loop just because a goal loop is active\./
+  );
+});
+
 test('renderPolicyProfile supports include-based safety profiles', async () => {
   const rendered = await renderPolicyProfile(process.cwd(), 'safety');
 

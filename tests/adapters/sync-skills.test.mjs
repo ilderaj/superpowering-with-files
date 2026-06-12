@@ -88,6 +88,11 @@ test('sync projects workspace entries and skills', async () => {
     assert.doesNotMatch(writingPlans, /you may additionally create a companion plan/);
     assert.doesNotMatch(writingPlans, /\*\*Save plans to:\*\* `docs\/superpowers\/plans/);
 
+    const executingPlans = await readFile(path.join(root, '.agents/skills/executing-plans/SKILL.md'), 'utf8');
+    assert.match(executingPlans, /Harness Superpowers executing-plans replan patch/);
+    assert.match(executingPlans, /distinguish an `execution issue` from a `plan issue`/);
+    assert.match(executingPlans, /Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop/);
+
     const usingGitWorktrees = await readFile(path.join(root, '.agents/skills/using-git-worktrees/SKILL.md'), 'utf8');
     assert.match(usingGitWorktrees, /Harness Superpowers using-git-worktrees naming patch/);
     assert.match(usingGitWorktrees, /Before creating a manual worktree, run \.\/scripts\/harness worktree-name/);
@@ -162,6 +167,52 @@ test('sync projects workspace entries and skills', async () => {
     const goal2planRubric = await readFile(path.join(root, '.agents/skills/goal2plan/rubric.md'), 'utf8');
     assert.match(goal2planRubric, /Hard Checks/);
     assert.match(goal2planRubric, /does not implement a runner/i);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync materializes executing-plans replan guidance for shared and Claude skill roots without regressing existing Superpowers patches', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] },
+        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] },
+        cursor: { enabled: true, paths: [path.join(root, '.cursor/rules/harness.mdc')] },
+        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+
+    const targets = {
+      shared: path.join(root, '.agents/skills/executing-plans/SKILL.md'),
+      claude: path.join(root, '.claude/skills/executing-plans/SKILL.md')
+    };
+
+    for (const [target, skillPath] of Object.entries(targets)) {
+      const skill = await readFile(skillPath, 'utf8');
+      assert.match(skill, /Harness Superpowers executing-plans replan patch/, target);
+      assert.match(skill, /Keep the root goal stable instead of reopening broad planning or route selection\./, target);
+    }
+
+    assert.match(
+      await readFile(path.join(root, '.agents/skills/writing-plans/SKILL.md'), 'utf8'),
+      /Harness Superpowers writing-plans location patch/
+    );
+    assert.match(
+      await readFile(path.join(root, '.agents/skills/using-git-worktrees/SKILL.md'), 'utf8'),
+      /Harness Superpowers using-git-worktrees naming patch/
+    );
+    assert.match(
+      await readFile(path.join(root, '.agents/skills/finishing-a-development-branch/SKILL.md'), 'utf8'),
+      /Harness Superpowers finishing-a-development-branch base patch/
+    );
   } finally {
     await removeHarnessFixture(root);
   }

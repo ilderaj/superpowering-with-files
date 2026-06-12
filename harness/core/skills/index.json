@@ -17,6 +17,10 @@
           "type": "superpowers-finishing-a-development-branch",
           "marker": "Harness Superpowers finishing-a-development-branch base patch"
         },
+        "executing-plans": {
+          "type": "superpowers-executing-plans-replan",
+          "marker": "Harness Superpowers executing-plans replan patch"
+        },
         "using-git-worktrees": {
           "type": "superpowers-using-git-worktrees",
           "marker": "Harness Superpowers using-git-worktrees naming patch"

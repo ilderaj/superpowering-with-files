@@ -8,6 +8,7 @@ import path from 'node:path';
 import { applyCopilotPlanningPatch } from '../../harness/installer/lib/copilot-planning-patch.mjs';
 import { materializeDirectoryProjection } from '../../harness/installer/lib/fs-ops.mjs';
 import { applyPlanningWithFilesSkillRootPatch } from '../../harness/installer/lib/planning-with-files-skill-root-patch.mjs';
+import { applySuperpowersExecutingPlansReplanPatch } from '../../harness/installer/lib/superpowers-executing-plans-replan-patch.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../../harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs';
 import { applySuperpowersUsingGitWorktreesPatch } from '../../harness/installer/lib/superpowers-using-git-worktrees-patch.mjs';
 import {
@@ -237,6 +238,45 @@ test('planSkillProjections applies the finishing-a-development-branch base patch
       target
     );
     assert.match(finishingBranch.targetPath, targetPathPattern, target);
+  }
+});
+
+test('planSkillProjections applies the executing-plans replan patch for every supported target', async () => {
+  const expectations = {
+    codex: /\.agents\/skills\/executing-plans$/,
+    copilot: /\.agents\/skills\/executing-plans$/,
+    cursor: /\.agents\/skills\/executing-plans$/,
+    'claude-code': /\.claude\/skills\/executing-plans$/
+  };
+
+  for (const [target, targetPathPattern] of Object.entries(expectations)) {
+    const plan = await planSkillProjections({
+      rootDir: process.cwd(),
+      homeDir: '/home/user',
+      scope: 'workspace',
+      target
+    });
+
+    const executingPlans = plan.find((entry) => entry.skillName === 'executing-plans');
+    assert.ok(executingPlans, target);
+    assert.equal(executingPlans.parentSkillName, 'superpowers', target);
+    assert.equal(executingPlans.strategy, 'materialize', target);
+    assert.deepEqual(
+      executingPlans.patches.map((patch) => patch.type),
+      ['superpowers-executing-plans-replan'],
+      target
+    );
+    assert.equal(
+      executingPlans.patches[0].marker,
+      'Harness Superpowers executing-plans replan patch',
+      target
+    );
+    assert.match(
+      executingPlans.sourcePath,
+      /harness\/upstream\/superpowers\/skills\/executing-plans$/,
+      target
+    );
+    assert.match(executingPlans.targetPath, targetPathPattern, target);
   }
 });
 
@@ -612,6 +652,87 @@ test('applySuperpowersUsingGitWorktreesPatch preserves directory-selection fallb
     assert.match(skill, /Before creating a manual worktree, run \.\/scripts\/harness worktree-name/);
     assert.match(skill, /#### Directory Selection/);
     assert.match(skill, /#### Create the Worktree/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersExecutingPlansReplanPatch materializes Harness replan guidance', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-executing-plans-patch-'));
+  try {
+    const target = path.join(dir, 'executing-plans');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/executing-plans'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersExecutingPlansReplanPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.match(skill, /## Harness Superpowers executing-plans replan patch/);
+    assert.match(skill, /distinguish an `execution issue` from a `plan issue`/);
+    assert.match(skill, /Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop/);
+    assert.match(skill, /Keep the root goal stable/);
+    assert.match(skill, /Sync durable changes back to `planning\/active\/<task-id>\/`/);
+    assert.match(skill, /stop and record blockers instead of looping forever/);
+    assert.match(
+      skill,
+      /## Harness Superpowers executing-plans replan patch[\s\S]*## Remember/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersExecutingPlansReplanPatch is idempotent', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-executing-plans-idempotent-'));
+  try {
+    const target = path.join(dir, 'executing-plans');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/executing-plans'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersExecutingPlansReplanPatch(target);
+    const once = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    await applySuperpowersExecutingPlansReplanPatch(target);
+    const twice = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.equal(twice, once);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersExecutingPlansReplanPatch fails when Remember anchor cannot be found', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-executing-plans-missing-anchor-'));
+  try {
+    const target = path.join(dir, 'executing-plans');
+    await mkdir(target, { recursive: true });
+    await writeFile(
+      path.join(target, 'SKILL.md'),
+      [
+        '# Executing Plans',
+        '',
+        '## Overview',
+        '',
+        'Broken anchor surface.',
+        '',
+        '## Integration',
+        '',
+        'Still missing the expected section.'
+      ].join('\n')
+    );
+
+    await assert.rejects(
+      applySuperpowersExecutingPlansReplanPatch(target),
+      /Unable to apply Harness Superpowers executing-plans replan patch/
+    );
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

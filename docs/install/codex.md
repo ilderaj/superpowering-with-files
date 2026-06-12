@@ -54,6 +54,10 @@ Apply the Goal Round Start Protocol to `/goal`, projected `/plan-goal`, and simi
 
 Codex hooks support this flow with lightweight reminders and context injection only. They are not the sole enforcement mechanism.
 
+If execution exposes a `plan issue` rather than an `execution issue`, use a bounded review/revise/verify loop inside that same normal Superpowers execution discipline. This is a bounded escalation path, not a default always-on planner, and it does not change Codex native `/goal` positioning.
+
+Keep quick rounds lightweight during that escalation. For tracked and deep-reasoning rounds, preserve root-goal stability, avoid goal drift, and keep `planning/active/<task-id>/` authoritative while the companion plan or synced summaries are revised. Tracked rounds may only need synced-summary updates, while deep-reasoning rounds may revise the companion plan before execution resumes. If the 3rd review round is still a failed review, record blockers in the authoritative planning files and stop the execution attempt.
+
 `/plan-goal` is a projected planning-aware wrapper when the relevant skill/command surface exists. It composes with native `/goal`; it does not replace it.
 
 When the user intent is too sparse to hand-write a stable `/goal`, the projected `goal-writer` skill can draft one compact prompt that preserves SWF memory rules, includes numeric done criteria, and stays within Codex's size limits.
