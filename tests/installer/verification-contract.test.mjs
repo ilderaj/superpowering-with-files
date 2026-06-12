@@ -63,10 +63,66 @@ test('validateVerificationContract reports missing required fields', () => {
   assert.match(result.reasons.join('\n'), /Unacceptable Substitute/i);
 });
 
+test('parseVerificationContract normalizes away blank proof bullets and validation rejects them', () => {
+  const blankBullet = `  -${' '.repeat(3)}`;
+  const markdown = `
+## Verification Contract
+
+### Mode: execution
+- Proof Target:
+  - current implementation behavior matches scoped task intent
+- Primary Proof:
+${blankBullet}
+- Backstop Proof:
+  - spec compliance review
+- Escalation Trigger:
+  - repeated verification failure indicates a plan issue rather than unfinished code
+- Evidence Sink:
+  - progress.md
+- Reconcile Rule:
+  - reconcile required before finish when behavior changed
+- Unacceptable Substitute:
+  - BDD-only pass without invariant coverage
+`;
+
+  const contract = parseVerificationContract(markdown);
+  assert.deepEqual(contract.modes[0].primary_proof, []);
+
+  const result = validateVerificationContract(contract);
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.reasons, ['Mode execution is missing Primary Proof.']);
+});
+
 test('parseVerificationContract returns no modes when the section is absent', () => {
   const contract = parseVerificationContract('# Task Plan\n\n## Goal\nShip it.\n');
   assert.deepEqual(contract, { modes: [] });
   assert.deepEqual(validateVerificationContract(contract), { ok: true, reasons: [] });
+});
+
+test('validateVerificationContract rejects mode names outside the canonical mode family vocabulary', () => {
+  const markdown = `
+## Verification Contract
+
+### Mode: exection
+- Proof Target:
+  - current implementation behavior matches scoped task intent
+- Primary Proof:
+  - focused unit tests
+- Backstop Proof:
+  - spec compliance review
+- Escalation Trigger:
+  - repeated verification failure indicates a plan issue rather than unfinished code
+- Evidence Sink:
+  - progress.md
+- Reconcile Rule:
+  - reconcile required before finish when behavior changed
+- Unacceptable Substitute:
+  - BDD-only pass without invariant coverage
+`;
+
+  const result = validateVerificationContract(parseVerificationContract(markdown));
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.reasons, ['Mode exection has unknown Mode name "exection".']);
 });
 
 test('validateVerificationContract reports deterministic reasons for malformed mode entries', () => {

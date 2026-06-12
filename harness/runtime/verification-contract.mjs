@@ -18,6 +18,15 @@ const FIELD_LABELS = {
   unacceptable_substitute: 'Unacceptable Substitute'
 };
 
+const VALID_MODE_FAMILIES = new Set([
+  'design / planning',
+  'execution',
+  'review',
+  'acceptance / verify',
+  'reconcile / lifecycle',
+  'operations / release / adoption'
+]);
+
 function sectionBody(markdown = '') {
   const lines = markdown.split('\n');
   const start = lines.findIndex((line) => line.trim() === '## Verification Contract');
@@ -93,7 +102,10 @@ function matchFieldLines(body, label) {
   for (let index = start + 1; index < lines.length; index += 1) {
     const line = lines[index];
     if (line.startsWith('  - ')) {
-      values.push(line.slice(4).trim());
+      const normalized = line.slice(4).trim();
+      if (normalized) {
+        values.push(normalized);
+      }
       continue;
     }
     if (line.startsWith('- ')) {
@@ -130,6 +142,8 @@ export function validateVerificationContract(contract = { modes: [] }) {
   for (const mode of contract.modes || []) {
     if (!mode.mode) {
       reasons.push(`Verification mode entry #${mode.mode_index} is missing Mode name.`);
+    } else if (!VALID_MODE_FAMILIES.has(mode.mode)) {
+      reasons.push(`Mode ${mode.mode} has unknown Mode name "${mode.mode}".`);
     }
 
     const modeLabel = mode.mode ? `Mode ${mode.mode}` : `Verification mode entry #${mode.mode_index}`;

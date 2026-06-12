@@ -140,7 +140,7 @@ Phase 1
 <!--
   WHAT: Define task-level proof design when tracked or deep work needs explicit evidence planning.
   WHY: This keeps proof intent separate from unit-level execution structure.
-  WHEN: Quick tasks may omit this section. Tracked tasks should fill only the mode entries that are relevant.
+  WHEN: Quick tasks may omit this section. Tracked/deep-reasoning tasks may declare it when explicit proof design is needed, and should then fill only the relevant mode entries.
   MINIMAL FIELD SET PER MODE:
   - Proof Target
   - Primary Proof
