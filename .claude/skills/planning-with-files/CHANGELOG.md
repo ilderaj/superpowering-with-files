@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-06-10
+
+v3 targets long-running agentic runs on strong models (Opus 4.8, Fable 5, GPT 5.5 class). Everything new is opt-in. With no mode marker on disk, the hooks produce byte-identical v2.43.0 output: same delimiters, same raw progress tail, same advisory Stop behavior. Existing workflows need no changes.
+
+### Added
+
+- **Autonomous mode** (`init-session.sh --autonomous`): keeps the turn-start plan injection, drops the per-tool-call re-injection that the v2.21 eval measured as a 68 percent token tax. The plan file on disk stays the source of truth. Recitation is reduced, not removed: published evidence on goal drift in long runs still supports one injection per turn.
+- **Gated mode** (`init-session.sh --gated`): adds a deliberate completion gate on the Stop hook. The gate blocks a stop only when all five conditions hold: the plan opted into gated mode, a phase is `in_progress`, `stop_hook_active` is false, the block count is under the cap (default 20, `PWF_GATE_CAP` to override, reset at init), and the run ledger advanced since the previous block. Any single failure lets the stop through. An incomplete plan alone never blocks a session, which is the design lesson from issue #178.
+- **Run ledger**: `ledger-append`, `ledger-summary`, and `phase-status` scripts (sh and ps1). Workers append one JSON line per event to a per-agent `ledger-<agent>.jsonl`; the injected context becomes a fixed-shape synthesized summary (tick count, phases complete, in-progress phase, last event per agent) instead of a raw `progress.md` tail. The block carries no timestamps and no free text from disk, so it stays stable for the host prompt cache.
+- **Autonomous plan template** (`templates/task_plan_autonomous.md`) with optional per-phase `DependsOn`, `Owner`, and `AcceptanceCheck` fields next to the existing `Status` line, so v2 completion counting is unchanged.
+- **Migration guide**: MIGRATION.md gains a v2-to-v3 section with the host capability tiers (hard block: Claude Code, Codex CLI, Continue.dev; follow-up inject: Cursor, Pi, Kiro; notify only: OpenCode, Gemini CLI) and an honest note that OpenCode cannot enforce the gate until upstream ships Stop-hook re-activation.
+- **Tests**: new suites for the gate decision table, ledger append and summary, init modes, realpath containment, and script location parity. Suite total: 178 passed, 4 skipped.
+
+### Changed
+
+- The four giant hook one-liners in SKILL.md frontmatter are now thin dispatchers that call `scripts/inject-plan.sh` and `scripts/gate-stop.sh`. In legacy mode the dispatcher output is byte-identical to the v2.43 inline commands, verified by diffing both against the same fixtures.
+- The mtime-keyed SHA cache moved from the shared `${TMPDIR:-/tmp}/pwf-sha` to the user-private `$XDG_CACHE_HOME/pwf-sha` (default `~/.cache/pwf-sha`). The first session after upgrade rehashes attested plans once, then the cache repopulates.
+- The version parity test no longer fails on fresh clones that lack the gitignored `clawhub-upload/` staging folder. Contributors hit this as a phantom failure when running the full suite against a clean checkout.
+
+### Security
+
+- v3 modes refuse to inject an unattested plan body. Autonomous and gated sessions attest the plan at init, and editing the plan afterward requires an explicit re-attest. An unattended loop never feeds an unverified plan into context.
+- Per-session nonce delimiters in v3 modes (`===BEGIN-PLAN-DATA-<nonce>===`) replace the static markers, which makes delimiter-confusion injection harder. The limitation is documented in SKILL.md: an attacker with plan-write access can read the nonce, so attestation, not the nonce, is the defense there.
+- The raw `progress.md` tail is no longer injected in v3 modes. `progress.md` is not covered by attestation, so instruction-like text appended there during an unattended run used to reach the model context every turn.
+- Realpath containment in the plan-dir resolver: a symlinked plan directory that escapes the project root is treated as unresolved instead of being hashed and injected.
+- The attestation writer closes a read-then-write integrity gap and handles the PowerShell 5.1 BOM case that could brick attestation files written on stock Windows.
+
+### Fixed
+
+- All 12 findings from the pre-release adversarial review, including control characters in gate block reasons breaking the Stop-hook JSON, a `stop_hook_active` false positive, mode token parsing, and missing dispatcher scripts on the plugin-marketplace path.
+- The ledger script trio now ships in root `scripts/` as well, so the plugin-marketplace fallback route gets the structured ledger summary instead of silently falling back to the raw progress tail. A new location-parity test pins the full dual-shipped script set byte-identical in both locations.
+
 ## [2.43.0] - 2026-05-26
 
 ### Added

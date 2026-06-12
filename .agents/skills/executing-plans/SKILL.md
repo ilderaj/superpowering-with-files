@@ -54,6 +54,14 @@ After all tasks complete and verified:
 
 **Don't force through blockers** - stop and ask.
 
+## Harness Superpowers executing-plans replan patch
+
+- If execution suggests the approved plan is insufficient, first distinguish an `execution issue` from a `plan issue`.
+- Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop.
+- Keep the root goal stable instead of reopening broad planning or route selection.
+- Sync durable changes back to `planning/active/<task-id>/`.
+- If the mini-loop still fails, stop and record blockers instead of looping forever.
+
 ## Remember
 - Review plan critically first
 - Follow plan steps exactly

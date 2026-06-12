@@ -97,21 +97,13 @@ def _archive_readiness_status(reconciliation_markdown: str) -> str:
     return ""
 
 
-def _project_path_for_plan_dir(plan_dir: Path) -> Path:
-    if plan_dir.parent.name == ".planning":
-        return plan_dir.parent.parent
-    if plan_dir.parent.name in {"active", "archive"} and plan_dir.parent.parent.name == "planning":
-        return plan_dir.parent.parent.parent
-    return plan_dir
-
-
 def _execution_receipt_directory(plan_dir: Path) -> Path:
-    project_path = _project_path_for_plan_dir(plan_dir)
+    project_path = plan_dir.parent.parent.parent
     return project_path / ".harness" / "execution" / "receipts" / plan_dir.name
 
 
 def _followup_closure_directory(plan_dir: Path) -> Path:
-    project_path = _project_path_for_plan_dir(plan_dir)
+    project_path = plan_dir.parent.parent.parent
     return project_path / ".harness" / "execution" / "followup-closures" / plan_dir.name
 
 
