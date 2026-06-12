@@ -136,6 +136,37 @@ Phase 1
 - Exit Criteria:
   - define the exact condition for moving from done toward verified
 
+## Verification Contract
+<!--
+  WHAT: Define task-level proof design when tracked or deep work needs explicit evidence planning.
+  WHY: This keeps proof intent separate from unit-level execution structure.
+  WHEN: Quick tasks may omit this section. Tracked tasks should fill only the mode entries that are relevant.
+  MINIMAL FIELD SET PER MODE:
+  - Proof Target
+  - Primary Proof
+  - Backstop Proof
+  - Escalation Trigger
+  - Evidence Sink
+  - Reconcile Rule
+  - Unacceptable Substitute
+-->
+
+### Mode: execution
+- Proof Target:
+  - current implementation behavior matches scoped task intent
+- Primary Proof:
+  - focused unit tests
+- Backstop Proof:
+  - spec compliance review
+- Escalation Trigger:
+  - repeated verification failure indicates a plan issue rather than unfinished code
+- Evidence Sink:
+  - progress.md
+- Reconcile Rule:
+  - reconcile before finish when behavior, policy, or adapter output changed
+- Unacceptable Substitute:
+  - BDD-only pass without invariant coverage
+
 ## Key Questions
 <!-- 
   WHAT: Important questions you need to answer during the task.
