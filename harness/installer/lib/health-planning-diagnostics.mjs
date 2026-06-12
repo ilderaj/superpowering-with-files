@@ -5,11 +5,92 @@ import { promisify } from 'node:util';
 import { inspectPlanLocations } from './plan-locations.mjs';
 import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 import { parseExecutionContract, validateExecutionContract } from '../../runtime/execution-contract.mjs';
+import {
+  parseVerificationContract,
+  validateVerificationContract
+} from '../../runtime/verification-contract.mjs';
 
 const execFileAsync = promisify(execFile);
 const UTC8_TIMESTAMP_PATTERN = /(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) UTC\+8/g;
 const MIDNIGHT_RECORD_PATTERN =
   /^(## (?:Session|Findings Record|Plan Record): |-\s+\*\*Started:\*\* )(\d{4}-\d{2}-\d{2}) 00:00:00 UTC\+8$/gm;
+const VERIFICATION_FIELD_LABELS = new Set([
+  'Proof Target',
+  'Primary Proof',
+  'Backstop Proof',
+  'Escalation Trigger',
+  'Evidence Sink',
+  'Reconcile Rule',
+  'Unacceptable Substitute'
+]);
+
+function normalizeVerificationFieldLabel(value = '') {
+  return value.toLowerCase().replace(/[^a-z]/g, '');
+}
+
+function collectMalformedVerificationFieldLabels(markdown = '') {
+  const lines = markdown.split('\n');
+  const malformed = [];
+  let inSection = false;
+  let currentMode = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (trimmed === '## Verification Contract') {
+      inSection = true;
+      currentMode = null;
+      continue;
+    }
+
+    if (!inSection) {
+      continue;
+    }
+
+    if (line.startsWith('## ')) {
+      break;
+    }
+
+    if (line.startsWith('### Mode:')) {
+      currentMode = line.slice('### Mode:'.length).trim() || '(missing mode name)';
+      continue;
+    }
+
+    if (!line.startsWith('- ')) {
+      continue;
+    }
+
+    const rawLabel = trimmed.slice(2);
+    if (!rawLabel || rawLabel.startsWith('- ')) {
+      continue;
+    }
+
+    const colonIndex = rawLabel.indexOf(':');
+    const label = colonIndex === -1 ? rawLabel : rawLabel.slice(0, colonIndex).trim();
+    if (!label) {
+      continue;
+    }
+
+    const normalizedLabel = normalizeVerificationFieldLabel(label);
+    const matchingField = [...VERIFICATION_FIELD_LABELS].find(
+      (fieldLabel) => normalizeVerificationFieldLabel(fieldLabel) === normalizedLabel
+    );
+
+    if (!matchingField) {
+      continue;
+    }
+
+    if (label !== matchingField || colonIndex === -1) {
+      malformed.push({
+        mode: currentMode,
+        label,
+        expected: `${matchingField}:`
+      });
+    }
+  }
+
+  return malformed;
+}
 
 export async function inspectActiveTaskState(rootDir) {
   const activeRoot = path.join(rootDir, 'planning/active');
@@ -120,6 +201,48 @@ export async function inspectExecutionContractHealth(rootDir) {
       path: path.relative(rootDir, taskPlanPath),
       severity: 'warning',
       message: `Execution contract needs attention: ${validation.reasons.join('; ')}`
+    });
+  }
+
+  return results;
+}
+
+export async function inspectVerificationContractHealth(rootDir) {
+  const activeRoot = path.join(rootDir, 'planning/active');
+  const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
+  const results = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const taskPlanPath = path.join(activeRoot, entry.name, 'task_plan.md');
+    const markdown = await readFile(taskPlanPath, 'utf8').catch(() => null);
+    if (!markdown || !markdown.includes('## Verification Contract')) {
+      continue;
+    }
+
+    const parsed = parseVerificationContract(markdown);
+    const validation = validateVerificationContract(parsed);
+    const malformedFields = collectMalformedVerificationFieldLabels(markdown);
+    if (validation.ok && malformedFields.length === 0) {
+      continue;
+    }
+
+    const reasons = [...validation.reasons];
+    for (const malformedField of malformedFields) {
+      const modeLabel = malformedField.mode ? `Mode ${malformedField.mode}` : 'Verification contract';
+      reasons.push(
+        `${modeLabel} has malformed field label "${malformedField.label}". Use "${malformedField.expected}".`
+      );
+    }
+
+    results.push({
+      type: 'verification-contract-warning',
+      path: path.relative(rootDir, taskPlanPath),
+      severity: 'warning',
+      message: `Verification contract declaration needs attention: ${reasons.join('; ')}`
     });
   }
 
@@ -244,6 +367,9 @@ export async function inspectPlanningDiagnostics({ rootDir, homeDir }) {
     ...canonicalPlanLocations,
     ...filteredCompanionSyncLocations,
     ...(await inspectExecutionContractHealth(rootDir)),
+    // V1 keeps verification-contract enforcement on health/doctor only.
+    // Summary exposure stays deferred until exact summary tests exist and operator need is demonstrated.
+    ...(await inspectVerificationContractHealth(rootDir)),
     ...(await inspectPlanningTimestampHealth(rootDir))
   ];
 

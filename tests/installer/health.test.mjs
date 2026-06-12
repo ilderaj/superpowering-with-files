@@ -2494,6 +2494,113 @@ test('readHarnessHealth warns when an Execution Contract unit is malformed', asy
   }
 });
 
+test('readHarnessHealth warns when an explicit Verification Contract declaration is malformed', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/demo-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/demo-task/task_plan.md'),
+      [
+        '# Task Plan: Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Verification Contract',
+        '',
+        '### Mode: exection',
+        '- Proof Target',
+        '- Primary Proof',
+        '- Backstop Proof: fallback screenshot',
+        '- Escalation Trigger: if evidence is missing',
+        '- Evidence Sink: progress.md',
+        '- Reconcile Rule: compare the before and after output',
+        '- Unacceptable Substitute: saying it should pass'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/demo-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/demo-task/progress.md'), '# Progress\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const warning = health.warnings.find((entry) =>
+      entry.includes('Verification contract declaration needs attention')
+    );
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(warning);
+    assert.match(warning, /unknown Mode name "exection"/);
+    assert.match(warning, /malformed field label "Proof Target"/);
+    assert.match(warning, /malformed field label "Primary Proof"/);
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'verification-contract-warning' &&
+          location.path === 'planning/active/demo-task/task_plan.md' &&
+          location.message.includes('Verification contract declaration needs attention')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth does not warn when a task omits the Verification Contract section', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/demo-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/demo-task/task_plan.md'),
+      [
+        '# Task Plan: Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Goal',
+        'Keep this task lightweight.'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/demo-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/demo-task/progress.md'), '# Progress\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      !health.warnings.some((warning) => warning.includes('Verification contract declaration needs attention'))
+    );
+    assert.ok(
+      !health.planLocations.some((location) => location.type === 'verification-contract-warning')
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth reports archive-ready companion drift as a problem', async () => {
   const root = await createHarnessFixture();
   try {

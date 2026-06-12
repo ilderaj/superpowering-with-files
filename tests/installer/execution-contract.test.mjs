@@ -99,3 +99,56 @@ test('validateExecutionContract rejects unknown lifecycle states', () => {
   assert.equal(result.ok, false);
   assert.match(result.reasons.join('\n'), /unknown Status/i);
 });
+
+test('parseExecutionContract ignores a neighboring Verification Contract section', () => {
+  const markdown = `
+## Execution Contract
+
+### Unit: unit-01
+- Kind: implementation
+- Status: planned
+- Scope:
+  - Do: keep execution parsing stable
+  - Not do: infer verification status
+- Owner Mode: inline
+- Allowed Ops:
+  - Files: harness/core/**
+  - Commands: node --test
+  - External effects: none
+- Dependencies:
+  - none
+- Verification Plan:
+  - node --test tests/installer/execution-contract.test.mjs
+- Return Artifacts:
+  - patch
+- Integration Target:
+  - progress.md
+- Exit Criteria:
+  - execution parser stays deterministic
+
+## Verification Contract
+
+### Mode: execution
+- Proof Target: command output matches the task claim
+- Primary Proof:
+  - node --test tests/installer/execution-contract.test.mjs
+- Backstop Proof:
+  - capture the failing output before retrying
+- Escalation Trigger:
+  - if execution evidence is stale
+- Evidence Sink:
+  - progress.md
+- Reconcile Rule:
+  - compare expected and actual verification output
+- Unacceptable Substitute:
+  - claiming the change should work
+`;
+
+  const contract = parseExecutionContract(markdown);
+  const result = validateExecutionContract(contract);
+
+  assert.equal(contract.units.length, 1);
+  assert.equal(contract.units[0].unit_id, 'unit-01');
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.reasons, []);
+});
