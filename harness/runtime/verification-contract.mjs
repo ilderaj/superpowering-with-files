@@ -25,7 +25,11 @@ const VALID_MODE_FAMILIES = new Set([
   'acceptance / verify',
   'reconcile / lifecycle',
   'operations / release / adoption'
-]);
+].map(normalizeModeFamily));
+
+function normalizeModeFamily(mode = '') {
+  return mode.trim().replace(/\s*\/\s*/g, '/');
+}
 
 function sectionBody(markdown = '') {
   const lines = markdown.split('\n');
@@ -142,7 +146,7 @@ export function validateVerificationContract(contract = { modes: [] }) {
   for (const mode of contract.modes || []) {
     if (!mode.mode) {
       reasons.push(`Verification mode entry #${mode.mode_index} is missing Mode name.`);
-    } else if (!VALID_MODE_FAMILIES.has(mode.mode)) {
+    } else if (!VALID_MODE_FAMILIES.has(normalizeModeFamily(mode.mode))) {
       reasons.push(`Mode ${mode.mode} has unknown Mode name "${mode.mode}".`);
     }
 

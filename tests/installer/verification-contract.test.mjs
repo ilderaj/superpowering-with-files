@@ -99,6 +99,79 @@ test('parseVerificationContract returns no modes when the section is absent', ()
   assert.deepEqual(validateVerificationContract(contract), { ok: true, reasons: [] });
 });
 
+test('validateVerificationContract accepts published canonical mode-family spellings', () => {
+  const markdown = `
+## Verification Contract
+
+### Mode: design/planning
+- Proof Target:
+  - planning intent matches the approved scope
+- Primary Proof:
+  - review proof
+- Backstop Proof:
+  - lifecycle/governance proof
+- Escalation Trigger:
+  - planning contradictions appear during execution or review
+- Evidence Sink:
+  - findings.md
+- Reconcile Rule:
+  - reconcile before execution if scope or risk framing changed
+- Unacceptable Substitute:
+  - unit test pass without plan review
+
+### Mode: acceptance/verify
+- Proof Target:
+  - delivered behavior satisfies acceptance intent
+- Primary Proof:
+  - BDD/acceptance proof
+- Backstop Proof:
+  - focused invariant proof
+- Escalation Trigger:
+  - acceptance proof passes while scoped invariants still drift
+- Evidence Sink:
+  - progress.md
+- Reconcile Rule:
+  - reconcile before close when acceptance evidence conflicts with review notes
+- Unacceptable Substitute:
+  - review-only approval without acceptance evidence
+
+### Mode: reconcile/lifecycle
+- Proof Target:
+  - lifecycle state and durable records are consistent
+- Primary Proof:
+  - lifecycle/governance proof
+- Backstop Proof:
+  - operational proof
+- Escalation Trigger:
+  - closeout claims depend on stale or unsynced records
+- Evidence Sink:
+  - task_plan.md
+- Reconcile Rule:
+  - reconcile required before finish when durable state changed
+- Unacceptable Substitute:
+  - green code tests without lifecycle reconciliation
+
+### Mode: operations/release/adoption
+- Proof Target:
+  - release or adoption state matches the intended operational outcome
+- Primary Proof:
+  - operational proof
+- Backstop Proof:
+  - lifecycle/governance proof
+- Escalation Trigger:
+  - release receipts or adoption status disagree with repo state
+- Evidence Sink:
+  - progress.md
+- Reconcile Rule:
+  - reconcile before close when operational state changed
+- Unacceptable Substitute:
+  - test pass without operational confirmation
+`;
+
+  const result = validateVerificationContract(parseVerificationContract(markdown));
+  assert.deepEqual(result, { ok: true, reasons: [] });
+});
+
 test('validateVerificationContract rejects mode names outside the canonical mode family vocabulary', () => {
   const markdown = `
 ## Verification Contract
