@@ -226,16 +226,23 @@ export async function inspectVerificationContractHealth(rootDir) {
     const parsed = parseVerificationContract(markdown);
     const validation = validateVerificationContract(parsed);
     const malformedFields = collectMalformedVerificationFieldLabels(markdown);
-    if (validation.ok && malformedFields.length === 0) {
-      continue;
+    const reasons = [];
+    if (parsed.modes.length === 0) {
+      reasons.push(
+        'Verification Contract declares a section but does not define any `### Mode:` blocks.'
+      );
     }
 
-    const reasons = [...validation.reasons];
+    reasons.push(...validation.reasons);
     for (const malformedField of malformedFields) {
       const modeLabel = malformedField.mode ? `Mode ${malformedField.mode}` : 'Verification contract';
       reasons.push(
         `${modeLabel} has malformed field label "${malformedField.label}". Use "${malformedField.expected}".`
       );
+    }
+
+    if (reasons.length === 0) {
+      continue;
     }
 
     results.push({

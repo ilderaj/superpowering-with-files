@@ -2556,6 +2556,62 @@ test('readHarnessHealth warns when an explicit Verification Contract declaration
   }
 });
 
+test('readHarnessHealth warns when a Verification Contract section declares no mode blocks', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/demo-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/demo-task/task_plan.md'),
+      [
+        '# Task Plan: Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Verification Contract',
+        '- Proof Target: capture the exact command output',
+        '- Primary Proof:',
+        '  - node --test tests/installer/health.test.mjs',
+        '- Evidence Sink: progress.md'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/demo-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/demo-task/progress.md'), '# Progress\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const warning = health.warnings.find((entry) =>
+      entry.includes('Verification contract declaration needs attention')
+    );
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(warning);
+    assert.match(warning, /does not define any `### Mode:` blocks/);
+    assert.doesNotMatch(warning, /verified|reconciled/i);
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'verification-contract-warning' &&
+          location.path === 'planning/active/demo-task/task_plan.md' &&
+          location.message.includes('does not define any `### Mode:` blocks')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth does not warn when a task omits the Verification Contract section', async () => {
   const root = await createHarnessFixture();
   try {
