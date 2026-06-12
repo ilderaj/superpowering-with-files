@@ -239,6 +239,22 @@ test('sync materializes executing-plans replan guidance for shared and Claude sk
       assert.match(skill, /declared `unacceptable substitute`/, target);
     }
 
+    const writingPlansTargets = {
+      shared: path.join(root, '.agents/skills/writing-plans/SKILL.md'),
+      claude: path.join(root, '.claude/skills/writing-plans/SKILL.md')
+    };
+
+    for (const [target, skillPath] of Object.entries(writingPlansTargets)) {
+      const skill = await readFile(skillPath, 'utf8');
+      assert.match(skill, /Harness Superpowers writing-plans location patch/, target);
+      assert.match(
+        skill,
+        /Declare the proof stack explicitly: `proof target`, `primary proof`, `backstop proof`, `escalation trigger`, `evidence sink`, `reconcile rule`, and `unacceptable substitute`\./,
+        target
+      );
+      assert.match(skill, /Do not stop at listing commands;/, target);
+    }
+
     assert.match(
       await readFile(path.join(root, '.agents/skills/writing-plans/SKILL.md'), 'utf8'),
       /Harness Superpowers writing-plans location patch/
