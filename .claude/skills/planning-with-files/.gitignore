@@ -56,3 +56,10 @@ CLAUDE.md
 
 # Node.js modules pulled into IDE adapters
 node_modules/
+
+# Deferred personal dev/strategy notes (never published)
+.dev-notes/
+
+
+# v3 large banner exceeds GitHub's 100MB hard limit and stays local permanently
+media/v3-banner-large.png

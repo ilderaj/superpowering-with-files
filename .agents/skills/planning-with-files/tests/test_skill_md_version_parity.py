@@ -99,6 +99,13 @@ class SkillMdVersionParityTests(unittest.TestCase):
         for rel in PARITY_SKILL_MD:
             path = REPO_ROOT / rel
             if not path.is_file():
+                # clawhub-upload/ is gitignored publish staging: present on the
+                # maintainer machine, absent in a fresh clone. Skipping keeps
+                # the suite green for contributors (it failed for them before,
+                # see PR #181's test notes) while still locking the version
+                # whenever the folder exists.
+                if rel.startswith("clawhub-upload/"):
+                    continue
                 missing.append(rel)
                 continue
             actual = read_skill_version(path)

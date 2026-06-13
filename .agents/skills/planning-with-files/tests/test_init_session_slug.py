@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-INIT_SH = REPO_ROOT / "skills" / "planning-with-files" / "scripts" / "init-session.sh"
+INIT_SH = REPO_ROOT / "scripts" / "init-session.sh"
 
 
 class InitSessionSlugTests(unittest.TestCase):
