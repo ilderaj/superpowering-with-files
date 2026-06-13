@@ -112,8 +112,13 @@ Harness exposes a small operator-facing lane map:
 - `verify`: run focused checks, full verification, dry-runs, and doctor
 - `reconcile`: align intent, actual changes, evidence, and follow-up before finish/archive
 - `finish`: return scoped work to the recorded base and update task state
-- `release`: align verified `dev`, release docs, adoption state, and `main`
+- `release`: align verified `dev`, release notes and artifacts, adoption state, and `main`
 - `archive`: close and archive only after lifecycle and reconcile gates pass
+
+Two helpers matter when the work stops being linear:
+
+- `goal2plan` expands sparse `/goal` intake into a reviewed implementation plan before execution starts.
+- `autonomous-release-closure` drives review, promotion, cleanup, and adopt follow-through from current evidence instead of a one-shot release script.
 
 See [Workflows](docs/workflows.md) for where each mode family sits, which lane owns its primary proof, and when reconciliation or review is required because unit/BDD evidence is not enough.
 
@@ -165,6 +170,7 @@ See [Architecture](docs/architecture.md) for the detailed layer and source-of-tr
 ./scripts/harness adoption-status
 ./scripts/harness fetch
 ./scripts/harness update
+npm run release:pack
 ```
 
 ## Read Next
@@ -178,6 +184,7 @@ See [Architecture](docs/architecture.md) for the detailed layer and source-of-tr
 ### Operate and maintain
 
 - [Maintenance](docs/maintenance.md) for lifecycle audit, upkeep, sync/update/archive discipline
+- [Release](docs/release.md) for promotion, release notes, and artifact publication
 - [Reconciliation](docs/reconciliation.md) for source-of-truth conflict handling and archive readiness
 - [State convergence](docs/state-convergence.md) for roadmap/backlog/planning alignment
 

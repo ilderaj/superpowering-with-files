@@ -8,25 +8,26 @@ import { sha256File } from './sha256.mjs';
 import { supportedPluginTargets } from './platform-contracts.mjs';
 
 export async function buildAll({
-  version = '1.0.9',
+  version,
   release = false,
   outDir,
   rootDir = process.cwd(),
   buildDir
 } = {}) {
-  const releaseOut = path.resolve(outDir ?? path.resolve('dist/release', version));
-  const buildOut = path.resolve(buildDir ?? defaultBuildDir({ outDir, releaseOut, version }));
+  const resolvedVersion = version ?? (await readRootVersion(rootDir));
+  const releaseOut = path.resolve(outDir ?? path.resolve('dist/release', resolvedVersion));
+  const buildOut = path.resolve(buildDir ?? defaultBuildDir({ outDir, releaseOut, version: resolvedVersion }));
   await rm(releaseOut, { recursive: true, force: true });
   await rm(buildOut, { recursive: true, force: true });
   await mkdir(releaseOut, { recursive: true });
   await mkdir(buildOut, { recursive: true });
 
   const artifacts = [];
-  const runtimeRoot = await stageRuntimePackage({ rootDir, version, buildOut });
+  const runtimeRoot = await stageRuntimePackage({ rootDir, version: resolvedVersion, buildOut });
   artifacts.push(
     await packDirectory({
       sourceRoot: runtimeRoot,
-      name: `harness-runtime-${version}.tgz`,
+      name: `harness-runtime-${resolvedVersion}.tgz`,
       target: 'runtime',
       type: 'runtime',
       outDir: releaseOut
@@ -34,25 +35,30 @@ export async function buildAll({
   );
 
   for (const target of supportedPluginTargets) {
-    const build = await buildPlugin({ target, version, outDir: path.join(buildOut, 'plugins'), rootDir });
-    artifacts.push(await packPlugin({ pluginRoot: build.pluginRoot, target, version, outDir: releaseOut }));
+    const build = await buildPlugin({ target, version: resolvedVersion, outDir: path.join(buildOut, 'plugins'), rootDir });
+    artifacts.push(await packPlugin({ pluginRoot: build.pluginRoot, target, version: resolvedVersion, outDir: releaseOut }));
   }
 
-  const manifest = await buildArtifactManifest({ version, artifacts });
+  const manifest = await buildArtifactManifest({ version: resolvedVersion, artifacts });
   await writeFile(path.join(releaseOut, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   await writeFile(path.join(releaseOut, 'SHA256SUMS'), await renderSha256Sums(artifacts));
-  await writeFile(path.join(releaseOut, 'release-notes.md'), renderReleaseNotes(version));
+  await writeFile(path.join(releaseOut, 'release-notes.md'), renderReleaseNotes(resolvedVersion));
 
   if (!release) {
     await writeFile(path.join(releaseOut, '.development-build'), 'This build was created without --release.\n');
   }
 
   return {
-    version,
+    version: resolvedVersion,
     releaseOut,
     artifacts,
     manifest
   };
+}
+
+async function readRootVersion(rootDir) {
+  const rootPackage = JSON.parse(await readFile(path.join(rootDir, 'package.json'), 'utf8'));
+  return rootPackage.version;
 }
 
 function defaultBuildDir({ outDir, releaseOut, version }) {
