@@ -45,9 +45,7 @@ SCRIPTS = [
     "scripts/check-complete.ps1",
     "scripts/init-session.sh",
     "scripts/init-session.ps1",
-    "scripts/planning_paths.py",
     "scripts/session-catchup.py",
-    "scripts/task_lifecycle.py",
     "scripts/resolve-plan-dir.sh",
     "scripts/resolve-plan-dir.ps1",
     "scripts/set-active-plan.sh",
@@ -129,7 +127,12 @@ IDE_MANIFESTS = {
     # .openclaw, .kilocode, .adal, .agent removed in v2.24.0 (IDE audit)
     # These IDEs use the standard Agent Skills spec — install via npx skills add
 
-    # Pi is intentionally excluded from the current repo-local support scope.
+    ".pi": _build_manifest(
+        ".pi/skills/planning-with-files",
+        ref_style="flat",
+        include_scripts=True,
+        # package.json and README.md are IDE-specific, not synced
+    ),
 
     ".continue": _build_manifest(
         ".continue/skills/planning-with-files",

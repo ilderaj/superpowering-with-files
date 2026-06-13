@@ -1,7 +1,9 @@
 import { access, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 
-const CANONICAL_PLANNING_FILES = ['task_plan.md', 'findings.md', 'progress.md'];
+const REQUIRED_PLANNING_FILES = ['task_plan.md', 'findings.md', 'progress.md'];
+const OPTIONAL_PLANNING_FILES = ['reconciliation.md'];
+const CANONICAL_PLANNING_FILES = [...REQUIRED_PLANNING_FILES, ...OPTIONAL_PLANNING_FILES];
 
 async function exists(filePath) {
   try {
@@ -259,7 +261,7 @@ export async function inspectPlanLocations(rootDir) {
     await collectActivePlanningReferences(rootDir);
   const { references: archivedPlanningReferences } = await collectArchivedPlanningReferences(rootDir);
 
-  for (const fileName of ['task_plan.md', 'findings.md', 'progress.md']) {
+  for (const fileName of CANONICAL_PLANNING_FILES) {
     const filePath = path.join(rootDir, fileName);
     if (await exists(filePath)) {
       results.push({

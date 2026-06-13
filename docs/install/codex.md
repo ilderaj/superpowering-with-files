@@ -39,6 +39,25 @@ codex features list | rg '^hooks\s'
 
 Expected on current builds: a `hooks` row marked enabled. If your Codex version uses a different gate name or config shape, follow the upstream Codex docs for that build instead of assuming Harness can enable it for you.
 
+## Mode-Aware Verification Contract
+
+Codex uses the same repo-owned `Mode-Aware Verification Contract` vocabulary as the rest of Harness.
+Canonical proof semantics live in the shared policy/docs; this table only maps those semantics onto Codex-specific surfaces.
+
+| Mode Family | Codex Surface | Primary Proof | Existing Coverage |
+| --- | --- | --- | --- |
+| design/planning | `planning/active/<task-id>/`, `/goal` intake shaping, companion-plan authoring | review proof | Goal Round Start Protocol, `goal-writer`, `goal2plan`, reviewer-gated companion plans |
+| execution | inline implementation or subagent execution | unit/invariant proof | focused tests, narrow fixtures, diffs, targeted commands |
+| review | read-only reviewer subagent, PR review, diff review | review proof | reviewer gate for new/materially revised companion plans, normal review flow |
+| acceptance/verify | focused validation inside the task round | BDD/acceptance proof | `node --test`, `npm run verify`, `./scripts/harness verify` |
+| reconcile/lifecycle | verify-to-finish transition in task memory | lifecycle/governance proof | `reconciliation.md`, lifecycle status, `active-summary` |
+| operations/release/adoption | install, sync, doctor, adoption, release, backup/takeover work | operational proof | `sync --dry-run`, `doctor --check-only`, adoption/release checks |
+
+The table summarizes proof-stack core vocabulary. When a tracked or deep-reasoning Codex task needs explicit proof design, the minimal declared contract shape is seven fields: `Proof Target`, `Primary Proof`, `Backstop Proof`, `Escalation Trigger`, `Evidence Sink`, `Reconcile Rule`, and `Unacceptable Substitute`. Quick rounds stay lightweight and usually omit the declaration.
+For `design/planning` in Codex, `review proof` remains primary; `lifecycle/governance proof` is only the backstop when acceptance design or durable planning-state alignment carries residual risk.
+
+This vocabulary does not change Codex native `/goal` positioning. It only makes proof expectations explicit so review, reconciliation, and operational evidence can be primary when unit or BDD checks are not the highest-value proof.
+
 ## Goal-like Continuations
 
 Codex `/goal` stays native. Harness does not add an external runner and does not modify Codex internals.
@@ -46,13 +65,18 @@ Codex `/goal` stays native. Harness does not add an external runner and does not
 Apply the Goal Round Start Protocol to `/goal`, projected `/plan-goal`, and similar continuation flows:
 
 1. Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` first.
-2. If a companion plan is referenced, read only the compact section needed for the current round.
-3. Reclassify the round as `quick`, `tracked`, or `deep-reasoning`.
-4. Keep quick rounds lightweight, keep `planning/active/<task-id>/` authoritative for tracked rounds, and for deep-reasoning rounds require 1 read-only reviewer subagent before execution whenever the companion plan is new or materially revised.
-5. Execute only from an approved companion plan, using normal Superpowers execution discipline for inline versus subagent work, worktree isolation, and git-progress preservation when useful.
-6. After each phase, sync durable decisions, validation, review verdicts, companion-plan linkage, execution mode, and sync-back status into `planning/active/<task-id>/`.
+2. If `reconciliation.md` exists and the current round depends on lifecycle evidence such as `verify`, `reconcile`, or `finish`, read that optional lifecycle artifact too.
+3. If a companion plan is referenced, read only the compact section needed for the current round.
+4. Reclassify the round as `quick`, `tracked`, or `deep-reasoning`.
+5. Keep quick rounds lightweight, keep `planning/active/<task-id>/` authoritative for tracked rounds, and for deep-reasoning rounds require 1 read-only reviewer subagent before execution whenever the companion plan is new or materially revised.
+6. Execute only from an approved companion plan, using normal Superpowers execution discipline for inline versus subagent work, worktree isolation, and git-progress preservation when useful.
+7. After each phase, sync durable decisions, validation, review verdicts, companion-plan linkage, execution mode, and sync-back status into `planning/active/<task-id>/`.
 
 Codex hooks support this flow with lightweight reminders and context injection only. They are not the sole enforcement mechanism.
+
+If execution exposes a `plan issue` rather than an `execution issue`, use a bounded review/revise/verify loop inside that same normal Superpowers execution discipline. This is a bounded escalation path, not a default always-on planner, and it does not change Codex native `/goal` positioning.
+
+Keep quick rounds lightweight during that escalation. For tracked and deep-reasoning rounds, preserve root-goal stability, avoid goal drift, and keep `planning/active/<task-id>/` authoritative while the companion plan or synced summaries are revised. Tracked rounds may only need synced-summary updates, while deep-reasoning rounds may revise the companion plan before execution resumes. If the 3rd review round is still a failed review, record blockers in the authoritative planning files and stop the execution attempt.
 
 `/plan-goal` is a projected planning-aware wrapper when the relevant skill/command surface exists. It composes with native `/goal`; it does not replace it.
 

@@ -43,3 +43,16 @@ test('skill index declares hook projection metadata', async () => {
   assert.equal(index.skills.superpowers.hooks['claude-code'].config, 'claude-hooks.json');
   assert.equal(index.skills['planning-with-files'].hooks.default.adapter, 'task-scoped-planning');
 });
+
+test('skill index registers the executing-plans replan patch on the superpowers metadata surface', async () => {
+  const index = JSON.parse(await readFile('harness/core/skills/index.json', 'utf8'));
+
+  assert.deepEqual(index.skills.superpowers.childPatches['executing-plans'], {
+    type: 'superpowers-executing-plans-replan',
+    marker: 'Harness Superpowers executing-plans replan patch'
+  });
+  assert.deepEqual(index.skills.superpowers.childPatches['verification-before-completion'], {
+    type: 'superpowers-verification-before-completion',
+    marker: 'Harness Superpowers verification-before-completion proof patch'
+  });
+});

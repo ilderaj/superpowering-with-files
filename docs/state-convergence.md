@@ -9,7 +9,7 @@ Run a convergence check before roadmap/backlog edits, before archiving a batch o
 ## Inputs
 
 - `./scripts/harness active-summary` and, when useful, `./scripts/harness active-summary --json`
-- `planning/active/<task-id>/{task_plan.md,progress.md,findings.md,reconciliation.md}`
+- `planning/active/<task-id>/` with required core planning trio (`task_plan.md`, `progress.md`, `findings.md`) and optional lifecycle artifact `reconciliation.md`
 - [Roadmap](roadmap.md)
 - [Backlog](backlog.md)
 - [Reconciliation](reconciliation.md)

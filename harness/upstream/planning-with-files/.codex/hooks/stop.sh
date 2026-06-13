@@ -2,22 +2,33 @@
 # planning-with-files: Stop hook for Codex
 
 HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
-PLAN_DIR="$(sh "${HOOK_DIR}/resolve-active-plan-dir.sh" 2>/dev/null)"
+PLAN_DIR="$(sh "${HOOK_DIR}/resolve-plan-dir.sh" 2>/dev/null)"
 PLAN_FILE="${PLAN_DIR:+${PLAN_DIR}/}task_plan.md"
-CHECK_COMPLETE="${HOOK_DIR}/../../scripts/check-complete.sh"
-PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python)}"
 
-if [ ! -f "$PLAN_FILE" ] || [ ! -f "$CHECK_COMPLETE" ] || [ -z "$PYTHON_BIN" ]; then
+if [ ! -f "$PLAN_FILE" ]; then
     exit 0
 fi
 
-CHECK_OUTPUT="$(bash "$CHECK_COMPLETE" "$PLAN_FILE" 2>/dev/null || true)"
-[ -n "$CHECK_OUTPUT" ] || exit 0
+TOTAL=$(grep -c "### Phase" "$PLAN_FILE" || true)
+COMPLETE=$(grep -cF "**Status:** complete" "$PLAN_FILE" || true)
+IN_PROGRESS=$(grep -cF "**Status:** in_progress" "$PLAN_FILE" || true)
+PENDING=$(grep -cF "**Status:** pending" "$PLAN_FILE" || true)
 
-"$PYTHON_BIN" - <<'PY' "$CHECK_OUTPUT"
-import json
-import sys
+if [ "$COMPLETE" -eq 0 ] && [ "$IN_PROGRESS" -eq 0 ] && [ "$PENDING" -eq 0 ]; then
+    COMPLETE=$(grep -c "\[complete\]" "$PLAN_FILE" || true)
+    IN_PROGRESS=$(grep -c "\[in_progress\]" "$PLAN_FILE" || true)
+    PENDING=$(grep -c "\[pending\]" "$PLAN_FILE" || true)
+fi
 
-print(json.dumps({"followup_message": sys.argv[1]}, ensure_ascii=False))
-PY
+: "${TOTAL:=0}"
+: "${COMPLETE:=0}"
+: "${IN_PROGRESS:=0}"
+: "${PENDING:=0}"
+
+if [ "$COMPLETE" -eq "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
+    echo "{\"followup_message\": \"[planning-with-files] ALL PHASES COMPLETE ($COMPLETE/$TOTAL). If the user has additional work, add new phases to task_plan.md before starting.\"}"
+    exit 0
+fi
+
+echo "{\"followup_message\": \"[planning-with-files] Task incomplete ($COMPLETE/$TOTAL phases done). Update progress.md, then read task_plan.md and continue working on the remaining phases.\"}"
 exit 0

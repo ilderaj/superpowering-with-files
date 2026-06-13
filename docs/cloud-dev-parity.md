@@ -23,7 +23,7 @@ Cloud-dev parity is defined by contract and evidence, not by UI similarity. The 
 | Verification | Focused checks plus `npm run verify`/Harness verification as scope requires. | PR includes executed commands or explicit docs-only narrowing with rationale. | Human review required. |
 | PR target | Scoped work merges back to recorded base. | Task PR targets `cloud-dev`; promotion PR targets `dev`. | Direct assignment baseline verified. |
 | Promotion | Finish/release is explicit and reviewed. | Human reviews issue, PR, verification, implementation summary, and reconciliation before promotion. | Required. |
-| Reconciliation | `docs/reconciliation.md` gate before finish/archive. | Remote task must provide local reconciliation evidence or an explicit waiver before promotion. | Required contract field. |
+| Reconciliation | `docs/reconciliation.md` gate before finish/archive, backed by the same authoritative task directory and optional standalone `reconciliation.md` artifact when needed. | Remote task must provide local reconciliation evidence or an explicit waiver before promotion. | Required contract field. |
 | Recovery | Worktree/branch status and active task state guide recovery. | Inspect branch divergence, open PRs, latest workflow artifacts, and issue status before retry. | Existing operator guide plus future status summary. |
 
 ## Agent-Neutral Cloud Task Contract

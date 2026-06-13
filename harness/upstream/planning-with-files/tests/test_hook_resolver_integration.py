@@ -68,16 +68,6 @@ class HookResolverIntegrationTests(unittest.TestCase):
             self.assertIn("ACTIVE PLAN", result.stdout)
             self.assertIn("Refactor the auth layer", result.stdout)
 
-    def test_user_prompt_submit_injects_from_active_task_dir(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            plan_dir = root / "planning" / "active" / "demo"
-            write_plan_in_dir(plan_dir, goal="Active task goal")
-            result = run_hook("user-prompt-submit.sh", root, env_extra={"CODEX_THREAD_ID": "thread-without-plan"})
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("ACTIVE PLAN", result.stdout)
-            self.assertIn("Active task goal", result.stdout)
-
     def test_user_prompt_submit_legacy_root_still_works(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -126,16 +116,6 @@ class HookResolverIntegrationTests(unittest.TestCase):
             self.assertIn("allow", result.stdout)
             self.assertIn("My task goal", result.stderr)
 
-    def test_pre_tool_use_surfaces_plan_from_active_task_dir(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            plan_dir = root / "planning" / "active" / "demo"
-            write_plan_in_dir(plan_dir, goal="Current active goal")
-            result = run_hook("pre-tool-use.sh", root, env_extra={"CODEX_THREAD_ID": "thread-without-plan"})
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("allow", result.stdout)
-            self.assertIn("Current active goal", result.stderr)
-
     # ------------------------------------------------------------------
     # stop.sh
     # ------------------------------------------------------------------
@@ -158,17 +138,6 @@ class HookResolverIntegrationTests(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertIn("followup_message", result.stdout)
 
-    def test_stop_reports_incomplete_from_active_task_dir(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            plan_dir = root / "planning" / "active" / "demo"
-            write_plan_in_dir(plan_dir, goal="Build current feature")
-            result = run_hook("stop.sh", root, env_extra={"CODEX_THREAD_ID": "thread-without-plan"})
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("followup_message", result.stdout)
-            self.assertIn("task is active or incomplete", result.stdout)
-            self.assertNotIn("ALL PHASES COMPLETE", result.stdout)
-
     # ------------------------------------------------------------------
     # post-tool-use.sh
     # ------------------------------------------------------------------
@@ -188,15 +157,6 @@ class HookResolverIntegrationTests(unittest.TestCase):
                 "2026-01-10-work\n", encoding="utf-8"
             )
             result = run_hook("post-tool-use.sh", root)
-            self.assertEqual(0, result.returncode, result.stderr)
-            self.assertIn("progress.md", result.stdout)
-
-    def test_post_tool_use_reminds_when_plan_in_active_task_dir(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            plan_dir = root / "planning" / "active" / "demo"
-            write_plan_in_dir(plan_dir)
-            result = run_hook("post-tool-use.sh", root, env_extra={"CODEX_THREAD_ID": "thread-without-plan"})
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertIn("progress.md", result.stdout)
 

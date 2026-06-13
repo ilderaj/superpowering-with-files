@@ -46,6 +46,24 @@ test('init-session.sh writes progress sessions with a UTC+8 timestamp', async ()
   }
 });
 
+test('init-session.sh keeps v3 gated mode through the Harness root entrypoint', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await execFileAsync('bash', [
+      path.join(root, 'harness/upstream/planning-with-files/scripts/init-session.sh'),
+      '--gated',
+      'Build Pipeline'
+    ], { cwd: root });
+
+    const activePlan = (await readFile(path.join(root, '.planning/.active_plan'), 'utf8')).trim();
+    const mode = await readFile(path.join(root, '.planning', activePlan, '.mode'), 'utf8');
+
+    assert.equal(mode.trim(), 'autonomous gate');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 
 test('init-session.ps1 formats timestamps with an explicit UTC+8 offset', async () => {
   const script = await readFile(

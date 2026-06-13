@@ -171,7 +171,7 @@ The next focus area is Harness traceability and adoption convergence: first add 
 - Type: planning lifecycle
 - Scope: Persist reconciliation output in durable task memory and preserve it during archive.
 - Acceptance signals:
-  - Tracked work can store `planning/active/<task-id>/reconciliation.md` or an equivalent `## Reconciliation` progress section.
+  - Tracked work can store `planning/active/<task-id>/reconciliation.md` as an optional lifecycle artifact, or use an equivalent `## Reconciliation` progress section.
   - Archive procedures preserve the reconciliation artifact.
   - Active summaries can expose whether reconciliation is complete, not required, or still open.
   - Tiny tasks can explicitly mark `reconcile: not required` with a reason.
