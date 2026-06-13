@@ -6,10 +6,9 @@ This project uses a hybrid workflow:
 
 - `planning-with-files` is the persistent memory and planning system.
 - `superpowers` is an optional, temporary reasoning tool.
-- Persistent task state must live only in:
-  - `planning/active/<task-id>/task_plan.md`
-  - `planning/active/<task-id>/findings.md`
-  - `planning/active/<task-id>/progress.md`
+- Persistent task state must live only under `planning/active/<task-id>/`:
+  - required core planning trio: `task_plan.md`, `findings.md`, `progress.md`
+  - optional lifecycle artifact: `reconciliation.md`
   - explicitly closed task state may move to `planning/archive/<timestamp>-<task-id>/`
 
 ## Default Behavior
@@ -20,7 +19,7 @@ By default:
 - Do not invoke superpowers.
 - Do not perform heavyweight workflow routing for simple tasks.
 - Directly execute quick tasks.
-- Once a task is classified as a tracked task, create and keep the active task's three markdown files updated.
+- Once a task is classified as a tracked task, create and keep the required core planning trio updated, and add `reconciliation.md` only when lifecycle evidence needs its own artifact.
 - Isolate concurrent work by task id instead of sharing one project-root planning file set.
 - At the start of complex work, scan existing active tasks when stale context may matter, but do not move legacy or completed-looking tasks automatically.
 
@@ -52,7 +51,7 @@ Tool-call count is only a supporting signal. Exceeding five meaningful tool call
 
 Before each substantive goal round, continuation tick, or phase boundary:
 
-1. Restore context from `planning/active/<task-id>/` first. Read `task_plan.md`, `progress.md`, and `findings.md`. If those files reference a companion plan, read only the relevant compact section you need for the current round.
+1. Restore context from `planning/active/<task-id>/` first. Read `task_plan.md`, `progress.md`, and `findings.md`. If `reconciliation.md` exists and the current round depends on lifecycle evidence, read that optional lifecycle artifact too. If those files reference a companion plan, read only the relevant compact section you need for the current round.
 2. Reclassify the current round using the existing `quick`, `tracked`, and `deep-reasoning` model. A task can stay tracked overall while a specific round is quick or deep.
 3. Route the round by its current classification:
    - `quick`: stay lightweight. Do not create a companion plan and do not add subagents just because a goal loop is running.

@@ -31,33 +31,96 @@ function normalizeModeFamily(mode = '') {
   return mode.trim().replace(/\s*\/\s*/g, '/');
 }
 
-function sectionBody(markdown = '') {
-  const lines = markdown.split('\n');
-  const start = lines.findIndex((line) => line.trim() === '## Verification Contract');
-  if (start === -1) {
-    return '';
+function isFenceBoundary(trimmed = '', fence) {
+  if (!trimmed) {
+    return null;
   }
 
+  const match = trimmed.match(/^([`~]{3,})(.*)$/);
+  if (!match) {
+    return null;
+  }
+
+  const marker = match[1];
+  const character = marker[0];
+  const length = marker.length;
+
+  if (!fence) {
+    return {
+      action: 'open',
+      fence: { character, length }
+    };
+  }
+
+  if (fence.character === character && length >= fence.length && match[2].trim() === '') {
+    return {
+      action: 'close',
+      fence: null
+    };
+  }
+
+  return null;
+}
+
+function isTopLevelSectionHeading(trimmed = '') {
+  return trimmed.startsWith('## ') && !trimmed.startsWith('### ');
+}
+
+export function readVerificationContractSection(markdown = '') {
+  const lines = markdown.split('\n');
   const collected = [];
-  for (let index = start + 1; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (line.startsWith('## ')) {
+  let inSection = false;
+  let fence = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const boundary = isFenceBoundary(trimmed, fence);
+    if (boundary?.action === 'open') {
+      if (inSection) {
+        collected.push({ line, trimmed, inFence: false });
+      }
+      fence = boundary.fence;
+      continue;
+    }
+
+    if (boundary?.action === 'close') {
+      if (inSection) {
+        collected.push({ line, trimmed, inFence: true });
+      }
+      fence = null;
+      continue;
+    }
+
+    if (!inSection && !fence && trimmed === '## Verification Contract') {
+      inSection = true;
+      continue;
+    }
+
+    if (!inSection) {
+      continue;
+    }
+
+    if (!fence && isTopLevelSectionHeading(trimmed)) {
       break;
     }
-    collected.push(line);
+
+    collected.push({ line, trimmed, inFence: Boolean(fence) });
   }
 
-  return collected.join('\n');
+  return {
+    present: inSection,
+    lines: collected
+  };
 }
 
 function splitModes(markdown = '') {
-  const lines = sectionBody(markdown).split('\n');
+  const { lines } = readVerificationContractSection(markdown);
   const entries = [];
   let current = null;
 
-  for (const line of lines) {
-    if (line.startsWith('### Mode:')) {
-      if (current && (current.mode || current.body.length > 0)) {
+  for (const { line, trimmed, inFence } of lines) {
+    if (!inFence && trimmed.startsWith('### Mode:')) {
+      if (current) {
         entries.push({
           mode: current.mode,
           body: current.body.join('\n')
@@ -65,7 +128,7 @@ function splitModes(markdown = '') {
       }
 
       current = {
-        mode: line.slice('### Mode:'.length).trim(),
+        mode: trimmed.slice('### Mode:'.length).trim(),
         body: []
       };
       continue;
@@ -76,7 +139,7 @@ function splitModes(markdown = '') {
     }
   }
 
-  if (current && (current.mode || current.body.length > 0)) {
+  if (current) {
     entries.push({
       mode: current.mode,
       body: current.body.join('\n')

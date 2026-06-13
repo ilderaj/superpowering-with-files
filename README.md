@@ -37,14 +37,17 @@ flowchart TD
 | `planning/active/<task-id>/task_plan.md` | phases, lifecycle, decisions |
 | `planning/active/<task-id>/findings.md` | durable findings and constraints |
 | `planning/active/<task-id>/progress.md` | session log, checks, changed files |
+| `planning/active/<task-id>/reconciliation.md` | optional lifecycle artifact for standalone reconcile evidence and archive readiness |
 | `planning/archive/<timestamp>-<task-id>/` | closed task history after lifecycle guard passes |
 
 Rules:
 
 1. `planning-with-files` is the only durable task-memory system.
-2. Tracked tasks still use `planning/active/<task-id>/` even when implementation is straightforward.
-3. Superpowers may assist deep-reasoning phases, but durable state always syncs back to the active task.
-4. Reconcile sits between verify and finish/archive when a tracked task changes meaningful behavior, policy, workflow, or support contracts.
+2. `planning/active/<task-id>/` is the authoritative task-memory root; its required core planning trio is `task_plan.md`, `findings.md`, and `progress.md`.
+3. `reconciliation.md` is an optional lifecycle artifact inside that same canonical task directory, not a second planning system.
+4. Tracked tasks still use `planning/active/<task-id>/` even when implementation is straightforward.
+5. Superpowers may assist deep-reasoning phases, but durable state always syncs back to the active task.
+6. Reconcile sits between verify and finish/archive when a tracked task changes meaningful behavior, policy, workflow, or support contracts.
 
 ### Goal-like continuations
 
@@ -71,7 +74,7 @@ Harness uses one shared proof vocabulary across six mode families.
 | reconcile/lifecycle | between `verify` and `finish` / `archive` | lifecycle/governance proof | reconciliation gate, lifecycle status, `active-summary` |
 | operations/release/adoption | `cloud-dev`, install/adoption flows, `finish`, `release` | operational proof | `sync --dry-run`, `doctor --check-only`, adoption and release checks |
 
-Tracked and deep-reasoning tasks may name a `Mode-Aware Verification Contract` with `Primary Proof`, `Backstop Proof`, `Unacceptable Substitute`, and `Evidence Sink`. Quick tasks stay lightweight and usually omit the declaration.
+The table summarizes proof-stack core vocabulary. When a tracked or deep-reasoning task declares a `Mode-Aware Verification Contract`, the minimal declared contract shape is seven fields: `Proof Target`, `Primary Proof`, `Backstop Proof`, `Escalation Trigger`, `Evidence Sink`, `Reconcile Rule`, and `Unacceptable Substitute`. Quick tasks stay lightweight and usually omit the declaration.
 For `design/planning`, `review proof` stays primary. `lifecycle/governance proof` becomes the backstop when acceptance-design quality or durable task-state alignment is part of the residual risk.
 
 Proof choice follows failure risk, not habit. Green unit or BDD results are not enough when the real risk is scope review, lifecycle drift, release safety, or adoption/recovery behavior. In those cases, review, reconciliation, or operational evidence becomes the primary proof instead of a nice-to-have extra.

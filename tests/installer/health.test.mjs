@@ -2612,6 +2612,68 @@ test('readHarnessHealth warns when a Verification Contract section declares no m
   }
 });
 
+test('readHarnessHealth does not warn for a valid explicit Verification Contract declaration', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/demo-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/demo-task/task_plan.md'),
+      [
+        '# Task Plan: Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Verification Contract',
+        '',
+        '### Mode: execution',
+        '- Proof Target:',
+        '  - current implementation behavior matches scoped task intent',
+        '- Primary Proof:',
+        '  - focused unit tests',
+        '- Backstop Proof:',
+        '  - spec compliance review',
+        '- Escalation Trigger:',
+        '  - repeated verification failure indicates a plan issue rather than unfinished code',
+        '- Evidence Sink:',
+        '  - progress.md',
+        '- Reconcile Rule:',
+        '  - reconcile required before finish when behavior changed',
+        '- Unacceptable Substitute:',
+        '  - BDD-only pass without invariant coverage'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/demo-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/demo-task/progress.md'), '# Progress\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      !health.warnings.some((warning) =>
+        warning.includes('Verification contract declaration needs attention')
+      )
+    );
+    assert.ok(
+      !health.planLocations.some((location) => location.type === 'verification-contract-warning')
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth does not warn when a task omits the Verification Contract section', async () => {
   const root = await createHarnessFixture();
   try {
@@ -2652,6 +2714,128 @@ test('readHarnessHealth does not warn when a task omits the Verification Contrac
     assert.ok(
       !health.planLocations.some((location) => location.type === 'verification-contract-warning')
     );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('readHarnessHealth ignores fenced or similar Verification Contract headings and reports empty mode names precisely', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/fenced-example'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/fenced-example/task_plan.md'),
+      [
+        '# Task Plan: Fenced Example',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '```md',
+        '## Verification Contract',
+        '### Mode: execution',
+        '- Proof Target:',
+        '  - example only',
+        '```'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/fenced-example/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/fenced-example/progress.md'), '# Progress\n');
+
+    await mkdir(path.join(root, 'planning/active/similar-heading'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/similar-heading/task_plan.md'),
+      [
+        '# Task Plan: Similar Heading',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Verification Contracts',
+        '',
+        '### Mode: execution',
+        '- Proof Target:',
+        '  - example only'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/similar-heading/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/similar-heading/progress.md'), '# Progress\n');
+
+    await mkdir(path.join(root, 'planning/active/empty-mode'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/empty-mode/task_plan.md'),
+      [
+        '# Task Plan: Empty Mode',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: open',
+        '',
+        '## Verification Contract',
+        '',
+        '### Mode:',
+        '- Proof Target:',
+        '  - current implementation behavior matches scoped task intent',
+        '- Primary Proof:',
+        '  - focused unit tests',
+        '- Backstop Proof:',
+        '  - spec compliance review',
+        '- Escalation Trigger:',
+        '  - repeated verification failure indicates a plan issue rather than unfinished code',
+        '- Evidence Sink:',
+        '  - progress.md',
+        '- Reconcile Rule:',
+        '  - reconcile required before finish when behavior changed',
+        '- Unacceptable Substitute:',
+        '  - BDD-only pass without invariant coverage'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/empty-mode/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/empty-mode/progress.md'), '# Progress\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      !health.planLocations.some(
+        (location) =>
+          location.type === 'verification-contract-warning' &&
+          location.path === 'planning/active/fenced-example/task_plan.md'
+      )
+    );
+    assert.ok(
+      !health.planLocations.some(
+        (location) =>
+          location.type === 'verification-contract-warning' &&
+          location.path === 'planning/active/similar-heading/task_plan.md'
+      )
+    );
+
+    const emptyModeWarning = health.planLocations.find(
+      (location) =>
+        location.type === 'verification-contract-warning' &&
+        location.path === 'planning/active/empty-mode/task_plan.md'
+    );
+    assert.ok(emptyModeWarning);
+    assert.match(emptyModeWarning.message, /Verification mode entry #1 is missing Mode name\./);
+    assert.doesNotMatch(emptyModeWarning.message, /does not define any `### Mode:` blocks/);
   } finally {
     await removeHarnessFixture(root);
   }

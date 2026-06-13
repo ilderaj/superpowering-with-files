@@ -16,10 +16,13 @@ This document captures the Harness direction for keeping coding projects traceab
 
 Reconciliation belongs to the `reconcile/lifecycle` mode family in the repo-owned `Mode-Aware Verification Contract`.
 
+- `Proof Target`: finish/archive readiness after intended behavior, actual implementation, evidence, and follow-up ownership are compared.
 - `Primary Proof`: lifecycle/governance proof recorded in durable task memory.
 - `Backstop Proof`: targeted review proof plus the acceptance/verify evidence that led into reconciliation.
-- `Unacceptable Substitute`: green unit tests, a passing BDD run, or a merged PR without task-state and source-of-truth alignment.
+- `Escalation Trigger`: unresolved drift, missing lifecycle evidence, missing owner decisions, or a blocked follow-up path.
 - `Evidence Sink`: `planning/active/<task-id>/reconciliation.md`, a labeled `## Reconciliation` block in `progress.md`, lifecycle status, and any recorded follow-up owner/waiver.
+- `Reconcile Rule`: sync the reconciliation result back into the active task lifecycle and leave any required follow-up owner or waiver explicit before finish/archive.
+- `Unacceptable Substitute`: green unit tests, a passing BDD run, or a merged PR without task-state and source-of-truth alignment.
 - Existing coverage: the `verify` lane feeds evidence into this gate, the `review` lane covers scope/approval risk when needed, and lifecycle tooling such as `active-summary` checks the resulting readiness signal.
 
 Unit and BDD checks still matter here, but they are backstops. When the real risk is spec drift, backlog drift, archive readiness, approval state, or release/adoption follow-through, reconciliation or review becomes the primary proof because tests alone cannot close that risk.
@@ -83,6 +86,8 @@ Actual implementation is factual state, not automatic product approval. Use this
 | Spec/doc update is needed but not in scope | Task owner + reviewer | update now; create explicit follow-up; mark not needed with reason | follow-up path or waiver is recorded |
 
 ## Reconciliation Artifact
+
+`planning/active/<task-id>/` remains the authoritative task-memory root. Its required core planning trio is `task_plan.md`, `findings.md`, and `progress.md`. `reconciliation.md` is an optional lifecycle artifact inside that same canonical directory when reconcile evidence needs a standalone home.
 
 Tracked coding work should produce one of these before finish/archive:
 

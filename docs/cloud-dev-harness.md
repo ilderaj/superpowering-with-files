@@ -238,4 +238,6 @@ Promotion review should confirm or explicitly waive:
 - docs, roadmap, or backlog updates needed;
 - unresolved drift that should block or follow promotion.
 
+That local reconciliation evidence lives in `planning/active/<task-id>/` authority: use the required core planning trio and add `reconciliation.md` only when a standalone lifecycle artifact is useful.
+
 Unsupported cloud paths remain unsupported until issue/PR/task evidence proves branch base, target PR, credentials, verification, and reconciliation behavior.

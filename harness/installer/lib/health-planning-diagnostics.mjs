@@ -7,6 +7,7 @@ import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 import { parseExecutionContract, validateExecutionContract } from '../../runtime/execution-contract.mjs';
 import {
   parseVerificationContract,
+  readVerificationContractSection,
   validateVerificationContract
 } from '../../runtime/verification-contract.mjs';
 
@@ -29,30 +30,17 @@ function normalizeVerificationFieldLabel(value = '') {
 }
 
 function collectMalformedVerificationFieldLabels(markdown = '') {
-  const lines = markdown.split('\n');
+  const { lines } = readVerificationContractSection(markdown);
   const malformed = [];
-  let inSection = false;
   let currentMode = null;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    if (trimmed === '## Verification Contract') {
-      inSection = true;
-      currentMode = null;
+  for (const { line, trimmed, inFence } of lines) {
+    if (inFence) {
       continue;
     }
 
-    if (!inSection) {
-      continue;
-    }
-
-    if (line.startsWith('## ')) {
-      break;
-    }
-
-    if (line.startsWith('### Mode:')) {
-      currentMode = line.slice('### Mode:'.length).trim() || '(missing mode name)';
+    if (trimmed.startsWith('### Mode:')) {
+      currentMode = trimmed.slice('### Mode:'.length).trim() || '(missing mode name)';
       continue;
     }
 
@@ -219,7 +207,12 @@ export async function inspectVerificationContractHealth(rootDir) {
 
     const taskPlanPath = path.join(activeRoot, entry.name, 'task_plan.md');
     const markdown = await readFile(taskPlanPath, 'utf8').catch(() => null);
-    if (!markdown || !markdown.includes('## Verification Contract')) {
+    if (!markdown) {
+      continue;
+    }
+
+    const section = readVerificationContractSection(markdown);
+    if (!section.present) {
       continue;
     }
 

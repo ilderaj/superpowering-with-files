@@ -99,6 +99,86 @@ test('parseVerificationContract returns no modes when the section is absent', ()
   assert.deepEqual(validateVerificationContract(contract), { ok: true, reasons: [] });
 });
 
+test('parseVerificationContract only recognizes an exact top-level Verification Contract section', () => {
+  const markdown = `
+# Task Plan
+
+### Verification Contract
+- not a real top-level section
+
+## Verification Contract
+
+### Mode: execution
+- Proof Target:
+  - current implementation behavior matches scoped task intent
+- Primary Proof:
+  - focused unit tests
+- Backstop Proof:
+  - spec compliance review
+- Escalation Trigger:
+  - repeated verification failure indicates a plan issue rather than unfinished code
+- Evidence Sink:
+  - progress.md
+- Reconcile Rule:
+  - reconcile required before finish when behavior changed
+- Unacceptable Substitute:
+  - BDD-only pass without invariant coverage
+
+## Notes
+keep this outside the section
+`;
+
+  const contract = parseVerificationContract(markdown);
+  assert.equal(contract.modes.length, 1);
+  assert.equal(contract.modes[0].mode, 'execution');
+});
+
+test('parseVerificationContract ignores fenced Verification Contract examples', () => {
+  const markdown = `
+\`\`\`md
+## Verification Contract
+
+### Mode: review
+- Proof Target:
+  - example only
+\`\`\`
+
+## Verification Contract
+
+### Mode: execution
+- Proof Target:
+  - current implementation behavior matches scoped task intent
+- Primary Proof:
+  - focused unit tests
+- Backstop Proof:
+  - spec compliance review
+- Escalation Trigger:
+  - repeated verification failure indicates a plan issue rather than unfinished code
+- Evidence Sink:
+  - progress.md
+- Reconcile Rule:
+  - reconcile required before finish when behavior changed
+- Unacceptable Substitute:
+  - BDD-only pass without invariant coverage
+`;
+
+  const contract = parseVerificationContract(markdown);
+  assert.equal(contract.modes.length, 1);
+  assert.equal(contract.modes[0].mode, 'execution');
+});
+
+test('parseVerificationContract ignores similar section headings', () => {
+  const pluralHeading = `
+## Verification Contracts
+
+### Mode: execution
+- Proof Target:
+  - current implementation behavior matches scoped task intent
+`;
+  const contract = parseVerificationContract(pluralHeading);
+  assert.deepEqual(contract, { modes: [] });
+});
+
 test('validateVerificationContract accepts published canonical mode-family spellings', () => {
   const markdown = `
 ## Verification Contract
@@ -226,6 +306,8 @@ test('validateVerificationContract reports deterministic reasons for malformed m
 `;
 
   const contract = parseVerificationContract(markdown);
+  assert.equal(contract.modes.length, 2);
+  assert.equal(contract.modes[0].mode, null);
   const result = validateVerificationContract(contract);
   assert.equal(result.ok, false);
   assert.deepEqual(result.reasons, [

@@ -145,9 +145,41 @@ test('project docs keep shared defaults while documenting the optional Copilot g
   assert.match(codexInstall, /Goal Round Start Protocol/);
   assert.match(codexInstall, /Codex `\/goal` stays native/);
   assert.match(codexInstall, /planning\/active\/<task-id>/);
+  assert.match(codexInstall, /If `reconciliation\.md` exists and the current round depends on lifecycle evidence such as `verify`, `reconcile`, or `finish`, read that optional lifecycle artifact too/);
+  assert.match(codexInstall, /minimal declared contract shape is seven fields/);
+  assert.match(codexInstall, /Proof Target/);
+  assert.match(codexInstall, /Escalation Trigger/);
+  assert.match(codexInstall, /Reconcile Rule/);
   assert.match(codexInstall, /new or materially revised/);
   assert.match(codexInstall, /read-only reviewer subagent/);
   assert.match(codexInstall, /normal Superpowers execution discipline/);
+});
+
+test('shared policy and docs keep planning authority rooted in planning active with optional reconciliation lifecycle artifact', async () => {
+  const [basePolicy, agentsDoc, claudeDoc, readme, reconciliationDoc, workflowsDoc] = await Promise.all([
+    readFile(path.join(process.cwd(), 'harness/core/policy/base.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'CLAUDE.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'README.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'docs/reconciliation.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'docs/workflows.md'), 'utf8')
+  ]);
+
+  for (const doc of [basePolicy, agentsDoc, claudeDoc]) {
+    assert.match(doc, /Persistent task state must live only under `planning\/active\/<task-id>\/`/);
+    assert.match(doc, /required core planning trio: `task_plan\.md`, `findings\.md`, `progress\.md`/);
+    assert.match(doc, /optional lifecycle artifact: `reconciliation\.md`/);
+    assert.doesNotMatch(doc, /Persistent task state must live only in:/);
+    assert.doesNotMatch(doc, /active task's three markdown files updated/);
+  }
+
+  assert.match(
+    agentsDoc,
+    /If `reconciliation\.md` exists and the current round depends on lifecycle evidence, read that optional lifecycle artifact too/
+  );
+  assert.match(readme, /`reconciliation\.md` is an optional lifecycle artifact inside that same canonical task directory/);
+  assert.match(reconciliationDoc, /`planning\/active\/<task-id>\/` remains the authoritative task-memory root/);
+  assert.match(workflowsDoc, /optional lifecycle artifact/);
 });
 
 
