@@ -606,10 +606,21 @@ test('applySuperpowersFinishingADevelopmentBranchPatch materializes Harness base
 
     await applySuperpowersFinishingADevelopmentBranchPatch(target);
     const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+    const baseIndex = skill.indexOf('## Harness Superpowers finishing-a-development-branch base patch');
+    const handoffIndex = skill.indexOf('## Autonomous Closure Handoff');
+    const optionsIndex = skill.indexOf('### Step 4: Present Options');
 
     assert.match(skill, /Harness Superpowers finishing-a-development-branch base patch/);
     assert.match(skill, /Prefer the recorded `Worktree base: <base-ref> @ <base-sha>` from planning\/active\/<task-id>\//);
     assert.match(skill, /Only fall back to explicit user confirmation or a conservative branch check when no recorded worktree base is available/);
+    assert.match(skill, /## Autonomous Closure Handoff/);
+    assert.match(skill, /`finishing-a-development-branch` owns the integration choice and immediate execution/);
+    assert.match(skill, /Only hand off to `autonomous-release-closure` when the user or task explicitly requires unattended follow-through after PR creation, promote to main, cleanup, or adopt work/);
+    assert.match(skill, /Do not hand off when there is no explicit closure obligation beyond the immediate finishing step/);
+    assert.ok(baseIndex >= 0);
+    assert.ok(handoffIndex > baseIndex);
+    assert.ok(optionsIndex > handoffIndex);
+    assert.equal((skill.match(/### Step 4: Present Options/g) ?? []).length, 1);
     assert.doesNotMatch(skill, /This branch split from main - is that correct\?/);
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -634,6 +645,8 @@ test('applySuperpowersFinishingADevelopmentBranchPatch is idempotent', async () 
     const twice = await readFile(path.join(target, 'SKILL.md'), 'utf8');
 
     assert.equal(twice, once);
+    assert.equal((twice.match(/## Autonomous Closure Handoff/g) ?? []).length, 1);
+    assert.equal((twice.match(/### Step 4: Present Options/g) ?? []).length, 1);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
@@ -673,6 +686,11 @@ test('applySuperpowersFinishingADevelopmentBranchPatch preserves upstream detect
     assert.match(skill, /### Step 2: Detect Environment/);
     assert.match(skill, /## Harness Superpowers finishing-a-development-branch base patch/);
     assert.match(skill, /### Step 3: Determine Base Branch/);
+    assert.match(skill, /## Autonomous Closure Handoff/);
+    assert.match(skill, /### Step 4: Present Options/);
+    assert.ok(skill.indexOf('### Step 3: Determine Base Branch') < skill.indexOf('## Autonomous Closure Handoff'));
+    assert.ok(skill.indexOf('## Autonomous Closure Handoff') < skill.indexOf('### Step 4: Present Options'));
+    assert.equal((skill.match(/### Step 4: Present Options/g) ?? []).length, 1);
     assert.match(skill, /Worktree base: <base-ref> @ <base-sha>/);
     assert.doesNotMatch(skill, /This branch split from main - is that correct\?/);
   } finally {
@@ -680,12 +698,41 @@ test('applySuperpowersFinishingADevelopmentBranchPatch preserves upstream detect
   }
 });
 
-test('applySuperpowersFinishingADevelopmentBranchPatch fails when Step 2 cannot be found', async () => {
+test('applySuperpowersFinishingADevelopmentBranchPatch fails when no expected base-branch anchors can be found', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-finishing-branch-missing-step-'));
   try {
     const target = path.join(dir, 'finishing-a-development-branch');
     await mkdir(target, { recursive: true });
     await writeFile(path.join(target, 'SKILL.md'), '# broken skill\n');
+
+    await assert.rejects(
+      applySuperpowersFinishingADevelopmentBranchPatch(target),
+      /Unable to apply Harness Superpowers finishing-a-development-branch base patch/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersFinishingADevelopmentBranchPatch fails when Present Options anchor is missing', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-finishing-branch-missing-options-'));
+  try {
+    const target = path.join(dir, 'finishing-a-development-branch');
+    await mkdir(target, { recursive: true });
+    await writeFile(
+      path.join(target, 'SKILL.md'),
+      [
+        '# Finishing a Development Branch',
+        '',
+        '### Step 1: Verify Tests',
+        '',
+        'Tests first.',
+        '',
+        '### Step 2: Determine Base Branch',
+        '',
+        'Or ask: "This branch split from main - is that correct?"'
+      ].join('\n')
+    );
 
     await assert.rejects(
       applySuperpowersFinishingADevelopmentBranchPatch(target),
