@@ -15,13 +15,20 @@ HOOKS_DIR = CODEX_ROOT / "hooks"
 
 
 class CodexHooksTests(unittest.TestCase):
-    def run_python_hook(self, script_name: str, payload: dict, cwd: Path) -> subprocess.CompletedProcess[str]:
+    def run_python_hook(
+        self,
+        script_name: str,
+        payload: dict,
+        cwd: Path,
+        env: dict | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(HOOKS_DIR / script_name)],
             input=json.dumps(payload),
             text=True,
             capture_output=True,
             cwd=str(cwd),
+            env=env,
             check=False,
         )
 
@@ -63,6 +70,31 @@ class CodexHooksTests(unittest.TestCase):
                 "permission_request.py",
                 {"cwd": str(root), "tool_name": "Bash"},
                 root,
+            )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertIn("systemMessage", payload)
+        self.assertIn("Active plan", payload["systemMessage"])
+
+    def test_permission_request_adapter_emits_plan_reminder_for_active_task_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            plan_dir = root / "planning" / "active" / "demo"
+            plan_dir.mkdir(parents=True)
+            plan_dir.joinpath("task_plan.md").write_text(
+                "# Task Plan\n### Phase 1\n- **Status:** in_progress\n",
+                encoding="utf-8",
+            )
+
+            env = os.environ.copy()
+            env["CODEX_THREAD_ID"] = "thread-without-plan"
+
+            result = self.run_python_hook(
+                "permission_request.py",
+                {"cwd": str(root), "tool_name": "Bash"},
+                root,
+                env=env,
             )
 
         self.assertEqual(0, result.returncode, result.stderr)

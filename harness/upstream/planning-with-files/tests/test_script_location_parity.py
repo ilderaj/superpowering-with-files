@@ -27,17 +27,14 @@ SKILL_SCRIPTS = REPO_ROOT / "skills" / "planning-with-files" / "scripts"
 
 # Every script the hook dispatchers reach from a scripts/ directory, in both
 # shell and PowerShell forms. Sibling dependencies count: inject-plan.sh calls
-# ledger-summary.sh, gate-stop.sh calls check-complete.sh, init-session calls
-# attest-plan and resolve-plan-dir, ledger-summary/phase-status back the
-# autonomous-mode injection and the gate's phase reporting.
+# ledger-summary.sh, gate-stop.sh calls check-complete.sh, and ledger-summary /
+# phase-status back the autonomous-mode injection and the gate's phase reporting.
 DUAL_SHIPPED = [
     "attest-plan.ps1",
     "attest-plan.sh",
     "check-complete.ps1",
     "check-complete.sh",
     "gate-stop.sh",
-    "init-session.ps1",
-    "init-session.sh",
     "inject-plan.sh",
     "ledger-append.ps1",
     "ledger-append.sh",
@@ -51,10 +48,15 @@ DUAL_SHIPPED = [
     "set-active-plan.sh",
 ]
 
+EXISTENCE_ONLY = [
+    "init-session.ps1",
+    "init-session.sh",
+]
+
 
 class ScriptLocationParityTests(unittest.TestCase):
     def test_dual_shipped_scripts_exist_in_both_locations(self) -> None:
-        for name in DUAL_SHIPPED:
+        for name in DUAL_SHIPPED + EXISTENCE_ONLY:
             with self.subTest(script=name):
                 self.assertTrue(
                     (ROOT_SCRIPTS / name).is_file(),

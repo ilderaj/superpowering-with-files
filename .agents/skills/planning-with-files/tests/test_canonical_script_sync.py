@@ -33,9 +33,9 @@ SKILL_SCRIPTS = REPO_ROOT / "skills" / "planning-with-files" / "scripts"
 #   session-catchup.py — canonical carries Codex-specific logic not in top-level
 #   check-continue.sh  — repo CI/validation script, not a user-facing skill script
 #   sync-ide-folders.py — repo maintenance tool, not a user-facing skill script
+#   init-session.*     — root scripts are repo-owned wrappers that preserve
+#                        Harness task-scoped init while delegating slug/v3 mode
 SHARED_SCRIPTS = (
-    "init-session.sh",
-    "init-session.ps1",
     "check-complete.sh",
     "check-complete.ps1",
     "resolve-plan-dir.sh",

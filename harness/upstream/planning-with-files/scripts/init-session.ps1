@@ -1,227 +1,91 @@
-# Initialize planning files for a new session
-# Usage: .\init-session.ps1 [-Template TYPE] [project-name]
-#        .\init-session.ps1 -Autonomous        # v3 autonomous mode (opt-in)
-#        .\init-session.ps1 -Gated             # v3 gated mode (opt-in, implies autonomous)
-# Templates: default, analytics
-#
-# v3 modes (opt-in): -Autonomous / -Gated write a .mode marker next to the plan,
-# reset the .stop_blocks gate counter, clear any stale gate ledger, write a fresh
-# 16-hex nonce for delimiter framing, and auto-attest the plan. With NO v3 switch
-# and no .mode file, behavior is byte-equivalent to v2.43.0.
+# Initialize planning files for the active task, or delegate to the canonical
+# slug/v3 initializer when the caller is using the shipped skill entrypoint.
 
 param(
-    [string]$ProjectName = "project",
-    [string]$Template = "default",
-    [switch]$Autonomous,
-    [switch]$Gated
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$ArgsList
 )
 
-$DATE = Get-Date -Format "yyyy-MM-dd"
-
-# Resolve v3 opt-in mode. -Gated implies autonomous and is the stronger marker.
-$Mode = ""
-if ($Gated) {
-    $Mode = "gated"
-} elseif ($Autonomous) {
-    $Mode = "autonomous"
+function Test-LooksLikeProjectPath([string]$Candidate) {
+    if ([string]::IsNullOrWhiteSpace($Candidate)) { return $false }
+    if ($Candidate.StartsWith("-")) { return $false }
+    if (Test-Path $Candidate -PathType Container) { return $true }
+    return $Candidate -match '^(?:[A-Za-z]:[\\/]|[\\/]{1,2}|\.{1,2}[\\/]|~[\\/])'
 }
 
-# Resolve template directory (skill root is one level up from scripts/)
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$SkillRoot = Split-Path -Parent $ScriptDir
-$TemplateDir = Join-Path $SkillRoot "templates"
+$CanonicalInit = Join-Path $ScriptDir "../skills/planning-with-files/scripts/init-session.ps1"
 
-function Get-Nonce {
-    # 16 hex chars for the plan-data delimiter framing (security strand rec 8).
-    $bytes = New-Object 'System.Byte[]' 8
-    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-    ($bytes | ForEach-Object { $_.ToString("x2") }) -join ""
-}
+if ($ArgsList.Count -eq 2 -and (Test-LooksLikeProjectPath $ArgsList[0]) -and -not $ArgsList[1].StartsWith("-")) {
+    $ProjectPath = $ArgsList[0]
+    $TaskId = $ArgsList[1]
+    $PythonCmd = Get-Command python -ErrorAction SilentlyContinue
+    if (-not $PythonCmd) {
+        $PythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
+    }
 
-Write-Host "Initializing planning files for: $ProjectName (template: $Template)"
+    if (-not $PythonCmd) {
+        Write-Host '[planning-with-files] Python is required to initialize planning files.'
+        exit 1
+    }
 
-# Validate template
-if ($Template -ne "default" -and $Template -ne "analytics") {
-    Write-Host "Unknown template: $Template (available: default, analytics). Using default."
-    $Template = "default"
-}
+    $Timestamp = & $PythonCmd.Source "$ScriptDir/planning_record.py" timestamp
 
-# Create task_plan.md if it doesn't exist
-if (-not (Test-Path "task_plan.md")) {
-    $AnalyticsPlan = Join-Path $TemplateDir "analytics_task_plan.md"
-    if ($Template -eq "analytics" -and (Test-Path $AnalyticsPlan)) {
-        Copy-Item $AnalyticsPlan "task_plan.md"
-    } else {
+    $PlanDir = & $PythonCmd.Source "$ScriptDir/planning_paths.py" ensure-active-dir $ProjectPath $TaskId
+    $TaskSlug = & $PythonCmd.Source "$ScriptDir/planning_paths.py" task-id $ProjectPath $TaskId
+
+    Write-Host ("Initializing planning files for task: " + $TaskSlug)
+    Write-Host ("Active planning dir: " + $PlanDir)
+
+    if (-not (Test-Path "$PlanDir/task_plan.md")) {
+        Copy-Item "$ScriptDir/../templates/task_plan.md" "$PlanDir/task_plan.md"
         @"
-# Task Plan: [Brief Description]
 
-## Goal
-[One sentence describing the end state]
-
-## Current Phase
-Phase 1
-
-## Phases
-
-### Phase 1: Requirements & Discovery
-- [ ] Understand user intent
-- [ ] Identify constraints
-- [ ] Document in findings.md
-- **Status:** in_progress
-
-### Phase 2: Planning & Structure
-- [ ] Define approach
-- [ ] Create project structure
-- **Status:** pending
-
-### Phase 3: Implementation
-- [ ] Execute the plan
-- [ ] Write to files before executing
-- **Status:** pending
-
-### Phase 4: Testing & Verification
-- [ ] Verify requirements met
-- [ ] Document test results
-- **Status:** pending
-
-### Phase 5: Delivery
-- [ ] Review outputs
-- [ ] Deliver to user
-- **Status:** pending
-
-## Decisions Made
-| Decision | Rationale |
-|----------|-----------|
-
-## Errors Encountered
-| Error | Resolution |
-|-------|------------|
-"@ | Out-File -FilePath "task_plan.md" -Encoding UTF8
-    }
-    Write-Host "Created task_plan.md"
-} else {
-    Write-Host "task_plan.md already exists, skipping"
-}
-
-# Create findings.md if it doesn't exist
-if (-not (Test-Path "findings.md")) {
-    $AnalyticsFindings = Join-Path $TemplateDir "analytics_findings.md"
-    if ($Template -eq "analytics" -and (Test-Path $AnalyticsFindings)) {
-        Copy-Item $AnalyticsFindings "findings.md"
+## Task Metadata
+- Task ID: $TaskSlug
+- Planning Directory: $PlanDir
+"@ | Add-Content "$PlanDir/task_plan.md"
+        Write-Host ("Created " + $PlanDir + "/task_plan.md")
     } else {
-        @"
-# Findings & Decisions
-
-## Requirements
--
-
-## Research Findings
--
-
-## Technical Decisions
-| Decision | Rationale |
-|----------|-----------|
-
-## Issues Encountered
-| Issue | Resolution |
-|-------|------------|
-
-## Resources
--
-"@ | Out-File -FilePath "findings.md" -Encoding UTF8
+        Write-Host ($PlanDir + "/task_plan.md already exists, skipping")
     }
-    Write-Host "Created findings.md"
-} else {
-    Write-Host "findings.md already exists, skipping"
-}
 
-# Create progress.md if it doesn't exist
-if (-not (Test-Path "progress.md")) {
-    if ($Template -eq "analytics") {
+    if (-not (Test-Path "$PlanDir/findings.md")) {
+        Copy-Item "$ScriptDir/../templates/findings.md" "$PlanDir/findings.md"
         @"
-# Progress Log
 
-## Session: $DATE
-
-### Current Status
-- **Phase:** 1 - Data Discovery
-- **Started:** $DATE
-
-### Actions Taken
--
-
-### Query Log
-| Query | Result Summary | Interpretation |
-|-------|---------------|----------------|
-
-### Errors
-| Error | Resolution |
-|-------|------------|
-"@ | Out-File -FilePath "progress.md" -Encoding UTF8
+## Task Metadata
+- Task ID: $TaskSlug
+- Planning Directory: $PlanDir
+"@ | Add-Content "$PlanDir/findings.md"
+        Write-Host ("Created " + $PlanDir + "/findings.md")
     } else {
+        Write-Host ($PlanDir + "/findings.md already exists, skipping")
+    }
+
+    if (-not (Test-Path "$PlanDir/progress.md")) {
+        (Get-Content "$ScriptDir/../templates/progress.md" -Raw).Replace("[TIMESTAMP]", $Timestamp).Replace("[DATE]", $Timestamp) | Out-File -FilePath "$PlanDir/progress.md" -Encoding UTF8
         @"
-# Progress Log
 
-## Session: $DATE
-
-### Current Status
-- **Phase:** 1 - Requirements & Discovery
-- **Started:** $DATE
-
-### Actions Taken
--
-
-### Test Results
-| Test | Expected | Actual | Status |
-|------|----------|--------|--------|
-
-### Errors
-| Error | Resolution |
-|-------|------------|
-"@ | Out-File -FilePath "progress.md" -Encoding UTF8
-    }
-    Write-Host "Created progress.md"
-} else {
-    Write-Host "progress.md already exists, skipping"
-}
-
-Write-Host ""
-Write-Host "Planning files initialized!"
-Write-Host "Files: task_plan.md, findings.md, progress.md"
-
-# v3 opt-in mode side effects. No-op when -Autonomous/-Gated were not passed, so
-# the default path stays byte-equivalent to v2.43.0. PS1 init writes in CWD, so
-# dotfiles live in CWD and attest-plan.ps1 falls back to the legacy
-# .plan-attestation at the project root.
-if ($Mode -ne "") {
-    $PlanDirPwf = (Get-Location).Path
-
-    # (a) reset gate block counter, drop stale gate ledger.
-    Set-Content -LiteralPath (Join-Path $PlanDirPwf ".stop_blocks") -Value "0" -Encoding ascii
-    $StaleLedger = Join-Path $PlanDirPwf ".gate_last_ledger"
-    if (Test-Path -LiteralPath $StaleLedger) { Remove-Item -LiteralPath $StaleLedger -Force }
-
-    # (b) fresh 16-hex nonce for delimiter framing.
-    Set-Content -LiteralPath (Join-Path $PlanDirPwf ".nonce") -Value (Get-Nonce) -NoNewline -Encoding ascii
-
-    # mode marker. gated implies autonomous, so it carries both tokens.
-    if ($Mode -eq "gated") {
-        $MarkerText = "autonomous gate"
+## Task Metadata
+- Task ID: $TaskSlug
+- Planning Directory: $PlanDir
+"@ | Add-Content "$PlanDir/progress.md"
+        Write-Host ("Created " + $PlanDir + "/progress.md")
     } else {
-        $MarkerText = "autonomous"
-    }
-    Set-Content -LiteralPath (Join-Path $PlanDirPwf ".mode") -Value $MarkerText -Encoding ascii
-
-    # (c) auto-attest (attestation default-on in v3 modes, security strand rec 1).
-    $AttestPs1 = Join-Path $ScriptDir "attest-plan.ps1"
-    $PlanFilePwf = Join-Path $PlanDirPwf "task_plan.md"
-    if ((Test-Path -LiteralPath $AttestPs1) -and (Test-Path -LiteralPath $PlanFilePwf)) {
-        try {
-            & $AttestPs1 *> $null
-        } catch {
-            # attestation failure must not abort init; the mode marker still stands.
-        }
+        Write-Host ($PlanDir + "/progress.md already exists, skipping")
     }
 
-    Write-Host "Mode: $MarkerText (attested, gate counter reset)"
+    Write-Host ""
+    Write-Host "Planning files initialized!"
+    Write-Host ("Files: " + $PlanDir + "/task_plan.md, " + $PlanDir + "/findings.md, " + $PlanDir + "/progress.md")
+    exit 0
 }
+
+if (-not (Test-Path $CanonicalInit)) {
+    Write-Host ("[planning-with-files] Canonical init-session.ps1 missing at " + $CanonicalInit)
+    exit 1
+}
+
+& $CanonicalInit @ArgsList
+exit $LASTEXITCODE
