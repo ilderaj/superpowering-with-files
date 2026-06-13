@@ -1,6 +1,6 @@
 {
   "name": "@superpowering-with-files/harness-runtime",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "type": "module",
   "description": "Self-contained Harness runtime CLI and MCP server for editor plugins.",
   "bin": {

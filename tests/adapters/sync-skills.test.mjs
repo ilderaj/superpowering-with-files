@@ -202,7 +202,7 @@ test('sync projects workspace entries and skills', async () => {
     assert.match(releaseClosure, /name: autonomous-release-closure/);
     assert.match(releaseClosure, /## Outcome Contract/);
     assert.match(releaseClosure, /## Stage Contracts/);
-    assert.match(releaseClosure, /Re-check on a 15-minute cadence/);
+    assert.match(releaseClosure, /15-minute review polling cadence|Re-check on a 15-minute cadence/);
     assert.match(releaseClosure, /planning\/active\/<task-id>\//);
 
     const releaseClosureTemplate = await readFile(
@@ -222,7 +222,7 @@ test('sync projects workspace entries and skills', async () => {
       path.join(root, '.agents/skills/autonomous-release-closure/outputs/pr-closure.md'),
       'utf8'
     );
-    assert.match(releaseClosureOutput, /Start every loop in `Assess`/);
+    assert.match(releaseClosureOutput, /Start every closure loop in `Assess`|Start every loop in `Assess`/);
   } finally {
     await removeHarnessFixture(root);
   }

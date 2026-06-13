@@ -7,6 +7,9 @@ Branches:
 - `dev`: ongoing implementation and upstream updates.
 - `main`: verified template baseline.
 
+Release is not just a final shell sequence. Treat it as evidence-driven closure work for one exact verified commit.
+If the path to promotion still includes PR review, stacked promotion, cleanup, or adopt follow-through loops, use `autonomous-release-closure` to drive that work from current evidence instead of guessing the next safe step.
+
 Release flow:
 
 ```bash
@@ -33,8 +36,17 @@ Release lane expectations:
 - `plan` and `review` work should already be complete before promotion starts.
 - `verify` artifacts must be current for the exact `dev` commit being promoted.
 - `finish` should already have merged scoped work back to `dev`.
+- release notes should describe the verified delta only, in short user-facing language
 - The PR to `main`, the release tag, and any local `main` fast-forward should all reference the same verified commit.
 - `archive` should close any planning-only tasks whose durable conclusions have been transferred.
+
+## Release Notes
+
+Keep release notes short and evidence-based:
+
+- group by the few changes an operator or adopter will actually notice
+- prefer capability language over commit chronology
+- do not pad the notes with internal retries, temporary failures, or planning-only work unless they changed the shipped workflow
 
 For feature or Superpowers worktrees, run `./scripts/harness worktree-preflight --task <task-id>` while still on the intended source branch when the repo has multiple active tasks. In this repository, ongoing implementation starts from `dev` unless a task explicitly says it should start from `main`.
 

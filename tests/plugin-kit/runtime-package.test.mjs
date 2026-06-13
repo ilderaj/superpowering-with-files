@@ -8,10 +8,11 @@ import {
 } from '../../packages/harness-runtime/src/index.mjs';
 
 test('runtime package declares public bins and a files allowlist', async () => {
+  const rootPkg = JSON.parse(await readFile('package.json', 'utf8'));
   const pkg = JSON.parse(await readFile('packages/harness-runtime/package.json', 'utf8'));
 
   assert.equal(pkg.name, '@superpowering-with-files/harness-runtime');
-  assert.equal(pkg.version, '1.0.9');
+  assert.equal(pkg.version, rootPkg.version);
   assert.equal(pkg.type, 'module');
   assert.equal(pkg.bin.harness, './bin/harness');
   assert.equal(pkg.bin['harness-mcp-stdio'], './bin/harness-mcp-stdio.mjs');

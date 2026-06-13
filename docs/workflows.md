@@ -136,8 +136,11 @@ git push origin <base-ref>
 Use `release` when `dev` is ready to promote or when release documentation and adoption status need to be synchronized.
 
 - Treat `main` as the verified release baseline.
+- Re-read current branch, PR, and adoption state before tagging or promotion; release work is evidence-driven closure work, not a blind final command chain.
 - Keep release docs aligned with current command surfaces and repository naming.
+- Use `autonomous-release-closure` when promotion still includes review-to-merge, stacked PR, cleanup, or adopt follow-through loops.
 - Include adoption and context-governance evidence before promotion.
+- Keep release notes and release artifacts tied to the exact verified commit.
 
 Typical commands:
 
@@ -146,6 +149,8 @@ npm run verify
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness doctor --check-only
 ./scripts/harness adoption-status
+npm run release:pack
+gh release create <version> --notes-file dist/release/<version>/release-notes.md dist/release/<version>/*
 git switch main
 git merge --ff-only dev
 ```
