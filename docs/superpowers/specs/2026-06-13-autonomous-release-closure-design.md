@@ -71,10 +71,19 @@ Without that orchestration layer, end-to-end closure work is repeatable in pract
   - `planning/active/<task-id>/task_plan.md`
   - `planning/active/<task-id>/findings.md`
   - `planning/active/<task-id>/progress.md`
+- The skill is available from the workspace full profile, but availability is not the same thing as automatic execution.
+- Triggering must stay explicit or evidence-based at the agent level; this repo does not add a hard runtime auto-trigger, router, or hook for closure work.
 - The workflow must prefer current external and repository state over stale memory.
 - The workflow must be able to resume after interruption.
 - Waiting for new review results is part of the workflow, not an exceptional case.
 - Merge, cleanup, and adoption steps require stronger evidence than ordinary code edits.
+
+## Trigger Model
+
+- Loading the workspace full profile makes the skill callable in the current environment.
+- If the user explicitly requests `autonomous-release-closure`, the agent must use it.
+- The agent may also invoke it proactively when task semantics clearly match unattended closure work, such as review-to-merge loops, stacked promotion, or post-merge cleanup and adoption.
+- The repository does not currently implement a hard auto-trigger. No runtime, router, or hook should imply that this workflow starts by itself.
 
 ## Approaches Considered
 
@@ -158,6 +167,38 @@ Why:
 7. **Completion must be proven**
    “Looks done” is insufficient when the task includes review loops, merge, cleanup, and adoption.
 
+8. **Do not guess the closure target**
+   Promotion must follow explicit targets or a single evidenced chain, not branch-name intuition.
+
+9. **Deferred issues need explicit proof**
+   Spillover is allowed only when the remaining issue is proven non-blocking for the claimed closure target.
+
+## Skill Boundaries And Handoff
+
+### Relationship With `finishing-a-development-branch`
+
+- `finishing-a-development-branch` remains responsible for choosing the integration path and carrying out the immediate action that completes that choice, such as a local merge or PR creation.
+- `autonomous-release-closure` begins only after that step if there is a clear unattended closure obligation still open.
+- Typical handoff cases include:
+  - continuing a PR through review, verification, and merge;
+  - promoting a merged branch farther along a release chain toward trunk;
+  - completing post-merge cleanup, sync, or adoption work that was explicitly left in scope.
+- If finishing completes the requested integration step and no downstream closure obligation remains, there is no automatic handoff.
+
+## Target Resolution
+
+- An explicit user or task target wins first. If a PR, branch, or destination is named, use it.
+- Otherwise, resolve at most one promotion chain from current evidence.
+- Evidence should be evaluated in this order:
+  - PR links;
+  - branch base relationships;
+  - merge relationships;
+  - stack metadata;
+  - repo policy.
+- The default progression `leaf/work -> candidate/integration -> trunk` is valid only when the evidence proves a single chain.
+- `main` should be treated as the default final target in that chain, not as the automatic starting assumption.
+- If evidence points to multiple disjoint chains, or cannot prove one canonical chain, the workflow must stop at `blocked-with-evidence` and record the competing interpretations instead of guessing across chains.
+
 ## State Machine
 
 The workflow should use the following stage graph:
@@ -169,6 +210,17 @@ Important semantics:
 - this is not a one-way linear pipeline;
 - every new loop begins in `Assess`;
 - any stale assumption or failed check returns the workflow to `Assess`.
+- target resolution must happen from current evidence before merge or promotion decisions are taken.
+
+## Loop Budget And Termination
+
+- The default loop budget is whichever limit is reached first:
+  - 10 full loops;
+  - 2 hours of wall-clock time;
+  - 3 consecutive rounds blocked by the same blocker class without new leverage.
+- Hitting a loop budget does not justify pretending the work is done.
+- `failed-verification` remains an internal loop-back signal. It returns the workflow to `Assess`, but repeated failures still count toward the loop budget.
+- When a limit is exhausted, the workflow must either stop with `blocked-with-evidence` or narrow into a justified non-blocking spillover record.
 
 ### Transition rules
 
@@ -357,6 +409,7 @@ The skill must stop and escalate instead of continuing automatically when any of
 - the same blocker repeats across multiple loops without new leverage;
 - external policy interpretation is uncertain;
 - the next step requires a human approval the workflow does not own.
+- multiple PRs or branches are in play but the evidence does not prove a single promotion chain.
 
 When escalating, the skill must leave:
 
@@ -364,6 +417,16 @@ When escalating, the skill must leave:
 - the blocking reason;
 - what evidence or decision is still missing;
 - the recommended next action.
+
+## Fallback And Spillover
+
+- Issues that affect functionality, correctness, security, data integrity, or release acceptance are not spillable. They block merge or promotion until resolved.
+- A deferred issue is acceptable only when there is positive evidence that it does not block the closure target being claimed.
+- Every deferred issue must be written into planning with:
+  - the evidence that it is non-blocking;
+  - the remaining work;
+  - a concrete follow-up owner or issue.
+- `partial-success` is appropriate only when the primary closure target is complete and the remaining work is explicitly recorded as non-blocking follow-through.
 
 ## Durable Outputs
 
@@ -403,7 +466,7 @@ Use when:
 - a major milestone is done, such as a PR merge;
 - but the user-requested closure workflow still has unfinished downstream obligations.
 
-This is a progress state, not a terminal completion claim.
+This is a progress state, not a terminal completion claim, and it must not hide spillable issues that lack non-blocking evidence and follow-up ownership.
 
 ### `blocked-with-evidence`
 
@@ -456,5 +519,4 @@ Later versions may split internal execution helpers into child skills, but v1 sh
 
 - Should the 15-minute re-check be implemented with a formal automation tool, a reusable polling helper, or an abstract “periodic monitor” contract?
 - Which merge-gate reasons are safe enough to classify as admin-merge eligible in v1?
-- Should thread replies be part of the orchestrator’s default behavior or remain a delegated helper concern?
 - How much repository-specific cleanup policy should live in the generic skill versus repo-local guidance?
