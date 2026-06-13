@@ -1969,6 +1969,52 @@ test('readHarnessHealth keeps referenced companion plans out of warnings', async
   }
 });
 
+test('readHarnessHealth treats reconciliation.md as a canonical companion-plan reference source', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/task-a'), { recursive: true });
+    await writeFile(path.join(root, 'planning/active/task-a/task_plan.md'), '# Task plan\n');
+    await writeFile(path.join(root, 'planning/active/task-a/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/task-a/progress.md'), '# Progress\n');
+    await writeFile(
+      path.join(root, 'planning/active/task-a/reconciliation.md'),
+      'Companion plan path: docs/superpowers/plans/feature-plan.md\n'
+    );
+    await mkdir(path.join(root, 'docs/superpowers/plans'), { recursive: true });
+    await writeFile(
+      path.join(root, 'docs/superpowers/plans/feature-plan.md'),
+      '# Companion plan\n\nActive task path: planning/active/task-a/\n'
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(
+      !health.warnings.some((warning) => warning.includes('docs/superpowers/plans/feature-plan.md')),
+      'a companion plan referenced only from reconciliation.md should still count as referenced'
+    );
+    assert.ok(
+      health.planLocations.some(
+        (location) =>
+          location.type === 'companion-plan' &&
+          location.path === 'docs/superpowers/plans/feature-plan.md' &&
+          location.referencedBy.includes('planning/active/task-a/reconciliation.md')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth warns when a companion plan does not point back to its active task', async () => {
   const root = await createHarnessFixture();
   try {
@@ -3005,6 +3051,7 @@ test('readHarnessHealth keeps root-level planning files and docs/plans as warnin
     await mkdir(path.join(root, 'docs/plans'), { recursive: true });
     await writeFile(path.join(root, 'docs/plans/feature-doc.md'), '# Human-facing plan\n');
     await writeFile(path.join(root, 'task_plan.md'), '# Root plan\n');
+    await writeFile(path.join(root, 'reconciliation.md'), '# Root reconciliation\n');
 
     const health = await readHarnessHealth(root, '/home/user');
 
@@ -3012,6 +3059,11 @@ test('readHarnessHealth keeps root-level planning files and docs/plans as warnin
     assert.ok(
       health.warnings.some((warning) =>
         warning.includes('task_plan.md: task_plan.md is outside planning/active/<task-id>/')
+      )
+    );
+    assert.ok(
+      health.warnings.some((warning) =>
+        warning.includes('reconciliation.md: reconciliation.md is outside planning/active/<task-id>/')
       )
     );
     assert.ok(

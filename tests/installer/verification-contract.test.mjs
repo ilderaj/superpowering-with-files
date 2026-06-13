@@ -1,8 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import {
   parseVerificationContract,
+  readVerificationContractSection,
   validateVerificationContract
 } from '../../harness/runtime/verification-contract.mjs';
 
@@ -177,6 +180,17 @@ test('parseVerificationContract ignores similar section headings', () => {
 `;
   const contract = parseVerificationContract(pluralHeading);
   assert.deepEqual(contract, { modes: [] });
+});
+
+test('the default task_plan template does not predeclare a Verification Contract section', async () => {
+  const templatePath = path.join(
+    process.cwd(),
+    'harness/core/upstream-overlays/planning-with-files/templates/task_plan.md'
+  );
+  const markdown = await readFile(templatePath, 'utf8');
+
+  assert.equal(readVerificationContractSection(markdown).present, false);
+  assert.deepEqual(parseVerificationContract(markdown), { modes: [] });
 });
 
 test('validateVerificationContract accepts published canonical mode-family spellings', () => {
