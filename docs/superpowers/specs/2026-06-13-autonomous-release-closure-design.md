@@ -208,7 +208,7 @@ The workflow should use the following stage graph:
 Important semantics:
 
 - this is not a one-way linear pipeline;
-- every new loop begins in `Assess`;
+- every new `closure loop` begins in `Assess`;
 - any stale assumption or failed check returns the workflow to `Assess`.
 - target resolution must happen from current evidence before merge or promotion decisions are taken.
 
@@ -218,6 +218,8 @@ Important semantics:
   - 10 full loops;
   - 2 hours of wall-clock time;
   - 3 consecutive rounds blocked by the same blocker class without new leverage.
+- The outer workflow cycle above is the `closure loop`.
+- The 15-minute review polling cadence belongs only to `ReReview` waits; it does not mean each closure loop lasts 15 minutes.
 - Hitting a loop budget does not justify pretending the work is done.
 - `failed-verification` remains an internal loop-back signal. It returns the workflow to `Assess`, but repeated failures still count toward the loop budget.
 - When a limit is exhausted, the workflow must either stop with `blocked-with-evidence` or narrow into a justified non-blocking spillover record.

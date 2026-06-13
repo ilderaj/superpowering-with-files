@@ -4,7 +4,9 @@
 - `Assess` finds open actionable review threads
 - `Remediate` applies the smallest fix
 - `Verify` runs targeted tests
+- The closure loop returns to `Assess` immediately after `Verify`; it does not wait 15 minutes because no new external review result is pending yet
 - `ReReview` triggers `@codex review`
+- Only after re-requesting review does the workflow enter the 15-minute review polling cadence while waiting for reviewer or gate changes
 
 ## Example 2: Single proven stacked promotion chain
 - The task does not name a target, so `Assess` resolves one proven chain from evidence:
@@ -28,3 +30,4 @@
 - `Assess` finds merge already done
 - `Cleanup` verifies local and origin state
 - `Adopt` runs global adoption and records residual blockers
+- This can happen in a very short closure loop because no review polling wait is involved

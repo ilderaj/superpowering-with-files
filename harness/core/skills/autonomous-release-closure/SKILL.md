@@ -6,7 +6,7 @@ description: Use when a task must close review-to-merge work, stacked PR or rele
 # Autonomous Release Closure
 
 ## Outcome Contract
-- **Outcome:** the agent gets one reusable single-entry workflow for PR or release closure that loops through `Assess`, `Remediate`, `Verify`, `ReReview`, `Merge`, `Cleanup`, and `Adopt`.
+- **Outcome:** the agent gets one reusable single-entry closure loop for PR or release closure that advances through `Assess`, `Remediate`, `Verify`, `ReReview`, `Merge`, `Cleanup`, and `Adopt`.
 - **Done when:** the skill preserves `planning/active/<task-id>/` as authoritative memory, defines each stage boundary, defines strict stop or escalate rules, and treats completion as proven only after review, verification, merge, cleanup, and adoption obligations are all resolved.
 - **Evidence:** `scripts/evaluate-autonomous-release-closure.mjs`, `tests/core/autonomous-release-closure-eval.test.mjs`, `tests/core/skill-index.test.mjs`, `tests/adapters/skill-profile.test.mjs`, and `tests/adapters/skill-projection.test.mjs` all pass.
 - **Output:** a reusable closure protocol for unattended PR or release work, not a new runtime, router, or hook system.
@@ -55,6 +55,8 @@ Do not use this skill when:
   - 10 full loops;
   - 2 hours of wall-clock time;
   - 3 consecutive rounds of the same blocker class with no new leverage.
+- This outer workflow cycle is the `closure loop`.
+- The 15-minute review polling cadence belongs only to `ReReview`; it does not mean each closure loop lasts 15 minutes.
 - `failed-verification` is an internal loop-back result, not a terminal completion state.
 - When any budget is exhausted, move to a fallback decision instead of continuing to spin.
 
@@ -66,7 +68,7 @@ Do not use this skill when:
 
 ## Workflow
 1. Restore `planning/active/<task-id>/task_plan.md`, `findings.md`, and `progress.md`.
-2. Start every loop in `Assess`.
+2. Start every closure loop in `Assess`.
 3. Use current evidence to choose exactly one next stage:
    - `Remediate`
    - `Verify`
@@ -99,7 +101,7 @@ Do not use this skill when:
 
 ### `ReReview`
 - Trigger `@codex review`.
-- Re-check on a 15-minute cadence while waiting for the next review result or gate change.
+- Use a 15-minute review polling cadence only while waiting for the next review result or gate change.
 
 ### `Merge`
 - Merge only with sufficient evidence for mergeability, review state, and policy interpretation.
@@ -117,6 +119,7 @@ Do not use this skill when:
 - Implying the repository already auto-runs this skill through a router, hook, or runtime
 - Treating the workflow like a fixed linear script instead of re-entering through `Assess`
 - Guessing which PR to promote when evidence does not prove a single chain
+- Treating the 15-minute review polling cadence as if it defines the duration of every closure loop
 - Merging after verification failure or unresolved actionable review
 - Treating `failed-verification` as a terminal success or terminal partial success
 - Deleting worktrees without provenance and safety evidence
