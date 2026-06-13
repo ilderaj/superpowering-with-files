@@ -28,7 +28,15 @@ function patchedBlock(stepNumber) {
   'git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null',
   '```',
   '',
-  'Do not default to `main` or `master` when the repository already records a non-trunk worktree base such as `dev`.'
+  'Do not default to `main` or `master` when the repository already records a non-trunk worktree base such as `dev`.',
+  '',
+  '## Autonomous Closure Handoff',
+  '',
+  '`finishing-a-development-branch` owns the integration choice and immediate execution.',
+  '',
+  'Only hand off to `autonomous-release-closure` when the user or task explicitly requires unattended follow-through after PR creation, promote to main, cleanup, or adopt work.',
+  '',
+  'Do not hand off when there is no explicit closure obligation beyond the immediate finishing step.'
   ].join('\n');
 }
 
