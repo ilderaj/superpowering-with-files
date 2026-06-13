@@ -17,10 +17,12 @@
    - `Adopt`
 4. Sync durable state
 5. Return to `Assess`
+- this outer cycle is the `closure loop`
 
 ## Loop Budget
 
 - stop after 10 full loops, 2 hours wall-clock, or 3 consecutive same-class blockers with no new leverage
+- the 15-minute review polling cadence belongs only to `ReReview`; it does not mean each closure loop lasts 15 minutes
 - on budget exhaustion, make a fallback decision instead of spinning
 - `failed-verification` loops back into `Assess`; it is not a terminal completion state
 
@@ -43,3 +45,8 @@
 - `finishing-a-development-branch` owns the integration decision and immediate execution
 - hand off here only after finishing succeeds and continued PR-to-merge, promote-to-trunk, cleanup, or adopt work is explicitly required
 - if finishing completed the job and no follow-through remains, do not invoke this skill
+
+## Review Polling Cadence
+
+- `ReReview` uses a 15-minute review polling cadence only while waiting for reviewer or gate changes
+- remediation and verification loops can return to `Assess` immediately without waiting 15 minutes

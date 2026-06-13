@@ -69,6 +69,7 @@ test('autonomous-release-closure fixtures pass hard checks', async () => {
   assert.deepEqual(artifactMap.get('examples.md').coveredScenarios.sort(), [
     'disjoint PR ambiguity',
     'finishing handoff',
+    'loop budget / fallback',
     'stacked promotion chain'
   ]);
 });

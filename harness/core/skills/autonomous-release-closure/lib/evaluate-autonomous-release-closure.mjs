@@ -30,7 +30,9 @@ const CONTRACT_ARTIFACTS = [
       'leaf or work PR -> candidate or integration branch PR -> trunk PR',
       '10 full loops',
       '2 hours of wall-clock time',
-      'partial-success'
+      'partial-success',
+      'closure loop',
+      'does not mean each closure loop lasts 15 minutes'
     ],
     scenarioChecks: {
       'stacked promotion chain': [
@@ -49,7 +51,8 @@ const CONTRACT_ARTIFACTS = [
       'loop budget / fallback': [
         '## Loop Budget And Termination',
         '10 full loops',
-        '## Fallback / Spillover Rule'
+        '## Fallback / Spillover Rule',
+        'does not mean each closure loop lasts 15 minutes'
       ]
     }
   },
@@ -59,6 +62,7 @@ const CONTRACT_ARTIFACTS = [
     requiredSections: [
       '## Loop Skeleton',
       '## Loop Budget',
+      '## Review Polling Cadence',
       '## Terminal States',
       '## Hard Stops',
       '## Finishing Handoff'
@@ -68,13 +72,18 @@ const CONTRACT_ARTIFACTS = [
       'if multiple disjoint chains remain, stop at `blocked-with-evidence`',
       '10 full loops',
       '2 hours wall-clock',
-      '3 consecutive same-class blockers'
+      '3 consecutive same-class blockers',
+      'the `closure loop`',
+      'does not mean each closure loop lasts 15 minutes'
     ],
     scenarioChecks: {
       'stacked promotion chain': ['prove exactly one promotion chain'],
       'disjoint PR ambiguity': ['multiple disjoint chains remain'],
       'finishing handoff': ['continue here only when unattended closure work is still required'],
-      'loop budget / fallback': ['on budget exhaustion, make a fallback decision instead of spinning']
+      'loop budget / fallback': [
+        'on budget exhaustion, make a fallback decision instead of spinning',
+        'does not mean each closure loop lasts 15 minutes'
+      ]
     }
   },
   {
@@ -91,12 +100,18 @@ const CONTRACT_ARTIFACTS = [
     requiredPhrases: [
       'The skill does not guess which chain to merge first',
       'starts at `Assess` against the created PR',
-      '`main` is treated as the default final destination, not the default immediate target'
+      '`main` is treated as the default final destination, not the default immediate target',
+      'it does not wait 15 minutes because no new external review result is pending yet',
+      '15-minute review polling cadence'
     ],
     scenarioChecks: {
       'stacked promotion chain': ['## Example 2: Single proven stacked promotion chain'],
       'disjoint PR ambiguity': ['## Example 3: Disjoint PR ambiguity -> `blocked-with-evidence`'],
-      'finishing handoff': ['## Example 4: `finishing-a-development-branch` handoff after PR creation']
+      'finishing handoff': ['## Example 4: `finishing-a-development-branch` handoff after PR creation'],
+      'loop budget / fallback': [
+        'it does not wait 15 minutes because no new external review result is pending yet',
+        '15-minute review polling cadence'
+      ]
     }
   }
 ];
@@ -135,8 +150,8 @@ export function evaluateClosureContract(fixture, output) {
     hardFailures.push(`missing required phrases: ${missingPhrases.join(', ')}`);
   }
 
-  if (!/Start every loop in `Assess`|Start every loop in Assess/.test(output)) {
-    hardFailures.push('contract must say every loop begins in Assess');
+  if (!/Start every closure loop in `Assess`|Start every closure loop in Assess|Start every loop in `Assess`|Start every loop in Assess/.test(output)) {
+    hardFailures.push('contract must say every closure loop begins in Assess');
   }
 
   if (!/15-minute cadence|15-minute/.test(output)) {
