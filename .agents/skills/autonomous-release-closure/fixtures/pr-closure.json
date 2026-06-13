@@ -1,0 +1,16 @@
+{
+  "id": "pr-closure",
+  "title": "PR closure with review, merge, cleanup, and adopt",
+  "requiredPhrases": [
+    "planning/active/<task-id>",
+    "Assess",
+    "Remediate",
+    "Verify",
+    "ReReview",
+    "Merge",
+    "Cleanup",
+    "Adopt",
+    "15-minute",
+    "blocked-with-evidence"
+  ]
+}
