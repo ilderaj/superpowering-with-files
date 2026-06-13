@@ -157,6 +157,23 @@ test('planSkillProjections includes local goal2plan in the full Codex workspace 
   assert.match(goal2plan.targetPath, /\.agents\/skills\/goal2plan$/);
 });
 
+test('planSkillProjections includes local autonomous-release-closure in the full Codex workspace profile', async () => {
+  const plan = await planSkillProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex'
+  });
+
+  const closureSkill = plan.find((entry) => entry.skillName === 'autonomous-release-closure');
+  assert.ok(closureSkill);
+  assert.equal(closureSkill.parentSkillName, 'autonomous-release-closure');
+  assert.equal(closureSkill.strategy, 'materialize');
+  assert.deepEqual(closureSkill.patches, []);
+  assert.match(closureSkill.sourcePath, /harness\/core\/skills\/autonomous-release-closure$/);
+  assert.match(closureSkill.targetPath, /\.agents\/skills\/autonomous-release-closure$/);
+});
+
 test('planSkillProjections applies the writing-plans patch for every supported target', async () => {
   const expectations = {
     codex: /\.agents\/skills\/writing-plans$/,

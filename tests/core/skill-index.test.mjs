@@ -18,6 +18,8 @@ test('skill index defines required v1 skills and projections', async () => {
   assert.equal(index.skills['goal-writer'].source, 'local');
   assert.equal(index.skills['goal2plan'].projection.codex, 'materialize');
   assert.equal(index.skills['goal2plan'].source, 'local');
+  assert.equal(index.skills['autonomous-release-closure'].projection.codex, 'materialize');
+  assert.equal(index.skills['autonomous-release-closure'].source, 'local');
 });
 
 test('skill index declares layouts required for filesystem projection', async () => {
@@ -34,6 +36,8 @@ test('skill index declares layouts required for filesystem projection', async ()
   assert.equal(index.skills['goal-writer'].targetName, 'goal-writer');
   assert.equal(index.skills['goal2plan'].layout, 'single');
   assert.equal(index.skills['goal2plan'].targetName, 'goal2plan');
+  assert.equal(index.skills['autonomous-release-closure'].layout, 'single');
+  assert.equal(index.skills['autonomous-release-closure'].targetName, 'autonomous-release-closure');
 });
 
 test('skill index declares hook projection metadata', async () => {

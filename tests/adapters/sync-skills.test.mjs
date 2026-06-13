@@ -194,6 +194,35 @@ test('sync projects workspace entries and skills', async () => {
     const goal2planRubric = await readFile(path.join(root, '.agents/skills/goal2plan/rubric.md'), 'utf8');
     assert.match(goal2planRubric, /Hard Checks/);
     assert.match(goal2planRubric, /does not implement a runner/i);
+
+    const releaseClosure = await readFile(
+      path.join(root, '.agents/skills/autonomous-release-closure/SKILL.md'),
+      'utf8'
+    );
+    assert.match(releaseClosure, /name: autonomous-release-closure/);
+    assert.match(releaseClosure, /## Outcome Contract/);
+    assert.match(releaseClosure, /## Stage Contracts/);
+    assert.match(releaseClosure, /Re-check on a 15-minute cadence/);
+    assert.match(releaseClosure, /planning\/active\/<task-id>\//);
+
+    const releaseClosureTemplate = await readFile(
+      path.join(root, '.agents/skills/autonomous-release-closure/template.md'),
+      'utf8'
+    );
+    assert.match(releaseClosureTemplate, /Assess/);
+    assert.match(releaseClosureTemplate, /blocked-with-evidence/);
+
+    const releaseClosureFixture = await readFile(
+      path.join(root, '.agents/skills/autonomous-release-closure/fixtures/pr-closure.json'),
+      'utf8'
+    );
+    assert.match(releaseClosureFixture, /15-minute/);
+
+    const releaseClosureOutput = await readFile(
+      path.join(root, '.agents/skills/autonomous-release-closure/outputs/pr-closure.md'),
+      'utf8'
+    );
+    assert.match(releaseClosureOutput, /Start every loop in `Assess`/);
   } finally {
     await removeHarnessFixture(root);
   }
