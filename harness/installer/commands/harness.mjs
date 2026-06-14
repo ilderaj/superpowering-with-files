@@ -20,6 +20,7 @@ import { activeSummary } from './active-summary.mjs';
 import { mcpApprove } from './mcp-approve.mjs';
 import { plugin } from './plugin.mjs';
 import { workspaceLink } from './workspace-link.mjs';
+import { tokenAudit } from './token-audit.mjs';
 
 const commands = {
   install,
@@ -42,7 +43,8 @@ const commands = {
   'worktree-preflight': worktreePreflight,
   'adopt-global': adoptGlobal,
   'adoption-status': adoptionStatus,
-  'workspace-link': workspaceLink
+  'workspace-link': workspaceLink,
+  'token-audit': tokenAudit
 };
 
 function usage() {
@@ -69,6 +71,7 @@ function usage() {
     '  adopt-global     Apply the current repo baseline to the user-global install',
     '  adoption-status  Report user-global adoption drift and health',
     '  workspace-link  Link the current leaf workspace back to an authority root',
+    '  token-audit  Print a weekly cross-session token audit',
     '  worktree-name  Suggest a canonical worktree label and branch name for the active task',
     '  worktree-preflight  Recommend an explicit base before creating a Git worktree'
   ].join('\n');

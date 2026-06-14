@@ -29,6 +29,124 @@ function harnessCommandWithEnv(root, env, ...args) {
   });
 }
 
+async function writeTokenAuditFixture(root) {
+  const sessionsRoot = path.join(root, 'tmp', 'token-audit-sessions');
+  await mkdir(path.join(sessionsRoot, '2026/06/10'), { recursive: true });
+  await mkdir(path.join(sessionsRoot, '2026/06/11'), { recursive: true });
+
+  await writeFile(
+    path.join(sessionsRoot, '2026/06/10/rollout-main.jsonl'),
+    [
+      JSON.stringify({
+        timestamp: '2026-06-10T01:00:00Z',
+        type: 'session_meta',
+        payload: {
+          id: 'fixture-main',
+          timestamp: '2026-06-10T01:00:00Z',
+          cwd: '/workspace/SuperpoweringWithFiles',
+          source: 'vscode'
+        }
+      }),
+      JSON.stringify({
+        timestamp: '2026-06-10T01:01:00Z',
+        type: 'turn_context',
+        payload: {
+          turn_id: 'fixture-main-turn',
+          cwd: '/workspace/SuperpoweringWithFiles',
+          model: 'gpt-5.4',
+          effort: 'medium'
+        }
+      }),
+      JSON.stringify({
+        timestamp: '2026-06-10T01:02:00Z',
+        type: 'response_item',
+        payload: {
+          type: 'function_call',
+          name: 'exec_command',
+          arguments: '{"cmd":"sed -n \\"1,200p\\" planning/active/goal-round-start-protocol/task_plan.md"}'
+        }
+      }),
+      JSON.stringify({
+        timestamp: '2026-06-10T01:03:00Z',
+        type: 'event_msg',
+        payload: {
+          type: 'token_count',
+          info: {
+            total_token_usage: {
+              input_tokens: 200,
+              cached_input_tokens: 100,
+              output_tokens: 20,
+              total_tokens: 220
+            }
+          }
+        }
+      })
+    ].join('\n') + '\n',
+    'utf8'
+  );
+
+  await writeFile(
+    path.join(sessionsRoot, '2026/06/11/rollout-subagent.jsonl'),
+    [
+      JSON.stringify({
+        timestamp: '2026-06-11T01:00:00Z',
+        type: 'session_meta',
+        payload: {
+          id: 'fixture-subagent',
+          timestamp: '2026-06-11T01:00:00Z',
+          cwd: '/workspace/BabyCry',
+          source: {
+            subagent: {
+              thread_spawn: {
+                parent_thread_id: 'fixture-main',
+                depth: 1,
+                agent_role: 'worker'
+              }
+            }
+          }
+        }
+      }),
+      JSON.stringify({
+        timestamp: '2026-06-11T01:01:00Z',
+        type: 'turn_context',
+        payload: {
+          turn_id: 'fixture-subagent-turn',
+          cwd: '/workspace/BabyCry',
+          model: 'gpt-5.4-mini',
+          effort: 'medium'
+        }
+      }),
+      JSON.stringify({
+        timestamp: '2026-06-11T01:02:00Z',
+        type: 'response_item',
+        payload: {
+          type: 'function_call',
+          name: 'exec_command',
+          arguments: '{"cmd":"sed -n \\"1,200p\\" planning/active/release-automation-skill-20260613/task_plan.md"}'
+        }
+      }),
+      JSON.stringify({
+        timestamp: '2026-06-11T01:03:00Z',
+        type: 'event_msg',
+        payload: {
+          type: 'token_count',
+          info: {
+            total_token_usage: {
+              input_tokens: 150,
+              cached_input_tokens: 60,
+              output_tokens: 30,
+              total_tokens: 180
+            }
+          }
+        }
+      })
+    ].join('\n') + '\n',
+    'utf8'
+  );
+
+  return path.relative(root, sessionsRoot);
+}
+
 test('harness --help prints top-level usage', async () => {
   const root = await createHarnessFixture();
   try {
@@ -43,6 +161,7 @@ test('harness --help prints top-level usage', async () => {
       stdout,
       /worktree-name  Suggest a canonical worktree label and branch name for the active task/
     );
+    assert.match(stdout, /token-audit  Print a weekly cross-session token audit/);
     assert.match(stdout, /verify   Print or write verification reports/);
   } finally {
     await removeHarnessFixture(root);
@@ -66,6 +185,65 @@ test('verify --help prints usage without writing reports', async () => {
     const { stdout } = await harnessCommand(root, 'verify', '--help');
     assert.match(stdout, /Usage: \.\/scripts\/harness verify/);
     await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('token-audit --help prints usage', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const { stdout } = await harnessCommand(root, 'token-audit', '--help');
+    assert.match(stdout, /Usage: \.\/scripts\/harness token-audit/);
+    assert.match(stdout, /--sessions-root <path>/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('token-audit prints a weekly token summary to stdout', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const sessionsRoot = await writeTokenAuditFixture(root);
+    const { stdout } = await harnessCommand(
+      root,
+      'token-audit',
+      `--sessions-root=${sessionsRoot}`,
+      '--date-from=2026-06-07T00:00:00Z',
+      '--date-to=2026-06-14T23:59:59Z'
+    );
+    assert.match(stdout, /# Weekly token audit/);
+    assert.match(stdout, /Total tokens: 400/);
+    assert.match(stdout, /Cached input tokens: 160/);
+    assert.match(stdout, /Fresh proxy: 240/);
+    assert.match(stdout, /Main vs subagent:/);
+    assert.match(stdout, /Model mix:/);
+    assert.match(stdout, /Top task-family hints:/);
+    assert.match(stdout, /goal-round-start-protocol \(heuristic\)/);
+    assert.match(stdout, /release-automation-skill \(heuristic\)/);
+    assert.match(stdout, /SuperpoweringWithFiles \(\/workspace\/SuperpoweringWithFiles\)/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('token-audit rejects invalid explicit audit windows', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(
+      harnessCommand(root, 'token-audit', '--date-from=not-a-date'),
+      /Invalid date-from: not-a-date/
+    );
+
+    await assert.rejects(
+      harnessCommand(
+        root,
+        'token-audit',
+        '--date-from=2026-06-14T23:59:59Z',
+        '--date-to=2026-06-07T00:00:00Z'
+      ),
+      /Invalid audit window/
+    );
   } finally {
     await removeHarnessFixture(root);
   }

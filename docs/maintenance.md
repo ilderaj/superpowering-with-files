@@ -21,10 +21,13 @@ Maintenance flow:
 ./scripts/harness update
 ./scripts/harness sync --dry-run
 ./scripts/harness sync
+./scripts/harness token-audit
 ./scripts/harness doctor
 ```
 
 `fetch` retrieves upstream candidates. `update` applies accepted candidates. `sync` regenerates installed projections and garbage-collects stale Harness-managed paths that are no longer desired.
+
+Use `token-audit` for weekly observability. It complements `verify` and `doctor` by surfacing `total`, `cached`, `fresh`, `main vs subagent`, and heuristic task-family hints so you can spot long-session cost trends without changing runtime behavior.
 
 From a linked or nested leaf workspace, these mutating commands still target the authority root by default rather than creating duplicate projections under the leaf directory.
 

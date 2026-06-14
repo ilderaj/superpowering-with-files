@@ -58,6 +58,8 @@ Before each substantive goal round, continuation tick, or phase boundary:
 5. Bound plan-polishing and execution-time replan loops together. Attempt 1 revises from verifier feedback. Attempt 2 re-verifies the failed areas. Attempt 3 performs a broader rethink. If the 3rd review round is still a failed review, record blockers and unresolved assumptions in the authoritative planning files, then stop the current execution attempt instead of looping forever.
 6. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, review verdicts, execution mode, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
 
+For tracked and deep-reasoning work, major phase boundaries, completion of a reviewed plan, or unusually long continuation history are good cues to prefer a fresh thread and restore from `planning/active/<task-id>/` instead of stretching one continuation indefinitely. This is soft guidance for hygiene, not a hard stop.
+
 This protocol is repository-owned guidance, not a separate runner. Hooks may inject reminders or compact context, but they do not replace round-start restore, reclassification, routing, or sync-back discipline.
 
 ### Mode-Aware Verification Contract
