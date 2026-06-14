@@ -2765,6 +2765,58 @@ test('readHarnessHealth does not warn when a task omits the Verification Contrac
   }
 });
 
+test('readHarnessHealth warns on unsupported top-level lifecycle statuses', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await mkdir(path.join(root, 'planning/active/lifecycle-drift'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/lifecycle-drift/task_plan.md'),
+      [
+        '# Task Plan: Lifecycle Drift',
+        '',
+        '## Current State',
+        'Status: complete',
+        'Archive Eligible: yes',
+        'Close Reason: done'
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/lifecycle-drift/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/lifecycle-drift/progress.md'), '# Progress\n');
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const warning = health.planLocations.find(
+      (location) =>
+        location.type === 'planning-lifecycle-status-warning' &&
+        location.path === 'planning/active/lifecycle-drift/task_plan.md'
+    );
+
+    assert.equal(health.problems.length, 0);
+    assert.ok(warning);
+    assert.match(warning.message, /unsupported/);
+    assert.match(warning.message, /status "complete"/i);
+    assert.match(
+      warning.message,
+      /allowed lifecycle values: active, blocked, waiting_review, waiting_execution, waiting_integration, closed, archived, unknown/i
+    );
+    assert.ok(
+      health.warnings.some((item) =>
+        item.includes('Planning lifecycle status "complete" is unsupported')
+      )
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth ignores fenced or similar Verification Contract headings and reports empty mode names precisely', async () => {
   const root = await createHarnessFixture();
   try {
