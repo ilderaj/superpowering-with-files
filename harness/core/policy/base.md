@@ -122,6 +122,13 @@ Use superpowers only when:
 - root cause is not obvious
 - deep structured reasoning is explicitly requested
 
+## Soft Model Tiering
+
+- Use the most capable model for intake shaping, reviewed planning, architecture or protocol analysis, rollback judgment, and high-risk review.
+- Use a standard model for multi-file integration, uncertain debugging, and medium-risk review.
+- Use a cheap model only for approved-plan mechanical work, narrow diff checks, clerical worktree or release steps, and bounded checklist review.
+- Upgrade from cheap -> standard -> capable when the task becomes blocked by missing context, conflicting interpretations, or design judgment.
+
 ## When Superpowers Is Not Allowed
 
 Do not use superpowers for:

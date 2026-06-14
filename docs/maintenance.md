@@ -27,7 +27,21 @@ Maintenance flow:
 
 `fetch` retrieves upstream candidates. `update` applies accepted candidates. `sync` regenerates installed projections and garbage-collects stale Harness-managed paths that are no longer desired.
 
+## Upstream Compatibility Baseline
+
+Treat imported upstream trees under `harness/upstream/` as refreshable snapshots, not as the default home for long-lived repo-specific behavior.
+
+When this repository needs behavior that should survive upstream refresh:
+
+1. Prefer a declared source-level overlay when the whole upstream source needs repo-owned replacement files.
+2. Prefer projection-time patches when the upstream snapshot should stay close to upstream but projected skills or entries need Harness-specific wording or rules.
+3. Avoid long-lived repo-only edits directly in `harness/upstream/<source>/...` unless you are intentionally carrying a local fork and are willing to reconcile refresh overwrite pressure manually.
+
+Use `harness/upstream/sources.json` to understand which sources support overlays. If a source has no `overlayPath`, assume `./scripts/harness update` may replace that upstream tree wholesale before `sync` reapplies any projection-time patches.
+
 Use `token-audit` for weekly observability. It complements `verify` and `doctor` by surfacing `total`, `cached`, `fresh`, `main vs subagent`, and heuristic task-family hints so you can spot long-session cost trends without changing runtime behavior.
+
+When piloting soft model tiering, compare `model mix`, `fresh_proxy`, and rework notes together. A cheaper tier is only a success when the task stays bounded and quality gates do not bounce the work back up immediately.
 
 From a linked or nested leaf workspace, these mutating commands still target the authority root by default rather than creating duplicate projections under the leaf directory.
 
@@ -102,7 +116,7 @@ When changing orchestration policy:
 
 1. Update `harness/core/policy/base.md` first.
 2. Keep platform overrides limited to platform-specific caveats.
-3. If the rule needs mechanical support, add it under `harness/installer` rather than patching vendored upstream skills.
+3. If the rule needs mechanical support, add it under `harness/installer` as an overlay or projection patch rather than patching vendored upstream skills directly.
 4. Run adapter rendering tests to confirm every supported target receives the rule.
 5. Run repository verification before reporting completion.
 

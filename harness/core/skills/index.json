@@ -21,6 +21,10 @@
           "type": "superpowers-executing-plans-replan",
           "marker": "Harness Superpowers executing-plans replan patch"
         },
+        "subagent-driven-development": {
+          "type": "superpowers-subagent-driven-development-budget",
+          "marker": "Harness Superpowers subagent-driven-development budget patch"
+        },
         "verification-before-completion": {
           "type": "superpowers-verification-before-completion",
           "marker": "Harness Superpowers verification-before-completion proof patch"

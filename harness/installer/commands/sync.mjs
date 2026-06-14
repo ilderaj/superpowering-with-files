@@ -9,6 +9,7 @@ import { applyPlanningWithFilesCompanionPlanPatch } from '../lib/planning-with-f
 import { applyPlanningWithFilesSkillRootPatch } from '../lib/planning-with-files-skill-root-patch.mjs';
 import { applySuperpowersExecutingPlansReplanPatch } from '../lib/superpowers-executing-plans-replan-patch.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../lib/superpowers-finishing-a-development-branch-patch.mjs';
+import { applySuperpowersSubagentDrivenDevelopmentBudgetPatch } from '../lib/superpowers-subagent-driven-development-budget-patch.mjs';
 import { applySuperpowersUsingGitWorktreesPatch } from '../lib/superpowers-using-git-worktrees-patch.mjs';
 import { applySuperpowersVerificationBeforeCompletionPatch } from '../lib/superpowers-verification-before-completion-patch.mjs';
 import { applySuperpowersWritingPlansPatch } from '../lib/superpowers-writing-plans-patch.mjs';
@@ -118,6 +119,11 @@ async function applySkillPatches(projection) {
 
     if (patch.type === 'superpowers-executing-plans-replan') {
       await applySuperpowersExecutingPlansReplanPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'superpowers-subagent-driven-development-budget') {
+      await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(projection.targetPath);
       continue;
     }
 

@@ -129,6 +129,36 @@ test('sync projects workspace entries and skills', async () => {
       /If the host already manages the worktree \(for example, Codex App\), treat this helper as a supplementary naming tool rather than a host override/
     );
 
+    const subagentSkill = await readFile(
+      path.join(root, '.agents/skills/subagent-driven-development/SKILL.md'),
+      'utf8'
+    );
+    assert.match(subagentSkill, /Treat subagents as a budgeted resource/);
+    assert.match(subagentSkill, /Before upgrading model capability, first narrow the task slice or trim context/);
+
+    const implementerPrompt = await readFile(
+      path.join(root, '.agents/skills/subagent-driven-development/implementer-prompt.md'),
+      'utf8'
+    );
+    assert.match(implementerPrompt, /## Context Budget/);
+    assert.match(implementerPrompt, /Do not accept broad session history or unrelated tasks as required context/);
+
+    const specReviewerPrompt = await readFile(
+      path.join(root, '.agents/skills/subagent-driven-development/spec-reviewer-prompt.md'),
+      'utf8'
+    );
+    assert.match(specReviewerPrompt, /## Review Budget/);
+    assert.match(specReviewerPrompt, /Review the changed files and the explicit requirements only/);
+
+    const codeQualityPrompt = await readFile(
+      path.join(root, '.agents/skills/subagent-driven-development/code-quality-reviewer-prompt.md'),
+      'utf8'
+    );
+    assert.match(
+      codeQualityPrompt,
+      /Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context/
+    );
+
     const finishingBranch = await readFile(
       path.join(root, '.agents/skills/finishing-a-development-branch/SKILL.md'),
       'utf8'

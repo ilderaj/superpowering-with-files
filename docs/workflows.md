@@ -37,6 +37,8 @@ Use `plan` when the work is tracked, multi-phase, or likely to outlive the curre
 - If the task is clearly complex but the intake is too sparse to write a credible implementation plan, call the projected `goal2plan` skill first to enrich intake and produce a reviewed plan before execution.
 - Record worktree base before isolated implementation starts.
 
+For policy-first execution, tier the model to the work rather than defaulting everything to the strongest model: capable for reviewed planning and high-risk judgment, standard for integration and uncertain debugging, cheap only for approved-plan mechanical slices.
+
 Typical commands:
 
 ```bash

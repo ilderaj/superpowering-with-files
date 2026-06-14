@@ -10,6 +10,7 @@ import { materializeDirectoryProjection } from '../../harness/installer/lib/fs-o
 import { applyPlanningWithFilesSkillRootPatch } from '../../harness/installer/lib/planning-with-files-skill-root-patch.mjs';
 import { applySuperpowersExecutingPlansReplanPatch } from '../../harness/installer/lib/superpowers-executing-plans-replan-patch.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../../harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs';
+import { applySuperpowersSubagentDrivenDevelopmentBudgetPatch } from '../../harness/installer/lib/superpowers-subagent-driven-development-budget-patch.mjs';
 import { applySuperpowersUsingGitWorktreesPatch } from '../../harness/installer/lib/superpowers-using-git-worktrees-patch.mjs';
 import { applySuperpowersVerificationBeforeCompletionPatch } from '../../harness/installer/lib/superpowers-verification-before-completion-patch.mjs';
 import {
@@ -315,6 +316,45 @@ test('planSkillProjections applies the executing-plans replan patch for every su
       target
     );
     assert.match(executingPlans.targetPath, targetPathPattern, target);
+  }
+});
+
+test('planSkillProjections applies the subagent-driven-development budget patch for every supported target', async () => {
+  const expectations = {
+    codex: /\.agents\/skills\/subagent-driven-development$/,
+    copilot: /\.agents\/skills\/subagent-driven-development$/,
+    cursor: /\.agents\/skills\/subagent-driven-development$/,
+    'claude-code': /\.claude\/skills\/subagent-driven-development$/
+  };
+
+  for (const [target, targetPathPattern] of Object.entries(expectations)) {
+    const plan = await planSkillProjections({
+      rootDir: process.cwd(),
+      homeDir: '/home/user',
+      scope: 'workspace',
+      target
+    });
+
+    const subagentSkill = plan.find((entry) => entry.skillName === 'subagent-driven-development');
+    assert.ok(subagentSkill, target);
+    assert.equal(subagentSkill.parentSkillName, 'superpowers', target);
+    assert.equal(subagentSkill.strategy, 'materialize', target);
+    assert.deepEqual(
+      subagentSkill.patches.map((patch) => patch.type),
+      ['superpowers-subagent-driven-development-budget'],
+      target
+    );
+    assert.equal(
+      subagentSkill.patches[0].marker,
+      'Harness Superpowers subagent-driven-development budget patch',
+      target
+    );
+    assert.match(
+      subagentSkill.sourcePath,
+      /harness\/upstream\/superpowers\/skills\/subagent-driven-development$/,
+      target
+    );
+    assert.match(subagentSkill.targetPath, targetPathPattern, target);
   }
 });
 
@@ -863,6 +903,94 @@ test('applySuperpowersExecutingPlansReplanPatch fails when Remember anchor canno
     await assert.rejects(
       applySuperpowersExecutingPlansReplanPatch(target),
       /Unable to apply Harness Superpowers executing-plans replan patch/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch materializes Harness budget guidance', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-subagent-budget-patch-'));
+  try {
+    const target = path.join(dir, 'subagent-driven-development');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/subagent-driven-development'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target);
+    const [skill, implementerPrompt, specReviewerPrompt, codeQualityPrompt] = await Promise.all([
+      readFile(path.join(target, 'SKILL.md'), 'utf8'),
+      readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
+      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
+      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+    ]);
+
+    assert.match(skill, /Harness Superpowers subagent-driven-development budget patch/);
+    assert.match(skill, /## Subagent Budget Policy/);
+    assert.match(skill, /Treat subagents as a budgeted resource/);
+    assert.match(skill, /Before upgrading model capability, first narrow the task slice or trim context/);
+    assert.match(implementerPrompt, /## Context Budget/);
+    assert.match(implementerPrompt, /Do not accept broad session history or unrelated tasks as required context/);
+    assert.match(specReviewerPrompt, /## Review Budget/);
+    assert.match(specReviewerPrompt, /Review the changed files and the explicit requirements only/);
+    assert.match(
+      codeQualityPrompt,
+      /Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context/
+    );
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch is idempotent', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-subagent-budget-idempotent-'));
+  try {
+    const target = path.join(dir, 'subagent-driven-development');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/subagent-driven-development'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target);
+    const once = await Promise.all([
+      readFile(path.join(target, 'SKILL.md'), 'utf8'),
+      readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
+      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
+      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+    ]);
+
+    await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target);
+    const twice = await Promise.all([
+      readFile(path.join(target, 'SKILL.md'), 'utf8'),
+      readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
+      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
+      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+    ]);
+
+    assert.deepEqual(twice, once);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch fails when anchors cannot be found', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-subagent-budget-missing-anchor-'));
+  try {
+    const target = path.join(dir, 'subagent-driven-development');
+    await mkdir(target, { recursive: true });
+    await writeFile(path.join(target, 'SKILL.md'), '# broken skill\n');
+    await writeFile(path.join(target, 'implementer-prompt.md'), '# broken prompt\n');
+    await writeFile(path.join(target, 'spec-reviewer-prompt.md'), '# broken prompt\n');
+    await writeFile(path.join(target, 'code-quality-reviewer-prompt.md'), '# broken prompt\n');
+
+    await assert.rejects(
+      applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target),
+      /Unable to apply superpowers-subagent-budget/
     );
   } finally {
     await rm(dir, { recursive: true, force: true });
