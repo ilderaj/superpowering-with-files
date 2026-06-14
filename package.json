@@ -11,6 +11,7 @@
     "test:mcp": "node --test --test-concurrency=1 tests/mcp/*.test.mjs",
     "test:core": "node --test tests/core/*.test.mjs",
     "verify:core": "node --test tests/core/*.test.mjs tests/runtime/*.test.mjs tests/installer/*.test.mjs tests/adapters/*.test.mjs tests/automation/*.test.mjs && node --test --test-concurrency=1 tests/mcp/*.test.mjs && node --test tests/plugin-kit/*.test.mjs",
+    "preverify:homepage": "node scripts/ensure-homepage-deps.mjs",
     "verify:homepage": "npm run typecheck --prefix homepage && npm test --prefix homepage && npm run build --prefix homepage",
     "verify:all": "npm run verify:core && npm run verify:homepage",
     "verify": "npm run verify:core",
