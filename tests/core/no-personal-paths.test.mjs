@@ -8,6 +8,7 @@ const root = process.cwd();
 const ignoredDirs = new Set([
   '.git',
   '.harness',
+  '.test-fixtures',
   'node_modules',
   'planning',
   '.worktrees',
@@ -23,7 +24,12 @@ const forbidden = [
 ];
 
 async function collectFiles(dir) {
-  const entries = await readdir(dir, { withFileTypes: true });
+  const entries = await readdir(dir, { withFileTypes: true }).catch((error) => {
+    if (error && error.code === 'ENOENT') {
+      return [];
+    }
+    throw error;
+  });
   const files = [];
 
   for (const entry of entries) {
@@ -45,8 +51,13 @@ test('collectFiles ignores local worktree directories', async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'no-personal-paths-'));
   try {
     await mkdir(path.join(tempRoot, '.worktrees/example/docs'), { recursive: true });
+    await mkdir(path.join(tempRoot, '.test-fixtures/example/docs'), { recursive: true });
     await writeFile(
       path.join(tempRoot, '.worktrees/example/docs/personal-path.md'),
+      `${forbidden[0]}should-not-be-scanned\n`
+    );
+    await writeFile(
+      path.join(tempRoot, '.test-fixtures/example/docs/personal-path.md'),
       `${forbidden[0]}should-not-be-scanned\n`
     );
     await writeFile(path.join(tempRoot, 'README.md'), '# kept\n');
