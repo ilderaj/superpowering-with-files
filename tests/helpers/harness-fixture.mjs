@@ -1,6 +1,7 @@
 import { cp, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 export async function createHarnessFixture(options = {}) {
   const {
@@ -24,7 +25,21 @@ export async function createHarnessFixture(options = {}) {
 }
 
 export async function removeHarnessFixture(root) {
-  await rm(root, { recursive: true, force: true });
+  let lastError;
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      await rm(root, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (!['ENOTEMPTY', 'EBUSY', 'EPERM'].includes(error?.code)) {
+        throw error;
+      }
+      lastError = error;
+      await delay(50 * (attempt + 1));
+    }
+  }
+
+  throw lastError;
 }
 
 export async function withCwd(dir, fn) {
