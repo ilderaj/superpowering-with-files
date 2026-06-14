@@ -70,7 +70,7 @@ Harness uses one shared proof vocabulary across six mode families.
 | design/planning | task intake, `plan`, companion-plan authoring | review proof | `planning-with-files`, `goal2plan`, reviewer-gated companion plans |
 | execution | implementation and narrow rollout slices | unit/invariant proof | focused tests, fixtures, diffs, targeted checks |
 | review | plan review, diff review, PR review | review proof | `review` lane and reviewer gates |
-| acceptance/verify | focused verification and user-visible checks | BDD/acceptance proof | `verify` lane, `npm run verify`, `./scripts/harness verify` |
+| acceptance/verify | focused verification and user-visible checks | BDD/acceptance proof | `verify` lane, `npm run verify:all`, `./scripts/harness verify` |
 | reconcile/lifecycle | between `verify` and `finish` / `archive` | lifecycle/governance proof | reconciliation gate, lifecycle status, `active-summary` |
 | operations/release/adoption | `cloud-dev`, install/adoption flows, `finish`, `release` | operational proof | `sync --dry-run`, `doctor --check-only`, adoption and release checks |
 

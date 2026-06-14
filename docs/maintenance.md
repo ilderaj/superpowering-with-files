@@ -57,7 +57,7 @@ Use these controls when maintaining the remote-only `cloud-dev` lane:
 
 ## Lane Responsibilities
 
-- `verify`: run focused suites first, then `npm run verify`, `./scripts/harness verify --output=...`, `./scripts/harness sync --dry-run`, and `./scripts/harness doctor --check-only`.
+- `verify`: run focused suites first, then `npm run verify:all`, `./scripts/harness verify --output=...`, `./scripts/harness sync --dry-run`, and `./scripts/harness doctor --check-only`.
 - `archive`: close and archive only after lifecycle state is explicit and companion-plan metadata is synchronized.
 - `release`: use the release gate in [Release](release.md) when maintenance work changes policy rendering, projections, hooks, or adoption state.
 
@@ -155,7 +155,7 @@ Before enabling the weekly upstream refresh schedule, configure dev branch prote
 - Protect branch: dev
 - Require pull request before merging
 - Require status checks to pass before merging
-- Required check: npm run verify (or the workflow job name that wraps it)
+- Required check: npm run verify:all (or the workflow job name that wraps it)
 - Restrict direct pushes to dev
 
 Activation order:
@@ -165,7 +165,7 @@ Activation order:
 3. Verify locally:
 
 	```bash
-	npm run verify
+	npm run verify:all
 	node --test tests/automation/*.test.mjs
 	```
 
@@ -253,7 +253,7 @@ Do not patch `harness/upstream/superpowers` or `harness/upstream/planning-with-f
 After any upstream update, run:
 
 ```bash
-npm run verify
+npm run verify:all
 ./scripts/harness worktree-preflight
 ./scripts/harness sync --dry-run
 ./scripts/harness sync
@@ -262,7 +262,7 @@ npm run verify
 
 ### Scheduled Refresh Failures
 
-The scheduled upstream refresh treats blocked automation as terminal. Git conflicts, `npm run verify` failures, refresh allowlist violations, `git commit` failures, and `gh pr create` or `gh pr edit` failures must not auto-advance.
+The scheduled upstream refresh treats blocked automation as terminal. Git conflicts, `npm run verify:all` failures, refresh allowlist violations, `git commit` failures, and `gh pr create` or `gh pr edit` failures must not auto-advance.
 
 The refresh runner writes `.harness/upstream-refresh-result.json` before exiting non-zero. Download the workflow artifact that contains this result file and the job log, then inspect `status` and `blockedReason` before taking over manually.
 
@@ -282,7 +282,7 @@ Manual takeover path:
 4. Re-run the validation chain:
 
 	```bash
-	npm run verify
+	npm run verify:all
 	./scripts/harness worktree-preflight
 	./scripts/harness sync --dry-run
 	./scripts/harness sync
@@ -297,7 +297,7 @@ Context-governance changes must not ship without checking the rendered entry fil
 
 Required checks:
 
-- run `npm run verify`
+- run `npm run verify:all`
 - run `./scripts/harness verify --output=.harness/verification` and review `health.context`
 - run `./scripts/harness sync --dry-run`
 - run `./scripts/harness doctor --check-only`
