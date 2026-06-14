@@ -1,7 +1,8 @@
 import os from 'node:os';
 import path from 'node:path';
+import { createReadStream } from 'node:fs';
 import { glob } from 'node:fs/promises';
-import { readFile } from 'node:fs/promises';
+import { createInterface } from 'node:readline';
 
 function toNumber(value) {
   const parsed = Number(value ?? 0);
@@ -89,18 +90,17 @@ function defaultDateWindow(now = new Date()) {
   return { start, end };
 }
 
-function extractPrimaryTaskId(rawLines) {
-  const matches = new Map();
+function collectTaskIds(rawLine, matches) {
   const pattern = /planning\/active\/([^\/"'`\s]+)\//g;
 
-  for (const line of rawLines) {
-    let match;
-    while ((match = pattern.exec(line)) !== null) {
-      const taskId = match[1];
-      matches.set(taskId, (matches.get(taskId) ?? 0) + 1);
-    }
+  let match;
+  while ((match = pattern.exec(rawLine)) !== null) {
+    const taskId = match[1];
+    matches.set(taskId, (matches.get(taskId) ?? 0) + 1);
   }
+}
 
+function extractPrimaryTaskId(matches) {
   return [...matches.entries()]
     .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0]?.[0] ?? 'unattributed';
 }
@@ -117,44 +117,18 @@ function toTaskFamilyHint(taskFamily) {
   return taskFamily === 'unattributed' ? 'unattributed' : `${taskFamily} (heuristic)`;
 }
 
-function summarizeSession(filePath, parsedLines, rawLines) {
-  let meta = null;
-  let model = 'unknown';
-  let effort = 'unknown';
-  let totalUsage = null;
-
-  for (const record of parsedLines) {
-    if (!meta && record.type === 'session_meta' && record.payload && typeof record.payload === 'object') {
-      meta = record.payload;
-      continue;
-    }
-
-    if (record.type === 'turn_context' && record.payload && typeof record.payload === 'object') {
-      model = record.payload.model ?? model;
-      effort = record.payload.effort ?? effort;
-      continue;
-    }
-
-    if (
-      record.type === 'event_msg' &&
-      record.payload &&
-      typeof record.payload === 'object' &&
-      record.payload.type === 'token_count'
-    ) {
-      totalUsage = record.payload.info?.total_token_usage ?? totalUsage;
-    }
-  }
-
+function summarizeSession(filePath, summary) {
+  const { meta, model, effort, totalUsage, firstTimestamp, taskIdMatches } = summary;
   if (!meta || !totalUsage) {
     return null;
   }
 
-  const timestamp = parseDate(meta.timestamp) ?? parseDate(parsedLines[0]?.timestamp);
+  const timestamp = parseDate(meta.timestamp) ?? firstTimestamp;
   if (timestamp === null) {
     return null;
   }
 
-  const taskId = extractPrimaryTaskId(rawLines);
+  const taskId = extractPrimaryTaskId(taskIdMatches);
 
   return {
     sessionId: String(meta.id ?? path.basename(filePath)),
@@ -179,23 +153,65 @@ function summarizeSession(filePath, parsedLines, rawLines) {
 }
 
 async function parseRolloutFile(filePath) {
-  const markdown = await readFile(filePath, 'utf8');
-  const rawLines = markdown
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const summary = {
+    meta: null,
+    model: 'unknown',
+    effort: 'unknown',
+    totalUsage: null,
+    firstTimestamp: null,
+    taskIdMatches: new Map()
+  };
+  const lineReader = createInterface({
+    input: createReadStream(filePath, { encoding: 'utf8' }),
+    crlfDelay: Infinity
+  });
 
-  const parsedLines = rawLines
-    .map((line) => {
-      try {
-        return JSON.parse(line);
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
+  for await (const rawLine of lineReader) {
+    const line = rawLine.trim();
+    if (!line) {
+      continue;
+    }
 
-  return summarizeSession(filePath, parsedLines, rawLines);
+    collectTaskIds(line, summary.taskIdMatches);
+
+    let record;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+
+    if (summary.firstTimestamp === null) {
+      summary.firstTimestamp = parseDate(record?.timestamp);
+    }
+
+    if (
+      !summary.meta &&
+      record.type === 'session_meta' &&
+      record.payload &&
+      typeof record.payload === 'object'
+    ) {
+      summary.meta = record.payload;
+      continue;
+    }
+
+    if (record.type === 'turn_context' && record.payload && typeof record.payload === 'object') {
+      summary.model = record.payload.model ?? summary.model;
+      summary.effort = record.payload.effort ?? summary.effort;
+      continue;
+    }
+
+    if (
+      record.type === 'event_msg' &&
+      record.payload &&
+      typeof record.payload === 'object' &&
+      record.payload.type === 'token_count'
+    ) {
+      summary.totalUsage = record.payload.info?.total_token_usage ?? summary.totalUsage;
+    }
+  }
+
+  return summarizeSession(filePath, summary);
 }
 
 function createEmptyBucket() {
