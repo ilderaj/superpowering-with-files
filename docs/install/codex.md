@@ -72,6 +72,8 @@ Apply the Goal Round Start Protocol to `/goal`, projected `/plan-goal`, and simi
 6. Execute only from an approved companion plan, using normal Superpowers execution discipline for inline versus subagent work, worktree isolation, and git-progress preservation when useful.
 7. After each phase, sync durable decisions, validation, review verdicts, companion-plan linkage, execution mode, and sync-back status into `planning/active/<task-id>/`.
 
+For tracked and deep-reasoning Codex work, a major phase boundary is often a good time to start a fresh Codex thread, especially once a reviewed plan is already in hand. Restore from `planning/active/<task-id>/` rather than carrying an increasingly long continuation history forward by default.
+
 Codex hooks support this flow with lightweight reminders and context injection only. They are not the sole enforcement mechanism.
 
 If execution exposes a `plan issue` rather than an `execution issue`, use a bounded review/revise/verify loop inside that same normal Superpowers execution discipline. This is a bounded escalation path, not a default always-on planner, and it does not change Codex native `/goal` positioning.

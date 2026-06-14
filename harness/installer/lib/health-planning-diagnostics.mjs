@@ -15,6 +15,17 @@ const execFileAsync = promisify(execFile);
 const UTC8_TIMESTAMP_PATTERN = /(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) UTC\+8/g;
 const MIDNIGHT_RECORD_PATTERN =
   /^(## (?:Session|Findings Record|Plan Record): |-\s+\*\*Started:\*\* )(\d{4}-\d{2}-\d{2}) 00:00:00 UTC\+8$/gm;
+const PLANNING_LIFECYCLE_STATUSES = [
+  'active',
+  'blocked',
+  'waiting_review',
+  'waiting_execution',
+  'waiting_integration',
+  'closed',
+  'archived',
+  'unknown'
+];
+const PLANNING_LIFECYCLE_STATUS_SET = new Set(PLANNING_LIFECYCLE_STATUSES);
 const VERIFICATION_FIELD_LABELS = new Set([
   'Proof Target',
   'Primary Proof',
@@ -78,6 +89,38 @@ function collectMalformedVerificationFieldLabels(markdown = '') {
   }
 
   return malformed;
+}
+
+function normalizePlanningLifecycleStatus(value = '') {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function extractPlanningCurrentStateStatus(markdown = '') {
+  const lines = markdown.split('\n');
+  const startIndex = lines.findIndex((line) => line.trim() === '## Current State');
+  if (startIndex === -1) {
+    return null;
+  }
+
+  const sectionLines = [];
+  for (let index = startIndex + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (line.startsWith('## ')) {
+      break;
+    }
+    sectionLines.push(line);
+  }
+
+  const currentStateSection = sectionLines.join('\n');
+  const statusLine = currentStateSection.match(/^\s*(?:[-*]\s*)?Status\s*:\s*(.*?)\s*$/im);
+  if (!statusLine) {
+    return null;
+  }
+
+  return {
+    raw: statusLine[1].trim(),
+    normalized: normalizePlanningLifecycleStatus(statusLine[1].trim())
+  };
 }
 
 export async function inspectActiveTaskState(rootDir) {
@@ -249,6 +292,45 @@ export async function inspectVerificationContractHealth(rootDir) {
   return results;
 }
 
+export async function inspectPlanningLifecycleStatusHealth(rootDir) {
+  const activeRoot = path.join(rootDir, 'planning/active');
+  const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
+  const results = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const taskPlanPath = path.join(activeRoot, entry.name, 'task_plan.md');
+    const markdown = await readFile(taskPlanPath, 'utf8').catch(() => null);
+    if (!markdown) {
+      continue;
+    }
+
+    const currentStateStatus = extractPlanningCurrentStateStatus(markdown);
+    if (!currentStateStatus) {
+      continue;
+    }
+
+    if (PLANNING_LIFECYCLE_STATUS_SET.has(currentStateStatus.normalized)) {
+      continue;
+    }
+
+    results.push({
+      type: 'planning-lifecycle-status-warning',
+      path: path.relative(rootDir, taskPlanPath),
+      severity: 'warning',
+      message:
+        `Planning lifecycle status "${currentStateStatus.raw}" is unsupported in ` +
+        `${path.relative(rootDir, taskPlanPath)}. Allowed lifecycle values: ` +
+        `${PLANNING_LIFECYCLE_STATUSES.join(', ')}.`
+    });
+  }
+
+  return results;
+}
+
 function collectUtc8TimesByDate(text) {
   const byDate = new Map();
 
@@ -367,6 +449,7 @@ export async function inspectPlanningDiagnostics({ rootDir, homeDir }) {
     ...canonicalPlanLocations,
     ...filteredCompanionSyncLocations,
     ...(await inspectExecutionContractHealth(rootDir)),
+    ...(await inspectPlanningLifecycleStatusHealth(rootDir)),
     // V1 keeps verification-contract enforcement on health/doctor only.
     // Summary exposure stays deferred until exact summary tests exist and operator need is demonstrated.
     ...(await inspectVerificationContractHealth(rootDir)),

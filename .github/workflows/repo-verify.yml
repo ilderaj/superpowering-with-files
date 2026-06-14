@@ -1,0 +1,40 @@
+name: Repo Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+  push:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+
+jobs:
+  repo-verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            homepage/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install homepage dependencies
+        run: npm ci --prefix homepage
+
+      - name: Run repository verification
+        run: npm run verify:all

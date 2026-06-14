@@ -9,6 +9,7 @@ test('root package is a private workspace orchestrator at release version', asyn
   assert.match(pkg.version, /^\d+\.\d+\.\d+$/);
   assert.equal(pkg.private, true);
   assert.deepEqual(pkg.workspaces, ['packages/*']);
+  assert.equal(pkg.scripts['preverify:homepage'], 'node scripts/ensure-homepage-deps.mjs');
   assert.equal(pkg.scripts['plugin:build'], 'node packages/plugin-kit/src/build-all.mjs');
   assert.equal(pkg.scripts['plugin:verify'], 'node --test tests/plugin-kit/*.test.mjs');
   assert.equal(pkg.scripts['plugin:smoke'], 'node packages/plugin-kit/src/smoke.mjs');

@@ -19,7 +19,7 @@ Harness uses one shared proof vocabulary across workflow modes.
 | design/planning | intake, `plan`, companion-plan authoring | review proof | `planning-with-files`, `goal2plan`, reviewer-gated companion plans | when architecture, scope, rollback, or acceptance-design risk matters more than code behavior; lifecycle/governance proof then backstops durable task-state alignment |
 | execution | implementation slices and narrow rollout work | unit/invariant proof | focused tests, diffs, fixtures, targeted commands | when a green local check says nothing about operator intent or release safety |
 | review | plan review, diff review, PR review | review proof | `review` lane and reviewer checkpoints | when tests pass but the change can still be wrong, unsafe, or out of scope |
-| acceptance/verify | focused verification and user-visible workflow checks | BDD/acceptance proof | `verify` lane, `npm run verify`, `./scripts/harness verify` | when behavior checks pass but lifecycle state, docs, or rollout evidence still drift |
+| acceptance/verify | focused verification and user-visible workflow checks | BDD/acceptance proof | `verify` lane, `npm run verify:all`, `./scripts/harness verify` | when behavior checks pass but lifecycle state, docs, or rollout evidence still drift |
 | reconcile/lifecycle | verify-to-finish transition before `finish` or `archive` | lifecycle/governance proof | `reconcile` gate, lifecycle state, `active-summary`, `reconciliation.md` | when archive readiness, SOT alignment, or follow-up ownership is the real risk |
 | operations/release/adoption | `cloud-dev`, install/adoption flows, `finish`, `release` | operational proof | `sync --dry-run`, `doctor --check-only`, adoption and release checks | when unit/BDD cannot prove takeover safety, backup behavior, rollout readiness, or recovery |
 
@@ -46,6 +46,8 @@ Typical commands:
 ```
 
 `goal2plan` is a planning skill, not a separate lane. It prepares one native Codex `/goal` prompt, requires a reviewed implementation plan artifact, and then hands execution back to the normal direct/tracked/deep-reasoning classification instead of creating a second execution system.
+
+Long-running continuation threads are a hygiene risk. When a tracked or deep-reasoning task crosses a major phase boundary or context churn gets heavy, prefer a fresh thread plus planning restore over extending the same continuation indefinitely.
 
 ### `cloud-dev`
 
@@ -85,13 +87,13 @@ gh pr view <number> --json state,mergeStateStatus,url
 Use `verify` after any meaningful code, policy, projection, or documentation change.
 
 - Run focused suites first when the scope is narrow.
-- Run the full repository check before merge or release.
+- Run the full repository check `npm run verify:all` before merge or release.
 - Review `verify`, `sync --dry-run`, and `doctor --check-only` together for context-governance changes.
 
 Typical commands:
 
 ```bash
-npm run verify
+npm run verify:all
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness sync --dry-run
 ./scripts/harness doctor --check-only
@@ -145,7 +147,7 @@ Use `release` when `dev` is ready to promote or when release documentation and a
 Typical commands:
 
 ```bash
-npm run verify
+npm run verify:all
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness doctor --check-only
 ./scripts/harness adoption-status
@@ -195,7 +197,7 @@ Use this contract when validating a projected skill, hook payload, or workflow l
 
 - Input: target IDE, skill or command surface, and expected behavior.
 - Expected artifacts: reproducible fixture, pass/fail verdict, and regression note if behavior changes.
-- Scope: evals supplement repository verification; they do not replace `npm run verify`, `sync --dry-run`, or `doctor --check-only`.
+- Scope: evals supplement repository verification; they do not replace `npm run verify:all`, `sync --dry-run`, or `doctor --check-only`.
 
 
 ## Reconcile Gate

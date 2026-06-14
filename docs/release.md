@@ -15,7 +15,7 @@ Release flow:
 ```bash
 git switch dev
 ./scripts/harness worktree-preflight --task <task-id>
-npm run verify
+npm run verify:all
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness sync --dry-run
 ./scripts/harness doctor --check-only
