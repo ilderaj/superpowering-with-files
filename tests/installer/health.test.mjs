@@ -389,6 +389,44 @@ test('readHarnessHealth reports a problem when the planning-with-files companion
   }
 });
 
+test('readHarnessHealth reports a problem when a required prompt patch marker is missing', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+
+    const promptPath = path.join(root, '.agents/skills/subagent-driven-development/implementer-prompt.md');
+    const original = await readFile(promptPath, 'utf8');
+    await writeFile(
+      promptPath,
+      original.replace(
+        '    ## Harness Superpowers subagent-driven-development implementer context budget patch\n\n',
+        ''
+      )
+    );
+
+    const health = await readHarnessHealth(root, '/home/user');
+    const subagent = health.targets.codex.skills.find((skill) => skill.skillName === 'subagent-driven-development');
+
+    assert.equal(subagent.status, 'problem');
+    assert.match(
+      subagent.message,
+      /Materialized skill is missing the Harness patch marker: Harness Superpowers subagent-driven-development implementer context budget patch in implementer-prompt\.md/
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readHarnessHealth exposes sync timestamps and upstream state', async () => {
   const root = await createHarnessFixture();
   try {

@@ -45,6 +45,17 @@ test('renderEntry uses a thinner always-on profile for Copilot by default', asyn
   assert.ok(measureText(copilotRendered).approxTokens < measureText(codexRendered).approxTokens);
 });
 
+test('codex rendered policy documents soft model tiering while copilot stays thin', async () => {
+  const [codexRendered, copilotRendered] = await Promise.all([
+    renderEntry(process.cwd(), 'codex', 'always-on-core'),
+    renderEntry(process.cwd(), 'copilot', 'always-on-core')
+  ]);
+
+  assert.match(codexRendered, /Soft Model Tiering/);
+  assert.match(codexRendered, /cheap model only for approved-plan mechanical work/);
+  assert.doesNotMatch(copilotRendered, /Soft Model Tiering/);
+});
+
 test('default always-on entries keep tracked and deep reasoning details opt-in', async () => {
   const targets = ['codex', 'copilot', 'cursor', 'claude-code'];
 
