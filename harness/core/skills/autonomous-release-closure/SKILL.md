@@ -77,8 +77,8 @@ Do not use this skill when:
    - `Cleanup`
    - `Adopt`
 4. Keep each stage inside its narrow permission boundary.
-5. Sync durable state back to `planning/active/<task-id>/` after every stage.
-6. Return to `Assess` whenever evidence changes, verification fails, or an external gate moves.
+5. Sync durable state back to `planning/active/<task-id>/` after every stage. During rereview waiting, record `rereview_requested_at`, `last_observed_review_at`, `last_observed_gate_state`, and `next_reassess_due_at`.
+6. Return to `Assess` whenever evidence changes, verification fails, or an external gate moves; during `ReReview`, that means event-or-cadence, whichever happens first.
 7. Stop only at:
    - `success`
    - `partial-success`
@@ -101,7 +101,9 @@ Do not use this skill when:
 
 ### `ReReview`
 - Trigger `@codex review`.
-- Use a 15-minute review polling cadence only while waiting for the next review result or gate change.
+- Re-enter `Assess` on the next review result or gate change, or at the 15-minute review polling cadence, whichever happens first.
+- `ReReview` is not complete just because `@codex review` was posted.
+- If the loop must hand off while still waiting, planning must carry `next_reassess_due_at` and the last observed review/gate state.
 
 ### `Merge`
 - Merge only with sufficient evidence for mergeability, review state, and policy interpretation.

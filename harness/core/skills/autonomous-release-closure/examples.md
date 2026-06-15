@@ -6,7 +6,9 @@
 - `Verify` runs targeted tests
 - The closure loop returns to `Assess` immediately after `Verify`; it does not wait 15 minutes because no new external review result is pending yet
 - `ReReview` triggers `@codex review`
-- Only after re-requesting review does the workflow enter the 15-minute review polling cadence while waiting for reviewer or gate changes
+- While waiting, the workflow re-enters `Assess` on the next review result or gate change, or on the 15-minute review polling cadence, whichever happens first
+- It does not mark `ReReview` complete immediately after posting `@codex review`
+- If the run hands off before the next observation, planning carries `next_reassess_due_at`
 
 ## Example 2: Single proven stacked promotion chain
 - The task does not name a target, so `Assess` resolves one proven chain from evidence:

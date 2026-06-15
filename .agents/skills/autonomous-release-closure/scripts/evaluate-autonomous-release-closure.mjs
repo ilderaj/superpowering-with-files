@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import {
   evaluateAutonomousReleaseClosureFixtures,
-  formatAutonomousReleaseClosureReport
+  formatAutonomousReleaseClosureReport,
+  reportHasAutonomousReleaseClosureFailures
 } from '../lib/evaluate-autonomous-release-closure.mjs';
 
 const args = new Set(process.argv.slice(2));
-const report = await evaluateAutonomousReleaseClosureFixtures();
+const skillRoot = process.env.HARNESS_AUTONOMOUS_RELEASE_CLOSURE_SKILL_ROOT;
+const report = await evaluateAutonomousReleaseClosureFixtures(skillRoot);
 
 if (args.has('--json')) {
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -13,6 +15,6 @@ if (args.has('--json')) {
   process.stdout.write(formatAutonomousReleaseClosureReport(report));
 }
 
-if (report.summary.failed > 0) {
+if (reportHasAutonomousReleaseClosureFailures(report)) {
   process.exitCode = 1;
 }

@@ -1,6 +1,11 @@
 {
   "id": "pr-closure",
   "title": "PR closure with review, merge, cleanup, and adopt",
+  "requiredSections": [
+    "## Scenario",
+    "## Expected Decisions",
+    "## Required Evidence"
+  ],
   "requiredPhrases": [
     "planning/active/<task-id>",
     "Assess",
@@ -11,6 +16,8 @@
     "Cleanup",
     "Adopt",
     "15-minute",
-    "blocked-with-evidence"
+    "blocked-with-evidence",
+    "whichever happens first",
+    "next_reassess_due_at"
   ]
 }

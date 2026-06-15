@@ -16,6 +16,8 @@
     "Cleanup",
     "Adopt",
     "15-minute",
-    "blocked-with-evidence"
+    "blocked-with-evidence",
+    "whichever happens first",
+    "next_reassess_due_at"
   ]
 }
