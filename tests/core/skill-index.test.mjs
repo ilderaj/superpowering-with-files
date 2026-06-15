@@ -55,6 +55,24 @@ test('skill index registers the executing-plans replan patch on the superpowers 
     type: 'superpowers-executing-plans-replan',
     marker: 'Harness Superpowers executing-plans replan patch'
   });
+  assert.deepEqual(index.skills.superpowers.childPatches['subagent-driven-development'], {
+    type: 'superpowers-subagent-driven-development-budget',
+    marker: 'Harness Superpowers subagent-driven-development budget patch',
+    requiredMarkers: [
+      {
+        path: 'implementer-prompt.md',
+        marker: 'Harness Superpowers subagent-driven-development implementer context budget patch'
+      },
+      {
+        path: 'spec-reviewer-prompt.md',
+        marker: 'Harness Superpowers subagent-driven-development spec reviewer budget patch'
+      },
+      {
+        path: 'code-quality-reviewer-prompt.md',
+        marker: 'Harness Superpowers subagent-driven-development code-quality reviewer budget patch'
+      }
+    ]
+  });
   assert.deepEqual(index.skills.superpowers.childPatches['verification-before-completion'], {
     type: 'superpowers-verification-before-completion',
     marker: 'Harness Superpowers verification-before-completion proof patch'

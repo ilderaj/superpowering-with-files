@@ -349,6 +349,24 @@ test('planSkillProjections applies the subagent-driven-development budget patch 
       'Harness Superpowers subagent-driven-development budget patch',
       target
     );
+    assert.deepEqual(
+      subagentSkill.patches[0].requiredMarkers,
+      [
+        {
+          path: 'implementer-prompt.md',
+          marker: 'Harness Superpowers subagent-driven-development implementer context budget patch'
+        },
+        {
+          path: 'spec-reviewer-prompt.md',
+          marker: 'Harness Superpowers subagent-driven-development spec reviewer budget patch'
+        },
+        {
+          path: 'code-quality-reviewer-prompt.md',
+          marker: 'Harness Superpowers subagent-driven-development code-quality reviewer budget patch'
+        }
+      ],
+      target
+    );
     assert.match(
       subagentSkill.sourcePath,
       /harness\/upstream\/superpowers\/skills\/subagent-driven-development$/,
@@ -932,10 +950,22 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch materializes Harness 
     assert.match(skill, /## Subagent Budget Policy/);
     assert.match(skill, /Treat subagents as a budgeted resource/);
     assert.match(skill, /Before upgrading model capability, first narrow the task slice or trim context/);
+    assert.match(
+      implementerPrompt,
+      /Harness Superpowers subagent-driven-development implementer context budget patch/
+    );
     assert.match(implementerPrompt, /## Context Budget/);
     assert.match(implementerPrompt, /Do not accept broad session history or unrelated tasks as required context/);
+    assert.match(
+      specReviewerPrompt,
+      /Harness Superpowers subagent-driven-development spec reviewer budget patch/
+    );
     assert.match(specReviewerPrompt, /## Review Budget/);
     assert.match(specReviewerPrompt, /Review the changed files and the explicit requirements only/);
+    assert.match(
+      codeQualityPrompt,
+      /Harness Superpowers subagent-driven-development code-quality reviewer budget patch/
+    );
     assert.match(
       codeQualityPrompt,
       /Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context/

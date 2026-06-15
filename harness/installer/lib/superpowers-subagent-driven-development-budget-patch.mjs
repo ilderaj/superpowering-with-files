@@ -7,6 +7,12 @@ const SPEC_INSERT_BEFORE = '    ## What Was Requested';
 const REVIEWER_INSERT_BEFORE = '**Code reviewer returns:**';
 
 const MARKER = 'Harness Superpowers subagent-driven-development budget patch';
+const IMPLEMENTER_MARKER =
+  'Harness Superpowers subagent-driven-development implementer context budget patch';
+const SPEC_MARKER =
+  'Harness Superpowers subagent-driven-development spec reviewer budget patch';
+const REVIEWER_MARKER =
+  'Harness Superpowers subagent-driven-development code-quality reviewer budget patch';
 
 const BUDGET_SECTION = [
   `## ${MARKER}`,
@@ -23,6 +29,8 @@ const BUDGET_SECTION = [
 ].join('\n');
 
 const IMPLEMENTER_SECTION = [
+  `    ## ${IMPLEMENTER_MARKER}`,
+  '',
   '    ## Context Budget',
   '',
   '    The controller should give you only:',
@@ -35,14 +43,19 @@ const IMPLEMENTER_SECTION = [
 ].join('\n');
 
 const SPEC_SECTION = [
+  `    ## ${SPEC_MARKER}`,
+  '',
   '    ## Review Budget',
   '',
   '    Review the changed files and the explicit requirements only.',
   '    Do not widen the review into unrelated repository surfaces unless the task requirements explicitly demand it.'
 ].join('\n');
 
-const REVIEWER_BULLET =
-  '- Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context?';
+const REVIEWER_SECTION = [
+  `**${REVIEWER_MARKER}**`,
+  '',
+  '- Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context?'
+].join('\n');
 
 function replaceOnce(original, anchor, block, filePath, label) {
   const updated = original.replace(anchor, `${block}\n\n${anchor}`);
@@ -75,7 +88,7 @@ export async function applySuperpowersSubagentDrivenDevelopmentBudgetPatch(targe
         'superpowers-subagent-budget skill section'
       );
 
-  const implementerPatched = implementerOriginal.includes('    ## Context Budget')
+  const implementerPatched = implementerOriginal.includes(IMPLEMENTER_MARKER)
     ? implementerOriginal
     : replaceOnce(
         implementerOriginal,
@@ -85,7 +98,7 @@ export async function applySuperpowersSubagentDrivenDevelopmentBudgetPatch(targe
         'superpowers-subagent-budget implementer context budget section'
       );
 
-  const specPatched = specOriginal.includes('    ## Review Budget')
+  const specPatched = specOriginal.includes(SPEC_MARKER)
     ? specOriginal
     : replaceOnce(
         specOriginal,
@@ -95,12 +108,12 @@ export async function applySuperpowersSubagentDrivenDevelopmentBudgetPatch(targe
         'superpowers-subagent-budget reviewer budget section'
       );
 
-  const reviewerPatched = reviewerOriginal.includes(REVIEWER_BULLET)
+  const reviewerPatched = reviewerOriginal.includes(REVIEWER_MARKER)
     ? reviewerOriginal
     : replaceOnce(
         reviewerOriginal,
         REVIEWER_INSERT_BEFORE,
-        `${REVIEWER_BULLET}\n\n`,
+        `${REVIEWER_SECTION}\n\n`,
         reviewerPath,
         'superpowers-subagent-budget code-review guidance'
       );
