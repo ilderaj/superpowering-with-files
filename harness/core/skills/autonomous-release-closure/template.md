@@ -49,4 +49,13 @@
 ## Review Polling Cadence
 
 - `ReReview` uses a 15-minute review polling cadence only while waiting for reviewer or gate changes
+- re-enter `Assess` on the next review result or gate change, or at that cadence, whichever happens first
+- `ReReview` is not complete when `@codex review` is merely posted
 - remediation and verification loops can return to `Assess` immediately without waiting 15 minutes
+
+## Waiting-State Record
+
+- when rereview is waiting, planning records `rereview_requested_at`
+- carry the freshest observed `last_observed_review_at` and `last_observed_gate_state`
+- set `next_reassess_due_at` for any handoff or paused wait
+- do not treat rereview-requested as done unless a fresh observation or pending reassess deadline is recorded

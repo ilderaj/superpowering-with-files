@@ -42,7 +42,8 @@ test('autonomous-release-closure fixtures pass hard checks', async () => {
     'stacked promotion chain',
     'disjoint PR ambiguity',
     'finishing handoff',
-    'loop budget / fallback'
+    'loop budget / fallback',
+    'rereview waiting control'
   ]);
 
   const artifactMap = new Map(report.contract.results.map((result) => [result.id, result]));
@@ -58,18 +59,21 @@ test('autonomous-release-closure fixtures pass hard checks', async () => {
     'disjoint PR ambiguity',
     'finishing handoff',
     'loop budget / fallback',
+    'rereview waiting control',
     'stacked promotion chain'
   ]);
   assert.deepEqual(artifactMap.get('template.md').coveredScenarios.sort(), [
     'disjoint PR ambiguity',
     'finishing handoff',
     'loop budget / fallback',
+    'rereview waiting control',
     'stacked promotion chain'
   ]);
   assert.deepEqual(artifactMap.get('examples.md').coveredScenarios.sort(), [
     'disjoint PR ambiguity',
     'finishing handoff',
     'loop budget / fallback',
+    'rereview waiting control',
     'stacked promotion chain'
   ]);
 });

@@ -7,7 +7,8 @@ const REQUIRED_CONTRACT_SCENARIOS = [
   'stacked promotion chain',
   'disjoint PR ambiguity',
   'finishing handoff',
-  'loop budget / fallback'
+  'loop budget / fallback',
+  'rereview waiting control'
 ];
 
 const CONTRACT_ARTIFACTS = [
@@ -32,7 +33,10 @@ const CONTRACT_ARTIFACTS = [
       '2 hours of wall-clock time',
       'partial-success',
       'closure loop',
-      'does not mean each closure loop lasts 15 minutes'
+      'does not mean each closure loop lasts 15 minutes',
+      'whichever happens first',
+      'not complete just because `@codex review` was posted',
+      'next_reassess_due_at'
     ],
     scenarioChecks: {
       'stacked promotion chain': [
@@ -53,6 +57,12 @@ const CONTRACT_ARTIFACTS = [
         '10 full loops',
         '## Fallback / Spillover Rule',
         'does not mean each closure loop lasts 15 minutes'
+      ],
+      'rereview waiting control': [
+        '### `ReReview`',
+        'whichever happens first',
+        'not complete just because `@codex review` was posted',
+        'next_reassess_due_at'
       ]
     }
   },
@@ -63,6 +73,7 @@ const CONTRACT_ARTIFACTS = [
       '## Loop Skeleton',
       '## Loop Budget',
       '## Review Polling Cadence',
+      '## Waiting-State Record',
       '## Terminal States',
       '## Hard Stops',
       '## Finishing Handoff'
@@ -74,7 +85,10 @@ const CONTRACT_ARTIFACTS = [
       '2 hours wall-clock',
       '3 consecutive same-class blockers',
       'the `closure loop`',
-      'does not mean each closure loop lasts 15 minutes'
+      'does not mean each closure loop lasts 15 minutes',
+      'whichever happens first',
+      'not complete when `@codex review` is merely posted',
+      'next_reassess_due_at'
     ],
     scenarioChecks: {
       'stacked promotion chain': ['prove exactly one promotion chain'],
@@ -83,6 +97,11 @@ const CONTRACT_ARTIFACTS = [
       'loop budget / fallback': [
         'on budget exhaustion, make a fallback decision instead of spinning',
         'does not mean each closure loop lasts 15 minutes'
+      ],
+      'rereview waiting control': [
+        'whichever happens first',
+        'not complete when `@codex review` is merely posted',
+        'next_reassess_due_at'
       ]
     }
   },
@@ -102,7 +121,10 @@ const CONTRACT_ARTIFACTS = [
       'starts at `Assess` against the created PR',
       '`main` is treated as the default final destination, not the default immediate target',
       'it does not wait 15 minutes because no new external review result is pending yet',
-      '15-minute review polling cadence'
+      '15-minute review polling cadence',
+      'whichever happens first',
+      'does not mark `ReReview` complete immediately after posting `@codex review`',
+      'next_reassess_due_at'
     ],
     scenarioChecks: {
       'stacked promotion chain': ['## Example 2: Single proven stacked promotion chain'],
@@ -111,6 +133,11 @@ const CONTRACT_ARTIFACTS = [
       'loop budget / fallback': [
         'it does not wait 15 minutes because no new external review result is pending yet',
         '15-minute review polling cadence'
+      ],
+      'rereview waiting control': [
+        'whichever happens first',
+        'does not mark `ReReview` complete immediately after posting `@codex review`',
+        'next_reassess_due_at'
       ]
     }
   }
