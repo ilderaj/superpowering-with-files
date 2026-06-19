@@ -11,7 +11,7 @@ These examples are intentionally short and contract-focused. Full fixture output
 ## Tracked Round Example
 - Fixture: `tracked-task`
 - Key behavior: use the standard frame, keep `planning/active/<task-id>/` authoritative, and give one clear finish line before any deeper escalation
-- Numeric target: `6 fixture prompts pass all hard checks`
+- Numeric target: `8 fixture prompts pass all hard checks`
 
 ## Proof-First Example
 - Fixture: `acceptance-proof-task`

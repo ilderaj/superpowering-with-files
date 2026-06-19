@@ -12,7 +12,7 @@ Work Discipline:
 Validation:
 - Run `node harness/core/skills/goal-writer/scripts/evaluate-goal-writer.mjs`, `node --test tests/core/goal-writer-eval.test.mjs`, and `node --test tests/adapters/sync-skills.test.mjs`.
 Done Criteria:
-- All `6` fixture prompts pass every hard check, `node harness/core/skills/goal-writer/scripts/evaluate-goal-writer.mjs` stays green, and the focused sync test remains green.
+- All `8` fixture prompts pass every hard check, `node harness/core/skills/goal-writer/scripts/evaluate-goal-writer.mjs` stays green, and the focused sync test remains green.
 - The skill, supporting files, and rendered projections stay aligned with `planning/active/<task-id>/` as the durable source of truth.
 Stop/Escalate:
 - Stop and escalate if the change needs a second planning system, cannot keep goal drift under control, or breaks more than `1` unrelated projection surface.

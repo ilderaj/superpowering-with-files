@@ -4,7 +4,7 @@
   "category": "tracked",
   "expectedRoute": "tracked",
   "expectedFocusTerms": [
-    "6 fixture prompts",
+    "8 fixture prompts",
     "planning/active/<task-id>/",
     "sync durable state"
   ]
