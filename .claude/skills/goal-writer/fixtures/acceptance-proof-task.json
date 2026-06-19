@@ -1,0 +1,12 @@
+{
+  "id": "acceptance-proof-task",
+  "title": "Acceptance-proof tracked task",
+  "category": "tracked",
+  "expectedRoute": "tracked",
+  "maxLength": 1700,
+  "expectedFocusTerms": [
+    "npm test test/auth -- --runInBand",
+    "git diff --stat",
+    "goal drift"
+  ]
+}

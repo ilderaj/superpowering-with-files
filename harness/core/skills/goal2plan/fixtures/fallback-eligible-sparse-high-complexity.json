@@ -1,0 +1,16 @@
+{
+  "id": "fallback-eligible-sparse-high-complexity",
+  "title": "Fallback eligible sparse high complexity",
+  "requiredPhrases": [
+    "reviewed implementation plan",
+    "do not execute implementation",
+    "native /goal",
+    "planning/active/<task-id>",
+    "docs/superpowers/plans/<date>-<task-id>.md",
+    "1 read-only reviewer",
+    "3",
+    "missing intake dimensions",
+    "reclassify",
+    "direct or tracked execution"
+  ]
+}

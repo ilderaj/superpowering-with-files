@@ -10,9 +10,9 @@ Work Discipline:
 - For deep-reasoning rounds, use `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, and execute approved plans with normal Superpowers execution, worktree, and git-progress discipline.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
 Validation:
-- Run exactly `2` targeted checks that cover the changed workflow text and the touched proof surface.
+- Run `node --test tests/core/goal-writer-eval.test.mjs` and inspect `git diff --stat` for the touched workflow surface.
 Done Criteria:
-- At least `1` quantified completion target appears in the final contract and both `2` validation checks pass.
+- At least `1` quantified completion target appears in the final contract, `node --test tests/core/goal-writer-eval.test.mjs` passes, and `git diff --stat` stays limited to the touched workflow surface.
 - No durable task state is written outside `planning/active/<task-id>/`.
 Stop/Escalate:
 - Stop and ask if the authoritative repo surface is unclear or if the goal cannot be validated with `2` focused checks.

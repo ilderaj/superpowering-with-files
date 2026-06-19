@@ -3,6 +3,7 @@
 ## Complex Coding Work
 
 Sparse architecture work with unclear repo surfaces:
+- audit intake sufficiency and list the missing intake dimensions first
 - enrich intake with `brainstorming`
 - produce one native `/goal` prompt
 - use the goal loop to draft and review the implementation plan
@@ -12,6 +13,7 @@ Sparse architecture work with unclear repo surfaces:
 Broad process or documentation work with multiple stakeholders:
 - gather enough success criteria and boundaries
 - write a reviewed execution plan without writing implementation artifacts yet
+- stop Goal2Plan if the reviewed plan shows direct or tracked execution is already sufficient
 
 ## Fallback To Simpler Execution
 

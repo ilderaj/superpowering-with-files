@@ -1,0 +1,12 @@
+{
+  "id": "moderate-tracked-task",
+  "title": "Moderate tracked task",
+  "category": "tracked",
+  "expectedRoute": "tracked",
+  "maxLength": 1700,
+  "expectedFocusTerms": [
+    "without widening into a planning loop",
+    "pnpm lint --filter docs",
+    "pnpm test --filter docs"
+  ]
+}

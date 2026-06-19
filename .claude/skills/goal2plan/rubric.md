@@ -12,9 +12,11 @@ Every generated Goal2Plan prompt must:
 6. mention `docs/superpowers/plans/<date>-<task-id>.md`
 7. mention a native `/goal`
 8. state that it does not implement a runner or external runner
-9. require `1` read-only reviewer subagent
-10. include at least one numeric done criterion
-11. include stop or escalate conditions
+9. inspect intake sufficiency or missing intake dimensions before drafting the plan
+10. explain how Goal2Plan stops and falls back when the task proves simpler than expected
+11. require `1` read-only reviewer subagent
+12. include at least one numeric done criterion
+13. include stop or escalate conditions
 
 ## Pass Threshold
 
@@ -27,4 +29,6 @@ Every generated Goal2Plan prompt must:
 - Missing artifact path: add `docs/superpowers/plans/<date>-<task-id>.md`
 - Wrong objective: replace implementation execution language with plan-generation language
 - Missing guardrail: say the skill does not implement a runner
+- Missing intake audit: list the missing intake dimensions before plan drafting
+- Missing fallback: say Goal2Plan stops and reclassifies when direct or tracked execution is sufficient
 - Missing reviewer gate: add `1` read-only reviewer subagent
