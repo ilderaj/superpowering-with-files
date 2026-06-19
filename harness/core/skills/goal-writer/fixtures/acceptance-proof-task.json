@@ -5,7 +5,7 @@
   "expectedRoute": "tracked",
   "maxLength": 1700,
   "expectedFocusTerms": [
-    "npm test test/auth -- --runInBand",
+    "node --test tests/core/goal-writer-eval.test.mjs",
     "git diff --stat",
     "goal drift"
   ]
