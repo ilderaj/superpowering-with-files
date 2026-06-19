@@ -10,9 +10,9 @@ Work Discipline:
 - For deep-reasoning rounds, use `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, and execute approved plans with normal Superpowers execution, worktree, and git-progress discipline.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
 Validation:
-- Verify the chosen surface, the inferred defaults, and the final behavior with `3` explicit checks.
+- Inspect `planning/active/<task-id>/task_plan.md`, run `node --test tests/core/goal-writer-eval.test.mjs`, and compare the chosen surface with `git diff --stat`.
 Done Criteria:
-- Inferred acceptance metric: `3` validation checks pass and each one maps to a named improvement surface.
+- Inferred acceptance metric: `3` proof checks pass, including `node --test tests/core/goal-writer-eval.test.mjs` and a `git diff --stat` bounded to the chosen surface.
 - The final goal states assumptions clearly enough that a later replan can stay stable instead of drifting.
 Stop/Escalate:
 - Stop and ask if the request actually refers to more than `1` execution surface or if no defensible `3`-check metric can be formed.

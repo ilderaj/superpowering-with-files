@@ -207,7 +207,7 @@ test('sync projects workspace entries and skills', async () => {
       'utf8'
     );
     assert.match(goalWriterOutput, /^```(?:text|md|markdown)?\n\/goal Objective:/);
-    assert.match(goalWriterOutput, /All `6` fixture prompts pass/);
+    assert.match(goalWriterOutput, /All `8` fixture prompts pass/);
 
     const goal2plan = await readFile(path.join(root, '.agents/skills/goal2plan/SKILL.md'), 'utf8');
     assert.match(goal2plan, /name: goal2plan/);

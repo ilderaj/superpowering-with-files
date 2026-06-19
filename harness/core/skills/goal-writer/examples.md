@@ -4,14 +4,24 @@ These examples are intentionally short and contract-focused. Full fixture output
 
 ## Quick Round Example
 - Fixture: `quick-task`
-- Key behavior: use the compact frame, keep the round lightweight, and wrap the prompt in a fenced block
+- Key behavior: use the compact frame, keep the round lightweight, name `2` concrete proofs, and wrap the prompt in a fenced block
 - Numeric target: `2 validation checks pass`
 - Length target: inner prompt stays under `1200` chars
 
 ## Tracked Round Example
 - Fixture: `tracked-task`
-- Key behavior: use the standard frame, keep `planning/active/<task-id>/` authoritative, and require phase-by-phase sync-back
-- Numeric target: `6 fixture prompts pass all hard checks`
+- Key behavior: use the standard frame, keep `planning/active/<task-id>/` authoritative, and give one clear finish line before any deeper escalation
+- Numeric target: `8 fixture prompts pass all hard checks`
+
+## Proof-First Example
+- Fixture: `acceptance-proof-task`
+- Key behavior: make `Validation` name exact commands or evidence surfaces, then tie `Done Criteria` back to those proofs
+- Numeric target: `2` concrete proof commands and `1` updated workflow surface
+
+## Bounded Orchestration Example
+- Fixture: `moderate-tracked-task`
+- Key behavior: keep a moderate tracked goal smaller than a planning loop unless the round really becomes deep-reasoning
+- Numeric target: `2` proof commands and `1` bounded publishing workflow surface
 
 ## Deep-Reasoning Round Example
 - Fixture: `deep-reasoning-task`

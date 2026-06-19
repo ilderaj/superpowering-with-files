@@ -20,7 +20,8 @@ Every generated prompt must pass all hard checks:
 6. `Done Criteria` contains at least one numeric target
 7. Preserves SWF authoritative memory rules with `planning/active/<task-id>/`
 8. Encodes quick / tracked / deep-reasoning round discipline and limits companion-plan/verifier use to deep-reasoning rounds
-9. Includes validation and stop/escalate conditions
+9. `Validation` names at least one concrete command or authoritative evidence surface
+10. Includes stop/escalate conditions
 
 ## Scored Rubric (10 points)
 
@@ -31,7 +32,7 @@ Every generated prompt must pass all hard checks:
 | SWF loop discipline | 2 | Prompt restores planning files, reclassifies rounds, keeps quick lightweight, and syncs back |
 | Complexity fit | 1 | Simple tasks stay compact instead of inheriting an unnecessarily long tracked/deep contract |
 | Goal stability | 1 | Prompt allows replan but rejects goal drift |
-| Validation quality | 1 | Validation names concrete commands or evidence checks |
+| Validation quality | 1 | Validation names concrete commands or authoritative evidence surfaces |
 | Stop/Escalate clarity | 1 | Prompt states when to stop, ask, or escalate |
 | Immediate execution handoff | 1 | `Next Step` tells the agent what to do first |
 
@@ -49,4 +50,4 @@ Use these notes when refining the prompt:
 - Over budget: shorten `Context` first, then `Constraints`, while preserving the section labels
 - Simple-task overlength: switch to the compact frame and reduce `Validation`/`Done Criteria` to the minimum proof set
 - Quick-task overreach: remove default companion-plan or subagent language unless the round becomes deep-reasoning
-- Weak validation: replace generic “verify the work” wording with named commands or evidence surfaces
+- Weak validation: replace generic “verify the work” wording with named commands or authoritative evidence surfaces

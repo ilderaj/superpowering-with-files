@@ -10,9 +10,9 @@ Work Discipline:
 - If a round is deep-reasoning, create or update `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, execute only from the approved plan, and cap plan-polishing at `3` verifier rounds.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
 Validation:
-- Verify the design against policy, projected guidance, and targeted tests before claiming completion.
+- Review `docs/superpowers/plans/<date>-<task-id>.md`, run `node --test tests/core/goal-writer-eval.test.mjs`, and inspect `git diff --stat` before claiming completion.
 Done Criteria:
-- At least `3` architecture validation surfaces pass and no more than `3` verifier rounds are consumed.
+- `docs/superpowers/plans/<date>-<task-id>.md` is reviewer-cleared, `node --test tests/core/goal-writer-eval.test.mjs` passes, `git diff --stat` stays within the architecture surfaces, and no more than `3` verifier rounds are consumed.
 - Deep-reasoning artifacts stay linked back to `planning/active/<task-id>/` and do not replace authoritative task memory.
 Stop/Escalate:
 - Stop and escalate if the repo-owned guidance cannot reconcile the conflict within `3` verifier rounds or if the change would require Codex internals.

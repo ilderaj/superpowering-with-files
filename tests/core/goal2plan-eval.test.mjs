@@ -5,8 +5,8 @@ import { evaluateGoal2PlanFixtures } from '../../harness/core/skills/goal2plan/l
 test('goal2plan fixtures pass Mode B hard checks', async () => {
   const report = await evaluateGoal2PlanFixtures();
 
-  assert.equal(report.summary.total, 1);
-  assert.equal(report.summary.passed, 1);
+  assert.equal(report.summary.total, 2);
+  assert.equal(report.summary.passed, 2);
   assert.equal(report.summary.failed, 0);
 
   for (const result of report.results) {

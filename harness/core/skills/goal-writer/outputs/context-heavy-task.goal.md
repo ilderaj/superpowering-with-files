@@ -10,9 +10,9 @@ Work Discipline:
 - For deep-reasoning rounds, use `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, and execute approved plans with normal Superpowers execution, worktree, and git-progress discipline.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
 Validation:
-- Run `3` validations that cover policy render, Codex docs wording, and the targeted installer or projection test.
+- Review `harness/core/policy/base.md` and `docs/install/codex.md`, then run `node --test tests/installer/policy-render.test.mjs`.
 Done Criteria:
-- All `4` authoritative surfaces are aligned and all `3` validations pass.
+- All `4` authoritative surfaces are aligned, `node --test tests/installer/policy-render.test.mjs` passes, and the final diff stays within the named authority set.
 - The final contract still routes quick work lightly and limits companion-plan/verifier behavior to deep-reasoning rounds only.
 Stop/Escalate:
 - Stop and escalate if a fifth authoritative surface becomes necessary or if any validation proves the assumed authority set is incomplete.

@@ -64,6 +64,15 @@ function hasNumericTarget(doneCriteria) {
   return /\b\d+(?:\.\d+)?\b/.test(doneCriteria);
 }
 
+function hasConcreteValidationProof(validation) {
+  return (
+    /`[^`\n]*\b(?:npm|pnpm|node|uv|python|pytest|cargo|go|git|gh|rg|fd|bun|deno|xcodebuild|swift|make|docker)\b[^`\n]*`/.test(
+      validation
+    )
+    || /`[^`\n]*(?:\/|\.md|\.mjs|\.ts|\.js|\.json|\.yml|\.yaml|\.py)[^`\n]*`/.test(validation)
+  );
+}
+
 function maybeAdd(notes, condition, message) {
   if (!condition) {
     notes.push(message);
@@ -128,6 +137,11 @@ export function evaluatePrompt(fixture, prompt) {
     'Work Discipline must limit companion-plan/verifier behavior to deep-reasoning rounds'
   );
   maybeAdd(hardFailures, validation.length > 0, 'Validation section must be non-empty');
+  maybeAdd(
+    hardFailures,
+    hasConcreteValidationProof(validation),
+    'Validation must name at least one concrete command or authoritative evidence surface'
+  );
   maybeAdd(hardFailures, stopEscalate.length > 0, 'Stop/Escalate section must be non-empty');
   maybeAdd(hardFailures, nextStep.length > 0, 'Next Step section must be non-empty');
 
@@ -180,7 +194,7 @@ export function evaluatePrompt(fixture, prompt) {
   }
   if (typeof fixture.maxLength === 'number' ? promptLength <= fixture.maxLength : promptLength < 2000) score += 1;
   if (/goal drift/i.test(innerPrompt)) score += 1;
-  if (/`?\d+`?.*(check|validation|test|command)/i.test(validation) || /Run /.test(validation)) score += 1;
+  if (hasConcreteValidationProof(validation)) score += 1;
   if (/stop|ask|escalate/i.test(stopEscalate)) score += 1;
   if (nextStep.length > 0) score += 1;
 

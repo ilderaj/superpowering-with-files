@@ -5,14 +5,20 @@ import { evaluateGoalWriterFixtures } from '../../harness/core/skills/goal-write
 test('goal-writer fixtures pass hard checks and stay within the prompt budget', async () => {
   const report = await evaluateGoalWriterFixtures();
   const quickTask = report.results.find((result) => result.id === 'quick-task');
+  const acceptanceProofTask = report.results.find((result) => result.id === 'acceptance-proof-task');
+  const moderateTrackedTask = report.results.find((result) => result.id === 'moderate-tracked-task');
 
-  assert.equal(report.summary.total, 6);
-  assert.equal(report.summary.passed, 6);
+  assert.equal(report.summary.total, 8);
+  assert.equal(report.summary.passed, 8);
   assert.equal(report.summary.failed, 0);
   assert.ok(report.summary.maxLength <= 4000);
   assert.ok(report.summary.minScore >= 9);
   assert.ok(quickTask, 'quick-task fixture should exist');
+  assert.ok(acceptanceProofTask, 'acceptance-proof-task fixture should exist');
+  assert.ok(moderateTrackedTask, 'moderate-tracked-task fixture should exist');
   assert.ok(quickTask.length <= 1200, 'quick-task fixture should use the compact prompt budget');
+  assert.ok(acceptanceProofTask.length <= 1700, 'acceptance-proof-task should stay within the proof-first budget');
+  assert.ok(moderateTrackedTask.length <= 1700, 'moderate-tracked-task should stay within the tracked budget');
 
   for (const result of report.results) {
     assert.equal(result.pass, true, `${result.id}: ${result.notes.join('; ')}`);

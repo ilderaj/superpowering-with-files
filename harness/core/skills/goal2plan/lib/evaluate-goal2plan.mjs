@@ -127,6 +127,16 @@ export function evaluatePrompt(fixture, prompt) {
   );
   maybeAdd(
     hardFailures,
+    /intake sufficiency|missing intake dimensions|intake gaps|missing intake/i.test(innerPrompt),
+    'prompt must inspect intake sufficiency or missing intake dimensions before drafting the plan'
+  );
+  maybeAdd(
+    hardFailures,
+    /fallback|reclassify|direct or tracked execution|straightforward enough/i.test(innerPrompt),
+    'prompt must explain how Goal2Plan stops and falls back when the task proves simpler than expected'
+  );
+  maybeAdd(
+    hardFailures,
     constraints.includes('planning/active/<task-id>/') || workDiscipline.includes('planning/active/<task-id>/'),
     'prompt must preserve `planning/active/<task-id>/` as authoritative memory'
   );
@@ -167,7 +177,14 @@ export function evaluatePrompt(fixture, prompt) {
   ) {
     score += 2;
   }
-  if (/`?1`?\s+read-only reviewer subagent/i.test(innerPrompt) && /`?3`?/.test(stopEscalate + doneCriteria + workDiscipline)) score += 2;
+  if (
+    /`?1`?\s+read-only reviewer subagent/i.test(innerPrompt)
+    && /`?3`?/.test(stopEscalate + doneCriteria + workDiscipline)
+    && /intake sufficiency|missing intake dimensions|intake gaps|missing intake/i.test(innerPrompt)
+    && /fallback|reclassify|direct or tracked execution|straightforward enough/i.test(innerPrompt)
+  ) {
+    score += 2;
+  }
   if (hasNumericTarget(doneCriteria) && validation.length > 0 && stopEscalate.length > 0 && nextStep.length > 0) score += 2;
 
   const pass = hardFailures.length === 0 && score >= 9;
