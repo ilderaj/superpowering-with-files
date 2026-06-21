@@ -392,12 +392,8 @@ test('planSkillProjections applies the subagent-driven-development budget patch 
           marker: 'Harness Superpowers subagent-driven-development implementer context budget patch'
         },
         {
-          path: 'spec-reviewer-prompt.md',
-          marker: 'Harness Superpowers subagent-driven-development spec reviewer budget patch'
-        },
-        {
-          path: 'code-quality-reviewer-prompt.md',
-          marker: 'Harness Superpowers subagent-driven-development code-quality reviewer budget patch'
+          path: 'task-reviewer-prompt.md',
+          marker: 'Harness Superpowers subagent-driven-development task reviewer budget patch'
         }
       ],
       target
@@ -974,11 +970,10 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch materializes Harness 
     });
 
     await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target);
-    const [skill, implementerPrompt, specReviewerPrompt, codeQualityPrompt] = await Promise.all([
+    const [skill, implementerPrompt, taskReviewerPrompt] = await Promise.all([
       readFile(path.join(target, 'SKILL.md'), 'utf8'),
       readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+      readFile(path.join(target, 'task-reviewer-prompt.md'), 'utf8')
     ]);
 
     assert.match(skill, /Harness Superpowers subagent-driven-development budget patch/);
@@ -992,18 +987,14 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch materializes Harness 
     assert.match(implementerPrompt, /## Context Budget/);
     assert.match(implementerPrompt, /Do not accept broad session history or unrelated tasks as required context/);
     assert.match(
-      specReviewerPrompt,
-      /Harness Superpowers subagent-driven-development spec reviewer budget patch/
+      taskReviewerPrompt,
+      /Harness Superpowers subagent-driven-development task reviewer budget patch/
     );
-    assert.match(specReviewerPrompt, /## Review Budget/);
-    assert.match(specReviewerPrompt, /Review the changed files and the explicit requirements only/);
+    assert.match(taskReviewerPrompt, /## Review Budget/);
+    assert.match(taskReviewerPrompt, /Review the changed files and the explicit requirements only/);
     assert.match(
-      codeQualityPrompt,
-      /Harness Superpowers subagent-driven-development code-quality reviewer budget patch/
-    );
-    assert.match(
-      codeQualityPrompt,
-      /Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context/
+      taskReviewerPrompt,
+      /Include whether the controller kept the task narrow enough for the assigned model tier/
     );
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -1025,16 +1016,14 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch is idempotent', async
     const once = await Promise.all([
       readFile(path.join(target, 'SKILL.md'), 'utf8'),
       readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+      readFile(path.join(target, 'task-reviewer-prompt.md'), 'utf8')
     ]);
 
     await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target);
     const twice = await Promise.all([
       readFile(path.join(target, 'SKILL.md'), 'utf8'),
       readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+      readFile(path.join(target, 'task-reviewer-prompt.md'), 'utf8')
     ]);
 
     assert.deepEqual(twice, once);
@@ -1050,8 +1039,7 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch fails when anchors ca
     await mkdir(target, { recursive: true });
     await writeFile(path.join(target, 'SKILL.md'), '# broken skill\n');
     await writeFile(path.join(target, 'implementer-prompt.md'), '# broken prompt\n');
-    await writeFile(path.join(target, 'spec-reviewer-prompt.md'), '# broken prompt\n');
-    await writeFile(path.join(target, 'code-quality-reviewer-prompt.md'), '# broken prompt\n');
+    await writeFile(path.join(target, 'task-reviewer-prompt.md'), '# broken prompt\n');
 
     await assert.rejects(
       applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target),

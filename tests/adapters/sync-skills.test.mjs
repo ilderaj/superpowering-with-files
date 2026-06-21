@@ -143,21 +143,13 @@ test('sync projects workspace entries and skills', async () => {
     assert.match(implementerPrompt, /## Context Budget/);
     assert.match(implementerPrompt, /Do not accept broad session history or unrelated tasks as required context/);
 
-    const specReviewerPrompt = await readFile(
-      path.join(root, '.agents/skills/subagent-driven-development/spec-reviewer-prompt.md'),
+    const taskReviewerPrompt = await readFile(
+      path.join(root, '.agents/skills/subagent-driven-development/task-reviewer-prompt.md'),
       'utf8'
     );
-    assert.match(specReviewerPrompt, /## Review Budget/);
-    assert.match(specReviewerPrompt, /Review the changed files and the explicit requirements only/);
-
-    const codeQualityPrompt = await readFile(
-      path.join(root, '.agents/skills/subagent-driven-development/code-quality-reviewer-prompt.md'),
-      'utf8'
-    );
-    assert.match(
-      codeQualityPrompt,
-      /Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context/
-    );
+    assert.match(taskReviewerPrompt, /## Review Budget/);
+    assert.match(taskReviewerPrompt, /Review the changed files and the explicit requirements only/);
+    assert.match(taskReviewerPrompt, /Include whether the controller kept the task narrow enough for the assigned model tier/);
 
     const finishingBranch = await readFile(
       path.join(root, '.agents/skills/finishing-a-development-branch/SKILL.md'),
