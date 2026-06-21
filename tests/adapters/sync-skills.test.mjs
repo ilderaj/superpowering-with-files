@@ -253,6 +253,65 @@ test('sync projects workspace entries and skills', async () => {
       'utf8'
     );
     assert.match(releaseClosureOutput, /Start every closure loop in `Assess`|Start every loop in `Assess`/);
+
+    const overengineeringReview = await readFile(
+      path.join(root, '.agents/skills/overengineering-review/SKILL.md'),
+      'utf8'
+    );
+    assert.match(overengineeringReview, /name: overengineering-review/);
+    assert.match(overengineeringReview, /`delete`, `stdlib`, `native`, `yagni`, or `shrink`/);
+    assert.match(overengineeringReview, /net: -<N> lines possible\./);
+    assert.match(overengineeringReview, /Correctness, security, and performance findings belong to normal review, not this skill\./);
+
+    const overengineeringRubric = await readFile(
+      path.join(root, '.agents/skills/overengineering-review/rubric.md'),
+      'utf8'
+    );
+    assert.match(overengineeringRubric, /Overengineering Review Rubric/);
+    assert.match(overengineeringRubric, /`delete`, `stdlib`, `native`, `yagni`, or `shrink`/);
+
+    const overengineeringFixture = await readFile(
+      path.join(root, '.agents/skills/overengineering-review/fixtures/delete-wrapper.json'),
+      'utf8'
+    );
+    assert.match(overengineeringFixture, /"requiredTag": "delete"/);
+
+    const overengineeringOutput = await readFile(
+      path.join(root, '.agents/skills/overengineering-review/outputs/delete-wrapper.md'),
+      'utf8'
+    );
+    assert.match(overengineeringOutput, /tag: delete/);
+
+    const simplificationLedger = await readFile(
+      path.join(root, '.agents/skills/simplification-ledger/SKILL.md'),
+      'utf8'
+    );
+    assert.match(simplificationLedger, /name: simplification-ledger/);
+    assert.match(simplificationLedger, /rg -n '\(#\|\/\/\) \?swf-simplify:' \./);
+    assert.match(simplificationLedger, /V1 supports hash-style and slash-style line comments only\./);
+    assert.match(simplificationLedger, /no-trigger/);
+
+    const simplificationLedgerRubric = await readFile(
+      path.join(root, '.agents/skills/simplification-ledger/rubric.md'),
+      'utf8'
+    );
+    assert.match(simplificationLedgerRubric, /Simplification Ledger Rubric/);
+    assert.match(
+      simplificationLedgerRubric,
+      /No simplification markers found|Unsupported marker locations such as prose and block comments are ignored in V1/i
+    );
+
+    const simplificationLedgerFixture = await readFile(
+      path.join(root, '.agents/skills/simplification-ledger/fixtures/missing-trigger.json'),
+      'utf8'
+    );
+    assert.match(simplificationLedgerFixture, /"requireNoTrigger": true/);
+
+    const simplificationLedgerOutput = await readFile(
+      path.join(root, '.agents/skills/simplification-ledger/outputs/missing-trigger.md'),
+      'utf8'
+    );
+    assert.match(simplificationLedgerOutput, /upgrade trigger: no-trigger/);
   } finally {
     await removeHarnessFixture(root);
   }

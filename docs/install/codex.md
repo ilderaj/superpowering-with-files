@@ -92,6 +92,14 @@ When the user intent is too sparse to write a credible implementation plan, the 
 
 `goal2plan` is still not a runner. It does not replace native Codex `/goal`, and it does not execute implementation by itself. After the reviewed plan is approved, execution should be reclassified normally as direct, tracked, or deep-reasoning work.
 
+## Optional simplicity helpers
+
+Codex also receives two optional repo-owned helpers inspired by the `ponytail` fit analysis. They stay local to Harness and do not imply upstream packaging, vendoring, or benchmark import.
+
+- `overengineering-review` narrows a pass to over-built surfaces only, using the tags `delete`, `stdlib`, `native`, `yagni`, and `shrink`.
+- `simplification-ledger` scans the canonical `swf-simplify:` marker and reports simplification ceilings plus upgrade triggers.
+- `swf-simplify:` is the V1 comment marker for deliberate simplifications; use it when you want a simplification to stay visible without promoting it into a new runtime rule.
+
 Harness projects Codex hooks only when `--hooks=on` is selected. It projects the verified planning-with-files `SessionStart` and `UserPromptSubmit` events, plus the superpowers `SessionStart` wrapper. When the `safety` profile is active, Harness can also project Codex `SessionStart` and `PreToolUse` safety hooks. Those remain repository-owned policy checks and do not replace host-platform approvals.
 
 When these hooks run in a live Codex session, Harness writes runtime trace evidence under `.harness/runtime-hooks/codex.jsonl` and surfaces it in `doctor` and `verify` as runtime evidence instead of guessing.

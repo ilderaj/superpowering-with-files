@@ -56,6 +56,21 @@ test('codex rendered policy documents soft model tiering while copilot stays thi
   assert.doesNotMatch(copilotRendered, /Soft Model Tiering/);
 });
 
+test('rendered always-on entries keep the simplicity ladder and deliberate simplification marker', async () => {
+  const [codexRendered, copilotRendered] = await Promise.all([
+    renderEntry(process.cwd(), 'codex', 'always-on-core'),
+    renderEntry(process.cwd(), 'copilot', 'always-on-core')
+  ]);
+
+  for (const rendered of [codexRendered, copilotRendered]) {
+    assert.match(rendered, /Question whether the work needs to exist at all\./);
+    assert.match(rendered, /Prefer the smallest working diff and the fewest files\./);
+    assert.match(rendered, /Never simplify away trust-boundary validation, data-loss prevention, security, accessibility, or explicit user asks\./);
+    assert.match(rendered, /`swf-simplify:`/);
+    assert.match(rendered, /required fields: `ceiling` and `upgrade trigger`/);
+  }
+});
+
 test('default always-on entries keep tracked and deep reasoning details opt-in', async () => {
   const targets = ['codex', 'copilot', 'cursor', 'claude-code'];
 
@@ -164,6 +179,14 @@ test('project docs keep shared defaults while documenting the optional Copilot g
   assert.match(codexInstall, /new or materially revised/);
   assert.match(codexInstall, /read-only reviewer subagent/);
   assert.match(codexInstall, /normal Superpowers execution discipline/);
+  assert.match(readme, /repo-owned borrowings inspired by the `ponytail` analysis/);
+  assert.match(readme, /`overengineering-review` is an optional review lens/);
+  assert.match(readme, /`simplification-ledger` is an optional read-only helper/);
+  assert.match(readme, /`swf-simplify:` is the canonical V1 marker/);
+  assert.match(codexInstall, /optional repo-owned helpers inspired by the `ponytail` fit analysis/);
+  assert.match(codexInstall, /`overengineering-review` narrows a pass to over-built surfaces only/);
+  assert.match(codexInstall, /`simplification-ledger` scans the canonical `swf-simplify:` marker/);
+  assert.match(codexInstall, /`swf-simplify:` is the V1 comment marker for deliberate simplifications/);
 });
 
 test('shared policy and docs keep planning authority rooted in planning active with optional reconciliation lifecycle artifact', async () => {

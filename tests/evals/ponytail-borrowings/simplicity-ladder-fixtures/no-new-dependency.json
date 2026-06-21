@@ -1,0 +1,11 @@
+{
+  "id": "no-new-dependency",
+  "title": "Prefer stdlib instead of adding a lightweight package",
+  "expectedDecision": "option-a",
+  "expectedWinningStep": "stdlib",
+  "mustReject": "option-b",
+  "requiredPhrases": [
+    "no new dependency",
+    "lockfile stays untouched"
+  ]
+}

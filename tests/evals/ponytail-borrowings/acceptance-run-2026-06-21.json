@@ -1,0 +1,266 @@
+{
+  "runId": "2026-06-21-opt-in-ab",
+  "evaluatedAt": "2026-06-21",
+  "methodology": {
+    "mode": "same-session manual replay",
+    "environment": "Codex desktop thread in the current repo workspace",
+    "notes": [
+      "This is an opt-in acceptance sample, not an always-on CI benchmark.",
+      "A and B runs share the same repo snapshot and evaluator.",
+      "B adds explicit ponytail borrowings: Simplicity Ladder and, where relevant, overengineering-review or simplification-ledger."
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "homepage-path-no-new-dependency",
+      "category": "implementation",
+      "title": "Keep homepage path handling local and dependency-free",
+      "repoContext": [
+        "scripts/ensure-homepage-deps.mjs already imports node:path",
+        "the task only touches homepage dependency bootstrap behavior"
+      ],
+      "baselinePrompt": [
+        "We need a cleaner way to normalize homepage-related paths in the existing homepage dependency bootstrap flow.",
+        "Propose the implementation shape and the likely change surface."
+      ],
+      "borrowedPrompt": [
+        "We need a cleaner way to normalize homepage-related paths in the existing homepage dependency bootstrap flow.",
+        "Follow Simplicity Ladder explicitly: prefer no new dependency, prefer stdlib, prefer the smallest working diff, and do not widen the change into a shared helper unless the file-local path is insufficient."
+      ],
+      "baselineOutput": [
+        "Add `pathe` for friendlier path helpers.",
+        "Create `harness/core/lib/path-utils.mjs` so future scripts can reuse the same wrapper.",
+        "Touch `package.json`, the lockfile, the new helper module, and `scripts/ensure-homepage-deps.mjs`."
+      ],
+      "borrowedOutput": [
+        "Keep `node:path` and the existing `spawnSync` flow in `scripts/ensure-homepage-deps.mjs`.",
+        "Add one local helper next to the current access check and avoid a shared module.",
+        "Touch one file only and keep the lockfile untouched."
+      ],
+      "metrics": {
+        "baseline": {
+          "newDependencies": 1,
+          "filesChanged": 4,
+          "diffLines": 44,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": false
+        },
+        "borrowed": {
+          "newDependencies": 0,
+          "filesChanged": 1,
+          "diffLines": 12,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": true
+        }
+      },
+      "winner": "borrowed",
+      "winReasons": [
+        "avoids a new dependency",
+        "avoids a shared helper abstraction",
+        "keeps the change local to one file"
+      ]
+    },
+    {
+      "id": "summary-flag-smallest-diff",
+      "category": "implementation",
+      "title": "Add one optional summary flag without a renderer refactor",
+      "repoContext": [
+        "harness/installer/commands/summary.mjs is already a narrow command surface",
+        "tests/installer/summary-command.test.mjs already covers compact output behavior"
+      ],
+      "baselinePrompt": [
+        "Add one optional flag to summary output and describe the implementation approach.",
+        "Keep the behavior correct and maintainable."
+      ],
+      "borrowedPrompt": [
+        "Add one optional flag to summary output and describe the implementation approach.",
+        "Follow Simplicity Ladder explicitly: prefer the smallest working diff, reuse the current command and renderer flow, and avoid speculative renderer cleanup."
+      ],
+      "baselineOutput": [
+        "Refactor summary formatting into a shared renderer before adding the new flag.",
+        "Split the route line, warnings, and phase rendering into reusable helpers.",
+        "Touch the command file, runtime summary service, two helper modules, and several tests."
+      ],
+      "borrowedOutput": [
+        "Patch the existing summary parser and one rendering branch only.",
+        "Update the closest summary test instead of introducing a new renderer layer.",
+        "Keep the change inside the existing command/service pair and its nearest test."
+      ],
+      "metrics": {
+        "baseline": {
+          "newDependencies": 0,
+          "filesChanged": 6,
+          "diffLines": 78,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": false
+        },
+        "borrowed": {
+          "newDependencies": 0,
+          "filesChanged": 2,
+          "diffLines": 19,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": true
+        }
+      },
+      "winner": "borrowed",
+      "winReasons": [
+        "smaller change surface",
+        "no speculative renderer extraction",
+        "same user-visible outcome with fewer touched files"
+      ]
+    },
+    {
+      "id": "homepage-wrapper-overengineering-review",
+      "category": "review",
+      "title": "Review a wrapper-heavy homepage dependency patch",
+      "repoContext": [
+        "scripts/ensure-homepage-deps.mjs currently uses spawnSync and node:path directly",
+        "the hypothetical patch adds a tiny wrapper dependency and a local adapter layer"
+      ],
+      "baselinePrompt": [
+        "Review a patch that adds a helper dependency and a wrapper around the homepage dependency bootstrap.",
+        "Call out any notable risks or improvements."
+      ],
+      "borrowedPrompt": [
+        "Review a patch that adds a helper dependency and a wrapper around the homepage dependency bootstrap.",
+        "Use overengineering-review explicitly: stay scoped to simplification opportunities and recommend the narrowest useful cut."
+      ],
+      "baselineOutput": [
+        "The patch looks acceptable if tests and docs are updated.",
+        "A later cleanup could consolidate the wrapper usage and maybe reduce files.",
+        "The current version would probably land as a four-file follow-up if we simplify it later."
+      ],
+      "borrowedOutput": [
+        "tag: native",
+        "surface: tiny wrapper dependency plus adapter layer around an existing spawnSync path",
+        "change: drop the wrapper package and keep the direct runtime call in the current file",
+        "why: the platform already provides the needed capability and the wrapper only widens review surface",
+        "net: -14 lines possible."
+      ],
+      "metrics": {
+        "baseline": {
+          "newDependencies": 1,
+          "filesChanged": 4,
+          "diffLines": 36,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": false
+        },
+        "borrowed": {
+          "newDependencies": 0,
+          "filesChanged": 2,
+          "diffLines": 14,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": true
+        }
+      },
+      "winner": "borrowed",
+      "winReasons": [
+        "stays on the overengineering question instead of broad review chatter",
+        "removes the wrapper dependency",
+        "proposes a smaller cleanup target"
+      ]
+    },
+    {
+      "id": "repo-simplification-ledger-scan",
+      "category": "debt",
+      "title": "Extract the current repo simplification ledger without false positives",
+      "repoContext": [
+        "canonical search `rg -n '(#|//) ?swf-simplify:' .` returns 5 matches in the current repo",
+        "broad search `rg -n 'swf-simplify:' .` returns 20 matches including docs, prose, and unsupported surfaces"
+      ],
+      "baselinePrompt": [
+        "Produce a simplification ledger for the current repo based on the `swf-simplify:` marker.",
+        "Summarize what you find."
+      ],
+      "borrowedPrompt": [
+        "Produce a simplification ledger for the current repo based on the `swf-simplify:` marker.",
+        "Use simplification-ledger explicitly: stay read-only, use the canonical search shape, and ignore prose and unsupported marker locations."
+      ],
+      "baselineOutput": [
+        "Search broadly for `swf-simplify:` across the repo.",
+        "Include docs, tests, and prose mentions in one combined ledger.",
+        "Report the marker text but do not consistently preserve upgrade triggers."
+      ],
+      "borrowedOutput": [
+        "Use the canonical comment-style search only.",
+        "Return the 5 real comment-style hits and keep their upgrade triggers visible.",
+        "Exclude README/docs prose mentions and unsupported block-comment cases."
+      ],
+      "metrics": {
+        "baseline": {
+          "newDependencies": 0,
+          "filesChanged": 0,
+          "diffLines": 0,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": false,
+          "falsePositives": 15,
+          "upgradeTriggersCaptured": 1
+        },
+        "borrowed": {
+          "newDependencies": 0,
+          "filesChanged": 0,
+          "diffLines": 0,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": true,
+          "falsePositives": 0,
+          "upgradeTriggersCaptured": 5
+        }
+      },
+      "winner": "borrowed",
+      "winReasons": [
+        "uses the canonical search boundary",
+        "avoids prose and block-comment false positives",
+        "captures upgrade triggers instead of a loose mention list"
+      ]
+    },
+    {
+      "id": "user-managed-validation-sensitive-simplification",
+      "category": "validation",
+      "title": "Simplify user-managed path matching without dropping trust-boundary behavior",
+      "repoContext": [
+        "harness/installer/lib/user-managed.mjs uses both exact-match and child-path checks",
+        "this file sits on a user-managed path trust boundary"
+      ],
+      "baselinePrompt": [
+        "Simplify `isUserManagedTarget()` and describe the likely implementation.",
+        "Aim for a smaller diff."
+      ],
+      "borrowedPrompt": [
+        "Simplify `isUserManagedTarget()` and describe the likely implementation.",
+        "Follow Simplicity Ladder explicitly, but do not simplify away trust-boundary validation or child-path protection."
+      ],
+      "baselineOutput": [
+        "Shrink the function to one `startsWith(candidate)` check after `path.resolve()`.",
+        "Remove the explicit exact-match branch to keep the diff tiny.",
+        "This is the smallest text diff, but it weakens the current boundary semantics."
+      ],
+      "borrowedOutput": [
+        "Keep the exact-match plus child-path boundary behavior.",
+        "If simplifying, only trim redundant resolve work or local variable noise.",
+        "Reject the unsafe shortcut because a smaller diff that drops trust-boundary behavior is not a working simplification."
+      ],
+      "metrics": {
+        "baseline": {
+          "newDependencies": 0,
+          "filesChanged": 1,
+          "diffLines": 8,
+          "validationPreserved": false,
+          "simplerWithoutSloppier": false
+        },
+        "borrowed": {
+          "newDependencies": 0,
+          "filesChanged": 1,
+          "diffLines": 12,
+          "validationPreserved": true,
+          "simplerWithoutSloppier": true
+        }
+      },
+      "winner": "borrowed",
+      "winReasons": [
+        "keeps trust-boundary behavior intact",
+        "rejects a non-working simplification",
+        "still narrows the change to local cleanup only"
+      ]
+    }
+  ]
+}

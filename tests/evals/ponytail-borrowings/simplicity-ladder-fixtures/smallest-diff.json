@@ -1,0 +1,11 @@
+{
+  "id": "smallest-diff",
+  "title": "Prefer the smallest working diff when multiple options are acceptable",
+  "expectedDecision": "option-a",
+  "expectedWinningStep": "smallest working diff",
+  "mustReject": "option-b",
+  "requiredPhrases": [
+    "two files",
+    "same behavior"
+  ]
+}

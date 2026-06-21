@@ -67,6 +67,16 @@ test('projectionForSkill returns materialize for local goal2plan skill', async (
   assert.match(result.source, /harness\/core\/skills\/goal2plan/);
 });
 
+test('projectionForSkill returns materialize for local ponytail borrow skills', async () => {
+  const overengineeringReview = await projectionForSkill(process.cwd(), 'overengineering-review', 'codex');
+  assert.equal(overengineeringReview.strategy, 'materialize');
+  assert.match(overengineeringReview.source, /harness\/core\/skills\/overengineering-review/);
+
+  const simplificationLedger = await projectionForSkill(process.cwd(), 'simplification-ledger', 'codex');
+  assert.equal(simplificationLedger.strategy, 'materialize');
+  assert.match(simplificationLedger.source, /harness\/core\/skills\/simplification-ledger/);
+});
+
 test('projectionForSkill rejects unknown targets', async () => {
   await assert.rejects(
     projectionForSkill(process.cwd(), 'superpowers', 'unknown'),
@@ -173,6 +183,31 @@ test('planSkillProjections includes local autonomous-release-closure in the full
   assert.deepEqual(closureSkill.patches, []);
   assert.match(closureSkill.sourcePath, /harness\/core\/skills\/autonomous-release-closure$/);
   assert.match(closureSkill.targetPath, /\.agents\/skills\/autonomous-release-closure$/);
+});
+
+test('planSkillProjections includes local ponytail borrow skills in the full Codex workspace profile', async () => {
+  const plan = await planSkillProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex'
+  });
+
+  const overengineeringReview = plan.find((entry) => entry.skillName === 'overengineering-review');
+  assert.ok(overengineeringReview);
+  assert.equal(overengineeringReview.parentSkillName, 'overengineering-review');
+  assert.equal(overengineeringReview.strategy, 'materialize');
+  assert.deepEqual(overengineeringReview.patches, []);
+  assert.match(overengineeringReview.sourcePath, /harness\/core\/skills\/overengineering-review$/);
+  assert.match(overengineeringReview.targetPath, /\.agents\/skills\/overengineering-review$/);
+
+  const simplificationLedger = plan.find((entry) => entry.skillName === 'simplification-ledger');
+  assert.ok(simplificationLedger);
+  assert.equal(simplificationLedger.parentSkillName, 'simplification-ledger');
+  assert.equal(simplificationLedger.strategy, 'materialize');
+  assert.deepEqual(simplificationLedger.patches, []);
+  assert.match(simplificationLedger.sourcePath, /harness\/core\/skills\/simplification-ledger$/);
+  assert.match(simplificationLedger.targetPath, /\.agents\/skills\/simplification-ledger$/);
 });
 
 test('planSkillProjections applies the writing-plans patch for every supported target', async () => {

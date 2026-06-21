@@ -184,6 +184,32 @@
         "codex": "materialize",
         "claude-code": "materialize"
       }
+    },
+    "overengineering-review": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/overengineering-review",
+      "layout": "single",
+      "targetName": "overengineering-review",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
+    },
+    "simplification-ledger": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/simplification-ledger",
+      "layout": "single",
+      "targetName": "simplification-ledger",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
     }
   }
 }

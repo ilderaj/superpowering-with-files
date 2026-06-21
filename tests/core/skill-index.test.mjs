@@ -20,6 +20,10 @@ test('skill index defines required v1 skills and projections', async () => {
   assert.equal(index.skills['goal2plan'].source, 'local');
   assert.equal(index.skills['autonomous-release-closure'].projection.codex, 'materialize');
   assert.equal(index.skills['autonomous-release-closure'].source, 'local');
+  assert.equal(index.skills['overengineering-review'].projection.codex, 'materialize');
+  assert.equal(index.skills['overengineering-review'].source, 'local');
+  assert.equal(index.skills['simplification-ledger'].projection.codex, 'materialize');
+  assert.equal(index.skills['simplification-ledger'].source, 'local');
 });
 
 test('skill index declares layouts required for filesystem projection', async () => {
@@ -38,6 +42,10 @@ test('skill index declares layouts required for filesystem projection', async ()
   assert.equal(index.skills['goal2plan'].targetName, 'goal2plan');
   assert.equal(index.skills['autonomous-release-closure'].layout, 'single');
   assert.equal(index.skills['autonomous-release-closure'].targetName, 'autonomous-release-closure');
+  assert.equal(index.skills['overengineering-review'].layout, 'single');
+  assert.equal(index.skills['overengineering-review'].targetName, 'overengineering-review');
+  assert.equal(index.skills['simplification-ledger'].layout, 'single');
+  assert.equal(index.skills['simplification-ledger'].targetName, 'simplification-ledger');
 });
 
 test('skill index declares hook projection metadata', async () => {
