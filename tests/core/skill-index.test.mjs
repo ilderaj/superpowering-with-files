@@ -64,12 +64,8 @@ test('skill index registers the executing-plans replan patch on the superpowers 
         marker: 'Harness Superpowers subagent-driven-development implementer context budget patch'
       },
       {
-        path: 'spec-reviewer-prompt.md',
-        marker: 'Harness Superpowers subagent-driven-development spec reviewer budget patch'
-      },
-      {
-        path: 'code-quality-reviewer-prompt.md',
-        marker: 'Harness Superpowers subagent-driven-development code-quality reviewer budget patch'
+        path: 'task-reviewer-prompt.md',
+        marker: 'Harness Superpowers subagent-driven-development task reviewer budget patch'
       }
     ]
   });
