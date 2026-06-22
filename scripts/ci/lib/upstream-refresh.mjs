@@ -55,7 +55,7 @@ export function buildRefreshCommandChain() {
     { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
     { file: './scripts/harness', args: ['fetch'] },
     { file: './scripts/harness', args: ['update'] },
-    { file: 'npm', args: ['run', 'verify'] },
+    { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
     { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] },
     { file: './scripts/harness', args: ['sync', '--dry-run'] },
     { file: './scripts/harness', args: ['sync'] },
