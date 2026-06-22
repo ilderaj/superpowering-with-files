@@ -5,7 +5,7 @@ These scenarios are an opt-in cross-workflow acceptance replay for the main user
 
 Unlike the ponytail A/B pack, this replay does not compare two prompting styles. It exercises a single fresh fixture root and checks that the top-level command surfaces still produce sane user-facing outcomes when used in sequence.
 
-The replay currently has six lanes:
+The replay currently has eleven lanes:
 - `happy-path`:
   - one clean sequence showing the main command families all work together
 - `degraded`:
@@ -18,6 +18,16 @@ The replay currently has six lanes:
   - real multi-target and both-scope install flows that should stay explainable on user-visible verify surfaces
 - `additional-targets`:
   - target-specific install defaults and a real all-target replay that widen the live target matrix
+- `sync-preview`:
+  - cross-target dry-run previews that prove multi-target projection plans stay readable and read-only before sync writes anything
+- `reporting`:
+  - reporting and audit surfaces that should stay readable, targetable, and read-only even when they fail loudly
+- `execution-lifecycle`:
+  - execution receipt and followup-closure governance signals that should stay visible on the active-summary surface
+- `companion-reconciliation`:
+  - companion drift and placeholder reconciliation signals that should stay governable on the active-summary surface
+- `workspace-link`:
+  - nested git leaf workspaces that should recover parent authority-root routing after an explicit workspace-link
 
 ## Method
 - Start from one fresh Harness fixture root.
@@ -25,7 +35,7 @@ The replay currently has six lanes:
 - Use a nested leaf directory whenever root-resolution behavior is part of the claim.
 - Allow scenario-local state reseeding when a user-global workflow would otherwise be blocked by an earlier workspace install.
 - Record the replay with `scripts/run-repo-workflow-acceptance.mjs`.
-- Use `--variant=degraded`, `--variant=lifecycle`, `--variant=trust-boundary`, `--variant=mixed-scope`, or `--variant=additional-targets` when replaying the non-happy-path lanes.
+- Use `--variant=degraded`, `--variant=lifecycle`, `--variant=trust-boundary`, `--variant=mixed-scope`, `--variant=additional-targets`, `--variant=sync-preview`, `--variant=reporting`, `--variant=execution-lifecycle`, `--variant=companion-reconciliation`, or `--variant=workspace-link` when replaying the non-happy-path lanes.
 
 ## Scenario Set
 
@@ -175,3 +185,108 @@ The replay currently has six lanes:
   - `./scripts/harness verify --output=<dir>`
 - Claim:
   - a real all-target both-scope install still yields an explainable verification report whose selected-target set matches the live install state.
+
+### Sync-Preview Lane
+
+### 22. Sync Dry Run Both-Scope All Targets From State
+- Surface:
+  - `./scripts/harness sync --dry-run`
+- Claim:
+  - a both-scope all-target preview exposes the multi-target projection plan while leaving projections and sync state untouched.
+
+### 23. Sync Dry Run Both-Scope Copilot Hooks From State
+- Surface:
+  - `./scripts/harness sync --dry-run`
+- Claim:
+  - a both-scope Copilot preview exposes hook-config and hook-script work for both scopes without writing any projection state.
+
+### 24. Sync Dry Run Workspace Claude Hooks From State
+- Surface:
+  - `./scripts/harness sync --dry-run`
+- Claim:
+  - a workspace Claude Code preview exposes settings-format hook work without writing `CLAUDE.md` or sync metadata.
+
+### Reporting Lane
+
+### 25. Sync Check Out Of Sync From Leaf
+- Surface:
+  - `./scripts/harness sync --check`
+- Claim:
+  - a nested leaf workspace still fails loudly when projections drift, while keeping entries and projection manifests untouched.
+
+### 26. Summary Task Route Line With Multiple Active Tasks
+- Surface:
+  - `./scripts/harness summary --task <task-id>`
+- Claim:
+  - an explicitly requested task still renders the compact route line even when other active tasks exist.
+
+### 27. Token Audit Weekly Summary
+- Surface:
+  - `./scripts/harness token-audit --sessions-root=<path> --date-from=<iso> --date-to=<iso>`
+- Claim:
+  - the weekly audit still renders a stable markdown summary with token totals, model mix, and heuristic task-family hints.
+
+### Execution-Lifecycle Lane
+
+### 28. Active Summary Blocked Execution Open Followup
+- Surface:
+  - `./scripts/harness active-summary --json`
+- Claim:
+  - blocked execution receipts and their open followups stay visible as first-class governance anomalies on the live summary surface.
+
+### 29. Active Summary Failed Execution Unit
+- Surface:
+  - `./scripts/harness active-summary --json`
+- Claim:
+  - failed execution units stay distinguishable from blocked ones instead of collapsing into generic warnings.
+
+### 30. Active Summary Resolved Followup Closure
+- Surface:
+  - `./scripts/harness active-summary --json`
+- Claim:
+  - once closure evidence resolves a followup, the live summary suppresses the open-followup anomaly while still retaining receipt history.
+
+### Companion-Reconciliation Lane
+
+### 31. Active Summary Archive-Ready Companion Blocker
+- Surface:
+  - `./scripts/harness active-summary --json`
+- Claim:
+  - a supposedly archive-ready task still stays blocked when its companion lifecycle metadata drifts out of sync.
+
+### 32. Active Summary Active Companion Drift Warning
+- Surface:
+  - `./scripts/harness active-summary --json`
+- Claim:
+  - active tasks surface companion drift as a warning before archive readiness is even in play.
+
+### 33. Active Summary Placeholder Reconciliation Open
+- Surface:
+  - `./scripts/harness active-summary --json`
+- Claim:
+  - blank or template reconciliation artifacts stay open instead of silently becoming archive-ready.
+
+### Workspace-Link Lane
+
+### 34. Workspace-Link Restores Parent Status Across Git Boundary
+- Surface:
+  - `./scripts/harness workspace-link --root=<authority-root>`
+  - `./scripts/harness status`
+- Claim:
+  - a nested leaf workspace with its own git boundary can recover the parent authority-root status surface after an explicit workspace-link.
+
+### 35. Workspace-Link Rewrites Bogus Override And Restores Summary
+- Surface:
+  - `./scripts/harness workspace-link --root=<authority-root>`
+  - `./scripts/harness summary`
+- Claim:
+  - a bogus leaf override can be rewritten deterministically, after which the leaf regains access to parent planning summaries.
+
+### 36. Workspace-Link Routes Install And Sync Back To Parent Authority Root
+- Surface:
+  - `./scripts/harness workspace-link --root=<authority-root>`
+  - `./scripts/harness install --scope=workspace --targets=cursor`
+  - `./scripts/harness sync`
+  - `./scripts/harness verify`
+- Claim:
+  - once linked, a nested git leaf can install and sync through the parent authority root without writing local Harness state or local target projections.

@@ -291,3 +291,351 @@ test('repo workflow acceptance replay also covers additional target-specific ins
     true
   );
 });
+
+test('repo workflow acceptance replay also covers cross-target sync dry-run previews before any projection is written', async () => {
+  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'sync-preview' });
+
+  assert.deepEqual(report.summary, {
+    scenarioCount: 3,
+    passed: 3,
+    failed: 0
+  });
+
+  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
+  assert.deepEqual([...scenarioMap.keys()], [
+    'sync-dry-run-both-all-targets-from-state',
+    'sync-dry-run-both-copilot-hooks-from-state',
+    'sync-dry-run-workspace-claude-hooks-from-state'
+  ]);
+
+  assert.deepEqual(scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunReport.targets.sort(), [
+    'claude-code',
+    'codex',
+    'copilot',
+    'cursor'
+  ]);
+  assert.equal(
+    scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunState.lastSyncBefore,
+    null
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunState.lastSyncAfter,
+    null
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunReport.summary.create > 0,
+    true
+  );
+  assert.deepEqual(
+    scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunReport.createKinds.sort(),
+    ['entry', 'skill']
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-both-all-targets-from-state').filesystem.copilotEntryExists,
+    false
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-both-all-targets-from-state').filesystem.projectionsManifestExists,
+    false
+  );
+
+  assert.deepEqual(
+    scenarioMap.get('sync-dry-run-both-copilot-hooks-from-state').dryRunReport.targets,
+    ['copilot']
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-both-copilot-hooks-from-state').dryRunState.lastSyncAfter,
+    null
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-both-copilot-hooks-from-state').dryRunReport.summary.create > 0,
+    true
+  );
+  assert.equal(
+    scenarioMap
+      .get('sync-dry-run-both-copilot-hooks-from-state')
+      .dryRunReport.createKinds.includes('hook-config'),
+    true
+  );
+  assert.equal(
+    scenarioMap
+      .get('sync-dry-run-both-copilot-hooks-from-state')
+      .dryRunReport.createKinds.includes('hook-script'),
+    true
+  );
+  assert.deepEqual(
+    scenarioMap.get('sync-dry-run-both-copilot-hooks-from-state').dryRunReport.hookConfigFormats,
+    ['hooks']
+  );
+  assert.equal(
+    scenarioMap
+      .get('sync-dry-run-both-copilot-hooks-from-state')
+      .dryRunReport.hookConfigTargets.some((target) => target.endsWith('.github/hooks/planning-with-files.json')),
+    true
+  );
+  assert.equal(
+    scenarioMap
+      .get('sync-dry-run-both-copilot-hooks-from-state')
+      .dryRunReport.hookConfigTargets.some((target) => target.endsWith('.copilot/hooks/planning-with-files.json')),
+    true
+  );
+
+  assert.deepEqual(
+    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').dryRunReport.targets,
+    ['claude-code']
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').dryRunState.lastSyncAfter,
+    null
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').dryRunReport.summary.create > 0,
+    true
+  );
+  assert.equal(
+    scenarioMap
+      .get('sync-dry-run-workspace-claude-hooks-from-state')
+      .dryRunReport.createKinds.includes('hook-config'),
+    true
+  );
+  assert.equal(
+    scenarioMap
+      .get('sync-dry-run-workspace-claude-hooks-from-state')
+      .dryRunReport.createKinds.includes('hook-script'),
+    true
+  );
+  assert.deepEqual(
+    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').dryRunReport.hookConfigFormats,
+    ['settings']
+  );
+  assert.equal(
+    scenarioMap
+      .get('sync-dry-run-workspace-claude-hooks-from-state')
+      .dryRunReport.hookConfigTargets.some((target) => target.endsWith('.claude/settings.json')),
+    true
+  );
+  assert.equal(
+    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').filesystem.claudeEntryExists,
+    false
+  );
+});
+
+test('repo workflow acceptance replay also covers reporting surfaces and read-only audit commands', async () => {
+  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'reporting' });
+
+  assert.deepEqual(report.summary, {
+    scenarioCount: 3,
+    passed: 3,
+    failed: 0
+  });
+
+  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
+  assert.deepEqual([...scenarioMap.keys()], [
+    'sync-check-out-of-sync-from-leaf',
+    'summary-task-route-line-with-multiple-active-tasks',
+    'token-audit-weekly-summary'
+  ]);
+
+  assert.equal(scenarioMap.get('sync-check-out-of-sync-from-leaf').expectedFailure, true);
+  assert.equal(
+    scenarioMap
+      .get('sync-check-out-of-sync-from-leaf')
+      .error.message.includes('Harness sync check failed: projections are out of sync'),
+    true
+  );
+  assert.equal(scenarioMap.get('sync-check-out-of-sync-from-leaf').filesystem.entryExists, false);
+  assert.equal(
+    scenarioMap.get('sync-check-out-of-sync-from-leaf').filesystem.projectionsManifestExists,
+    false
+  );
+
+  assert.equal(
+    scenarioMap
+      .get('summary-task-route-line-with-multiple-active-tasks')
+      .stdout.includes('Task: Demo Task (demo-task)'),
+    true
+  );
+  assert.equal(
+    scenarioMap
+      .get('summary-task-route-line-with-multiple-active-tasks')
+      .stdout.includes('Route: tracked-lean - durable task without deep reasoning'),
+    true
+  );
+
+  assert.equal(scenarioMap.get('token-audit-weekly-summary').stdout.includes('# Weekly token audit'), true);
+  assert.equal(scenarioMap.get('token-audit-weekly-summary').stdout.includes('Total tokens: 400'), true);
+  assert.equal(
+    scenarioMap.get('token-audit-weekly-summary').stdout.includes('goal-round-start-protocol (heuristic)'),
+    true
+  );
+  assert.equal(
+    scenarioMap
+      .get('token-audit-weekly-summary')
+      .stdout.includes('SuperpoweringWithFiles (/workspace/SuperpoweringWithFiles)'),
+    true
+  );
+});
+
+test('repo workflow acceptance replay also covers execution-receipt lifecycle governance on active-summary surfaces', async () => {
+  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'execution-lifecycle' });
+
+  assert.deepEqual(report.summary, {
+    scenarioCount: 3,
+    passed: 3,
+    failed: 0
+  });
+
+  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
+  assert.deepEqual([...scenarioMap.keys()], [
+    'active-summary-blocked-execution-open-followup',
+    'active-summary-failed-execution-unit',
+    'active-summary-resolved-followup-closure'
+  ]);
+
+  const blockedReport = scenarioMap.get('active-summary-blocked-execution-open-followup').report;
+  const blockedTask = blockedReport.tasks.find((task) => task.task_id === 'task-execution-blocked');
+  assert.equal(blockedTask.executionSignals.receiptCount, 1);
+  assert.equal(blockedTask.executionSignals.blockedUnits, 1);
+  assert.equal(blockedTask.executionSignals.openFollowups, 1);
+  assert.equal(
+    blockedReport.anomalies.some(
+      (anomaly) =>
+        anomaly.taskId === 'task-execution-blocked' && anomaly.kind === 'execution_receipt_blocked'
+    ),
+    true
+  );
+  assert.equal(
+    blockedReport.anomalies.some(
+      (anomaly) =>
+        anomaly.taskId === 'task-execution-blocked' && anomaly.kind === 'execution_followup_open'
+    ),
+    true
+  );
+
+  const failedReport = scenarioMap.get('active-summary-failed-execution-unit').report;
+  const failedTask = failedReport.tasks.find((task) => task.task_id === 'task-execution-failed');
+  assert.equal(failedTask.executionSignals.receiptCount, 1);
+  assert.equal(failedTask.executionSignals.failedUnits, 1);
+  assert.equal(
+    failedReport.anomalies.some(
+      (anomaly) =>
+        anomaly.taskId === 'task-execution-failed' && anomaly.kind === 'execution_receipt_failed'
+    ),
+    true
+  );
+
+  const resolvedReport = scenarioMap.get('active-summary-resolved-followup-closure').report;
+  const resolvedTask = resolvedReport.tasks.find((task) => task.task_id === 'task-followup-resolved');
+  assert.equal(resolvedTask.executionSignals.openFollowups, 0);
+  assert.equal(resolvedTask.executionSignals.resolvedFollowups, 1);
+  assert.equal(resolvedTask.executionSignals.waivedFollowups, 0);
+  assert.equal(
+    resolvedReport.anomalies.some(
+      (anomaly) =>
+        anomaly.taskId === 'task-followup-resolved' && anomaly.kind === 'execution_followup_open'
+    ),
+    false
+  );
+});
+
+test('repo workflow acceptance replay also covers companion drift and placeholder reconciliation governance on active-summary surfaces', async () => {
+  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'companion-reconciliation' });
+
+  assert.deepEqual(report.summary, {
+    scenarioCount: 3,
+    passed: 3,
+    failed: 0
+  });
+
+  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
+  assert.deepEqual([...scenarioMap.keys()], [
+    'active-summary-archive-ready-companion-blocker',
+    'active-summary-active-companion-drift-warning',
+    'active-summary-placeholder-reconciliation-open'
+  ]);
+
+  const blockedReport = scenarioMap.get('active-summary-archive-ready-companion-blocker').report;
+  const readyTask = blockedReport.tasks.find((task) => task.task_id === 'task-ready');
+  const blockedTask = blockedReport.tasks.find((task) => task.task_id === 'task-blocked');
+  assert.equal(readyTask.archive_ready, true);
+  assert.equal(blockedTask.archive_ready, false);
+  assert.equal(blockedTask.companion.ok, false);
+  assert.equal(
+    blockedTask.companion.reasons.some((reason) => /Lifecycle state 'active' does not match expected 'closed'/.test(reason)),
+    true
+  );
+
+  const driftReport = scenarioMap.get('active-summary-active-companion-drift-warning').report;
+  const driftTask = driftReport.tasks.find((task) => task.task_id === 'task-active-drift');
+  assert.equal(driftTask.archive_ready, false);
+  assert.equal(driftTask.companion.has_companion, true);
+  assert.equal(driftTask.companion.ok, false);
+  assert.equal(
+    driftReport.anomalies.some(
+      (anomaly) => anomaly.taskId === 'task-active-drift' && anomaly.kind === 'companion_sync_warning'
+    ),
+    true
+  );
+
+  const placeholderReport = scenarioMap.get('active-summary-placeholder-reconciliation-open').report;
+  const placeholderTasks = ['blank-artifact', 'template-artifact', 'placeholder-progress']
+    .map((taskId) => placeholderReport.tasks.find((entry) => entry.task_id === taskId));
+  assert.equal(
+    placeholderTasks.filter((task) => task.reconciliationStatus === 'open').length,
+    3
+  );
+  for (const taskId of ['blank-artifact', 'template-artifact', 'placeholder-progress']) {
+    const task = placeholderReport.tasks.find((entry) => entry.task_id === taskId);
+    assert.equal(task.reconciliationStatus, 'open');
+    assert.equal(task.reconciliationReady, false);
+    assert.equal(
+      placeholderReport.anomalies.some(
+        (anomaly) => anomaly.taskId === taskId && anomaly.kind === 'reconciliation_open'
+      ),
+      true
+    );
+  }
+});
+
+test('repo workflow acceptance replay also covers workspace-link recovery for nested git leaf workspaces', async () => {
+  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'workspace-link' });
+
+  assert.deepEqual(report.summary, {
+    scenarioCount: 3,
+    passed: 3,
+    failed: 0
+  });
+
+  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
+  assert.deepEqual([...scenarioMap.keys()], [
+    'workspace-link-restores-parent-status-across-git-boundary',
+    'workspace-link-rewrites-bogus-override-and-restores-summary',
+    'workspace-link-routes-install-and-sync-back-to-parent-authority-root'
+  ]);
+
+  const statusReplay = scenarioMap.get('workspace-link-restores-parent-status-across-git-boundary');
+  assert.equal(statusReplay.authority.beforeSource, 'git-top-level');
+  assert.equal(statusReplay.authority.afterSource, 'override-file');
+  assert.equal(statusReplay.status.beforeFailed, true);
+  assert.equal(
+    statusReplay.status.beforeFailureMessage.includes('platforms.json'),
+    true
+  );
+  assert.equal(statusReplay.status.afterCodexEntryCount >= 1, true);
+  assert.equal(statusReplay.status.afterCodexEntryPath.endsWith('AGENTS.md'), true);
+
+  const summaryReplay = scenarioMap.get('workspace-link-rewrites-bogus-override-and-restores-summary');
+  assert.equal(summaryReplay.authority.source, 'override-file');
+  assert.equal(summaryReplay.summary.includes('Task: Workflow Task (workflow-task)'), true);
+
+  const installReplay = scenarioMap.get(
+    'workspace-link-routes-install-and-sync-back-to-parent-authority-root'
+  );
+  assert.equal(installReplay.authority.source, 'override-file');
+  assert.equal(installReplay.state.scope, 'workspace');
+  assert.deepEqual(installReplay.state.targets, ['cursor']);
+  assert.equal(installReplay.state.leafStateExists, false);
+  assert.equal(installReplay.state.cursorRuleRootExists, true);
+  assert.equal(installReplay.state.cursorRuleLeafExists, false);
+  assert.equal(installReplay.verificationReport.markdown.includes('Targets: cursor'), true);
+});
