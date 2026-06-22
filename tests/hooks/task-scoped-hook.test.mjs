@@ -52,7 +52,35 @@ async function addActiveTask(fixtureRoot, taskId, files = activeTaskFiles()) {
   return taskRoot;
 }
 
-function activeTaskFiles({ statusLine = 'Status: active' } = {}) {
+function routingDecisionLines(route) {
+  if (!route) {
+    return [];
+  }
+
+  if (route === 'tracked-lean') {
+    return [
+      '## Routing Decision',
+      '- Selected Route: tracked-lean',
+      '- Route Reason: task is durable but not deep',
+      '- Promotion Trigger: none',
+      '- Route Evidence Surface: planning + summary'
+    ];
+  }
+
+  if (route === 'deep-rich') {
+    return [
+      '## Routing Decision',
+      '- Selected Route: deep-rich',
+      '- Route Reason: architecture is unclear',
+      '- Promotion Trigger: architecture unclear',
+      '- Route Evidence Surface: planning + summary + active-summary'
+    ];
+  }
+
+  throw new Error(`Unsupported test route: ${route}`);
+}
+
+function activeTaskFiles({ statusLine = 'Status: active', route = 'deep-rich' } = {}) {
   return {
     taskPlan: [
       '# Codex Hooks',
@@ -71,7 +99,9 @@ function activeTaskFiles({ statusLine = 'Status: active' } = {}) {
       '',
       '### Phase 2: Rework prompt recovery',
       '- **Status:** in_progress',
-      '- [ ] Initial next step.'
+      '- [ ] Initial next step.',
+      '',
+      ...routingDecisionLines(route)
     ].join('\n'),
     findings: '## Notes\n- Use summary-first recovery.\n',
     progress: [
@@ -423,6 +453,26 @@ test('task-scoped-hook treats active status lines with extra whitespace as activ
     const payload = JSON.parse(stdout);
     assert.equal(payload.hookSpecificOutput.hookEventName, 'UserPromptSubmit');
     assert.match(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('route-less tracked task defaults to brief context on first prompt', async () => {
+  const { fixtureRoot } = await createFixture('route-less-first-prompt', activeTaskFiles({ route: null }));
+
+  try {
+    const scriptPath = path.join(
+      process.cwd(),
+      'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+    );
+    const { stdout } = await execFileAsync('bash', [scriptPath, 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot
+    });
+
+    const payload = JSON.parse(stdout);
+    assert.match(payload.hookSpecificOutput.additionalContext, /BRIEF CONTEXT/);
+    assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }

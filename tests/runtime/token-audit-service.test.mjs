@@ -15,6 +15,12 @@ async function writeRollout(root, relativePath, records) {
   );
 }
 
+async function writeRawRollout(root, relativePath, contents) {
+  const target = path.join(root, relativePath);
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, contents, 'utf8');
+}
+
 function sessionMeta({
   id,
   timestamp,
@@ -250,4 +256,213 @@ test('runTokenAudit rejects invalid explicit audit window values', async () => {
     }),
     /Invalid audit window/
   );
+});
+
+test('runTokenAudit falls back to recursive rollout discovery and skips incomplete sessions', async () => {
+  const sessionsRoot = await mkdtemp(path.join(os.tmpdir(), 'token-audit-runtime-recursive-'));
+
+  try {
+    await writeRollout(sessionsRoot, 'nested/manual/rollout-recursive.jsonl', [
+      '',
+      '{not-json}',
+      sessionMeta({
+        id: 'recursive-session',
+        timestamp: '2026-06-12T02:00:00Z',
+        cwd: '/workspace/trailing/slash/'
+      }),
+      turnContext({
+        timestamp: '2026-06-12T02:01:00Z',
+        cwd: '/workspace/trailing/slash/',
+        model: 'gpt-5.4'
+      }),
+      tokenCount({
+        timestamp: '2026-06-12T02:02:00Z',
+        totalUsage: {
+          input_tokens: 120,
+          cached_input_tokens: 20,
+          output_tokens: 15,
+          total_tokens: 135
+        }
+      })
+    ]);
+
+    await writeRollout(sessionsRoot, 'nested/manual/rollout-incomplete.jsonl', [
+      sessionMeta({
+        id: 'incomplete-session',
+        timestamp: '2026-06-12T03:00:00Z',
+        cwd: '/workspace/ignored'
+      }),
+      turnContext({
+        timestamp: '2026-06-12T03:01:00Z',
+        cwd: '/workspace/ignored',
+        model: 'gpt-5.4-mini'
+      })
+    ]);
+
+    const report = await runTokenAudit({
+      sessionsRoot,
+      dateFrom: '2026-06-12T00:00:00Z',
+      dateTo: '2026-06-12T23:59:59Z'
+    });
+
+    assert.equal(report.sessionCount, 1);
+    assert.equal(report.totals.totalTokens, 135);
+    assert.equal(report.totals.cachedInputTokens, 20);
+    assert.equal(report.totals.freshProxy, 115);
+    assert.equal(report.leaderboards.sessions[0].workspaceLabel, 'slash');
+    assert.equal(report.leaderboards.tasks[0].taskFamilyHint, 'unattributed');
+
+    const markdown = renderTokenAuditMarkdown(report);
+    assert.match(markdown, /Top task-family hints:/);
+    assert.match(markdown, /unattributed/);
+    assert.match(markdown, /slash \(\/workspace\/trailing\/slash\/\)/);
+  } finally {
+    await rm(sessionsRoot, { recursive: true, force: true });
+  }
+});
+
+test('runTokenAudit uses the default home sessions root and renders empty leaderboards when no sessions are present', async () => {
+  const tempHome = await mkdtemp(path.join(os.tmpdir(), 'token-audit-home-'));
+  const originalHome = process.env.HOME;
+
+  try {
+    process.env.HOME = tempHome;
+
+    const report = await runTokenAudit({
+      now: new Date('2026-06-21T00:00:00Z')
+    });
+
+    assert.equal(report.sessionsRoot, path.join(tempHome, '.codex', 'sessions'));
+    assert.equal(report.sessionCount, 0);
+
+    const markdown = renderTokenAuditMarkdown(report);
+    assert.match(markdown, /Model mix:\n- none/);
+    assert.match(markdown, /Top workspaces:\n- none/);
+    assert.match(markdown, /Top task-family hints:\n- none/);
+  } finally {
+    if (originalHome === undefined) {
+      delete process.env.HOME;
+    } else {
+      process.env.HOME = originalHome;
+    }
+    await rm(tempHome, { recursive: true, force: true });
+  }
+});
+
+test('runTokenAudit skips malformed, timestampless, and out-of-window sessions while keeping deterministic ties', async () => {
+  const sessionsRoot = await mkdtemp(path.join(os.tmpdir(), 'token-audit-runtime-edge-'));
+
+  try {
+    await writeRawRollout(
+      sessionsRoot,
+      '2026/06/12/rollout-garbage.jsonl',
+      '\n{not-json}\n'
+    );
+
+    await writeRollout(sessionsRoot, '2026/06/12/rollout-no-timestamp.jsonl', [
+      sessionMeta({
+        id: 'no-timestamp',
+        cwd: '/workspace/missing-time'
+      }),
+      turnContext({
+        model: 'gpt-5.4',
+        cwd: '/workspace/missing-time'
+      }),
+      tokenCount({
+        totalUsage: {
+          input_tokens: 90,
+          cached_input_tokens: 20,
+          output_tokens: 10,
+          total_tokens: 100
+        }
+      })
+    ]);
+
+    await writeRollout(sessionsRoot, '2026/06/12/rollout-out-of-window.jsonl', [
+      sessionMeta({
+        id: 'out-of-window',
+        timestamp: '2026-05-01T01:00:00Z',
+        cwd: '/workspace/out-of-window'
+      }),
+      turnContext({
+        timestamp: '2026-05-01T01:01:00Z',
+        cwd: '/workspace/out-of-window',
+        model: 'gpt-5.4'
+      }),
+      tokenCount({
+        timestamp: '2026-05-01T01:02:00Z',
+        totalUsage: {
+          input_tokens: 999,
+          cached_input_tokens: 0,
+          output_tokens: 1,
+          total_tokens: 1_000
+        }
+      })
+    ]);
+
+    await writeRollout(sessionsRoot, '2026/06/12/rollout-alpha.jsonl', [
+      sessionMeta({
+        id: 'alpha-session',
+        timestamp: '2026-06-12T04:00:00Z',
+        cwd: { unexpected: true }
+      }),
+      turnContext({
+        timestamp: '2026-06-12T04:01:00Z',
+        cwd: '/workspace/alpha',
+        model: 'gpt-5.4'
+      }),
+      tokenCount({
+        timestamp: '2026-06-12T04:02:00Z',
+        totalUsage: {
+          input_tokens: 100,
+          cached_input_tokens: 10,
+          output_tokens: 60,
+          total_tokens: 150
+        }
+      })
+    ]);
+
+    await writeRollout(sessionsRoot, '2026/06/12/rollout-beta.jsonl', [
+      sessionMeta({
+        id: 'beta-session',
+        timestamp: '2026-06-12T05:00:00Z',
+        cwd: '/workspace/beta'
+      }),
+      turnContext({
+        timestamp: '2026-06-12T05:01:00Z',
+        cwd: '/workspace/beta',
+        model: 'gpt-5.4'
+      }),
+      tokenCount({
+        timestamp: '2026-06-12T05:02:00Z',
+        totalUsage: {
+          input_tokens: 110,
+          cached_input_tokens: 20,
+          output_tokens: 60,
+          total_tokens: 150
+        }
+      })
+    ]);
+
+    const report = await runTokenAudit({
+      sessionsRoot,
+      dateFrom: '2026-06-12T00:00:00Z',
+      dateTo: '2026-06-12T23:59:59Z'
+    });
+
+    assert.equal(report.sessionCount, 2);
+    assert.deepEqual(
+      report.leaderboards.sessions.map((session) => session.sessionId),
+      ['alpha-session', 'beta-session']
+    );
+    assert.equal(report.breakdowns.workspaces.unknown.sessions, 1);
+    assert.equal(report.breakdowns.workspaces['/workspace/beta'].sessions, 1);
+
+    const markdown = renderTokenAuditMarkdown(report);
+    assert.match(markdown, /unknown \(unknown\): sessions=1, total=150, fresh=150/);
+    assert.doesNotMatch(markdown, /out-of-window/);
+    assert.doesNotMatch(markdown, /no-timestamp/);
+  } finally {
+    await rm(sessionsRoot, { recursive: true, force: true });
+  }
 });

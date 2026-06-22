@@ -2,8 +2,16 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 const REGISTRY_DIR = '.harness/mcp/registry';
+const REGISTRY_CHANNEL_PATTERN = /^[A-Za-z0-9._-]+$/;
+
+function validateRegistryChannel(channel) {
+  if (!REGISTRY_CHANNEL_PATTERN.test(channel)) {
+    throw new Error(`Invalid registry channel: ${channel}`);
+  }
+}
 
 async function registryPath(rootDir, channel = 'local-dev') {
+  validateRegistryChannel(channel);
   const dir = path.join(rootDir, REGISTRY_DIR);
   await mkdir(dir, { recursive: true });
   return path.join(dir, `${channel}.json`);
