@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import {
   classifyBaseHealth,
   createBaseHealthBlockedError,
-  loadBaseHealth
+  loadBaseHealth,
+  loadWorkflowRuns
 } from '../../scripts/ci/lib/upstream-base-health.mjs';
 
 test('classifyBaseHealth returns healthy for a successful Repo Verify run on the target sha', () => {
@@ -51,6 +52,34 @@ test('classifyBaseHealth returns blocked when the target sha has no successful R
   });
 });
 
+test('classifyBaseHealth returns healthy when the same target sha has a failed run and a later successful rerun', () => {
+  const result = classifyBaseHealth({
+    branch: 'dev',
+    targetSha: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    workflowRuns: [
+      {
+        name: 'Repo Verify',
+        head_sha: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        conclusion: 'failure',
+        status: 'completed'
+      },
+      {
+        name: 'Repo Verify',
+        head_sha: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+        conclusion: 'success',
+        status: 'completed'
+      }
+    ]
+  });
+
+  assert.deepEqual(result, {
+    status: 'healthy',
+    failureKind: '',
+    reason: '',
+    targetSha: 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+  });
+});
+
 test('loadBaseHealth resolves the target sha and classifies matching workflow runs', async () => {
   const calls = [];
 
@@ -60,8 +89,8 @@ test('loadBaseHealth resolves the target sha and classifies matching workflow ru
       calls.push(['resolveTargetSha', branch]);
       return 'dddddddddddddddddddddddddddddddddddddddd';
     },
-    workflowRunsLoader: async ({ branch }) => {
-      calls.push(['workflowRunsLoader', branch]);
+    workflowRunsLoader: async ({ branch, targetSha }) => {
+      calls.push(['workflowRunsLoader', branch, targetSha]);
       return [
         {
           name: 'Repo Verify',
@@ -75,7 +104,7 @@ test('loadBaseHealth resolves the target sha and classifies matching workflow ru
 
   assert.deepEqual(calls, [
     ['resolveTargetSha', 'dev'],
-    ['workflowRunsLoader', 'dev']
+    ['workflowRunsLoader', 'dev', 'dddddddddddddddddddddddddddddddddddddddd']
   ]);
   assert.deepEqual(result, {
     status: 'healthy',
@@ -83,6 +112,47 @@ test('loadBaseHealth resolves the target sha and classifies matching workflow ru
     reason: '',
     targetSha: 'dddddddddddddddddddddddddddddddddddddddd'
   });
+});
+
+test('loadWorkflowRuns narrows the GitHub API query to the target sha', async () => {
+  const calls = [];
+
+  const workflowRuns = await loadWorkflowRuns({
+    branch: 'dev',
+    targetSha: 'ffffffffffffffffffffffffffffffffffffffff',
+    repoLoader: async () => 'ilderaj/superpowering-with-files',
+    requestJson: async (command) => {
+      calls.push(command);
+      return {
+        workflow_runs: [
+          {
+            name: 'Repo Verify',
+            head_sha: 'ffffffffffffffffffffffffffffffffffffffff',
+            conclusion: 'success',
+            status: 'completed'
+          }
+        ]
+      };
+    }
+  });
+
+  assert.deepEqual(calls, [
+    {
+      file: 'gh',
+      args: [
+        'api',
+        'repos/ilderaj/superpowering-with-files/actions/runs?branch=dev&head_sha=ffffffffffffffffffffffffffffffffffffffff&per_page=100'
+      ]
+    }
+  ]);
+  assert.deepEqual(workflowRuns, [
+    {
+      name: 'Repo Verify',
+      head_sha: 'ffffffffffffffffffffffffffffffffffffffff',
+      conclusion: 'success',
+      status: 'completed'
+    }
+  ]);
 });
 
 test('createBaseHealthBlockedError returns a stable failure kind and message', () => {

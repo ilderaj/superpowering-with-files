@@ -25,13 +25,14 @@ async function runJsonCommand(command, {
 }
 
 export function classifyBaseHealth({ branch, targetSha, workflowRuns }) {
-  const matchingRun = workflowRuns.find((run) =>
+  const hasSuccessfulMatchingRun = workflowRuns.some((run) =>
     run?.name === repoVerifyWorkflowName
     && run?.head_sha === targetSha
     && run?.status === 'completed'
+    && run?.conclusion === 'success'
   );
 
-  if (matchingRun?.conclusion === 'success') {
+  if (hasSuccessfulMatchingRun) {
     return {
       ...defaultHealthyResult,
       targetSha
@@ -71,10 +72,12 @@ export async function resolveBaseTargetSha({
 
 export async function loadWorkflowRuns({
   branch,
+  targetSha,
   cwd = process.cwd(),
   env = process.env,
+  requestJson = runJsonCommand,
   repoLoader = async (options) => {
-    const repo = await runJsonCommand({
+    const repo = await requestJson({
       file: 'gh',
       args: ['repo', 'view', '--json', 'nameWithOwner']
     }, options);
@@ -82,9 +85,14 @@ export async function loadWorkflowRuns({
   }
 } = {}) {
   const nameWithOwner = await repoLoader({ cwd, env });
-  const response = await runJsonCommand({
+  const query = new URLSearchParams({
+    branch,
+    head_sha: targetSha,
+    per_page: '100'
+  });
+  const response = await requestJson({
     file: 'gh',
-    args: ['api', `repos/${nameWithOwner}/actions/runs?branch=${encodeURIComponent(branch)}&per_page=100`]
+    args: ['api', `repos/${nameWithOwner}/actions/runs?${query.toString()}`]
   }, { cwd, env });
 
   return response.workflow_runs ?? [];
@@ -98,6 +106,6 @@ export async function loadBaseHealth({
   workflowRunsLoader = async (options) => loadWorkflowRuns(options)
 } = {}) {
   const targetSha = await resolveTargetSha({ branch, cwd, env });
-  const workflowRuns = await workflowRunsLoader({ branch, cwd, env });
+  const workflowRuns = await workflowRunsLoader({ branch, targetSha, cwd, env });
   return classifyBaseHealth({ branch, targetSha, workflowRuns });
 }
