@@ -136,6 +136,23 @@ Phase 1
 - Exit Criteria:
   - define the exact condition for moving from done toward verified
 
+<!--
+  Optional proof-design note:
+  Add a top-level verification-contract section only when the task needs
+  explicit proof planning. Quick tasks usually omit it. When you do add one,
+  use a `Verification Contract` heading plus one or more `Mode` blocks, and
+  fill only the relevant modes.
+
+  Minimal field set per mode:
+  - Proof Target
+  - Primary Proof
+  - Backstop Proof
+  - Escalation Trigger
+  - Evidence Sink
+  - Reconcile Rule
+  - Unacceptable Substitute
+-->
+
 ## Key Questions
 <!-- 
   WHAT: Important questions you need to answer during the task.

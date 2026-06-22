@@ -1,0 +1,6 @@
+{
+  "id": "out-of-scope-correctness",
+  "title": "Do not turn a correctness-only bug into an overengineering finding",
+  "noFindings": true,
+  "expectedLinesSaved": 0
+}

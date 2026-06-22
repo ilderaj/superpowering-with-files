@@ -14,11 +14,6 @@ looks_like_project_path() {
     [ -d "${1:-}" ]
 }
 
-# Harness still invokes root init-session as:
-#   init-session.sh <project-path> <task-id>
-# Preserve that task-scoped planning/active contract here, then delegate all
-# other call shapes (slug mode, v3 gated/autonomous flags, templates) to the
-# canonical skill copy.
 if [ "$#" -eq 2 ] && looks_like_project_path "${1:-}" && [ "${2#-}" = "${2:-}" ]; then
     PROJECT_PATH="$1"
     TASK_ID="$2"

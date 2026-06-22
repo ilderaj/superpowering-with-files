@@ -1,0 +1,6 @@
+{
+  "id": "delete-wrapper",
+  "title": "Delete a redundant forwarding wrapper",
+  "requiredTag": "delete",
+  "expectedLinesSaved": 18
+}

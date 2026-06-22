@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "refreshedAt": "2026-06-12T15:00:49.791Z",
+  "refreshedAt": "2026-06-22T01:30:41.867Z",
   "sources": {
     "superpowers": {
       "name": "superpowers",
       "url": "https://github.com/obra/superpowers",
-      "headSha": "6fd4507659784c351abbd2bc264c7162cfd386dc",
-      "refreshedAt": "2026-06-12T15:00:49.791Z"
+      "headSha": "896224c4b1879920ab573417e68fd51d2ccc9072",
+      "refreshedAt": "2026-06-22T01:30:41.867Z"
     },
     "planning-with-files": {
       "name": "planning-with-files",
       "url": "https://github.com/OthmanAdi/planning-with-files",
-      "headSha": "5f37e662b0f84a3f70dfc684f01755596d8715ef",
-      "refreshedAt": "2026-06-12T15:00:49.791Z"
+      "headSha": "8f5a3c2e1c347635cf94debde033b3c1ac97e4ab",
+      "refreshedAt": "2026-06-22T01:30:41.867Z"
     }
   }
 }

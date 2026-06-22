@@ -11,7 +11,7 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
-**Note:** Tell your human partner that Superpowers works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use superpowers:subagent-driven-development instead of this skill.
+**Note:** Tell your human partner that Superpowers works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (Claude Code, Codex CLI, Codex App, Copilot CLI, and Gemini CLI all qualify; see the per-platform tool refs in `../using-superpowers/references/`). If subagents are available, use superpowers:subagent-driven-development instead of this skill.
 
 ## The Process
 
@@ -19,7 +19,7 @@ Load plan, review critically, execute all tasks, report when complete.
 1. Read plan file
 2. Review critically - identify any questions or concerns about the plan
 3. If concerns: Raise them with your human partner before starting
-4. If no concerns: Create TodoWrite and proceed
+4. If no concerns: Create todos for the plan items and proceed
 
 ### Step 2: Execute Tasks
 
@@ -56,8 +56,11 @@ After all tasks complete and verified:
 
 ## Harness Superpowers executing-plans replan patch
 
-- If execution suggests the approved plan is insufficient, first distinguish an `execution issue` from a `plan issue`.
+- If verification fails, classify it first: `implementation issue`, `plan issue`, `acceptance proof issue`, or `governance proof issue`.
+- An `implementation issue` means the approved plan is still sound but the code or local fix is not there yet; stay in execution and repair the work.
 - Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop.
+- An `acceptance proof issue` means the declared proof target is still unproven; rerun or expand the declared `primary proof` and use the declared `backstop proof` only when its escalation trigger is met.
+- A `governance proof issue` means the evidence sink, reconcile rule, or handoff record is incomplete; repair the recorded proof chain before claiming completion.
 - Keep the root goal stable instead of reopening broad planning or route selection.
 - Sync durable changes back to `planning/active/<task-id>/`.
 - If the mini-loop still fails, stop and record blockers instead of looping forever.
