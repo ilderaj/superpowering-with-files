@@ -8,10 +8,12 @@ import {
 } from './lib/upstream-heads.mjs';
 import {
   captureChangedFiles,
+  cleanupRuntimeArtifacts as cleanupRuntimeArtifactsDefault,
   createAllowlistViolationError,
   createFailureRefreshResult,
   createRefreshResult,
   filterEligibleChanges,
+  listTransientRuntimeArtifacts as listTransientRuntimeArtifactsDefault,
   listRepoLocalEntryFileChanges,
   restoreRepoLocalEntryFiles,
   runRefreshCommandChain,
@@ -31,7 +33,9 @@ export async function runUpstreamRefresh({
   runRefresh = runRefreshCommandChain,
   captureChanges = captureChangedFiles,
   filterChanges = filterEligibleChanges,
+  listTransientRuntimeArtifacts = listTransientRuntimeArtifactsDefault,
   listRepoLocalEntryChanges = listRepoLocalEntryFileChanges,
+  cleanupRuntimeArtifacts = cleanupRuntimeArtifactsDefault,
   restoreRepoLocalEntries = restoreRepoLocalEntryFiles,
   writeSourceHeads = writeSourceHeadsRecord,
   writeResult = writeRefreshResult
@@ -40,6 +44,27 @@ export async function runUpstreamRefresh({
   let eligibleFiles = [];
   let shouldCaptureFailureChanges = false;
   let changedFilesCaptured = false;
+
+  async function captureChangesForAllowlist() {
+    const changedFiles = await captureChanges({ cwd });
+    const repoLocalEntryChanges = listRepoLocalEntryChanges(changedFiles);
+
+    if (repoLocalEntryChanges.length > 0) {
+      await restoreRepoLocalEntries(repoLocalEntryChanges, { cwd });
+    }
+
+    const effectiveChangedFiles = repoLocalEntryChanges.length > 0
+      ? await captureChanges({ cwd })
+      : changedFiles;
+    const transientRuntimeArtifacts = listTransientRuntimeArtifacts(effectiveChangedFiles);
+
+    if (transientRuntimeArtifacts.length > 0) {
+      await cleanupRuntimeArtifacts(transientRuntimeArtifacts, { cwd });
+      return captureChanges({ cwd });
+    }
+
+    return effectiveChangedFiles;
+  }
 
   try {
     probeResult = await probeHeads({ cwd });
@@ -73,16 +98,7 @@ export async function runUpstreamRefresh({
       timestamp
     }), { cwd });
 
-    const changedFiles = await captureChanges({ cwd });
-    const repoLocalEntryChanges = listRepoLocalEntryChanges(changedFiles);
-
-    if (repoLocalEntryChanges.length > 0) {
-      await restoreRepoLocalEntries(repoLocalEntryChanges, { cwd });
-    }
-
-    const effectiveChangedFiles = repoLocalEntryChanges.length > 0
-      ? await captureChanges({ cwd })
-      : changedFiles;
+    const effectiveChangedFiles = await captureChangesForAllowlist();
     changedFilesCaptured = true;
     const filteredChanges = filterChanges(effectiveChangedFiles);
     eligibleFiles = filteredChanges.eligibleFiles;
@@ -103,16 +119,7 @@ export async function runUpstreamRefresh({
 
     if (shouldCaptureFailureChanges && !changedFilesCaptured) {
       try {
-        const changedFiles = await captureChanges({ cwd });
-        const repoLocalEntryChanges = listRepoLocalEntryChanges(changedFiles);
-
-        if (repoLocalEntryChanges.length > 0) {
-          await restoreRepoLocalEntries(repoLocalEntryChanges, { cwd });
-        }
-
-        const effectiveChangedFiles = repoLocalEntryChanges.length > 0
-          ? await captureChanges({ cwd })
-          : changedFiles;
+        const effectiveChangedFiles = await captureChangesForAllowlist();
         const filteredChanges = filterChanges(effectiveChangedFiles);
         eligibleFiles = filteredChanges.eligibleFiles;
 

@@ -322,6 +322,74 @@ test('filterEligibleChanges ignores runtime node_modules artifacts before enforc
   });
 });
 
+test('runUpstreamRefresh removes known transient cache artifacts before final allowlist enforcement', async () => {
+  const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
+  const events = [];
+  const cleanedPaths = [];
+  let captureCount = 0;
+  let filterInputPaths = [];
+
+  const result = await runUpstreamRefresh({
+    cwd: '/tmp/repo',
+    probeHeads: async () => ({
+      status: 'changes_detected',
+      sources: [{ name: 'superpowers', url: 'https://example.test/superpowers.git' }],
+      sourceHeads: { superpowers: '1111111111111111111111111111111111111111' }
+    }),
+    loadBaseHealth: async () => healthyBaseHealthStub(),
+    runRefresh: async () => {
+      events.push('runRefresh');
+    },
+    writeSourceHeads: async () => {
+      events.push('writeSourceHeads');
+    },
+    captureChanges: async () => {
+      captureCount += 1;
+      events.push(`captureChanges:${captureCount}`);
+
+      if (captureCount === 1) {
+        return [
+          { path: 'node_modules/.cache/wrangler/wrangler-account.json', tracked: false },
+          { path: 'harness/upstream/.source-heads.json', tracked: true }
+        ];
+      }
+
+      return [
+        { path: 'harness/upstream/.source-heads.json', tracked: true }
+      ];
+    },
+    restoreRepoLocalEntries: async () => {},
+    cleanupRuntimeArtifacts: async (paths) => {
+      events.push(`cleanup:${paths.join(',')}`);
+      cleanedPaths.push(...paths);
+    },
+    filterChanges: (changes) => {
+      filterInputPaths = changes.map((change) => change.path);
+      events.push(`filter:${filterInputPaths.join(',')}`);
+      return {
+        eligibleFiles: filterInputPaths,
+        excludedFiles: []
+      };
+    },
+    writeResult: async () => {
+      events.push('writeResult');
+    }
+  });
+
+  assert.deepEqual(cleanedPaths, ['node_modules/.cache/wrangler/wrangler-account.json']);
+  assert.deepEqual(filterInputPaths, ['harness/upstream/.source-heads.json']);
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-heads.json']);
+  assert.deepEqual(events, [
+    'runRefresh',
+    'writeSourceHeads',
+    'captureChanges:1',
+    'cleanup:node_modules/.cache/wrangler/wrangler-account.json',
+    'captureChanges:2',
+    'filter:harness/upstream/.source-heads.json',
+    'writeResult'
+  ]);
+});
+
 test('runUpstreamRefresh writes a failure result and rejects when verification fails', async () => {
   const { filterEligibleChanges } = await loadUpstreamRefreshModule();
   const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');

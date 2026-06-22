@@ -38,6 +38,11 @@ const repoLocalEntryFiles = new Set([
   '.github/copilot-instructions.md'
 ]);
 
+const transientRuntimeArtifactPrefixes = [
+  'node_modules/.cache/',
+  '.wrangler/'
+];
+
 function isIgnoredRuntimeArtifact(filePath) {
   return filePath === 'node_modules' || filePath.startsWith('node_modules/');
 }
@@ -123,6 +128,14 @@ export function filterEligibleChanges(changes) {
   return { eligibleFiles, excludedFiles };
 }
 
+export function listTransientRuntimeArtifacts(changes) {
+  return mergeChangeLists(changes)
+    .map((change) => change.path)
+    .filter((filePath) =>
+      transientRuntimeArtifactPrefixes.some((prefix) => filePath.startsWith(prefix))
+    );
+}
+
 export function listRepoLocalEntryFileChanges(changes) {
   return mergeChangeLists(changes)
     .filter((change) => repoLocalEntryFiles.has(change.path));
@@ -178,6 +191,18 @@ export async function restoreRepoLocalEntryFiles(filePaths, {
   await Promise.all(untrackedPaths.map((targetPath) => rm(targetPath, { force: true })));
 
   return repoLocalEntryChanges.map((change) => change.path);
+}
+
+export async function cleanupRuntimeArtifacts(filePaths, {
+  cwd = process.cwd()
+} = {}) {
+  const uniquePaths = [...new Set(filePaths)];
+
+  await Promise.all(uniquePaths.map((filePath) =>
+    rm(path.resolve(cwd, filePath), { force: true, recursive: true })
+  ));
+
+  return uniquePaths;
 }
 
 export function createRefreshResult({
