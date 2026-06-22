@@ -184,7 +184,8 @@ export function createRefreshResult({
   status,
   sourceHeads = {},
   eligibleFiles = [],
-  blockedReason = ''
+  blockedReason = '',
+  failureKind = ''
 } = {}) {
   return {
     status,
@@ -192,7 +193,8 @@ export function createRefreshResult({
     branchName,
     sourceHeads,
     eligibleFiles,
-    blockedReason
+    blockedReason,
+    failureKind
   };
 }
 
@@ -223,7 +225,8 @@ export function createFailureRefreshResult({
     status: 'failure',
     sourceHeads,
     eligibleFiles,
-    blockedReason: formatBlockedReason(error)
+    blockedReason: formatBlockedReason(error),
+    failureKind: error?.failureKind ?? 'runtime_failure'
   });
 }
 

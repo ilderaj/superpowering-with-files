@@ -18,11 +18,16 @@ import {
   UpstreamRefreshBlockedError,
   writeRefreshResult
 } from './lib/upstream-refresh.mjs';
+import {
+  createBaseHealthBlockedError,
+  loadBaseHealth as loadBaseHealthDefault
+} from './lib/upstream-base-health.mjs';
 
 export async function runUpstreamRefresh({
   cwd = process.cwd(),
   now = () => new Date(),
   probeHeads = probeUpstreamHeads,
+  loadBaseHealth: checkBaseHealth = ({ cwd, branch }) => loadBaseHealthDefault({ cwd, branch }),
   runRefresh = runRefreshCommandChain,
   captureChanges = captureChangedFiles,
   filterChanges = filterEligibleChanges,
@@ -47,6 +52,15 @@ export async function runUpstreamRefresh({
       });
       await writeResult(result, { cwd });
       return result;
+    }
+
+    const baseHealth = await checkBaseHealth({ cwd, branch: 'dev' });
+    if (baseHealth.status === 'blocked') {
+      throw createBaseHealthBlockedError({
+        branch: 'dev',
+        targetSha: baseHealth.targetSha,
+        reason: baseHealth.reason
+      });
     }
 
     shouldCaptureFailureChanges = true;
