@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 const expectedRefreshCommands = [
   { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
@@ -28,6 +30,8 @@ const expectedHumanReadableRefreshCommandChain = [
   './scripts/harness doctor'
 ];
 
+const verifyUpstreamRefreshScriptPath = path.join(process.cwd(), 'scripts/ci/verify-upstream-refresh.mjs');
+
 async function loadUpstreamRefreshModule() {
   return import('../../scripts/ci/lib/upstream-refresh.mjs');
 }
@@ -51,6 +55,13 @@ test('formatCommand returns the human-readable upstream refresh command sequence
   const { buildRefreshCommandChain, formatCommand } = await loadUpstreamRefreshModule();
 
   assert.deepEqual(buildRefreshCommandChain().map(formatCommand), expectedHumanReadableRefreshCommandChain);
+});
+
+test('verify:upstream-refresh runner preserves child test output streaming', async () => {
+  const script = await readFile(verifyUpstreamRefreshScriptPath, 'utf8');
+
+  assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*stdio:\s*'inherit'/);
+  assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*maxBuffer:\s*1024 \* 1024 \* 8/);
 });
 
 test('runCommand executes command file and args without a shell', async () => {

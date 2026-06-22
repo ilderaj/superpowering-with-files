@@ -23,6 +23,7 @@ const groups = [
 
 for (const files of groups) {
   await execFileAsync('node', ['--test', ...files], {
+    stdio: 'inherit',
     maxBuffer: 1024 * 1024 * 8
   });
 }
