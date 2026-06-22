@@ -46,6 +46,7 @@ class CodexHooksTests(unittest.TestCase):
                 "PreToolUse",
                 "PermissionRequest",
                 "PostToolUse",
+                "PreCompact",
                 "Stop",
             },
             set(payload["hooks"]),
@@ -147,7 +148,28 @@ class CodexHooksTests(unittest.TestCase):
         payload = json.loads(result.stdout)
         self.assertIn("progress.md", payload["systemMessage"])
 
-    def test_stop_adapter_blocks_once_then_allows_reentry(self) -> None:
+    def test_pre_compact_emits_flush_reminder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            root.joinpath("task_plan.md").write_text("# Task Plan\n", encoding="utf-8")
+            root.joinpath(".plan-attestation").write_text("abc123\n", encoding="utf-8")
+
+            result = self.run_shell_hook("pre-compact.sh", root)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("[planning-with-files] PreCompact", result.stdout)
+        self.assertIn("progress.md", result.stdout)
+        self.assertIn("Plan-SHA256", result.stdout)
+
+    def test_pre_compact_silent_without_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            result = self.run_shell_hook("pre-compact.sh", root)
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("", result.stdout.strip())
+
+    def test_stop_adapter_reports_incomplete_plan_without_blocking(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             root.joinpath("task_plan.md").write_text(
@@ -180,9 +202,12 @@ class CodexHooksTests(unittest.TestCase):
         first_payload = json.loads(first.stdout)
         second_payload = json.loads(second.stdout)
 
-        self.assertEqual("block", first_payload["decision"])
-        self.assertIn("Task incomplete", first_payload["reason"])
-        self.assertIn("Task incomplete", second_payload["systemMessage"])
+        self.assertNotIn("decision", first_payload)
+        self.assertNotIn("reason", first_payload)
+        self.assertIn("Task in progress", first_payload["systemMessage"])
+        self.assertIn("progress.md is up to date", first_payload["systemMessage"])
+        self.assertNotIn("continue working", first_payload["systemMessage"])
+        self.assertIn("Task in progress", second_payload["systemMessage"])
 
 
 if __name__ == "__main__":

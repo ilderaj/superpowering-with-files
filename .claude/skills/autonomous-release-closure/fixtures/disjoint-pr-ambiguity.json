@@ -1,0 +1,17 @@
+{
+  "id": "disjoint-pr-ambiguity",
+  "title": "Disjoint PR ambiguity stops at blocked-with-evidence",
+  "requiredSections": [
+    "## Scenario",
+    "## Expected Decisions",
+    "## Required Evidence"
+  ],
+  "requiredPhrases": [
+    "Assess",
+    "planning/active/<task-id>",
+    "blocked-with-evidence",
+    "multiple disjoint chains",
+    "does not guess",
+    "15-minute"
+  ]
+}

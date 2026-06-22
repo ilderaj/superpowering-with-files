@@ -75,6 +75,14 @@ git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null
 ```
 
 Do not default to `main` or `master` when the repository already records a non-trunk worktree base such as `dev`.
+
+## Autonomous Closure Handoff
+
+`finishing-a-development-branch` owns the integration choice and immediate execution.
+
+Only hand off to `autonomous-release-closure` when the user or task explicitly requires unattended follow-through after PR creation, promote to main, cleanup, or adopt work.
+
+Do not hand off when there is no explicit closure obligation beyond the immediate finishing step.
 ### Step 4: Present Options
 
 **Normal repo and named-branch worktree — present exactly these 4 options:**
@@ -135,16 +143,6 @@ git branch -d <feature-branch>
 ```bash
 # Push branch
 git push -u origin <feature-branch>
-
-# Create PR
-gh pr create --title "<title>" --body "$(cat <<'EOF'
-## Summary
-<2-3 bullets of what changed>
-
-## Test Plan
-- [ ] <verification steps>
-EOF
-)"
 ```
 
 **Do NOT clean up worktree** — user needs it alive to iterate on PR feedback.
@@ -192,7 +190,7 @@ WORKTREE_PATH=$(git rev-parse --show-toplevel)
 
 **If `GIT_DIR == GIT_COMMON`:** Normal repo, no worktree to clean up. Done.
 
-**If worktree path is under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`:** Superpowers created this worktree — we own cleanup.
+**If worktree path is under `.worktrees/` or `worktrees/`:** Superpowers created this worktree — we own cleanup.
 
 ```bash
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
@@ -236,7 +234,7 @@ git worktree prune  # Self-healing: clean up any stale registrations
 
 **Cleaning up harness-owned worktrees**
 - **Problem:** Removing a worktree the harness created causes phantom state
-- **Fix:** Only clean up worktrees under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`
+- **Fix:** Only clean up worktrees under `.worktrees/` or `worktrees/`
 
 **No confirmation for discard**
 - **Problem:** Accidentally delete work

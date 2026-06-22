@@ -1,0 +1,6 @@
+{
+  "id": "shrink-surface",
+  "title": "Shrink a change that is valid but too wide",
+  "requiredTag": "shrink",
+  "expectedLinesSaved": 9
+}

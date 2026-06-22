@@ -37,6 +37,15 @@ BEFORE claiming any status or expressing satisfaction:
 Skip any step = lying, not verifying
 ```
 
+## Harness Superpowers verification-before-completion proof patch
+
+- Start from the declared proof stack, not from a convenient command.
+- Identify the `proof target`, `primary proof`, `backstop proof`, `escalation trigger`, `evidence sink`, `reconcile rule`, and `unacceptable substitute` before you verify anything.
+- Run the declared `primary proof` first and read the full result against the actual claim.
+- Only use the declared `backstop proof` when the `escalation trigger` is actually met.
+- Store the result in the declared `evidence sink` and apply the declared `reconcile rule` before claiming success.
+- Treat the declared `unacceptable substitute` as disallowed evidence even if it is faster or greener.
+
 ## Common Failures
 
 | Claim | Requires | Not Sufficient |

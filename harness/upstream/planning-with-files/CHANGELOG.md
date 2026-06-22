@@ -2,6 +2,102 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.3] - 2026-06-16
+
+A hotfix for a frontmatter regression introduced in v3.1.2. The refreshed description shipped in v3.1.2 contains a colon, and the English SKILL.md carry the `description` field unquoted, so the frontmatter became invalid YAML. This release quotes the description and adds a test that validates every SKILL.md frontmatter as YAML, so the class cannot ship again.
+
+### Fixed
+
+- **SKILL.md frontmatter was invalid YAML in v3.1.2** (regression from the v3.1.2 description refresh). The new description "Manus-style persistent file-based planning for AI coding agents: keeps ..." contains a colon followed by a space. The English SKILL.md carry `description` unquoted, so a YAML loader reads the `: ` as a nested mapping and rejects the frontmatter with "mapping values are not allowed here". This affected the canonical file and the seven English IDE variants (`.codebuddy`, `.codex`, `.cursor`, `.factory`, `.hermes`, `.mastracode`, `.opencode`) and could break skill loading and the model-triggering description field. The description is now wrapped in double quotes, matching the already-quoted translated variants. The parsed value is identical, so model triggering is unchanged. The `clawhub-upload` staging bundle was corrected the same way.
+
+### Added
+
+- **Frontmatter validation test** (`tests/test_skill_frontmatter_valid.py`): loads every `SKILL.md` frontmatter as YAML and asserts a non-empty string description, plus a dependency-free check that no unquoted description contains `: `. The version-parity check is a regex and could not catch this regression.
+
+### Changed
+
+- Version bumped to 3.1.3 across the 17 parity-locked files via `scripts/bump-version.py`. `.continue`, `.gemini`, `.pi`, and `.kiro` lag intentionally per AGENTS.md release scope.
+
+### Verification
+
+- Python suite: 184 passed, 4 skipped, 0 failed, up from 180 with the four new frontmatter assertions.
+- Every SKILL.md in the repo, including the translated variants and the lagging `.continue`, `.gemini`, `.pi`, and `.kiro` variants, parses as valid YAML.
+
+## [3.1.2] - 2026-06-16
+
+A documentation patch. The session-catchup command in the skill body assumed the plugin runtime had set `${CLAUDE_PLUGIN_ROOT}`, so a skill-only install that ran the documented command in a normal shell got an empty variable and a broken path. This release adds a fallback across the affected variants, fixes the same class of bug in the `.hermes` variant, and refreshes the skill description to lead with the current positioning.
+
+### Fixed
+
+- **Session-catchup command works outside the plugin runtime** (PR #186 by @shunfeng8421, closes #185). The documented Restore Context command ran `${CLAUDE_PLUGIN_ROOT}/scripts/session-catchup.py`, but `CLAUDE_PLUGIN_ROOT` is only set when the plugin runtime executes a hook, not in an interactive shell. A skill-only install (via `npx skills add`, or on Codex or Cursor) collapsed the command to an absolute `/scripts/...` path that does not exist. The fix uses `SKILL_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/planning-with-files}"`, so plugin users keep the variable and skill-only users fall back to the default install path. Applied to the canonical file, the `.codebuddy` variant (with its own `${CODEBUDDY_PLUGIN_ROOT}`), and the five language variants. The Windows PowerShell block and plugin behavior are unchanged.
+- **`.hermes` variant carried the same unset-variable bug** (maintainer follow-up to #186). `.hermes` used `$HERMES_HOME` in bash and `$env:HERMES_HOME` in PowerShell with no fallback, so its catchup command failed the same way outside the Hermes runtime. Both blocks now fall back to `$HOME/.hermes` and `$env:USERPROFILE\.hermes` while keeping the runtime variable as the priority.
+
+### Changed
+
+- **Skill description refreshed for discoverability.** The eight English SKILL.md files (canonical plus the `.codebuddy`, `.codex`, `.cursor`, `.factory`, `.hermes`, `.mastracode`, `.opencode` adapters) now lead with "persistent file-based planning for AI coding agents" and name context-loss survival explicitly. The `Use when` trigger clause is unchanged, so model invocation behavior is identical. The five translated variants keep their localized descriptions.
+- Version bumped to 3.1.2 across the 17 parity-locked files via `scripts/bump-version.py`. `.continue`, `.gemini`, `.pi`, and `.kiro` lag intentionally per AGENTS.md release scope.
+
+### Verification
+
+- Python suite: 180 passed, 4 skipped, 0 failed, unchanged. The change is documentation prose with no test dependency.
+- Supply-chain review: the changed files are SKILL.md documentation only. No dependency, install hook, bin shim, or new install-path file. PR #186's diff was reviewed line by line before adoption.
+
+### Thanks
+
+- @shunfeng8421 for the session-catchup fallback fix (PR #186), which resolves the #185 report.
+- @xwang118 for surfacing the underlying problem in PR #183 that became #185.
+
+## [3.1.1] - 2026-06-15
+
+A documentation-only patch. The Codex verification command in `docs/codex.md` checked for a feature-flag name that current Codex no longer prints, so a correctly configured user running the documented check was told to upgrade. This release fixes the command and its follow-up sentence to match the canonical `hooks` flag already documented elsewhere in the same file. No code, hook, script, or test changed; the parity set is bumped to 3.1.1.
+
+### Fixed
+
+- **Codex verification command checks the canonical `hooks` feature flag** (PR #184 by @Fat-Jan). The Verification block ran `codex features list | rg '^codex_hooks\s'`, but Codex moved its canonical feature key from `codex_hooks` to `hooks` in 0.129.0 (openai/codex#20522). The old key still resolves as a deprecated alias inside `config.toml`, yet `codex features list` prints only the canonical `hooks`, so the bare `^codex_hooks\s` pattern matched nothing on any current Codex and routed correctly configured users to the "upgrade Codex" path. The command is now `rg '^(hooks|codex_hooks)\s'` and the troubleshooting sentence reads "If neither `hooks` nor the deprecated alias `codex_hooks` appears". This aligns the Verification block with the `hooks = true` configuration guidance and the deprecated-alias note already carried in the same document since v2.39.0.
+
+### Changed
+
+- Version bumped to 3.1.1 across the 17 parity-locked files via `scripts/bump-version.py`. `.continue`, `.gemini`, `.pi`, and `.kiro` lag intentionally per AGENTS.md release scope.
+
+### Verification
+
+- Python suite: 180 passed, 4 skipped, 0 failed, unchanged from v3.1.0. A documentation-only change touches no test path.
+- Supply-chain review: the single changed file is `docs/codex.md`, a two-line edit to a fenced shell command and one prose sentence. No dependency, install hook, bin shim, or new file in the install path.
+
+### Thanks
+
+- @Fat-Jan for catching that the Codex verification command checked a feature-flag name current Codex no longer emits (PR #184).
+
+## [3.1.0] - 2026-06-13
+
+This release adopts four community contributions filed against the v3.0.0 cycle, each preserving the contributor as commit author. The Codex adapter gets the Stop-hook behavior fix that issue #178 asked for plus the PreCompact parity it was missing, the Pi extension gains a real test suite, and the SHA-cache documentation is corrected to the v3 path. With no v3 mode marker on disk the canonical hooks remain byte-identical to v2.43.0.
+
+### Fixed
+
+- **Codex Stop hook no longer blocks a normal stop on an incomplete plan** (PR #180 by @2023Anita, closes #178). `.codex/hooks/stop.py` previously emitted `{"decision": "block"}` on the first stop while phases were still pending and `stop_hook_active` was false, which pushed the Codex agent to continue into the next phase without the user asking. The conditional block path is removed: the adapter now emits a single advisory `systemMessage`, and `.codex/hooks/stop.sh` drops the imperative "continue working on the remaining phases" wording in favor of a plain progress-sync reminder. This matches the v3 design principle that an incomplete plan alone never blocks a stop. The standalone `.codex` Stop adapter performs only phase counting, with no attestation or tamper gate to preserve, so removing the block path is the complete fix for the reported behavior.
+- **SHA-cache documentation corrected to the v3 location** (PR #174 by @mvanhorn, closes #164). The new `docs/perf-notes.md` documents the attestation SHA cache: location priority, key derivation, container and CI behavior, and the clear command. A maintainer follow-up updated the documented path from the v2.40 `${TMPDIR:-/tmp}/pwf-sha` location to the v3 priority chain (`$XDG_CACHE_HOME/pwf-sha`, then `$HOME/.cache/pwf-sha`, then the `/tmp` fallback only when HOME is unset, per `scripts/inject-plan.sh`), corrected the clear command and the container premise, and clarified that the cache key is the first 16 hex characters of the SHA-256 of the plan file path. The canonical SKILL.md cross-link that repeated the stale `/tmp` path was fixed in the same pass.
+
+### Added
+
+- **Native Codex PreCompact hook** (PR #181 by @GongYuanCaiJi). The `.codex/hooks.json` lifecycle wiring declared every event except PreCompact, while the canonical SKILL.md has carried PreCompact since v3.0.0. This adds `.codex/hooks/pre-compact.sh` (POSIX sh, reuses `resolve-plan-dir.sh`, emits the same progress-flush reminder and `Plan-SHA256` line as the canonical hook), wires it into `.codex/hooks.json`, corrects the `docs/codex.md` hook table, and adds two targeted tests. This is parity for the native `hooks.json` route, not a new user-visible capability: the hook stays dormant on a runtime that never fires a PreCompact event, and the `|| true` wiring cannot break a session.
+- **Pi extension integration test suite** (PR #175 by @mvanhorn, closes #163). A TypeScript (vitest) suite under `.pi/skills/planning-with-files/extensions/planning-with-files/__tests__/` exercises all eight Pi lifecycle handlers, the four runtime modes (auto, parity, cache-safe, notify), and the SHA-256 attestation gate across match, mismatch, and invalid-hash cases. A maintainer follow-up aligned one parity-mode assertion with the runtime's lowercase injection banner in `runtime.ts`.
+
+### Changed
+
+- Version bumped to 3.1.0 across the 17 parity-locked files via `scripts/bump-version.py`. `.continue`, `.gemini`, `.pi`, and `.kiro` lag intentionally per AGENTS.md release scope.
+
+### Verification
+
+- Python suite: 180 passed, 4 skipped (the pre-existing Windows exec-bit and symlink-containment skips), 0 failed, up from 178 with the two new Codex PreCompact tests. `tests/test_codex_hooks.py` reports 9 passed.
+- The Pi extension vitest suite (PR #175) was added and statically reviewed against `runtime.ts` source, but was not executed in this release environment; `python -m pytest` does not run the `.test.ts` files. Run `npm install && npm test` inside `.pi/skills/planning-with-files/extensions/planning-with-files/` to execute it. The `package.json` is `private`, declares only `vitest`, `typescript`, and `@types/node` as devDependencies, and carries no install lifecycle scripts.
+- Supply-chain review of the two new shipped files: `.codex/hooks/pre-compact.sh` is POSIX sh with no network calls, no install hooks, and no writes outside the plan directory; `docs/perf-notes.md` is documentation only.
+
+### Thanks
+
+- @2023Anita for the Codex Stop hook fix (PR #180) that resolves the issue #178 auto-continuation complaint.
+- @GongYuanCaiJi for the native Codex PreCompact parity hook (PR #181).
+- @mvanhorn for the Pi extension integration test suite (PR #175, closes #163) and the SHA-cache documentation (PR #174, closes #164).
+
 ## [3.0.0] - 2026-06-10
 
 v3 targets long-running agentic runs on strong models (Opus 4.8, Fable 5, GPT 5.5 class). Everything new is opt-in. With no mode marker on disk, the hooks produce byte-identical v2.43.0 output: same delimiters, same raw progress tail, same advisory Stop behavior. Existing workflows need no changes.
