@@ -167,13 +167,14 @@ When you need a remote recovery point for a risky session, use this operator flo
 
 ### Scheduled Refresh Activation
 
-Before enabling the weekly upstream refresh schedule, configure dev branch protection:
+Before enabling the weekly upstream refresh schedule, configure `dev` branch protection so refresh automation can rely on the same repo governance surface that protects routine changes.
 
-- Protect branch: dev
-- Require pull request before merging
-- Require status checks to pass before merging
-- Required check: npm run verify:all (or the workflow job name that wraps it)
-- Restrict direct pushes to dev
+### Required `dev` Branch Governance
+
+1. `dev` must require the `repo-verify` check to pass.
+2. `dev` must continue requiring at least one approving review.
+3. Direct pushes to `dev` should remain restricted to repo admins or emergency repair use only.
+4. A red `Repo Verify` on `dev` should be treated as a `base_unhealthy` blocker for upstream refresh, not as an upstream-refresh implementation bug.
 
 Activation order:
 
@@ -279,7 +280,15 @@ npm run verify:all
 
 ### Scheduled Refresh Failures
 
-The scheduled upstream refresh treats blocked automation as terminal. Git conflicts, `npm run verify:all` failures, refresh allowlist violations, `git commit` failures, and `gh pr create` or `gh pr edit` failures must not auto-advance.
+The scheduled upstream refresh treats blocked automation as terminal.
+
+- `base_unhealthy`: `Repo Verify` is not green for `origin/dev`
+- `allowlist_violation`: refresh generated out-of-scope files
+- `git_conflict`: upstream content cannot apply cleanly
+- `runtime_failure`: refresh-specific verification or refresh helper commands failed
+
+The refresh runner uses `npm run verify:upstream-refresh` as its primary in-lane proof.
+Full-repository confidence remains the responsibility of `Repo Verify` (`npm run verify:all`) and branch protection on `dev`.
 
 The refresh runner writes `.harness/upstream-refresh-result.json` before exiting non-zero. Download the workflow artifact that contains this result file and the job log, then inspect `status` and `blockedReason` before taking over manually.
 
