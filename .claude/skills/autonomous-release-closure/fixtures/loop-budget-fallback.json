@@ -1,0 +1,20 @@
+{
+  "id": "loop-budget-fallback",
+  "title": "Loop budget exhaustion forces fallback or partial-success instead of spinning",
+  "requiredSections": [
+    "## Scenario",
+    "## Expected Decisions",
+    "## Required Evidence"
+  ],
+  "requiredPhrases": [
+    "Assess",
+    "planning/active/<task-id>",
+    "10 full loops",
+    "2 hours",
+    "3 consecutive rounds of the same blocker class",
+    "fallback decision",
+    "partial-success",
+    "blocked-with-evidence",
+    "15-minute"
+  ]
+}

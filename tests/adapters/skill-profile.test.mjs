@@ -27,6 +27,8 @@ test('minimal-global only projects the allow-listed subset for user-global Codex
   assert.ok(plan.every((projection) => projection.targetPath.startsWith(allowedGlobalRoot)));
   assert.ok(!plan.some((projection) => projection.parentSkillName === 'superpowers' && projection.skillName === 'using-git-worktrees'));
   assert.ok(plan.some((projection) => projection.skillName === 'planning-with-files'));
+  assert.ok(!keys.includes('overengineering-review:overengineering-review'));
+  assert.ok(!keys.includes('simplification-ledger:simplification-ledger'));
 });
 
 test('full and default profile still project the full skill set', async () => {
@@ -51,9 +53,12 @@ test('full and default profile still project the full skill set', async () => {
   assert.ok(fullKeys.includes('goal-writer:goal-writer'));
   assert.ok(fullKeys.includes('goal2plan:goal2plan'));
   assert.ok(fullKeys.includes('autonomous-release-closure:autonomous-release-closure'));
+  assert.ok(fullKeys.includes('overengineering-review:overengineering-review'));
+  assert.ok(fullKeys.includes('simplification-ledger:simplification-ledger'));
   assert.ok(fullKeys.includes('planning-with-files:planning-with-files'));
   assert.ok(fullKeys.includes('superpowers:using-superpowers'));
   assert.ok(!fullKeys.includes('superpowers:goal-writer'));
+  assert.ok(!fullKeys.includes('superpowers:overengineering-review'));
 });
 
 test('unknown skill profile fails', async () => {

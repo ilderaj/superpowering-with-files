@@ -1,0 +1,6 @@
+{
+  "id": "missing-trigger",
+  "title": "Flag markers that do not include an upgrade trigger",
+  "expectedRows": 1,
+  "requireNoTrigger": true
+}

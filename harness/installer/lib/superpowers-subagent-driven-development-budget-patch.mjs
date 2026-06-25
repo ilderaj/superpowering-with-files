@@ -3,16 +3,13 @@ import path from 'node:path';
 
 const SKILL_HEADING = '## Model Selection';
 const IMPLEMENTER_INSERT_BEFORE = '    ## Before You Begin';
-const SPEC_INSERT_BEFORE = '    ## What Was Requested';
-const REVIEWER_INSERT_BEFORE = '**Code reviewer returns:**';
+const TASK_REVIEWER_INSERT_BEFORE = '    ## What Was Requested';
 
 const MARKER = 'Harness Superpowers subagent-driven-development budget patch';
 const IMPLEMENTER_MARKER =
   'Harness Superpowers subagent-driven-development implementer context budget patch';
-const SPEC_MARKER =
-  'Harness Superpowers subagent-driven-development spec reviewer budget patch';
-const REVIEWER_MARKER =
-  'Harness Superpowers subagent-driven-development code-quality reviewer budget patch';
+const TASK_REVIEWER_MARKER =
+  'Harness Superpowers subagent-driven-development task reviewer budget patch';
 
 const BUDGET_SECTION = [
   `## ${MARKER}`,
@@ -23,7 +20,7 @@ const BUDGET_SECTION = [
   '',
   '- Start with one implementer subagent for one bounded task.',
   '- Add another worker only when the next task owns a disjoint write set and the controller can keep moving locally.',
-  '- Treat review loops as budgeted: one spec pass and one code-quality pass by default; extra loops need a concrete defect or mismatch.',
+  '- Treat review loops as budgeted: one task-review pass by default; extra loops need a concrete defect or mismatch.',
   '- Before upgrading model capability, first narrow the task slice or trim context.',
   '- If the task still needs broad repo discovery, split out an explorer or escalate instead of widening every worker prompt.'
 ].join('\n');
@@ -42,19 +39,14 @@ const IMPLEMENTER_SECTION = [
   '    If the context pack is too wide, ask for a narrower one before coding.'
 ].join('\n');
 
-const SPEC_SECTION = [
-  `    ## ${SPEC_MARKER}`,
+const TASK_REVIEWER_SECTION = [
+  `    ## ${TASK_REVIEWER_MARKER}`,
   '',
   '    ## Review Budget',
   '',
   '    Review the changed files and the explicit requirements only.',
-  '    Do not widen the review into unrelated repository surfaces unless the task requirements explicitly demand it.'
-].join('\n');
-
-const REVIEWER_SECTION = [
-  `**${REVIEWER_MARKER}**`,
-  '',
-  '- Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context?'
+  '    Do not widen the review into unrelated repository surfaces unless the task requirements explicitly demand it.',
+  '    Include whether the controller kept the task narrow enough for the assigned model tier.'
 ].join('\n');
 
 function replaceOnce(original, anchor, block, filePath, label) {
@@ -68,14 +60,12 @@ function replaceOnce(original, anchor, block, filePath, label) {
 export async function applySuperpowersSubagentDrivenDevelopmentBudgetPatch(targetDir) {
   const skillPath = path.join(targetDir, 'SKILL.md');
   const implementerPath = path.join(targetDir, 'implementer-prompt.md');
-  const specPath = path.join(targetDir, 'spec-reviewer-prompt.md');
-  const reviewerPath = path.join(targetDir, 'code-quality-reviewer-prompt.md');
+  const taskReviewerPath = path.join(targetDir, 'task-reviewer-prompt.md');
 
-  const [skillOriginal, implementerOriginal, specOriginal, reviewerOriginal] = await Promise.all([
+  const [skillOriginal, implementerOriginal, taskReviewerOriginal] = await Promise.all([
     readFile(skillPath, 'utf8'),
     readFile(implementerPath, 'utf8'),
-    readFile(specPath, 'utf8'),
-    readFile(reviewerPath, 'utf8')
+    readFile(taskReviewerPath, 'utf8')
   ]);
 
   const skillPatched = skillOriginal.includes('## Subagent Budget Policy')
@@ -98,31 +88,20 @@ export async function applySuperpowersSubagentDrivenDevelopmentBudgetPatch(targe
         'superpowers-subagent-budget implementer context budget section'
       );
 
-  const specPatched = specOriginal.includes(SPEC_MARKER)
-    ? specOriginal
+  const taskReviewerPatched = taskReviewerOriginal.includes(TASK_REVIEWER_MARKER)
+    ? taskReviewerOriginal
     : replaceOnce(
-        specOriginal,
-        SPEC_INSERT_BEFORE,
-        SPEC_SECTION,
-        specPath,
-        'superpowers-subagent-budget reviewer budget section'
-      );
-
-  const reviewerPatched = reviewerOriginal.includes(REVIEWER_MARKER)
-    ? reviewerOriginal
-    : replaceOnce(
-        reviewerOriginal,
-        REVIEWER_INSERT_BEFORE,
-        `${REVIEWER_SECTION}\n\n`,
-        reviewerPath,
-        'superpowers-subagent-budget code-review guidance'
+        taskReviewerOriginal,
+        TASK_REVIEWER_INSERT_BEFORE,
+        TASK_REVIEWER_SECTION,
+        taskReviewerPath,
+        'superpowers-subagent-budget task-reviewer budget section'
       );
 
   await Promise.all([
     writeFile(skillPath, skillPatched),
     writeFile(implementerPath, implementerPatched),
-    writeFile(specPath, specPatched),
-    writeFile(reviewerPath, reviewerPatched)
+    writeFile(taskReviewerPath, taskReviewerPatched)
   ]);
 }
 

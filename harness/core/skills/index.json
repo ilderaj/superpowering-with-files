@@ -30,12 +30,8 @@
               "marker": "Harness Superpowers subagent-driven-development implementer context budget patch"
             },
             {
-              "path": "spec-reviewer-prompt.md",
-              "marker": "Harness Superpowers subagent-driven-development spec reviewer budget patch"
-            },
-            {
-              "path": "code-quality-reviewer-prompt.md",
-              "marker": "Harness Superpowers subagent-driven-development code-quality reviewer budget patch"
+              "path": "task-reviewer-prompt.md",
+              "marker": "Harness Superpowers subagent-driven-development task reviewer budget patch"
             }
           ]
         },
@@ -177,6 +173,32 @@
       "baselinePath": "harness/core/skills/autonomous-release-closure",
       "layout": "single",
       "targetName": "autonomous-release-closure",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
+    },
+    "overengineering-review": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/overengineering-review",
+      "layout": "single",
+      "targetName": "overengineering-review",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
+    },
+    "simplification-ledger": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/simplification-ledger",
+      "layout": "single",
+      "targetName": "simplification-ledger",
       "projection": {
         "default": "materialize",
         "copilot": "materialize",

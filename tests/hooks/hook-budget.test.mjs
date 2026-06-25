@@ -25,6 +25,16 @@ async function createFixture(fixtureName, { taskPlan, findings, progress }) {
   return fixtureRoot;
 }
 
+function deepRichRoutingDecision() {
+  return [
+    '## Routing Decision',
+    '- Selected Route: deep-rich',
+    '- Route Reason: architecture is unclear',
+    '- Promotion Trigger: architecture unclear',
+    '- Route Evidence Surface: planning + summary + active-summary'
+  ];
+}
+
 test('superpowers session-start payload stays compact', async () => {
   const { stdout } = await execFileAsync('bash', [
     'harness/core/hooks/superpowers/scripts/session-start'
@@ -48,7 +58,9 @@ test('planning hot context payload stays within the configured hook budget', asy
       '',
       '## Current State',
       'Status: active',
-      'Archive Eligible: no'
+      'Archive Eligible: no',
+      '',
+      ...deepRichRoutingDecision()
     ].join('\n'),
     findings: '## Notes\n- Keep the payload under budget.\n',
     progress: '- Verified the hook payload budget.\n'
@@ -80,6 +92,7 @@ test('planning hot context payload stays within the configured hook budget', asy
     );
 
     assert.ok(additionalContext.length < 4000);
+    assert.match(additionalContext, /HOT CONTEXT/);
     assert.equal(evaluation.verdict, 'ok');
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
@@ -110,7 +123,9 @@ test('copilot repeated prompts collapse to a brief payload within the configured
       '',
       '### Phase 1: Stabilize prompt recovery',
       '- **Status:** in_progress',
-      ...repeatedPlanBullets
+      ...repeatedPlanBullets,
+      '',
+      ...deepRichRoutingDecision()
     ].join('\n'),
     findings: ['## Notes', ...repeatedFindings].join('\n'),
     progress: [
@@ -206,7 +221,9 @@ for (const target of ['codex', 'cursor', 'claude-code']) {
         '',
         '### Phase 1: Stabilize prompt recovery',
         '- **Status:** in_progress',
-        ...repeatedPlanBullets
+        ...repeatedPlanBullets,
+        '',
+        ...deepRichRoutingDecision()
       ].join('\n'),
       findings: ['## Notes', ...repeatedFindings].join('\n'),
       progress: [

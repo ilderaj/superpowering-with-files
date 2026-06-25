@@ -25,4 +25,4 @@ fi
 
 [ -n "${TARGET:-}" ] && [ -f "$TARGET" ] || exit 0
 
-exec bash "$TARGET" --gate
+sh "$TARGET" --gate

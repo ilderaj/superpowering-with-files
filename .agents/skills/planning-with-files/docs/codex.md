@@ -82,12 +82,12 @@ If you already have a `[features]` section, add `hooks = true` under it instead 
 
 ```bash
 codex --version
-codex features list | rg '^codex_hooks\s'
+codex features list | rg '^(hooks|codex_hooks)\s'
 ls -la ~/.codex/skills/planning-with-files/SKILL.md
 ls -la ~/.codex/hooks.json ~/.codex/hooks/
 ```
 
-If `codex_hooks` does not appear in `codex features list`, upgrade Codex before troubleshooting the skill.
+If neither `hooks` nor the deprecated alias `codex_hooks` appears in `codex features list`, upgrade Codex before troubleshooting the skill.
 
 ---
 
@@ -100,7 +100,7 @@ Codex reads hooks from:
 1. `.codex/hooks.json` in your project root
 2. `~/.codex/hooks.json` for your global install
 
-This integration includes all five Codex lifecycle hooks:
+This integration includes the Codex lifecycle hooks used by the adapter:
 
 | Hook | What It Does |
 |------|--------------|
@@ -108,6 +108,7 @@ This integration includes all five Codex lifecycle hooks:
 | **UserPromptSubmit** | Re-injects plan and recent progress on every user message |
 | **PreToolUse** | Re-reads the first 30 lines of `task_plan.md` before Bash |
 | **PostToolUse** | Reminds the agent to update `progress.md` after Bash activity |
+| **PreCompact** | Reminds the agent to flush `progress.md` and `task_plan.md` before compaction |
 | **Stop** | Blocks once when phases are incomplete, then falls back to a follow-up reminder |
 
 ### The Three Files

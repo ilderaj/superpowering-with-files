@@ -67,6 +67,16 @@ test('projectionForSkill returns materialize for local goal2plan skill', async (
   assert.match(result.source, /harness\/core\/skills\/goal2plan/);
 });
 
+test('projectionForSkill returns materialize for local ponytail borrow skills', async () => {
+  const overengineeringReview = await projectionForSkill(process.cwd(), 'overengineering-review', 'codex');
+  assert.equal(overengineeringReview.strategy, 'materialize');
+  assert.match(overengineeringReview.source, /harness\/core\/skills\/overengineering-review/);
+
+  const simplificationLedger = await projectionForSkill(process.cwd(), 'simplification-ledger', 'codex');
+  assert.equal(simplificationLedger.strategy, 'materialize');
+  assert.match(simplificationLedger.source, /harness\/core\/skills\/simplification-ledger/);
+});
+
 test('projectionForSkill rejects unknown targets', async () => {
   await assert.rejects(
     projectionForSkill(process.cwd(), 'superpowers', 'unknown'),
@@ -173,6 +183,31 @@ test('planSkillProjections includes local autonomous-release-closure in the full
   assert.deepEqual(closureSkill.patches, []);
   assert.match(closureSkill.sourcePath, /harness\/core\/skills\/autonomous-release-closure$/);
   assert.match(closureSkill.targetPath, /\.agents\/skills\/autonomous-release-closure$/);
+});
+
+test('planSkillProjections includes local ponytail borrow skills in the full Codex workspace profile', async () => {
+  const plan = await planSkillProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex'
+  });
+
+  const overengineeringReview = plan.find((entry) => entry.skillName === 'overengineering-review');
+  assert.ok(overengineeringReview);
+  assert.equal(overengineeringReview.parentSkillName, 'overengineering-review');
+  assert.equal(overengineeringReview.strategy, 'materialize');
+  assert.deepEqual(overengineeringReview.patches, []);
+  assert.match(overengineeringReview.sourcePath, /harness\/core\/skills\/overengineering-review$/);
+  assert.match(overengineeringReview.targetPath, /\.agents\/skills\/overengineering-review$/);
+
+  const simplificationLedger = plan.find((entry) => entry.skillName === 'simplification-ledger');
+  assert.ok(simplificationLedger);
+  assert.equal(simplificationLedger.parentSkillName, 'simplification-ledger');
+  assert.equal(simplificationLedger.strategy, 'materialize');
+  assert.deepEqual(simplificationLedger.patches, []);
+  assert.match(simplificationLedger.sourcePath, /harness\/core\/skills\/simplification-ledger$/);
+  assert.match(simplificationLedger.targetPath, /\.agents\/skills\/simplification-ledger$/);
 });
 
 test('planSkillProjections applies the writing-plans patch for every supported target', async () => {
@@ -357,12 +392,8 @@ test('planSkillProjections applies the subagent-driven-development budget patch 
           marker: 'Harness Superpowers subagent-driven-development implementer context budget patch'
         },
         {
-          path: 'spec-reviewer-prompt.md',
-          marker: 'Harness Superpowers subagent-driven-development spec reviewer budget patch'
-        },
-        {
-          path: 'code-quality-reviewer-prompt.md',
-          marker: 'Harness Superpowers subagent-driven-development code-quality reviewer budget patch'
+          path: 'task-reviewer-prompt.md',
+          marker: 'Harness Superpowers subagent-driven-development task reviewer budget patch'
         }
       ],
       target
@@ -939,11 +970,10 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch materializes Harness 
     });
 
     await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target);
-    const [skill, implementerPrompt, specReviewerPrompt, codeQualityPrompt] = await Promise.all([
+    const [skill, implementerPrompt, taskReviewerPrompt] = await Promise.all([
       readFile(path.join(target, 'SKILL.md'), 'utf8'),
       readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+      readFile(path.join(target, 'task-reviewer-prompt.md'), 'utf8')
     ]);
 
     assert.match(skill, /Harness Superpowers subagent-driven-development budget patch/);
@@ -957,18 +987,14 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch materializes Harness 
     assert.match(implementerPrompt, /## Context Budget/);
     assert.match(implementerPrompt, /Do not accept broad session history or unrelated tasks as required context/);
     assert.match(
-      specReviewerPrompt,
-      /Harness Superpowers subagent-driven-development spec reviewer budget patch/
+      taskReviewerPrompt,
+      /Harness Superpowers subagent-driven-development task reviewer budget patch/
     );
-    assert.match(specReviewerPrompt, /## Review Budget/);
-    assert.match(specReviewerPrompt, /Review the changed files and the explicit requirements only/);
+    assert.match(taskReviewerPrompt, /## Review Budget/);
+    assert.match(taskReviewerPrompt, /Review the changed files and the explicit requirements only/);
     assert.match(
-      codeQualityPrompt,
-      /Harness Superpowers subagent-driven-development code-quality reviewer budget patch/
-    );
-    assert.match(
-      codeQualityPrompt,
-      /Did the controller keep the task narrow enough for the assigned model tier, or did this change needlessly widen context/
+      taskReviewerPrompt,
+      /Include whether the controller kept the task narrow enough for the assigned model tier/
     );
   } finally {
     await rm(dir, { recursive: true, force: true });
@@ -990,16 +1016,14 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch is idempotent', async
     const once = await Promise.all([
       readFile(path.join(target, 'SKILL.md'), 'utf8'),
       readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+      readFile(path.join(target, 'task-reviewer-prompt.md'), 'utf8')
     ]);
 
     await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target);
     const twice = await Promise.all([
       readFile(path.join(target, 'SKILL.md'), 'utf8'),
       readFile(path.join(target, 'implementer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'spec-reviewer-prompt.md'), 'utf8'),
-      readFile(path.join(target, 'code-quality-reviewer-prompt.md'), 'utf8')
+      readFile(path.join(target, 'task-reviewer-prompt.md'), 'utf8')
     ]);
 
     assert.deepEqual(twice, once);
@@ -1015,8 +1039,7 @@ test('applySuperpowersSubagentDrivenDevelopmentBudgetPatch fails when anchors ca
     await mkdir(target, { recursive: true });
     await writeFile(path.join(target, 'SKILL.md'), '# broken skill\n');
     await writeFile(path.join(target, 'implementer-prompt.md'), '# broken prompt\n');
-    await writeFile(path.join(target, 'spec-reviewer-prompt.md'), '# broken prompt\n');
-    await writeFile(path.join(target, 'code-quality-reviewer-prompt.md'), '# broken prompt\n');
+    await writeFile(path.join(target, 'task-reviewer-prompt.md'), '# broken prompt\n');
 
     await assert.rejects(
       applySuperpowersSubagentDrivenDevelopmentBudgetPatch(target),

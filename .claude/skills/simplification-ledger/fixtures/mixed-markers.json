@@ -1,0 +1,5 @@
+{
+  "id": "mixed-markers",
+  "title": "Capture both slash and hash style simplification markers",
+  "expectedRows": 2
+}

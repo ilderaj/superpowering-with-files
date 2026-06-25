@@ -38,6 +38,11 @@ const repoLocalEntryFiles = new Set([
   '.github/copilot-instructions.md'
 ]);
 
+const transientRuntimeArtifactPrefixes = [
+  'node_modules/.cache/',
+  '.wrangler/'
+];
+
 function isIgnoredRuntimeArtifact(filePath) {
   return filePath === 'node_modules' || filePath.startsWith('node_modules/');
 }
@@ -55,7 +60,7 @@ export function buildRefreshCommandChain() {
     { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
     { file: './scripts/harness', args: ['fetch'] },
     { file: './scripts/harness', args: ['update'] },
-    { file: 'npm', args: ['run', 'verify'] },
+    { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
     { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] },
     { file: './scripts/harness', args: ['sync', '--dry-run'] },
     { file: './scripts/harness', args: ['sync'] },
@@ -123,6 +128,14 @@ export function filterEligibleChanges(changes) {
   return { eligibleFiles, excludedFiles };
 }
 
+export function listTransientRuntimeArtifacts(changes) {
+  return mergeChangeLists(changes)
+    .map((change) => change.path)
+    .filter((filePath) =>
+      transientRuntimeArtifactPrefixes.some((prefix) => filePath.startsWith(prefix))
+    );
+}
+
 export function listRepoLocalEntryFileChanges(changes) {
   return mergeChangeLists(changes)
     .filter((change) => repoLocalEntryFiles.has(change.path));
@@ -180,11 +193,24 @@ export async function restoreRepoLocalEntryFiles(filePaths, {
   return repoLocalEntryChanges.map((change) => change.path);
 }
 
+export async function cleanupRuntimeArtifacts(filePaths, {
+  cwd = process.cwd()
+} = {}) {
+  const uniquePaths = [...new Set(filePaths)];
+
+  await Promise.all(uniquePaths.map((filePath) =>
+    rm(path.resolve(cwd, filePath), { force: true, recursive: true })
+  ));
+
+  return uniquePaths;
+}
+
 export function createRefreshResult({
   status,
   sourceHeads = {},
   eligibleFiles = [],
-  blockedReason = ''
+  blockedReason = '',
+  failureKind = ''
 } = {}) {
   return {
     status,
@@ -192,7 +218,8 @@ export function createRefreshResult({
     branchName,
     sourceHeads,
     eligibleFiles,
-    blockedReason
+    blockedReason,
+    failureKind
   };
 }
 
@@ -223,7 +250,8 @@ export function createFailureRefreshResult({
     status: 'failure',
     sourceHeads,
     eligibleFiles,
-    blockedReason: formatBlockedReason(error)
+    blockedReason: formatBlockedReason(error),
+    failureKind: error?.failureKind ?? 'runtime_failure'
   });
 }
 

@@ -1,0 +1,6 @@
+{
+  "id": "ignore-prose-and-block-comments",
+  "title": "Ignore prose and unsupported comment styles",
+  "expectedRows": 0,
+  "expectNoMatches": true
+}

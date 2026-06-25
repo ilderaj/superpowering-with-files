@@ -83,12 +83,14 @@ These amazing people have contributed code, documentation, or significant improv
   - Added Pi Agent support with full skill integration
   - **Impact:** Expands the skill to the Pi Agent ecosystem
 
-- **[@mvanhorn](https://github.com/mvanhorn)** (Matt Van Horn) - [PR #115](https://github.com/OthmanAdi/planning-with-files/pull/115)
+- **[@mvanhorn](https://github.com/mvanhorn)** (Matt Van Horn) - [PR #115](https://github.com/OthmanAdi/planning-with-files/pull/115), [PR #174](https://github.com/OthmanAdi/planning-with-files/pull/174), [PR #175](https://github.com/OthmanAdi/planning-with-files/pull/175)
   - Added analytics workflow template with `--template analytics` flag on `init-session.sh` and `init-session.ps1`
   - Created `analytics_task_plan.md` with 4 analytics-specific phases (Data Discovery, Exploratory Analysis, Hypothesis Testing, Synthesis)
   - Created `analytics_findings.md` with Data Sources table, Hypothesis Log, Query Results, and Statistical Findings sections
   - Analytics-specific `progress.md` with Query Log replacing Test Results
-  - **Impact:** Extends the planning pattern to data analytics workflows (addresses #103)
+  - PR #175: added a TypeScript integration test suite for the Pi extension under `.pi/skills/planning-with-files/extensions/planning-with-files/__tests__/`, covering all eight lifecycle handlers, the four runtime modes (auto, parity, cache-safe, notify), and the SHA-256 attestation gate (match, mismatch, invalid hash); a maintainer follow-up aligned one parity-mode assertion with the runtime's lowercase banner text (closes #163)
+  - PR #174: documented the attestation SHA cache (location priority, keying, container and CI behavior, and how to clear it) in `docs/perf-notes.md`; a maintainer follow-up updated the documented path from the v2.40 `/tmp` location to the v3 `$XDG_CACHE_HOME/pwf-sha` path (closes #164)
+  - **Impact:** Extends the planning pattern to data analytics workflows (addresses #103), and closes two v2.x good-first-issue follow-ups with real Pi extension test coverage and accurate cache documentation
 
 - **[@ebrevdo](https://github.com/ebrevdo)** (Eugene Brevdo) - [PR #124](https://github.com/OthmanAdi/planning-with-files/pull/124)
   - Rewrote `session-catchup.py` to support Codex rollout JSONL session format
@@ -103,6 +105,26 @@ These amazing people have contributed code, documentation, or significant improv
   - **Impact:** Brings planning-with-files to the Hermes ecosystem as platform 17
 
 ### Other Contributors
+
+- **[@2023Anita](https://github.com/2023Anita)** - [PR #180](https://github.com/OthmanAdi/planning-with-files/pull/180), [Issue #178](https://github.com/OthmanAdi/planning-with-files/issues/178)
+  - Made the Codex Stop hook non-blocking for incomplete plans: `.codex/hooks/stop.py` previously emitted `{"decision": "block"}` on the first stop while phases were still pending, which pushed the agent to continue into the next phase without the user asking
+  - Collapsed the conditional block path to a single advisory `systemMessage` and rewrote `.codex/hooks/stop.sh` to drop the imperative "continue working on the remaining phases" wording, keeping only the progress-sync reminder
+  - **Impact:** Codex users no longer get trapped in auto-continuation. An incomplete plan is treated as a normal state, matching the v3 principle that an incomplete plan alone never blocks a stop (closes #178)
+
+- **[@GongYuanCaiJi](https://github.com/GongYuanCaiJi)** - [PR #181](https://github.com/OthmanAdi/planning-with-files/pull/181)
+  - Closed the Codex `hooks.json` PreCompact parity gap: the native Codex lifecycle wiring declared every event except PreCompact, while the canonical SKILL.md has carried PreCompact since v3.0.0
+  - Added `.codex/hooks/pre-compact.sh` (POSIX sh, reuses `resolve-plan-dir.sh`, emits the same flush reminder and `Plan-SHA256` line as the canonical hook), wired it into `.codex/hooks.json`, corrected the `docs/codex.md` hook table, and added two targeted tests
+  - **Impact:** Codex users on the native `hooks.json` route now get the pre-compaction progress-flush reminder. The hook stays dormant on runtimes that never fire a PreCompact event, with `|| true` wiring that cannot break a session
+
+- **[@Fat-Jan](https://github.com/Fat-Jan)** (Alonso) - [PR #184](https://github.com/OthmanAdi/planning-with-files/pull/184)
+  - Updated the `docs/codex.md` verification block to grep `^(hooks|codex_hooks)\s` instead of the bare `^codex_hooks\s`, and aligned the follow-up troubleshooting sentence with the `hooks = true` guidance stated earlier in the same document
+  - The bare pattern stopped matching once Codex moved its canonical feature key from `codex_hooks` to `hooks` in 0.129.0 (openai/codex#20522); the alias still resolves in `config.toml`, but `codex features list` prints only the canonical `hooks`, so the verify step was telling correctly configured users to upgrade
+  - **Impact:** the documented verification command matches on current Codex versions again, and `docs/codex.md` is internally consistent across the six places that reference the feature flag
+
+- **[@shunfeng8421](https://github.com/shunfeng8421)** - [PR #186](https://github.com/OthmanAdi/planning-with-files/pull/186), [Issue #185](https://github.com/OthmanAdi/planning-with-files/issues/185)
+  - Fixed the session-catchup command for skill-only installs: the documented Restore Context command used `${CLAUDE_PLUGIN_ROOT}`, which the plugin runtime sets only inside hook execution, so a user who installed via `npx skills add` or on Codex or Cursor and ran it in a normal shell got an empty variable and a broken `/scripts/...` path
+  - Switched to `SKILL_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/planning-with-files}"` across the canonical file, the `.codebuddy` variant, and the five language variants, keeping the plugin path as priority and the Windows PowerShell block unchanged
+  - **Impact:** skill-only installs can run the documented catchup command and get a working path, with no behavior change for plugin users. The same fallback was extended to the `.hermes` variant in the release commit. The underlying problem was surfaced by @xwang118 in PR #183 and tracked in #185
 
 - **[@Skulli485](https://github.com/Skulli485)** - [PR #171](https://github.com/OthmanAdi/planning-with-files/pull/171), [Issue #162](https://github.com/OthmanAdi/planning-with-files/issues/162)
    - Authored the first `CONTRIBUTING.md` at the repo root, covering local setup, project layout, PR submission conventions, authorship and credit policy, language variant contribution rules, and where to ask questions
@@ -304,6 +326,6 @@ If you've contributed and don't see your name here, please open an issue! We wan
 
 ---
 
-**Total Contributors:** 44+ and growing!
+**Total Contributors:** 46+ and growing!
 
-*Last updated: May 26, 2026*
+*Last updated: June 13, 2026*

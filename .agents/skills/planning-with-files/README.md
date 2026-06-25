@@ -8,7 +8,7 @@
 
 > **Work like Manus** — the AI agent company Meta acquired for **$2 billion**.
 >
-> Persistent file-based planning for long-running agentic tasks: crash-proof markdown plans, a deliberate completion gate, and multi-agent shared state on disk.
+> **planning-with-files** is a persistent file-based planning skill for **AI coding agents**. It keeps `task_plan.md`, `findings.md`, and `progress.md` on disk so the agent survives **context loss**, `/clear`, and crashes, with an opt-in completion gate that holds the agent until the plan is actually done. It installs across 60+ agents via the SKILL.md standard.
 
 [![Benchmark](https://img.shields.io/badge/Benchmark-96.7%25_pass_rate_(v2.21.0%2C_sonnet--4--6)-brightgreen)](docs/evals.md)
 [![A/B Verified](https://img.shields.io/badge/A%2FB_Blind-3%2F3_wins-brightgreen)](docs/evals.md)
@@ -17,7 +17,7 @@
 
 [![Skills Playground](https://skillsplayground.com/badges/installs/othmanadi-planning-with-files-planning-with-files.svg)](https://skillsplayground.com/skills/othmanadi-planning-with-files-planning-with-files/)
 [![Downloads](https://skill-history.com/badge/othmanadi/planning-with-files.svg)](https://skill-history.com/othmanadi/planning-with-files)
-[![Version](https://img.shields.io/badge/version-3.0.0-brightgreen)](https://github.com/OthmanAdi/planning-with-files/releases)
+[![Version](https://img.shields.io/badge/version-3.1.3-brightgreen)](https://github.com/OthmanAdi/planning-with-files/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Closed Issues](https://img.shields.io/github/issues-closed/OthmanAdi/planning-with-files?color=success)](https://github.com/OthmanAdi/planning-with-files/issues?q=is%3Aissue+is%3Aclosed)
 [![Closed PRs](https://img.shields.io/github/issues-pr-closed/OthmanAdi/planning-with-files?color=success)](https://github.com/OthmanAdi/planning-with-files/pulls?q=is%3Apr+is%3Aclosed)
@@ -73,10 +73,14 @@ See the full list of everyone who made this project better in [CONTRIBUTORS.md](
 <details>
 <summary><strong>📦 Releases & Session Recovery</strong></summary>
 
-### Current Version: v3.0.0
+### Current Version: v3.1.3
 
 | Version | Highlights |
 |---------|------------|
+| **v3.1.3** | **Hotfix: SKILL.md frontmatter was invalid YAML in v3.1.2.** The v3.1.2 description refresh added a colon, and the English SKILL.md keep `description` unquoted, so YAML rejected the frontmatter ("mapping values are not allowed here"), which could break skill loading and the model-triggering description. v3.1.3 quotes the description (matching the already-quoted translated variants; the parsed value is identical) across the canonical file and the seven English IDE variants, and adds `tests/test_skill_frontmatter_valid.py` to validate every SKILL.md frontmatter as YAML. Suite at 184 passed. |
+| **v3.1.2** | **Session-catchup command works outside the plugin runtime, `.hermes` parity, refreshed skill description** (PR #186 by @shunfeng8421 closes #185, reported by @xwang118). The documented Restore Context command used `${CLAUDE_PLUGIN_ROOT}`, which the plugin runtime sets only inside hook execution, so a skill-only install (`npx skills add`, Codex, Cursor) running it in a shell got an empty variable and a broken `/scripts/...` path. Now `SKILL_DIR="${CLAUDE_PLUGIN_ROOT:-$HOME/.claude/skills/planning-with-files}"` on the canonical file, `.codebuddy`, and the five language variants; the `.hermes` variant got the same fallback for `$HERMES_HOME`. The eight English SKILL.md descriptions were refreshed to lead with planning for AI coding agents and context-loss survival, with the `Use when` trigger and translated variants unchanged. Documentation only; suite at 180 passed. |
+| **v3.1.1** | **Codex verification command checks the canonical `hooks` feature flag** (PR #184 by @Fat-Jan). The `docs/codex.md` verify block ran `codex features list \| rg '^codex_hooks\s'`, but Codex moved its canonical feature key from `codex_hooks` to `hooks` in 0.129.0 (openai/codex#20522). The alias still resolves in config, yet `codex features list` prints only `hooks`, so the old pattern matched nothing on current Codex and routed correctly configured users to the upgrade path. The command now greps `^(hooks\|codex_hooks)\s` and the troubleshooting sentence covers both names, matching the `hooks = true` guidance carried in the file since v2.39.0. Documentation only; suite at 180 passed. |
+| **v3.1.0** | **Codex Stop hook no longer blocks on an incomplete plan, native Codex PreCompact parity, Pi extension test suite, and accurate SHA-cache docs** (PR #180 by @2023Anita closes #178, PR #181 by @GongYuanCaiJi, PR #175 and PR #174 by @mvanhorn close #163 and #164). The `.codex` Stop adapter dropped the `{"decision":"block"}` path that pushed Codex agents to auto-continue unfinished phases; it now emits an advisory progress-sync reminder only, matching the v3 principle that an incomplete plan alone never blocks a stop. The native `.codex/hooks.json` route gained the PreCompact hook (`pre-compact.sh`) it was missing relative to the canonical SKILL.md, dormant on runtimes that never fire the event. The Pi extension gained a TypeScript integration suite covering all eight lifecycle handlers, the four runtime modes, and the attestation gate. `docs/perf-notes.md` documents the attestation SHA cache, corrected to the v3 `$XDG_CACHE_HOME/pwf-sha` location. Suite at 180 passed. |
 | **v3.0.0** | **Autonomous and gated modes for long-running agentic runs, structured run ledger, opt-in completion gate** (no breaking changes: with no mode marker the hooks produce byte-identical v2.43 output). `init-session --autonomous` drops the per-tool-call plan re-injection for strong models and keeps the turn-start injection; `--gated` adds a deliberate Stop-hook completion gate that blocks only when five conditions hold (gated mode, an `in_progress` phase, `stop_hook_active` false, block count under the cap, ledger progressed since the last block), so an incomplete plan alone never traps a session. New append-only JSONL run ledger (`ledger-append`, `ledger-summary`, `phase-status`, sh + ps1) replaces the raw `progress.md` tail in v3 modes with a fixed-shape summary. Attestation is default-on in v3 modes and unattested plan bodies are refused at injection. Per-session nonce delimiters, SHA cache moved to `$XDG_CACHE_HOME/pwf-sha`, realpath containment in the plan-dir resolver. Hook scalars replaced by thin dispatchers (`inject-plan.sh`, `gate-stop.sh`) shipped in both `scripts/` locations. New `templates/task_plan_autonomous.md` with `DependsOn`/`Owner`/`AcceptanceCheck` fields, v2-to-v3 migration guide in `MIGRATION.md`, host capability tiers documented (hard block, follow-up inject, notify only). Suite at 178 passed plus location-parity and gate/ledger/init-mode/containment tests. |
 | **v2.43.0** | **CONTRIBUTING.md + OpenCode docs fix + `.continue`/`.gemini`/`.kiro` variant sync to parity** (PR #171 by @Skulli485, issue #172 by @luyanfeng, issues #159/#160/#161): first `CONTRIBUTING.md` at repo root, auto-surfaced by GitHub in the PR creation flow. `docs/opencode.md` Quick Install switched from \`git clone\` to \`npx skills add\` after the manual-install block was found referencing a doubled path (`planning-with-files/planning-with-files/SKILL.md`). Three historically lagging IDE SKILL.md variants brought to v2.43.0 parity: `.continue` from v2.34.0 (9 versions behind), `.gemini` from v2.34.0 (9 versions behind), `.kiro` from v2.32.0-kiro (11 versions behind), preserving IDE-specific frontmatter, hook shapes, and Kiro Agent Skill layout. |
 | **v2.42.0** | **POSIX `init-session.sh` portability + plugin-vs-skill install transparency + Topic Handoff docs** (PR #169 and PR #170 by @carterusedulm2-maker): `init-session.sh` and its 7 mirrors swap the `[[ ]]` bashism for POSIX `[ ]` so `tests/test_init_session_slug.py` runs cleanly under `dash` (Ubuntu) when the test invokes the script via `sh` rather than the `bash` shebang. Canonical SKILL.md gains an install-scope clarification: `/plugin install` ships the `commands/` folder with `/plan-goal` and `/plan-loop`, but `npx skills add` (and ClawHub) do not. A manual fallback procedure for both wrappers is documented inline so skill-only sessions can produce the same effect by invoking Claude Code's native `/goal` and `/loop` primitives directly. `docs/quickstart.md` and `docs/workflow.md` add an optional Topic Handoff Pattern for very long-running operational topics (`handoffs/<topic>.md` alongside `progress.md`). |
@@ -476,6 +480,24 @@ planning-with-files/
 ├── LICENSE
 └── README.md
 ```
+
+## FAQ
+
+### How do I stop my coding agent from losing its plan after /clear or a crash?
+
+The plan lives on disk in `task_plan.md`, `findings.md`, and `progress.md`, not only in the context window. At the start of each turn the `UserPromptSubmit` hook re-injects the active plan, and after a `/clear` or a new session the skill re-reads the files from disk (session recovery), so the agent recovers its goals and progress automatically.
+
+### What is the difference between planning-with-files and an agent memory tool?
+
+Agent memory tools (vector stores, knowledge graphs) help an agent recall facts from past sessions. planning-with-files manages active execution state: the phases, status, dependencies, and completion check for the task the agent is working on right now. The problem it solves is planning continuity, not retrieval, and the two are complementary.
+
+### How does this prevent context rot?
+
+Context rot is the drift that sets in as the context window fills and earlier instructions get crowded out. Because the plan is re-injected at the start of each turn from disk, the goals and phase status stay in the model's attention window as the conversation grows. This is an implementation of what Anthropic calls structured note-taking: write durable state to files outside the window, then read it back in when needed.
+
+### Which coding agents does this work with?
+
+Claude Code, OpenAI Codex CLI, Cursor, GitHub Copilot, Kiro, OpenCode, Continue, Pi, CodeBuddy, Factory, Mastra, and 60+ others via the SKILL.md open standard. Installation is one command; see [Quick Install](#quick-install) above.
 
 ## Documentation
 

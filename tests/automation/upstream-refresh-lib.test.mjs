@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 const expectedRefreshCommands = [
   { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
@@ -8,7 +10,7 @@ const expectedRefreshCommands = [
   { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
   { file: './scripts/harness', args: ['fetch'] },
   { file: './scripts/harness', args: ['update'] },
-  { file: 'npm', args: ['run', 'verify'] },
+  { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
   { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
   { file: './scripts/harness', args: ['sync', '--dry-run'] },
   { file: './scripts/harness', args: ['sync'] },
@@ -21,15 +23,26 @@ const expectedHumanReadableRefreshCommandChain = [
   './scripts/harness install --scope=workspace --targets=all --projection=link --mode=force',
   './scripts/harness fetch',
   './scripts/harness update',
-  'npm run verify',
+  'npm run verify:upstream-refresh',
   './scripts/harness worktree-preflight --task github-actions-upstream-automation-analysis',
   './scripts/harness sync --dry-run',
   './scripts/harness sync',
   './scripts/harness doctor'
 ];
 
+const verifyUpstreamRefreshScriptPath = path.join(process.cwd(), 'scripts/ci/verify-upstream-refresh.mjs');
+
 async function loadUpstreamRefreshModule() {
   return import('../../scripts/ci/lib/upstream-refresh.mjs');
+}
+
+function healthyBaseHealthStub() {
+  return {
+    status: 'healthy',
+    failureKind: '',
+    reason: '',
+    targetSha: 'origin-dev-sha'
+  };
 }
 
 test('buildRefreshCommandChain returns the fixed upstream refresh command sequence', async () => {
@@ -42,6 +55,13 @@ test('formatCommand returns the human-readable upstream refresh command sequence
   const { buildRefreshCommandChain, formatCommand } = await loadUpstreamRefreshModule();
 
   assert.deepEqual(buildRefreshCommandChain().map(formatCommand), expectedHumanReadableRefreshCommandChain);
+});
+
+test('verify:upstream-refresh runner preserves child test output streaming', async () => {
+  const script = await readFile(verifyUpstreamRefreshScriptPath, 'utf8');
+
+  assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*stdio:\s*'inherit'/);
+  assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*maxBuffer:\s*1024 \* 1024 \* 8/);
 });
 
 test('runCommand executes command file and args without a shell', async () => {
@@ -138,6 +158,7 @@ test('runUpstreamRefresh captures eligible files after writing the source head r
         superpowers: '1111111111111111111111111111111111111111'
       }
     }),
+    loadBaseHealth: async () => healthyBaseHealthStub(),
     runRefresh: async () => {
       events.push('runRefresh');
     },
@@ -164,6 +185,59 @@ test('runUpstreamRefresh captures eligible files after writing the source head r
   assert.deepEqual(writtenResults, [result]);
 });
 
+test('runUpstreamRefresh blocks before the refresh command chain when origin/dev base health is unhealthy', async () => {
+  const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
+  const events = [];
+  const writtenResults = [];
+
+  await assert.rejects(
+    runUpstreamRefresh({
+      cwd: '/tmp/repo',
+      probeHeads: async () => ({
+        status: 'changes_detected',
+        sources: [],
+        sourceHeads: {
+          superpowers: '4444444444444444444444444444444444444444'
+        }
+      }),
+      loadBaseHealth: async ({ cwd, branch }) => {
+        events.push(`loadBaseHealth:${cwd}:${branch}`);
+        return {
+          status: 'blocked',
+          failureKind: 'base_unhealthy',
+          reason: 'Repo Verify is not green for origin/dev @ 5555555555555555555555555555555555555555.',
+          targetSha: '5555555555555555555555555555555555555555'
+        };
+      },
+      runRefresh: async () => {
+        events.push('runRefresh');
+      },
+      writeResult: async (refreshResult) => {
+        events.push('writeResult');
+        writtenResults.push(refreshResult);
+      }
+    }),
+    /origin\/dev/
+  );
+
+  assert.deepEqual(events, [
+    'loadBaseHealth:/tmp/repo:dev',
+    'writeResult'
+  ]);
+  assert.equal(writtenResults.length, 1);
+  assert.deepEqual(writtenResults[0], {
+    status: 'failure',
+    baseRef: 'origin/dev',
+    branchName: 'automation/upstream-refresh',
+    sourceHeads: {
+      superpowers: '4444444444444444444444444444444444444444'
+    },
+    eligibleFiles: [],
+    blockedReason: 'Repo Verify is not green for origin/dev @ 5555555555555555555555555555555555555555.',
+    failureKind: 'base_unhealthy'
+  });
+});
+
 test('runUpstreamRefresh restores repo-local entry files before enforcing the allowlist', async () => {
   const { filterEligibleChanges, listRepoLocalEntryFileChanges } = await loadUpstreamRefreshModule();
   const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
@@ -186,6 +260,7 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
         superpowers: '1212121212121212121212121212121212121212'
       }
     }),
+    loadBaseHealth: async () => healthyBaseHealthStub(),
     runRefresh: async () => {
       events.push('runRefresh');
     },
@@ -247,6 +322,74 @@ test('filterEligibleChanges ignores runtime node_modules artifacts before enforc
   });
 });
 
+test('runUpstreamRefresh removes known transient cache artifacts before final allowlist enforcement', async () => {
+  const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
+  const events = [];
+  const cleanedPaths = [];
+  let captureCount = 0;
+  let filterInputPaths = [];
+
+  const result = await runUpstreamRefresh({
+    cwd: '/tmp/repo',
+    probeHeads: async () => ({
+      status: 'changes_detected',
+      sources: [{ name: 'superpowers', url: 'https://example.test/superpowers.git' }],
+      sourceHeads: { superpowers: '1111111111111111111111111111111111111111' }
+    }),
+    loadBaseHealth: async () => healthyBaseHealthStub(),
+    runRefresh: async () => {
+      events.push('runRefresh');
+    },
+    writeSourceHeads: async () => {
+      events.push('writeSourceHeads');
+    },
+    captureChanges: async () => {
+      captureCount += 1;
+      events.push(`captureChanges:${captureCount}`);
+
+      if (captureCount === 1) {
+        return [
+          { path: 'node_modules/.cache/wrangler/wrangler-account.json', tracked: false },
+          { path: 'harness/upstream/.source-heads.json', tracked: true }
+        ];
+      }
+
+      return [
+        { path: 'harness/upstream/.source-heads.json', tracked: true }
+      ];
+    },
+    restoreRepoLocalEntries: async () => {},
+    cleanupRuntimeArtifacts: async (paths) => {
+      events.push(`cleanup:${paths.join(',')}`);
+      cleanedPaths.push(...paths);
+    },
+    filterChanges: (changes) => {
+      filterInputPaths = changes.map((change) => change.path);
+      events.push(`filter:${filterInputPaths.join(',')}`);
+      return {
+        eligibleFiles: filterInputPaths,
+        excludedFiles: []
+      };
+    },
+    writeResult: async () => {
+      events.push('writeResult');
+    }
+  });
+
+  assert.deepEqual(cleanedPaths, ['node_modules/.cache/wrangler/wrangler-account.json']);
+  assert.deepEqual(filterInputPaths, ['harness/upstream/.source-heads.json']);
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-heads.json']);
+  assert.deepEqual(events, [
+    'runRefresh',
+    'writeSourceHeads',
+    'captureChanges:1',
+    'cleanup:node_modules/.cache/wrangler/wrangler-account.json',
+    'captureChanges:2',
+    'filter:harness/upstream/.source-heads.json',
+    'writeResult'
+  ]);
+});
+
 test('runUpstreamRefresh writes a failure result and rejects when verification fails', async () => {
   const { filterEligibleChanges } = await loadUpstreamRefreshModule();
   const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
@@ -263,6 +406,7 @@ test('runUpstreamRefresh writes a failure result and rejects when verification f
           superpowers: '2222222222222222222222222222222222222222'
         }
       }),
+      loadBaseHealth: async () => healthyBaseHealthStub(),
       runRefresh: async () => {
         events.push('runRefresh');
         throw new Error('Command failed (1): npm run verify');
@@ -287,6 +431,7 @@ test('runUpstreamRefresh writes a failure result and rejects when verification f
   assert.equal(writtenResults.length, 1);
   assert.equal(writtenResults[0].status, 'failure');
   assert.match(writtenResults[0].blockedReason, /npm run verify/);
+  assert.equal(writtenResults[0].failureKind, 'runtime_failure');
   assert.deepEqual(writtenResults[0].eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
   assert.match(writtenResults[0].blockedReason, /README\.md/);
   assert.deepEqual(writtenResults[0].sourceHeads, {
@@ -306,6 +451,7 @@ test('runUpstreamRefresh keeps the original failure when changed-file capture fa
         sources: [],
         sourceHeads: {}
       }),
+      loadBaseHealth: async () => healthyBaseHealthStub(),
       runRefresh: async () => {
         throw new Error('Command failed (1): ./scripts/harness doctor');
       },
@@ -324,6 +470,7 @@ test('runUpstreamRefresh keeps the original failure when changed-file capture fa
   assert.deepEqual(writtenResults[0].eligibleFiles, []);
   assert.match(writtenResults[0].blockedReason, /harness doctor/);
   assert.match(writtenResults[0].blockedReason, /Unable to capture changed files after failure: git diff unavailable/);
+  assert.equal(writtenResults[0].failureKind, 'runtime_failure');
 });
 
 test('runUpstreamRefresh writes a failure result and rejects when refresh hits a git conflict', async () => {
@@ -338,6 +485,7 @@ test('runUpstreamRefresh writes a failure result and rejects when refresh hits a
         sources: [],
         sourceHeads: {}
       }),
+      loadBaseHealth: async () => healthyBaseHealthStub(),
       runRefresh: async () => {
         throw new Error('CONFLICT (content): Merge conflict in harness/upstream/superpowers/SKILL.md');
       },
@@ -352,6 +500,7 @@ test('runUpstreamRefresh writes a failure result and rejects when refresh hits a
   assert.equal(writtenResults[0].status, 'failure');
   assert.match(writtenResults[0].blockedReason, /Merge conflict/);
   assert.match(writtenResults[0].blockedReason, /harness\/upstream\/superpowers\/SKILL\.md/);
+  assert.equal(writtenResults[0].failureKind, 'runtime_failure');
 });
 
 test('runUpstreamRefresh writes a failure result and rejects on allowlist violations', async () => {
@@ -373,9 +522,10 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
           }
         ],
         sourceHeads: {
-          superpowers: '3333333333333333333333333333333333333333'
-        }
-      }),
+        superpowers: '3333333333333333333333333333333333333333'
+      }
+    }),
+      loadBaseHealth: async () => healthyBaseHealthStub(),
       runRefresh: async () => {
         events.push('runRefresh');
       },
@@ -404,6 +554,7 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
   assert.deepEqual(writtenResults[0].eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
   assert.match(writtenResults[0].blockedReason, /allowlist violation/i);
   assert.match(writtenResults[0].blockedReason, /README\.md/);
+  assert.equal(writtenResults[0].failureKind, 'runtime_failure');
 });
 
 test('filterEligibleChanges includes tracked and untracked repo-owned upstream files', async () => {

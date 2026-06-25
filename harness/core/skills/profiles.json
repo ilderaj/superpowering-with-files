@@ -8,6 +8,8 @@
       "goal-writer",
       "goal2plan",
       "autonomous-release-closure",
+      "overengineering-review",
+      "simplification-ledger",
       "superpowers",
       "planning-with-files"
     ],

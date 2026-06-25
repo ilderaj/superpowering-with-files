@@ -20,6 +20,30 @@ By default:
 - Isolate concurrent work by task id instead of sharing one project-root planning file set.
 - At the start of complex work, scan existing active tasks when stale context may matter, but do not move legacy or completed-looking tasks automatically.
 
+### Simplicity Ladder
+
+Before expanding scope, complexity, or dependencies:
+
+1. Question whether the work needs to exist at all.
+2. Prefer the standard library before custom code.
+3. Prefer native platform features before dependencies.
+4. Prefer already-installed dependencies before adding new ones.
+5. Prefer the smallest working diff and the fewest files.
+6. Never simplify away trust-boundary validation, data-loss prevention, security, accessibility, or explicit user asks.
+
+### Deliberate Simplifications
+
+When a temporary simplification is intentional, record it with:
+
+- marker prefix: `swf-simplify:`
+- required fields: `ceiling` and `upgrade trigger`
+
+Example:
+
+```text
+// swf-simplify: single-workspace scan only; upgrade when leaf workspaces need distinct ledger grouping
+```
+
 ## Rule Precedence
 
 When these rules overlap, apply them in this order:

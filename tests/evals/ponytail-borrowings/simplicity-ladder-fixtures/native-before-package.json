@@ -1,0 +1,11 @@
+{
+  "id": "native-before-package",
+  "title": "Prefer native platform capabilities before a convenience package",
+  "expectedDecision": "option-a",
+  "expectedWinningStep": "native",
+  "mustReject": "option-b",
+  "requiredPhrases": [
+    "built-in runtime",
+    "without a wrapper package"
+  ]
+}

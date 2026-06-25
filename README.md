@@ -120,6 +120,14 @@ Two helpers matter when the work stops being linear:
 - `goal2plan` expands sparse `/goal` intake into a reviewed implementation plan before execution starts.
 - `autonomous-release-closure` drives review, promotion, cleanup, and adopt follow-through from current evidence instead of a one-shot release script.
 
+### Optional simplicity helpers
+
+Harness also carries a small set of repo-owned borrowings inspired by the `ponytail` analysis. They are not an upstream import, packaging sync, or benchmark harness copy.
+
+- `overengineering-review` is an optional review lens for cuts such as `delete`, `stdlib`, `native`, `yagni`, and `shrink`.
+- `simplification-ledger` is an optional read-only helper that scans deliberate simplification markers.
+- `swf-simplify:` is the canonical V1 marker for recording a simplification ceiling and its upgrade trigger.
+
 See [Workflows](docs/workflows.md) for where each mode family sits, which lane owns its primary proof, and when reconciliation or review is required because unit/BDD evidence is not enough.
 
 ## Implementation Shape

@@ -107,6 +107,7 @@ test('upstream refresh workflow runs on ubuntu and checks out full triggering-re
   const checkoutBlock = extractStepBlock(workflow, 'Check out workflow ref');
   const setupNodeBlock = extractStepBlock(workflow, 'Set up Node.js');
   const installBlock = extractStepBlock(workflow, 'Install dependencies');
+  const runRefreshBlock = extractStepBlock(workflow, 'Run upstream refresh');
 
   assert.match(
     jobBlock,
@@ -120,6 +121,12 @@ test('upstream refresh workflow runs on ubuntu and checks out full triggering-re
   assert.match(setupNodeBlock, /^\s{10}node-version:\s*'22'\s*$/m);
   assert.match(setupNodeBlock, /^\s{10}cache:\s*npm\s*$/m);
   assert.match(installBlock, /^\s{8}run:\s*npm ci\s*$/m);
+  assert.match(runRefreshBlock, /^\s{8}env:\s*$/m);
+  assert.match(runRefreshBlock, /^\s{10}GH_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}\s*$/m);
+  assert.match(runRefreshBlock, /^\s{10}GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}\s*$/m);
+  assert.match(runRefreshBlock, /^\s{10}XDG_CACHE_HOME:\s*\$\{\{\s*runner\.temp\s*\}\}\/xdg-cache\s*$/m);
+  assert.match(runRefreshBlock, /^\s{10}WRANGLER_HOME:\s*\$\{\{\s*runner\.temp\s*\}\}\/wrangler\s*$/m);
+  assert.match(runRefreshBlock, /^\s{8}run:\s*node scripts\/ci\/run-upstream-refresh\.mjs\s*$/m);
 });
 
 test('upstream refresh workflow keeps the expected step order', async () => {

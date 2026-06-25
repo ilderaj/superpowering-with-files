@@ -30,6 +30,9 @@ Keep the detailed implementation plan and execution checklist in that companion 
 Whenever a companion plan exists, write its path, a short summary, and the current sync-back status into the task-scoped planning files under `planning/active/<task-id>/`.
 The companion plan must also point back to `planning/active/<task-id>/` so execution can move from summary to detail and back.
 
+Declare the proof stack explicitly: `proof target`, `primary proof`, `backstop proof`, `escalation trigger`, `evidence sink`, `reconcile rule`, and `unacceptable substitute`.
+Do not stop at listing commands; state what each proof item is meant to prove, where the evidence lands, and what result would force escalation or reconciliation.
+
 For Deep-reasoning rounds, restore the authoritative planning files before revising the companion plan.
 If the companion plan is new or materially revised, require 1 read-only reviewer subagent before execution. Keep the reviewer out of code and planning-file edits, integrate feedback before implementation starts, and re-review after each substantial revision.
 Bound plan-polishing to three verification rounds. After the third failed verification round, record blockers and unresolved assumptions back in `planning/active/<task-id>/` and stop instead of looping forever.
@@ -49,6 +52,15 @@ Before defining tasks, map out which files will be created or modified and what 
 - In existing codebases, follow established patterns. If the codebase uses large files, don't unilaterally restructure - but if a file you're modifying has grown unwieldy, including a split in the plan is reasonable.
 
 This structure informs the task decomposition. Each task should produce self-contained changes that make sense independently.
+
+## Task Right-Sizing
+
+A task is the smallest unit that carries its own test cycle and is worth a
+fresh reviewer's gate. When drawing task boundaries: fold setup,
+configuration, scaffolding, and documentation steps into the task whose
+deliverable needs them; split only where a reviewer could meaningfully
+reject one task while approving its neighbor. Each task ends with an
+independently testable deliverable.
 
 ## Bite-Sized Task Granularity
 
@@ -74,6 +86,13 @@ This structure informs the task decomposition. Each task should produce self-con
 
 **Tech Stack:** [Key technologies/libraries]
 
+## Global Constraints
+
+[The spec's project-wide requirements — version floors, dependency limits,
+naming and copy rules, platform requirements — one line each, with exact
+values copied verbatim from the spec. Every task's requirements implicitly
+include this section.]
+
 ---
 ```
 
@@ -86,6 +105,12 @@ This structure informs the task decomposition. Each task should produce self-con
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
+
+**Interfaces:**
+- Consumes: [what this task uses from earlier tasks — exact signatures]
+- Produces: [what later tasks rely on — exact function names, parameter
+  and return types. A task's implementer sees only their own task; this
+  block is how they learn the names and types neighboring tasks use.]
 
 - [ ] **Step 1: Write the failing test**
 
