@@ -107,8 +107,38 @@ test('sync materializes planning-with-files progress template with timestamp gui
 
     assert.match(progressTemplate, /## Session: \[TIMESTAMP\]/);
     assert.match(progressTemplate, /YYYY-MM-DD HH:mm:ss UTC\+8/);
+    assert.match(progressTemplate, /top-to-bottom chronological/);
   } finally {
     await removeHarnessFixture(root);
+  }
+});
+
+test('planning-with-files source and overlay keep chronology guidance aligned', async () => {
+  const upstreamSkill = await readFile(
+    path.join(process.cwd(), 'harness/upstream/planning-with-files/SKILL.md'),
+    'utf8'
+  );
+  const overlaySkill = await readFile(
+    path.join(process.cwd(), 'harness/core/upstream-overlays/planning-with-files/SKILL.md'),
+    'utf8'
+  );
+  const upstreamProgressTemplate = await readFile(
+    path.join(process.cwd(), 'harness/upstream/planning-with-files/templates/progress.md'),
+    'utf8'
+  );
+  const overlayProgressTemplate = await readFile(
+    path.join(process.cwd(), 'harness/core/upstream-overlays/planning-with-files/templates/progress.md'),
+    'utf8'
+  );
+
+  for (const skill of [upstreamSkill, overlaySkill]) {
+    assert.match(skill, /top-to-bottom chronological/);
+    assert.match(skill, /Append new dated blocks/);
+    assert.match(skill, /Never hand-write a timestamp that is later than the real current tool-derived\s+time/);
+  }
+
+  for (const progressTemplate of [upstreamProgressTemplate, overlayProgressTemplate]) {
+    assert.match(progressTemplate, /top-to-bottom chronological/);
   }
 });
 
@@ -138,6 +168,9 @@ test('sync materializes planning-with-files skill with mandatory dated record gu
     assert.match(skill, /\.\/scripts\/harness record --file findings/);
     assert.match(skill, /\.\/scripts\/harness record --file task_plan/);
     assert.match(skill, /date '\+%Y-%m-%d %H:%M:%S UTC%z'/);
+    assert.match(skill, /Never hand-write a timestamp that is later than the real current tool-derived\s+time/);
+    assert.match(skill, /top-to-bottom chronological/);
+    assert.match(skill, /Append new dated blocks\s+at the end/);
   } finally {
     await removeHarnessFixture(root);
   }

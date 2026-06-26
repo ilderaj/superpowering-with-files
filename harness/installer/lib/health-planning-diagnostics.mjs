@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { inspectPlanLocations } from './plan-locations.mjs';
@@ -13,8 +13,13 @@ import {
 
 const execFileAsync = promisify(execFile);
 const UTC8_TIMESTAMP_PATTERN = /(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) UTC\+8/g;
+const DATED_PLANNING_HEADING_PATTERN =
+  /^## (?:Session|Findings Record|Plan Record|Reconciliation Record): (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC\+8)$/gm;
 const MIDNIGHT_RECORD_PATTERN =
   /^(## (?:Session|Findings Record|Plan Record): |-\s+\*\*Started:\*\* )(\d{4}-\d{2}-\d{2}) 00:00:00 UTC\+8$/gm;
+const AD_HOC_MEMORY_FILENAME_PATTERN =
+  /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-.+\.md$/;
+const FUTURE_TIMESTAMP_GRACE_MS = 5 * 60 * 1000;
 const PLANNING_LIFECYCLE_STATUSES = [
   'active',
   'blocked',
@@ -345,6 +350,90 @@ function collectUtc8TimesByDate(text) {
   return byDate;
 }
 
+function collectDatedPlanningHeadings(text) {
+  return [...text.matchAll(DATED_PLANNING_HEADING_PATTERN)].map((match) => match[1]);
+}
+
+function parseUtc8Timestamp(value) {
+  const match = value.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) UTC\+8$/);
+  if (!match) {
+    return null;
+  }
+
+  return new Date(`${match[1]}T${match[2]}+08:00`);
+}
+
+function formatAsUtc8Timestamp(value) {
+  const formatter = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+
+  return formatter.format(value).replace(' ', ' ') + ' UTC+8';
+}
+
+export async function inspectPlanningChronologyHealth(rootDir) {
+  const activeRoot = path.join(rootDir, 'planning/active');
+  const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
+  const results = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const taskDir = path.join(activeRoot, entry.name);
+    const filePaths = ['task_plan.md', 'findings.md', 'progress.md', 'reconciliation.md'].map((fileName) =>
+      path.join(taskDir, fileName)
+    );
+
+    for (const filePath of filePaths) {
+      const text = await readFile(filePath, 'utf8').catch(() => null);
+      if (!text) {
+        continue;
+      }
+
+      const headings = collectDatedPlanningHeadings(text);
+      if (headings.length <= 1) {
+        continue;
+      }
+
+      let inversion = null;
+      for (let index = 1; index < headings.length; index += 1) {
+        if (headings[index] < headings[index - 1]) {
+          inversion = {
+            previous: headings[index - 1],
+            current: headings[index]
+          };
+          break;
+        }
+      }
+
+      if (!inversion) {
+        continue;
+      }
+
+      results.push({
+        type: 'planning-chronology-warning',
+        path: path.relative(rootDir, filePath),
+        severity: 'warning',
+        message:
+          'Planning record headings are not top-to-bottom chronological: ' +
+          `found \`${inversion.current}\` after \`${inversion.previous}\`. ` +
+          'Append new dated blocks at the end of the file, or restore full chronological order after manual backfills.'
+      });
+    }
+  }
+
+  return results;
+}
+
 export async function inspectPlanningTimestampHealth(rootDir) {
   const activeRoot = path.join(rootDir, 'planning/active');
   const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
@@ -420,6 +509,108 @@ export async function inspectPlanningTimestampHealth(rootDir) {
   return results;
 }
 
+export async function inspectPlanningFutureTimestampHealth(rootDir) {
+  const activeRoot = path.join(rootDir, 'planning/active');
+  const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
+  const results = [];
+
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+
+    const taskDir = path.join(activeRoot, entry.name);
+    const filePaths = ['task_plan.md', 'findings.md', 'progress.md', 'reconciliation.md'].map((fileName) =>
+      path.join(taskDir, fileName)
+    );
+
+    for (const filePath of filePaths) {
+      const [text, fileStat] = await Promise.all([
+        readFile(filePath, 'utf8').catch(() => null),
+        stat(filePath).catch(() => null)
+      ]);
+      if (!text || !fileStat) {
+        continue;
+      }
+
+      const mtimeMs = fileStat.mtime.getTime();
+      const futureHeading = collectDatedPlanningHeadings(text).find((heading) => {
+        const parsed = parseUtc8Timestamp(heading);
+        return parsed && parsed.getTime() > mtimeMs + FUTURE_TIMESTAMP_GRACE_MS;
+      });
+
+      if (!futureHeading) {
+        continue;
+      }
+
+      results.push({
+        type: 'planning-future-timestamp-warning',
+        path: path.relative(rootDir, filePath),
+        severity: 'warning',
+        message:
+          `Planning record heading \`${futureHeading}\` is later than the file mtime ` +
+          `\`${formatAsUtc8Timestamp(fileStat.mtime)}\`. ` +
+          'Use the timestamp helper instead of hand-writing guessed future times.'
+      });
+    }
+  }
+
+  return results;
+}
+
+function parseAdHocMemoryFilenameTimestamp(fileName) {
+  const match = fileName.match(AD_HOC_MEMORY_FILENAME_PATTERN);
+  if (!match) {
+    return null;
+  }
+
+  const [, date, hour, minute, second] = match;
+  return new Date(`${date}T${hour}:${minute}:${second}+08:00`);
+}
+
+export async function inspectAdHocMemoryTimestampHealth(homeDir) {
+  if (!homeDir) {
+    return [];
+  }
+
+  const notesDir = path.join(homeDir, '.codex/memories/extensions/ad_hoc/notes');
+  const entries = await readdir(notesDir, { withFileTypes: true }).catch(() => []);
+  const results = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile()) {
+      continue;
+    }
+
+    const noteTimestamp = parseAdHocMemoryFilenameTimestamp(entry.name);
+    if (!noteTimestamp) {
+      continue;
+    }
+
+    const notePath = path.join(notesDir, entry.name);
+    const noteStat = await stat(notePath).catch(() => null);
+    if (!noteStat) {
+      continue;
+    }
+
+    if (noteTimestamp.getTime() <= noteStat.mtime.getTime() + FUTURE_TIMESTAMP_GRACE_MS) {
+      continue;
+    }
+
+    results.push({
+      type: 'ad-hoc-memory-future-timestamp-warning',
+      path: path.relative(homeDir, notePath),
+      severity: 'warning',
+      message:
+        `Ad-hoc memory note filename timestamp \`${entry.name.slice(0, 19)} UTC+8\` is later than the file mtime ` +
+        `\`${formatAsUtc8Timestamp(noteStat.mtime)}\`. ` +
+        'Create note filenames from the real tool-derived current time instead of guessing future timestamps.'
+    });
+  }
+
+  return results;
+}
+
 export async function inspectPlanningDiagnostics({ rootDir, homeDir }) {
   const activeTaskState = await inspectActiveTaskState(rootDir);
   const canonicalPlanLocations = await inspectPlanLocations(rootDir);
@@ -453,7 +644,10 @@ export async function inspectPlanningDiagnostics({ rootDir, homeDir }) {
     // V1 keeps verification-contract enforcement on health/doctor only.
     // Summary exposure stays deferred until exact summary tests exist and operator need is demonstrated.
     ...(await inspectVerificationContractHealth(rootDir)),
-    ...(await inspectPlanningTimestampHealth(rootDir))
+    ...(await inspectPlanningChronologyHealth(rootDir)),
+    ...(await inspectPlanningTimestampHealth(rootDir)),
+    ...(await inspectPlanningFutureTimestampHealth(rootDir)),
+    ...(await inspectAdHocMemoryTimestampHealth(homeDir))
   ];
 
   return {
