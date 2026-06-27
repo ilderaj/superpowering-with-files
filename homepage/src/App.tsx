@@ -25,7 +25,10 @@ export default function App() {
                 </a>
               ))}
             </div>
-            <div className="proof-row" aria-label="Project highlights">
+          </div>
+
+          <aside className="product-card" aria-label="Harness proof surface">
+            <div className="proof-row" aria-label="Homepage proof points">
               {homepageContent.hero.proofPoints.map((point) => (
                 <div className="proof" key={point.label}>
                   <strong>{point.value}</strong>
@@ -33,9 +36,7 @@ export default function App() {
                 </div>
               ))}
             </div>
-          </div>
 
-          <aside className="product-card" aria-label="Harness preview">
             <div className="terminal">
               <div className="terminal-top">
                 <div className="dots" aria-hidden="true">
@@ -49,18 +50,6 @@ export default function App() {
                 {homepageContent.hero.terminal.lines.map((line, index) => {
                   if (line.tone === 'break') {
                     return <br key={`break-${index}`} />;
-                  }
-
-                  if (line.tone === 'mix') {
-                    return (
-                      <div key={`mix-${index}`}>
-                        {(line.segments ?? []).map((segment) => (
-                          <span key={`${index}-${segment.text}`} className={segment.tone}>
-                            {segment.text}
-                          </span>
-                        ))}
-                      </div>
-                    );
                   }
 
                   return (
@@ -136,7 +125,7 @@ export default function App() {
               </article>
             ))}
           </div>
-          <div className="lanes" aria-label="Workflow lanes">
+          <div className="lanes" aria-label="Routing lanes">
             {homepageContent.system.lanes.map((lane) => (
               <div className="lane" key={lane}>
                 {lane}
@@ -185,7 +174,7 @@ export default function App() {
           <div className="install-card">
             <h3>{homepageContent.start.quickStartTitle}</h3>
             <p>{homepageContent.start.quickStartBody}</p>
-            <div className="code-block">
+            <div className="code-block" id="cli-proof">
               {homepageContent.start.commands.map((command) => (
                 <div key={command}>{command}</div>
               ))}
@@ -198,14 +187,19 @@ export default function App() {
             <p>{homepageContent.start.cta.body}</p>
           </div>
           <div className="cta-actions">
-            <a className="button" href={homepageContent.start.cta.action.href}>
+            <a
+              className="button primary"
+              href={homepageContent.start.cta.action.href}
+              target={homepageContent.start.cta.action.external ? '_blank' : undefined}
+              rel={homepageContent.start.cta.action.external ? 'noreferrer' : undefined}
+            >
               {homepageContent.start.cta.action.label}
             </a>
             <a
               className="button secondary"
               href={homepageContent.start.cta.secondaryAction.href}
-              target="_blank"
-              rel="noreferrer"
+              target={homepageContent.start.cta.secondaryAction.external ? '_blank' : undefined}
+              rel={homepageContent.start.cta.secondaryAction.external ? 'noreferrer' : undefined}
             >
               {homepageContent.start.cta.secondaryAction.label}
             </a>
@@ -232,7 +226,12 @@ export default function App() {
             {homepageContent.topbar.github.label}
           </a>
         </div>
-        <a className="button primary" href={homepageContent.topbar.cta.href}>
+        <a
+          className="button primary"
+          href={homepageContent.topbar.cta.href}
+          target={homepageContent.topbar.cta.external ? '_blank' : undefined}
+          rel={homepageContent.topbar.cta.external ? 'noreferrer' : undefined}
+        >
           {homepageContent.topbar.cta.label}
         </a>
       </nav>
