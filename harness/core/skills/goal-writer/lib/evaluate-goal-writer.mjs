@@ -65,11 +65,14 @@ function hasNumericTarget(doneCriteria) {
 }
 
 function hasConcreteValidationProof(validation) {
+  const normalizedValidation = validation.replaceAll('`', '');
   return (
-    /`[^`\n]*\b(?:npm|pnpm|node|uv|python|pytest|cargo|go|git|gh|rg|fd|bun|deno|xcodebuild|swift|make|docker)\b[^`\n]*`/.test(
-      validation
+    /\b(?:npm|pnpm|node|uv|python|pytest|cargo|go|git|gh|rg|fd|bun|deno|xcodebuild|swift|make|docker)\b(?:[ \t]+[^\n]+)?/.test(
+      normalizedValidation
     )
-    || /`[^`\n]*(?:\/|\.md|\.mjs|\.ts|\.js|\.json|\.yml|\.yaml|\.py)[^`\n]*`/.test(validation)
+    || /(?:^|[\s(])(?:[A-Za-z0-9_.<>{}-]+\/)*[A-Za-z0-9_.<>{}-]+\.(?:md|mjs|ts|js|json|yml|yaml|py)\b/.test(
+      normalizedValidation
+    )
   );
 }
 

@@ -8,6 +8,19 @@ approving. Read-only; never blocks the request; always exits cleanly.
 from __future__ import annotations
 
 import codex_hook_adapter as adapter
+from pathlib import Path
+
+
+def resolve_plan_dir(root: Path) -> Path | None:
+    hook_dir = Path(__file__).resolve().parent
+    helper = hook_dir / "resolve-active-plan-dir.sh"
+    if not helper.exists():
+        return None
+
+    stdout, _ = adapter.run_shell_script("resolve-active-plan-dir.sh", root)
+    if not stdout:
+        return None
+    return Path(stdout)
 
 
 def main() -> None:
@@ -17,7 +30,8 @@ def main() -> None:
     if not adapter.is_session_attached(root, adapter.session_id_from_payload(payload)):
         return
 
-    plan = root / "task_plan.md"
+    plan_dir = resolve_plan_dir(root)
+    plan = (root / "task_plan.md") if plan_dir is None else (plan_dir / "task_plan.md")
     if not plan.exists():
         return
 

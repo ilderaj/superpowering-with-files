@@ -91,11 +91,12 @@ test('upstream refresh workflow exposes manual and weekly scheduled triggers', a
   assert.match(onBlock, /^\s+-\s*cron:\s*['"]0 12 \* \* 5['"]\s*$/m);
 });
 
-test('upstream refresh workflow grants only the PR update permissions it needs', async () => {
+test('upstream refresh workflow grants the read and write permissions its current steps need', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
   const permissionsBlock = extractTopLevelBlock(workflow, 'permissions');
 
   assert.deepEqual(parsePermissionsBlock(permissionsBlock), {
+    actions: 'read',
     contents: 'write',
     'pull-requests': 'write'
   });

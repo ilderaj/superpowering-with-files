@@ -12,6 +12,7 @@ on:
     - cron: '0 12 * * 5'
 
 permissions:
+  actions: read
   contents: write
   pull-requests: write
 
