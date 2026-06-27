@@ -10,7 +10,7 @@ These examples are intentionally short and contract-focused. Full fixture output
 
 ## Tracked Round Example
 - Fixture: `tracked-task`
-- Key behavior: use the standard frame, keep `planning/active/<task-id>/` authoritative, and give one clear finish line before any deeper escalation
+- Key behavior: use the standard frame, keep `planning/active/<task-id>/` authoritative, define checkpoints plus a short `progress.md` log, and give one clear finish line before any deeper escalation
 - Numeric target: `8 fixture prompts pass all hard checks`
 
 ## Proof-First Example
@@ -20,12 +20,12 @@ These examples are intentionally short and contract-focused. Full fixture output
 
 ## Bounded Orchestration Example
 - Fixture: `moderate-tracked-task`
-- Key behavior: keep a moderate tracked goal smaller than a planning loop unless the round really becomes deep-reasoning
+- Key behavior: keep a moderate tracked goal smaller than a planning loop unless the round really becomes deep-reasoning, while still exposing checkpoints and short progress notes
 - Numeric target: `2` proof commands and `1` bounded publishing workflow surface
 
 ## Deep-Reasoning Round Example
 - Fixture: `deep-reasoning-task`
-- Key behavior: use the standard frame and require a reviewer-gated companion plan only when the round is deep-reasoning
+- Key behavior: use the standard frame, expose checkpoints and short progress logging, and require a reviewer-gated companion plan only when the round is deep-reasoning
 - Numeric target: `3 verifier rounds max`
 
 ## Context-Heavy Example

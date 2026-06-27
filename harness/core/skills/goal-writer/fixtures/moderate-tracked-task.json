@@ -4,6 +4,7 @@
   "category": "tracked",
   "expectedRoute": "tracked",
   "maxLength": 1700,
+  "requireCheckpointLog": true,
   "expectedFocusTerms": [
     "without widening into a planning loop",
     "pnpm lint --filter docs",

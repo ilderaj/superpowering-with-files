@@ -17,6 +17,7 @@ Every generated Goal2Plan prompt must:
 11. require `1` read-only reviewer subagent
 12. include at least one numeric done criterion
 13. include stop or escalate conditions
+14. define checkpoints and a short progress log for the planning loop
 
 ## Pass Threshold
 
@@ -32,3 +33,4 @@ Every generated Goal2Plan prompt must:
 - Missing intake audit: list the missing intake dimensions before plan drafting
 - Missing fallback: say Goal2Plan stops and reclassifies when direct or tracked execution is sufficient
 - Missing reviewer gate: add `1` read-only reviewer subagent
+- Opaque planning loop: define checkpoints and write a short `progress.md` log after each checkpoint

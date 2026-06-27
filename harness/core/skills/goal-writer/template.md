@@ -34,6 +34,7 @@ Work Discipline:
 - Reclassify each round as `quick`, `tracked`, or `deep-reasoning`.
 - Keep quick rounds lightweight; do not create a companion plan or subagents just because `/goal` is running.
 - Keep `planning/active/<task-id>/` authoritative for tracked rounds and sync durable state after each phase.
+- For tracked or deeper rounds, work checkpoint by checkpoint and log a short note in `planning/active/<task-id>/progress.md` after each checkpoint.
 - For deep-reasoning rounds, use `docs/superpowers/plans/<date>-<task-id>.md`, require 1 read-only reviewer subagent before executing any new or materially revised companion plan, and execute approved plans with normal Superpowers execution, worktree, and git-progress discipline.
 - Prefer one clear finish line before heavier orchestration; if the task later proves deeper, say so without allowing goal drift.
 - Keep the root goal stable; planning or replanning is allowed, goal drift is not.
@@ -50,6 +51,7 @@ Next Step: [the immediate first action once the goal starts]
 ## Compression Rules
 - Choose the compact frame first for genuinely simple goals instead of filling the standard frame mechanically.
 - Start from one proof target and one finish line before adding orchestration language.
+- For tracked or deeper prompts, name the checkpoints and the short `progress.md` logging rule explicitly instead of assuming the loop stays legible on its own.
 - Prefer one short paragraph for `Context` and `Constraints`.
 - Keep `Validation` and `Done Criteria` to the smallest set that still proves success.
 - Remove narration, rationale, and history that do not change execution.

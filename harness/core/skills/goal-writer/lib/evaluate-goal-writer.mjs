@@ -176,6 +176,14 @@ export function evaluatePrompt(fixture, prompt) {
     );
   }
 
+  if (fixture.requireCheckpointLog) {
+    maybeAdd(
+      hardFailures,
+      /checkpoint/i.test(workDiscipline) && (/progress\.md/i.test(workDiscipline) || /progress log/i.test(workDiscipline)),
+      'tracked/deep fixtures must define checkpoints and a short progress log in Work Discipline'
+    );
+  }
+
   if (fixture.expectedFocusTerms?.length) {
     maybeAdd(
       hardFailures,
@@ -200,6 +208,9 @@ export function evaluatePrompt(fixture, prompt) {
   if (hasConcreteValidationProof(validation)) score += 1;
   if (/stop|ask|escalate/i.test(stopEscalate)) score += 1;
   if (nextStep.length > 0) score += 1;
+  if (!fixture.requireCheckpointLog || (/checkpoint/i.test(workDiscipline) && (/progress\.md/i.test(workDiscipline) || /progress log/i.test(workDiscipline)))) {
+    score += 0;
+  }
 
   const pass = hardFailures.length === 0 && score >= 9;
   const notesOut = pass ? [] : [...hardFailures, ...notes];

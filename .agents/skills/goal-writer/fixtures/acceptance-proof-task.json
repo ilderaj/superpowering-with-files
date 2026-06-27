@@ -4,6 +4,7 @@
   "category": "tracked",
   "expectedRoute": "tracked",
   "maxLength": 1700,
+  "requireCheckpointLog": true,
   "expectedFocusTerms": [
     "node --test tests/core/goal-writer-eval.test.mjs",
     "git diff --stat",

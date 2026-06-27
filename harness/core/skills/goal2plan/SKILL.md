@@ -5,11 +5,11 @@ description: Use when sparse, high-complexity intent needs an intake-sufficiency
 
 # Goal2Plan
 
-Goal2Plan is a skill-first Mode B workflow for turning sparse, high-effort intent into one reviewed implementation plan before execution starts. It first checks whether intake is actually insufficient and whether Goal2Plan is still the lightest sufficient path before it commits the task to a full planning loop.
+Goal2Plan is a skill-first Mode B workflow for turning sparse, high-effort intent into one reviewed implementation plan before execution starts. It first checks whether intake is actually insufficient and whether Goal2Plan is still the lightest sufficient path before it commits the task to a full planning loop, and it keeps that loop externally legible by asking for named checkpoints plus a short progress log instead of treating planning as one opaque burst.
 
 ## Outcome Contract
 - **Outcome:** return or prepare exactly one native Codex `/goal` prompt whose objective is to produce a reviewed implementation plan, then stop at that reviewed plan unless the user explicitly asks to continue into execution.
-- **Done when:** the generated prompt keeps `planning/active/<task-id>/task_plan.md`, `findings.md`, and `progress.md` authoritative; audits intake sufficiency before drafting; saves the plan artifact to `docs/superpowers/plans/<date>-<task-id>.md`; requires `1` read-only reviewer subagent for every new or materially revised plan; caps plan-polishing at `3` review rounds; and tells the loop to stop Goal2Plan and reclassify if the reviewed plan proves direct or tracked execution is sufficient.
+- **Done when:** the generated prompt keeps `planning/active/<task-id>/task_plan.md`, `findings.md`, and `progress.md` authoritative; audits intake sufficiency before drafting; saves the plan artifact to `docs/superpowers/plans/<date>-<task-id>.md`; requires `1` read-only reviewer subagent for every new or materially revised plan; defines checkpoints plus a short `progress.md` log for the planning loop; caps plan-polishing at `3` review rounds; and tells the loop to stop Goal2Plan and reclassify if the reviewed plan proves direct or tracked execution is sufficient.
 - **Evidence:** `scripts/evaluate-goal2plan.mjs`, `tests/core/goal2plan-eval.test.mjs`, projection/profile/sync tests, and the local-skill contract test all pass.
 - **Mode B Contract:** this skill does not execute implementation and does not implement a runner or external runner. It prepares and governs a native Codex `/goal` prompt, while Codex `/goal` remains the long-running executor.
 - **Authority Boundary:** `planning/active/<task-id>/` stays the only durable task memory. The companion plan under `docs/superpowers/plans/<date>-<task-id>.md` is a reviewed artifact, not a second planning system.
@@ -33,20 +33,22 @@ Do not use this skill when:
 | 3 | If broad context is missing, use `brainstorming`; if only one or two narrow facts are missing, ask concise Q&A |
 | 4 | Use `goal-writer` or [template.md](template.md) to draft exactly one native Codex `/goal` prompt |
 | 5 | Require the goal loop to draft a reviewed implementation plan under `docs/superpowers/plans/<date>-<task-id>.md` |
-| 6 | Require `1` read-only reviewer subagent for every new or materially revised plan |
-| 7 | Revise under a `3`-round cap, sync durable results back, and stop at the approved plan or fall back if the task proves simpler |
+| 6 | Require named checkpoints and a short `progress.md` log for the planning loop |
+| 7 | Require `1` read-only reviewer subagent for every new or materially revised plan |
+| 8 | Revise under a `3`-round cap, sync durable results back, and stop at the approved plan or fall back if the task proves simpler |
 
 ## Workflow
 1. Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md`.
 2. Check intake sufficiency across root objective, success criteria, scope boundaries, impacted files or work domains, validation method, rollback or review needs, execution-unit boundaries, and blocking external facts.
 3. If broad context is missing, invoke `brainstorming`; if only narrow facts are missing, ask concise Q&A.
 4. Use `goal-writer` or [template.md](template.md) to produce one native `/goal` prompt whose objective is a reviewed implementation plan.
-5. The goal loop drafts the plan using `writing-plans` structure and saves the companion artifact under `docs/superpowers/plans/<date>-<task-id>.md`.
-6. Require `1` read-only reviewer subagent for every new or materially revised plan.
-7. Revise under a `3`-round cap.
-8. If the reviewed plan proves the work is straightforward enough for direct or tracked execution, stop Goal2Plan, reclassify, and fall back instead of forcing more planning rounds.
-9. Sync summary, reviewer verdict, blockers, plan path, and any fallback decision back to `planning/active/<task-id>/`.
-10. Stop at the reviewed plan unless the user explicitly asks to execute implementation.
+5. The goal loop drafts the plan using `writing-plans` structure, saves the companion artifact under `docs/superpowers/plans/<date>-<task-id>.md`, and works checkpoint by checkpoint instead of treating plan generation as one opaque pass.
+6. After each checkpoint, append a short progress log to `planning/active/<task-id>/progress.md` so the planning loop stays inspectable.
+7. Require `1` read-only reviewer subagent for every new or materially revised plan.
+8. Revise under a `3`-round cap.
+9. If the reviewed plan proves the work is straightforward enough for direct or tracked execution, stop Goal2Plan, reclassify, and fall back instead of forcing more planning rounds.
+10. Sync summary, reviewer verdict, blockers, plan path, checkpoint status, and any fallback decision back to `planning/active/<task-id>/`.
+11. Stop at the reviewed plan unless the user explicitly asks to execute implementation.
 
 ## Common Mistakes
 - Treating Goal2Plan as a replacement for Codex `/goal` instead of a prompt-contract skill for Codex `/goal`
@@ -56,4 +58,5 @@ Do not use this skill when:
 - Executing implementation from inside the planning loop instead of stopping at the reviewed plan
 - Forcing Goal2Plan to continue after the reviewed plan proves direct or tracked execution is sufficient
 - Forgetting the `1` read-only reviewer subagent gate or the `3`-round revision cap
+- Omitting checkpoints or a short `progress.md` log, which makes the planning loop harder to review or resume
 - Forcing Goal2Plan onto work that is already simple enough for direct or tracked execution
