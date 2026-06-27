@@ -625,6 +625,48 @@ test('sync --check exits non-zero when projections are out of sync and does not 
   }
 });
 
+test('sync --dry-run and --check surface materialized skill source drift after an initial sync', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+
+    const skillSourcePath = path.join(root, 'harness/upstream/planning-with-files/SKILL.md');
+    const originalSkillSource = await readFile(skillSourcePath, 'utf8');
+    await writeFile(skillSourcePath, `${originalSkillSource}\n<!-- source drift fixture -->\n`);
+
+    const { stdout } = await harnessCommand(root, 'sync', '--dry-run');
+    const report = JSON.parse(stdout);
+    const targetPath = path.join(await realpath(root), '.agents/skills/planning-with-files');
+
+    assert.equal(report.mode, 'dry-run');
+    assert.equal(report.summary.update > 0, true);
+    assert.equal(
+      report.diff.update.some(
+        (entry) => entry.after?.kind === 'skill' && entry.after?.targetPath === targetPath
+      ),
+      true
+    );
+
+    await assert.rejects(
+      harnessCommand(root, 'sync', '--check'),
+      /Harness sync check failed: projections are out of sync/
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('verify prints to stdout by default without writing reports', async () => {
   const root = await createHarnessFixture();
   try {

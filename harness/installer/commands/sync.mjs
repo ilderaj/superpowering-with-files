@@ -23,7 +23,8 @@ import {
 import { mergeHookConfig, mergeHookSettings } from '../lib/hook-config.mjs';
 import { planHookProjections } from '../lib/hook-projection.mjs';
 import {
-  createBackupArchiveManager
+  createBackupArchiveManager,
+  digestTarget
 } from '../lib/backup-archive.mjs';
 import {
   createProjectionManifest,
@@ -396,16 +397,26 @@ export async function planSyncOperations({ rootDir, homeDir, state }) {
 
   const skillWrites = coalesceSkillProjections(rawSkillWrites);
 
-  for (const projection of skillWrites) {
-    const strategy =
-      projection.strategy === 'link' && state.projectionMode === 'portable'
-        ? 'materialize'
-        : projection.strategy;
-    manifestEntries.push({
-      ...projection,
-      strategy
-    });
-  }
+  const skillManifestEntries = await Promise.all(
+    skillWrites.map(async (projection) => {
+      const strategy =
+        projection.strategy === 'link' && state.projectionMode === 'portable'
+          ? 'materialize'
+          : projection.strategy;
+      const manifestEntry = {
+        ...projection,
+        strategy
+      };
+
+      if (strategy === 'materialize') {
+        manifestEntry.sourceDigest = await digestTarget(projection.sourcePath);
+      }
+
+      return manifestEntry;
+    })
+  );
+
+  manifestEntries.push(...skillManifestEntries);
 
   for (const projection of managedWrites) {
     if (isUserManagedTarget(projection.targetPath, userManaged)) {
