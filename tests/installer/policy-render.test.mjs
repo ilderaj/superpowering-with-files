@@ -249,12 +249,16 @@ test('codex render includes concise output guidance without weakening planning a
   }
 });
 
-test('codex concise guidance stays small relative to the rendered codex entry', async () => {
+test('codex concise guidance section stays bounded', async () => {
   const codexRendered = await renderEntry(process.cwd(), 'codex', 'always-on-core');
-  const measurement = measureText(codexRendered);
+  const match = codexRendered.match(/## Codex Concise Output Guidance[\s\S]*?(?=\n## |\s*$)/);
+
+  assert.ok(match, 'codex concise guidance section should be present as a bounded section');
+
+  const measurement = measureText(match[0]);
 
   assert.ok(
-    measurement.approxTokens < 3800,
-    `codex rendered entry should stay under 3800 approx tokens, got ${measurement.approxTokens}`
+    measurement.approxTokens < 200,
+    `codex concise guidance section should stay under 200 approx tokens, got ${measurement.approxTokens}`
   );
 });
