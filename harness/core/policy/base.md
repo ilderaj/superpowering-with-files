@@ -391,3 +391,9 @@ When compressing context, preserve in priority order:
 Use output-compressing command wrappers for shell commands likely to produce medium or large output, especially Git operations, broad searches, large file or tree reads, diffs, tests, builds, linters, logs, GitHub CLI, Docker, Kubernetes, curl, and JSON or log formatting.
 
 Skip command wrappers for trivial commands or tiny targeted reads where compression adds overhead without saving context.
+
+## Leaf Workspace Root Policy
+
+- A narrow leaf workspace is allowed for context control, but durable Harness state stays rooted at one authority root.
+- Inside a git worktree, treat that git top-level as the authority-root boundary by default; do not walk above it for a different project root unless an explicit override is present: `--root`, `HARNESS_PROJECT_ROOT`, or `.harness/authority-root.json` inside the worktree.
+- `planning/active/<task-id>/` stays single-homed at the authority root; `install`, `sync`, `verify`, `record`, `summary`, and `doctor` still act on that root even from a linked leaf workspace.
