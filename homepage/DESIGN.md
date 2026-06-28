@@ -2,7 +2,7 @@
 version: alpha
 name: Superpowering with Files Homepage
 basedOn: Claude
-description: A restrained Claude-inspired landing page for a developer workflow kit. The page uses a warm cream canvas, coral GitHub CTAs, serif editorial display type, and a dark product-proof surface to explain how planning files make agent reasoning durable.
+description: A warm editorial landing page for a governance harness that keeps local coding-agent workflows inspectable, durable, and routed by complexity.
 
 colors:
   primary: "#cc785c"
@@ -87,27 +87,27 @@ components:
 
 ## Overview
 
-This homepage adapts the Claude marketing language for an open-source developer workflow project. The page should feel useful, calm, and inspectable: warm editorial type explains the idea, a dark product surface makes the hybrid workflow tangible, and coral CTAs point directly to GitHub.
+This homepage should feel useful, calm, and inspectable: warm editorial type explains the governance model, a dark proof surface makes the workflow tangible, and coral CTAs point to source first instead of hiding the repo behind marketing chrome.
 
-The goal is not to mimic Claude.com wholesale. The page borrows the Claude palette and typographic posture, then narrows it for a repo-native tool. Copy stays concise and friendly. Visual energy comes from contrast between cream content areas and the dark proof module, not from animation, gradients, or generic AI decorations.
+The goal is not to mimic Claude.com wholesale. The page borrows an editorial palette and typographic posture, then narrows them for a repo-native tool. Copy stays concise and direct. Visual energy comes from contrast between cream content areas and the dark proof module, not from animation, gradients, or generic AI decorations.
 
 ## Voice
 
-- Lead with the concrete value: agents keep state in files they can reopen.
+- Lead with the concrete value: one shared workflow keeps agents on the same rails.
 - Keep sentences short and specific.
-- Prefer verbs such as reason, record, resume, inspect, and hand off.
-- Make GitHub the primary exit path. Documentation is secondary.
+- Prefer verbs such as govern, record, route, inspect, verify, and hand off.
+- Make GitHub source the primary first-screen exit path. Workflow documentation is the secondary first-screen path.
 - Avoid hype language, inflated claims, and vague productivity promises.
 
 ## Page Structure
 
-1. **Topbar:** brand mark, Workflow link, GitHub link.
-2. **Hero:** kicker, direct headline, short lede, Star the repo CTA, Read the workflow secondary action.
-3. **Proof surface:** Files plus Superpowers becomes durable state.
-4. **Comparison strip:** Reason, Record, Resume.
-5. **Routing model:** simple work stays simple, depth is reserved for tasks that need it.
-6. **Repo-native proof:** task plan, findings, and progress remain inspectable.
-7. **Closing CTA:** if agents lose context, give them files.
+1. **Topbar:** brand mark, section anchors, workflow link, and a primary `View source` CTA.
+2. **Hero:** governance-harness kicker, direct headline, short lede, `View source` primary action, `Read workflow` secondary action.
+3. **Proof surface:** one adjacent cluster combining proof points, a repo-native command surface, and routing-by-complexity explanation.
+4. **Why governance:** a compressed diagnosis of drift, invisible state, and risky finishes.
+5. **How the system works:** shared policy, planning files, optional superpowers, and reconcile as one connected model.
+6. **Repo proof:** durable files, workflow lanes, supported targets, and verification surfaces remain inspectable.
+7. **Closing CTA:** install comes after source and workflow proof, not before it.
 
 ## Color Guidance
 
@@ -137,33 +137,29 @@ Cards should be used sparingly. The comparison strip is the only repeated card-l
 
 ### Topbar
 
-A thin, calm navigation band with a circular brand mark and two pill links. The topbar should not become a large marketing nav. It exists to orient the user and keep GitHub one click away.
+A thin, calm navigation band with a circular brand mark, section anchors, one workflow link, and a primary source CTA. The topbar should not become a large marketing nav. It exists to orient the user and keep source and docs one click away.
 
 ### Hero Buttons
 
-Primary action is always a coral GitHub CTA. Secondary action is a cream pill link to the workflow documentation. Both should feel tactile but quiet.
+Hero primary action is always `View source`. Hero secondary action is `Read workflow`. Install belongs later on the page after the repo proof has earned it. All actions should feel tactile but quiet.
 
 ### Product Surface
 
-The dark proof module is the visual anchor. It should explain the idea at a glance: files plus deeper reasoning produces durable state. It uses warm off-dark tones, not pure black.
-
-### Comparison Strip
-
-Three short statements: Reason, Record, Resume. Each item should be readable as a standalone promise and should avoid icons or decorative charts.
+The dark proof module is the visual anchor. It should explain the idea at a glance: one shared policy, durable planning files, and optional deeper reasoning produce a more legible workflow. It uses warm off-dark tones, not pure black.
 
 ### Repo Proof
 
-The repo-native proof section should stay inspectable and specific. Mention task plans, findings, and progress because these are the durable artifacts the project actually provides.
+The repo-native proof section should stay inspectable and specific. Mention task plans, findings, progress, workflow lanes, verification surfaces, and supported targets because these are the real artifacts and behaviors the project actually provides.
 
 ## SEO Guidance
 
-Search metadata should describe the project as a Claude Code workflow kit, not a generic AI productivity site. Use stable canonical URLs under `https://ilderaj.github.io/superpowering-with-files/`. Social metadata must point to a real `og-image.png` asset in `homepage/public/`.
+Search metadata should describe the project as a governance harness for local coding-agent workflows, not a generic AI productivity site and not a Claude-only workflow kit. Use stable canonical URLs under `https://ilderaj.github.io/superpowering-with-files/`. Social metadata must point to a real `og-image.png` asset in `homepage/public/`.
 
 ## Do
 
 - Use warm cream, coral, and off-dark surfaces.
-- Keep GitHub starring as the primary conversion path.
-- Explain the hybrid workflow in concrete file-based terms.
+- Keep source and workflow inspection ahead of installation.
+- Explain the workflow in concrete file-based terms.
 - Preserve responsive single-column collapse for narrow screens.
 - Keep SEO metadata aligned with the visible page promise.
 

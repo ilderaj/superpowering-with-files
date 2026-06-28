@@ -23,6 +23,13 @@ Every generated prompt must pass all hard checks:
 9. `Validation` names at least one concrete command or authoritative evidence surface
 10. Includes stop/escalate conditions
 
+## Tracked / Deep Add-on Checks
+
+When the prompt is tracked or deep-reasoning, `Work Discipline` should also:
+
+1. define checkpoints instead of treating the whole loop as one opaque pass
+2. require a short progress log in `planning/active/<task-id>/progress.md`
+
 ## Scored Rubric (10 points)
 
 | Category | Points | Pass signal |
@@ -50,4 +57,5 @@ Use these notes when refining the prompt:
 - Over budget: shorten `Context` first, then `Constraints`, while preserving the section labels
 - Simple-task overlength: switch to the compact frame and reduce `Validation`/`Done Criteria` to the minimum proof set
 - Quick-task overreach: remove default companion-plan or subagent language unless the round becomes deep-reasoning
+- Opaque tracked goal: add checkpoints plus a short `progress.md` logging rule so long-running work stays inspectable
 - Weak validation: replace generic “verify the work” wording with named commands or authoritative evidence surfaces

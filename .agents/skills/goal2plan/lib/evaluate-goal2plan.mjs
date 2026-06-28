@@ -137,6 +137,11 @@ export function evaluatePrompt(fixture, prompt) {
   );
   maybeAdd(
     hardFailures,
+    /checkpoint/i.test(workDiscipline) && (/progress\.md/i.test(workDiscipline) || /progress log/i.test(workDiscipline)),
+    'prompt must define checkpoints and a short progress log for the planning loop'
+  );
+  maybeAdd(
+    hardFailures,
     constraints.includes('planning/active/<task-id>/') || workDiscipline.includes('planning/active/<task-id>/'),
     'prompt must preserve `planning/active/<task-id>/` as authoritative memory'
   );
@@ -182,6 +187,8 @@ export function evaluatePrompt(fixture, prompt) {
     && /`?3`?/.test(stopEscalate + doneCriteria + workDiscipline)
     && /intake sufficiency|missing intake dimensions|intake gaps|missing intake/i.test(innerPrompt)
     && /fallback|reclassify|direct or tracked execution|straightforward enough/i.test(innerPrompt)
+    && /checkpoint/i.test(workDiscipline)
+    && (/progress\.md/i.test(workDiscipline) || /progress log/i.test(workDiscipline))
   ) {
     score += 2;
   }

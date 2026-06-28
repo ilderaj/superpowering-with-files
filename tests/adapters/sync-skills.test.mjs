@@ -56,6 +56,18 @@ test('sync projects workspace entries and skills', async () => {
     );
     assert.match(copilotPlanning, /tracked tasks/);
     assert.match(copilotPlanning, /Tool-call count is only a hint/);
+    assert.match(
+      await readFile(path.join(root, '.agents/skills/planning-with-files/.codex/hooks/permission_request.py'), 'utf8'),
+      /resolve-active-plan-dir\.sh/
+    );
+    assert.match(
+      await readFile(path.join(root, '.agents/skills/planning-with-files/.codex/hooks/resolve-active-plan-dir.sh'), 'utf8'),
+      /planning_paths\.py/
+    );
+    assert.match(
+      await readFile(path.join(root, '.agents/skills/planning-with-files/tests/test_codex_hooks.py'), 'utf8'),
+      /test_permission_request_adapter_emits_plan_reminder_for_active_task_dir/
+    );
 
     const writingPlans = await readFile(path.join(root, '.agents/skills/writing-plans/SKILL.md'), 'utf8');
     assert.match(writingPlans, /Harness Superpowers writing-plans location patch/);

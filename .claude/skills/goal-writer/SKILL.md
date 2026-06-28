@@ -6,12 +6,12 @@ description: Use when preparing a Codex `/goal` prompt from sparse, ambiguous, o
 # Goal Writer
 
 ## Overview
-Goal Writer turns rough user intent, prior Q&A, and the minimum effective repo context into one complete Codex-ready `/goal ...` prompt. The prompt starts from one verified finish line, keeps the root goal stable, encodes SWF round-start discipline, stays within the 4000-character limit, always carries at least one measurable numeric done target, names concrete proof commands or evidence surfaces, and scales down for genuinely simple goals instead of defaulting to a multi-thousand-character contract.
+Goal Writer turns rough user intent, prior Q&A, and the minimum effective repo context into one complete Codex-ready `/goal ...` prompt. The prompt starts from one verified finish line, treats the goal text as both the starting prompt and the completion contract, keeps the root goal stable, encodes SWF round-start discipline, stays within the 4000-character limit, always carries at least one measurable numeric done target, names concrete proof commands or evidence surfaces, and for tracked or deeper work defines checkpoints plus a short progress log instead of hiding long-running work inside one opaque loop.
 
 ## Outcome Contract
 
 - **Outcome:** the user receives one paste-ready markdown fenced block containing a `/goal ...` prompt instead of a plan walkthrough.
-- **Done when:** the fenced block contains exactly one `/goal` prompt, the inner prompt stays `<=4000` characters, uses the required labeled sections, preserves `planning/active/<task-id>/` as authoritative memory, includes at least one numeric target inside `Done Criteria`, names at least one concrete validation proof, prefers one clear finish line before heavier orchestration, and shrinks appropriately for simple work.
+- **Done when:** the fenced block contains exactly one `/goal` prompt, the inner prompt stays `<=4000` characters, uses the required labeled sections, preserves `planning/active/<task-id>/` as authoritative memory, includes at least one numeric target inside `Done Criteria`, names at least one concrete validation proof, prefers one clear finish line before heavier orchestration, and for tracked or deeper work defines checkpoints plus a short progress log in `progress.md` while still shrinking appropriately for simple work.
 - **Evidence:** the prompt passes `scripts/evaluate-goal-writer.mjs` across all fixtures and any repo tests that cover projection or rendering.
 - **Output:** a single Codex-ready goal prompt with assumptions, validation, done criteria, stop/escalate rules, and next step.
 
@@ -35,8 +35,9 @@ Do not use this skill when:
 | 5 | Otherwise infer defaults and write them as `Assumptions:` inside the prompt |
 | 6 | Use the compact or standard frame from `template.md` |
 | 7 | Put at least one numeric target in `Done Criteria`; if inferred, label it, and make `Validation` name concrete commands or evidence surfaces |
-| 8 | Return exactly one markdown fenced block and keep the inner prompt within its budget |
-| 9 | Run the evaluator and fix any failed hard checks |
+| 8 | For tracked or deeper goals, define checkpoints and a short progress log in `planning/active/<task-id>/progress.md` |
+| 9 | Return exactly one markdown fenced block and keep the inner prompt within its budget |
+| 10 | Run the evaluator and fix any failed hard checks |
 
 ## Implementation
 1. Start from the root goal and its smallest proof target, not the implementation plan. The prompt should describe what success means, not narrate how you will reason.
@@ -57,6 +58,7 @@ Do not use this skill when:
    - reclassify each round as `quick`, `tracked`, or `deep-reasoning`
    - keep quick rounds lightweight
    - keep `planning/active/<task-id>/` authoritative for tracked rounds
+   - for tracked or deeper work, break the loop into checkpoints and log a short note in `planning/active/<task-id>/progress.md` after each checkpoint
    - for deep-reasoning rounds, require 1 read-only reviewer subagent before execution whenever the companion plan is new or materially revised
    - execute approved companion plans with normal Superpowers execution, worktree, and git-progress discipline
    - sync durable state back to `planning/active/<task-id>/` after each phase
@@ -81,6 +83,7 @@ See:
 - Using vague validation like “verify the work” instead of naming commands or evidence surfaces
 - Escalating to a plan-review loop before first trying one clear finish line
 - Treating every task as deep-reasoning and forcing companion plans or subagents on quick work
+- Omitting checkpoints or a short progress log from a tracked/deep goal, leaving a long loop opaque to the user and evaluator
 - Failing to label inferred assumptions or inferred metrics
 - Stuffing low-signal repo history into `Context` until the prompt exceeds 4000 characters
 - Forgetting to tell the goal loop to sync durable state back to `planning/active/<task-id>/`

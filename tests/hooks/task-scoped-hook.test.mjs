@@ -299,6 +299,7 @@ test('task-scoped-hook post-tool reminder steers fresh progress records away fro
     assert.equal(payload.hookSpecificOutput.hookEventName, 'PostToolUse');
     assert.match(payload.hookSpecificOutput.additionalContext, /record --task codex-hooks --file progress/);
     assert.match(payload.hookSpecificOutput.additionalContext, /00:00:00 UTC\+8/);
+    assert.match(payload.hookSpecificOutput.additionalContext, /future timestamp later than the real current tool-derived time/);
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }

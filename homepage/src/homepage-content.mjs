@@ -1,183 +1,175 @@
 export const homepageSectionOrder = ['hero', 'problem', 'system', 'workflow', 'start'];
 
 const githubUrl = 'https://github.com/ilderaj/superpowering-with-files';
+const workflowUrl = `${githubUrl}/blob/main/docs/workflows.md`;
+const quickStartUrl = `${githubUrl}/blob/main/README.md#quick-start`;
 
 export const homepageContent = {
   topbar: {
     brandLabel: 'Superpowering With Files',
     brandHref: '#top',
     links: [
-      { label: 'Problem', href: '#problem' },
+      { label: 'Why', href: '#problem' },
       { label: 'System', href: '#system' },
-      { label: 'Workflow', href: '#workflow' },
+      { label: 'Proof', href: '#workflow' },
       { label: 'Start', href: '#start' }
     ],
     cta: {
-      label: 'Install harness',
-      href: '#start'
+      label: 'View source',
+      href: githubUrl,
+      external: true
     },
     github: {
-      label: 'GitHub',
-      href: githubUrl
+      label: 'Read workflow',
+      href: workflowUrl
     }
   },
   hero: {
     headingId: 'hero-title',
-    eyebrow: 'Governance harness for local coding agents',
-    headline: 'One control layer for every coding agent you actually use.',
+    eyebrow: 'Governance harness for coding-agent workflows',
+    headline: 'Keep every coding agent on the same rails.',
     lede:
-      'Superpowering With Files turns a shared workflow policy into native instructions, projected skills, optional hooks, and durable task state across Codex, GitHub Copilot, Cursor, and Claude Code.',
+      'One shared workflow policy becomes native entry files, projected skills, durable task state, and optional deeper reasoning across Codex, GitHub Copilot, Cursor, and Claude Code.',
     actions: [
-      { label: 'Start with the CLI', href: '#start', variant: 'primary' },
-      { label: 'See how it works', href: '#system', variant: 'secondary' },
-      { label: 'Star on GitHub', href: githubUrl, variant: 'secondary', external: true }
+      { label: 'View source', href: githubUrl, variant: 'primary', external: true },
+      { label: 'Read workflow', href: workflowUrl, variant: 'secondary', external: true }
     ],
     proofPoints: [
-      { value: '4', label: 'agent surfaces governed from one policy' },
-      { value: '3', label: 'task files preserve durable state' },
-      { value: '0', label: 'always-on superpowers by default' },
-      { value: '1', label: 'reconcile gate before finish' }
+      { value: '4', label: 'agent surfaces share one workflow contract' },
+      { value: '3', label: 'task files keep tracked work durable' },
+      { value: '1', label: 'shared policy renders native entry files' },
+      { value: '0', label: 'always-on superpowers by default' }
     ],
     terminal: {
       title: './scripts/harness',
       lines: [
-        { tone: 'cmd', prefix: '$', text: './scripts/harness install --targets=all' },
-        { tone: 'dim', text: 'rendering shared policy...' },
-        { tone: 'hot', text: '✓ AGENTS.md for Codex' },
-        { tone: 'hot', text: '✓ copilot-instructions.md for GitHub Copilot' },
-        { tone: 'hot', text: '✓ .cursor/rules/harness.mdc for Cursor' },
-        { tone: 'hot', text: '✓ CLAUDE.md for Claude Code' },
+        { tone: 'cmd', prefix: '$', text: './scripts/harness install --scope=workspace --targets=all --projection=link' },
+        { tone: 'dim', text: 'rendering native entry files from one policy...' },
+        { tone: 'hot', text: 'AGENTS.md for Codex' },
+        { tone: 'hot', text: 'copilot-instructions.md for GitHub Copilot' },
+        { tone: 'hot', text: '.cursor/rules/harness.mdc for Cursor' },
+        { tone: 'hot', text: 'CLAUDE.md for Claude Code' },
         { tone: 'break' },
         { tone: 'cmd', prefix: '$', text: './scripts/harness doctor --check-only' },
-        {
-          tone: 'mix',
-          segments: [
-            { tone: 'blue', text: 'policy' },
-            { tone: 'dim', text: ' synced · ' },
-            { tone: 'blue', text: 'skills' },
-            { tone: 'dim', text: ' projected · ' },
-            { tone: 'blue', text: 'hooks' },
-            { tone: 'dim', text: ' opt-in' }
-          ]
-        }
+        { tone: 'dim', text: 'policy synced · planning durable · deep reasoning optional' }
       ]
     },
     route: {
-      title: 'Tracked task route',
-      badge: 'durable by default',
+      title: 'Routed by complexity',
+      badge: 'not always-on',
       steps: [
         {
           number: '1',
-          title: 'Classify the task',
-          body: 'Quick tasks stay light; tracked tasks get file-backed state.'
+          title: 'Render one policy',
+          body: 'Every supported agent gets the native files it expects without hand-maintained drift.'
         },
         {
           number: '2',
-          title: 'Write the active plan',
-          body: 'State lives in task_plan.md, findings.md, and progress.md.'
+          title: 'Keep tracked work on disk',
+          body: 'Task state lives in planning files that survive interruptions, review loops, and handoff.'
         },
         {
           number: '3',
-          title: 'Verify and reconcile',
-          body: 'Intent, diff, checks, and follow-ups align before finish.'
+          title: 'Escalate only when earned',
+          body: 'Quick work stays light. Deep reasoning appears only when the task really needs it.'
         }
       ]
     }
   },
   problem: {
     id: 'problem',
-    kicker: 'Why it exists',
-    title: 'Agent workflows break when every tool invents its own memory.',
+    kicker: 'Why governance',
+    title: 'Strong agents still drift when each tool carries its own memory.',
     body:
-      'Local coding agents are powerful, but their instructions, hooks, skills, and planning habits drift across platforms. The harness makes the workflow explicit, portable, and auditable.',
-    quoteTitle: 'The problem is not lack of capability. It is lack of governance.',
+      'Without one control layer, rules fork, task state disappears, and finish quality drifts with the toolchain.',
+    quoteTitle: 'The failure mode is invisible state.',
     quoteBody:
-      'When plans live in chat, policies are copied by hand, and deep reasoning is always-on, teams pay in context bloat, hidden state, inconsistent behavior, and risky automation.',
+      'Policies fork across tools, tracked work falls back into chat, and expensive reasoning gets used where a lighter path would have been enough.',
     pains: [
       {
         icon: '01',
-        title: 'Policy drift',
-        body: 'Codex, Copilot, Cursor, and Claude Code can each read different instructions unless there is one canonical source.'
+        title: 'Policy forks',
+        body: 'Codex, Copilot, Cursor, and Claude Code drift unless one source renders their native entry files.'
       },
       {
         icon: '02',
-        title: 'Lost task state',
-        body: 'Long-running work needs durable files that survive interruptions, compaction, and session handoff.'
+        title: 'Plans disappear',
+        body: 'Multi-step work needs durable task files, not a fragile trail spread across chat history.'
       },
       {
         icon: '03',
-        title: 'Overloaded reasoning',
-        body: 'Superpowers are useful, but only when a task really needs deep structured thinking.'
+        title: 'Reasoning gets overused',
+        body: 'If complexity is not routed deliberately, quick work pays for depth it did not need.'
       },
       {
         icon: '04',
-        title: 'Unsafe finish',
-        body: 'Implementation, verification, docs, and release state need a reconcile step before the task is closed.'
+        title: 'Finishes get risky',
+        body: 'Verification, reconcile, and release state can drift apart unless the workflow makes them inspectable.'
       }
     ]
   },
   system: {
     id: 'system',
-    kicker: 'What it provides',
-    title: 'A small operating system for agentic coding work.',
+    kicker: 'How it works',
+    title: 'Shared policy stays in files. Deeper reasoning stays optional.',
     body:
-      'Harness separates the always-on policy core from optional execution lanes, runtime services, and safety controls.',
+      'The harness keeps policy always-on, planning durable, and deeper reasoning conditional, so simple work stays simple and complex work stays legible.',
     modules: [
       {
-        label: 'Core',
-        title: 'Shared policy',
-        body: 'Platform-neutral rules, templates, schemas, and skill metadata remain the source of truth.'
+        label: 'Policy',
+        title: 'One source of truth',
+        body: 'Shared rules, templates, and platform overrides render into the native files each agent already expects.'
       },
       {
-        label: 'Adapters',
-        title: 'Native projections',
-        body: 'Each target gets its expected files, roots, and configuration shape without manual copy-paste.'
+        label: 'Planning',
+        title: 'Durable task state',
+        body: 'Tracked work stays in task_plan.md, findings.md, and progress.md instead of fading with the conversation.'
       },
       {
-        label: 'Runtime',
-        title: 'Typed services',
-        body: 'Status, doctor, summaries, dry-runs, approvals, receipts, and registry checks share one business layer.'
+        label: 'Reasoning',
+        title: 'Optional depth',
+        body: 'Superpowers only step in for deep-reasoning rounds, then sync decisions back to the task files.'
       },
       {
-        label: 'MCP',
-        title: 'Audited facade',
-        body: 'External agents can access governed tools and resources without bypassing the harness model.'
+        label: 'Finish',
+        title: 'Visible closeout',
+        body: 'Verify, reconcile, and archive happen as explicit workflow steps rather than hidden last-mile rituals.'
       }
     ],
-    lanes: ['plan', 'review', 'verify', 'reconcile', 'finish', 'release', 'archive']
+    lanes: ['quick', 'tracked', 'deep-reasoning', 'reconcile']
   },
   workflow: {
     id: 'workflow',
-    kicker: 'How it feels',
-    title: 'Light when work is simple. Durable when work gets real.',
+    kicker: 'Repo proof',
+    title: 'Inspect the workflow from intake to finish.',
     tracks: [
       {
-        title: 'Quick tasks stay quick.',
+        title: 'What remains on disk.',
         body:
-          'If the task is single-stage, clear, and low-risk, the harness keeps execution direct. No heavyweight routing, no unnecessary planning ceremony, no default superpowers.',
+          'Tracked work leaves readable artifacts that can be reopened, reviewed, and reconciled instead of disappearing into ephemeral chat state.',
         rows: [
           [
-            { title: 'Best for', body: 'Small edits, formatting, simple fixes' },
-            { title: 'State', body: 'Conversation and normal verification' }
+            { title: 'Core state', body: 'task_plan.md, findings.md, and progress.md under planning/active/<task-id>/' },
+            { title: 'Lifecycle proof', body: 'reconciliation.md appears when the task needs explicit lifecycle evidence' }
           ],
           [
-            { title: 'Reasoning', body: 'Standard execution path' },
-            { title: 'Finish', body: 'Report result after checks' }
+            { title: 'Resume path', body: 'Companion plans point back to active planning files instead of becoming a second memory system' },
+            { title: 'Review surface', body: 'Intent, diffs, tests, and follow-up ownership can be inspected together before finish' }
           ]
         ]
       },
       {
-        title: 'Tracked tasks become recoverable.',
+        title: 'What teams can verify.',
         body:
-          'Multi-phase work, research, subagents, worktree isolation, and durable decisions get a task-scoped file system: plan, findings, progress, verification, and reconciliation.',
+          'The repo exposes commands and workflow lanes that make adoption, verification, and governance claims checkable.',
         rows: [
           [
-            { title: 'Best for', body: 'Long tasks, architecture, comparisons' },
-            { title: 'State', body: 'planning/active/<task-id>/' }
+            { title: 'Workflow lanes', body: 'plan, review, verify, reconcile, finish, release, and archive remain explicit' },
+            { title: 'Supported targets', body: 'Codex, GitHub Copilot, Cursor, and Claude Code share the same governance model' }
           ],
           [
-            { title: 'Reasoning', body: 'Superpowers only when justified' },
-            { title: 'Finish', body: 'Reconcile before archive' }
+            { title: 'Checks', body: './scripts/harness doctor --check-only, sync --dry-run, and npm run verify:all' },
+            { title: 'Proof path', body: 'Source, workflow docs, and CLI steps stay visible before anyone commits to installation' }
           ]
         ]
       }
@@ -186,29 +178,29 @@ export const homepageContent = {
   start: {
     id: 'start',
     kicker: 'Start here',
-    title: 'Install once. Keep every local agent on the same rails.',
+    title: 'Read the repo first. Use the CLI when the workflow fits.',
     body:
-      'Use the harness CLI to render native entry files, sync skill projections, run doctor checks, and verify changes before pushing workflow updates.',
-    quickStartTitle: 'Quick start',
-    quickStartBody: 'These commands mirror the project’s documented flow and are positioned as the primary homepage CTA.',
+      'Source and workflow docs should make the promise clear before any install step. When it fits, the CLI path below is the shortest safe start.',
+    quickStartTitle: 'CLI path',
+    quickStartBody: 'These commands mirror the documented quick start and keep the workflow observable from install to verification.',
     commands: [
       './scripts/harness install --scope=workspace --targets=all --projection=link',
       './scripts/harness sync',
       './scripts/harness doctor',
-      'npm run verify'
+      'npm run verify:all'
     ],
     cta: {
-      title: 'Bring governance to the agents already in your editor.',
-      body: 'Shared policy, native files, durable planning, optional hooks, and a safer path from intent to verified finish.',
-      action: { label: 'Review the draft', href: '#top' },
-      secondaryAction: { label: 'Open GitHub and star the repo', href: githubUrl }
+      title: 'Use the CLI once the repo proof is enough.',
+      body: 'Read the source, inspect the workflow, then adopt the harness without adding a hidden control plane on top of your editor.',
+      action: { label: 'Start with the CLI', href: quickStartUrl, external: true },
+      secondaryAction: { label: 'Open GitHub and star the repo', href: githubUrl, external: true }
     }
   },
   footer: {
-    left: 'Homepage concept evolved into the live homepage.',
-    right: 'Modern product page · governed workflow harness',
+    left: 'Governed workflow harness for local coding agents.',
+    right: 'Warm editorial homepage · repo-native proof',
     github: {
-      label: 'Star on GitHub',
+      label: 'View source',
       href: githubUrl
     }
   }

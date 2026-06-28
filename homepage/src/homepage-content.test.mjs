@@ -12,44 +12,47 @@ test('defines the approved five-section homepage flow with matching content keys
   }
 });
 
-test('locks the governance-first hero messaging and navigation routes', () => {
+test('locks the governance-first hero messaging and CTA hierarchy', () => {
   const githubUrl = 'https://github.com/ilderaj/superpowering-with-files';
+  const workflowUrl = `${githubUrl}/blob/main/docs/workflows.md`;
+  const quickStartUrl = `${githubUrl}/blob/main/README.md#quick-start`;
 
   assert.equal(homepageContent.topbar.brandLabel, 'Superpowering With Files');
-  assert.deepEqual(homepageContent.topbar.links.map(({ label }) => label), ['Problem', 'System', 'Workflow', 'Start']);
+  assert.deepEqual(homepageContent.topbar.links.map(({ label }) => label), ['Why', 'System', 'Proof', 'Start']);
   assert.deepEqual(homepageContent.topbar.links.map(({ href }) => href), ['#problem', '#system', '#workflow', '#start']);
-  assert.equal(homepageContent.topbar.cta.label, 'Install harness');
-  assert.equal(homepageContent.topbar.cta.href, '#start');
-  assert.equal(homepageContent.topbar.github.label, 'GitHub');
-  assert.equal(homepageContent.topbar.github.href, githubUrl);
+  assert.equal(homepageContent.topbar.cta.label, 'View source');
+  assert.equal(homepageContent.topbar.cta.href, githubUrl);
+  assert.equal(homepageContent.topbar.github.label, 'Read workflow');
+  assert.equal(homepageContent.topbar.github.href, workflowUrl);
 
-  assert.equal(homepageContent.hero.eyebrow, 'Governance harness for local coding agents');
-  assert.equal(homepageContent.hero.headline, 'One control layer for every coding agent you actually use.');
+  assert.equal(homepageContent.hero.eyebrow, 'Governance harness for coding-agent workflows');
+  assert.equal(homepageContent.hero.headline, 'Keep every coding agent on the same rails.');
   assert.equal(
     homepageContent.hero.lede,
-    'Superpowering With Files turns a shared workflow policy into native instructions, projected skills, optional hooks, and durable task state across Codex, GitHub Copilot, Cursor, and Claude Code.'
+    'One shared workflow policy becomes native entry files, projected skills, durable task state, and optional deeper reasoning across Codex, GitHub Copilot, Cursor, and Claude Code.'
   );
-  assert.deepEqual(homepageContent.hero.actions.map(({ label }) => label), ['Start with the CLI', 'See how it works', 'Star on GitHub']);
-  assert.deepEqual(homepageContent.hero.actions.map(({ href }) => href), ['#start', '#system', githubUrl]);
-  assert.deepEqual(homepageContent.hero.proofPoints.map(({ value }) => value), ['4', '3', '0', '1']);
-});
+  assert.deepEqual(homepageContent.hero.actions.map(({ label }) => label), ['View source', 'Read workflow']);
+  assert.deepEqual(homepageContent.hero.actions.map(({ href }) => href), [githubUrl, workflowUrl]);
+  assert.deepEqual(homepageContent.hero.proofPoints.map(({ value }) => value), ['4', '3', '1', '0']);
 
-test('captures the modern product-page story from problem to start', () => {
-  const githubUrl = 'https://github.com/ilderaj/superpowering-with-files';
-
-  assert.equal(homepageContent.problem.title, 'Agent workflows break when every tool invents its own memory.');
-  assert.equal(homepageContent.system.title, 'A small operating system for agentic coding work.');
-  assert.equal(homepageContent.workflow.title, 'Light when work is simple. Durable when work gets real.');
-  assert.equal(homepageContent.start.title, 'Install once. Keep every local agent on the same rails.');
-  assert.equal(homepageContent.start.cta.title, 'Bring governance to the agents already in your editor.');
+  assert.equal(homepageContent.start.cta.action.label, 'Start with the CLI');
+  assert.equal(homepageContent.start.cta.action.href, quickStartUrl);
   assert.equal(homepageContent.start.cta.secondaryAction.label, 'Open GitHub and star the repo');
   assert.equal(homepageContent.start.cta.secondaryAction.href, githubUrl);
-  assert.equal(homepageContent.footer.github.label, 'Star on GitHub');
-  assert.equal(homepageContent.footer.github.href, githubUrl);
+});
+
+test('captures the simplified repo-native story from governance risk to CLI start', () => {
+  assert.equal(homepageContent.problem.title, 'Strong agents still drift when each tool carries its own memory.');
+  assert.equal(homepageContent.system.title, 'Shared policy stays in files. Deeper reasoning stays optional.');
+  assert.equal(homepageContent.workflow.title, 'Inspect the workflow from intake to finish.');
+  assert.equal(homepageContent.start.title, 'Read the repo first. Use the CLI when the workflow fits.');
+  assert.equal(homepageContent.start.cta.title, 'Use the CLI once the repo proof is enough.');
+  assert.equal(homepageContent.footer.github.label, 'View source');
+  assert.deepEqual(homepageContent.system.lanes, ['quick', 'tracked', 'deep-reasoning', 'reconcile']);
   assert.deepEqual(homepageContent.start.commands, [
     './scripts/harness install --scope=workspace --targets=all --projection=link',
     './scripts/harness sync',
     './scripts/harness doctor',
-    'npm run verify'
+    'npm run verify:all'
   ]);
 });
