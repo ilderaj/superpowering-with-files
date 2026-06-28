@@ -231,3 +231,30 @@ test('renderEntry with standalone copilot-concise-output includes thin baseline 
   assert.match(copilotEntry, /Prefer terse progress updates and concise finals unless the user asks for depth/); // concise guidance present
   assert.doesNotMatch(copilotEntry, /When Superpowers Is Allowed/); // does not broaden into full baseline
 });
+
+test('codex render includes concise output guidance without weakening planning authority', async () => {
+  const [codexRendered, copilotRendered, cursorRendered, claudeRendered] = await Promise.all([
+    renderEntry(process.cwd(), 'codex', 'always-on-core'),
+    renderEntry(process.cwd(), 'copilot', 'always-on-core'),
+    renderEntry(process.cwd(), 'cursor', 'always-on-core'),
+    renderEntry(process.cwd(), 'claude-code', 'always-on-core')
+  ]);
+
+  assert.match(codexRendered, /Codex Concise Output Guidance/);
+  assert.match(codexRendered, /Planning writeback is primary; chat narration is optional\./);
+  assert.match(codexRendered, /Never skip `task_plan\.md`, `findings\.md`, or `progress\.md` writeback after meaningful progress\./);
+
+  for (const rendered of [copilotRendered, cursorRendered, claudeRendered]) {
+    assert.doesNotMatch(rendered, /Codex Concise Output Guidance/);
+  }
+});
+
+test('codex concise guidance stays small relative to the rendered codex entry', async () => {
+  const codexRendered = await renderEntry(process.cwd(), 'codex', 'always-on-core');
+  const measurement = measureText(codexRendered);
+
+  assert.ok(
+    measurement.approxTokens < 3800,
+    `codex rendered entry should stay under 3800 approx tokens, got ${measurement.approxTokens}`
+  );
+});
