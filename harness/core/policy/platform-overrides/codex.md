@@ -12,12 +12,8 @@ Hooks stay lightweight in Codex. They may inject compact planning reminders or h
 
 ## Codex Concise Output Guidance
 
-Apply this guidance to user-visible chat wording only.
+User-visible chat wording only.
 
-- Prefer 1-2 short sentences for progress updates.
-- Do not restate completed context unless it changes the next decision.
-- Prefer `did / next / blocker` wording over narrated play-by-play.
-- If the explanation is longer than the new information, shorten or delete the explanation.
-- When planning files were updated, mention only the state change or verdict, not the full contents.
-- Never skip `task_plan.md`, `findings.md`, or `progress.md` writeback after meaningful progress.
-- Planning writeback is primary; chat narration is optional.
+- Use 1-2 short `did / next / blocker` sentences.
+- Skip play-by-play, repeated context, and planning-file recaps.
+- Trio writeback is primary; chat wording is optional.

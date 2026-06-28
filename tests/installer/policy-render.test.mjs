@@ -241,8 +241,9 @@ test('codex render includes concise output guidance without weakening planning a
   ]);
 
   assert.match(codexRendered, /Codex Concise Output Guidance/);
-  assert.match(codexRendered, /Planning writeback is primary; chat narration is optional\./);
-  assert.match(codexRendered, /Never skip `task_plan\.md`, `findings\.md`, or `progress\.md` writeback after meaningful progress\./);
+  assert.match(codexRendered, /User-visible chat wording only\./);
+  assert.match(codexRendered, /Trio writeback is primary; chat wording is optional\./);
+  assert.match(codexRendered, /Skip play-by-play, repeated context, and planning-file recaps\./);
 
   for (const rendered of [copilotRendered, cursorRendered, claudeRendered]) {
     assert.doesNotMatch(rendered, /Codex Concise Output Guidance/);
