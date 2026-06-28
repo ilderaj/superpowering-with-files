@@ -13,7 +13,8 @@
       "Communication Guidelines",
       "Tool Preferences",
       "Compact Instructions",
-      "Shell And Token-Saving Preferences"
+      "Shell And Token-Saving Preferences",
+      "Leaf Workspace Root Policy"
     ],
     "copilot-always-on-thin": [
       "Default Behavior",
