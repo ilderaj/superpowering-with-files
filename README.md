@@ -2,6 +2,8 @@
 
 superpowering-with-files is a governance harness for local coding-agent workflows. It turns one shared policy into native entry files, projected skills, and optional hooks for Codex, GitHub Copilot, Cursor, and Claude Code.
 
+Codex also carries a small concise-output behavior for process narration. It reduces redundant chat prose only; it does not replace or weaken `planning-with-files` durable task memory.
+
 It is built around four rules:
 
 - `planning-with-files` owns durable task state.

@@ -39,6 +39,12 @@ codex features list | rg '^hooks\s'
 
 Expected on current builds: a `hooks` row marked enabled. If your Codex version uses a different gate name or config shape, follow the upstream Codex docs for that build instead of assuming Harness can enable it for you.
 
+## Codex concise chat behavior
+
+Codex may be instructed to keep progress updates and final summaries concise, but this applies only to user-visible chat wording.
+It does not relax the requirement to restore and update `planning/active/<task-id>/task_plan.md`, `findings.md`, and `progress.md`.
+Planning writeback remains mandatory; concise narration only removes redundant prose.
+
 ## Mode-Aware Verification Contract
 
 Codex uses the same repo-owned `Mode-Aware Verification Contract` vocabulary as the rest of Harness.
