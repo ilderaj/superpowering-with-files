@@ -140,6 +140,26 @@ test('acceptance evaluator fails when evidence ref arrays are empty even if reas
   assert.equal(report.summary.unsupportedSafetyClaimCount, 1);
 });
 
+test('acceptance evaluator fails when refs do not point at the rollout trio even if reason is non-empty', () => {
+  const report = evaluateCodexConciseOutputRun({
+    runId: 'non-rollout-refs-with-reason',
+    scenarios: [
+      scenario({
+        id: 'implementation-local-edit',
+        conciseEvidence: {
+          progressRefs: ['planning/active/other-task-20260628/progress.md#phase-5'],
+          taskPlanRefs: ['planning/active/codex-concise-output-absorption-rollout-20260628/progress.md#phase-5'],
+          findingsRefs: ['tests/evals/codex-concise-output/acceptance-rubric.md#safety'],
+          reason: 'References unrelated or miscategorized files instead of the rollout trio'
+        }
+      })
+    ]
+  });
+
+  assert.equal(report.pass, false);
+  assert.equal(report.summary.unsupportedSafetyClaimCount, 1);
+});
+
 test('evaluateCodexConciseOutputRunFile accepts a real five-scenario run artifact from disk', async () => {
   const evalRoot = await mkdtemp(path.join(os.tmpdir(), 'codex-concise-output-'));
   const fileName = 'acceptance-run-2026-06-28.json';

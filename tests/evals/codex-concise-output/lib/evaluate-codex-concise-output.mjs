@@ -2,8 +2,28 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const ROLLOUT_TASK_ROOT = 'planning/active/codex-concise-output-absorption-rollout-20260628';
+const ROLLOUT_EVIDENCE_FILES = {
+  progressRefs: `${ROLLOUT_TASK_ROOT}/progress.md`,
+  taskPlanRefs: `${ROLLOUT_TASK_ROOT}/task_plan.md`,
+  findingsRefs: `${ROLLOUT_TASK_ROOT}/findings.md`
+};
+
 function defaultEvalRoot() {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+}
+
+function isRolloutRef(ref, expectedFile) {
+  return typeof ref === 'string'
+    && (ref === expectedFile || ref.startsWith(`${expectedFile}#`));
+}
+
+function countValidRefs(refs, expectedFile) {
+  if (!Array.isArray(refs)) {
+    return 0;
+  }
+
+  return refs.filter((ref) => isRolloutRef(ref, expectedFile)).length;
 }
 
 export function hasEvidenceRefs(side) {
@@ -11,12 +31,14 @@ export function hasEvidenceRefs(side) {
   const progressRefs = Array.isArray(evidence.progressRefs) ? evidence.progressRefs : null;
   const taskPlanRefs = Array.isArray(evidence.taskPlanRefs) ? evidence.taskPlanRefs : null;
   const findingsRefs = Array.isArray(evidence.findingsRefs) ? evidence.findingsRefs : null;
-  const refCount = (progressRefs?.length ?? 0) + (taskPlanRefs?.length ?? 0) + (findingsRefs?.length ?? 0);
+  const validRefCount = countValidRefs(progressRefs, ROLLOUT_EVIDENCE_FILES.progressRefs)
+    + countValidRefs(taskPlanRefs, ROLLOUT_EVIDENCE_FILES.taskPlanRefs)
+    + countValidRefs(findingsRefs, ROLLOUT_EVIDENCE_FILES.findingsRefs);
 
   return Array.isArray(progressRefs)
     && Array.isArray(taskPlanRefs)
     && Array.isArray(findingsRefs)
-    && refCount > 0
+    && validRefCount > 0
     && typeof evidence.reason === 'string'
     && evidence.reason.trim() !== '';
 }
