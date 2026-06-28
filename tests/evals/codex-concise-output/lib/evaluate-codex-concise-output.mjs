@@ -8,9 +8,15 @@ function defaultEvalRoot() {
 
 export function hasEvidenceRefs(side) {
   const evidence = side.evidence ?? {};
-  return Array.isArray(evidence.progressRefs)
-    && Array.isArray(evidence.taskPlanRefs)
-    && Array.isArray(evidence.findingsRefs)
+  const progressRefs = Array.isArray(evidence.progressRefs) ? evidence.progressRefs : null;
+  const taskPlanRefs = Array.isArray(evidence.taskPlanRefs) ? evidence.taskPlanRefs : null;
+  const findingsRefs = Array.isArray(evidence.findingsRefs) ? evidence.findingsRefs : null;
+  const refCount = (progressRefs?.length ?? 0) + (taskPlanRefs?.length ?? 0) + (findingsRefs?.length ?? 0);
+
+  return Array.isArray(progressRefs)
+    && Array.isArray(taskPlanRefs)
+    && Array.isArray(findingsRefs)
+    && refCount > 0
     && typeof evidence.reason === 'string'
     && evidence.reason.trim() !== '';
 }
@@ -111,11 +117,18 @@ export async function evaluateCodexConciseOutputRunFile(
   evalRoot = defaultEvalRoot(),
   fileName = 'acceptance-run-template.json'
 ) {
-  const run = JSON.parse(await readFile(path.join(evalRoot, fileName), 'utf8'));
-  return evaluateCodexConciseOutputRun({
-    runId: fileName,
-    scenarios: [run]
-  });
+  const parsed = JSON.parse(await readFile(path.join(evalRoot, fileName), 'utf8'));
+  const run = Array.isArray(parsed.scenarios)
+    ? {
+        runId: parsed.runId ?? fileName,
+        scenarios: parsed.scenarios
+      }
+    : {
+        runId: parsed.runId ?? fileName,
+        scenarios: [parsed]
+      };
+
+  return evaluateCodexConciseOutputRun(run);
 }
 
 export function formatCodexConciseOutputReport(report) {

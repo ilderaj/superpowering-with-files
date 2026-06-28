@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import os from 'node:os';
+import path from 'node:path';
+import { mkdtemp, writeFile } from 'node:fs/promises';
 
-import { evaluateCodexConciseOutputRun } from '../evals/codex-concise-output/lib/evaluate-codex-concise-output.mjs';
+import {
+  evaluateCodexConciseOutputRun,
+  evaluateCodexConciseOutputRunFile
+} from '../evals/codex-concise-output/lib/evaluate-codex-concise-output.mjs';
 
 function evidenceRefs(reason = 'Cites rollout trio evidence') {
   return {
@@ -112,4 +118,54 @@ test('acceptance evaluator fails when safety booleans are true but evidence refs
 
   assert.equal(report.pass, false);
   assert.equal(report.summary.unsupportedSafetyClaimCount, 1);
+});
+
+test('acceptance evaluator fails when evidence ref arrays are empty even if reason is non-empty', () => {
+  const report = evaluateCodexConciseOutputRun({
+    runId: 'empty-refs-with-reason',
+    scenarios: [
+      scenario({
+        id: 'implementation-local-edit',
+        conciseEvidence: {
+          progressRefs: [],
+          taskPlanRefs: [],
+          findingsRefs: [],
+          reason: 'Mentions rollout safety without exact refs'
+        }
+      })
+    ]
+  });
+
+  assert.equal(report.pass, false);
+  assert.equal(report.summary.unsupportedSafetyClaimCount, 1);
+});
+
+test('evaluateCodexConciseOutputRunFile accepts a real five-scenario run artifact from disk', async () => {
+  const evalRoot = await mkdtemp(path.join(os.tmpdir(), 'codex-concise-output-'));
+  const fileName = 'acceptance-run-2026-06-28.json';
+  const run = {
+    runId: '2026-06-28-real-run',
+    scenarios: [
+      scenario({ id: 'implementation-local-edit' }),
+      scenario({ id: 'implementation-with-blocker', conciseTokens: 25, conciseLines: 3 }),
+      scenario({ id: 'review-findings-update', conciseTokens: 24, conciseLines: 3 }),
+      scenario({ id: 'tracked-task-phase-sync', conciseTokens: 22, conciseLines: 2 }),
+      scenario({
+        id: 'validation-sensitive-update',
+        baselineTokens: 45,
+        conciseTokens: 45,
+        baselineLines: 5,
+        conciseLines: 4
+      })
+    ]
+  };
+
+  await writeFile(path.join(evalRoot, fileName), JSON.stringify(run, null, 2));
+
+  const report = await evaluateCodexConciseOutputRunFile(evalRoot, fileName);
+
+  assert.equal(report.runId, '2026-06-28-real-run');
+  assert.equal(report.pass, true);
+  assert.equal(report.summary.conciseWinCount, 5);
+  assert.equal(report.summary.unsupportedSafetyClaimCount, 0);
 });
