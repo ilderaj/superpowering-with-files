@@ -1,0 +1,32 @@
+{
+  "id": "tracked-task-progress-update",
+  "winner": "concise",
+  "metrics": {
+    "baseline": {
+      "assistantProcessTokens": 0,
+      "assistantProcessLines": 0,
+      "requiredInfoPreserved": true,
+      "trioWritebackPreserved": true,
+      "planningAuthorityPreserved": true,
+      "evidence": {
+        "progressRefs": [],
+        "taskPlanRefs": [],
+        "findingsRefs": [],
+        "reason": ""
+      }
+    },
+    "concise": {
+      "assistantProcessTokens": 0,
+      "assistantProcessLines": 0,
+      "requiredInfoPreserved": true,
+      "trioWritebackPreserved": true,
+      "planningAuthorityPreserved": true,
+      "evidence": {
+        "progressRefs": [],
+        "taskPlanRefs": [],
+        "findingsRefs": [],
+        "reason": ""
+      }
+    }
+  }
+}
