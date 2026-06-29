@@ -1,0 +1,6 @@
+- concise side must win on assistant process-narration size in at least 4/5 scenarios
+- concise side must not drop required next-step or blocker information in any scenario
+- concise side must show 0 trio-writeback regressions
+- concise side must show 0 planning-authority regressions
+- `trioWritebackPreserved=true` is allowed only when the run artifact cites the exact rollout evidence used to support it
+- `planningAuthorityPreserved=true` is allowed only when the response keeps planning state on disk and does not replace it with spoken-only status
