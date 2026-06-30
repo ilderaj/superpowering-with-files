@@ -100,6 +100,64 @@ test('codex rendered guidance keeps quick rounds lightweight while documenting b
   );
 });
 
+test('lightweight-default docs keep minimal-global as the explicit default posture', async () => {
+  const [readme, maintenance, adoptionKit] = await Promise.all([
+    readFile(path.join(process.cwd(), 'README.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'docs/maintenance.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'docs/install/adoption-starter-kit.md'), 'utf8')
+  ]);
+
+  const sharedSentence =
+    '`minimal-global` is the recommended default. Move to a heavier profile only when the task explicitly needs broader projected context and the operator accepts the extra payload/runtime cost.';
+
+  assert.match(maintenance, new RegExp(sharedSentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(adoptionKit, new RegExp(sharedSentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(readme, /always receives full deep-task context/i);
+});
+
+test('workflow docs describe reconcile as verify-to-finish gate and report-only default for roadmap/backlog rewrites', async () => {
+  const [workflowsDoc, reconciliationDoc] = await Promise.all([
+    readFile(path.join(process.cwd(), 'docs/workflows.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'docs/reconciliation.md'), 'utf8')
+  ]);
+
+  assert.match(workflowsDoc, /verify-to-finish gate/i);
+  assert.match(
+    reconciliationDoc,
+    /Reconciliation is the verify-to-finish gate for tracked work that changes behavior, policy, lifecycle state, or source-of-truth expectations\./
+  );
+  assert.match(
+    workflowsDoc,
+    /Reconciliation is report-only by default for roadmap, backlog, and spec rewrites\./
+  );
+});
+
+test('reconciliation docs publish the SOT map and archive preservation rules', async () => {
+  const [reconciliationDoc, maintenanceDoc] = await Promise.all([
+    readFile(path.join(process.cwd(), 'docs/reconciliation.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'docs/maintenance.md'), 'utf8')
+  ]);
+
+  assert.match(reconciliationDoc, /code and tests are authoritative for implemented behavior/i);
+  assert.match(
+    reconciliationDoc,
+    /\.harness\/verification` and replay packs are authoritative for acceptance\/release proof/i
+  );
+  assert.match(
+    reconciliationDoc,
+    /planning\/active\/roadmap-backlog-implementation-plan-20260628\/` is authoritative for task intent and durable progress/i
+  );
+  assert.match(reconciliationDoc, /reconciliation\.md` is authoritative only for lifecycle reconciliation when it exists/i);
+  assert.match(
+    reconciliationDoc,
+    /roadmap\/backlog stay product-direction artifacts and require explicit reconcile review before rewrites/i
+  );
+  assert.match(
+    maintenanceDoc,
+    /Archive tooling keeps `reconciliation\.md` inside the archived task directory when it exists\./
+  );
+});
+
 test('renderPolicyProfile supports include-based safety profiles', async () => {
   const rendered = await renderPolicyProfile(process.cwd(), 'safety');
 

@@ -12,6 +12,8 @@ For the operator lane map, start with [Workflows](workflows.md). This page is th
 
 This document captures the Harness direction for keeping coding projects traceable after implementation. It is intentionally small: reconciliation is a control point, not a new documentation tax.
 
+Reconciliation is the verify-to-finish gate for tracked work that changes behavior, policy, lifecycle state, or source-of-truth expectations. It is not a substitute for implementation or verification, and it is not required for trivial copy-only work.
+
 ## Mode-Aware Verification Contract
 
 Reconciliation belongs to the `reconcile/lifecycle` mode family in the repo-owned `Mode-Aware Verification Contract`.
@@ -72,6 +74,16 @@ Harness artifacts are authoritative for different questions:
 | `docs/backlog.md` | Executable backlog items and readiness. |
 
 When these conflict, do not silently pick one. Reconciliation should make the conflict explicit and record the proposed fix. Actual implementation plus verification evidence describes what is true now; specs and roadmap/backlog describe what was intended or what should happen next.
+
+Use this compact operator map when you need the default answer surface without re-reading the whole table:
+
+- code and tests are authoritative for implemented behavior
+- `.harness/verification` and replay packs are authoritative for acceptance/release proof
+- `planning/active/roadmap-backlog-implementation-plan-20260628/` is authoritative for task intent and durable progress
+- `reconciliation.md` is authoritative only for lifecycle reconciliation when it exists
+- roadmap/backlog stay product-direction artifacts and require explicit reconcile review before rewrites
+
+Reconciliation is report-only by default for roadmap, backlog, and spec rewrites. Those artifacts change only after explicit owner approval is recorded in the task's reconciliation evidence.
 
 ## Conflict Resolution Ownership
 

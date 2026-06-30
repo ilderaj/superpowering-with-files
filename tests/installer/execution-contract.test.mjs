@@ -152,3 +152,56 @@ test('parseExecutionContract ignores a neighboring Verification Contract section
   assert.equal(result.ok, true);
   assert.deepEqual(result.reasons, []);
 });
+
+test('validateExecutionContract accepts multiple units with explicit Do and Not do boundaries', () => {
+  const contract = parseExecutionContract(`
+## Execution Contract
+
+### Unit: unit-a
+- Kind: implementation
+- Status: planned
+- Scope:
+  - Do: change code
+  - Not do: widen scope
+- Owner Mode: inline
+- Allowed Ops:
+  - Files: a
+  - Commands: b
+  - External effects: none
+- Dependencies:
+  - x
+- Verification Plan:
+  - y
+- Return Artifacts:
+  - z
+- Integration Target:
+  - p
+- Exit Criteria:
+  - q
+
+### Unit: unit-b
+- Kind: verification
+- Status: verified
+- Scope:
+  - Do: confirm proof output
+  - Not do: rewrite implementation
+- Owner Mode: inline
+- Allowed Ops:
+  - Files: tests/**
+  - Commands: node --test
+  - External effects: none
+- Dependencies:
+  - unit-a
+- Verification Plan:
+  - node --test tests/installer/execution-contract.test.mjs
+- Return Artifacts:
+  - report
+- Integration Target:
+  - progress.md
+- Exit Criteria:
+  - proof is recorded
+`);
+
+  assert.equal(validateExecutionContract(contract).ok, true);
+  assert.equal(contract.units.length, 2);
+});

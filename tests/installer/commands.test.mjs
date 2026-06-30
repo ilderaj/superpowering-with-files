@@ -589,10 +589,18 @@ test('sync --dry-run prints diff without writing files or state', async () => {
     });
 
     const { stdout } = await harnessCommand(root, 'sync', '--dry-run');
+    const report = JSON.parse(stdout);
     const state = await readState(root);
 
-    assert.match(stdout, /"mode": "dry-run"/);
-    assert.match(stdout, /"create":/);
+    assert.equal(report.mode, 'dry-run');
+    assert.equal(typeof report.summary, 'object');
+    assert.equal(typeof report.diff, 'object');
+    assert.deepEqual(report.warnings, []);
+    assert.deepEqual(report.details, {
+      mode: 'dry-run',
+      projections: ['codex'],
+      hooks: []
+    });
     assert.equal(state.lastSync, undefined);
     await assert.rejects(access(path.join(root, 'AGENTS.md')), /ENOENT/);
     await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
@@ -615,10 +623,8 @@ test('sync --check exits non-zero when projections are out of sync and does not 
       upstream: {}
     });
 
-    await assert.rejects(
-      harnessCommand(root, 'sync', '--check'),
-      /Harness sync check failed: projections are out of sync/
-    );
+    const command = harnessCommand(root, 'sync', '--check');
+    await assert.rejects(command, /Harness sync check failed: projections are out of sync/);
     await assert.rejects(access(path.join(root, 'AGENTS.md')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
@@ -1212,7 +1218,7 @@ test('doctor prints Codex hook evidence runtime and advisory warnings when runti
     assert.match(stdout, /runtime=runtime-invocation-verified/);
     assert.match(
       stderr,
-      /Install baseline is heavier than the recommended default: user-global installs should usually prefer minimal-global/
+      /minimal-global stays the recommended default; choose a heavier profile only when the task explicitly needs broader projected context/
     );
   } finally {
     if (previousHome === undefined) {

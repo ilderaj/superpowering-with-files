@@ -91,6 +91,7 @@ Use `verify` after any meaningful code, policy, projection, or documentation cha
 - Run focused suites first when the scope is narrow.
 - Run the full repository check `npm run verify:all` before merge or release.
 - Review `verify`, `sync --dry-run`, and `doctor --check-only` together for context-governance changes.
+- The authoritative acceptance/release proof surface is the verification output under `.harness/verification` plus the replay/eval pack that produced it.
 
 Typical commands:
 
@@ -218,3 +219,5 @@ Lifecycle tooling recognizes these reconciliation signals:
 `./scripts/harness active-summary` reports reconciliation counts and per-task status. `./scripts/harness record --file reconciliation --task <task-id>` creates/appends the recommended `reconciliation.md` shape.
 
 A task may mark `reconcile: not required` only for trivial/copy-only work or when the active task plan records a clear owner-approved reason.
+
+Reconciliation is report-only by default for roadmap, backlog, and spec rewrites. Those artifacts change only after explicit owner approval is recorded in the task's reconciliation evidence.

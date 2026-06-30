@@ -259,6 +259,37 @@ test('sync installs codex safety hooks when the safety profile is active', async
   }
 });
 
+test('sync --dry-run emits a warnings array when hook-aware reporting is enabled', async (t) => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    let stdout = '';
+    t.mock.method(process.stdout, 'write', (chunk) => {
+      stdout += String(chunk);
+      return true;
+    });
+
+    await withCwd(root, () => sync(['--dry-run']));
+    const payload = JSON.parse(stdout);
+
+    assert.equal(Array.isArray(payload.warnings), true);
+    assert.equal(typeof payload.details, 'object');
+    assert.equal(payload.details.mode, 'dry-run');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('sync installs copilot safety hooks when the safety profile is active', async () => {
   const root = await createHarnessFixture();
   try {

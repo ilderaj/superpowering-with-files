@@ -89,3 +89,41 @@ test('summarizeExecutionReceipts counts blocked, failed, and open follow-up unit
   assert.equal(summary.failedUnits, 1);
   assert.equal(summary.openFollowups, 1);
 });
+
+test('summarizeExecutionReceipts tracks open, resolved, and waived followups independently', () => {
+  const summary = summarizeExecutionReceipts(
+    [
+      {
+        taskId: 'task-demo',
+        unitId: 'unit-01',
+        resultStatus: 'blocked',
+        followups: [
+          { type: 'integration', status: 'open', target: 'progress.md' },
+          { type: 'doc', status: 'open', target: 'docs/a.md' }
+        ]
+      },
+      {
+        taskId: 'task-demo',
+        unitId: 'unit-02',
+        resultStatus: 'failed',
+        followups: [{ type: 'doc', status: 'open', target: 'docs/b.md' }]
+      }
+    ],
+    [
+      {
+        followupId: 'unit-01:integration:progress.md',
+        closureStatus: 'resolved'
+      },
+      {
+        followupId: 'unit-02:doc:docs/b.md',
+        closureStatus: 'waived'
+      }
+    ]
+  );
+
+  assert.equal(summary.blockedUnits, 1);
+  assert.equal(summary.failedUnits, 1);
+  assert.equal(summary.openFollowups, 1);
+  assert.equal(summary.resolvedFollowups, 1);
+  assert.equal(summary.waivedFollowups, 1);
+});

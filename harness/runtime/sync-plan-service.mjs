@@ -16,6 +16,8 @@ export async function getSyncDryRun(input = {}) {
     rootDir: resolved.rootDir,
     targets: report.plan.targets,
     summary: report.summary,
-    diff: report.diff
+    diff: report.diff,
+    warnings: report.warnings ?? [],
+    details: report.details ?? {}
   };
 }

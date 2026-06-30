@@ -1,48 +1,19 @@
 import os from 'node:os';
-import { realpathSync } from 'node:fs';
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
-import { entriesForScope, loadAdapter, renderEntry } from '../lib/adapters.mjs';
-import { applyCopilotPlanningPatch } from '../lib/copilot-planning-patch.mjs';
-import { applyPlanningWithFilesCompanionPlanPatch } from '../lib/planning-with-files-companion-plan-patch.mjs';
-import { applyPlanningWithFilesSkillRootPatch } from '../lib/planning-with-files-skill-root-patch.mjs';
-import { applySuperpowersExecutingPlansReplanPatch } from '../lib/superpowers-executing-plans-replan-patch.mjs';
-import { applySuperpowersFinishingADevelopmentBranchPatch } from '../lib/superpowers-finishing-a-development-branch-patch.mjs';
-import { applySuperpowersSubagentDrivenDevelopmentBudgetPatch } from '../lib/superpowers-subagent-driven-development-budget-patch.mjs';
-import { applySuperpowersUsingGitWorktreesPatch } from '../lib/superpowers-using-git-worktrees-patch.mjs';
-import { applySuperpowersVerificationBeforeCompletionPatch } from '../lib/superpowers-verification-before-completion-patch.mjs';
-import { applySuperpowersWritingPlansPatch } from '../lib/superpowers-writing-plans-patch.mjs';
 import {
-  ensureDirectoryProjection,
-  linkDirectoryProjection,
-  materializeDirectoryProjection,
-  materializeFileProjection,
-  writeRenderedProjection
-} from '../lib/fs-ops.mjs';
-import { mergeHookConfig, mergeHookSettings } from '../lib/hook-config.mjs';
-import { planHookProjections } from '../lib/hook-projection.mjs';
-import {
-  createBackupArchiveManager,
-  digestTarget
-} from '../lib/backup-archive.mjs';
-import {
-  createProjectionManifest,
   diffProjectionManifest,
-  ownedTargetSet,
-  readProjectionManifest,
-  writeProjectionManifest
+  readProjectionManifest
 } from '../lib/projection-manifest.mjs';
-import { coalesceSkillProjections, planSkillProjections } from '../lib/skill-projection.mjs';
-import { planSafetyProjections } from '../lib/safety-projection.mjs';
 import {
-  activeSafetyPolicyProfile,
-  effectiveEntryPolicyProfiles,
-  readState,
-  updateState
+  readState
 } from '../lib/state.mjs';
-import { removeManagedHookConfig, removeManagedHookSettings } from '../lib/hook-config.mjs';
-import { isUserManagedTarget, readUserManaged } from '../lib/user-managed.mjs';
+import {
+  buildSyncPlan,
+  collectSyncOperations,
+  formatDiff
+} from '../lib/sync-plan.mjs';
+import { applySyncPlan } from '../lib/sync-apply.mjs';
+import { renderSyncReport } from '../lib/sync-report.mjs';
 
 function readOption(args, name, fallback) {
   const prefix = `--${name}=`;
@@ -53,31 +24,6 @@ function readOption(args, name, fallback) {
 function hasFlag(args, ...names) {
   return names.some((name) => args.includes(name));
 }
-
-function isWithinDirectory(candidatePath, directoryPath) {
-  const relative = path.relative(directoryPath, candidatePath);
-  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-}
-
-function canonicalSessionPath(targetPath) {
-  try {
-    return realpathSync.native?.(targetPath) ?? realpathSync(targetPath);
-  } catch (error) {
-    if (error && error.code === 'ENOENT') {
-      return path.resolve(targetPath);
-    }
-    throw error;
-  }
-}
-
-function isManagedSessionBoundary(targetPath, rootDir, homeDir) {
-  const resolvedTargetPath = canonicalSessionPath(targetPath);
-  return (
-    isWithinDirectory(resolvedTargetPath, canonicalSessionPath(rootDir)) ||
-    isWithinDirectory(resolvedTargetPath, canonicalSessionPath(homeDir))
-  );
-}
-
 
 function usage() {
   return [
@@ -92,360 +38,11 @@ function usage() {
   ].join('\n');
 }
 
-async function applySkillPatches(projection) {
-  for (const patch of projection.patches ?? []) {
-    if (patch.type === 'planning-with-files-companion-plan') {
-      await applyPlanningWithFilesCompanionPlanPatch(projection.targetPath);
-      continue;
-    }
-
-    if (patch.type === 'planning-with-files-skill-root') {
-      await applyPlanningWithFilesSkillRootPatch(projection.targetPath, {
-        preferGithubSkillRoot: projection.deploymentProfile === 'github-cloud'
-      });
-      continue;
-    }
-
-    if (patch.type === 'copilot-planning-with-files') {
-      await applyCopilotPlanningPatch(projection.targetPath, {
-        preferGithubSkillRoot: projection.deploymentProfile === 'github-cloud'
-      });
-      continue;
-    }
-
-    if (patch.type === 'superpowers-writing-plans') {
-      await applySuperpowersWritingPlansPatch(projection.targetPath);
-      continue;
-    }
-
-    if (patch.type === 'superpowers-executing-plans-replan') {
-      await applySuperpowersExecutingPlansReplanPatch(projection.targetPath);
-      continue;
-    }
-
-    if (patch.type === 'superpowers-subagent-driven-development-budget') {
-      await applySuperpowersSubagentDrivenDevelopmentBudgetPatch(projection.targetPath);
-      continue;
-    }
-
-    if (patch.type === 'superpowers-verification-before-completion') {
-      await applySuperpowersVerificationBeforeCompletionPatch(projection.targetPath);
-      continue;
-    }
-
-    if (patch.type === 'superpowers-finishing-a-development-branch') {
-      await applySuperpowersFinishingADevelopmentBranchPatch(projection.targetPath);
-      continue;
-    }
-
-    if (patch.type === 'superpowers-using-git-worktrees') {
-      await applySuperpowersUsingGitWorktreesPatch(projection.targetPath);
-      continue;
-    }
-
-    throw new Error(`Unsupported skill patch type: ${patch.type}`);
-  }
-}
-
-async function applySkillProjection(
-  projection,
-  ownedTargets,
-  conflictMode,
-  projectionMode,
-  backupHandler
-) {
-  const effectiveStrategy =
-    projection.strategy === 'link' && projectionMode === 'portable' ? 'materialize' : projection.strategy;
-
-  if (effectiveStrategy === 'link') {
-    await linkDirectoryProjection({
-      sourcePath: projection.sourcePath,
-      targetPath: projection.targetPath,
-      ownedTargets,
-      conflictMode,
-      backupHandler
-    });
-    return effectiveStrategy;
-  }
-
-  if (effectiveStrategy === 'materialize') {
-    await materializeDirectoryProjection({
-      sourcePath: projection.sourcePath,
-      targetPath: projection.targetPath,
-      ownedTargets,
-      conflictMode,
-      backupHandler
-    });
-    await applySkillPatches(projection);
-    return effectiveStrategy;
-  }
-
-  throw new Error(`Unsupported projection strategy: ${effectiveStrategy}`);
-}
-
-async function readJsonIfExists(filePath) {
-  try {
-    return JSON.parse(await readFile(filePath, 'utf8'));
-  } catch (error) {
-    if (error && error.code === 'ENOENT') return null;
-    if (error instanceof SyntaxError) {
-      error.message = `Malformed JSON in hook config ${filePath}: ${error.message}`;
-    }
-    throw error;
-  }
-}
-
-function markHookConfig(config, description) {
-  const marked = structuredClone(config);
-  for (const entries of Object.values(marked.hooks ?? {})) {
-    if (!Array.isArray(entries)) continue;
-    for (const entry of entries) {
-      if (entry && typeof entry === 'object' && !entry.description) {
-        entry.description = description;
-      }
-    }
-  }
-  return marked;
-}
-
-function adaptHookConfig(config, projection) {
-  const marked = markHookConfig(config, `Harness-managed ${projection.parentSkillName} hook`);
-
-  if (projection.parentSkillName === 'superpowers' && projection.target === 'cursor') {
-    for (const entry of marked.hooks?.sessionStart ?? []) {
-      entry.command =
-        'sh -c \'[ -f .cursor/hooks/session-start ] && sh .cursor/hooks/session-start cursor || sh "$HOME/.cursor/hooks/session-start" cursor\'';
-    }
-  }
-
-  if (projection.parentSkillName === 'superpowers' && projection.target === 'claude-code') {
-    for (const entry of marked.hooks?.SessionStart ?? []) {
-      for (const hook of entry.hooks ?? []) {
-        hook.command =
-          'sh -c \'[ -f .claude/hooks/session-start ] && sh .claude/hooks/session-start claude-code || sh "$HOME/.claude/hooks/session-start" claude-code\'';
-      }
-    }
-  }
-
-  return marked;
-}
-
-async function writeHookConfigProjection({ projection, ownedTargets, conflictMode, backupHandler }) {
-  const incoming = adaptHookConfig(
-    JSON.parse(await readFile(projection.configSource, 'utf8')),
-    projection
-  );
-  let merged = incoming;
-
-  try {
-    const existing = await readJsonIfExists(projection.configTarget);
-    if (projection.configFormat === 'settings') {
-      merged = mergeHookSettings(existing ?? {}, incoming, projection.target);
-    } else if (existing) {
-      merged = mergeHookConfig(existing, incoming, projection.target);
-    }
-  } catch (error) {
-    if (conflictMode !== 'backup') throw error;
-    await writeRenderedProjection({
-      targetPath: projection.configTarget,
-      content: `${JSON.stringify(incoming, null, 2)}\n`,
-      ownedTargets,
-      conflictMode,
-      backupHandler
-    });
-    return;
-  }
-
-  await mkdir(path.dirname(projection.configTarget), { recursive: true });
-  await writeFile(projection.configTarget, `${JSON.stringify(merged, null, 2)}\n`);
-}
-
-async function applyHookProjection(projection, ownedTargets, conflictMode, backupHandler) {
-  if (projection.status === 'unsupported') return false;
-  if (projection.status !== 'planned') {
-    throw new Error(`Unsupported hook projection status: ${projection.status}`);
-  }
-
-  await writeHookConfigProjection({ projection, ownedTargets, conflictMode, backupHandler });
-  ownedTargets.add(path.resolve(projection.configTarget));
-
-  for (const sourcePath of projection.scriptSourcePaths) {
-    const targetPath = path.join(projection.scriptTargetRoot, path.basename(sourcePath));
-    await materializeFileProjection({
-      sourcePath,
-      targetPath,
-      ownedTargets,
-      conflictMode,
-      backupHandler
-    });
-    ownedTargets.add(path.resolve(targetPath));
-  }
-
-  return true;
-}
-
-async function applyManagedProjection(projection, ownedTargets, conflictMode, backupHandler) {
-  if (projection.kind === 'safety-directory') {
-    await ensureDirectoryProjection({
-      targetPath: projection.targetPath,
-      ownedTargets,
-      conflictMode,
-      backupHandler
-    });
-    return;
-  }
-
-  if (projection.kind === 'safety-file') {
-    await materializeFileProjection({
-      sourcePath: projection.sourcePath,
-      targetPath: projection.targetPath,
-      ownedTargets,
-      conflictMode,
-      backupHandler
-    });
-    return;
-  }
-
-  throw new Error(`Unsupported managed projection kind: ${projection.kind}`);
-}
-
 export async function planSyncOperations({ rootDir, homeDir, state }) {
-  const targets = Object.keys(state.targets).filter((target) => state.targets[target].enabled);
-  const effectiveEntryProfiles = effectiveEntryPolicyProfiles(state);
-  const safetyProfile = activeSafetyPolicyProfile(state);
-  const entryWrites = [];
-  const rawSkillWrites = [];
-  const hookWrites = [];
-  const managedWrites = planSafetyProjections({
-    rootDir,
-    homeDir,
-    scope: state.scope,
-    policyProfile: safetyProfile
-  });
-  const manifestEntries = [];
-  const userManaged = await readUserManaged(homeDir);
-
-  for (const target of targets) {
-    const adapter = await loadAdapter(rootDir, target);
-    const content = await renderEntry(rootDir, target, effectiveEntryProfiles);
-    const entries = entriesForScope(rootDir, homeDir, adapter, state.scope);
-
-    for (const entry of entries) {
-      entryWrites.push({ targetPath: entry, content });
-      if (isUserManagedTarget(entry, userManaged)) {
-        continue;
-      }
-      manifestEntries.push({
-        kind: 'entry',
-        target,
-        strategy: 'render',
-        sourcePath: adapter.template,
-        targetPath: entry
-      });
-    }
-
-    const skillProjections = await planSkillProjections({
-      rootDir,
-      homeDir,
-      scope: state.scope,
-      target,
-      skillProfile: state.skillProfile,
-      deploymentProfile: state.deploymentProfile
-    });
-
-    for (const projection of skillProjections) {
-      if (isUserManagedTarget(projection.targetPath, userManaged)) {
-        continue;
-      }
-      rawSkillWrites.push(projection);
-    }
-
-    const hookProjections = await planHookProjections({
-      rootDir,
-      homeDir,
-      scope: state.scope,
-      target,
-      hookMode: state.hookMode,
-      policyProfile: safetyProfile
-    });
-
-    for (const projection of hookProjections) {
-      if (projection.status === 'unsupported') continue;
-      if (isUserManagedTarget(projection.configTarget, userManaged)) {
-        continue;
-      }
-      hookWrites.push(projection);
-      manifestEntries.push({
-        ...projection,
-        kind: 'hook-config',
-        strategy: 'merge',
-        sourcePath: projection.configSource,
-        targetPath: projection.configTarget
-      });
-
-      for (const sourcePath of projection.scriptSourcePaths) {
-        manifestEntries.push({
-          ...projection,
-          kind: 'hook-script',
-          strategy: 'materialize',
-          sourcePath,
-          targetPath: path.join(projection.scriptTargetRoot, path.basename(sourcePath))
-        });
-      }
-    }
-  }
-
-  const skillWrites = coalesceSkillProjections(rawSkillWrites);
-
-  const skillManifestEntries = await Promise.all(
-    skillWrites.map(async (projection) => {
-      const strategy =
-        projection.strategy === 'link' && state.projectionMode === 'portable'
-          ? 'materialize'
-          : projection.strategy;
-      const manifestEntry = {
-        ...projection,
-        strategy
-      };
-
-      if (strategy === 'materialize') {
-        manifestEntry.sourceDigest = await digestTarget(projection.sourcePath);
-      }
-
-      return manifestEntry;
-    })
-  );
-
-  manifestEntries.push(...skillManifestEntries);
-
-  for (const projection of managedWrites) {
-    if (isUserManagedTarget(projection.targetPath, userManaged)) {
-      continue;
-    }
-    manifestEntries.push(projection);
-  }
-
-  return {
-    targets,
-    entryWrites,
-    skillWrites,
-    hookWrites,
-    managedWrites,
-    userManaged,
-    manifest: createProjectionManifest(manifestEntries)
-  };
+  return collectSyncOperations({ rootDir, homeDir, state });
 }
 
-export function formatDiff(diff) {
-  return {
-    create: diff.create.length,
-    update: diff.update.length,
-    stale: diff.stale.length,
-    unchanged: diff.unchanged.length
-  };
-}
-
-export async function computeSyncPlanReport({
+async function computeBaseSyncPlanReport({
   rootDir,
   homeDir,
   state
@@ -464,51 +61,16 @@ export async function computeSyncPlanReport({
   };
 }
 
-async function readJsonIfPresent(filePath) {
-  try {
-    return JSON.parse(await readFile(filePath, 'utf8'));
-  } catch (error) {
-    if (error && error.code === 'ENOENT') return null;
-    throw error;
-  }
-}
-
-async function cleanupStaleHookConfig(entry) {
-  const config = await readJsonIfPresent(entry.targetPath);
-  if (!config) return;
-
-  const marker = `Harness-managed ${entry.parentSkillName} hook`;
-  if (entry.configFormat === 'settings') {
-    const { changed, settings, removeFile } = removeManagedHookSettings(
-      config,
-      marker,
-      entry.target
-    );
-    if (!changed) return;
-    if (removeFile) {
-      await rm(entry.targetPath, { force: true });
-      return;
+export async function computeSyncPlanReport({ rootDir, homeDir, state }) {
+  const baseReport = await computeBaseSyncPlanReport({ rootDir, homeDir, state });
+  return renderSyncReport(baseReport, {
+    mode: 'plan',
+    warnings: [],
+    details: {
+      projections: baseReport.plan?.targets ?? [],
+      hooks: [...new Set(baseReport.plan?.hookWrites?.map((entry) => entry.parentSkillName).filter(Boolean) ?? [])]
     }
-    await writeFile(entry.targetPath, `${JSON.stringify(settings, null, 2)}\n`);
-    return;
-  }
-
-  const { changed, config: nextConfig, removeFile } = removeManagedHookConfig(config, marker, entry.target);
-  if (!changed) return;
-  if (removeFile) {
-    await rm(entry.targetPath, { force: true });
-    return;
-  }
-  await writeFile(entry.targetPath, `${JSON.stringify(nextConfig, null, 2)}\n`);
-}
-
-async function cleanupStaleProjection(entry) {
-  if (entry.kind === 'hook-config') {
-    await cleanupStaleHookConfig(entry);
-    return;
-  }
-
-  await rm(entry.targetPath, { recursive: true, force: true });
+  });
 }
 
 export async function sync(args = [], options = {}) {
@@ -529,122 +91,39 @@ export async function sync(args = [], options = {}) {
   }
 
   const currentManifest = await readProjectionManifest(rootDir);
-  const plan = await planSyncOperations({ rootDir, homeDir, state });
-  const backupManager = await createBackupArchiveManager({
-    rootDir,
-    homeDir,
-    state,
-    manifest: currentManifest,
-    plan
-  });
-  const diff = diffProjectionManifest(currentManifest, plan.manifest);
+  const plan = await buildSyncPlan(args, { rootDir, homeDir, state });
+  const diff = diffProjectionManifest(currentManifest, plan.desiredManifest);
   const summary = formatDiff(diff);
 
   if (dryRun || check) {
-    console.log(
-      JSON.stringify(
-        {
-          mode: check ? 'check' : 'dry-run',
-          targets: plan.targets,
-          summary,
-          diff
-        },
-        null,
-        2
-      )
-    );
+    console.log(JSON.stringify(renderSyncReport(
+      {
+        mode: check ? 'check' : 'dry-run',
+        targets: plan.executionPlan.targets,
+        summary,
+        diff
+      },
+      {
+        mode: check ? 'check' : 'dry-run',
+        warnings: plan.report.warnings,
+        details: plan.report.details
+      }
+    ), null, 2));
     if (check && (summary.create > 0 || summary.update > 0 || summary.stale > 0)) {
       throw new Error('Harness sync check failed: projections are out of sync.');
     }
     return;
   }
 
-  const ownedTargets = takeover
-    ? new Set([...ownedTargetSet(currentManifest), ...ownedTargetSet(plan.manifest)])
-    : ownedTargetSet(currentManifest);
-  const normalization = await backupManager.normalizeLegacyBackups();
-  for (const warning of normalization.warnings) {
-    console.warn(warning);
-  }
-
-  for (const entry of diff.stale) {
-    if (isUserManagedTarget(entry.targetPath, plan.userManaged)) {
-      continue;
-    }
-    if (!isManagedSessionBoundary(entry.targetPath, rootDir, homeDir)) {
-      continue;
-    }
-    await cleanupStaleProjection(entry);
-  }
-
-  for (const entry of plan.entryWrites) {
-    if (isUserManagedTarget(entry.targetPath, plan.userManaged)) {
-      continue;
-    }
-    await writeRenderedProjection({
-      targetPath: entry.targetPath,
-      content: entry.content,
-      ownedTargets,
-      conflictMode,
-      backupHandler: backupManager.backupHandler
-    });
-    ownedTargets.add(path.resolve(entry.targetPath));
-  }
-
-  for (const projection of plan.skillWrites) {
-    if (isUserManagedTarget(projection.targetPath, plan.userManaged)) {
-      continue;
-    }
-    const effectiveStrategy = await applySkillProjection(
-      projection,
-      ownedTargets,
-      conflictMode,
-      state.projectionMode,
-      backupManager.backupHandler
-    );
-    if (!['link', 'materialize'].includes(effectiveStrategy)) {
-      throw new Error(`Unsupported projection strategy: ${effectiveStrategy}`);
-    }
-    ownedTargets.add(path.resolve(projection.targetPath));
-  }
-
-  for (const projection of plan.hookWrites) {
-    if (isUserManagedTarget(projection.configTarget, plan.userManaged)) {
-      continue;
-    }
-    const installed = await applyHookProjection(
-      projection,
-      ownedTargets,
-      conflictMode,
-      backupManager.backupHandler
-    );
-    if (!installed) continue;
-
-    ownedTargets.add(path.resolve(projection.configTarget));
-    for (const sourcePath of projection.scriptSourcePaths) {
-      ownedTargets.add(path.resolve(path.join(projection.scriptTargetRoot, path.basename(sourcePath))));
-    }
-  }
-
-  for (const projection of plan.managedWrites) {
-    if (isUserManagedTarget(projection.targetPath, plan.userManaged)) {
-      continue;
-    }
-    await applyManagedProjection(
-      projection,
-      ownedTargets,
-      conflictMode,
-      backupManager.backupHandler
-    );
-    ownedTargets.add(path.resolve(projection.targetPath));
-  }
-
-  await writeProjectionManifest(rootDir, plan.manifest);
-  await updateState(rootDir, (currentState) => ({
-    ...currentState,
-    lastSync: new Date().toISOString()
-  }));
+  await applySyncPlan(plan, {
+    rootDir,
+    homeDir,
+    state,
+    currentManifest,
+    conflictMode,
+    takeover
+  });
   console.log(
-    `Synced ${plan.targets.length} target(s): ${plan.targets.join(', ')} (create=${summary.create}, update=${summary.update}, stale=${summary.stale})`
+    `Synced ${plan.executionPlan.targets.length} target(s): ${plan.executionPlan.targets.join(', ')} (create=${summary.create}, update=${summary.update}, stale=${summary.stale})`
   );
 }

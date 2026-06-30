@@ -14,7 +14,10 @@ const groups = [
   ],
   [
     'tests/adapters/planning-record-time.test.mjs',
-    'tests/adapters/skill-projection.test.mjs'
+    'tests/adapters/skill-projection.test.mjs',
+    'tests/adapters/sync-skills.test.mjs',
+    'tests/adapters/sync-hooks.test.mjs',
+    'tests/installer/policy-render.test.mjs'
   ],
   [
     'tests/core/simplification-ledger-search.test.mjs'

@@ -73,6 +73,17 @@ test('runHarnessVerify falls back to os.homedir when no homeDir override is prov
   }
 });
 
+test('verify service returns an evidence surface summary path', async () => {
+  const result = await runHarnessVerify({ root: process.cwd() });
+
+  assert.equal(typeof result.rootDir, 'string');
+  assert.equal(typeof result.report.generatedAt, 'string');
+  assert.match(result.markdown, /^# Harness Verification Report/m);
+  assert.equal(result.proofSurface, 'repo-verification');
+  assert.equal(Array.isArray(result.commands), true);
+  assert.equal(typeof result.outputPath, 'string');
+});
+
 test('runHarnessDoctor returns a clean report for a healthy fixture', async () => {
   const { root, leafDir } = await createRuntimeDoctorVerifyFixture();
   const homeDir = '/home/runtime-doctor-clean';
@@ -115,6 +126,41 @@ test('runHarnessDoctor flags personal paths found in projected entry content', a
     assert.equal(
       result.health.problems.some((problem) => problem.includes('personal path found in')),
       false
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('runHarnessDoctor keeps minimal-global as the explicit default posture warning', async (t) => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  t.mock.method(os, 'homedir', () => homeDir);
+
+  try {
+    await mkdir(homeDir, { recursive: true });
+    const leafDir = path.join(root, 'workspace/leaf');
+    await mkdir(leafDir, { recursive: true });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'user-global',
+      projectionMode: 'link',
+      hookMode: 'off',
+      policyProfile: 'always-on-core',
+      skillProfile: 'full',
+      targets: {
+        codex: { enabled: true, paths: [path.join(homeDir, '.codex/AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+    const result = await runHarnessDoctor({ cwd: leafDir, homeDir });
+
+    assert.ok(
+      result.warnings.includes(
+        'minimal-global stays the recommended default; choose a heavier profile only when the task explicitly needs broader projected context and the operator accepts the extra payload/runtime cost.'
+      )
     );
   } finally {
     await removeHarnessFixture(root);

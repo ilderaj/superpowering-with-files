@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { getActiveTaskSummary } from '../../harness/runtime/summary-service.mjs';
+import { buildActiveSummaryTextReport, getActiveTaskSummary } from '../../harness/runtime/summary-service.mjs';
 import { writeExecutionReceipt } from '../../harness/runtime/execution-receipt.mjs';
 
 async function createFixture(name) {
@@ -294,4 +294,145 @@ test('getActiveTaskSummary suppresses execution_followup_open when closure evide
   } finally {
     await removeFixture(root);
   }
+});
+
+test('getActiveTaskSummary keeps route truth and execution signals visible on the same tracked task', async () => {
+  const root = await createFixture('summary-service-route-and-execution');
+  try {
+    await writeTask(root, 'task-route-and-execution', {
+      taskPlan: [
+        '# Task Route And Execution',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '## Routing Decision',
+        '- Selected Route: tracked-lean',
+        '- Route Reason: durable task without deep reasoning',
+        '- Promotion Trigger: none',
+        '- Route Evidence Surface: planning + active-summary',
+        '',
+        '## Execution Contract',
+        '',
+        '### Unit: unit-01',
+        '- Kind: implementation',
+        '- Status: blocked',
+        '- Scope:',
+        '  - Do: keep route and execution state visible together.',
+        '  - Not do: hide execution evidence behind route metadata.',
+        '- Owner Mode: inline',
+        '- Allowed Ops:',
+        '  - Files: harness/**',
+        '  - Commands: node --test',
+        '- Dependencies:',
+        '  - None.',
+        '- Verification Plan:',
+        '  - node --test tests/installer/summary-service.test.mjs',
+        '- Return Artifacts:',
+        '  - receipt',
+        '- Integration Target:',
+        '  - progress.md',
+        '- Exit Criteria:',
+        '  - active-summary exposes both route and execution surfaces.'
+      ].join('\n'),
+      findings: '# Findings\n',
+      progress: '# Progress\n'
+    });
+
+    await writeExecutionReceipt(root, {
+      schemaVersion: 1,
+      taskId: 'task-route-and-execution',
+      unitId: 'unit-01',
+      actor: 'codex',
+      mode: 'inline',
+      resultStatus: 'blocked',
+      startedAt: '2026-06-04T04:00:00.000Z',
+      finishedAt: '2026-06-04T04:05:00.000Z',
+      changedFiles: ['harness/runtime/summary-service.mjs'],
+      verificationCommands: [],
+      artifactsProduced: [{ type: 'note', ref: 'progress.md#unit-01' }],
+      followups: [{ type: 'integration', status: 'open', target: 'progress.md' }],
+      syncBackRef: 'progress.md#unit-01'
+    });
+
+    const { report } = await getActiveTaskSummary({ root });
+    const task = report.tasks.find((entry) => entry.task_id === 'task-route-and-execution');
+
+    assert.equal(task.routingDecision.selectedRoute, 'tracked-lean');
+    assert.equal(task.executionSignals.receiptCount, 1);
+    assert.equal(task.executionSignals.blockedUnits, 1);
+    assert.equal(task.executionSignals.openFollowups, 1);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('getActiveTaskSummary reports reconciliation_open when an archive-ready task has no accepted reconciliation signal', async () => {
+  const root = await createFixture('summary-service-reconciliation-open');
+  try {
+    await writeTask(root, 'task-reconciliation-open', {
+      taskPlan: [
+        '# Task Reconciliation Open',
+        '',
+        '## Current State',
+        'Status: closed',
+        'Archive Eligible: yes',
+        'Close Reason: implementation complete',
+        '',
+        '### Phase 1: Closeout',
+        '- **Status:** complete'
+      ].join('\n'),
+      findings: '# Findings\n',
+      progress: '# Progress\n'
+    });
+
+    const { report } = await getActiveTaskSummary({ root });
+    assert.equal(
+      report.anomalies.some(
+        (entry) => entry.taskId === 'task-reconciliation-open' && entry.kind === 'reconciliation_open'
+      ),
+      true
+    );
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('active summary text points operators to queue proof and release proof surfaces', async () => {
+  const text = buildActiveSummaryTextReport({
+    counts: {
+      total: 1,
+      archiveReady: 0,
+      needsAttention: 1,
+      byStatus: { active: 1 },
+      byReconciliationStatus: { open: 1 }
+    },
+    tasks: [
+      {
+        task_id: 'demo-task',
+        status: 'active',
+        archive_ready: false,
+        reconciliationStatus: 'open',
+        phase_complete: 1,
+        phase_total: 3,
+        reason: 'reconciliation open',
+        warnings: ['archive-eligible task has no reconciliation readiness signal'],
+        executionSignals: {
+          receiptCount: 1,
+          blockedUnits: 0,
+          failedUnits: 0,
+          openFollowups: 1,
+          resolvedFollowups: 0,
+          waivedFollowups: 0
+        }
+      }
+    ]
+  });
+
+  assert.match(text, /needs_attention=1/);
+  assert.match(text, /reconciliation=open/);
+  assert.match(text, /open_followups=1/);
+  assert.match(text, /release proof=\.harness\/verification/);
 });

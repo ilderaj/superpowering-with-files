@@ -18,5 +18,6 @@ fi
     "$TASK_ID" \
     --require-safe-to-archive \
     --require-companion-synced
+# Preserve reconciliation.md alongside the core planning trio during archive moves.
 ARCHIVE_DIR="$("$PYTHON_BIN" "$SCRIPT_DIR/planning_paths.py" archive-active "$PROJECT_PATH" "$TASK_ID")"
 echo "[planning-with-files] Archived active planning files to: $ARCHIVE_DIR"
