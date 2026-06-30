@@ -14,7 +14,11 @@ Use this guide to choose a safe Harness adoption profile, verify the result, and
 
 Default to `minimal-global` for personal bootstrap and `full-local` only for repos that need the complete projected skill set. Cloud-dev is a separate remote staging lane, not a replacement for local verification.
 
+Use this starter kit when you need one compact operator answer surface for minimal-global, full-local, and cloud-dev profiles.
+
 For Codex user-global or `both` scope installs, `minimal-global` is the expected default. Use `full` only when you intentionally want the wider skill surface and accept the extra context cost.
+
+`minimal-global` is the recommended default. Move to a heavier profile only when the task explicitly needs broader projected context and the operator accepts the extra payload/runtime cost.
 
 ## Safe Adoption Flow
 
@@ -73,6 +77,8 @@ After sync, confirm:
 - `./scripts/harness sync --dry-run` is clean or shows only expected projection changes;
 - `npm run verify` passes before release or team handoff.
 
+Treat this as the minimum reusable package: rollback, doctor, sync dry-run, verify, and smoke-check must all be explicit before the guide is reused as team-facing adoption guidance.
+
 ## Rollback
 
 - If adoption used `--conflict=backup`, inspect `~/.harness/backups/` and `~/.harness/backup-index.json`.
@@ -83,3 +89,5 @@ After sync, confirm:
 ## Update Safety
 
 Upstream update and local projection sync are separate operations. `./scripts/harness update` may update vendored upstream baselines; it must not be treated as permission to overwrite local projections without review. Run `sync --dry-run`, check [Upstream Update Compatibility](../upstream-update-compatibility.md), then sync only when the report is acceptable.
+
+The starter kit must explain what upstream update can overwrite, what it cannot overwrite, and how to recover safely.

@@ -43,6 +43,10 @@ const transientRuntimeArtifactPrefixes = [
   '.wrangler/'
 ];
 
+const focusedProjectionChecks = [
+  'node --test tests/adapters/skill-projection.test.mjs tests/adapters/sync-skills.test.mjs tests/adapters/sync-hooks.test.mjs tests/installer/policy-render.test.mjs'
+];
+
 function isIgnoredRuntimeArtifact(filePath) {
   return filePath === 'node_modules' || filePath.startsWith('node_modules/');
 }
@@ -51,6 +55,76 @@ function isIgnoredGeneratedCacheFile(filePath) {
   return isIgnoredRuntimeArtifact(filePath)
     || filePath.includes('/__pycache__/')
     || filePath.endsWith('.pyc');
+}
+
+function touchesProjectionOrPolicySurface(filePath) {
+  return filePath.includes('hook-projection')
+    || filePath.includes('skill-projection')
+    || filePath.includes('/skills/')
+    || filePath.endsWith('AGENTS.md')
+    || filePath.endsWith('docs/workflows.md')
+    || filePath.endsWith('docs/maintenance.md')
+    || filePath.endsWith('docs/upstream-update-compatibility.md');
+}
+
+function inferAffectedProjections(changedFiles = []) {
+  const affected = new Set();
+
+  for (const filePath of changedFiles) {
+    if (filePath.startsWith('.codex/')) affected.add('codex');
+    if (filePath.startsWith('.claude/')) affected.add('claude-code');
+    if (filePath.startsWith('.cursor/')) affected.add('cursor');
+    if (filePath.startsWith('.agents/')) {
+      affected.add('codex');
+      affected.add('copilot');
+      affected.add('cursor');
+    }
+    if (
+      filePath.startsWith('harness/installer/') ||
+      filePath.startsWith('harness/core/policy/') ||
+      filePath.startsWith('harness/core/upstream-overlays/') ||
+      filePath.startsWith('docs/')
+    ) {
+      affected.add('repo-policy');
+    }
+  }
+
+  return [...affected];
+}
+
+function inferRiskLevel(changedFiles = [], failureKind = '') {
+  if (failureKind) {
+    return 'high';
+  }
+
+  if (changedFiles.some((filePath) => touchesProjectionOrPolicySurface(filePath))) {
+    return 'medium';
+  }
+
+  return 'low';
+}
+
+export function buildUpdateCompatibilityReport({
+  changedFiles = [],
+  affectedProjections = [],
+  requiresResync = false,
+  riskLevel = 'low',
+  patchDriftWarnings = []
+} = {}) {
+  const normalizedChangedFiles = changedFiles.map((filePath) => normalizeChangePath(filePath));
+  const normalizedAffectedProjections = [...new Set(affectedProjections)];
+  const focusedChecks = normalizedChangedFiles.some((filePath) => touchesProjectionOrPolicySurface(filePath))
+    ? focusedProjectionChecks
+    : [];
+
+  return {
+    changedFiles: normalizedChangedFiles,
+    affectedProjections: normalizedAffectedProjections,
+    requiresResync,
+    riskLevel,
+    patchDriftWarnings,
+    focusedChecks
+  };
 }
 
 export function buildRefreshCommandChain() {
@@ -210,14 +284,24 @@ export function createRefreshResult({
   sourceHeads = {},
   eligibleFiles = [],
   blockedReason = '',
-  failureKind = ''
+  failureKind = '',
+  compatibilityReport
 } = {}) {
+  const report = compatibilityReport ?? buildUpdateCompatibilityReport({
+    changedFiles: eligibleFiles,
+    affectedProjections: inferAffectedProjections(eligibleFiles),
+    requiresResync: eligibleFiles.length > 0,
+    riskLevel: inferRiskLevel(eligibleFiles, failureKind),
+    patchDriftWarnings: []
+  });
+
   return {
     status,
     baseRef,
     branchName,
     sourceHeads,
     eligibleFiles,
+    compatibilityReport: report,
     blockedReason,
     failureKind
   };

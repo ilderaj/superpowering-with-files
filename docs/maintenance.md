@@ -53,6 +53,10 @@ Use `sync --dry-run` to inspect the desired projection diff without writing file
 ./scripts/harness verify --output=.harness/verification
 ```
 
+The authoritative acceptance/release proof surface is the verification output under `.harness/verification` plus the replay/eval pack that produced it.
+
+Use `active-summary` for queue-level weekly governance and `.harness/verification` for release proof. Do not force operators to reconstruct these surfaces from scattered planning archaeology.
+
 For explicit advanced leaf linking:
 
 ```bash
@@ -120,6 +124,8 @@ When changing orchestration policy:
 4. Run adapter rendering tests to confirm every supported target receives the rule.
 5. Run repository verification before reporting completion.
 
+When the upstream update compatibility report shows skills, hooks, or planning-policy impact, run the listed focused adapter/projection checks before trusting the refreshed projection state.
+
 Future projection patches, health checks, and tests should be verified against the companion-plan semantics for rendered entry files, projected skills, and health warnings:
 
 - projection patches must render `docs/superpowers/plans/**` as the required companion-artifact path whenever Superpowers is used on a deep-reasoning task
@@ -128,6 +134,8 @@ Future projection patches, health checks, and tests should be verified against t
 - tests should validate mandatory companion-plan persistence consistently across policy, rendered entries, projected skills, and health warnings
 
 When a task carries a companion artifact, lifecycle tooling must keep it in sync: `close-task` and `archive-task` should block unsynced companion metadata, and `archive-task` should relocate the companion artifact into the archived task directory as `companion_plan.md`.
+
+Archive tooling keeps `reconciliation.md` inside the archived task directory when it exists.
 
 Worktree base selection is a Harness-owned guardrail. Maintain it in:
 
@@ -355,6 +363,10 @@ export HOME=/path/to/disposable-home
 When you run `sync --conflict=backup`, Harness archives the displaced content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`. If legacy `.harness-backup-*` siblings are still present from an older takeover, the next successful `sync` imports them into that archive store and removes the live duplicates before projecting the new baseline.
 
 Use `sync --dry-run` before the actual sync only as a preview; it is not a substitute for verification because it does not write projection files. Manual inspection should cover the user-global entry files for Codex, GitHub Copilot, and Claude Code, plus Cursor's workspace rule output when `scope=both` is used. Cursor does not currently have a rendered user-global entry. The expected result is thin always-on entry content, no full deep-task policy dump, and no broad skill projection when `minimal-global` is selected. For a shorter adoption-oriented checklist, use the [Adoption Starter Kit](install/adoption-starter-kit.md).
+
+When using the adoption starter kit, verify rollback, doctor, sync dry-run, verify, and smoke-check steps before treating the profile as reusable team guidance.
+
+`minimal-global` is the recommended default. Move to a heavier profile only when the task explicitly needs broader projected context and the operator accepts the extra payload/runtime cost.
 
 
 ## Compatibility Maintenance

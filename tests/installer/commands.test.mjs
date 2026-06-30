@@ -1218,7 +1218,7 @@ test('doctor prints Codex hook evidence runtime and advisory warnings when runti
     assert.match(stdout, /runtime=runtime-invocation-verified/);
     assert.match(
       stderr,
-      /Install baseline is heavier than the recommended default: user-global installs should usually prefer minimal-global/
+      /minimal-global stays the recommended default; choose a heavier profile only when the task explicitly needs broader projected context/
     );
   } finally {
     if (previousHome === undefined) {

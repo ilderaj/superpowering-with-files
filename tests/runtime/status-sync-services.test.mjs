@@ -79,6 +79,8 @@ test('getSyncDryRun resolves a nested cwd and returns the public sync report sha
     assert.deepEqual(result.targets, report.plan.targets);
     assert.deepEqual(result.summary, report.summary);
     assert.deepEqual(result.diff, report.diff);
+    assert.deepEqual(result.warnings, report.warnings ?? []);
+    assert.deepEqual(result.details, report.details ?? {});
     assert.equal(Object.hasOwn(result, 'plan'), false);
     assert.equal(Object.hasOwn(result, 'state'), false);
   } finally {
@@ -100,7 +102,19 @@ test('getSyncDryRun falls back to os.homedir when no homeDir override is provide
     assert.deepEqual(result.targets, report.plan.targets);
     assert.deepEqual(result.summary, report.summary);
     assert.deepEqual(result.diff, report.diff);
+    assert.deepEqual(result.warnings, report.warnings ?? []);
+    assert.deepEqual(result.details, report.details ?? {});
   } finally {
     await removeHarnessFixture(root);
   }
+});
+
+test('getSyncDryRun exposes report buckets needed by operator review', async () => {
+  const dryRun = await getSyncDryRun({ root: process.cwd() });
+
+  assert.equal(typeof dryRun.rootDir, 'string');
+  assert.equal(typeof dryRun.summary, 'object');
+  assert.equal(typeof dryRun.diff, 'object');
+  assert.equal(Array.isArray(dryRun.warnings), true);
+  assert.equal(typeof dryRun.details, 'object');
 });

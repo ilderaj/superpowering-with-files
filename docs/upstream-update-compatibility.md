@@ -52,6 +52,10 @@ If skills, hooks, adapters, or projection metadata changed, add focused adapter/
 npm run verify
 ```
 
+Every accepted update report must list changed upstream files, affected projections, required re-sync, risk level, and patch-drift warnings before local projection changes are trusted.
+
+If the update touches skills, hooks, or planning policy, the report must also list the focused adapter/projection checks required before the update is accepted.
+
 ## Operator Rules
 
 - `update` may write only upstream baseline locations for the selected source.

@@ -677,3 +677,62 @@ test('harness active-summary suppresses open-followup anomalies when closure evi
     await removeFixture(root);
   }
 });
+
+test('harness active-summary --json exposes route metadata and execution counts together', async () => {
+  const root = await createFixture('active-summary-route-and-execution');
+  try {
+    await writeTask(root, 'task-route-and-execution', {
+      ...taskFiles('Task Route And Execution', 'active'),
+      taskPlan: [
+        '# Task Route And Execution',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        '',
+        '## Routing Decision',
+        '- Selected Route: tracked-lean',
+        '- Route Reason: durable task without deep reasoning',
+        '- Promotion Trigger: none',
+        '- Route Evidence Surface: planning + active-summary',
+        '',
+        '## Execution Contract',
+        '',
+        '### Unit: unit-01',
+        '- Kind: implementation',
+        '- Status: blocked',
+        '- Scope:',
+        '  - Do: expose route metadata and execution counts together.',
+        '  - Not do: hide one signal behind the other.',
+        '- Owner Mode: inline',
+        '- Allowed Ops:',
+        '  - Files: harness/**',
+        '  - Commands: node --test',
+        '- Dependencies:',
+        '  - None.',
+        '- Verification Plan:',
+        '  - node --test tests/installer/active-summary-command.test.mjs',
+        '- Return Artifacts:',
+        '  - receipt',
+        '- Integration Target:',
+        '  - progress.md',
+        '- Exit Criteria:',
+        '  - active-summary JSON keeps both route and execution state visible.'
+      ].join('\n')
+    });
+
+    await writeExecutionReceiptArtifact(root, 'task-route-and-execution', 'unit-01');
+
+    const { stdout } = await harnessCommand(root, 'active-summary', '--json');
+    const report = JSON.parse(stdout);
+    const task = report.tasks.find((entry) => entry.task_id === 'task-route-and-execution');
+
+    assert.equal(task.routingDecision.selectedRoute, 'tracked-lean');
+    assert.equal(task.executionSignals.receiptCount, 1);
+    assert.equal(task.executionSignals.blockedUnits, 1);
+    assert.equal(task.executionSignals.openFollowups, 1);
+  } finally {
+    await removeFixture(root);
+  }
+});

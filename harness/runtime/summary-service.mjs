@@ -214,6 +214,7 @@ export function buildActiveSummaryTextReport(report) {
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([status, count]) => `${status}=${count}`);
   lines.push(`[planning-with-files] Reconciliation counts: ${reconciliationParts.join(', ') || 'none'}`);
+  lines.push('[planning-with-files] Proof surfaces: queue=active-summary release proof=.harness/verification');
 
   for (const task of report.tasks) {
     lines.push(

@@ -86,6 +86,8 @@ function renderMarkdown(report) {
     `Scope: ${report.checks.scope}`,
     `Projection mode: ${report.checks.projectionMode}`,
     `Targets: ${report.checks.selectedTargets.join(', ') || 'none'}`,
+    'Authoritative proof surface: .harness/verification',
+    'Authoritative commands: npm run verify:all ; ./scripts/harness verify --output=.harness/verification',
     '',
     `Context entries: ${context?.entries?.length ?? 0}`,
     `Context entry verdict: ${summary?.verdict ?? 'unknown'}`,

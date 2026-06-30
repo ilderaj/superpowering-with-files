@@ -57,11 +57,32 @@ test('formatCommand returns the human-readable upstream refresh command sequence
   assert.deepEqual(buildRefreshCommandChain().map(formatCommand), expectedHumanReadableRefreshCommandChain);
 });
 
+test('upstream refresh report includes changed files, affected projections, resync need, and risk', async () => {
+  const { buildUpdateCompatibilityReport } = await loadUpstreamRefreshModule();
+  const result = buildUpdateCompatibilityReport({
+    changedFiles: ['harness/installer/lib/hook-projection.mjs'],
+    affectedProjections: ['codex'],
+    requiresResync: true,
+    riskLevel: 'medium',
+    patchDriftWarnings: ['planning patch drift detected']
+  });
+
+  assert.equal(Array.isArray(result.changedFiles), true);
+  assert.equal(Array.isArray(result.affectedProjections), true);
+  assert.equal(typeof result.requiresResync, 'boolean');
+  assert.equal(typeof result.riskLevel, 'string');
+  assert.equal(Array.isArray(result.focusedChecks), true);
+  assert.match(result.focusedChecks.join(' '), /skill-projection|sync-hooks|policy-render/i);
+});
+
 test('verify:upstream-refresh runner preserves child test output streaming', async () => {
   const script = await readFile(verifyUpstreamRefreshScriptPath, 'utf8');
 
   assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*stdio:\s*'inherit'/);
   assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*maxBuffer:\s*1024 \* 1024 \* 8/);
+  assert.match(script, /tests\/adapters\/sync-skills\.test\.mjs/);
+  assert.match(script, /tests\/adapters\/sync-hooks\.test\.mjs/);
+  assert.match(script, /tests\/installer\/policy-render\.test\.mjs/);
 });
 
 test('runCommand executes command file and args without a shell', async () => {
@@ -233,6 +254,14 @@ test('runUpstreamRefresh blocks before the refresh command chain when origin/dev
       superpowers: '4444444444444444444444444444444444444444'
     },
     eligibleFiles: [],
+    compatibilityReport: {
+      changedFiles: [],
+      affectedProjections: [],
+      requiresResync: false,
+      riskLevel: 'high',
+      patchDriftWarnings: [],
+      focusedChecks: []
+    },
     blockedReason: 'Repo Verify is not green for origin/dev @ 5555555555555555555555555555555555555555.',
     failureKind: 'base_unhealthy'
   });

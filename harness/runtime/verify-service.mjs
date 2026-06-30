@@ -1,8 +1,25 @@
 import os from 'node:os';
+import path from 'node:path';
 import { readHarnessHealth } from '../installer/lib/health.mjs';
 import { readState } from '../installer/lib/state.mjs';
 import { resolveHarnessRoot } from './root-policy.mjs';
 import { sanitizeText } from './redaction.mjs';
+
+export const VERIFY_PROOF_SURFACE = 'repo-verification';
+export const VERIFY_COMMANDS = [
+  'npm run verify:all',
+  './scripts/harness verify --output=.harness/verification'
+];
+
+function resolveVerificationOutputPath(rootDir, explicitOutputPath) {
+  if (!explicitOutputPath) {
+    return path.join(rootDir, '.harness/verification/latest.md');
+  }
+
+  return path.isAbsolute(explicitOutputPath)
+    ? path.join(explicitOutputPath, 'latest.md')
+    : path.join(rootDir, explicitOutputPath, 'latest.md');
+}
 
 function renderMarkdown(report) {
   const context = report.health?.context;
@@ -41,6 +58,9 @@ export async function runHarnessVerify(input = {}) {
   return {
     rootDir: resolved.rootDir,
     report,
-    markdown: sanitizeText(renderMarkdown(report), input)
+    markdown: sanitizeText(renderMarkdown(report), input),
+    outputPath: resolveVerificationOutputPath(resolved.rootDir, input.outputPath),
+    proofSurface: VERIFY_PROOF_SURFACE,
+    commands: [...VERIFY_COMMANDS]
   };
 }

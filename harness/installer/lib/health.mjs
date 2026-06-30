@@ -17,7 +17,10 @@ import {
   sumMeasurements as sumContextMeasurements,
   toBudgetEvaluation as toContextBudgetEvaluation
 } from './health-context-budgets.mjs';
-import { inspectGovernanceHealth as inspectGovernanceDomain } from './health-governance.mjs';
+import {
+  inspectGovernanceHealth as inspectGovernanceDomain,
+  MINIMAL_GLOBAL_RECOMMENDED_WARNING
+} from './health-governance.mjs';
 import { inspectPlanningDiagnostics } from './health-planning-diagnostics.mjs';
 import {
   formatHookProblem as formatProjectionHookProblem,
@@ -404,10 +407,7 @@ export async function readHarnessHealth(rootDir, homeDir) {
     state.skillProfile === 'full' &&
     state.targets.codex?.enabled
   ) {
-    addContextUniqueMessage(
-      warnings,
-      'Install baseline is heavier than the recommended default: user-global installs should usually prefer minimal-global unless you intentionally need the broader baseline capability package.'
-    );
+    addContextUniqueMessage(warnings, MINIMAL_GLOBAL_RECOMMENDED_WARNING);
   }
 
   return {

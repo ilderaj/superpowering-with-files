@@ -14,6 +14,9 @@ import { readUserManaged } from './user-managed.mjs';
 const COPILOT_SCOPE_OVERLAP_RECOMMENDED_ACTION =
   'choose one canonical scope for Copilot unless the workspace install is intentionally overriding safety policy.';
 
+export const MINIMAL_GLOBAL_RECOMMENDED_WARNING =
+  'minimal-global stays the recommended default; choose a heavier profile only when the task explicitly needs broader projected context and the operator accepts the extra payload/runtime cost.';
+
 function uniqueSortedPaths(paths) {
   return [...new Set(paths.map((entry) => path.resolve(entry)))].sort((left, right) =>
     left.localeCompare(right)

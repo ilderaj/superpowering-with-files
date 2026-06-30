@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { readHarnessHealth } from '../../harness/installer/lib/health.mjs';
 import { sync } from '../../harness/installer/commands/sync.mjs';
+import { MINIMAL_GLOBAL_RECOMMENDED_WARNING } from '../../harness/installer/lib/health-governance.mjs';
 import { writeState } from '../../harness/installer/lib/state.mjs';
 import { measureText } from '../../harness/installer/lib/context-budget.mjs';
 import {
@@ -1868,11 +1869,7 @@ test('readHarnessHealth distinguishes heavy install baseline from runtime route 
     const health = await readHarnessHealth(root, homeDir);
 
     assert.ok(
-      health.warnings.some((warning) =>
-        warning.includes(
-          'Install baseline is heavier than the recommended default: user-global installs should usually prefer minimal-global unless you intentionally need the broader baseline capability package.'
-        )
-      )
+      health.warnings.some((warning) => warning.includes(MINIMAL_GLOBAL_RECOMMENDED_WARNING))
     );
     assert.ok(
       !health.warnings.some((warning) =>
