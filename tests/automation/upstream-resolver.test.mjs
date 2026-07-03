@@ -51,6 +51,26 @@ test('latest-release ignores prereleases by default', async () => {
   assert.equal(resolved.resolved.commitSha, 'd884ae04edebef577e82ff7c4e143debd0bbec99');
 });
 
+test('latest-release skips draft releases even when they are newer', async () => {
+  const { resolveSourceTarget } = await loadUpstreamResolverModule();
+
+  const resolved = await resolveSourceTarget(superpowersSource, {
+    listReleases: async () => [
+      { tag_name: 'v6.2.0', prerelease: false, draft: true },
+      { tag_name: 'v6.1.1', prerelease: false, draft: false }
+    ],
+    gitLsRemote: async (_url, refs) => ({
+      refs: {
+        [refs[0]]: 'tag-object-sha',
+        [refs[1]]: 'd884ae04edebef577e82ff7c4e143debd0bbec99'
+      }
+    })
+  });
+
+  assert.equal(resolved.resolved.kind, 'latest-release');
+  assert.equal(resolved.resolved.version, 'v6.1.1');
+});
+
 test('latest-release uses latest-tag fallback only when configured', async () => {
   const { resolveSourceTarget } = await loadUpstreamResolverModule();
 
@@ -64,9 +84,7 @@ test('latest-release uses latest-tag fallback only when configured', async () =>
       }
     },
     {
-      listReleases: async () => {
-        throw new Error('release resolution failed: api down');
-      },
+      listReleases: async () => [],
       gitLsRemote: async (_url, refs) => {
         if (refs.length === 1 && refs[0] === 'refs/tags/*') {
           return {
@@ -86,9 +104,7 @@ test('latest-release uses latest-tag fallback only when configured', async () =>
           };
         }
 
-        return {
-          refs: {}
-        };
+        return { refs: {} };
       }
     }
   );
@@ -124,6 +140,57 @@ test('pinned-commit returns the configured SHA without release lookup', async ()
 
   assert.equal(resolved.resolved.kind, 'pinned-commit');
   assert.equal(resolved.resolved.commitSha, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+});
+
+test('pinned-tag resolves the configured tag to its commit SHA', async () => {
+  const { resolveSourceTarget } = await loadUpstreamResolverModule();
+
+  const resolved = await resolveSourceTarget(
+    {
+      ...superpowersSource,
+      resolution: {
+        strategy: 'pinned-tag',
+        pinnedRef: 'v6.1.1'
+      }
+    },
+    {
+      gitLsRemote: async (_url, refs) => ({
+        refs: {
+          [refs[0]]: 'tag-object-sha',
+          [refs[1]]: 'd884ae04edebef577e82ff7c4e143debd0bbec99'
+        }
+      })
+    }
+  );
+
+  assert.equal(resolved.resolved.kind, 'pinned-tag');
+  assert.equal(resolved.resolved.ref, 'v6.1.1');
+  assert.equal(resolved.resolved.commitSha, 'd884ae04edebef577e82ff7c4e143debd0bbec99');
+});
+
+test('branch-head resolves HEAD directly for branch fallback sources', async () => {
+  const { resolveSourceTarget } = await loadUpstreamResolverModule();
+
+  const resolved = await resolveSourceTarget(
+    {
+      ...superpowersSource,
+      resolution: {
+        strategy: 'branch-head',
+        fallbacks: []
+      }
+    },
+    {
+      gitLsRemote: async (_url, refs) => ({
+        refs: {
+          [refs[0]]: '1111111111111111111111111111111111111111'
+        }
+      })
+    }
+  );
+
+  assert.equal(resolved.resolved.kind, 'branch-head');
+  assert.equal(resolved.resolved.ref, 'HEAD');
+  assert.equal(resolved.resolved.commitSha, '1111111111111111111111111111111111111111');
 });
 
 test('resolveTagCommit peels annotated tags to the commit SHA', async () => {

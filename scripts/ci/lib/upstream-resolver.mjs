@@ -96,6 +96,12 @@ function latestReleaseTagFromList(releases, { allowPrerelease = false } = {}) {
   return null;
 }
 
+function createNoEligibleReleaseError(sourceName) {
+  const error = new Error(`No eligible release available for upstream source: ${sourceName ?? '(unknown)'}`);
+  error.code = 'NO_ELIGIBLE_RELEASE';
+  return error;
+}
+
 function sourceFallbacks(source) {
   const fallbacks = source?.resolution?.fallbacks ?? [];
   return Array.isArray(fallbacks) ? fallbacks : [];
@@ -242,7 +248,7 @@ export async function resolveLatestRelease(source, deps = {}) {
     });
 
     if (!tagName) {
-      throw new Error('No stable release available.');
+      throw createNoEligibleReleaseError(source?.name);
     }
 
     const commitSha = await resolveTagCommit(source.url, tagName, deps);
@@ -254,7 +260,7 @@ export async function resolveLatestRelease(source, deps = {}) {
       commitSha
     });
   } catch (error) {
-    if (sourceFallbacks(source).includes('latest-tag')) {
+    if (error?.code === 'NO_ELIGIBLE_RELEASE' && sourceFallbacks(source).includes('latest-tag')) {
       const fallback = await resolveLatestTag(source, deps);
       return {
         ...fallback,
