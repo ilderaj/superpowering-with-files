@@ -25,7 +25,7 @@ export function assertInsideRoot(targetPath, allowedRoot) {
 export async function loadUpstreamSources(rootDir) {
   const file = path.join(rootDir, 'harness/upstream/sources.json');
   const metadata = JSON.parse(await readFile(file, 'utf8'));
-  if (metadata.schemaVersion !== 1 || !metadata.sources || typeof metadata.sources !== 'object') {
+  if ((metadata.schemaVersion !== 1 && metadata.schemaVersion !== 2) || !metadata.sources || typeof metadata.sources !== 'object') {
     throw new Error('Invalid upstream sources metadata.');
   }
   return metadata.sources;
