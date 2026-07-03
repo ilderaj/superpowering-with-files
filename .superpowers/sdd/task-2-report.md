@@ -2,6 +2,7 @@
 
 ## 结论
 Task 2 已完成。已新增纯 resolver 层 `scripts/ci/lib/upstream-resolver.mjs`，并补齐 `tests/automation/upstream-resolver.test.mjs` 的定向覆盖。
+对应提交：`ff4ff67 feat: add upstream release and tag resolver`。
 
 ## 实现内容
 - 实现了 `resolveSourceTarget(source, deps)` 的策略分发。
