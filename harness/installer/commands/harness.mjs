@@ -21,6 +21,7 @@ import { mcpApprove } from './mcp-approve.mjs';
 import { plugin } from './plugin.mjs';
 import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
+import { upstreamLockCommand } from './upstream-lock.mjs';
 
 const commands = {
   install,
@@ -28,6 +29,7 @@ const commands = {
   sync,
   status,
   fetch: fetchCommand,
+  'upstream-lock': upstreamLockCommand,
   update: updateCommand,
   verify,
   checkpoint: checkpointCommand,
@@ -57,6 +59,7 @@ function usage() {
     '  sync     Reproject core into installed targets',
     '  status   Show local Harness state',
     '  fetch    Fetch upstream candidates',
+    '  upstream-lock  Resolve and record authoritative upstream source locks',
     '  update   Apply fetched upstream candidates',
     '  verify   Print or write verification reports',
     '  summary  Print structured session summary for the active task',

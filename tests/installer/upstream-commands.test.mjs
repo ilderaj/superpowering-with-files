@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readlink, lstat, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readlink, lstat, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -31,6 +31,15 @@ async function createGitSource(root, content) {
     ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'commit', '-m', 'initial'],
     { cwd: root }
   );
+  const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: root });
+  return stdout.trim();
+}
+
+async function createTaggedGitSource(root, { content, tag }) {
+  await createGitSource(root, content);
+  await execFileAsync('git', ['tag', '-a', tag, '-m', tag], { cwd: root });
+  const { stdout } = await execFileAsync('git', ['rev-parse', `${tag}^{commit}`], { cwd: root });
+  return stdout.trim();
 }
 
 async function writeSources(root, source) {
@@ -38,16 +47,62 @@ async function writeSources(root, source) {
   await writeFile(
     path.join(root, 'harness/upstream/sources.json'),
     JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       sources: {
         'planning-with-files': {
           type: 'git',
           url: source,
-          path: 'harness/upstream/planning-with-files'
+          github: {
+            owner: 'fixture',
+            repo: 'planning-with-files'
+          },
+          path: 'harness/upstream/planning-with-files',
+          resolution: {
+            strategy: 'branch-head',
+            allowPrerelease: false,
+            fallbacks: []
+          }
         }
       }
     })
   );
+}
+
+async function writeResolvedSourceLock(root, sourceName, resolved) {
+  await writeFile(
+    path.join(root, 'harness/upstream/.source-lock.json'),
+    JSON.stringify(
+      {
+        schemaVersion: 2,
+        refreshedAt: '2026-07-04T00:00:00.000Z',
+        sources: {
+          [sourceName]: {
+            name: sourceName,
+            strategy: 'latest-release',
+            fallbackUsed: false,
+            refreshedAt: '2026-07-04T00:00:00.000Z',
+            resolved
+          }
+        }
+      },
+      null,
+      2
+    ) + '\n'
+  );
+}
+
+async function createGitRecorder(realGitPath, logPath, binDir) {
+  const scriptPath = path.join(binDir, 'git');
+  await writeFile(
+    scriptPath,
+    `#!/bin/sh
+printf '%s\\n' "$*" >> "${logPath}"
+exec "${realGitPath}" "$@"
+`,
+    'utf8'
+  );
+  await chmod(scriptPath, 0o755);
+  return scriptPath;
 }
 
 async function writeSourcesWithOverlay(root, source, overlayPath) {
@@ -55,17 +110,35 @@ async function writeSourcesWithOverlay(root, source, overlayPath) {
   await writeFile(
     path.join(root, 'harness/upstream/sources.json'),
     JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       sources: {
         'planning-with-files': {
           type: 'git',
           url: source,
           path: 'harness/upstream/planning-with-files',
-          overlayPath
+          overlayPath,
+          github: {
+            owner: 'fixture',
+            repo: 'planning-with-files'
+          },
+          resolution: {
+            strategy: 'branch-head',
+            allowPrerelease: false,
+            fallbacks: []
+          }
         }
       }
     })
   );
+}
+
+async function writeBranchHeadLock(root, sourceName, commitSha) {
+  await writeResolvedSourceLock(root, sourceName, {
+    kind: 'branch-head',
+    version: null,
+    ref: 'HEAD',
+    commitSha
+  });
 }
 
 test('fetchCommand stages git planning-with-files candidate without touching core', async () => {
@@ -75,7 +148,8 @@ test('fetchCommand stages git planning-with-files candidate without touching cor
     await writeSources(root, source);
     await mkdir(path.join(root, 'harness/core/policy'), { recursive: true });
     await writeFile(path.join(root, 'harness/core/policy/base.md'), 'core policy');
-    await createGitSource(source, '# Planning With Files\n');
+    const commitSha = await createGitSource(source, '# Planning With Files\n');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
     await writeState(root, {
       schemaVersion: 1,
       scope: 'workspace',
@@ -113,6 +187,51 @@ test('fetchCommand stages git planning-with-files candidate without touching cor
   }
 });
 
+test('fetchCommand clones the locked tag commit instead of raw HEAD', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fetch-locked-ref-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-tagged-source-'));
+  const binDir = await mkdtemp(path.join(os.tmpdir(), 'harness-git-bin-'));
+  const originalPath = process.env.PATH;
+  try {
+    const commitSha = await createTaggedGitSource(source, {
+      content: '# Planning With Files v6.1.1\n',
+      tag: 'v6.1.1'
+    });
+    await writeSources(root, source);
+    await writeResolvedSourceLock(root, 'planning-with-files', {
+      kind: 'latest-release',
+      version: 'v6.1.1',
+      ref: 'refs/tags/v6.1.1',
+      commitSha
+    });
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    const logPath = path.join(root, 'git-commands.log');
+    const realGitPath = (await execFileAsync('which', ['git'])).stdout.trim();
+    await createGitRecorder(realGitPath, logPath, binDir);
+    process.env.PATH = `${binDir}:${originalPath}`;
+
+    await withCwd(root, () => fetchCommand(['--source=planning-with-files']));
+
+    const log = await readFile(logPath, 'utf8');
+    assert.match(log, /fetch --depth=1 origin refs\/tags\/v6\.1\.1/);
+    assert.match(log, new RegExp(`checkout --detach ${commitSha}`));
+    assert.doesNotMatch(log, /clone --depth=1 /);
+  } finally {
+    process.env.PATH = originalPath;
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+    await rm(binDir, { recursive: true, force: true });
+  }
+});
+
 test('fetchCommand resolves the authority root from a nested leaf directory', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fetch-leaf-'));
   const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
@@ -122,7 +241,8 @@ test('fetchCommand resolves the authority root from a nested leaf directory', as
     await mkdir(path.join(root, 'scripts'), { recursive: true });
     await writeFile(path.join(root, 'scripts/harness'), '#!/usr/bin/env bash\n');
     await writeSources(root, source);
-    await createGitSource(source, '# Planning With Files\n');
+    const commitSha = await createGitSource(source, '# Planning With Files\n');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
     await writeState(root, {
       schemaVersion: 1,
       scope: 'workspace',
@@ -153,7 +273,8 @@ test('updateCommand applies candidate only to harness upstream path', async () =
     await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
     await writeFile(path.join(root, 'harness/core/policy/base.md'), 'core policy');
     await writeFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'old skill');
-    await createGitSource(source, 'new skill');
+    const commitSha = await createGitSource(source, 'new skill');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
 
     await withCwd(root, async () => {
       await fetchCommand(['--source=planning-with-files']);
@@ -188,7 +309,8 @@ test('updateCommand resolves the authority root from a nested leaf directory', a
     await writeFile(path.join(root, 'scripts/harness'), '#!/usr/bin/env bash\n');
     await writeSources(root, source);
     await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
-    await createGitSource(source, 'new skill');
+    const commitSha = await createGitSource(source, 'new skill');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
 
     await withCwd(leafDir, async () => {
       await fetchCommand(['--source=planning-with-files']);
@@ -245,7 +367,8 @@ test('updateCommand leaves IDE projections to later sync', async () => {
     await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
     await mkdir(path.join(root, '.github/skills/planning-with-files'), { recursive: true });
     await writeFile(path.join(root, '.github/skills/planning-with-files/SKILL.md'), 'old projected skill');
-    await createGitSource(source, 'new upstream skill');
+    const commitSha = await createGitSource(source, 'new upstream skill');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
 
     await withCwd(root, async () => {
       await fetchCommand(['--source=planning-with-files']);
@@ -280,7 +403,8 @@ test('updateCommand reapplies a declared overlay after replacing the upstream so
       path.join(root, 'harness/core/upstream-overlays/planning-with-files/scripts/close-task.py'),
       'overlay close task'
     );
-    await createGitSource(source, 'upstream skill');
+    const commitSha = await createGitSource(source, 'upstream skill');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
 
     await withCwd(root, async () => {
       await fetchCommand(['--source=planning-with-files']);
