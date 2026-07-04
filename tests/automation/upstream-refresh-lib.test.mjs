@@ -269,9 +269,24 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
   const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
   const events = [];
   const writtenResults = [];
+  const authoritativeLock = {
+    schemaVersion: 2,
+    sources: {
+      superpowers: {
+        strategy: 'latest-release',
+        resolved: {
+          kind: 'latest-release',
+          version: 'v6.0.3',
+          ref: 'v6.0.3',
+          commitSha: '0000000000000000000000000000000000000000'
+        }
+      }
+    }
+  };
 
   const result = await runUpstreamRefresh({
     cwd: '/tmp/repo',
+    loadAuthoritativeLock: async () => authoritativeLock,
     probeHeads: async () => ({
       status: 'changes_detected',
       previousLock: {
@@ -348,9 +363,34 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
   const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
   const events = [];
   const writes = [];
+  const authoritativeLock = {
+    schemaVersion: 2,
+    refreshedAt: '2026-03-01T00:00:00.000Z',
+    sources: {
+      superpowers: {
+        strategy: 'latest-release',
+        resolved: {
+          kind: 'latest-release',
+          version: 'v6.0.3',
+          ref: 'v6.0.3',
+          commitSha: '0000000000000000000000000000000000000000'
+        }
+      },
+      'planning-with-files': {
+        strategy: 'latest-release',
+        resolved: {
+          kind: 'latest-release',
+          version: 'v3.2.0',
+          ref: 'v3.2.0',
+          commitSha: '2222222222222222222222222222222222222222'
+        }
+      }
+    }
+  };
 
   await runUpstreamRefresh({
     cwd: '/tmp/repo',
+    loadAuthoritativeLock: async () => authoritativeLock,
     probeHeads: async () => ({
       status: 'changes_detected',
       previousLock: {
@@ -428,6 +468,8 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
   ]);
   assert.equal(writes[0].sources.superpowers.resolved.version, 'v6.1.1-beta.1');
   assert.equal(writes[1].sources.superpowers.resolved.version, 'v6.0.3');
+  assert.deepEqual(Object.keys(writes[1].sources).sort(), ['planning-with-files', 'superpowers']);
+  assert.equal(writes[1].sources['planning-with-files'].resolved.version, 'v3.2.0');
 });
 
 test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps them run-scoped', async () => {

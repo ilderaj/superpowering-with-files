@@ -6,6 +6,7 @@ import {
   probeUpstreamHeads
 } from './lib/upstream-heads.mjs';
 import {
+  loadSourceLock,
   loadUpstreamSourceConfig,
   writeSourceLock as writeSourceLockDefault
 } from '../../harness/installer/lib/upstream-config.mjs';
@@ -167,6 +168,7 @@ export async function runUpstreamRefresh({
   probeHeads = probeUpstreamHeads,
   readEventFile = readFile,
   loadSourceConfig = (rootDir) => loadUpstreamSourceConfig(rootDir),
+  loadAuthoritativeLock = ({ cwd }) => loadSourceLock({ rootDir: cwd }),
   loadBaseHealth: checkBaseHealth = ({ cwd, branch }) => loadBaseHealthDefault({ cwd, branch }),
   runRefresh = runRefreshCommandChain,
   captureChanges = captureChangedFiles,
@@ -184,6 +186,7 @@ export async function runUpstreamRefresh({
   let shouldCaptureFailureChanges = false;
   let changedFilesCaptured = false;
   let stagedRunLock = false;
+  let authoritativeLock = { schemaVersion: 2, refreshedAt: null, sources: {} };
   const workflowDispatchContext = await loadWorkflowDispatchRunContext({
     cwd,
     env,
@@ -244,13 +247,14 @@ export async function runUpstreamRefresh({
       });
     }
 
+    authoritativeLock = createWritableSourceLock(await loadAuthoritativeLock({ cwd }));
     shouldCaptureFailureChanges = true;
     await writeSourceLock(createWritableSourceLock(probeResult.resolvedLock), { cwd });
     stagedRunLock = true;
     await runRefresh({ cwd, sourceFilter: executionSourceFilter });
 
     if (effectiveRunOverrides.active) {
-      await writeSourceLock(createWritableSourceLock(probeResult.previousLock), { cwd });
+      await writeSourceLock(authoritativeLock, { cwd });
       stagedRunLock = false;
     }
 
@@ -304,7 +308,7 @@ export async function runUpstreamRefresh({
 
       if (stagedRunLock) {
         try {
-          await writeSourceLock(createWritableSourceLock(probeResult.previousLock), { cwd });
+          await writeSourceLock(authoritativeLock, { cwd });
           stagedRunLock = false;
         } catch (restoreError) {
           resultError = new Error(`${resultError instanceof Error ? resultError.message : String(resultError)}\n\nUnable to restore authoritative source lock after failure: ${restoreError instanceof Error ? restoreError.message : String(restoreError)}`, {
