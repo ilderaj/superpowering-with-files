@@ -9,6 +9,8 @@ export const baseRef = 'origin/dev';
 export const branchName = 'automation/upstream-refresh';
 export const resultPath = '.harness/upstream-refresh-result.json';
 export const refreshTaskId = 'github-actions-upstream-automation-analysis';
+export const defaultExecutionMode = 'base-branch-refresh';
+export const validationExecutionMode = 'workflow-ref-validation';
 
 const conflictFailurePattern = /\b(CONFLICT|conflict|merge conflict|merge failed|unmerged|would be overwritten|needs merge)\b/i;
 
@@ -127,11 +129,16 @@ export function buildUpdateCompatibilityReport({
   };
 }
 
-export function buildRefreshPrepareCommandChain() {
-  return [
-    { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
-    { file: 'git', args: ['checkout', '-B', branchName, baseRef] }
+export function buildRefreshPrepareCommandChain({ validationMode = false } = {}) {
+  const prepareCommands = [
+    { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] }
   ];
+
+  if (!validationMode) {
+    prepareCommands.push({ file: 'git', args: ['checkout', '-B', branchName, baseRef] });
+  }
+
+  return prepareCommands;
 }
 
 export function buildRefreshExecutionCommandChain({ sourceFilter } = {}) {
@@ -149,9 +156,9 @@ export function buildRefreshExecutionCommandChain({ sourceFilter } = {}) {
   ];
 }
 
-export function buildRefreshCommandChain({ sourceFilter } = {}) {
+export function buildRefreshCommandChain({ sourceFilter, validationMode = false } = {}) {
   return [
-    ...buildRefreshPrepareCommandChain(),
+    ...buildRefreshPrepareCommandChain({ validationMode }),
     ...buildRefreshExecutionCommandChain({ sourceFilter })
   ];
 }
@@ -295,6 +302,7 @@ export async function cleanupRuntimeArtifacts(filePaths, {
 
 export function createRefreshResult({
   status,
+  executionMode = defaultExecutionMode,
   sourceHeads = {},
   eligibleFiles = [],
   previousLock = { sources: {} },
@@ -316,6 +324,7 @@ export function createRefreshResult({
 
   return {
     status,
+    executionMode,
     baseRef,
     branchName,
     sourceHeads,
@@ -351,6 +360,7 @@ export function formatBlockedReason(error) {
 
 export function createFailureRefreshResult({
   error,
+  executionMode = defaultExecutionMode,
   sourceHeads = {},
   eligibleFiles = [],
   previousLock = { sources: {} },
@@ -360,6 +370,7 @@ export function createFailureRefreshResult({
 } = {}) {
   return createRefreshResult({
     status: 'failure',
+    executionMode,
     sourceHeads,
     eligibleFiles,
     previousLock,
@@ -474,8 +485,9 @@ export async function runCommand(command, {
 export async function runRefreshCommandChain({
   cwd = process.cwd(),
   sourceFilter,
+  validationMode = false,
   beforeExecution,
-  prepareCommands = buildRefreshPrepareCommandChain(),
+  prepareCommands = buildRefreshPrepareCommandChain({ validationMode }),
   executionCommands = buildRefreshExecutionCommandChain({ sourceFilter }),
   run = runCommand
 } = {}) {

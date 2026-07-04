@@ -16,12 +16,14 @@ import {
   createAllowlistViolationError,
   createFailureRefreshResult,
   createRefreshResult,
+  defaultExecutionMode,
   filterEligibleChanges,
   listTransientRuntimeArtifacts as listTransientRuntimeArtifactsDefault,
   listRepoLocalEntryFileChanges,
   restoreRepoLocalEntryFiles,
   runRefreshCommandChain,
   UpstreamRefreshBlockedError,
+  validationExecutionMode,
   writeRefreshResult
 } from './lib/upstream-refresh.mjs';
 import {
@@ -140,6 +142,8 @@ async function loadWorkflowDispatchRunContext({
     ? inputs.strategy_override.trim()
     : '';
   const allowPrerelease = parseWorkflowInputBoolean(inputs.allow_prerelease, false);
+  const validationMode = parseWorkflowInputBoolean(inputs.validation_mode, false);
+  const createPr = parseWorkflowInputBoolean(inputs.create_pr, false);
   const dryRun = parseWorkflowInputBoolean(inputs.dry_run, false);
   const hasSourceOverrides = sourceFilter.length > 0 || Boolean(strategyOverride) || allowPrerelease;
 
@@ -152,10 +156,12 @@ async function loadWorkflowDispatchRunContext({
         })
       : undefined,
     runOverrides: {
-      active: hasSourceOverrides || dryRun,
+      active: hasSourceOverrides || dryRun || validationMode,
       sourceFilter,
       strategyOverride: strategyOverride || null,
       allowPrerelease,
+      validationMode,
+      createPr,
       dryRun
     }
   };
@@ -195,6 +201,9 @@ export async function runUpstreamRefresh({
   });
   const effectiveRunOverrides = runOverrides ?? workflowDispatchContext.runOverrides;
   const executionSourceFilter = resolveExecutionSourceFilter(effectiveRunOverrides.sourceFilter);
+  const executionMode = effectiveRunOverrides.validationMode
+    ? validationExecutionMode
+    : defaultExecutionMode;
 
   async function captureChangesForAllowlist() {
     const changedFiles = await captureChanges({ cwd });
@@ -226,6 +235,7 @@ export async function runUpstreamRefresh({
     if (probeResult.status === 'no_changes') {
       const result = createRefreshResult({
         status: 'no_changes',
+        executionMode,
         sourceHeads: probeResult.sourceHeads,
         eligibleFiles: [],
         previousLock: probeResult.previousLock,
@@ -252,6 +262,7 @@ export async function runUpstreamRefresh({
     await runRefresh({
       cwd,
       sourceFilter: executionSourceFilter,
+      validationMode: effectiveRunOverrides.validationMode,
       beforeExecution: async () => {
         await writeSourceLock(createWritableSourceLock(probeResult.resolvedLock), { cwd });
         stagedRunLock = true;
@@ -298,6 +309,7 @@ export async function runUpstreamRefresh({
 
     const result = createRefreshResult({
       status: 'success',
+      executionMode,
       sourceHeads: probeResult.sourceHeads,
       eligibleFiles,
       previousLock: probeResult.previousLock,
@@ -342,6 +354,7 @@ export async function runUpstreamRefresh({
 
     const result = createFailureRefreshResult({
       error: resultError,
+      executionMode,
       sourceHeads: probeResult.sourceHeads,
       eligibleFiles,
       previousLock: probeResult.previousLock,

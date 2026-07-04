@@ -23,6 +23,10 @@ const expectedPrepareCommands = [
   { file: 'git', args: ['checkout', '-B', 'automation/upstream-refresh', 'origin/dev'] }
 ];
 
+const expectedValidationPrepareCommands = [
+  { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] }
+];
+
 const expectedExecutionCommands = [
   { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
   { file: './scripts/harness', args: ['fetch'] },
@@ -74,6 +78,12 @@ test('buildRefreshPrepareCommandChain isolates the base-branch preparation seque
   assert.deepEqual(buildRefreshPrepareCommandChain(), expectedPrepareCommands);
 });
 
+test('buildRefreshPrepareCommandChain keeps workflow-ref validation runs on the checked-out ref', async () => {
+  const { buildRefreshPrepareCommandChain } = await loadUpstreamRefreshModule();
+
+  assert.deepEqual(buildRefreshPrepareCommandChain({ validationMode: true }), expectedValidationPrepareCommands);
+});
+
 test('buildRefreshExecutionCommandChain isolates the post-checkout refresh sequence', async () => {
   const { buildRefreshExecutionCommandChain } = await loadUpstreamRefreshModule();
 
@@ -89,6 +99,22 @@ test('buildRefreshCommandChain narrows fetch and update to the selected source f
     { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
     { file: './scripts/harness', args: ['fetch', '--source=planning-with-files'] },
     { file: './scripts/harness', args: ['update', '--source=planning-with-files'] },
+    { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
+    { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
+    { file: './scripts/harness', args: ['sync', '--dry-run'] },
+    { file: './scripts/harness', args: ['sync'] },
+    { file: './scripts/harness', args: ['doctor'] }
+  ]);
+});
+
+test('buildRefreshCommandChain omits the origin/dev checkout during workflow-ref validation runs', async () => {
+  const { buildRefreshCommandChain } = await loadUpstreamRefreshModule();
+
+  assert.deepEqual(buildRefreshCommandChain({ validationMode: true }), [
+    { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
+    { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
+    { file: './scripts/harness', args: ['fetch'] },
+    { file: './scripts/harness', args: ['update'] },
     { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
     { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
     { file: './scripts/harness', args: ['sync', '--dry-run'] },
@@ -319,6 +345,7 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
   assert.equal(result.previousLock.sources.superpowers.resolved.version, 'v6.0.3');
   assert.equal(result.resolvedLock.sources.superpowers.resolved.version, 'v6.1.1');
   assert.equal(result.lockPersistence, 'written');
+  assert.equal(result.executionMode, 'base-branch-refresh');
   assert.deepEqual(writtenResults, [result]);
 });
 
@@ -414,6 +441,7 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
 
   assert.deepEqual(events, ['writeSourceLock:v6.1.1', 'runRefresh', 'writeSourceLock:v6.0.3', 'captureChanges', 'writeResult']);
   assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
+  assert.equal(result.executionMode, 'base-branch-refresh');
   assert.deepEqual(writtenResults, [result]);
 });
 
@@ -655,7 +683,136 @@ test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps t
   assert.equal(capturedSources.sources['planning-with-files'].resolution.allowPrerelease, true);
   assert.deepEqual(events, ['writeSourceLock', 'runRefresh', 'writeSourceLock', 'captureChanges', 'writeResult']);
   assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
+  assert.equal(result.executionMode, 'base-branch-refresh');
   assert.deepEqual(result.eligibleFiles, ['harness/upstream/planning-with-files/SKILL.md']);
+});
+
+test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out branch and disables steady-state side effects', async () => {
+  const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'upstream-refresh-validation-mode-'));
+  const eventPath = path.join(tempRoot, 'workflow-dispatch.json');
+  const events = [];
+
+  await writeFile(eventPath, JSON.stringify({
+    inputs: {
+      source_filter: 'superpowers',
+      validation_mode: 'true',
+      create_pr: 'true',
+      dry_run: 'false'
+    }
+  }), 'utf8');
+
+  const result = await runUpstreamRefresh({
+    cwd: '/tmp/repo',
+    env: {
+      GITHUB_EVENT_NAME: 'workflow_dispatch',
+      GITHUB_EVENT_PATH: eventPath
+    },
+    loadSourceConfig: async () => ({
+      schemaVersion: 2,
+      sources: {
+        superpowers: {
+          name: 'superpowers',
+          type: 'git',
+          url: 'https://github.com/obra/superpowers',
+          resolution: {
+            strategy: 'latest-release',
+            allowPrerelease: false,
+            fallbacks: []
+          }
+        }
+      }
+    }),
+    loadAuthoritativeLock: async () => ({
+      schemaVersion: 2,
+      sources: {
+        superpowers: {
+          strategy: 'latest-release',
+          resolved: {
+            kind: 'latest-release',
+            version: 'v6.0.3',
+            ref: 'v6.0.3',
+            commitSha: '0000000000000000000000000000000000000000'
+          }
+        }
+      }
+    }),
+    probeHeads: async () => ({
+      status: 'changes_detected',
+      previousLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.0.3',
+              ref: 'v6.0.3',
+              commitSha: '0000000000000000000000000000000000000000'
+            }
+          }
+        }
+      },
+      resolvedLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.1.1',
+              ref: 'v6.1.1',
+              commitSha: '1111111111111111111111111111111111111111'
+            }
+          }
+        }
+      },
+      changedSources: ['superpowers'],
+      sourceHeads: {
+        superpowers: '1111111111111111111111111111111111111111'
+      },
+      strategySummary: {
+        superpowers: {
+          strategy: 'latest-release',
+          previousVersion: 'v6.0.3',
+          nextVersion: 'v6.1.1',
+          previousCommitSha: '0000000000000000000000000000000000000000',
+          nextCommitSha: '1111111111111111111111111111111111111111',
+          fallbackUsed: false
+        }
+      }
+    }),
+    loadBaseHealth: async () => healthyBaseHealthStub(),
+    runRefresh: async ({ sourceFilter, validationMode, beforeExecution }) => {
+      await beforeExecution?.();
+      events.push(`runRefresh:${sourceFilter}:${validationMode ? 'validation' : 'default'}`);
+    },
+    writeSourceLock: async (record) => {
+      events.push(`writeSourceLock:${record.sources.superpowers.resolved.version}`);
+    },
+    captureChanges: async () => {
+      events.push('captureChanges');
+      return [{ path: 'harness/upstream/superpowers/SKILL.md', tracked: true }];
+    },
+    filterChanges: (changes) => ({
+      eligibleFiles: changes.map((change) => change.path),
+      excludedFiles: []
+    }),
+    writeResult: async () => {
+      events.push('writeResult');
+    }
+  });
+
+  assert.deepEqual(events, [
+    'writeSourceLock:v6.1.1',
+    'runRefresh:superpowers:validation',
+    'writeSourceLock:v6.0.3',
+    'captureChanges',
+    'writeResult'
+  ]);
+  assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
+  assert.equal(result.executionMode, 'workflow-ref-validation');
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
 });
 
 test('runUpstreamRefresh blocks before the refresh command chain when origin/dev base health is unhealthy', async () => {
@@ -700,6 +857,7 @@ test('runUpstreamRefresh blocks before the refresh command chain when origin/dev
   assert.equal(writtenResults.length, 1);
   assert.deepEqual(writtenResults[0], {
     status: 'failure',
+    executionMode: 'base-branch-refresh',
     baseRef: 'origin/dev',
     branchName: 'automation/upstream-refresh',
     sourceHeads: {

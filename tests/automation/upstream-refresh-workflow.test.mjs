@@ -94,6 +94,10 @@ test('upstream refresh workflow exposes manual controls and weekly scheduled tri
   assert.match(onBlock, /^\s{8}description:\s*Allow prerelease selection for this run only when supported by the strategy\s*$/m);
   assert.match(onBlock, /^\s{8}default:\s*false\s*$/m);
   assert.match(onBlock, /^\s{8}type:\s*boolean\s*$/m);
+  assert.match(onBlock, /^\s{6}validation_mode:\s*$/m);
+  assert.match(onBlock, /^\s{8}description:\s*Run on the checked-out workflow ref without switching to origin\/dev; keeps lock persistence and PR creation disabled\s*$/m);
+  assert.match(onBlock, /^\s{8}default:\s*false\s*$/m);
+  assert.match(onBlock, /^\s{8}type:\s*boolean\s*$/m);
   assert.match(onBlock, /^\s{6}create_pr:\s*$/m);
   assert.match(onBlock, /^\s{8}description:\s*Create or update the upstream refresh pull request\s*$/m);
   assert.match(onBlock, /^\s{8}required:\s*false\s*$/m);
@@ -186,7 +190,7 @@ test('upstream refresh workflow opens PRs only after successful non-empty refres
 
   assert.match(
     pullRequestBlock,
-    /^\s{8}if:\s*\$\{\{\s*success\(\)\s*&&\s*steps\.refresh_result\.outputs\.status\s*==\s*'success'\s*&&\s*steps\.refresh_result\.outputs\.eligible_count\s*!=\s*'0'\s*&&\s*\(github\.event_name\s*==\s*'schedule'\s*\|\|\s*\(inputs\.create_pr\s*==\s*true\s*&&\s*inputs\.dry_run\s*!=\s*true\)\)\s*\}\}\s*$/m
+    /^\s{8}if:\s*\$\{\{\s*success\(\)\s*&&\s*steps\.refresh_result\.outputs\.status\s*==\s*'success'\s*&&\s*steps\.refresh_result\.outputs\.eligible_count\s*!=\s*'0'\s*&&\s*\(github\.event_name\s*==\s*'schedule'\s*\|\|\s*\(inputs\.create_pr\s*==\s*true\s*&&\s*inputs\.dry_run\s*!=\s*true\s*&&\s*inputs\.validation_mode\s*!=\s*true\)\)\s*\}\}\s*$/m
   );
   assert.match(pullRequestBlock, /^\s{8}run:\s*node scripts\/ci\/open-upstream-pr\.mjs\s*$/m);
 });
