@@ -321,6 +321,7 @@ test('sync projects workspace entries and skills', async () => {
   }
 });
 
+
 test('sync materializes executing-plans replan guidance for shared and Claude skill roots without regressing existing Superpowers patches', async () => {
   const root = await createHarnessFixture();
   try {

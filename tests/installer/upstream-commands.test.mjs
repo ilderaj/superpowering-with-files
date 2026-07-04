@@ -444,6 +444,12 @@ test('updateCommand reapplies a declared overlay after replacing the upstream so
     await mkdir(path.join(root, 'harness/core/upstream-overlays/planning-with-files/scripts'), {
       recursive: true
     });
+    await mkdir(path.join(root, 'harness/core/upstream-overlays/planning-with-files/.codex/hooks'), {
+      recursive: true
+    });
+    await mkdir(path.join(root, 'harness/core/upstream-overlays/planning-with-files/tests'), {
+      recursive: true
+    });
     await writeFile(
       path.join(root, 'harness/core/upstream-overlays/planning-with-files/SKILL.md'),
       'overlay skill'
@@ -452,8 +458,38 @@ test('updateCommand reapplies a declared overlay after replacing the upstream so
       path.join(root, 'harness/core/upstream-overlays/planning-with-files/scripts/close-task.py'),
       'overlay close task'
     );
-    const commitSha = await createGitSource(source, 'upstream skill');
-    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
+    await writeFile(
+      path.join(root, 'harness/core/upstream-overlays/planning-with-files/.codex/hooks/permission_request.py'),
+      'overlay permission request uses resolve-active-plan-dir.sh'
+    );
+    await writeFile(
+      path.join(root, 'harness/core/upstream-overlays/planning-with-files/.codex/hooks/resolve-active-plan-dir.sh'),
+      'overlay resolver uses planning_paths.py'
+    );
+    await writeFile(
+      path.join(root, 'harness/core/upstream-overlays/planning-with-files/tests/test_codex_hooks.py'),
+      'test_permission_request_adapter_emits_plan_reminder_for_active_task_dir'
+    );
+    await createGitSource(source, 'upstream skill');
+    await mkdir(path.join(source, '.codex/hooks'), { recursive: true });
+    await mkdir(path.join(source, 'tests'), { recursive: true });
+    await writeFile(
+      path.join(source, '.codex/hooks/permission_request.py'),
+      'upstream permission request without active plan resolver'
+    );
+    await writeFile(
+      path.join(source, 'tests/test_codex_hooks.py'),
+      'test_permission_request_adapter_emits_plan_reminder'
+    );
+    await execFileAsync('git', ['add', '.'], { cwd: source });
+    await execFileAsync(
+      'git',
+      ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'commit', '-m', 'drop codex hook helper'],
+      { cwd: source }
+    );
+    const { stdout: updatedCommitStdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: source });
+    const updatedCommitSha = updatedCommitStdout.trim();
+    await writeBranchHeadLock(root, 'planning-with-files', updatedCommitSha);
 
     await withCwd(root, async () => {
       await fetchCommand(['--source=planning-with-files']);
@@ -470,6 +506,27 @@ test('updateCommand reapplies a declared overlay after replacing the upstream so
         'utf8'
       ),
       'overlay close task'
+    );
+    assert.equal(
+      await readFile(
+        path.join(root, 'harness/upstream/planning-with-files/.codex/hooks/permission_request.py'),
+        'utf8'
+      ),
+      'overlay permission request uses resolve-active-plan-dir.sh'
+    );
+    assert.equal(
+      await readFile(
+        path.join(root, 'harness/upstream/planning-with-files/.codex/hooks/resolve-active-plan-dir.sh'),
+        'utf8'
+      ),
+      'overlay resolver uses planning_paths.py'
+    );
+    assert.equal(
+      await readFile(
+        path.join(root, 'harness/upstream/planning-with-files/tests/test_codex_hooks.py'),
+        'utf8'
+      ),
+      'test_permission_request_adapter_emits_plan_reminder_for_active_task_dir'
     );
   } finally {
     await rm(root, { recursive: true, force: true });
