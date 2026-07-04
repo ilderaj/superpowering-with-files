@@ -2,10 +2,9 @@
 
 import { pathToFileURL } from 'node:url';
 import {
-  buildSourceHeadsRecord,
-  probeUpstreamHeads,
-  writeSourceHeadsRecord
+  probeUpstreamHeads
 } from './lib/upstream-heads.mjs';
+import { writeSourceLock as writeSourceLockDefault } from '../../harness/installer/lib/upstream-config.mjs';
 import {
   captureChangedFiles,
   cleanupRuntimeArtifacts as cleanupRuntimeArtifactsDefault,
@@ -37,10 +36,11 @@ export async function runUpstreamRefresh({
   listRepoLocalEntryChanges = listRepoLocalEntryFileChanges,
   cleanupRuntimeArtifacts = cleanupRuntimeArtifactsDefault,
   restoreRepoLocalEntries = restoreRepoLocalEntryFiles,
-  writeSourceHeads = writeSourceHeadsRecord,
+  writeSourceLock = (record, { cwd }) => writeSourceLockDefault(record, { rootDir: cwd }),
+  runOverrides = { active: false },
   writeResult = writeRefreshResult
 } = {}) {
-  let probeResult = { sourceHeads: {} };
+  let probeResult = { sourceHeads: {}, previousLock: { sources: {} }, resolvedLock: { sources: {} }, strategySummary: {}, changedSources: [] };
   let eligibleFiles = [];
   let shouldCaptureFailureChanges = false;
   let changedFilesCaptured = false;
@@ -73,7 +73,12 @@ export async function runUpstreamRefresh({
       const result = createRefreshResult({
         status: 'no_changes',
         sourceHeads: probeResult.sourceHeads,
-        eligibleFiles: []
+        eligibleFiles: [],
+        previousLock: probeResult.previousLock,
+        resolvedLock: probeResult.resolvedLock,
+        changedSources: probeResult.changedSources,
+        strategySummary: probeResult.strategySummary,
+        lockPersistence: 'not_needed'
       });
       await writeResult(result, { cwd });
       return result;
@@ -91,12 +96,29 @@ export async function runUpstreamRefresh({
     shouldCaptureFailureChanges = true;
     await runRefresh({ cwd });
 
-    const timestamp = now().toISOString();
-    await writeSourceHeads(buildSourceHeadsRecord({
-      sources: probeResult.sources,
-      observedHeads: probeResult.sourceHeads,
-      timestamp
-    }), { cwd });
+    let lockPersistence = 'skipped_due_to_run_override';
+    if (!runOverrides.active) {
+      const refreshedAt = now().toISOString();
+      const lockRecord = {
+        ...probeResult.resolvedLock,
+        refreshedAt,
+        sources: Object.fromEntries(
+          Object.entries(probeResult.resolvedLock?.sources ?? {}).map(([name, source]) => [
+            name,
+            {
+              ...source,
+              refreshedAt
+            }
+          ])
+        )
+      };
+      await writeSourceLock(lockRecord, { cwd });
+      probeResult = {
+        ...probeResult,
+        resolvedLock: lockRecord
+      };
+      lockPersistence = 'written';
+    }
 
     const effectiveChangedFiles = await captureChangesForAllowlist();
     changedFilesCaptured = true;
@@ -110,7 +132,12 @@ export async function runUpstreamRefresh({
     const result = createRefreshResult({
       status: 'success',
       sourceHeads: probeResult.sourceHeads,
-      eligibleFiles
+      eligibleFiles,
+      previousLock: probeResult.previousLock,
+      resolvedLock: probeResult.resolvedLock,
+      changedSources: probeResult.changedSources,
+      strategySummary: probeResult.strategySummary,
+      lockPersistence
     });
     await writeResult(result, { cwd });
     return result;
@@ -138,7 +165,11 @@ export async function runUpstreamRefresh({
     const result = createFailureRefreshResult({
       error: resultError,
       sourceHeads: probeResult.sourceHeads,
-      eligibleFiles
+      eligibleFiles,
+      previousLock: probeResult.previousLock,
+      resolvedLock: probeResult.resolvedLock,
+      changedSources: probeResult.changedSources,
+      strategySummary: probeResult.strategySummary
     });
     await writeResult(result, { cwd });
     throw new UpstreamRefreshBlockedError(result, { cause: error });

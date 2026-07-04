@@ -283,6 +283,11 @@ export function createRefreshResult({
   status,
   sourceHeads = {},
   eligibleFiles = [],
+  previousLock = { sources: {} },
+  resolvedLock = { sources: {} },
+  changedSources = [],
+  strategySummary = {},
+  lockPersistence = 'not_applicable',
   blockedReason = '',
   failureKind = '',
   compatibilityReport
@@ -301,6 +306,11 @@ export function createRefreshResult({
     branchName,
     sourceHeads,
     eligibleFiles,
+    previousLock,
+    resolvedLock,
+    changedSources,
+    strategySummary,
+    lockPersistence,
     compatibilityReport: report,
     blockedReason,
     failureKind
@@ -328,12 +338,21 @@ export function formatBlockedReason(error) {
 export function createFailureRefreshResult({
   error,
   sourceHeads = {},
-  eligibleFiles = []
+  eligibleFiles = [],
+  previousLock = { sources: {} },
+  resolvedLock = { sources: {} },
+  changedSources = [],
+  strategySummary = {}
 } = {}) {
   return createRefreshResult({
     status: 'failure',
     sourceHeads,
     eligibleFiles,
+    previousLock,
+    resolvedLock,
+    changedSources,
+    strategySummary,
+    lockPersistence: 'not_written_due_to_failure',
     blockedReason: formatBlockedReason(error),
     failureKind: error?.failureKind ?? 'runtime_failure'
   });

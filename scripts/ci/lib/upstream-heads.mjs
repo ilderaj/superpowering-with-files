@@ -1,151 +1,133 @@
-import { execFile } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-import { promisify } from 'node:util';
+import {
+  compareResolvedFingerprints,
+  defaultSourceConfigPath,
+  defaultSourceLockPath,
+  loadSourceLock,
+  loadUpstreamSourceConfig,
+  writeSourceLock
+} from '../../../harness/installer/lib/upstream-config.mjs';
+import { resolveSourceTarget } from './upstream-resolver.mjs';
 
-const execFileAsync = promisify(execFile);
-
-export const defaultSourcesPath = 'harness/upstream/sources.json';
+export const defaultSourcesPath = defaultSourceConfigPath;
 export const defaultSourceHeadsPath = 'harness/upstream/.source-heads.json';
+export const defaultResolvedLockPath = defaultSourceLockPath;
 
 export function normalizeUpstreamSources(sourcesDocument) {
-  const rawSources = Array.isArray(sourcesDocument)
-    ? sourcesDocument
-    : Object.entries(sourcesDocument?.sources ?? {}).map(([name, source]) => ({
-        name,
-        ...source
-      }));
+  if (Array.isArray(sourcesDocument)) {
+    return sourcesDocument;
+  }
 
-  return rawSources
-    .filter((source) => (source.type ?? 'git') === 'git')
-    .map((source) => ({
-      name: source.name,
-      url: source.url
-    }))
-    .filter((source) => source.name && source.url);
+  return Object.values(sourcesDocument?.sources ?? {});
 }
 
 export async function loadUpstreamSources({
-  cwd = process.cwd(),
-  sourcesPath = defaultSourcesPath
+  cwd = process.cwd()
 } = {}) {
-  const documentText = await readFile(path.resolve(cwd, sourcesPath), 'utf8');
-  return normalizeUpstreamSources(JSON.parse(documentText));
+  return loadUpstreamSourceConfig(cwd);
 }
 
-export function getRecordedHeadSha(recordedHeads, sourceName) {
-  const entry = recordedHeads?.sources?.[sourceName] ?? recordedHeads?.[sourceName];
-
-  if (typeof entry === 'string') return entry;
-  if (!entry || typeof entry !== 'object') return undefined;
-
-  return entry.headSha ?? entry.sha ?? entry.observedHeadSha ?? entry.observedHead ?? entry.head;
+export async function loadRecordedSourceHeads({
+  cwd = process.cwd()
+} = {}) {
+  return loadSourceLock({ rootDir: cwd });
 }
 
-export function createSourceHeadRecord({ source, headSha, timestamp }) {
+export async function writeSourceHeadsRecord(record, {
+  cwd = process.cwd()
+} = {}) {
+  return writeSourceLock(record, { rootDir: cwd });
+}
+
+export function buildSourceHeadsRecord(record) {
+  return record;
+}
+
+export function buildSourceLockRecord(resolvedSources, { refreshedAt = null } = {}) {
   return {
-    name: source.name,
-    url: source.url,
-    headSha,
-    refreshedAt: timestamp
-  };
-}
-
-export function buildSourceHeadsRecord({ sources, observedHeads, timestamp }) {
-  return {
-    schemaVersion: 1,
-    refreshedAt: timestamp,
+    schemaVersion: 2,
+    refreshedAt,
     sources: Object.fromEntries(
-      sources.map((source) => [
+      resolvedSources.map((source) => [
         source.name,
-        createSourceHeadRecord({
-          source,
-          headSha: observedHeads[source.name],
-          timestamp
-        })
+        {
+          strategy: source.strategy,
+          fallbackUsed: source.fallbackUsed ?? false,
+          resolved: {
+            kind: source.resolved.kind,
+            version: source.resolved.version ?? null,
+            ref: source.resolved.ref,
+            commitSha: source.resolved.commitSha
+          },
+          refreshedAt
+        }
       ])
     )
   };
 }
 
-export async function loadRecordedSourceHeads({
-  cwd = process.cwd(),
-  sourceHeadsPath = defaultSourceHeadsPath
-} = {}) {
-  try {
-    const documentText = await readFile(path.resolve(cwd, sourceHeadsPath), 'utf8');
-    return JSON.parse(documentText);
-  } catch (error) {
-    if (error?.code === 'ENOENT') return {};
-    throw error;
-  }
-}
-
-export async function writeSourceHeadsRecord(record, {
-  cwd = process.cwd(),
-  sourceHeadsPath = defaultSourceHeadsPath
-} = {}) {
-  const targetPath = path.resolve(cwd, sourceHeadsPath);
-  await mkdir(path.dirname(targetPath), { recursive: true });
-  await writeFile(targetPath, `${JSON.stringify(record, null, 2)}\n`, 'utf8');
-}
-
-export function parseLsRemoteHead(output) {
-  const firstLine = output.trim().split(/\r?\n/)[0] ?? '';
-  const [headSha] = firstLine.split(/\s+/);
-
-  if (!/^[0-9a-f]{40}$/i.test(headSha)) {
-    throw new Error(`Unable to parse git ls-remote HEAD output: ${output}`);
-  }
-
-  return headSha;
-}
-
-export async function lsRemoteHead(url, { cwd = process.cwd() } = {}) {
-  const { stdout } = await execFileAsync('git', ['ls-remote', url, 'HEAD'], {
-    cwd,
-    maxBuffer: 1024 * 1024
+export function compareSourceHeads({ recordedHeads, resolvedLock }) {
+  return compareResolvedFingerprints({
+    recordedLock: recordedHeads,
+    resolvedLock
   });
-
-  return parseLsRemoteHead(stdout);
 }
 
-export function compareSourceHeads({ sources, observedHeads, recordedHeads }) {
-  const changedSources = sources
-    .filter((source) => getRecordedHeadSha(recordedHeads, source.name) !== observedHeads[source.name])
-    .map((source) => source.name);
+export function buildStrategySummary({ previousLock, resolvedLock, changedSources }) {
+  return Object.fromEntries(
+    changedSources.map((sourceName) => {
+      const previousSource = previousLock?.sources?.[sourceName];
+      const nextSource = resolvedLock?.sources?.[sourceName];
 
-  return {
-    status: changedSources.length === 0 ? 'no_changes' : 'changes_detected',
-    changedSources
-  };
+      return [
+        sourceName,
+        {
+          strategy: nextSource?.strategy ?? previousSource?.strategy ?? null,
+          previousVersion: previousSource?.resolved?.version ?? null,
+          nextVersion: nextSource?.resolved?.version ?? null,
+          previousCommitSha: previousSource?.resolved?.commitSha ?? null,
+          nextCommitSha: nextSource?.resolved?.commitSha ?? null,
+          fallbackUsed: nextSource?.fallbackUsed ?? false
+        }
+      ];
+    })
+  );
 }
 
 export async function probeUpstreamHeads({
   cwd = process.cwd(),
   sources,
   recordedHeads,
-  lsRemoteHead: probeHead = (url) => lsRemoteHead(url, { cwd })
+  resolveSource = resolveSourceTarget
 } = {}) {
-  const gitSources = sources ? normalizeUpstreamSources(sources) : await loadUpstreamSources({ cwd });
-  const sourceHeadRecord = recordedHeads ?? await loadRecordedSourceHeads({ cwd });
-  const observedEntries = [];
+  const normalizedSources = sources ?? await loadUpstreamSourceConfig(cwd);
+  const configuredSources = normalizeUpstreamSources(normalizedSources)
+    .filter((source) => (source.type ?? 'git') === 'git');
+  const previousLock = recordedHeads ?? await loadSourceLock({ rootDir: cwd });
+  const resolvedSources = [];
 
-  for (const source of gitSources) {
-    observedEntries.push([source.name, await probeHead(source.url, source)]);
+  for (const source of configuredSources) {
+    resolvedSources.push(await resolveSource(source));
   }
 
-  const observedHeads = Object.fromEntries(observedEntries);
-  const comparison = compareSourceHeads({
-    sources: gitSources,
-    observedHeads,
-    recordedHeads: sourceHeadRecord
+  const resolvedLock = buildSourceLockRecord(resolvedSources);
+  const comparison = compareResolvedFingerprints({
+    recordedLock: previousLock,
+    resolvedLock
   });
 
   return {
     ...comparison,
-    sources: gitSources,
-    sourceHeads: observedHeads,
+    sources: configuredSources,
+    sourceHeads: Object.fromEntries(
+      resolvedSources.map((source) => [source.name, source.resolved.commitSha])
+    ),
+    previousLock,
+    resolvedLock,
+    strategySummary: buildStrategySummary({
+      previousLock,
+      resolvedLock,
+      changedSources: comparison.changedSources
+    }),
     shouldCreateBranch: comparison.status !== 'no_changes',
     shouldOpenPullRequest: comparison.status !== 'no_changes',
     shouldRunRefreshChain: comparison.status !== 'no_changes'

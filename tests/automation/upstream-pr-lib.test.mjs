@@ -40,10 +40,17 @@ test('buildPullRequestBody marks automatic review and checks as advisory', async
   const body = buildPullRequestBody({
     eligibleFiles: [
       'harness/upstream/superpowers/SKILL.md',
-      'harness/upstream/.source-heads.json'
+      'harness/upstream/.source-lock.json'
     ],
-    sourceHeads: {
-      superpowers: '1111111111111111111111111111111111111111'
+    strategySummary: {
+      superpowers: {
+        strategy: 'latest-release',
+        previousVersion: 'v6.0.3',
+        nextVersion: 'v6.1.1',
+        previousCommitSha: '0000000000000000000000000000000000000000',
+        nextCommitSha: '1111111111111111111111111111111111111111',
+        fallbackUsed: false
+      }
     }
   });
 
@@ -53,6 +60,61 @@ test('buildPullRequestBody marks automatic review and checks as advisory', async
   assert.match(body, /guarded --force-with-lease update is limited to the fixed automation branch/i);
   assert.match(body, /harness\/upstream\/superpowers\/SKILL\.md/);
   assert.match(body, /superpowers/);
+  assert.match(body, /v6\.0\.3/);
+  assert.match(body, /v6\.1\.1/);
+  assert.match(body, /latest-release/);
+});
+
+test('buildUpstreamPullRequestPlan carries resolved lock metadata into the PR body', async () => {
+  const { buildUpstreamPullRequestPlan } = await loadUpstreamPrModule();
+
+  const plan = buildUpstreamPullRequestPlan({
+    eligibleFiles: ['harness/upstream/.source-lock.json'],
+    previousLock: {
+      schemaVersion: 2,
+      sources: {
+        superpowers: {
+          strategy: 'latest-release',
+          resolved: {
+            kind: 'latest-release',
+            version: 'v6.0.3',
+            ref: 'v6.0.3',
+            commitSha: '0000000000000000000000000000000000000000'
+          }
+        }
+      }
+    },
+    resolvedLock: {
+      schemaVersion: 2,
+      sources: {
+        superpowers: {
+          strategy: 'latest-release',
+          resolved: {
+            kind: 'latest-release',
+            version: 'v6.1.1',
+            ref: 'v6.1.1',
+            commitSha: '1111111111111111111111111111111111111111'
+          }
+        }
+      }
+    },
+    strategySummary: {
+      superpowers: {
+        strategy: 'latest-release',
+        previousVersion: 'v6.0.3',
+        nextVersion: 'v6.1.1',
+        previousCommitSha: '0000000000000000000000000000000000000000',
+        nextCommitSha: '1111111111111111111111111111111111111111',
+        fallbackUsed: false
+      }
+    }
+  });
+
+  assert.equal(plan.shouldCreatePullRequest, true);
+  assert.equal(plan.previousLock.sources.superpowers.resolved.version, 'v6.0.3');
+  assert.equal(plan.resolvedLock.sources.superpowers.resolved.version, 'v6.1.1');
+  assert.match(plan.body, /harness\/upstream\/\.source-lock\.json/);
+  assert.match(plan.body, /1111111111111111111111111111111111111111/);
 });
 
 test('buildPullRequestBody truncates oversized eligible file lists', async () => {

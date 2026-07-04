@@ -157,41 +157,78 @@ test('runCommand captures and forwards stdout and stderr when a command fails', 
   assert.deepEqual(forwardedErrors, ['CONFLICT (content): Merge conflict in docs/maintenance.md\n']);
 });
 
-test('runUpstreamRefresh captures eligible files after writing the source head record', async () => {
+test('runUpstreamRefresh captures eligible files after writing the authoritative source lock', async () => {
   const { filterEligibleChanges } = await loadUpstreamRefreshModule();
   const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
   const events = [];
   const writtenResults = [];
-  let sourceHeadsRecordChanged = false;
+  let sourceLockWritten = false;
+  const previousLock = {
+    schemaVersion: 2,
+    sources: {
+      superpowers: {
+        strategy: 'latest-release',
+        fallbackUsed: false,
+        resolved: {
+          kind: 'latest-release',
+          version: 'v6.0.3',
+          ref: 'v6.0.3',
+          commitSha: '0000000000000000000000000000000000000000'
+        }
+      }
+    }
+  };
+  const resolvedLock = {
+    schemaVersion: 2,
+    sources: {
+      superpowers: {
+        strategy: 'latest-release',
+        fallbackUsed: false,
+        resolved: {
+          kind: 'latest-release',
+          version: 'v6.1.1',
+          ref: 'v6.1.1',
+          commitSha: '1111111111111111111111111111111111111111'
+        }
+      }
+    }
+  };
 
   const result = await runUpstreamRefresh({
     cwd: '/tmp/repo',
     now: () => new Date('2026-04-30T00:00:00.000Z'),
     probeHeads: async () => ({
       status: 'changes_detected',
-      sources: [
-        {
-          name: 'superpowers',
-          url: 'https://github.com/obra/superpowers'
-        }
-      ],
+      previousLock,
+      resolvedLock,
+      changedSources: ['superpowers'],
       sourceHeads: {
         superpowers: '1111111111111111111111111111111111111111'
+      },
+      strategySummary: {
+        superpowers: {
+          strategy: 'latest-release',
+          previousVersion: 'v6.0.3',
+          nextVersion: 'v6.1.1',
+          previousCommitSha: '0000000000000000000000000000000000000000',
+          nextCommitSha: '1111111111111111111111111111111111111111',
+          fallbackUsed: false
+        }
       }
     }),
     loadBaseHealth: async () => healthyBaseHealthStub(),
     runRefresh: async () => {
       events.push('runRefresh');
     },
-    writeSourceHeads: async (record) => {
-      events.push('writeSourceHeads');
-      sourceHeadsRecordChanged = true;
-      assert.equal(record.sources.superpowers.headSha, '1111111111111111111111111111111111111111');
+    writeSourceLock: async (record) => {
+      events.push('writeSourceLock');
+      sourceLockWritten = true;
+      assert.equal(record.sources.superpowers.resolved.version, 'v6.1.1');
     },
     captureChanges: async () => {
       events.push('captureChanges');
-      return sourceHeadsRecordChanged
-        ? [{ path: 'harness/upstream/.source-heads.json', tracked: true }]
+      return sourceLockWritten
+        ? [{ path: 'harness/upstream/.source-lock.json', tracked: true }]
         : [];
     },
     filterChanges: filterEligibleChanges,
@@ -201,8 +238,90 @@ test('runUpstreamRefresh captures eligible files after writing the source head r
     }
   });
 
-  assert.deepEqual(events, ['runRefresh', 'writeSourceHeads', 'captureChanges', 'writeResult']);
-  assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-heads.json']);
+  assert.deepEqual(events, ['runRefresh', 'writeSourceLock', 'captureChanges', 'writeResult']);
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-lock.json']);
+  assert.equal(result.previousLock.sources.superpowers.resolved.version, 'v6.0.3');
+  assert.equal(result.resolvedLock.sources.superpowers.resolved.version, 'v6.1.1');
+  assert.equal(result.lockPersistence, 'written');
+  assert.deepEqual(writtenResults, [result]);
+});
+
+test('runUpstreamRefresh skips authoritative source lock persistence for run-scoped overrides', async () => {
+  const { filterEligibleChanges } = await loadUpstreamRefreshModule();
+  const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
+  const events = [];
+  const writtenResults = [];
+
+  const result = await runUpstreamRefresh({
+    cwd: '/tmp/repo',
+    probeHeads: async () => ({
+      status: 'changes_detected',
+      previousLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.0.3',
+              ref: 'v6.0.3',
+              commitSha: '0000000000000000000000000000000000000000'
+            }
+          }
+        }
+      },
+      resolvedLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.1.1',
+              ref: 'v6.1.1',
+              commitSha: '1111111111111111111111111111111111111111'
+            }
+          }
+        }
+      },
+      changedSources: ['superpowers'],
+      sourceHeads: {
+        superpowers: '1111111111111111111111111111111111111111'
+      },
+      strategySummary: {
+        superpowers: {
+          strategy: 'latest-release',
+          previousVersion: 'v6.0.3',
+          nextVersion: 'v6.1.1',
+          previousCommitSha: '0000000000000000000000000000000000000000',
+          nextCommitSha: '1111111111111111111111111111111111111111',
+          fallbackUsed: false
+        }
+      }
+    }),
+    loadBaseHealth: async () => healthyBaseHealthStub(),
+    runOverrides: {
+      active: true
+    },
+    runRefresh: async () => {
+      events.push('runRefresh');
+    },
+    writeSourceLock: async () => {
+      events.push('writeSourceLock');
+    },
+    captureChanges: async () => {
+      events.push('captureChanges');
+      return [{ path: 'harness/upstream/superpowers/SKILL.md', tracked: true }];
+    },
+    filterChanges: filterEligibleChanges,
+    writeResult: async (refreshResult) => {
+      events.push('writeResult');
+      writtenResults.push(refreshResult);
+    }
+  });
+
+  assert.deepEqual(events, ['runRefresh', 'captureChanges', 'writeResult']);
+  assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
   assert.deepEqual(writtenResults, [result]);
 });
 
@@ -254,6 +373,15 @@ test('runUpstreamRefresh blocks before the refresh command chain when origin/dev
       superpowers: '4444444444444444444444444444444444444444'
     },
     eligibleFiles: [],
+    previousLock: {
+      sources: {}
+    },
+    resolvedLock: {
+      sources: {}
+    },
+    changedSources: [],
+    strategySummary: {},
+    lockPersistence: 'not_written_due_to_failure',
     compatibilityReport: {
       changedFiles: [],
       affectedProjections: [],
@@ -293,8 +421,8 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
     runRefresh: async () => {
       events.push('runRefresh');
     },
-    writeSourceHeads: async () => {
-      events.push('writeSourceHeads');
+    writeSourceLock: async () => {
+      events.push('writeSourceLock');
     },
     captureChanges: async () => {
       captureCount += 1;
@@ -325,7 +453,7 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
 
   assert.deepEqual(events, [
     'runRefresh',
-    'writeSourceHeads',
+    'writeSourceLock',
     'captureChanges:1',
     'restore:AGENTS.md:tracked,.github/copilot-instructions.md:tracked',
     'captureChanges:2',
@@ -362,15 +490,28 @@ test('runUpstreamRefresh removes known transient cache artifacts before final al
     cwd: '/tmp/repo',
     probeHeads: async () => ({
       status: 'changes_detected',
-      sources: [{ name: 'superpowers', url: 'https://example.test/superpowers.git' }],
+      resolvedLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.1.1',
+              ref: 'v6.1.1',
+              commitSha: '1111111111111111111111111111111111111111'
+            }
+          }
+        }
+      },
       sourceHeads: { superpowers: '1111111111111111111111111111111111111111' }
     }),
     loadBaseHealth: async () => healthyBaseHealthStub(),
     runRefresh: async () => {
       events.push('runRefresh');
     },
-    writeSourceHeads: async () => {
-      events.push('writeSourceHeads');
+    writeSourceLock: async () => {
+      events.push('writeSourceLock');
     },
     captureChanges: async () => {
       captureCount += 1;
@@ -379,12 +520,12 @@ test('runUpstreamRefresh removes known transient cache artifacts before final al
       if (captureCount === 1) {
         return [
           { path: 'node_modules/.cache/wrangler/wrangler-account.json', tracked: false },
-          { path: 'harness/upstream/.source-heads.json', tracked: true }
+          { path: 'harness/upstream/.source-lock.json', tracked: true }
         ];
       }
 
       return [
-        { path: 'harness/upstream/.source-heads.json', tracked: true }
+        { path: 'harness/upstream/.source-lock.json', tracked: true }
       ];
     },
     restoreRepoLocalEntries: async () => {},
@@ -406,15 +547,15 @@ test('runUpstreamRefresh removes known transient cache artifacts before final al
   });
 
   assert.deepEqual(cleanedPaths, ['node_modules/.cache/wrangler/wrangler-account.json']);
-  assert.deepEqual(filterInputPaths, ['harness/upstream/.source-heads.json']);
-  assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-heads.json']);
+  assert.deepEqual(filterInputPaths, ['harness/upstream/.source-lock.json']);
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-lock.json']);
   assert.deepEqual(events, [
     'runRefresh',
-    'writeSourceHeads',
+    'writeSourceLock',
     'captureChanges:1',
     'cleanup:node_modules/.cache/wrangler/wrangler-account.json',
     'captureChanges:2',
-    'filter:harness/upstream/.source-heads.json',
+    'filter:harness/upstream/.source-lock.json',
     'writeResult'
   ]);
 });
@@ -558,8 +699,8 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
       runRefresh: async () => {
         events.push('runRefresh');
       },
-      writeSourceHeads: async () => {
-        events.push('writeSourceHeads');
+      writeSourceLock: async () => {
+        events.push('writeSourceLock');
       },
       captureChanges: async () => {
         events.push('captureChanges');
@@ -577,7 +718,7 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
     /allowlist violation/i
   );
 
-  assert.deepEqual(events, ['runRefresh', 'writeSourceHeads', 'captureChanges', 'writeResult']);
+  assert.deepEqual(events, ['runRefresh', 'writeSourceLock', 'captureChanges', 'writeResult']);
   assert.equal(writtenResults.length, 1);
   assert.equal(writtenResults[0].status, 'failure');
   assert.deepEqual(writtenResults[0].eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
