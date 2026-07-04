@@ -18,6 +18,24 @@ async function initGitRepo(root) {
   await execFileAsync('git', ['config', 'user.email', 'harness@example.com'], { cwd: root });
 }
 
+function taskScopedHookScript() {
+  return path.join(
+    process.cwd(),
+    'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh'
+  );
+}
+
+function planningPathsScript() {
+  return path.join(
+    process.cwd(),
+    'harness/core/upstream-overlays/planning-with-files/scripts/planning_paths.py'
+  );
+}
+
+async function bindThread(fixtureRoot, taskId, threadId) {
+  await execFileAsync('python3', [planningPathsScript(), 'bind-thread', fixtureRoot, taskId, threadId]);
+}
+
 async function createFixture(fixtureName, { taskId = 'codex-hooks', taskPlan, findings, progress } = {}) {
   const fixtureRoot = path.join(artifactsRoot, fixtureName);
   const taskRoot = path.join(fixtureRoot, 'planning/active', taskId);
@@ -191,6 +209,165 @@ test('task-scoped hook stays empty when no tracked task exists', async () => {
     });
 
     assert.equal(stdout.trim(), '{}');
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('task-scoped-hook prefers a valid thread binding over other active tasks', async () => {
+  const threadId = 'thread-bound-beta';
+  const { fixtureRoot } = await createFixture('codex-thread-binding-preferred', activeTaskFiles());
+
+  try {
+    const betaFiles = activeTaskFiles();
+    betaFiles.taskPlan = betaFiles.taskPlan.replace('Keep hook output compact.', 'Bound task should win.');
+    betaFiles.findings = '## Notes\n- beta-marker\n';
+    betaFiles.progress = '## Progress\n- beta-progress-marker\n';
+    await addActiveTask(fixtureRoot, 'beta-task', betaFiles);
+    await bindThread(fixtureRoot, 'beta-task', threadId);
+
+    const { stdout } = await execFileAsync(
+      'bash',
+      [taskScopedHookScript(), 'codex', 'user-prompt-submit'],
+      {
+        cwd: fixtureRoot,
+        env: {
+          ...process.env,
+          CODEX_THREAD_ID: threadId
+        }
+      }
+    );
+
+    const payload = JSON.parse(stdout);
+    const runtimeLog = JSON.parse(
+      await readFile(path.join(fixtureRoot, '.harness/runtime-hooks/codex.jsonl'), 'utf8')
+    );
+    assert.match(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+    assert.match(payload.hookSpecificOutput.additionalContext, /Bound task should win\./);
+    assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /Keep hook output compact\./);
+    assert.equal(runtimeLog.resolvedTaskId, 'beta-task');
+    assert.equal(runtimeLog.resolutionSource, 'thread-binding');
+    assert.equal(runtimeLog.activeTaskCount, 2);
+    assert.equal(runtimeLog.threadIdPresent, true);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('task-scoped-hook refuses hot context when multiple active tasks exist and no binding is present', async () => {
+  const { fixtureRoot } = await createFixture('codex-thread-binding-ambiguous', activeTaskFiles());
+
+  try {
+    await addActiveTask(fixtureRoot, 'beta-task');
+    const { stdout } = await execFileAsync(
+      'bash',
+      [taskScopedHookScript(), 'codex', 'user-prompt-submit'],
+      {
+        cwd: fixtureRoot,
+        env: {
+          ...process.env,
+          CODEX_THREAD_ID: 'thread-without-binding'
+        }
+      }
+    );
+
+    const payload = JSON.parse(stdout);
+    const runtimeLog = JSON.parse(
+      await readFile(path.join(fixtureRoot, '.harness/runtime-hooks/codex.jsonl'), 'utf8')
+    );
+    assert.match(payload.hookSpecificOutput.additionalContext, /Multiple active tasks found/);
+    assert.match(payload.hookSpecificOutput.additionalContext, /no valid binding/);
+    assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+    assert.equal(runtimeLog.resolutionSource, 'ambiguous-none');
+    assert.equal(runtimeLog.activeTaskCount, 2);
+    assert.equal(runtimeLog.threadIdPresent, true);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('task-scoped-hook refuses hot context and clears stale thread bindings', async () => {
+  const threadId = 'thread-stale-binding';
+  const { fixtureRoot } = await createFixture('codex-thread-binding-stale', activeTaskFiles());
+
+  try {
+    await bindThread(fixtureRoot, 'codex-hooks', threadId);
+    await rm(path.join(fixtureRoot, 'planning/active/codex-hooks'), { recursive: true, force: true });
+    await addActiveTask(fixtureRoot, 'replacement-task');
+
+    const { stdout } = await execFileAsync(
+      'bash',
+      [taskScopedHookScript(), 'codex', 'user-prompt-submit'],
+      {
+        cwd: fixtureRoot,
+        env: {
+          ...process.env,
+          CODEX_THREAD_ID: threadId
+        }
+      }
+    );
+    const payload = JSON.parse(stdout);
+    const { stdout: bindingStatusStdout } = await execFileAsync('python3', [
+      planningPathsScript(),
+      'binding-status',
+      fixtureRoot,
+      threadId
+    ]);
+
+    assert.match(payload.hookSpecificOutput.additionalContext, /Stale thread binding detected/);
+    assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /HOT CONTEXT/);
+    assert.equal(bindingStatusStdout.trim(), '');
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('task-scoped-hook binds a thread on single-active fallback and reuses it later', async () => {
+  const threadId = 'thread-single-active-fallback';
+  const { fixtureRoot } = await createFixture('codex-thread-binding-fallback', activeTaskFiles());
+
+  try {
+    await execFileAsync('bash', [taskScopedHookScript(), 'codex', 'user-prompt-submit'], {
+      cwd: fixtureRoot,
+      env: {
+        ...process.env,
+        CODEX_THREAD_ID: threadId
+      }
+    });
+
+    const betaFiles = activeTaskFiles();
+    betaFiles.taskPlan = betaFiles.taskPlan.replace('Keep hook output compact.', 'Second task should not steal context.');
+    await addActiveTask(fixtureRoot, 'beta-task', betaFiles);
+
+    const { stdout } = await execFileAsync(
+      'bash',
+      [taskScopedHookScript(), 'codex', 'user-prompt-submit'],
+      {
+        cwd: fixtureRoot,
+        env: {
+          ...process.env,
+          CODEX_THREAD_ID: threadId
+        }
+      }
+    );
+    const payload = JSON.parse(stdout);
+    const { stdout: bindingStatusStdout } = await execFileAsync('python3', [
+      planningPathsScript(),
+      'binding-status',
+      fixtureRoot,
+      threadId
+    ]);
+    const { stdout: boundTaskStdout } = await execFileAsync('python3', [
+      planningPathsScript(),
+      'bound-task',
+      fixtureRoot,
+      threadId
+    ]);
+
+    assert.match(payload.hookSpecificOutput.additionalContext, /Task: Codex Hooks/);
+    assert.doesNotMatch(payload.hookSpecificOutput.additionalContext, /Second task should not steal context\./);
+    assert.equal(bindingStatusStdout.trim(), 'thread-binding');
+    assert.equal(await realpath(boundTaskStdout.trim()), await realpath(path.join(fixtureRoot, 'planning/active/codex-hooks')));
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });
   }

@@ -50,6 +50,20 @@ function parseRecord(line, rootDir, target, lineNumber) {
   const normalizedRoot = normalizeRoot(rootDir);
   const observedAt = typeof record.observedAt === 'string' ? new Date(record.observedAt) : null;
   const projectRoot = typeof record.projectRoot === 'string' ? normalizeExistingPath(record.projectRoot) : null;
+  const resolutionSource =
+    typeof record.resolutionSource === 'string' && record.resolutionSource.trim()
+      ? record.resolutionSource.trim()
+      : null;
+  const resolvedTaskId =
+    typeof record.resolvedTaskId === 'string' && record.resolvedTaskId.trim()
+      ? record.resolvedTaskId.trim()
+      : null;
+  const activeTaskCount =
+    typeof record.activeTaskCount === 'number' && Number.isInteger(record.activeTaskCount)
+      ? record.activeTaskCount
+      : null;
+  const threadIdPresent =
+    typeof record.threadIdPresent === 'boolean' ? record.threadIdPresent : null;
 
   if (
     record.schemaVersion !== RUNTIME_HOOK_EVIDENCE_SCHEMA_VERSION ||
@@ -83,7 +97,11 @@ function parseRecord(line, rootDir, target, lineNumber) {
       projectRoot,
       cwd: path.resolve(record.cwd),
       scriptName: record.scriptName,
-      scriptPath: path.resolve(record.scriptPath)
+      scriptPath: path.resolve(record.scriptPath),
+      resolvedTaskId,
+      resolutionSource,
+      activeTaskCount,
+      threadIdPresent
     },
     warning: null
   };

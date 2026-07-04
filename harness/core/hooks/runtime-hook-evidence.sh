@@ -153,6 +153,27 @@ const record = {
   scriptPath: process.env.HARNESS_RUNTIME_SCRIPT_PATH ?? ''
 };
 
+const resolvedTaskId = (process.env.HARNESS_RUNTIME_RESOLVED_TASK_ID ?? '').trim();
+const resolutionSource = (process.env.HARNESS_RUNTIME_RESOLUTION_SOURCE ?? '').trim();
+const activeTaskCountRaw = (process.env.HARNESS_RUNTIME_ACTIVE_TASK_COUNT ?? '').trim();
+const threadIdPresentRaw = (process.env.HARNESS_RUNTIME_THREAD_ID_PRESENT ?? '').trim();
+
+if (resolvedTaskId) {
+  record.resolvedTaskId = resolvedTaskId;
+}
+if (resolutionSource) {
+  record.resolutionSource = resolutionSource;
+}
+if (activeTaskCountRaw) {
+  const parsedCount = Number.parseInt(activeTaskCountRaw, 10);
+  if (!Number.isNaN(parsedCount)) {
+    record.activeTaskCount = parsedCount;
+  }
+}
+if (threadIdPresentRaw) {
+  record.threadIdPresent = threadIdPresentRaw === '1' || threadIdPresentRaw.toLowerCase() === 'true';
+}
+
 const logPath = path.join(record.projectRoot, '.harness/runtime-hooks', `${record.target}.jsonl`);
 fs.mkdirSync(path.dirname(logPath), { recursive: true });
 fs.appendFileSync(logPath, `${JSON.stringify(record)}\n`);
