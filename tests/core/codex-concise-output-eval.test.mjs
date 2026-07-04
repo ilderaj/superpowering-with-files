@@ -189,3 +189,14 @@ test('evaluateCodexConciseOutputRunFile accepts a real five-scenario run artifac
   assert.equal(report.summary.conciseWinCount, 5);
   assert.equal(report.summary.unsupportedSafetyClaimCount, 0);
 });
+
+test('evaluateCodexConciseOutputRunFile defaults to the passing real observation artifact', async () => {
+  const report = await evaluateCodexConciseOutputRunFile(
+    path.resolve('tests/evals/codex-concise-output')
+  );
+
+  assert.equal(report.runId, '2026-06-29-real-observation');
+  assert.equal(report.pass, true);
+  assert.equal(report.summary.conciseWinCount, 5);
+  assert.equal(report.summary.unsupportedSafetyClaimCount, 0);
+});

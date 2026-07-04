@@ -137,7 +137,7 @@ export function evaluateCodexConciseOutputRun(run) {
 
 export async function evaluateCodexConciseOutputRunFile(
   evalRoot = defaultEvalRoot(),
-  fileName = 'acceptance-run-template.json'
+  fileName = 'acceptance-run-2026-06-29-real-observation.json'
 ) {
   const parsed = JSON.parse(await readFile(path.join(evalRoot, fileName), 'utf8'));
   const run = Array.isArray(parsed.scenarios)
