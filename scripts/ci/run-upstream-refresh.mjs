@@ -249,9 +249,14 @@ export async function runUpstreamRefresh({
 
     authoritativeLock = createWritableSourceLock(await loadAuthoritativeLock({ cwd }));
     shouldCaptureFailureChanges = true;
-    await writeSourceLock(createWritableSourceLock(probeResult.resolvedLock), { cwd });
-    stagedRunLock = true;
-    await runRefresh({ cwd, sourceFilter: executionSourceFilter });
+    await runRefresh({
+      cwd,
+      sourceFilter: executionSourceFilter,
+      beforeExecution: async () => {
+        await writeSourceLock(createWritableSourceLock(probeResult.resolvedLock), { cwd });
+        stagedRunLock = true;
+      }
+    });
 
     if (effectiveRunOverrides.active) {
       await writeSourceLock(authoritativeLock, { cwd });

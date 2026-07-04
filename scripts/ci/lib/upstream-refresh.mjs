@@ -127,12 +127,17 @@ export function buildUpdateCompatibilityReport({
   };
 }
 
-export function buildRefreshCommandChain({ sourceFilter } = {}) {
+export function buildRefreshPrepareCommandChain() {
+  return [
+    { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
+    { file: 'git', args: ['checkout', '-B', branchName, baseRef] }
+  ];
+}
+
+export function buildRefreshExecutionCommandChain({ sourceFilter } = {}) {
   const sourceArgs = sourceFilter ? [`--source=${sourceFilter}`] : [];
 
   return [
-    { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
-    { file: 'git', args: ['checkout', '-B', branchName, baseRef] },
     { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
     { file: './scripts/harness', args: ['fetch', ...sourceArgs] },
     { file: './scripts/harness', args: ['update', ...sourceArgs] },
@@ -141,6 +146,13 @@ export function buildRefreshCommandChain({ sourceFilter } = {}) {
     { file: './scripts/harness', args: ['sync', '--dry-run'] },
     { file: './scripts/harness', args: ['sync'] },
     { file: './scripts/harness', args: ['doctor'] }
+  ];
+}
+
+export function buildRefreshCommandChain({ sourceFilter } = {}) {
+  return [
+    ...buildRefreshPrepareCommandChain(),
+    ...buildRefreshExecutionCommandChain({ sourceFilter })
   ];
 }
 
@@ -462,10 +474,20 @@ export async function runCommand(command, {
 export async function runRefreshCommandChain({
   cwd = process.cwd(),
   sourceFilter,
-  commands = buildRefreshCommandChain({ sourceFilter }),
+  beforeExecution,
+  prepareCommands = buildRefreshPrepareCommandChain(),
+  executionCommands = buildRefreshExecutionCommandChain({ sourceFilter }),
   run = runCommand
 } = {}) {
-  for (const command of commands) {
+  for (const command of prepareCommands) {
+    await run(command, { cwd });
+  }
+
+  if (typeof beforeExecution === 'function') {
+    await beforeExecution();
+  }
+
+  for (const command of executionCommands) {
     await run(command, { cwd });
   }
 }
