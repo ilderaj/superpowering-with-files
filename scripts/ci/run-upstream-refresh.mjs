@@ -90,6 +90,30 @@ function applyDispatchOverridesToSources(sourceConfig, {
   };
 }
 
+function createWritableSourceLock(record) {
+  return {
+    schemaVersion: 2,
+    refreshedAt: record?.refreshedAt ?? null,
+    sources: record?.sources ?? {}
+  };
+}
+
+function resolveExecutionSourceFilter(sourceFilter) {
+  if (typeof sourceFilter === 'string') {
+    return sourceFilter || null;
+  }
+
+  if (!Array.isArray(sourceFilter) || sourceFilter.length === 0) {
+    return null;
+  }
+
+  if (sourceFilter.length > 1) {
+    throw new Error('workflow_dispatch source_filter must resolve to a single source or "all".');
+  }
+
+  return sourceFilter[0];
+}
+
 async function loadWorkflowDispatchRunContext({
   cwd,
   env,
@@ -159,6 +183,7 @@ export async function runUpstreamRefresh({
   let eligibleFiles = [];
   let shouldCaptureFailureChanges = false;
   let changedFilesCaptured = false;
+  let stagedRunLock = false;
   const workflowDispatchContext = await loadWorkflowDispatchRunContext({
     cwd,
     env,
@@ -166,6 +191,7 @@ export async function runUpstreamRefresh({
     loadSourceConfig
   });
   const effectiveRunOverrides = runOverrides ?? workflowDispatchContext.runOverrides;
+  const executionSourceFilter = resolveExecutionSourceFilter(effectiveRunOverrides.sourceFilter);
 
   async function captureChangesForAllowlist() {
     const changedFiles = await captureChanges({ cwd });
@@ -219,7 +245,14 @@ export async function runUpstreamRefresh({
     }
 
     shouldCaptureFailureChanges = true;
-    await runRefresh({ cwd });
+    await writeSourceLock(createWritableSourceLock(probeResult.resolvedLock), { cwd });
+    stagedRunLock = true;
+    await runRefresh({ cwd, sourceFilter: executionSourceFilter });
+
+    if (effectiveRunOverrides.active) {
+      await writeSourceLock(createWritableSourceLock(probeResult.previousLock), { cwd });
+      stagedRunLock = false;
+    }
 
     let lockPersistence = 'skipped_due_to_run_override';
     if (!effectiveRunOverrides.active) {
@@ -267,7 +300,18 @@ export async function runUpstreamRefresh({
     await writeResult(result, { cwd });
     return result;
   } catch (error) {
-    let resultError = error;
+      let resultError = error;
+
+      if (stagedRunLock) {
+        try {
+          await writeSourceLock(createWritableSourceLock(probeResult.previousLock), { cwd });
+          stagedRunLock = false;
+        } catch (restoreError) {
+          resultError = new Error(`${resultError instanceof Error ? resultError.message : String(resultError)}\n\nUnable to restore authoritative source lock after failure: ${restoreError instanceof Error ? restoreError.message : String(restoreError)}`, {
+            cause: error
+          });
+        }
+      }
 
     if (shouldCaptureFailureChanges && !changedFilesCaptured) {
       try {
@@ -276,12 +320,12 @@ export async function runUpstreamRefresh({
         eligibleFiles = filteredChanges.eligibleFiles;
 
         if ((filteredChanges.excludedFiles ?? []).length > 0) {
-          resultError = new Error(`${error instanceof Error ? error.message : String(error)}\n\n${createAllowlistViolationError(filteredChanges.excludedFiles).message}`, {
+          resultError = new Error(`${resultError instanceof Error ? resultError.message : String(resultError)}\n\n${createAllowlistViolationError(filteredChanges.excludedFiles).message}`, {
             cause: error
           });
         }
       } catch (captureError) {
-        resultError = new Error(`${error instanceof Error ? error.message : String(error)}\n\nUnable to capture changed files after failure: ${captureError instanceof Error ? captureError.message : String(captureError)}`, {
+        resultError = new Error(`${resultError instanceof Error ? resultError.message : String(resultError)}\n\nUnable to capture changed files after failure: ${captureError instanceof Error ? captureError.message : String(captureError)}`, {
           cause: error
         });
       }

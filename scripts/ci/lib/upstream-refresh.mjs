@@ -127,13 +127,15 @@ export function buildUpdateCompatibilityReport({
   };
 }
 
-export function buildRefreshCommandChain() {
+export function buildRefreshCommandChain({ sourceFilter } = {}) {
+  const sourceArgs = sourceFilter ? [`--source=${sourceFilter}`] : [];
+
   return [
     { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
     { file: 'git', args: ['checkout', '-B', branchName, baseRef] },
     { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
-    { file: './scripts/harness', args: ['fetch'] },
-    { file: './scripts/harness', args: ['update'] },
+    { file: './scripts/harness', args: ['fetch', ...sourceArgs] },
+    { file: './scripts/harness', args: ['update', ...sourceArgs] },
     { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
     { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] },
     { file: './scripts/harness', args: ['sync', '--dry-run'] },
@@ -459,7 +461,8 @@ export async function runCommand(command, {
 
 export async function runRefreshCommandChain({
   cwd = process.cwd(),
-  commands = buildRefreshCommandChain(),
+  sourceFilter,
+  commands = buildRefreshCommandChain({ sourceFilter }),
   run = runCommand
 } = {}) {
   for (const command of commands) {

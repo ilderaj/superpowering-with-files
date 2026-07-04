@@ -52,6 +52,23 @@ test('buildRefreshCommandChain returns the fixed upstream refresh command sequen
   assert.deepEqual(buildRefreshCommandChain(), expectedRefreshCommands);
 });
 
+test('buildRefreshCommandChain narrows fetch and update to the selected source filter', async () => {
+  const { buildRefreshCommandChain } = await loadUpstreamRefreshModule();
+
+  assert.deepEqual(buildRefreshCommandChain({ sourceFilter: 'planning-with-files' }), [
+    { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
+    { file: 'git', args: ['checkout', '-B', 'automation/upstream-refresh', 'origin/dev'] },
+    { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
+    { file: './scripts/harness', args: ['fetch', '--source=planning-with-files'] },
+    { file: './scripts/harness', args: ['update', '--source=planning-with-files'] },
+    { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
+    { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
+    { file: './scripts/harness', args: ['sync', '--dry-run'] },
+    { file: './scripts/harness', args: ['sync'] },
+    { file: './scripts/harness', args: ['doctor'] }
+  ]);
+});
+
 test('formatCommand returns the human-readable upstream refresh command sequence', async () => {
   const { buildRefreshCommandChain, formatCommand } = await loadUpstreamRefreshModule();
 
@@ -222,7 +239,7 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
       events.push('runRefresh');
     },
     writeSourceLock: async (record) => {
-      events.push('writeSourceLock');
+      events.push(`writeSourceLock:${record.refreshedAt ? 'final' : 'staged'}`);
       sourceLockWritten = true;
       assert.equal(record.sources.superpowers.resolved.version, 'v6.1.1');
     },
@@ -239,7 +256,7 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
     }
   });
 
-  assert.deepEqual(events, ['runRefresh', 'writeSourceLock', 'captureChanges', 'writeResult']);
+  assert.deepEqual(events, ['writeSourceLock:staged', 'runRefresh', 'writeSourceLock:final', 'captureChanges', 'writeResult']);
   assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-lock.json']);
   assert.equal(result.previousLock.sources.superpowers.resolved.version, 'v6.0.3');
   assert.equal(result.resolvedLock.sources.superpowers.resolved.version, 'v6.1.1');
@@ -307,8 +324,8 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
     runRefresh: async () => {
       events.push('runRefresh');
     },
-    writeSourceLock: async () => {
-      events.push('writeSourceLock');
+    writeSourceLock: async (record) => {
+      events.push(`writeSourceLock:${record.sources.superpowers.resolved.version}`);
     },
     captureChanges: async () => {
       events.push('captureChanges');
@@ -321,9 +338,96 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
     }
   });
 
-  assert.deepEqual(events, ['runRefresh', 'captureChanges', 'writeResult']);
+  assert.deepEqual(events, ['writeSourceLock:v6.1.1', 'runRefresh', 'writeSourceLock:v6.0.3', 'captureChanges', 'writeResult']);
   assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
   assert.deepEqual(writtenResults, [result]);
+});
+
+test('runUpstreamRefresh pre-stages the current resolved lock before the refresh chain and restores steady-state for run-scoped overrides', async () => {
+  const { filterEligibleChanges } = await loadUpstreamRefreshModule();
+  const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
+  const events = [];
+  const writes = [];
+
+  await runUpstreamRefresh({
+    cwd: '/tmp/repo',
+    probeHeads: async () => ({
+      status: 'changes_detected',
+      previousLock: {
+        schemaVersion: 2,
+        refreshedAt: '2026-04-01T00:00:00.000Z',
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.0.3',
+              ref: 'v6.0.3',
+              commitSha: '0000000000000000000000000000000000000000'
+            }
+          }
+        }
+      },
+      resolvedLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-tag',
+            resolved: {
+              kind: 'latest-tag',
+              version: 'v6.1.1-beta.1',
+              ref: 'v6.1.1-beta.1',
+              commitSha: '1111111111111111111111111111111111111111'
+            }
+          }
+        }
+      },
+      changedSources: ['superpowers'],
+      sourceHeads: {
+        superpowers: '1111111111111111111111111111111111111111'
+      },
+      strategySummary: {
+        superpowers: {
+          strategy: 'latest-tag',
+          previousVersion: 'v6.0.3',
+          nextVersion: 'v6.1.1-beta.1',
+          previousCommitSha: '0000000000000000000000000000000000000000',
+          nextCommitSha: '1111111111111111111111111111111111111111',
+          fallbackUsed: false
+        }
+      }
+    }),
+    loadBaseHealth: async () => healthyBaseHealthStub(),
+    runOverrides: {
+      active: true,
+      sourceFilter: 'superpowers'
+    },
+    runRefresh: async () => {
+      events.push('runRefresh');
+    },
+    writeSourceLock: async (record) => {
+      events.push(`writeSourceLock:${record.sources.superpowers.resolved.version}`);
+      writes.push(record);
+    },
+    captureChanges: async () => {
+      events.push('captureChanges');
+      return [{ path: 'harness/upstream/superpowers/SKILL.md', tracked: true }];
+    },
+    filterChanges: filterEligibleChanges,
+    writeResult: async () => {
+      events.push('writeResult');
+    }
+  });
+
+  assert.deepEqual(events, [
+    'writeSourceLock:v6.1.1-beta.1',
+    'runRefresh',
+    'writeSourceLock:v6.0.3',
+    'captureChanges',
+    'writeResult'
+  ]);
+  assert.equal(writes[0].sources.superpowers.resolved.version, 'v6.1.1-beta.1');
+  assert.equal(writes[1].sources.superpowers.resolved.version, 'v6.0.3');
 });
 
 test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps them run-scoped', async () => {
@@ -423,8 +527,9 @@ test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps t
       };
     },
     loadBaseHealth: async () => healthyBaseHealthStub(),
-    runRefresh: async () => {
+    runRefresh: async ({ sourceFilter }) => {
       events.push('runRefresh');
+      assert.equal(sourceFilter, 'planning-with-files');
     },
     writeSourceLock: async () => {
       events.push('writeSourceLock');
@@ -445,7 +550,7 @@ test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps t
   assert.deepEqual(Object.keys(capturedSources.sources), ['planning-with-files']);
   assert.equal(capturedSources.sources['planning-with-files'].resolution.strategy, 'latest-tag');
   assert.equal(capturedSources.sources['planning-with-files'].resolution.allowPrerelease, true);
-  assert.deepEqual(events, ['runRefresh', 'captureChanges', 'writeResult']);
+  assert.deepEqual(events, ['writeSourceLock', 'runRefresh', 'writeSourceLock', 'captureChanges', 'writeResult']);
   assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
   assert.deepEqual(result.eligibleFiles, ['harness/upstream/planning-with-files/SKILL.md']);
 });
@@ -577,6 +682,7 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
   });
 
   assert.deepEqual(events, [
+    'writeSourceLock',
     'runRefresh',
     'writeSourceLock',
     'captureChanges:1',
@@ -675,6 +781,7 @@ test('runUpstreamRefresh removes known transient cache artifacts before final al
   assert.deepEqual(filterInputPaths, ['harness/upstream/.source-lock.json']);
   assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-lock.json']);
   assert.deepEqual(events, [
+    'writeSourceLock',
     'runRefresh',
     'writeSourceLock',
     'captureChanges:1',
@@ -843,7 +950,7 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
     /allowlist violation/i
   );
 
-  assert.deepEqual(events, ['runRefresh', 'writeSourceLock', 'captureChanges', 'writeResult']);
+  assert.deepEqual(events, ['writeSourceLock', 'runRefresh', 'writeSourceLock', 'captureChanges', 'writeSourceLock', 'writeResult']);
   assert.equal(writtenResults.length, 1);
   assert.equal(writtenResults[0].status, 'failure');
   assert.deepEqual(writtenResults[0].eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
