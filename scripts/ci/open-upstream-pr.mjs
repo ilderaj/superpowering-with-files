@@ -158,7 +158,10 @@ export async function runOpenUpstreamPullRequest({
 
   const preliminaryPlan = buildUpstreamPullRequestPlan({
     eligibleFiles: refreshResult.eligibleFiles,
-    sourceHeads: refreshResult.sourceHeads
+    sourceHeads: refreshResult.sourceHeads,
+    previousLock: refreshResult.previousLock,
+    resolvedLock: refreshResult.resolvedLock,
+    strategySummary: refreshResult.strategySummary
   });
 
   if (!preliminaryPlan.shouldOpenPullRequest) {
@@ -198,6 +201,9 @@ export async function runOpenUpstreamPullRequest({
   const plan = buildUpstreamPullRequestPlan({
     eligibleFiles: refreshResult.eligibleFiles,
     sourceHeads: refreshResult.sourceHeads,
+    previousLock: refreshResult.previousLock,
+    resolvedLock: refreshResult.resolvedLock,
+    strategySummary: refreshResult.strategySummary,
     openPullRequests,
     remoteBranchExists
   });

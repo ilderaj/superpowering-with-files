@@ -429,6 +429,78 @@ test('runOpenUpstreamPullRequest commits, pushes, and creates a PR when no autom
   assert.equal(existsSync(bodyFilePath), false);
 });
 
+test('runOpenUpstreamPullRequest forwards resolved metadata into the final PR body file', async () => {
+  const { runOpenUpstreamPullRequest } = await import('../../scripts/ci/open-upstream-pr.mjs');
+  const cwd = path.join(os.tmpdir(), 'upstream-pr-metadata-wiring-test');
+  const bodyFilePath = path.join(cwd, '.harness/upstream-pr-body.md');
+
+  await runOpenUpstreamPullRequest({
+    cwd,
+    readRefreshResult: async () => ({
+      status: 'success',
+      eligibleFiles: ['harness/upstream/.source-lock.json'],
+      sourceHeads: {
+        superpowers: '1111111111111111111111111111111111111111'
+      },
+      previousLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.0.3',
+              ref: 'v6.0.3',
+              commitSha: '0000000000000000000000000000000000000000'
+            }
+          }
+        }
+      },
+      resolvedLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.1.1',
+              ref: 'v6.1.1',
+              commitSha: '1111111111111111111111111111111111111111'
+            }
+          }
+        }
+      },
+      strategySummary: {
+        superpowers: {
+          strategy: 'latest-release',
+          previousVersion: 'v6.0.3',
+          nextVersion: 'v6.1.1',
+          previousCommitSha: '0000000000000000000000000000000000000000',
+          nextCommitSha: '1111111111111111111111111111111111111111',
+          fallbackUsed: false
+        }
+      }
+    }),
+    runCommand: async (command) => {
+      if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'create') {
+        const bodyText = await readFile(bodyFilePath, 'utf8');
+        assert.match(bodyText, /v6\.0\.3 -> v6\.1\.1/);
+        assert.match(bodyText, /0000000000000000000000000000000000000000 -> 1111111111111111111111111111111111111111/);
+        return { stdout: 'https://github.com/ilderaj/superpowering-with-files/pull/100\n' };
+      }
+      if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'list') {
+        return { stdout: '[]' };
+      }
+      if (command.file === 'git' && command.args[0] === 'ls-remote') {
+        return { stdout: '' };
+      }
+      return { stdout: '' };
+    }
+  });
+
+  assert.equal(existsSync(bodyFilePath), false);
+});
+
 test('runOpenUpstreamPullRequest creates a dev PR instead of updating a same-head PR on another base', async () => {
   const { formatCommand } = await loadUpstreamPrModule();
   const { runOpenUpstreamPullRequest } = await import('../../scripts/ci/open-upstream-pr.mjs');
