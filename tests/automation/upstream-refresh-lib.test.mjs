@@ -18,6 +18,22 @@ const expectedRefreshCommands = [
   { file: './scripts/harness', args: ['doctor'] }
 ];
 
+const expectedPrepareCommands = [
+  { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
+  { file: 'git', args: ['checkout', '-B', 'automation/upstream-refresh', 'origin/dev'] }
+];
+
+const expectedExecutionCommands = [
+  { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
+  { file: './scripts/harness', args: ['fetch'] },
+  { file: './scripts/harness', args: ['update'] },
+  { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
+  { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
+  { file: './scripts/harness', args: ['sync', '--dry-run'] },
+  { file: './scripts/harness', args: ['sync'] },
+  { file: './scripts/harness', args: ['doctor'] }
+];
+
 const expectedHumanReadableRefreshCommandChain = [
   'git fetch origin main dev',
   'git checkout -B automation/upstream-refresh origin/dev',
@@ -52,6 +68,18 @@ test('buildRefreshCommandChain returns the fixed upstream refresh command sequen
   assert.deepEqual(buildRefreshCommandChain(), expectedRefreshCommands);
 });
 
+test('buildRefreshPrepareCommandChain isolates the base-branch preparation sequence', async () => {
+  const { buildRefreshPrepareCommandChain } = await loadUpstreamRefreshModule();
+
+  assert.deepEqual(buildRefreshPrepareCommandChain(), expectedPrepareCommands);
+});
+
+test('buildRefreshExecutionCommandChain isolates the post-checkout refresh sequence', async () => {
+  const { buildRefreshExecutionCommandChain } = await loadUpstreamRefreshModule();
+
+  assert.deepEqual(buildRefreshExecutionCommandChain(), expectedExecutionCommands);
+});
+
 test('buildRefreshCommandChain narrows fetch and update to the selected source filter', async () => {
   const { buildRefreshCommandChain } = await loadUpstreamRefreshModule();
 
@@ -73,6 +101,35 @@ test('formatCommand returns the human-readable upstream refresh command sequence
   const { buildRefreshCommandChain, formatCommand } = await loadUpstreamRefreshModule();
 
   assert.deepEqual(buildRefreshCommandChain().map(formatCommand), expectedHumanReadableRefreshCommandChain);
+});
+
+test('runRefreshCommandChain inserts beforeExecution between prepare and execution commands', async () => {
+  const { runRefreshCommandChain, formatCommand } = await loadUpstreamRefreshModule();
+  const events = [];
+
+  await runRefreshCommandChain({
+    cwd: '/tmp/repo',
+    beforeExecution: async () => {
+      events.push('beforeExecution');
+    },
+    run: async (command) => {
+      events.push(formatCommand(command));
+    }
+  });
+
+  assert.deepEqual(events, [
+    'git fetch origin main dev',
+    'git checkout -B automation/upstream-refresh origin/dev',
+    'beforeExecution',
+    './scripts/harness install --scope=workspace --targets=all --projection=link --mode=force',
+    './scripts/harness fetch',
+    './scripts/harness update',
+    'npm run verify:upstream-refresh',
+    './scripts/harness worktree-preflight --task github-actions-upstream-automation-analysis',
+    './scripts/harness sync --dry-run',
+    './scripts/harness sync',
+    './scripts/harness doctor'
+  ]);
 });
 
 test('upstream refresh report includes changed files, affected projections, resync need, and risk', async () => {
@@ -235,7 +292,8 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
       }
     }),
     loadBaseHealth: async () => healthyBaseHealthStub(),
-    runRefresh: async () => {
+    runRefresh: async ({ beforeExecution }) => {
+      await beforeExecution?.();
       events.push('runRefresh');
     },
     writeSourceLock: async (record) => {
@@ -336,7 +394,8 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
     runOverrides: {
       active: true
     },
-    runRefresh: async () => {
+    runRefresh: async ({ beforeExecution }) => {
+      await beforeExecution?.();
       events.push('runRefresh');
     },
     writeSourceLock: async (record) => {
@@ -442,7 +501,8 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
       active: true,
       sourceFilter: 'superpowers'
     },
-    runRefresh: async () => {
+    runRefresh: async ({ beforeExecution }) => {
+      await beforeExecution?.();
       events.push('runRefresh');
     },
     writeSourceLock: async (record) => {
@@ -569,7 +629,8 @@ test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps t
       };
     },
     loadBaseHealth: async () => healthyBaseHealthStub(),
-    runRefresh: async ({ sourceFilter }) => {
+    runRefresh: async ({ sourceFilter, beforeExecution }) => {
+      await beforeExecution?.();
       events.push('runRefresh');
       assert.equal(sourceFilter, 'planning-with-files');
     },
@@ -690,7 +751,8 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
       }
     }),
     loadBaseHealth: async () => healthyBaseHealthStub(),
-    runRefresh: async () => {
+    runRefresh: async ({ beforeExecution }) => {
+      await beforeExecution?.();
       events.push('runRefresh');
     },
     writeSourceLock: async () => {
@@ -780,7 +842,8 @@ test('runUpstreamRefresh removes known transient cache artifacts before final al
       sourceHeads: { superpowers: '1111111111111111111111111111111111111111' }
     }),
     loadBaseHealth: async () => healthyBaseHealthStub(),
-    runRefresh: async () => {
+    runRefresh: async ({ beforeExecution }) => {
+      await beforeExecution?.();
       events.push('runRefresh');
     },
     writeSourceLock: async () => {
@@ -851,7 +914,8 @@ test('runUpstreamRefresh writes a failure result and rejects when verification f
         }
       }),
       loadBaseHealth: async () => healthyBaseHealthStub(),
-      runRefresh: async () => {
+      runRefresh: async ({ beforeExecution }) => {
+        await beforeExecution?.();
         events.push('runRefresh');
         throw new Error('Command failed (1): npm run verify');
       },
@@ -896,7 +960,8 @@ test('runUpstreamRefresh keeps the original failure when changed-file capture fa
         sourceHeads: {}
       }),
       loadBaseHealth: async () => healthyBaseHealthStub(),
-      runRefresh: async () => {
+      runRefresh: async ({ beforeExecution }) => {
+        await beforeExecution?.();
         throw new Error('Command failed (1): ./scripts/harness doctor');
       },
       captureChanges: async () => {
@@ -930,7 +995,8 @@ test('runUpstreamRefresh writes a failure result and rejects when refresh hits a
         sourceHeads: {}
       }),
       loadBaseHealth: async () => healthyBaseHealthStub(),
-      runRefresh: async () => {
+      runRefresh: async ({ beforeExecution }) => {
+        await beforeExecution?.();
         throw new Error('CONFLICT (content): Merge conflict in harness/upstream/superpowers/SKILL.md');
       },
       writeResult: async (refreshResult) => {
@@ -970,7 +1036,8 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
       }
     }),
       loadBaseHealth: async () => healthyBaseHealthStub(),
-      runRefresh: async () => {
+      runRefresh: async ({ beforeExecution }) => {
+        await beforeExecution?.();
         events.push('runRefresh');
       },
       writeSourceLock: async () => {
