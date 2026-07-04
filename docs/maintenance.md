@@ -258,6 +258,15 @@ git merge --ff-only origin/dev
 
 Upstream updates are staged before they are applied:
 
+`harness/upstream/sources.json` declares the desired source strategies. `harness/upstream/.source-lock.json` is the authoritative resolved source lock that CI and installer fetch consume. `harness/upstream/.source-heads.json` is legacy migration input only and must not be treated as the steady-state lock file.
+
+Manual `workflow_dispatch` controls for upstream refresh are run-scoped:
+
+- `source_filter` narrows the refresh to selected sources for that run only.
+- `strategy_override` and `allow_prerelease` may change source resolution for that run only.
+- `dry_run=true` preserves the no-PR rehearsal path.
+- Dispatch overrides must not silently rewrite the committed authoritative `harness/upstream/.source-lock.json`.
+
 ```bash
 ./scripts/harness fetch --source=superpowers
 ./scripts/harness update --source=superpowers

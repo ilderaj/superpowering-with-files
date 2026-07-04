@@ -1,9 +1,14 @@
 import { spawn } from 'node:child_process';
 import { cp, mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
+import { promisify } from 'node:util';
+import { execFile } from 'node:child_process';
+import { loadSourceLock, loadUpstreamSourceConfig, normalizeUpstreamSource } from './upstream-config.mjs';
+import { buildFetchPlan, resolveSourceTarget } from '../../../scripts/ci/lib/upstream-resolver.mjs';
 
 const UPSTREAM_ROOT = 'harness/upstream';
 const CANDIDATE_ROOT = '.harness/upstream-candidates';
+const execFileAsync = promisify(execFile);
 
 function normalizeInside(rootDir, relativePath) {
   const resolved = path.resolve(rootDir, relativePath);
@@ -25,7 +30,7 @@ export function assertInsideRoot(targetPath, allowedRoot) {
 export async function loadUpstreamSources(rootDir) {
   const file = path.join(rootDir, 'harness/upstream/sources.json');
   const metadata = JSON.parse(await readFile(file, 'utf8'));
-  if (metadata.schemaVersion !== 1 || !metadata.sources || typeof metadata.sources !== 'object') {
+  if ((metadata.schemaVersion !== 1 && metadata.schemaVersion !== 2) || !metadata.sources || typeof metadata.sources !== 'object') {
     throw new Error('Invalid upstream sources metadata.');
   }
   return metadata.sources;
@@ -74,6 +79,44 @@ export function parseFromPath(args) {
   return fromArg ? fromArg.slice('--from='.length) : undefined;
 }
 
+export async function loadFetchSourceConfig(rootDir) {
+  try {
+    return await loadUpstreamSourceConfig(rootDir);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid upstream source config.') {
+      const legacySources = await loadUpstreamSources(rootDir);
+      return {
+        schemaVersion: 1,
+        sources: Object.fromEntries(
+          Object.entries(legacySources).map(([name, rawSource]) => [name, normalizeUpstreamSource(name, rawSource)])
+        )
+      };
+    }
+    throw error;
+  }
+}
+
+export async function loadResolvedSourceForFetch(rootDir, sourceName) {
+  const sourcesDocument = await loadFetchSourceConfig(rootDir);
+  const source = sourcesDocument.sources[sourceName];
+  if (!source) {
+    throw new Error(`Unknown upstream source: ${sourceName}`);
+  }
+
+  const sourceLock = await loadSourceLock({ rootDir });
+  const resolvedSource = sourceLock.sources?.[sourceName];
+  if (!resolvedSource?.resolved?.commitSha || !resolvedSource?.resolved?.ref) {
+    throw new Error(
+      `Missing resolved source lock for ${sourceName}. Run ./scripts/harness upstream-lock before fetch.`
+    );
+  }
+
+  return {
+    source,
+    resolvedSource
+  };
+}
+
 export async function stageLocalCandidate(rootDir, sourceName, fromPath) {
   if (!fromPath) {
     throw new Error(`Source ${sourceName} requires --from=/path/to/source for local candidate staging.`);
@@ -103,14 +146,92 @@ export function runGit(args, options = {}) {
   });
 }
 
-export async function stageGitCandidate(rootDir, sourceName, source) {
+async function gitLsRemote(url, refs = []) {
+  const { stdout } = await execFileAsync('git', ['ls-remote', url, ...refs], { maxBuffer: 1024 * 1024 });
+  return stdout;
+}
+
+function githubRepoPathForSource(source) {
+  if (source?.github?.owner && source?.github?.repo) {
+    return `repos/${source.github.owner}/${source.github.repo}`;
+  }
+
+  const match = String(source?.url ?? '').match(/github\.com[/:]([^/]+)\/([^/.]+?)(?:\.git)?$/);
+  if (match) {
+    return `repos/${match[1]}/${match[2]}`;
+  }
+
+  throw new Error(`Missing github repository metadata for upstream source: ${source?.name ?? '(unknown)'}`);
+}
+
+async function listReleases(_url, source) {
+  const repoPath = githubRepoPathForSource(source);
+  const { stdout } = await execFileAsync('gh', ['api', `${repoPath}/releases`], { maxBuffer: 1024 * 1024 });
+  return JSON.parse(stdout);
+}
+
+export async function resolveConfiguredSources({ rootDir, sources, args = [] }) {
+  const sourceEntries = Object.entries(sources?.sources ?? sources ?? {});
+  const filter = parseSourceFilter(args);
+  const selected =
+    filter === 'all'
+      ? sourceEntries
+      : sourceEntries.filter(([sourceName]) => sourceName === filter);
+
+  if (selected.length === 0) {
+    throw new Error(`Unknown upstream source: ${filter}`);
+  }
+
+  const resolved = [];
+  for (const [sourceName, source] of selected) {
+    if (source.type !== 'git') {
+      throw new Error(`Unsupported upstream source type for locking: ${source.type}`);
+    }
+    resolved.push(
+      await resolveSourceTarget(
+        {
+          ...source,
+          name: sourceName
+        },
+        {
+          gitLsRemote,
+          listReleases
+        }
+      )
+    );
+  }
+
+  return resolved;
+}
+
+export function buildSourceLockRecord(resolvedSources) {
+  const refreshedAt = new Date().toISOString();
+  return {
+    schemaVersion: 2,
+    refreshedAt,
+    sources: Object.fromEntries(
+      resolvedSources.map((source) => [
+        source.name,
+        {
+          ...source,
+          refreshedAt
+        }
+      ])
+    )
+  };
+}
+
+export async function stageGitCandidate(rootDir, sourceName, source, resolvedSource) {
   if (!source.url) {
     throw new Error(`Git source ${sourceName} must define a url.`);
   }
   const candidatePath = candidatePathForSource(rootDir, sourceName);
   await rm(candidatePath, { recursive: true, force: true });
   await mkdir(path.dirname(candidatePath), { recursive: true });
-  await runGit(['clone', '--depth=1', source.url, candidatePath]);
+  const fetchPlan = buildFetchPlan(resolvedSource);
+  await runGit(['clone', '--no-checkout', source.url, candidatePath]);
+  await runGit(['-C', candidatePath, 'fetch', '--depth=1', 'origin', fetchPlan.fetchRef]);
+  await runGit(['-C', candidatePath, 'checkout', '--detach', fetchPlan.checkoutCommitSha]);
   await rm(path.join(candidatePath, '.git'), { recursive: true, force: true });
   return candidatePath;
 }

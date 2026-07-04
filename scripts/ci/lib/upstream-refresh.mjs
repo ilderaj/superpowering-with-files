@@ -9,6 +9,8 @@ export const baseRef = 'origin/dev';
 export const branchName = 'automation/upstream-refresh';
 export const resultPath = '.harness/upstream-refresh-result.json';
 export const refreshTaskId = 'github-actions-upstream-automation-analysis';
+export const defaultExecutionMode = 'base-branch-refresh';
+export const validationExecutionMode = 'workflow-ref-validation';
 
 const conflictFailurePattern = /\b(CONFLICT|conflict|merge conflict|merge failed|unmerged|would be overwritten|needs merge)\b/i;
 
@@ -127,18 +129,37 @@ export function buildUpdateCompatibilityReport({
   };
 }
 
-export function buildRefreshCommandChain() {
+export function buildRefreshPrepareCommandChain({ validationMode = false } = {}) {
+  const prepareCommands = [
+    { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] }
+  ];
+
+  if (!validationMode) {
+    prepareCommands.push({ file: 'git', args: ['checkout', '-B', branchName, baseRef] });
+  }
+
+  return prepareCommands;
+}
+
+export function buildRefreshExecutionCommandChain({ sourceFilter } = {}) {
+  const sourceArgs = sourceFilter ? [`--source=${sourceFilter}`] : [];
+
   return [
-    { file: 'git', args: ['fetch', 'origin', 'main', 'dev'] },
-    { file: 'git', args: ['checkout', '-B', branchName, baseRef] },
     { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
-    { file: './scripts/harness', args: ['fetch'] },
-    { file: './scripts/harness', args: ['update'] },
+    { file: './scripts/harness', args: ['fetch', ...sourceArgs] },
+    { file: './scripts/harness', args: ['update', ...sourceArgs] },
     { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
     { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] },
     { file: './scripts/harness', args: ['sync', '--dry-run'] },
     { file: './scripts/harness', args: ['sync'] },
     { file: './scripts/harness', args: ['doctor'] }
+  ];
+}
+
+export function buildRefreshCommandChain({ sourceFilter, validationMode = false } = {}) {
+  return [
+    ...buildRefreshPrepareCommandChain({ validationMode }),
+    ...buildRefreshExecutionCommandChain({ sourceFilter })
   ];
 }
 
@@ -281,8 +302,14 @@ export async function cleanupRuntimeArtifacts(filePaths, {
 
 export function createRefreshResult({
   status,
+  executionMode = defaultExecutionMode,
   sourceHeads = {},
   eligibleFiles = [],
+  previousLock = { sources: {} },
+  resolvedLock = { sources: {} },
+  changedSources = [],
+  strategySummary = {},
+  lockPersistence = 'not_applicable',
   blockedReason = '',
   failureKind = '',
   compatibilityReport
@@ -297,10 +324,16 @@ export function createRefreshResult({
 
   return {
     status,
+    executionMode,
     baseRef,
     branchName,
     sourceHeads,
     eligibleFiles,
+    previousLock,
+    resolvedLock,
+    changedSources,
+    strategySummary,
+    lockPersistence,
     compatibilityReport: report,
     blockedReason,
     failureKind
@@ -327,13 +360,24 @@ export function formatBlockedReason(error) {
 
 export function createFailureRefreshResult({
   error,
+  executionMode = defaultExecutionMode,
   sourceHeads = {},
-  eligibleFiles = []
+  eligibleFiles = [],
+  previousLock = { sources: {} },
+  resolvedLock = { sources: {} },
+  changedSources = [],
+  strategySummary = {}
 } = {}) {
   return createRefreshResult({
     status: 'failure',
+    executionMode,
     sourceHeads,
     eligibleFiles,
+    previousLock,
+    resolvedLock,
+    changedSources,
+    strategySummary,
+    lockPersistence: 'not_written_due_to_failure',
     blockedReason: formatBlockedReason(error),
     failureKind: error?.failureKind ?? 'runtime_failure'
   });
@@ -440,10 +484,22 @@ export async function runCommand(command, {
 
 export async function runRefreshCommandChain({
   cwd = process.cwd(),
-  commands = buildRefreshCommandChain(),
+  sourceFilter,
+  validationMode = false,
+  beforeExecution,
+  prepareCommands = buildRefreshPrepareCommandChain({ validationMode }),
+  executionCommands = buildRefreshExecutionCommandChain({ sourceFilter }),
   run = runCommand
 } = {}) {
-  for (const command of commands) {
+  for (const command of prepareCommands) {
+    await run(command, { cwd });
+  }
+
+  if (typeof beforeExecution === 'function') {
+    await beforeExecution();
+  }
+
+  for (const command of executionCommands) {
     await run(command, { cwd });
   }
 }

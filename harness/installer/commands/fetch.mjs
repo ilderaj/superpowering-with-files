@@ -1,7 +1,8 @@
 import path from 'node:path';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import {
-  loadUpstreamSources,
+  loadFetchSourceConfig,
+  loadResolvedSourceForFetch,
   parseFromPath,
   parseSourceFilter,
   stageGitCandidate,
@@ -23,14 +24,18 @@ function relativeStatePath(rootDir, targetPath) {
 
 export async function fetchCommand(args = []) {
   const { rootDir } = await discoverAuthorityRoot(process.cwd());
-  const sources = await loadUpstreamSources(rootDir);
+  const { sources } = await loadFetchSourceConfig(rootDir);
   const filter = parseSourceFilter(args);
   const fromPath = parseFromPath(args);
   const stagedBySource = [];
 
   for (const [sourceName, source] of selectedSources(sources, filter)) {
     if (source.type === 'git') {
-      stagedBySource.push({ sourceName, path: await stageGitCandidate(rootDir, sourceName, source) });
+      const { resolvedSource } = await loadResolvedSourceForFetch(rootDir, sourceName);
+      stagedBySource.push({
+        sourceName,
+        path: await stageGitCandidate(rootDir, sourceName, source, resolvedSource)
+      });
       continue;
     }
     if (source.type === 'local-initial-import') {

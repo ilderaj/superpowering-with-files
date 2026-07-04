@@ -26,7 +26,24 @@ export function formatCommand(command) {
   return [command.file, ...(command.args ?? [])].map(quoteCommandPart).join(' ');
 }
 
-export function buildPullRequestBody({ eligibleFiles = [], sourceHeads = {} } = {}) {
+function buildStrategySummaryLines(strategySummary = {}) {
+  const strategyEntries = Object.entries(strategySummary ?? {});
+  if (strategyEntries.length === 0) {
+    return ['- No resolved source updates were reported.'];
+  }
+
+  return strategyEntries.flatMap(([sourceName, summary]) => ([
+    `- ${sourceName}: ${summary.strategy ?? 'unknown'} ${summary.previousVersion ?? '(none)'} -> ${summary.nextVersion ?? '(none)'}`,
+    `  commits: ${summary.previousCommitSha ?? '(none)'} -> ${summary.nextCommitSha ?? '(none)'}`,
+    `  fallbackUsed: ${summary.fallbackUsed ? 'yes' : 'no'}`
+  ]));
+}
+
+export function buildPullRequestBody({
+  eligibleFiles = [],
+  sourceHeads = {},
+  strategySummary = {}
+} = {}) {
   const normalizedFiles = normalizeEligibleFiles(eligibleFiles);
   const includedFiles = normalizedFiles.slice(0, maxEligibleFilesInPullRequestBody);
   const omittedFileCount = Math.max(0, normalizedFiles.length - includedFiles.length);
@@ -52,6 +69,7 @@ export function buildPullRequestBody({ eligibleFiles = [], sourceHeads = {} } = 
   const sourceHeadLines = sourceHeadEntries.length > 0
     ? sourceHeadEntries.map(([sourceName, headSha]) => `- ${sourceName}: ${headSha}`)
     : ['- No source head changes were reported.'];
+  const strategyLines = buildStrategySummaryLines(strategySummary);
 
   return [
     '## Summary',
@@ -65,6 +83,10 @@ export function buildPullRequestBody({ eligibleFiles = [], sourceHeads = {} } = 
     '## Source Heads',
     '',
     ...sourceHeadLines,
+    '',
+    '## Resolved Sources',
+    '',
+    ...strategyLines,
     '',
     '## Review Gate',
     '',
@@ -155,6 +177,9 @@ export function buildUpdatePullRequestCommand({ number, bodyFilePath = defaultPu
 export function buildUpstreamPullRequestPlan({
   eligibleFiles = [],
   sourceHeads = {},
+  previousLock = { sources: {} },
+  resolvedLock = { sources: {} },
+  strategySummary = {},
   openPullRequests = [],
   remoteBranchExists = false
 } = {}) {
@@ -168,11 +193,14 @@ export function buildUpstreamPullRequestPlan({
       branchName,
       baseBranch,
       title,
-      eligibleFiles: normalizedFiles
+      eligibleFiles: normalizedFiles,
+      previousLock,
+      resolvedLock,
+      strategySummary
     };
   }
 
-  const body = buildPullRequestBody({ eligibleFiles: normalizedFiles, sourceHeads });
+  const body = buildPullRequestBody({ eligibleFiles: normalizedFiles, sourceHeads, strategySummary });
   const existingPullRequest = findOpenAutomationPullRequest(openPullRequests);
   const shouldUpdatePullRequest = Boolean(existingPullRequest);
   const shouldCreatePullRequest = !shouldUpdatePullRequest;
@@ -185,6 +213,9 @@ export function buildUpstreamPullRequestPlan({
     baseBranch,
     title,
     eligibleFiles: normalizedFiles,
+    previousLock,
+    resolvedLock,
+    strategySummary,
     existingPullRequest,
     pullRequest: shouldCreatePullRequest
       ? {

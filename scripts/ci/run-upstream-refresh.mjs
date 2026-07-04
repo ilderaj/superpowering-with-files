@@ -1,23 +1,29 @@
 #!/usr/bin/env node
 
+import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import {
-  buildSourceHeadsRecord,
-  probeUpstreamHeads,
-  writeSourceHeadsRecord
+  probeUpstreamHeads
 } from './lib/upstream-heads.mjs';
+import {
+  loadSourceLock,
+  loadUpstreamSourceConfig,
+  writeSourceLock as writeSourceLockDefault
+} from '../../harness/installer/lib/upstream-config.mjs';
 import {
   captureChangedFiles,
   cleanupRuntimeArtifacts as cleanupRuntimeArtifactsDefault,
   createAllowlistViolationError,
   createFailureRefreshResult,
   createRefreshResult,
+  defaultExecutionMode,
   filterEligibleChanges,
   listTransientRuntimeArtifacts as listTransientRuntimeArtifactsDefault,
   listRepoLocalEntryFileChanges,
   restoreRepoLocalEntryFiles,
   runRefreshCommandChain,
   UpstreamRefreshBlockedError,
+  validationExecutionMode,
   writeRefreshResult
 } from './lib/upstream-refresh.mjs';
 import {
@@ -25,10 +31,150 @@ import {
   loadBaseHealth as loadBaseHealthDefault
 } from './lib/upstream-base-health.mjs';
 
+function parseWorkflowInputBoolean(value, defaultValue = false) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === 'true') return true;
+    if (normalized === 'false') return false;
+  }
+
+  return defaultValue;
+}
+
+function parseSourceFilterInput(value) {
+  if (typeof value !== 'string') return [];
+
+  const normalized = value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  if (normalized.length === 0 || (normalized.length === 1 && normalized[0] === 'all')) {
+    return [];
+  }
+
+  return normalized;
+}
+
+function applyDispatchOverridesToSources(sourceConfig, {
+  sourceFilter = [],
+  strategyOverride = '',
+  allowPrerelease = false
+} = {}) {
+  const configuredSources = sourceConfig?.sources ?? {};
+  const selectedSourceNames = sourceFilter.length > 0
+    ? sourceFilter
+    : Object.keys(configuredSources);
+  const unknownSources = selectedSourceNames.filter((name) => !(name in configuredSources));
+
+  if (unknownSources.length > 0) {
+    throw new Error(`Unknown upstream source filter: ${unknownSources.join(', ')}`);
+  }
+
+  return {
+    schemaVersion: sourceConfig?.schemaVersion ?? 2,
+    sources: Object.fromEntries(
+      selectedSourceNames.map((name) => {
+        const source = configuredSources[name];
+        return [
+          name,
+          {
+            ...source,
+            resolution: {
+              ...source.resolution,
+              ...(strategyOverride ? { strategy: strategyOverride } : {}),
+              ...(allowPrerelease ? { allowPrerelease: true } : {})
+            }
+          }
+        ];
+      })
+    )
+  };
+}
+
+function createWritableSourceLock(record) {
+  return {
+    schemaVersion: 2,
+    refreshedAt: record?.refreshedAt ?? null,
+    sources: record?.sources ?? {}
+  };
+}
+
+function resolveExecutionSourceFilter(sourceFilter) {
+  if (typeof sourceFilter === 'string') {
+    return sourceFilter || null;
+  }
+
+  if (!Array.isArray(sourceFilter) || sourceFilter.length === 0) {
+    return null;
+  }
+
+  if (sourceFilter.length > 1) {
+    throw new Error('workflow_dispatch source_filter must resolve to a single source or "all".');
+  }
+
+  return sourceFilter[0];
+}
+
+async function loadWorkflowDispatchRunContext({
+  cwd,
+  env,
+  readEventFile,
+  loadSourceConfig
+}) {
+  if (env.GITHUB_EVENT_NAME !== 'workflow_dispatch') {
+    return {
+      sources: undefined,
+      runOverrides: { active: false }
+    };
+  }
+
+  const eventPath = env.GITHUB_EVENT_PATH;
+  if (!eventPath) {
+    throw new Error('workflow_dispatch run requires GITHUB_EVENT_PATH.');
+  }
+
+  const payload = JSON.parse(await readEventFile(eventPath, 'utf8'));
+  const inputs = payload?.inputs ?? {};
+  const sourceFilter = parseSourceFilterInput(inputs.source_filter);
+  const strategyOverride = typeof inputs.strategy_override === 'string'
+    ? inputs.strategy_override.trim()
+    : '';
+  const allowPrerelease = parseWorkflowInputBoolean(inputs.allow_prerelease, false);
+  const validationMode = parseWorkflowInputBoolean(inputs.validation_mode, false);
+  const createPr = parseWorkflowInputBoolean(inputs.create_pr, false);
+  const dryRun = parseWorkflowInputBoolean(inputs.dry_run, false);
+  const hasSourceOverrides = sourceFilter.length > 0 || Boolean(strategyOverride) || allowPrerelease;
+
+  return {
+    sources: hasSourceOverrides
+      ? applyDispatchOverridesToSources(await loadSourceConfig(cwd), {
+          sourceFilter,
+          strategyOverride,
+          allowPrerelease
+        })
+      : undefined,
+    runOverrides: {
+      active: hasSourceOverrides || dryRun || validationMode,
+      sourceFilter,
+      strategyOverride: strategyOverride || null,
+      allowPrerelease,
+      validationMode,
+      createPr,
+      dryRun
+    }
+  };
+}
+
 export async function runUpstreamRefresh({
   cwd = process.cwd(),
+  env = process.env,
   now = () => new Date(),
   probeHeads = probeUpstreamHeads,
+  readEventFile = readFile,
+  loadSourceConfig = (rootDir) => loadUpstreamSourceConfig(rootDir),
+  loadAuthoritativeLock = ({ cwd }) => loadSourceLock({ rootDir: cwd }),
   loadBaseHealth: checkBaseHealth = ({ cwd, branch }) => loadBaseHealthDefault({ cwd, branch }),
   runRefresh = runRefreshCommandChain,
   captureChanges = captureChangedFiles,
@@ -37,13 +183,27 @@ export async function runUpstreamRefresh({
   listRepoLocalEntryChanges = listRepoLocalEntryFileChanges,
   cleanupRuntimeArtifacts = cleanupRuntimeArtifactsDefault,
   restoreRepoLocalEntries = restoreRepoLocalEntryFiles,
-  writeSourceHeads = writeSourceHeadsRecord,
+  writeSourceLock = (record, { cwd }) => writeSourceLockDefault(record, { rootDir: cwd }),
+  runOverrides = null,
   writeResult = writeRefreshResult
 } = {}) {
-  let probeResult = { sourceHeads: {} };
+  let probeResult = { sourceHeads: {}, previousLock: { sources: {} }, resolvedLock: { sources: {} }, strategySummary: {}, changedSources: [] };
   let eligibleFiles = [];
   let shouldCaptureFailureChanges = false;
   let changedFilesCaptured = false;
+  let stagedRunLock = false;
+  let authoritativeLock = { schemaVersion: 2, refreshedAt: null, sources: {} };
+  const workflowDispatchContext = await loadWorkflowDispatchRunContext({
+    cwd,
+    env,
+    readEventFile,
+    loadSourceConfig
+  });
+  const effectiveRunOverrides = runOverrides ?? workflowDispatchContext.runOverrides;
+  const executionSourceFilter = resolveExecutionSourceFilter(effectiveRunOverrides.sourceFilter);
+  const executionMode = effectiveRunOverrides.validationMode
+    ? validationExecutionMode
+    : defaultExecutionMode;
 
   async function captureChangesForAllowlist() {
     const changedFiles = await captureChanges({ cwd });
@@ -67,13 +227,22 @@ export async function runUpstreamRefresh({
   }
 
   try {
-    probeResult = await probeHeads({ cwd });
+    probeResult = await probeHeads({
+      cwd,
+      ...(workflowDispatchContext.sources ? { sources: workflowDispatchContext.sources } : {})
+    });
 
     if (probeResult.status === 'no_changes') {
       const result = createRefreshResult({
         status: 'no_changes',
+        executionMode,
         sourceHeads: probeResult.sourceHeads,
-        eligibleFiles: []
+        eligibleFiles: [],
+        previousLock: probeResult.previousLock,
+        resolvedLock: probeResult.resolvedLock,
+        changedSources: probeResult.changedSources,
+        strategySummary: probeResult.strategySummary,
+        lockPersistence: 'not_needed'
       });
       await writeResult(result, { cwd });
       return result;
@@ -88,15 +257,46 @@ export async function runUpstreamRefresh({
       });
     }
 
+    authoritativeLock = createWritableSourceLock(await loadAuthoritativeLock({ cwd }));
     shouldCaptureFailureChanges = true;
-    await runRefresh({ cwd });
+    await runRefresh({
+      cwd,
+      sourceFilter: executionSourceFilter,
+      validationMode: effectiveRunOverrides.validationMode,
+      beforeExecution: async () => {
+        await writeSourceLock(createWritableSourceLock(probeResult.resolvedLock), { cwd });
+        stagedRunLock = true;
+      }
+    });
 
-    const timestamp = now().toISOString();
-    await writeSourceHeads(buildSourceHeadsRecord({
-      sources: probeResult.sources,
-      observedHeads: probeResult.sourceHeads,
-      timestamp
-    }), { cwd });
+    if (effectiveRunOverrides.active) {
+      await writeSourceLock(authoritativeLock, { cwd });
+      stagedRunLock = false;
+    }
+
+    let lockPersistence = 'skipped_due_to_run_override';
+    if (!effectiveRunOverrides.active) {
+      const refreshedAt = now().toISOString();
+      const lockRecord = {
+        ...probeResult.resolvedLock,
+        refreshedAt,
+        sources: Object.fromEntries(
+          Object.entries(probeResult.resolvedLock?.sources ?? {}).map(([name, source]) => [
+            name,
+            {
+              ...source,
+              refreshedAt
+            }
+          ])
+        )
+      };
+      await writeSourceLock(lockRecord, { cwd });
+      probeResult = {
+        ...probeResult,
+        resolvedLock: lockRecord
+      };
+      lockPersistence = 'written';
+    }
 
     const effectiveChangedFiles = await captureChangesForAllowlist();
     changedFilesCaptured = true;
@@ -109,13 +309,30 @@ export async function runUpstreamRefresh({
 
     const result = createRefreshResult({
       status: 'success',
+      executionMode,
       sourceHeads: probeResult.sourceHeads,
-      eligibleFiles
+      eligibleFiles,
+      previousLock: probeResult.previousLock,
+      resolvedLock: probeResult.resolvedLock,
+      changedSources: probeResult.changedSources,
+      strategySummary: probeResult.strategySummary,
+      lockPersistence
     });
     await writeResult(result, { cwd });
     return result;
   } catch (error) {
-    let resultError = error;
+      let resultError = error;
+
+      if (stagedRunLock) {
+        try {
+          await writeSourceLock(authoritativeLock, { cwd });
+          stagedRunLock = false;
+        } catch (restoreError) {
+          resultError = new Error(`${resultError instanceof Error ? resultError.message : String(resultError)}\n\nUnable to restore authoritative source lock after failure: ${restoreError instanceof Error ? restoreError.message : String(restoreError)}`, {
+            cause: error
+          });
+        }
+      }
 
     if (shouldCaptureFailureChanges && !changedFilesCaptured) {
       try {
@@ -124,12 +341,12 @@ export async function runUpstreamRefresh({
         eligibleFiles = filteredChanges.eligibleFiles;
 
         if ((filteredChanges.excludedFiles ?? []).length > 0) {
-          resultError = new Error(`${error instanceof Error ? error.message : String(error)}\n\n${createAllowlistViolationError(filteredChanges.excludedFiles).message}`, {
+          resultError = new Error(`${resultError instanceof Error ? resultError.message : String(resultError)}\n\n${createAllowlistViolationError(filteredChanges.excludedFiles).message}`, {
             cause: error
           });
         }
       } catch (captureError) {
-        resultError = new Error(`${error instanceof Error ? error.message : String(error)}\n\nUnable to capture changed files after failure: ${captureError instanceof Error ? captureError.message : String(captureError)}`, {
+        resultError = new Error(`${resultError instanceof Error ? resultError.message : String(resultError)}\n\nUnable to capture changed files after failure: ${captureError instanceof Error ? captureError.message : String(captureError)}`, {
           cause: error
         });
       }
@@ -137,8 +354,13 @@ export async function runUpstreamRefresh({
 
     const result = createFailureRefreshResult({
       error: resultError,
+      executionMode,
       sourceHeads: probeResult.sourceHeads,
-      eligibleFiles
+      eligibleFiles,
+      previousLock: probeResult.previousLock,
+      resolvedLock: probeResult.resolvedLock,
+      changedSources: probeResult.changedSources,
+      strategySummary: probeResult.strategySummary
     });
     await writeResult(result, { cwd });
     throw new UpstreamRefreshBlockedError(result, { cause: error });

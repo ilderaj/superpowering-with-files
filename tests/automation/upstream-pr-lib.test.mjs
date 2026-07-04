@@ -40,10 +40,17 @@ test('buildPullRequestBody marks automatic review and checks as advisory', async
   const body = buildPullRequestBody({
     eligibleFiles: [
       'harness/upstream/superpowers/SKILL.md',
-      'harness/upstream/.source-heads.json'
+      'harness/upstream/.source-lock.json'
     ],
-    sourceHeads: {
-      superpowers: '1111111111111111111111111111111111111111'
+    strategySummary: {
+      superpowers: {
+        strategy: 'latest-release',
+        previousVersion: 'v6.0.3',
+        nextVersion: 'v6.1.1',
+        previousCommitSha: '0000000000000000000000000000000000000000',
+        nextCommitSha: '1111111111111111111111111111111111111111',
+        fallbackUsed: false
+      }
     }
   });
 
@@ -53,6 +60,61 @@ test('buildPullRequestBody marks automatic review and checks as advisory', async
   assert.match(body, /guarded --force-with-lease update is limited to the fixed automation branch/i);
   assert.match(body, /harness\/upstream\/superpowers\/SKILL\.md/);
   assert.match(body, /superpowers/);
+  assert.match(body, /v6\.0\.3/);
+  assert.match(body, /v6\.1\.1/);
+  assert.match(body, /latest-release/);
+});
+
+test('buildUpstreamPullRequestPlan carries resolved lock metadata into the PR body', async () => {
+  const { buildUpstreamPullRequestPlan } = await loadUpstreamPrModule();
+
+  const plan = buildUpstreamPullRequestPlan({
+    eligibleFiles: ['harness/upstream/.source-lock.json'],
+    previousLock: {
+      schemaVersion: 2,
+      sources: {
+        superpowers: {
+          strategy: 'latest-release',
+          resolved: {
+            kind: 'latest-release',
+            version: 'v6.0.3',
+            ref: 'v6.0.3',
+            commitSha: '0000000000000000000000000000000000000000'
+          }
+        }
+      }
+    },
+    resolvedLock: {
+      schemaVersion: 2,
+      sources: {
+        superpowers: {
+          strategy: 'latest-release',
+          resolved: {
+            kind: 'latest-release',
+            version: 'v6.1.1',
+            ref: 'v6.1.1',
+            commitSha: '1111111111111111111111111111111111111111'
+          }
+        }
+      }
+    },
+    strategySummary: {
+      superpowers: {
+        strategy: 'latest-release',
+        previousVersion: 'v6.0.3',
+        nextVersion: 'v6.1.1',
+        previousCommitSha: '0000000000000000000000000000000000000000',
+        nextCommitSha: '1111111111111111111111111111111111111111',
+        fallbackUsed: false
+      }
+    }
+  });
+
+  assert.equal(plan.shouldCreatePullRequest, true);
+  assert.equal(plan.previousLock.sources.superpowers.resolved.version, 'v6.0.3');
+  assert.equal(plan.resolvedLock.sources.superpowers.resolved.version, 'v6.1.1');
+  assert.match(plan.body, /harness\/upstream\/\.source-lock\.json/);
+  assert.match(plan.body, /1111111111111111111111111111111111111111/);
 });
 
 test('buildPullRequestBody truncates oversized eligible file lists', async () => {
@@ -364,6 +426,78 @@ test('runOpenUpstreamPullRequest commits, pushes, and creates a PR when no autom
   assert.ok(commands.includes('git push --set-upstream origin automation/upstream-refresh'));
   assert.ok(commands.some((command) => command === "gh pr create --base dev --head automation/upstream-refresh --title 'chore: refresh upstream baselines' --body-file .harness/upstream-pr-body.md"));
   assert.equal(commands.some((command) => command.includes('pr merge')), false);
+  assert.equal(existsSync(bodyFilePath), false);
+});
+
+test('runOpenUpstreamPullRequest forwards resolved metadata into the final PR body file', async () => {
+  const { runOpenUpstreamPullRequest } = await import('../../scripts/ci/open-upstream-pr.mjs');
+  const cwd = path.join(os.tmpdir(), 'upstream-pr-metadata-wiring-test');
+  const bodyFilePath = path.join(cwd, '.harness/upstream-pr-body.md');
+
+  await runOpenUpstreamPullRequest({
+    cwd,
+    readRefreshResult: async () => ({
+      status: 'success',
+      eligibleFiles: ['harness/upstream/.source-lock.json'],
+      sourceHeads: {
+        superpowers: '1111111111111111111111111111111111111111'
+      },
+      previousLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.0.3',
+              ref: 'v6.0.3',
+              commitSha: '0000000000000000000000000000000000000000'
+            }
+          }
+        }
+      },
+      resolvedLock: {
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            strategy: 'latest-release',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v6.1.1',
+              ref: 'v6.1.1',
+              commitSha: '1111111111111111111111111111111111111111'
+            }
+          }
+        }
+      },
+      strategySummary: {
+        superpowers: {
+          strategy: 'latest-release',
+          previousVersion: 'v6.0.3',
+          nextVersion: 'v6.1.1',
+          previousCommitSha: '0000000000000000000000000000000000000000',
+          nextCommitSha: '1111111111111111111111111111111111111111',
+          fallbackUsed: false
+        }
+      }
+    }),
+    runCommand: async (command) => {
+      if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'create') {
+        const bodyText = await readFile(bodyFilePath, 'utf8');
+        assert.match(bodyText, /v6\.0\.3 -> v6\.1\.1/);
+        assert.match(bodyText, /0000000000000000000000000000000000000000 -> 1111111111111111111111111111111111111111/);
+        return { stdout: 'https://github.com/ilderaj/superpowering-with-files/pull/100\n' };
+      }
+      if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'list') {
+        return { stdout: '[]' };
+      }
+      if (command.file === 'git' && command.args[0] === 'ls-remote') {
+        return { stdout: '' };
+      }
+      return { stdout: '' };
+    }
+  });
+
   assert.equal(existsSync(bodyFilePath), false);
 });
 
