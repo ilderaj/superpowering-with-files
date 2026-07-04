@@ -297,6 +297,7 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
 
   const result = await runUpstreamRefresh({
     cwd: '/tmp/repo',
+    env: {},
     now: () => new Date('2026-04-30T00:00:00.000Z'),
     probeHeads: async () => ({
       status: 'changes_detected',
@@ -371,6 +372,7 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
 
   const result = await runUpstreamRefresh({
     cwd: '/tmp/repo',
+    env: {},
     loadAuthoritativeLock: async () => authoritativeLock,
     probeHeads: async () => ({
       status: 'changes_detected',
@@ -477,6 +479,7 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
 
   await runUpstreamRefresh({
     cwd: '/tmp/repo',
+    env: {},
     loadAuthoritativeLock: async () => authoritativeLock,
     probeHeads: async () => ({
       status: 'changes_detected',
@@ -823,6 +826,7 @@ test('runUpstreamRefresh blocks before the refresh command chain when origin/dev
   await assert.rejects(
     runUpstreamRefresh({
       cwd: '/tmp/repo',
+      env: {},
       probeHeads: async () => ({
         status: 'changes_detected',
         sources: [],
@@ -895,6 +899,7 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
 
   const result = await runUpstreamRefresh({
     cwd: '/tmp/repo',
+    env: {},
     now: () => new Date('2026-04-30T00:00:00.000Z'),
     probeHeads: async () => ({
       status: 'changes_detected',
@@ -981,6 +986,7 @@ test('runUpstreamRefresh removes known transient cache artifacts before final al
 
   const result = await runUpstreamRefresh({
     cwd: '/tmp/repo',
+    env: {},
     probeHeads: async () => ({
       status: 'changes_detected',
       resolvedLock: {
@@ -1064,6 +1070,7 @@ test('runUpstreamRefresh writes a failure result and rejects when verification f
   await assert.rejects(
     runUpstreamRefresh({
       cwd: '/tmp/repo',
+      env: {},
       probeHeads: async () => ({
         status: 'changes_detected',
         sources: [],
@@ -1112,6 +1119,7 @@ test('runUpstreamRefresh keeps the original failure when changed-file capture fa
   await assert.rejects(
     runUpstreamRefresh({
       cwd: '/tmp/repo',
+      env: {},
       probeHeads: async () => ({
         status: 'changes_detected',
         sources: [],
@@ -1147,6 +1155,7 @@ test('runUpstreamRefresh writes a failure result and rejects when refresh hits a
   await assert.rejects(
     runUpstreamRefresh({
       cwd: '/tmp/repo',
+      env: {},
       probeHeads: async () => ({
         status: 'changes_detected',
         sources: [],
@@ -1180,6 +1189,7 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
   await assert.rejects(
     runUpstreamRefresh({
       cwd: '/tmp/repo',
+      env: {},
       now: () => new Date('2026-04-30T00:00:00.000Z'),
       probeHeads: async () => ({
         status: 'changes_detected',
