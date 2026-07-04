@@ -68,6 +68,23 @@ async function writeSources(root, source) {
   );
 }
 
+async function writeLegacySources(root, source) {
+  await mkdir(path.join(root, 'harness/upstream'), { recursive: true });
+  await writeFile(
+    path.join(root, 'harness/upstream/sources.json'),
+    JSON.stringify({
+      schemaVersion: 1,
+      sources: {
+        'planning-with-files': {
+          type: 'git',
+          url: source,
+          path: 'harness/upstream/planning-with-files'
+        }
+      }
+    })
+  );
+}
+
 async function writeResolvedSourceLock(root, sourceName, resolved) {
   await writeFile(
     path.join(root, 'harness/upstream/.source-lock.json'),
@@ -229,6 +246,34 @@ test('fetchCommand clones the locked tag commit instead of raw HEAD', async () =
     await rm(root, { recursive: true, force: true });
     await rm(source, { recursive: true, force: true });
     await rm(binDir, { recursive: true, force: true });
+  }
+});
+
+test('fetchCommand accepts legacy schemaVersion 1 sources metadata when lock is present', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fetch-legacy-sources-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-legacy-source-'));
+  try {
+    await writeLegacySources(root, source);
+    const commitSha = await createGitSource(source, '# Planning With Files Legacy\n');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      targets: {},
+      upstream: {}
+    });
+
+    await withCwd(root, () => fetchCommand(['--source=planning-with-files']));
+
+    assert.equal(
+      await readFile(path.join(root, '.harness/upstream-candidates/planning-with-files/SKILL.md'), 'utf8'),
+      '# Planning With Files Legacy\n'
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
   }
 });
 

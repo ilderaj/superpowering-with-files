@@ -3,7 +3,7 @@ import { cp, mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
-import { loadSourceLock, loadUpstreamSourceConfig } from './upstream-config.mjs';
+import { loadSourceLock, loadUpstreamSourceConfig, normalizeUpstreamSource } from './upstream-config.mjs';
 import { buildFetchPlan, resolveSourceTarget } from '../../../scripts/ci/lib/upstream-resolver.mjs';
 
 const UPSTREAM_ROOT = 'harness/upstream';
@@ -79,8 +79,25 @@ export function parseFromPath(args) {
   return fromArg ? fromArg.slice('--from='.length) : undefined;
 }
 
+export async function loadFetchSourceConfig(rootDir) {
+  try {
+    return await loadUpstreamSourceConfig(rootDir);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid upstream source config.') {
+      const legacySources = await loadUpstreamSources(rootDir);
+      return {
+        schemaVersion: 1,
+        sources: Object.fromEntries(
+          Object.entries(legacySources).map(([name, rawSource]) => [name, normalizeUpstreamSource(name, rawSource)])
+        )
+      };
+    }
+    throw error;
+  }
+}
+
 export async function loadResolvedSourceForFetch(rootDir, sourceName) {
-  const sourcesDocument = await loadUpstreamSourceConfig(rootDir);
+  const sourcesDocument = await loadFetchSourceConfig(rootDir);
   const source = sourcesDocument.sources[sourceName];
   if (!source) {
     throw new Error(`Unknown upstream source: ${sourceName}`);
