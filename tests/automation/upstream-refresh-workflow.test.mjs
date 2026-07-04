@@ -76,16 +76,32 @@ function extractStepBlock(documentText, stepName) {
   return blockLines.join('\n');
 }
 
-test('upstream refresh workflow exposes manual and weekly scheduled triggers', async () => {
+test('upstream refresh workflow exposes manual controls and weekly scheduled triggers', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
   const onBlock = extractTopLevelBlock(workflow, 'on');
 
   assert.match(onBlock, /^\s+workflow_dispatch:\s*$/m);
   assert.match(onBlock, /^\s{4}inputs:\s*$/m);
+  assert.match(onBlock, /^\s{6}source_filter:\s*$/m);
+  assert.match(onBlock, /^\s{8}description:\s*Limit refresh to one source or use all\s*$/m);
+  assert.match(onBlock, /^\s{8}default:\s*all\s*$/m);
+  assert.match(onBlock, /^\s{8}type:\s*string\s*$/m);
+  assert.match(onBlock, /^\s{6}strategy_override:\s*$/m);
+  assert.match(onBlock, /^\s{8}description:\s*Optional run-scoped override for source resolution strategy\s*$/m);
+  assert.match(onBlock, /^\s{8}default:\s*''\s*$/m);
+  assert.match(onBlock, /^\s{8}type:\s*string\s*$/m);
+  assert.match(onBlock, /^\s{6}allow_prerelease:\s*$/m);
+  assert.match(onBlock, /^\s{8}description:\s*Allow prerelease selection for this run only when supported by the strategy\s*$/m);
+  assert.match(onBlock, /^\s{8}default:\s*false\s*$/m);
+  assert.match(onBlock, /^\s{8}type:\s*boolean\s*$/m);
   assert.match(onBlock, /^\s{6}create_pr:\s*$/m);
   assert.match(onBlock, /^\s{8}description:\s*Create or update the upstream refresh pull request\s*$/m);
   assert.match(onBlock, /^\s{8}required:\s*false\s*$/m);
   assert.match(onBlock, /^\s{8}default:\s*false\s*$/m);
+  assert.match(onBlock, /^\s{8}type:\s*boolean\s*$/m);
+  assert.match(onBlock, /^\s{6}dry_run:\s*$/m);
+  assert.match(onBlock, /^\s{8}description:\s*Resolve and verify without opening a pull request\s*$/m);
+  assert.match(onBlock, /^\s{8}default:\s*true\s*$/m);
   assert.match(onBlock, /^\s{8}type:\s*boolean\s*$/m);
   assert.match(onBlock, /^\s+schedule:\s*$/m);
   assert.match(onBlock, /^\s+-\s*cron:\s*['"]0 12 \* \* 5['"]\s*$/m);
@@ -170,7 +186,7 @@ test('upstream refresh workflow opens PRs only after successful non-empty refres
 
   assert.match(
     pullRequestBlock,
-    /^\s{8}if:\s*\$\{\{\s*success\(\)\s*&&\s*steps\.refresh_result\.outputs\.status\s*==\s*'success'\s*&&\s*steps\.refresh_result\.outputs\.eligible_count\s*!=\s*'0'\s*&&\s*\(github\.event_name\s*==\s*'schedule'\s*\|\|\s*inputs\.create_pr\s*==\s*true\)\s*\}\}\s*$/m
+    /^\s{8}if:\s*\$\{\{\s*success\(\)\s*&&\s*steps\.refresh_result\.outputs\.status\s*==\s*'success'\s*&&\s*steps\.refresh_result\.outputs\.eligible_count\s*!=\s*'0'\s*&&\s*\(github\.event_name\s*==\s*'schedule'\s*\|\|\s*\(inputs\.create_pr\s*==\s*true\s*&&\s*inputs\.dry_run\s*!=\s*true\)\)\s*\}\}\s*$/m
   );
   assert.match(pullRequestBlock, /^\s{8}run:\s*node scripts\/ci\/open-upstream-pr\.mjs\s*$/m);
 });

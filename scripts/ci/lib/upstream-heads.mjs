@@ -93,6 +93,18 @@ export function buildStrategySummary({ previousLock, resolvedLock, changedSource
   );
 }
 
+export function selectSourceLock(recordedLock, selectedSourceNames = []) {
+  const allowedNames = new Set(selectedSourceNames);
+
+  return {
+    schemaVersion: recordedLock?.schemaVersion ?? 2,
+    refreshedAt: recordedLock?.refreshedAt ?? null,
+    sources: Object.fromEntries(
+      Object.entries(recordedLock?.sources ?? {}).filter(([name]) => allowedNames.has(name))
+    )
+  };
+}
+
 export async function probeUpstreamHeads({
   cwd = process.cwd(),
   sources,
@@ -103,6 +115,8 @@ export async function probeUpstreamHeads({
   const configuredSources = normalizeUpstreamSources(normalizedSources)
     .filter((source) => (source.type ?? 'git') === 'git');
   const previousLock = recordedHeads ?? await loadSourceLock({ rootDir: cwd });
+  const selectedSourceNames = configuredSources.map((source) => source.name);
+  const selectedPreviousLock = selectSourceLock(previousLock, selectedSourceNames);
   const resolvedSources = [];
 
   for (const source of configuredSources) {
@@ -111,7 +125,7 @@ export async function probeUpstreamHeads({
 
   const resolvedLock = buildSourceLockRecord(resolvedSources);
   const comparison = compareResolvedFingerprints({
-    recordedLock: previousLock,
+    recordedLock: selectedPreviousLock,
     resolvedLock
   });
 
@@ -121,10 +135,10 @@ export async function probeUpstreamHeads({
     sourceHeads: Object.fromEntries(
       resolvedSources.map((source) => [source.name, source.resolved.commitSha])
     ),
-    previousLock,
+    previousLock: selectedPreviousLock,
     resolvedLock,
     strategySummary: buildStrategySummary({
-      previousLock,
+      previousLock: selectedPreviousLock,
       resolvedLock,
       changedSources: comparison.changedSources
     }),

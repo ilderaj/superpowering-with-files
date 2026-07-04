@@ -3,10 +3,30 @@ name: Upstream Refresh
 on:
   workflow_dispatch:
     inputs:
+      source_filter:
+        description: Limit refresh to one source or use all
+        required: false
+        default: all
+        type: string
+      strategy_override:
+        description: Optional run-scoped override for source resolution strategy
+        required: false
+        default: ''
+        type: string
+      allow_prerelease:
+        description: Allow prerelease selection for this run only when supported by the strategy
+        required: false
+        default: false
+        type: boolean
       create_pr:
         description: Create or update the upstream refresh pull request
         required: false
         default: false
+        type: boolean
+      dry_run:
+        description: Resolve and verify without opening a pull request
+        required: false
+        default: true
         type: boolean
   schedule:
     - cron: '0 12 * * 5'
@@ -67,7 +87,7 @@ jobs:
           NODE
 
       - name: Open upstream refresh pull request
-        if: ${{ success() && steps.refresh_result.outputs.status == 'success' && steps.refresh_result.outputs.eligible_count != '0' && (github.event_name == 'schedule' || inputs.create_pr == true) }}
+        if: ${{ success() && steps.refresh_result.outputs.status == 'success' && steps.refresh_result.outputs.eligible_count != '0' && (github.event_name == 'schedule' || (inputs.create_pr == true && inputs.dry_run != true)) }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci/open-upstream-pr.mjs

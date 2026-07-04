@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 
 const expectedRefreshCommands = [
@@ -323,6 +324,130 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
   assert.deepEqual(events, ['runRefresh', 'captureChanges', 'writeResult']);
   assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
   assert.deepEqual(writtenResults, [result]);
+});
+
+test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps them run-scoped', async () => {
+  const { runUpstreamRefresh } = await import('../../scripts/ci/run-upstream-refresh.mjs');
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'upstream-refresh-dispatch-'));
+  const eventPath = path.join(tempRoot, 'workflow-dispatch.json');
+  const events = [];
+  let capturedSources;
+
+  await writeFile(eventPath, JSON.stringify({
+    inputs: {
+      source_filter: 'planning-with-files',
+      strategy_override: 'latest-tag',
+      allow_prerelease: 'true',
+      create_pr: 'false',
+      dry_run: 'true'
+    }
+  }), 'utf8');
+
+  const result = await runUpstreamRefresh({
+    cwd: '/tmp/repo',
+    env: {
+      GITHUB_EVENT_NAME: 'workflow_dispatch',
+      GITHUB_EVENT_PATH: eventPath
+    },
+    loadSourceConfig: async () => ({
+      schemaVersion: 2,
+      sources: {
+        superpowers: {
+          name: 'superpowers',
+          type: 'git',
+          url: 'https://github.com/obra/superpowers',
+          resolution: {
+            strategy: 'latest-release',
+            allowPrerelease: false,
+            fallbacks: []
+          }
+        },
+        'planning-with-files': {
+          name: 'planning-with-files',
+          type: 'git',
+          url: 'https://github.com/OthmanAdi/planning-with-files',
+          resolution: {
+            strategy: 'latest-release',
+            allowPrerelease: false,
+            fallbacks: []
+          }
+        }
+      }
+    }),
+    probeHeads: async ({ sources }) => {
+      capturedSources = sources;
+      return {
+        status: 'changes_detected',
+        previousLock: {
+          schemaVersion: 2,
+          sources: {
+            'planning-with-files': {
+              strategy: 'latest-release',
+              resolved: {
+                kind: 'latest-release',
+                version: 'v3.2.0',
+                ref: 'v3.2.0',
+                commitSha: '2222222222222222222222222222222222222222'
+              }
+            }
+          }
+        },
+        resolvedLock: {
+          schemaVersion: 2,
+          sources: {
+            'planning-with-files': {
+              strategy: 'latest-tag',
+              resolved: {
+                kind: 'latest-tag',
+                version: 'v3.2.1-beta.1',
+                ref: 'v3.2.1-beta.1',
+                commitSha: '3333333333333333333333333333333333333333'
+              }
+            }
+          }
+        },
+        changedSources: ['planning-with-files'],
+        sourceHeads: {
+          'planning-with-files': '3333333333333333333333333333333333333333'
+        },
+        strategySummary: {
+          'planning-with-files': {
+            strategy: 'latest-tag',
+            previousVersion: 'v3.2.0',
+            nextVersion: 'v3.2.1-beta.1',
+            previousCommitSha: '2222222222222222222222222222222222222222',
+            nextCommitSha: '3333333333333333333333333333333333333333',
+            fallbackUsed: false
+          }
+        }
+      };
+    },
+    loadBaseHealth: async () => healthyBaseHealthStub(),
+    runRefresh: async () => {
+      events.push('runRefresh');
+    },
+    writeSourceLock: async () => {
+      events.push('writeSourceLock');
+    },
+    captureChanges: async () => {
+      events.push('captureChanges');
+      return [{ path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true }];
+    },
+    filterChanges: (changes) => ({
+      eligibleFiles: changes.map((change) => change.path),
+      excludedFiles: []
+    }),
+    writeResult: async () => {
+      events.push('writeResult');
+    }
+  });
+
+  assert.deepEqual(Object.keys(capturedSources.sources), ['planning-with-files']);
+  assert.equal(capturedSources.sources['planning-with-files'].resolution.strategy, 'latest-tag');
+  assert.equal(capturedSources.sources['planning-with-files'].resolution.allowPrerelease, true);
+  assert.deepEqual(events, ['runRefresh', 'captureChanges', 'writeResult']);
+  assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/planning-with-files/SKILL.md']);
 });
 
 test('runUpstreamRefresh blocks before the refresh command chain when origin/dev base health is unhealthy', async () => {

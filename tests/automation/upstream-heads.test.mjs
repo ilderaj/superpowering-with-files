@@ -187,3 +187,49 @@ test('probeUpstreamHeads marks changes_detected when any resolved fingerprint ch
   assert.equal(result.resolvedLock.sources.superpowers.resolved.version, 'v6.1.1');
   assert.equal(result.sourceHeads.superpowers, '3333333333333333333333333333333333333333');
 });
+
+test('probeUpstreamHeads ignores unselected recorded sources during filtered runs', async () => {
+  const { probeUpstreamHeads } = await loadUpstreamHeadsModule();
+
+  const result = await probeUpstreamHeads({
+    sources: [upstreamSources[1]],
+    recordedHeads: {
+      schemaVersion: 2,
+      sources: {
+        superpowers: {
+          strategy: 'latest-release',
+          resolved: {
+            kind: 'latest-release',
+            version: 'v6.1.1',
+            ref: 'v6.1.1',
+            commitSha: '1111111111111111111111111111111111111111'
+          }
+        },
+        'planning-with-files': {
+          strategy: 'latest-release',
+          resolved: {
+            kind: 'latest-release',
+            version: 'v3.2.0',
+            ref: 'v3.2.0',
+            commitSha: '2222222222222222222222222222222222222222'
+          }
+        }
+      }
+    },
+    resolveSource: async () => ({
+      name: 'planning-with-files',
+      strategy: 'latest-release',
+      fallbackUsed: false,
+      resolved: {
+        kind: 'latest-release',
+        version: 'v3.2.0',
+        ref: 'v3.2.0',
+        commitSha: '2222222222222222222222222222222222222222'
+      }
+    })
+  });
+
+  assert.equal(result.status, 'no_changes');
+  assert.deepEqual(result.changedSources, []);
+  assert.deepEqual(Object.keys(result.previousLock.sources), ['planning-with-files']);
+});
