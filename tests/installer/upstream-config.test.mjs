@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { test } from 'node:test';
 
@@ -36,12 +36,32 @@ test('loadUpstreamSourceConfig normalizes schema v2 sources', async () => {
   assert.deepEqual(config.sources['planning-with-files'].resolution.fallbacks, []);
 });
 
-test('loadSourceLock falls back to legacy source-head records for one migration window', async () => {
-  const { loadSourceLock } = await loadUpstreamConfigModule();
+test('loadSourceLock falls back to legacy source-head records when no authoritative lock exists', async () => {
+  const { loadSourceLock, legacySourceHeadsPath } = await loadUpstreamConfigModule();
+  const tempRoot = await mkdtemp(path.join(tmpdir(), 'upstream-config-legacy-'));
 
-  const lock = await loadSourceLock({ rootDir });
+  await mkdir(path.join(tempRoot, path.dirname(legacySourceHeadsPath)), { recursive: true });
+  await writeFile(
+    path.join(tempRoot, legacySourceHeadsPath),
+    JSON.stringify({
+      schemaVersion: 1,
+      refreshedAt: '2026-06-22T01:30:41.867Z',
+      sources: {
+        superpowers: {
+          name: 'superpowers',
+          url: 'https://github.com/obra/superpowers',
+          headSha: '896224c4b1879920ab573417e68fd51d2ccc9072',
+          refreshedAt: '2026-06-22T01:30:41.867Z'
+        }
+      }
+    })
+  );
 
+  const lock = await loadSourceLock({ rootDir: tempRoot });
+
+  assert.equal(lock.sources.superpowers.strategy, 'branch-head');
   assert.equal(lock.sources.superpowers.resolved.kind, 'branch-head');
+  assert.equal(lock.sources.superpowers.resolved.ref, 'HEAD');
   assert.equal(lock.sources.superpowers.resolved.commitSha, '896224c4b1879920ab573417e68fd51d2ccc9072');
 });
 
@@ -55,7 +75,8 @@ test('writeSourceLock persists the lock document to the default path', async () 
 
   const written = JSON.parse(await readFile(path.join(tempRoot, defaultSourceLockPath), 'utf8'));
   assert.equal(written.schemaVersion, 2);
-  assert.equal(written.sources.superpowers.resolved.commitSha, '896224c4b1879920ab573417e68fd51d2ccc9072');
+  assert.equal(written.sources.superpowers.resolved.commitSha, lock.sources.superpowers.resolved.commitSha);
+  assert.equal(written.sources.superpowers.resolved.kind, lock.sources.superpowers.resolved.kind);
 });
 
 test('compareResolvedFingerprints reports changes when the resolved commit moves', async () => {

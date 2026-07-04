@@ -37,7 +37,11 @@ async function createGitSource(root, content) {
 
 async function createTaggedGitSource(root, { content, tag }) {
   await createGitSource(root, content);
-  await execFileAsync('git', ['tag', '-a', tag, '-m', tag], { cwd: root });
+  await execFileAsync(
+    'git',
+    ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'tag', '-a', tag, '-m', tag],
+    { cwd: root }
+  );
   const { stdout } = await execFileAsync('git', ['rev-parse', `${tag}^{commit}`], { cwd: root });
   return stdout.trim();
 }

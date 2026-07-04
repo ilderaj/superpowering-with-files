@@ -233,3 +233,44 @@ test('probeUpstreamHeads ignores unselected recorded sources during filtered run
   assert.deepEqual(result.changedSources, []);
   assert.deepEqual(Object.keys(result.previousLock.sources), ['planning-with-files']);
 });
+
+test('probeUpstreamHeads passes release-resolution dependencies into the default resolver path', async () => {
+  const { probeUpstreamHeads } = await loadUpstreamHeadsModule();
+  const receivedDependencies = [];
+
+  await probeUpstreamHeads({
+    sources: upstreamSources,
+    recordedHeads: { sources: {} },
+    resolveSource: async (source, deps) => {
+      receivedDependencies.push({
+        sourceName: source.name,
+        gitLsRemote: typeof deps?.gitLsRemote,
+        listReleases: typeof deps?.listReleases
+      });
+      return {
+        name: source.name,
+        strategy: source.resolution.strategy,
+        fallbackUsed: false,
+        resolved: {
+          kind: 'latest-release',
+          version: `${source.name}-v1.0.0`,
+          ref: `${source.name}-v1.0.0`,
+          commitSha: `${source.name}-commit`
+        }
+      };
+    }
+  });
+
+  assert.deepEqual(receivedDependencies, [
+    {
+      sourceName: 'superpowers',
+      gitLsRemote: 'function',
+      listReleases: 'function'
+    },
+    {
+      sourceName: 'planning-with-files',
+      gitLsRemote: 'function',
+      listReleases: 'function'
+    }
+  ]);
+});

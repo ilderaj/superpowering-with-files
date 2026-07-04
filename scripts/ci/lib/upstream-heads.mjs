@@ -1,3 +1,5 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import {
   compareResolvedFingerprints,
   defaultSourceConfigPath,
@@ -8,9 +10,42 @@ import {
 } from '../../../harness/installer/lib/upstream-config.mjs';
 import { resolveSourceTarget } from './upstream-resolver.mjs';
 
+const execFileAsync = promisify(execFile);
+
 export const defaultSourcesPath = defaultSourceConfigPath;
 export const defaultSourceHeadsPath = 'harness/upstream/.source-heads.json';
 export const defaultResolvedLockPath = defaultSourceLockPath;
+
+async function gitLsRemote(url, refs = []) {
+  const { stdout } = await execFileAsync('git', ['ls-remote', url, ...refs], { maxBuffer: 1024 * 1024 });
+  return stdout;
+}
+
+function githubRepoPathForSource(source) {
+  if (source?.github?.owner && source?.github?.repo) {
+    return `repos/${source.github.owner}/${source.github.repo}`;
+  }
+
+  const match = String(source?.url ?? '').match(/github\.com[/:]([^/]+)\/([^/.]+?)(?:\.git)?$/);
+  if (match) {
+    return `repos/${match[1]}/${match[2]}`;
+  }
+
+  throw new Error(`Missing github repository metadata for upstream source: ${source?.name ?? '(unknown)'}`);
+}
+
+async function listReleases(_url, source) {
+  const repoPath = githubRepoPathForSource(source);
+  const { stdout } = await execFileAsync('gh', ['api', `${repoPath}/releases`], { maxBuffer: 1024 * 1024 });
+  return JSON.parse(stdout);
+}
+
+export function buildResolveSourceDependencies() {
+  return {
+    gitLsRemote,
+    listReleases
+  };
+}
 
 export function normalizeUpstreamSources(sourcesDocument) {
   if (Array.isArray(sourcesDocument)) {
@@ -109,7 +144,8 @@ export async function probeUpstreamHeads({
   cwd = process.cwd(),
   sources,
   recordedHeads,
-  resolveSource = resolveSourceTarget
+  resolveSource = resolveSourceTarget,
+  resolveSourceDependencies = buildResolveSourceDependencies()
 } = {}) {
   const normalizedSources = sources ?? await loadUpstreamSourceConfig(cwd);
   const configuredSources = normalizeUpstreamSources(normalizedSources)
@@ -120,7 +156,7 @@ export async function probeUpstreamHeads({
   const resolvedSources = [];
 
   for (const source of configuredSources) {
-    resolvedSources.push(await resolveSource(source));
+    resolvedSources.push(await resolveSource(source, resolveSourceDependencies));
   }
 
   const resolvedLock = buildSourceLockRecord(resolvedSources);

@@ -24,7 +24,11 @@ async function createTaggedGitSource(root, { content, tag }) {
     ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'commit', '-m', 'initial'],
     { cwd: root }
   );
-  await execFileAsync('git', ['tag', '-a', tag, '-m', tag], { cwd: root });
+  await execFileAsync(
+    'git',
+    ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'tag', '-a', tag, '-m', tag],
+    { cwd: root }
+  );
 }
 
 async function writeSourceConfig(root, source) {
