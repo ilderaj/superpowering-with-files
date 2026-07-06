@@ -7,6 +7,7 @@ test('read-only mode registers only phase-1 tools', async () => {
   const registeredNames = Object.keys(server._registeredTools);
   assert.deepEqual(registeredNames.sort(), [
     'harness_active_summary',
+    'harness_chiefops_board',
     'harness_doctor',
     'harness_list_resources',
     'harness_status',

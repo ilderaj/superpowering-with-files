@@ -134,7 +134,11 @@ Proof choice must match failure risk rather than defaulting to unit versus BDD:
 - if the risk is lifecycle state, source-of-truth alignment, or archive readiness, `lifecycle/governance proof` must be primary
 - if the risk is install, release, adoption, or recovery failure, `operational proof` must be primary
 
-Quick tasks stay lightweight. They usually rely on direct proof in-session and may omit a declared verification contract entirely. Tracked and deep-reasoning tasks may declare a `Mode-Aware Verification Contract` when the proof target, proof stack, escalation rule, evidence sink, reconcile rule, or unacceptable substitutes need to be explicit. Declaring the contract documents proof design only; it does not add a new runner.
+Quick tasks stay lightweight and usually rely on direct proof in-session. Tracked and deep-reasoning tasks may declare a `Mode-Aware Verification Contract` when the proof stack needs to be explicit. The declaration documents proof design only; it does not add a new runner.
+
+## ChiefOps Governance Mode
+
+`ChiefOps` is optional tracked-task governance: use planning state plus receipts to frame one bounded next slice, not a new lane or memory system.
 
 ## When Superpowers Is Allowed
 

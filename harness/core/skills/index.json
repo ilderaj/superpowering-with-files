@@ -206,6 +206,19 @@
         "codex": "materialize",
         "claude-code": "materialize"
       }
+    },
+    "chiefops": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/chiefops",
+      "layout": "single",
+      "targetName": "chiefops",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
     }
   }
 }

@@ -77,6 +77,12 @@ test('projectionForSkill returns materialize for local ponytail borrow skills', 
   assert.match(simplificationLedger.source, /harness\/core\/skills\/simplification-ledger/);
 });
 
+test('projectionForSkill returns materialize for local chiefops skill', async () => {
+  const chiefops = await projectionForSkill(process.cwd(), 'chiefops', 'codex');
+  assert.equal(chiefops.strategy, 'materialize');
+  assert.match(chiefops.source, /harness\/core\/skills\/chiefops/);
+});
+
 test('projectionForSkill rejects unknown targets', async () => {
   await assert.rejects(
     projectionForSkill(process.cwd(), 'superpowers', 'unknown'),
@@ -208,6 +214,23 @@ test('planSkillProjections includes local ponytail borrow skills in the full Cod
   assert.deepEqual(simplificationLedger.patches, []);
   assert.match(simplificationLedger.sourcePath, /harness\/core\/skills\/simplification-ledger$/);
   assert.match(simplificationLedger.targetPath, /\.agents\/skills\/simplification-ledger$/);
+});
+
+test('planSkillProjections includes local chiefops in the full Codex workspace profile', async () => {
+  const plan = await planSkillProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex'
+  });
+
+  const chiefops = plan.find((entry) => entry.skillName === 'chiefops');
+  assert.ok(chiefops);
+  assert.equal(chiefops.parentSkillName, 'chiefops');
+  assert.equal(chiefops.strategy, 'materialize');
+  assert.deepEqual(chiefops.patches, []);
+  assert.match(chiefops.sourcePath, /harness\/core\/skills\/chiefops$/);
+  assert.match(chiefops.targetPath, /\.agents\/skills\/chiefops$/);
 });
 
 test('planSkillProjections applies the writing-plans patch for every supported target', async () => {
