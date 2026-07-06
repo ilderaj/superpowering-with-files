@@ -81,12 +81,25 @@ function summarizeLatestReceipt(receipt) {
 }
 
 export function buildChiefOpsBoardText(board) {
-  return [
+  const execution = board.executionSignals || {};
+  const latestReceipt = board.latestReceipt?.unitId
+    ? `${board.latestReceipt.unitId}/${board.latestReceipt.resultStatus || 'unknown'}`
+    : 'none';
+
+  const lines = [
     `ChiefOps board for ${board.taskId}`,
     `status=${board.status} lane=${board.lane} risk=${board.derivedRisk}`,
     `proof=${board.proofTarget || 'unrecorded'}`,
+    `execution=receipts:${execution.receiptCount || 0} blocked:${execution.blockedUnits || 0} failed:${execution.failedUnits || 0} open_followups:${execution.openFollowups || 0}`,
+    `reconciliation=${board.reconciliationStatus} latest_receipt=${latestReceipt}`,
     `next=${board.recommendedNextAction}`
-  ].join('\n');
+  ];
+
+  if ((board.blockedSignals || []).length > 0) {
+    lines.splice(4, 0, `signals=${board.blockedSignals.join(',')}`);
+  }
+
+  return lines.join('\n');
 }
 
 export async function getChiefOpsBoard({ root, taskId }) {

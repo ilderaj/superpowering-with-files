@@ -117,3 +117,87 @@ test('getChiefOpsBoard rejects missing active tasks', async () => {
     await removeFixture(root);
   }
 });
+
+test('getChiefOpsBoard keeps no-receipt tasks bounded and non-alarming', async () => {
+  const root = await createFixture('chiefops-service-no-receipts');
+  try {
+    await writeTask(root, 'chiefops-demo', {
+      taskPlan: [
+        '# ChiefOps Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: complete',
+        '',
+        '## Routing Decision',
+        '- Selected Route: tracked',
+        '- Route Reason: bounded tracked execution',
+        '- Promotion Trigger: none',
+        '- Route Evidence Surface: planning only'
+      ].join('\n'),
+      findings: '# Findings\n',
+      progress: '# Progress\n'
+    });
+
+    const board = await getChiefOpsBoard({ root, taskId: 'chiefops-demo' });
+
+    assert.equal(board.latestReceipt, null);
+    assert.deepEqual(board.blockedSignals, []);
+    assert.equal(board.derivedRisk, 'low');
+    assert.match(board.recommendedNextAction, /Continue with the next bounded slice/);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('getChiefOpsBoard treats failed receipts as high-risk execution issues', async () => {
+  const root = await createFixture('chiefops-service-failed-receipt');
+  try {
+    await writeTask(root, 'chiefops-demo', {
+      taskPlan: [
+        '# ChiefOps Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        'Reconcile: complete',
+        '',
+        '## Routing Decision',
+        '- Selected Route: tracked',
+        '- Route Reason: bounded tracked execution',
+        '- Promotion Trigger: none',
+        '- Route Evidence Surface: planning + receipts'
+      ].join('\n'),
+      findings: '# Findings\n',
+      progress: '# Progress\n'
+    });
+
+    await writeExecutionReceipt(root, {
+      schemaVersion: 1,
+      taskId: 'chiefops-demo',
+      unitId: 'unit-04',
+      actor: 'codex',
+      mode: 'inline',
+      resultStatus: 'failed',
+      startedAt: '2026-06-04T05:00:00.000Z',
+      finishedAt: '2026-06-04T05:03:00.000Z',
+      changedFiles: ['harness/installer/commands/chiefops.mjs'],
+      verificationCommands: [],
+      artifactsProduced: [],
+      followups: [],
+      syncBackRef: 'progress.md#unit-04'
+    });
+
+    const board = await getChiefOpsBoard({ root, taskId: 'chiefops-demo' });
+
+    assert.equal(board.executionSignals.failedUnits, 1);
+    assert.deepEqual(board.blockedSignals, ['execution_receipt_failed']);
+    assert.equal(board.derivedRisk, 'high');
+    assert.match(board.recommendedNextAction, /Resolve the blocked or failed execution unit/);
+  } finally {
+    await removeFixture(root);
+  }
+});
