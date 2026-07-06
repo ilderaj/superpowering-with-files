@@ -49,7 +49,9 @@ Typical commands:
 
 `goal2plan` is a planning skill, not a separate lane. It prepares one native Codex `/goal` prompt, requires a reviewed implementation plan artifact, and then hands execution back to the normal direct/tracked/deep-reasoning classification instead of creating a second execution system.
 
-`ChiefOps` is an optional governance lens, not a lane. Use it when a tracked task needs a receipt-aware governance readout or one bounded next-slice recommendation. The authoritative state remains `planning/active/<task-id>/` plus execution receipts, and the default operator surface is the read-only `harness_chiefops_board` tool described in [ChiefOps](chiefops.md).
+`ChiefOps` is an optional governance lens, not a lane. Use it when a tracked task needs a receipt-aware governance readout or one bounded next-slice recommendation. The authoritative state remains `planning/active/<task-id>/` plus execution receipts, and the default operator surface is the read-only `harness_chiefops_board` tool described in [ChiefOps](chiefops.md). ChiefOps should route intake gaps to `plan` / `goal2plan`, release-closure work to `autonomous-release-closure`, and proof/closure work to `verify`, `reconcile`, `finish`, or `release` rather than behaving like a replacement lane.
+
+If a Chief-first manual assignment needs a durable pre-outcome trace, record it in the existing execution-unit contract and `progress.md`. Keep execution receipts outcome-only until work has actually been attempted.
 
 Long-running continuation threads are a hygiene risk. When a tracked or deep-reasoning task crosses a major phase boundary or context churn gets heavy, prefer a fresh thread plus planning restore over extending the same continuation indefinitely.
 

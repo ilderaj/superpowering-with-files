@@ -36,7 +36,19 @@ Do not use this skill when:
 If the current round depends on a companion plan, read only the relevant section needed for the current slice. Do not promote the companion plan into a second durable memory system.
 
 ## Chief Prompt Contract
-The chief prompt should stay compact and grounded in existing truth:
+The chief prompt should stay compact and grounded in existing truth. It should:
+
+- restore `planning/active/<task-id>/task_plan.md`, `findings.md`, and `progress.md` first;
+- use the existing ChiefOps board/readout rather than chat history as state;
+- avoid direct implementation unless the enclosing task explicitly assigns that slice;
+- choose exactly one bounded next action;
+- avoid scope expansion;
+- route intake or plan deficiencies to `plan` / `goal2plan`;
+- route release-closure work to `autonomous-release-closure` when that discipline is the real next slice;
+- route proof and closure work to `verify`, `reconcile`, `finish`, or `release` instead of pretending ChiefOps verifies or closes work by itself;
+- request or record execution receipts through existing receipt/progress paths rather than inventing a new state surface.
+
+The chief prompt frame stays:
 
 ```text
 ChiefOps Readout
@@ -49,12 +61,44 @@ ChiefOps Readout
 - Sync-back requirement: update planning/active/<task-id>/ after meaningful progress
 ```
 
+## Assignment Packet
+When the next slice should be handed to a worker or framed for manual execution, derive an Assignment Packet from existing planning and receipt truth. The packet is a prompt contract, not a durable object or worker database.
+
+Recommended fields:
+
+- `taskId`
+- `unitId` or current execution-unit reference when one exists
+- `lane`
+- `workerRole`
+- `objective`
+- `nonGoals`
+- `filesToRead`
+- `allowedChanges`
+- `forbiddenChanges`
+- `proofTarget`
+- `primaryProof`
+- `evidenceSink`
+- `stopCondition`
+- `expectedReceipt`
+- `returnToChiefInstruction`
+- `syncBackRequirement`
+
+Default storage rule:
+
+- keep the packet derived/ephemeral by default;
+- if assignment intent needs a durable trace, record it in the existing execution-unit contract inside `task_plan.md` and a timestamped coordination note in `progress.md`;
+- do not persist assignment intent in execution receipts before work has actually been attempted or completed.
+
 ## Worker Prompt Contract
 When delegating or framing the next slice, the worker prompt should include:
 
 - the bounded file or surface list;
 - the expected proof for that slice;
+- the current `Proof Target`, `Primary Proof`, and `Evidence Sink` when available;
+- the instruction to keep the next slice bounded and return to the chief after that single slice;
+- the requirement to sync durable progress back into `planning/active/<task-id>/`;
 - the requirement to reference the existing execution-receipt schema if a receipt is written;
+- the instruction to use `task_plan.md` / `progress.md` for assignment intent and execution receipts only for outcome evidence;
 - the instruction not to create `release_board.md`, `worker_checkins.md`, `pr_truth.md`, a new receipt dialect, or any second planning directory.
 
 ## Guardrails
@@ -62,11 +106,15 @@ When delegating or framing the next slice, the worker prompt should include:
 - Treat execution receipts as immutable truth, not as a format to reinterpret or replace.
 - Reuse the existing Mode-Aware Verification Contract vocabulary exactly.
 - Prefer the already-derived runtime board if available; otherwise derive only from existing planning and receipt surfaces.
+- Keep the next step bounded to one slice and do not widen scope from inside ChiefOps.
+- Use existing workflow lanes and skills for plan, proof, reconcile, finish, and release work.
 - Stay read-only unless the enclosing task already calls for implementation work.
 - `ChiefOps` may coordinate bounded next-step reasoning, but it does not own execution routing.
 
 ## Common Mistakes
 - treating ChiefOps as a new runner, scheduler, or session manager
 - inventing a ChiefOps-specific receipt schema or board file
+- using execution receipts to store assignment intent before work has an outcome
+- letting an Assignment Packet turn into a durable worker registry or hidden backlog
 - using the companion plan as the primary durable memory instead of `planning/active/<task-id>/`
 - producing a broad management plan instead of one bounded next execution slice
