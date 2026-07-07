@@ -14,6 +14,7 @@ import { checkpointPushCommand } from './checkpoint-push.mjs';
 import { cloudBootstrap } from './cloud-bootstrap.mjs';
 import { linkPersonal } from './link-personal.mjs';
 import { summary } from './summary.mjs';
+import { chiefopsCommand } from './chiefops.mjs';
 import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { activeSummary } from './active-summary.mjs';
@@ -35,6 +36,7 @@ const commands = {
   checkpoint: checkpointCommand,
   'checkpoint-push': checkpointPushCommand,
   summary,
+  chiefops: chiefopsCommand,
   'active-summary': activeSummary,
   record,
   'mcp-approve': mcpApprove,
@@ -63,6 +65,7 @@ function usage() {
     '  update   Apply fetched upstream candidates',
     '  verify   Print or write verification reports',
     '  summary  Print structured session summary for the active task',
+    '  chiefops  Read the derived ChiefOps board for an active tracked task',
     '  active-summary  Print lifecycle summary for all tasks under planning/active',
     '  record   Append a timestamped record block to task_plan, findings, progress, or reconciliation',
     '  mcp-approve  Sign a write plan out-of-band for MCP apply operations',

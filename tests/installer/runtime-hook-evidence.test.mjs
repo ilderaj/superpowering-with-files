@@ -42,6 +42,44 @@ test('readRuntimeHookEvidence reads valid Claude Code runtime trace lines', asyn
   }
 });
 
+test('readRuntimeHookEvidence preserves optional task-resolution metadata', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const logPath = runtimeEvidenceLogPath(root, 'codex');
+    await mkdir(path.dirname(logPath), { recursive: true });
+    await writeFile(
+      logPath,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        source: 'harness-runtime-hook',
+        target: 'codex',
+        parentSkillName: 'planning-with-files',
+        eventName: 'UserPromptSubmit',
+        observedAt: '2026-07-04T14:45:00.000Z',
+        projectRoot: root,
+        cwd: root,
+        scriptName: 'task-scoped-hook.sh',
+        scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh'),
+        resolvedTaskId: 'beta-task',
+        resolutionSource: 'thread-binding',
+        activeTaskCount: 2,
+        threadIdPresent: true
+      })}\n`
+    );
+
+    const evidence = await readRuntimeHookEvidence(root, 'codex');
+
+    assert.equal(evidence.records.length, 1);
+    assert.equal(evidence.records[0].resolvedTaskId, 'beta-task');
+    assert.equal(evidence.records[0].resolutionSource, 'thread-binding');
+    assert.equal(evidence.records[0].activeTaskCount, 2);
+    assert.equal(evidence.records[0].threadIdPresent, true);
+    assert.deepEqual(evidence.warnings, []);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('readRuntimeHookEvidence ignores invalid lines and reports warnings', async () => {
   const root = await createHarnessFixture();
   try {
@@ -105,7 +143,11 @@ test('writeRuntimeHookEvidence appends Codex runtime traces in the expected log 
       projectRoot: root,
       cwd: root,
       scriptName: 'task-scoped-hook.sh',
-      scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh')
+      scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh'),
+      resolvedTaskId: 'codex-hooks',
+      resolutionSource: 'single-active-fallback',
+      activeTaskCount: 1,
+      threadIdPresent: true
     });
 
     const evidence = await readRuntimeHookEvidence(root, 'codex');
@@ -113,6 +155,10 @@ test('writeRuntimeHookEvidence appends Codex runtime traces in the expected log 
     assert.equal(evidence.records.length, 1);
     assert.equal(evidence.records[0].target, 'codex');
     assert.equal(evidence.records[0].parentSkillName, 'planning-with-files');
+    assert.equal(evidence.records[0].resolvedTaskId, 'codex-hooks');
+    assert.equal(evidence.records[0].resolutionSource, 'single-active-fallback');
+    assert.equal(evidence.records[0].activeTaskCount, 1);
+    assert.equal(evidence.records[0].threadIdPresent, true);
     assert.deepEqual(evidence.warnings, []);
   } finally {
     await removeHarnessFixture(root);

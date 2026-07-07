@@ -23,6 +23,8 @@ from task_lifecycle import inspect_plan_dir
 PLANNING_FILES = ("task_plan.md", "findings.md", "progress.md")
 ACTIVE_ROOT = Path("planning") / "active"
 ARCHIVE_ROOT = Path("planning") / "archive"
+THREAD_BINDINGS_ROOT = Path(".harness") / "planning-with-files" / "thread-bindings"
+SAFE_THREAD_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
 
 
 def sanitize_task_id(raw: str) -> str:
@@ -94,6 +96,65 @@ def ensure_active_layout(project_path: Path, task_id: Optional[str] = None) -> P
     plan_dir.mkdir(parents=True, exist_ok=True)
     (project_path / ARCHIVE_ROOT).mkdir(parents=True, exist_ok=True)
     return plan_dir
+
+
+def thread_binding_path(project_path: Path, thread_id: str) -> Path:
+    if not SAFE_THREAD_ID_RE.match(thread_id):
+        raise ValueError(f"invalid thread id: {thread_id!r}")
+    return project_path / THREAD_BINDINGS_ROOT / f"{thread_id}.json"
+
+
+def read_thread_binding(project_path: Path, thread_id: str) -> Optional[Path]:
+    binding_file = thread_binding_path(project_path, thread_id)
+    if not binding_file.exists():
+        return None
+
+    try:
+        payload = json.loads(binding_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+
+    task_id = payload.get("taskId")
+    if not isinstance(task_id, str) or not task_id.strip():
+        return None
+
+    task_dir = active_dir(project_path, task_id)
+    task_plan = task_dir / "task_plan.md"
+    if not task_plan.exists():
+        return None
+
+    status = inspect_plan_dir(task_dir).get("status")
+    return task_dir if status == "active" else None
+
+
+def binding_status(project_path: Path, thread_id: str) -> str:
+    binding_file = thread_binding_path(project_path, thread_id)
+    if not binding_file.exists():
+        return ""
+
+    return "thread-binding" if read_thread_binding(project_path, thread_id) is not None else "stale-binding"
+
+
+def clear_thread_binding(project_path: Path, thread_id: str) -> None:
+    binding_file = thread_binding_path(project_path, thread_id)
+    binding_file.unlink(missing_ok=True)
+
+
+def write_thread_binding(project_path: Path, task_id: str, thread_id: str) -> Path:
+    task_dir = active_dir(project_path, task_id)
+    if not (task_dir / "task_plan.md").exists():
+        raise FileNotFoundError(f"task_plan.md not found for task: {task_id}")
+
+    if inspect_plan_dir(task_dir).get("status") != "active":
+        raise RuntimeError(f"task is not active: {task_id}")
+
+    binding_file = thread_binding_path(project_path, thread_id)
+    binding_file.parent.mkdir(parents=True, exist_ok=True)
+    binding_file.write_text(
+        json.dumps({"schemaVersion": 1, "taskId": task_dir.name}, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return task_dir
 
 
 def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Path:
@@ -188,6 +249,37 @@ def main() -> int:
         return 0
     if command == "files-json":
         print(json.dumps(planning_file_map(project_path, task_id)))
+        return 0
+    if command == "bound-task":
+        if len(sys.argv) < 4:
+            print("usage: planning_paths.py bound-task <project_path> <thread_id>", file=sys.stderr)
+            return 1
+        bound_dir = read_thread_binding(project_path, sys.argv[3])
+        if bound_dir is not None:
+            print(bound_dir)
+        return 0
+    if command == "bind-thread":
+        if len(sys.argv) < 5:
+            print(
+                "usage: planning_paths.py bind-thread <project_path> <task_id> <thread_id>",
+                file=sys.stderr,
+            )
+            return 1
+        print(write_thread_binding(project_path, task_id or "", sys.argv[4]))
+        return 0
+    if command == "binding-status":
+        if len(sys.argv) < 4:
+            print("usage: planning_paths.py binding-status <project_path> <thread_id>", file=sys.stderr)
+            return 1
+        status = binding_status(project_path, sys.argv[3])
+        if status:
+            print(status)
+        return 0
+    if command == "clear-thread-binding":
+        if len(sys.argv) < 4:
+            print("usage: planning_paths.py clear-thread-binding <project_path> <thread_id>", file=sys.stderr)
+            return 1
+        clear_thread_binding(project_path, sys.argv[3])
         return 0
     if command == "archive-active":
         print(archive_active_task(project_path, task_id))

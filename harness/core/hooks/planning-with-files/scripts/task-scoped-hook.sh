@@ -7,6 +7,8 @@ root=""
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 script_name="$(basename "${BASH_SOURCE[0]}")"
 script_path="$script_dir/$script_name"
+PYTHON_BIN="${PYTHON_BIN:-$(command -v python3 || command -v python || true)}"
+PLANNING_PATHS="$script_dir/../../../upstream-overlays/planning-with-files/scripts/planning_paths.py"
 
 source_runtime_hook_evidence_helper() {
   local helper
@@ -33,6 +35,12 @@ fi
 
 active_root="$root/planning/active"
 runtime_root="$root/.harness/planning-with-files"
+resolved_task_dir=""
+resolution_source="none"
+resolution_warning=""
+thread_id_value=""
+thread_id_present="0"
+active_task_count="0"
 
 record_runtime_hook_evidence() {
   local parent_skill_name="$1"
@@ -66,6 +74,108 @@ active_task_dirs() {
       printf '%s\n' "$task_dir"
     fi
   done
+}
+
+thread_id() {
+  if [ -n "${CODEX_THREAD_ID:-}" ]; then
+    printf '%s' "$CODEX_THREAD_ID"
+    return 0
+  fi
+  if [ -n "${CLAUDE_SESSION_ID:-}" ]; then
+    printf '%s' "$CLAUDE_SESSION_ID"
+    return 0
+  fi
+}
+
+resolve_thread_bound_task() {
+  local current_thread_id="${1:-}"
+  if [ -z "$current_thread_id" ] || [ -z "$PYTHON_BIN" ] || [ ! -f "$PLANNING_PATHS" ]; then
+    return 0
+  fi
+
+  "$PYTHON_BIN" "$PLANNING_PATHS" bound-task "$root" "$current_thread_id" 2>/dev/null || true
+}
+
+resolve_binding_status() {
+  local current_thread_id="${1:-}"
+  if [ -z "$current_thread_id" ] || [ -z "$PYTHON_BIN" ] || [ ! -f "$PLANNING_PATHS" ]; then
+    return 0
+  fi
+
+  "$PYTHON_BIN" "$PLANNING_PATHS" binding-status "$root" "$current_thread_id" 2>/dev/null || true
+}
+
+bind_thread_to_task() {
+  local task_id="${1:-}"
+  local current_thread_id="${2:-}"
+  if [ -z "$task_id" ] || [ -z "$current_thread_id" ] || [ -z "$PYTHON_BIN" ] || [ ! -f "$PLANNING_PATHS" ]; then
+    return 0
+  fi
+
+  "$PYTHON_BIN" "$PLANNING_PATHS" bind-thread "$root" "$task_id" "$current_thread_id" >/dev/null 2>&1 || true
+}
+
+clear_thread_binding() {
+  local current_thread_id="${1:-}"
+  if [ -z "$current_thread_id" ] || [ -z "$PYTHON_BIN" ] || [ ! -f "$PLANNING_PATHS" ]; then
+    return 0
+  fi
+
+  "$PYTHON_BIN" "$PLANNING_PATHS" clear-thread-binding "$root" "$current_thread_id" >/dev/null 2>&1 || true
+}
+
+set_runtime_resolution_metadata() {
+  export HARNESS_RUNTIME_RESOLVED_TASK_ID="${1:-}"
+  export HARNESS_RUNTIME_RESOLUTION_SOURCE="${2:-none}"
+  export HARNESS_RUNTIME_ACTIVE_TASK_COUNT="${3:-0}"
+  export HARNESS_RUNTIME_THREAD_ID_PRESENT="${4:-0}"
+}
+
+resolve_task_context() {
+  local bound_task=""
+  local binding_state=""
+
+  resolved_task_dir=""
+  resolution_source="none"
+  resolution_warning=""
+  thread_id_value="$(thread_id)"
+  thread_id_present="0"
+  if [ -n "$thread_id_value" ]; then
+    thread_id_present="1"
+  fi
+  active_task_count="$task_count"
+
+  if [ -n "$thread_id_value" ]; then
+    bound_task="$(resolve_thread_bound_task "$thread_id_value")"
+    if [ -n "$bound_task" ]; then
+      resolved_task_dir="$bound_task"
+      resolution_source="thread-binding"
+      return 0
+    fi
+
+    binding_state="$(resolve_binding_status "$thread_id_value")"
+    if [ "$binding_state" = "stale-binding" ]; then
+      clear_thread_binding "$thread_id_value"
+      resolution_source="stale-binding"
+      resolution_warning="[planning-with-files] Stale thread binding detected. The previously bound task is missing or no longer active. Restore the correct planning/active/<task-id>/ context before proceeding."
+      return 0
+    fi
+  fi
+
+  if [ "$task_count" -eq 1 ] && [ -n "$task_dir" ]; then
+    resolved_task_dir="$task_dir"
+    resolution_source="single-active-fallback"
+    if [ -n "$thread_id_value" ]; then
+      bind_thread_to_task "$(basename "$task_dir")" "$thread_id_value"
+    fi
+    return 0
+  fi
+
+  if [ "$task_count" -gt 1 ]; then
+    resolution_source="ambiguous-none"
+    resolution_warning="[planning-with-files] Multiple active tasks found under planning/active and this thread has no valid binding. Restore the correct task directory before proceeding."
+    return 0
+  fi
 }
 
 session_sidecar_path() {
@@ -215,6 +325,7 @@ $(active_task_dirs)
 EOF
 
 if [ "$task_count" -eq 0 ]; then
+  set_runtime_resolution_metadata "" "none" "0" "0"
   printf '{}\n'
   if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
     harness_record_runtime_hook_evidence \
@@ -229,11 +340,30 @@ if [ "$task_count" -eq 0 ]; then
   exit 0
 fi
 
-if [ "$task_count" -gt 1 ]; then
-  emit_context "[planning-with-files] Multiple active tasks found under planning/active. Inspect the task directories before proceeding." "$event"
+resolve_task_context
+set_runtime_resolution_metadata "${resolved_task_dir:+$(basename "$resolved_task_dir")}" "$resolution_source" "$active_task_count" "$thread_id_present"
+
+if [ -z "$resolved_task_dir" ]; then
+  if [ -n "$resolution_warning" ]; then
+    emit_context "$resolution_warning" "$event"
+    exit 0
+  fi
+
+  printf '{}\n'
+  if declare -F harness_record_runtime_hook_evidence >/dev/null 2>&1; then
+    harness_record_runtime_hook_evidence \
+      "$target" \
+      "planning-with-files" \
+      "$(canonical_hook_event_name "$event")" \
+      "$root" \
+      "$(pwd)" \
+      "$script_name" \
+      "$script_path" || true
+  fi
   exit 0
 fi
 
+task_dir="$resolved_task_dir"
 plan="$task_dir/task_plan.md"
 findings="$task_dir/findings.md"
 progress="$task_dir/progress.md"
