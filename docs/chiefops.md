@@ -114,6 +114,55 @@ Reach for ChiefOps when you need to answer:
 
 Do not use ChiefOps to replace `goal-writer`, `goal2plan`, `autonomous-release-closure`, or the existing workflow lanes.
 
+## Operator Quick Pack
+
+Use this lightweight loop when a tracked task needs governance, not a new manager:
+
+1. restore `task_plan.md`, `findings.md`, and `progress.md`
+2. read the ChiefOps board/readout
+3. classify the issue as `plan`, `execution`, `proof`, `reconcile`, or `release`
+4. choose exactly one bounded next slice
+5. record durable progress back into the planning trio
+6. route outward to `goal2plan`, `verify`, `reconcile`, `finish`, `release`, or `autonomous-release-closure` when that is the real next step
+
+Useful command surfaces:
+
+```text
+./scripts/harness chiefops board --task <task-id>
+./scripts/harness chiefops board --task <task-id> --json
+```
+
+Keep the discipline simple:
+
+- assignment intent belongs in `task_plan.md` and `progress.md`
+- execution receipts stay outcome-only
+- the board is derived, never persisted
+- ChiefOps names the next slice; it does not become the slice owner forever
+
+## Human-Friendly Chief Talk Track
+
+When you want a compact human/agent prompt instead of a formal contract, this talk track is enough:
+
+```text
+Give me the current truth for <task-id>.
+Restore the planning trio first.
+Use the existing board/readout and receipts only.
+Tell me whether this is a plan, execution, proof, reconcile, or release problem.
+Return one bounded next slice.
+Do not widen scope.
+```
+
+For a manual handoff:
+
+```text
+Take one bounded slice for <task-id>.
+Read only the listed files.
+Do not widen scope.
+Keep assignment intent in task_plan/progress.
+Write a receipt only if work was actually attempted and reached an outcome.
+Return after that one slice.
+```
+
 ## Chief Prompt Contract
 
 The Chief side of ChiefOps is a prompt contract over existing truth, not a new runtime.
@@ -165,6 +214,25 @@ The worker side should stay equally narrow:
 - sync durable progress back to `planning/active/<task-id>/`
 - return to the chief after the single slice
 - use execution receipts only when work was actually attempted and reached an outcome
+
+## Minimal Packet Template
+
+Use this when the chief wants one copy-pasteable worker slice without overdesigning a mini-system:
+
+```text
+Assignment Packet
+- taskId: <task-id>
+- unitId: <existing unit or prompt-only id>
+- objective: <one bounded objective>
+- nonGoals: <what must not widen>
+- filesToRead: <small list>
+- allowedChanges: <bounded surfaces>
+- proofTarget: <target>
+- primaryProof: <proof surface>
+- evidenceSink: <where the result should be recorded>
+- stopCondition: <when to stop and return>
+- expectedReceipt: <none yet | blocked | failed | done_with_evidence>
+```
 
 ## Recording Manual Assignment Intent
 
