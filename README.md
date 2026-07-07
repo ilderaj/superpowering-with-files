@@ -120,6 +120,7 @@ Harness exposes a small operator-facing lane map:
 Two helpers matter when the work stops being linear:
 
 - `goal2plan` expands sparse `/goal` intake into a reviewed implementation plan before execution starts.
+- `ChiefOps` adds a thin read-only governance lens for tracked work: restore the planning trio, read the board, classify the issue, and choose one bounded next slice.
 - `autonomous-release-closure` drives review, promotion, cleanup, and adopt follow-through from current evidence instead of a one-shot release script.
 
 ### Optional simplicity helpers
@@ -174,6 +175,8 @@ See [Architecture](docs/architecture.md) for the detailed layer and source-of-tr
 ./scripts/harness verify --output=.harness/verification
 ./scripts/harness active-summary
 ./scripts/harness summary --task <task-id>
+./scripts/harness chiefops board --task <task-id>
+./scripts/harness chiefops board --task <task-id> --json
 ./scripts/harness worktree-preflight --task <task-id>
 ./scripts/harness worktree-name --task <task-id> --namespace <prefix>
 ./scripts/harness adopt-global
