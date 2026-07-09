@@ -262,6 +262,8 @@ test('chiefops v0b docs keep critical overlay safety semantics visible', async (
   const doc = await readFile(path.resolve('docs/chiefops-v0b.md'), 'utf8');
 
   assert.match(doc, /planning\/active\/<task-id>\/ remains the source of truth/i);
+  assert.match(doc, /Worker\/session state is control plane only/i);
+  assert.match(doc, /does not create a second durable memory root/i);
   assert.match(doc, /Manual handoff output is pending only/i);
   assert.match(doc, /no worker heartbeat runtime/i);
 });
