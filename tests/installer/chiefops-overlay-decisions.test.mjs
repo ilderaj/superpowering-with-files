@@ -444,6 +444,79 @@ test('chief gate blocks when required human approval is missing', () => {
   );
 });
 
+test('chief gate blocks done receipts when task lifecycle is already terminal', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_3e',
+    receiptType: 'done',
+    authorityTaskId: 'chiefops-demo',
+    workerId: 'worker-1',
+    threadId: 'thread-1',
+    sessionId: null,
+    bindingVersion: bindingPacket.bindingVersion,
+    currentSlice: bindingPacket.currentSlice,
+    proofTarget: bindingPacket.proofTarget,
+    evidenceSink: bindingPacket.evidenceSink,
+    capabilityClass: bindingPacket.capabilityClass,
+    riskClass: bindingPacket.riskClass,
+    workType: bindingPacket.workType,
+    authorityMode: bindingPacket.authorityMode,
+    allowedOps: bindingPacket.allowedOps,
+    sourceProgressRef: bindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'done',
+    summary: 'Done.',
+    evidenceRefs: ['planning/active/chiefops-demo/progress.md#receipt'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true, taskState: { status: 'archived' } }),
+    { outcome: 'block', reason: 'task_lifecycle_not_active' }
+  );
+});
+
+test('chief gate blocks stale receipts superseded by newer task truth', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_3f',
+    receiptType: 'done',
+    authorityTaskId: 'chiefops-demo',
+    workerId: 'worker-1',
+    threadId: 'thread-1',
+    sessionId: null,
+    bindingVersion: bindingPacket.bindingVersion,
+    currentSlice: bindingPacket.currentSlice,
+    proofTarget: bindingPacket.proofTarget,
+    evidenceSink: bindingPacket.evidenceSink,
+    capabilityClass: bindingPacket.capabilityClass,
+    riskClass: bindingPacket.riskClass,
+    workType: bindingPacket.workType,
+    authorityMode: bindingPacket.authorityMode,
+    allowedOps: bindingPacket.allowedOps,
+    sourceProgressRef: bindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'done',
+    summary: 'Done.',
+    evidenceRefs: ['planning/active/chiefops-demo/progress.md#receipt'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket,
+      receipt,
+      approvalSatisfied: true,
+      taskState: { status: 'active', supersededByReceiptId: 'receipt_newer' }
+    }),
+    { outcome: 'block', reason: 'receipt_superseded' }
+  );
+});
+
 test('chief gate accepts public bindingVersion without requiring raw bindingToken', () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',

@@ -29,7 +29,7 @@ function sameSourceProgressRef(left = {}, right = {}) {
 }
 
 function sameAuthoritativeBinding(left, right) {
-  return [
+  const sharedFieldsMatch = [
     'bindingId',
     'authorityTaskId',
     'workerId',
@@ -39,12 +39,16 @@ function sameAuthoritativeBinding(left, right) {
     'capabilityClass',
     'riskClass',
     'workType',
-    'authorityMode',
-    'bindingVersion',
-    'bindingToken'
+    'authorityMode'
   ].every((field) => left[field] === right[field])
     && sameStringSet(left.allowedOps, right.allowedOps)
     && sameSourceProgressRef(left.sourceProgressRef, right.sourceProgressRef);
+
+  const publicVersionMatches = Boolean(right.bindingVersion) && right.bindingVersion === left.bindingVersion;
+  const privateTokenMatches = Boolean(right.bindingToken) && right.bindingToken === left.bindingToken;
+  const tokenContradictsTruth = Boolean(right.bindingToken) && right.bindingToken !== left.bindingToken;
+
+  return sharedFieldsMatch && !tokenContradictsTruth && (publicVersionMatches || privateTokenMatches);
 }
 
 async function readAuthoritativeBinding({ root, bindingPacket }) {

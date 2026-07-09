@@ -134,6 +134,67 @@ test('validateWorkerReceipt accepts sessionId when threadId is unavailable', () 
   assert.equal(validateWorkerReceipt(receipt).sessionId, 'session-1');
 });
 
+test('validateWorkerReceipt accepts pending manual fallback receipts without session handles', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_demo_handoff_pending_20260709',
+    receiptType: 'handoff_pending',
+    authorityTaskId: baseBinding.authorityTaskId,
+    workerId: baseBinding.workerId,
+    threadId: null,
+    sessionId: null,
+    bindingToken: baseBinding.bindingToken,
+    currentSlice: baseBinding.currentSlice,
+    proofTarget: baseBinding.proofTarget,
+    evidenceSink: baseBinding.evidenceSink,
+    capabilityClass: baseBinding.capabilityClass,
+    riskClass: baseBinding.riskClass,
+    workType: baseBinding.workType,
+    authorityMode: baseBinding.authorityMode,
+    allowedOps: baseBinding.allowedOps,
+    sourceProgressRef: baseBinding.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'pending',
+    summary: 'Manual handoff prompt produced; no worker has started.',
+    evidenceRefs: [],
+    nextSuggestedAction: 'paste back worker receipt after manual run',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.equal(validateWorkerReceipt(receipt).receiptType, 'handoff_pending');
+});
+
+test('validateWorkerReceipt still requires session handles for started worker outcomes', () => {
+  assert.throws(
+    () => validateWorkerReceipt({
+      schemaVersion: 'chiefops.v0b',
+      receiptId: 'receipt_demo_started_20260709',
+      receiptType: 'started',
+      authorityTaskId: baseBinding.authorityTaskId,
+      workerId: baseBinding.workerId,
+      threadId: null,
+      sessionId: null,
+      bindingToken: baseBinding.bindingToken,
+      currentSlice: baseBinding.currentSlice,
+      proofTarget: baseBinding.proofTarget,
+      evidenceSink: baseBinding.evidenceSink,
+      capabilityClass: baseBinding.capabilityClass,
+      riskClass: baseBinding.riskClass,
+      workType: baseBinding.workType,
+      authorityMode: baseBinding.authorityMode,
+      allowedOps: baseBinding.allowedOps,
+      sourceProgressRef: baseBinding.sourceProgressRef,
+      observedAt: '2026-07-09T05:05:00.000Z',
+      status: 'started',
+      summary: 'Started without a handle.',
+      evidenceRefs: [],
+      nextSuggestedAction: 'gate',
+      createdAt: '2026-07-09T05:05:00.000Z'
+    }),
+    /threadId.*sessionId/
+  );
+});
+
 test('validateWorkerReceipt requires evidence and office source refs for final truth', () => {
   const officeReceipt = {
     schemaVersion: 'chiefops.v0b',

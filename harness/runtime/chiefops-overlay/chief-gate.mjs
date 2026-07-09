@@ -36,7 +36,11 @@ function sameBindingIdentity(bindingPacket, receipt) {
   return false;
 }
 
-export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = false }) {
+function isTerminalLifecycleStatus(status) {
+  return ['closed', 'archived', 'done', 'complete'].includes(String(status || '').toLowerCase());
+}
+
+export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = false, taskState = {} }) {
   const identityFields = [
     'authorityTaskId',
     'workerId',
@@ -70,6 +74,14 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
   }
 
   if (receipt.receiptType === 'done') {
+    if (isTerminalLifecycleStatus(taskState.status)) {
+      return { outcome: 'block', reason: 'task_lifecycle_not_active' };
+    }
+
+    if (taskState.supersededByReceiptId && taskState.supersededByReceiptId !== receipt.receiptId) {
+      return { outcome: 'block', reason: 'receipt_superseded' };
+    }
+
     if (receipt.status === 'blocked' || receipt.status === 'failed') {
       return { outcome: 'block', reason: 'receipt_status_conflict' };
     }

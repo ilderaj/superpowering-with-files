@@ -162,6 +162,44 @@ test('harness chiefops overlay handoff creates a prompt but not a started receip
   }
 });
 
+test('harness chiefops overlay handoff accepts public bindingVersion without raw token', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const taskDir = path.join(root, 'planning/active/chiefops-demo');
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(
+      path.join(taskDir, 'task_plan.md'),
+      [
+        '# ChiefOps Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        '',
+        '## Verification Contract',
+        '- **Proof Target:** manual handoff pending',
+        ''
+      ].join('\n')
+    );
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    const binding = demoBindingPacket(root);
+    await writeFile(
+      path.join(taskDir, 'progress.md'),
+      ['# Progress', '', 'handoff cli', 'manual handoff pending', '', serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding), ''].join('\n')
+    );
+    const { bindingToken, ...publicBinding } = binding;
+    const file = path.join(root, 'binding.json');
+    await writeFile(file, JSON.stringify(publicBinding, null, 2));
+
+    const { stdout, stderr } = await harnessCommand(root, 'chiefops', 'overlay', 'handoff', '--file', file);
+
+    assert.equal(stderr, '');
+    assert.match(stdout, /bindingVersion: binding-v1/);
+    assert.doesNotMatch(stdout, /btok_1/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('harness chiefops overlay handoff rejects forged binding files outside progress truth', async () => {
   const root = await createHarnessFixture({ linkNodeModules: true });
   try {

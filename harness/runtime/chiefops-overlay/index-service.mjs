@@ -26,15 +26,22 @@ function workerIndexEntry(root, taskId, binding, receipt = null) {
     currentSlice: binding.currentSlice,
     proofTarget: binding.proofTarget,
     evidenceSink: binding.evidenceSink,
-    sourceProgressRef: path.relative(root, sourceProgressRef(root, taskId))
+    sourceProgressRef: {
+      file: path.relative(root, sourceProgressRef(root, taskId)),
+      blockId: binding.sourceProgressRef.blockId,
+      contentHash: binding.sourceProgressRef.contentHash,
+      observedAt: binding.sourceProgressRef.observedAt
+    }
   };
 }
 
-function detectDuplicateConflicts(bindings, receipts = [], receiptIds = new Set()) {
+function detectDuplicateConflicts(taskId, bindings, receipts = [], seenByField, receiptIds) {
   const conflicts = [];
 
   for (const field of ['workerId', 'bindingId', 'bindingToken', 'bindingVersion']) {
-    const seen = new Map();
+    const seen = seenByField.get(field) || new Map();
+    seenByField.set(field, seen);
+
     for (const binding of bindings) {
       const key = binding[field];
       if (!key) {
@@ -42,16 +49,16 @@ function detectDuplicateConflicts(bindings, receipts = [], receiptIds = new Set(
       }
 
       if (seen.has(key)) {
-        conflicts.push({ reason: `duplicate_${field}`, field, value: key });
+        conflicts.push({ taskId, reason: `duplicate_${field}`, field, value: key, previousTaskId: seen.get(key).taskId });
       } else {
-        seen.set(key, binding);
+        seen.set(key, { taskId, binding });
       }
     }
   }
 
   for (const receipt of receipts) {
     if (receiptIds.has(receipt.receiptId)) {
-      conflicts.push({ reason: 'duplicate_receiptId', field: 'receiptId', value: receipt.receiptId });
+      conflicts.push({ taskId, reason: 'duplicate_receiptId', field: 'receiptId', value: receipt.receiptId });
     }
     receiptIds.add(receipt.receiptId);
   }
@@ -75,6 +82,7 @@ export async function rebuildChiefOpsIndex({ root, taskIds }) {
   const workers = [];
   const conflicts = [];
   const receiptIds = new Set();
+  const seenByField = new Map();
 
   for (const taskId of taskIds) {
     const progressPath = sourceProgressRef(root, taskId);
@@ -101,7 +109,7 @@ export async function rebuildChiefOpsIndex({ root, taskIds }) {
       workers.push(workerIndexEntry(root, taskId, binding, latestReceipt));
     }
 
-    conflicts.push(...detectDuplicateConflicts(bindings, receipts, receiptIds).map((conflict) => ({ taskId, ...conflict })));
+    conflicts.push(...detectDuplicateConflicts(taskId, bindings, receipts, seenByField, receiptIds));
   }
 
   return {

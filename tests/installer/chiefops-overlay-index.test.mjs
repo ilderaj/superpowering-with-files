@@ -65,6 +65,12 @@ test('rebuildChiefOpsIndex derives worker mapping from active trio progress only
   assert.equal(index.workers.length, 1);
   assert.equal(index.workers[0].authorityTaskId, 'chiefops-demo');
   assert.equal(index.workers[0].workerId, 'worker-1');
+  assert.deepEqual(index.workers[0].sourceProgressRef, {
+    file: 'planning/active/chiefops-demo/progress.md',
+    blockId: 'bind_1',
+    contentHash: 'sha256:abc123',
+    observedAt: '2026-07-09T05:00:00.000Z'
+  });
   assert.equal(index.conflicts.length, 0);
 });
 
@@ -219,4 +225,60 @@ test('rebuildChiefOpsIndex redacts raw session handles and reports duplicate rec
   assert.equal(index.conflicts.length, 1);
   assert.equal(index.conflicts[0].reason, 'duplicate_receiptId');
   assert.equal(index.conflicts[0].taskId, 'chiefops-demo-b');
+});
+
+test('rebuildChiefOpsIndex reports duplicate worker identity across task ids', async () => {
+  const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-cross-task-conflict');
+  await rm(root, { recursive: true, force: true });
+  await mkdir(path.join(root, 'planning/active/chiefops-demo-a'), { recursive: true });
+  await mkdir(path.join(root, 'planning/active/chiefops-demo-b'), { recursive: true });
+  await writeFile(
+    path.join(root, 'planning/active/chiefops-demo-a/progress.md'),
+    serializeChiefOpsBlock(
+      'ChiefOpsWorkerBinding',
+      binding({
+        authorityTaskId: 'chiefops-demo-a',
+        bindingId: 'bind_a',
+        bindingToken: 'btok_a',
+        bindingVersion: 'public-a',
+        evidenceSink: 'planning/active/chiefops-demo-a/progress.md',
+        sourceProgressRef: {
+          file: 'planning/active/chiefops-demo-a/progress.md',
+          blockId: 'bind_a',
+          startLine: null,
+          contentHash: 'sha256:abc123',
+          observedAt: '2026-07-09T05:00:00.000Z'
+        }
+      })
+    )
+  );
+  await writeFile(
+    path.join(root, 'planning/active/chiefops-demo-b/progress.md'),
+    serializeChiefOpsBlock(
+      'ChiefOpsWorkerBinding',
+      binding({
+        authorityTaskId: 'chiefops-demo-b',
+        bindingId: 'bind_b',
+        bindingToken: 'btok_b',
+        bindingVersion: 'public-a',
+        evidenceSink: 'planning/active/chiefops-demo-b/progress.md',
+        sourceProgressRef: {
+          file: 'planning/active/chiefops-demo-b/progress.md',
+          blockId: 'bind_b',
+          startLine: null,
+          contentHash: 'sha256:def456',
+          observedAt: '2026-07-09T05:00:00.000Z'
+        }
+      })
+    )
+  );
+
+  const index = await rebuildChiefOpsIndex({ root, taskIds: ['chiefops-demo-a', 'chiefops-demo-b'] });
+
+  assert.equal(index.conflicts.length, 2);
+  assert.deepEqual(
+    index.conflicts.map((conflict) => conflict.reason).sort(),
+    ['duplicate_bindingVersion', 'duplicate_workerId']
+  );
+  assert.equal(index.conflicts[0].previousTaskId, 'chiefops-demo-a');
 });

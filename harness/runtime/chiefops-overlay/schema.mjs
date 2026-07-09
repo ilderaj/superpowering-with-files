@@ -20,6 +20,7 @@ export const RECEIPT_TYPES = [
 ];
 export const CAPABILITY_CLASSES = ['frontier_reasoning', 'balanced_execution', 'economy_mechanical', 'fast_check'];
 export const RISK_CLASSES = ['low', 'medium', 'high'];
+export const RECEIPT_TYPES_REQUIRING_SESSION_HANDLE = ['binding_verified', 'started', 'check_in', 'blocked', 'done', 'new_trio_candidate', 'abandoned'];
 
 const isoTimestamp = z.string().datetime();
 
@@ -119,7 +120,7 @@ export const WorkerReceiptSchema = z.object({
   if (!receipt.bindingToken && !receipt.bindingVersion) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'bindingToken or bindingVersion is required.' });
   }
-  if (!receipt.threadId && !receipt.sessionId) {
+  if (RECEIPT_TYPES_REQUIRING_SESSION_HANDLE.includes(receipt.receiptType) && !receipt.threadId && !receipt.sessionId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'threadId or sessionId is required for worker receipts.' });
   }
   if (receipt.receiptType === 'done') {
