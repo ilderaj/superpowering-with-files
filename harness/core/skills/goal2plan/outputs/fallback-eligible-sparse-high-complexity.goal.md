@@ -5,6 +5,7 @@ Constraints: Keep `planning/active/<task-id>/` authoritative, save the companion
 Work Discipline:
 - Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` before every substantive round.
 - Audit intake sufficiency and list the missing intake dimensions before drafting the plan.
+- For coding work, capture domain terms, highest practical test seam, tracer-bullet vertical slice, blocking edges, and Standards/Spec review split; keep authority in `planning/active/<task-id>/`, not `tickets.md`.
 - If broad intake is missing, use brainstorming; if only narrow facts are missing, use concise Q&A.
 - Draft the implementation plan using writing-plans structure.
 - Break the planning loop into checkpoints and append a short progress log to `planning/active/<task-id>/progress.md` after each checkpoint.
