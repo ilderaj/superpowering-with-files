@@ -6,6 +6,11 @@ import {
   makeBindingId,
   makeReceiptId
 } from '../../harness/runtime/chiefops-overlay/schema.mjs';
+import {
+  compareSourceProgressRef,
+  hashContent,
+  makeSourceProgressRef
+} from '../../harness/runtime/chiefops-overlay/source-progress-ref.mjs';
 
 const baseBinding = {
   schemaVersion: 'chiefops.v0b',
@@ -198,5 +203,56 @@ test('id helpers are deterministic and redacted enough for durable records', () 
   assert.equal(
     makeReceiptId({ authorityTaskId: 'chiefops-demo', workerId: 'worker-1', receiptType: 'done', createdAt: '2026-07-09T05:05:00.000Z' }),
     'receipt_chiefops-demo_worker-1_done_2026-07-09T05-05-00-000Z'
+  );
+});
+
+test('sourceProgressRef uses content hash rather than line number as truth', () => {
+  const observed = makeSourceProgressRef({
+    file: 'planning/active/chiefops-demo/progress.md',
+    blockId: 'binding-1',
+    content: 'status: bound\nworkerId: worker-1\n',
+    startLine: 20,
+    observedAt: '2026-07-09T05:00:00.000Z'
+  });
+
+  assert.equal(observed.contentHash, hashContent('status: bound\nworkerId: worker-1\n'));
+  assert.deepEqual(
+    compareSourceProgressRef(observed, {
+      file: observed.file,
+      blockId: observed.blockId,
+      content: 'status: bound\nworkerId: worker-1\n',
+      startLine: 44
+    }),
+    { drifted: false, reason: null }
+  );
+  assert.deepEqual(
+    compareSourceProgressRef(observed, {
+      file: observed.file,
+      blockId: observed.blockId,
+      content: 'status: abandoned\nworkerId: worker-1\n',
+      startLine: 44
+    }),
+    { drifted: true, reason: 'content_hash_mismatch' }
+  );
+});
+
+test('sourceProgressRef reports missing or different blocks as material drift', () => {
+  const observed = makeSourceProgressRef({
+    file: 'planning/active/chiefops-demo/progress.md',
+    blockId: 'binding-1',
+    content: 'status: bound\n',
+    startLine: null,
+    observedAt: '2026-07-09T05:00:00.000Z'
+  });
+
+  assert.equal(compareSourceProgressRef(observed, null).reason, 'missing_current_block');
+  assert.equal(
+    compareSourceProgressRef(observed, {
+      file: observed.file,
+      blockId: 'binding-2',
+      content: 'status: bound\n',
+      startLine: null
+    }).reason,
+    'block_id_mismatch'
   );
 });
