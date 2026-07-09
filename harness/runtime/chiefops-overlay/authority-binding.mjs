@@ -5,6 +5,10 @@ async function exists(file) {
   return access(file).then(() => true, () => false);
 }
 
+function isSafeTaskId(taskId) {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(String(taskId));
+}
+
 function normalizeText(value) {
   return String(value)
     .toLowerCase()
@@ -21,6 +25,10 @@ function stripAnchor(value) {
 }
 
 async function requireTrio(root, taskId) {
+  if (!isSafeTaskId(taskId)) {
+    throw new Error(`invalid authorityTaskId ${taskId}: must be a safe task slug`);
+  }
+
   const dir = path.join(root, 'planning/active', taskId);
   const files = ['task_plan.md', 'findings.md', 'progress.md'].map((file) => path.join(dir, file));
   const present = await Promise.all(files.map(exists));
@@ -134,4 +142,3 @@ export async function resolveAuthorityBinding({
     taskDir: dir
   };
 }
-

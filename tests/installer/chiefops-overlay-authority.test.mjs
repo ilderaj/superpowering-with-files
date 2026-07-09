@@ -72,6 +72,30 @@ test('resolveAuthorityBinding rejects missing trio files', async () => {
   );
 });
 
+test('resolveAuthorityBinding rejects path traversal task ids before leaving planning/active', async () => {
+  const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-authority-traversal');
+  await rm(root, { recursive: true, force: true });
+  await task(
+    root,
+    'escape',
+    'Escape',
+    [
+      'currentSlice: ChiefOps V0b overlay',
+      'proofTarget: thread control overlay proof',
+      'evidenceSink: planning/active/escape/progress.md'
+    ].join('\n')
+  );
+
+  await assert.rejects(
+    resolveAuthorityBinding({
+      root,
+      authorityTaskId: '../escape',
+      planningRoot: root
+    }),
+    /invalid authorityTaskId .*safe task slug/i
+  );
+});
+
 test('resolveAuthorityBinding rejects explicit but wrong trio binding', async () => {
   const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-authority-wrong-trio');
   await rm(root, { recursive: true, force: true });
@@ -102,4 +126,3 @@ test('resolveAuthorityBinding rejects explicit but wrong trio binding', async ()
     /binding does not match authoritative trio surface/
   );
 });
-
