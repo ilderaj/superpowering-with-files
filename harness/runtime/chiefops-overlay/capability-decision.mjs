@@ -49,14 +49,18 @@ export function decideCapabilityAction({
   }
 
   if (action === 'handoff_worker' || action === 'send_instruction') {
-    return capabilities.message || capabilities.handoff
-      ? {
-          mode: 'native_control_requested',
-          receiptType: 'binding_verified',
-          canProceedAsStarted: false,
-          requiresWorkerReceipt: true
-        }
-      : { mode: 'manual_handoff', receiptType: 'manual_handoff_required', canProceedAsStarted: false };
+    if (capabilities.message || capabilities.handoff) {
+      return {
+        mode: 'native_control_requested',
+        receiptType: 'binding_verified',
+        canProceedAsStarted: false,
+        requiresWorkerReceipt: true
+      };
+    }
+
+    return manualHandoffAllowed
+      ? { mode: 'manual_handoff', receiptType: 'manual_handoff_required', canProceedAsStarted: false }
+      : { mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false };
   }
 
   return { mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false };

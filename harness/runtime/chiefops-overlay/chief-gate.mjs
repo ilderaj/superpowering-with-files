@@ -3,7 +3,13 @@ function same(left, right) {
 }
 
 function sameArray(left = [], right = []) {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const normalizedLeft = [...left].sort();
+  const normalizedRight = [...right].sort();
+  return normalizedLeft.every((value, index) => value === normalizedRight[index]);
 }
 
 function sameSourceProgressRef(left, right) {
@@ -64,6 +70,10 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
   }
 
   if (receipt.receiptType === 'done') {
+    if (receipt.status === 'blocked' || receipt.status === 'failed') {
+      return { outcome: 'block', reason: 'receipt_status_conflict' };
+    }
+
     if (!receipt.evidenceRefs || receipt.evidenceRefs.length === 0) {
       return { outcome: 'block', reason: 'evidence_missing' };
     }

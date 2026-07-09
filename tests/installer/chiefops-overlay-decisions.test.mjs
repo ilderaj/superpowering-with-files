@@ -76,6 +76,19 @@ test('decideCapabilityAction recommends respawn for unavailable continue when sl
   );
 });
 
+test('decideCapabilityAction returns capability_unavailable for handoff actions when manual handoff is not allowed', () => {
+  assert.deepEqual(
+    decideCapabilityAction({
+      action: 'handoff_worker',
+      capabilities: { message: false, handoff: false },
+      bindingValid: true,
+      materialDrift: false,
+      manualHandoffAllowed: false
+    }),
+    { mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false }
+  );
+});
+
 test('resolveModel fails instead of silently downgrading missing capability', () => {
   assert.throws(
     () => resolveModel({
@@ -175,6 +188,40 @@ test('chief gate rejects sourceProgressRef mismatch', () => {
   assert.deepEqual(
     gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'binding_identity_mismatch' }
+  );
+});
+
+test('chief gate rejects done receipts with contradictory blocked status', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_1c',
+    receiptType: 'done',
+    authorityTaskId: 'chiefops-demo',
+    workerId: 'worker-1',
+    threadId: 'thread-1',
+    sessionId: null,
+    bindingVersion: bindingPacket.bindingVersion,
+    currentSlice: bindingPacket.currentSlice,
+    proofTarget: bindingPacket.proofTarget,
+    evidenceSink: bindingPacket.evidenceSink,
+    capabilityClass: bindingPacket.capabilityClass,
+    riskClass: bindingPacket.riskClass,
+    workType: bindingPacket.workType,
+    authorityMode: bindingPacket.authorityMode,
+    allowedOps: bindingPacket.allowedOps,
+    sourceProgressRef: bindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'blocked',
+    summary: 'Done.',
+    evidenceRefs: ['planning/active/chiefops-demo/progress.md#receipt'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    { outcome: 'block', reason: 'receipt_status_conflict' }
   );
 });
 
@@ -427,6 +474,45 @@ test('chief gate accepts public bindingVersion without requiring raw bindingToke
 
   assert.deepEqual(
     gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    { outcome: 'accept', reason: null }
+  );
+});
+
+test('chief gate treats allowedOps as an order-insensitive identity set', () => {
+  const bindingPacketWithPublish = {
+    ...bindingPacket,
+    allowedOps: ['publish', 'inspect']
+  };
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_5',
+    receiptType: 'done',
+    authorityTaskId: 'chiefops-demo',
+    workerId: 'worker-1',
+    threadId: 'thread-1',
+    sessionId: null,
+    bindingVersion: bindingPacket.bindingVersion,
+    currentSlice: bindingPacket.currentSlice,
+    proofTarget: bindingPacket.proofTarget,
+    evidenceSink: bindingPacket.evidenceSink,
+    capabilityClass: bindingPacket.capabilityClass,
+    riskClass: bindingPacket.riskClass,
+    workType: bindingPacket.workType,
+    authorityMode: bindingPacket.authorityMode,
+    allowedOps: ['inspect', 'publish'],
+    sourceProgressRef: bindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'done',
+    summary: 'Done.',
+    evidenceRefs: ['planning/active/chiefops-demo/progress.md#receipt'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    publishRef: 'planning/active/chiefops-demo/progress.md#publish',
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({ bindingPacket: bindingPacketWithPublish, receipt, approvalSatisfied: true }),
     { outcome: 'accept', reason: null }
   );
 });
