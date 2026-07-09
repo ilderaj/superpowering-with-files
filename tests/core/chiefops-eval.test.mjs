@@ -71,3 +71,27 @@ test('chiefops guidance treats historical session ids as explicit routing cues',
     /Assignment Packet[\s\S]*evidenceSink[\s\S]*returnToChiefInstruction/i
   );
 });
+
+test('chiefops guidance preserves explicit visible Codex session worker routing', async () => {
+  const skill = await readFile('harness/core/skills/chiefops/SKILL.md', 'utf8');
+  const docs = await readFile('docs/chiefops.md', 'utf8');
+  const combined = `${skill}\n${docs}`;
+
+  assert.match(combined, /Visible Codex Session Worker Requests/i);
+  assert.match(
+    combined,
+    /explicitly asks for a visible Codex session worker[\s\S]*requested execution route/i
+  );
+  assert.match(combined, /Codex thread\/session tools/i);
+  assert.match(
+    combined,
+    /subagent, hidden\/internal worker slice, or Chief-direct implementation is a downgrade/i
+  );
+  assert.match(
+    combined,
+    /Subagent\/internal worker wording alone must not be presented as satisfying an explicit visible Codex session worker request/i
+  );
+  assert.match(combined, /the downgrade reason/i);
+  assert.match(combined, /the proof target and evidence sink/i);
+  assert.match(combined, /the return-to-Chief gate/i);
+});

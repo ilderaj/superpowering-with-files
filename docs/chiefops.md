@@ -222,6 +222,20 @@ Chief-direct remains allowed only with an explicit reason. The explanation must 
 
 This is only an intake and routing rule. It must not create a scheduler, worker registry, durable session database, second board, new receipt dialect, or external-thread write behavior.
 
+## Visible Codex Session Worker Requests
+
+When the user explicitly asks for a visible Codex session worker, the chief must treat that as a route requirement, not a generic delegation hint.
+
+Preferred handling:
+
+- use the available Codex thread/session tools to create, continue, hand off, or message the visible worker session;
+- if the tool path is gated or unavailable, say that directly and name the missing gate;
+- if falling back to Chief-direct, subagent, or hidden/internal worker execution, label it as a downgrade and explain why the visible session route cannot be used now.
+
+A fallback is valid only when it names the requested visible route, downgrade reason, bounded slice, proof target, evidence sink, and return-to-Chief gate. Subagent/internal worker wording alone must not be presented as satisfying an explicit visible Codex session worker request.
+
+This rule does not add a scheduler, daemon, durable session database, worker registry, second board, receipt dialect, lifecycle authority, or automatic external-thread write behavior.
+
 ## Derived Assignment Packet
 
 When the chief needs to hand off or frame one manual worker slice, derive an Assignment Packet from existing planning and receipt truth.
