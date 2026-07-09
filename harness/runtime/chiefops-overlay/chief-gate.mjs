@@ -6,6 +6,18 @@ function sameArray(left = [], right = []) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
+function sameSourceProgressRef(left, right) {
+  if (!left || !right) {
+    return false;
+  }
+
+  return (
+    left.file === right.file &&
+    left.blockId === right.blockId &&
+    left.contentHash === right.contentHash
+  );
+}
+
 function sameBindingIdentity(bindingPacket, receipt) {
   if (receipt.bindingVersion) {
     return receipt.bindingVersion === bindingPacket.bindingVersion;
@@ -36,6 +48,10 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
   }
 
   if (!sameArray(bindingPacket.allowedOps, receipt.allowedOps)) {
+    return { outcome: 'block', reason: 'binding_identity_mismatch' };
+  }
+
+  if (!sameSourceProgressRef(bindingPacket.sourceProgressRef, receipt.sourceProgressRef)) {
     return { outcome: 'block', reason: 'binding_identity_mismatch' };
   }
 
