@@ -30,10 +30,10 @@ function workerIndexEntry(root, taskId, binding, receipt = null) {
   };
 }
 
-function detectDuplicateConflicts(bindings, receipts = []) {
+function detectDuplicateConflicts(bindings, receipts = [], receiptIds = new Set()) {
   const conflicts = [];
 
-  for (const field of ['workerId', 'bindingId', 'bindingToken']) {
+  for (const field of ['workerId', 'bindingId', 'bindingToken', 'bindingVersion']) {
     const seen = new Map();
     for (const binding of bindings) {
       const key = binding[field];
@@ -49,7 +49,6 @@ function detectDuplicateConflicts(bindings, receipts = []) {
     }
   }
 
-  const receiptIds = new Set();
   for (const receipt of receipts) {
     if (receiptIds.has(receipt.receiptId)) {
       conflicts.push({ reason: 'duplicate_receiptId', field: 'receiptId', value: receipt.receiptId });
@@ -75,6 +74,7 @@ function sameBindingIdentity(binding, receipt) {
 export async function rebuildChiefOpsIndex({ root, taskIds }) {
   const workers = [];
   const conflicts = [];
+  const receiptIds = new Set();
 
   for (const taskId of taskIds) {
     const progressPath = sourceProgressRef(root, taskId);
@@ -101,7 +101,7 @@ export async function rebuildChiefOpsIndex({ root, taskIds }) {
       workers.push(workerIndexEntry(root, taskId, binding, latestReceipt));
     }
 
-    conflicts.push(...detectDuplicateConflicts(bindings, receipts).map((conflict) => ({ taskId, ...conflict })));
+    conflicts.push(...detectDuplicateConflicts(bindings, receipts, receiptIds).map((conflict) => ({ taskId, ...conflict })));
   }
 
   return {

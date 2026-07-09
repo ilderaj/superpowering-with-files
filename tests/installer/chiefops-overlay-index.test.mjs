@@ -82,30 +82,60 @@ test('rebuildChiefOpsIndex reports duplicate binding tokens instead of picking a
   assert.equal(index.conflicts[0].reason, 'duplicate_bindingToken');
 });
 
-test('rebuildChiefOpsIndex redacts raw session handles and reports duplicate receipts', async () => {
-  const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-receipt');
+test('rebuildChiefOpsIndex reports duplicate binding versions instead of picking a winner', async () => {
+  const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-binding-version');
   await rm(root, { recursive: true, force: true });
   await mkdir(path.join(root, 'planning/active/chiefops-demo'), { recursive: true });
-  const receipt = {
+  const first = serializeChiefOpsBlock(
+    'ChiefOpsWorkerBinding',
+    binding({
+      bindingId: 'bind_1',
+      bindingToken: 'btok_1',
+      bindingVersion: 'public-1'
+    })
+  );
+  const second = serializeChiefOpsBlock(
+    'ChiefOpsWorkerBinding',
+    binding({
+      bindingId: 'bind_2',
+      workerId: 'worker-2',
+      bindingToken: 'btok_2',
+      bindingVersion: 'public-1'
+    })
+  );
+  await writeFile(path.join(root, 'planning/active/chiefops-demo/progress.md'), `${first}\n${second}`);
+
+  const index = await rebuildChiefOpsIndex({ root, taskIds: ['chiefops-demo'] });
+
+  assert.equal(index.conflicts.length, 1);
+  assert.equal(index.conflicts[0].reason, 'duplicate_bindingVersion');
+});
+
+test('rebuildChiefOpsIndex redacts raw session handles and reports duplicate receipts across task ids', async () => {
+  const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-receipt');
+  await rm(root, { recursive: true, force: true });
+  await mkdir(path.join(root, 'planning/active/chiefops-demo-a'), { recursive: true });
+  await mkdir(path.join(root, 'planning/active/chiefops-demo-b'), { recursive: true });
+  const receiptA = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_1',
     receiptType: 'started',
-    authorityTaskId: 'chiefops-demo',
+    authorityTaskId: 'chiefops-demo-a',
     workerId: 'worker-1',
     threadId: 'thread-secret-123456',
     sessionId: null,
-    bindingToken: 'btok_1',
+    bindingToken: 'btok_a',
     currentSlice: 'index rebuild',
     proofTarget: 'index is derived',
-    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    evidenceSink: 'planning/active/chiefops-demo-a/progress.md',
     capabilityClass: 'balanced_execution',
     riskClass: 'medium',
     workType: 'coding',
     authorityMode: 'task_authority',
     allowedOps: ['inspect'],
     sourceProgressRef: {
-      file: 'planning/active/chiefops-demo/progress.md',
-      blockId: 'bind_1',
+      file: 'planning/active/chiefops-demo-a/progress.md',
+      blockId: 'bind_a',
       startLine: null,
       contentHash: 'sha256:abc123',
       observedAt: '2026-07-09T05:00:00.000Z'
@@ -117,19 +147,76 @@ test('rebuildChiefOpsIndex redacts raw session handles and reports duplicate rec
     nextSuggestedAction: 'gate',
     createdAt: '2026-07-09T05:05:00.000Z'
   };
+  const receiptB = {
+    ...receiptA,
+    authorityTaskId: 'chiefops-demo-b',
+    workerId: 'worker-2',
+    threadId: 'thread-secret-654321',
+    bindingToken: 'btok_b',
+    evidenceSink: 'planning/active/chiefops-demo-b/progress.md',
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo-b/progress.md',
+      blockId: 'bind_b',
+      startLine: null,
+      contentHash: 'sha256:def456',
+      observedAt: '2026-07-09T05:00:00.000Z'
+    }
+  };
   await writeFile(
-    path.join(root, 'planning/active/chiefops-demo/progress.md'),
+    path.join(root, 'planning/active/chiefops-demo-a/progress.md'),
     [
-      serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding({ planningRoot: root })),
-      serializeChiefOpsBlock('ChiefOpsWorkerReceipt', receipt),
-      serializeChiefOpsBlock('ChiefOpsWorkerReceipt', receipt)
+      serializeChiefOpsBlock(
+        'ChiefOpsWorkerBinding',
+        binding({
+          authorityTaskId: 'chiefops-demo-a',
+          bindingId: 'bind_a',
+          workerId: 'worker-1',
+          bindingToken: 'btok_a',
+          evidenceSink: 'planning/active/chiefops-demo-a/progress.md',
+          sourceProgressRef: {
+            file: 'planning/active/chiefops-demo-a/progress.md',
+            blockId: 'bind_a',
+            startLine: null,
+            contentHash: 'sha256:abc123',
+            observedAt: '2026-07-09T05:00:00.000Z'
+          }
+        })
+      ),
+      serializeChiefOpsBlock('ChiefOpsWorkerReceipt', receiptA)
+    ].join('\n')
+  );
+  await writeFile(
+    path.join(root, 'planning/active/chiefops-demo-b/progress.md'),
+    [
+      serializeChiefOpsBlock(
+        'ChiefOpsWorkerBinding',
+        binding({
+          authorityTaskId: 'chiefops-demo-b',
+          bindingId: 'bind_b',
+          workerId: 'worker-2',
+          bindingToken: 'btok_b',
+          evidenceSink: 'planning/active/chiefops-demo-b/progress.md',
+          sourceProgressRef: {
+            file: 'planning/active/chiefops-demo-b/progress.md',
+            blockId: 'bind_b',
+            startLine: null,
+            contentHash: 'sha256:def456',
+            observedAt: '2026-07-09T05:00:00.000Z'
+          }
+        })
+      ),
+      serializeChiefOpsBlock('ChiefOpsWorkerReceipt', receiptB)
     ].join('\n')
   );
 
-  const index = await rebuildChiefOpsIndex({ root, taskIds: ['chiefops-demo'] });
+  const index = await rebuildChiefOpsIndex({ root, taskIds: ['chiefops-demo-a', 'chiefops-demo-b'] });
 
+  assert.equal(index.workers.length, 2);
   assert.equal(index.workers[0].threadRef, 'ref:123456');
   assert.equal(index.workers[0].planningRootRef, 'authority_root');
   assert.equal(JSON.stringify(index).includes('thread-secret-123456'), false);
+  assert.equal(JSON.stringify(index).includes('thread-secret-654321'), false);
+  assert.equal(index.conflicts.length, 1);
   assert.equal(index.conflicts[0].reason, 'duplicate_receiptId');
+  assert.equal(index.conflicts[0].taskId, 'chiefops-demo-b');
 });
