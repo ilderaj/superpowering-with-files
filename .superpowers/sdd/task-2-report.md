@@ -7,7 +7,7 @@ Files changed:
 
 Commit hash:
 - 10a47a4 (implementation)
-- 94fbcd6 (report metadata sync)
+- 456a98d (final report + metadata sync)
 
 Tests run with pass/fail result:
 - `node --test tests/installer/chiefops-overlay-schema.test.mjs` (Fail: module not found before implementation)
