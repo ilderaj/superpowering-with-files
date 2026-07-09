@@ -132,14 +132,40 @@ Useful command surfaces:
 ```text
 ./scripts/harness chiefops board --task <task-id>
 ./scripts/harness chiefops board --task <task-id> --json
+./scripts/harness lifecycle-sweep --task <task-id> --json
 ```
 
 Keep the discipline simple:
 
 - assignment intent belongs in `task_plan.md` and `progress.md`
 - execution receipts stay outcome-only
+- lifecycle anchor receipts are review hints, not worker control state
 - the board is derived, never persisted
 - ChiefOps names the next slice; it does not become the slice owner forever
+
+## Lifecycle Sweep Boundary
+
+`lifecycle-sweep` is a Chief-owned review aid for planning hygiene. It reads
+task lifecycle state, execution receipts, follow-up closures, and lifecycle
+anchor receipts under `.harness/lifecycle/anchors/<taskId>/`.
+
+Use it when the Chief needs to decide whether a task should stay active, move
+to review/integration, or enter an explicit close/block/reconcile path:
+
+```text
+./scripts/harness lifecycle-sweep --task <task-id>
+./scripts/harness lifecycle-sweep --task <task-id> --json
+```
+
+Workers may write anchor receipts after real events, such as PR creation,
+PR merge, release proof, or a blocker discovery. Workers must not run
+`lifecycle-sweep --apply-safe`, close or block their own task, set
+`Archive Eligible: yes`, or treat anchors as a worker registry.
+
+The Chief may run `--apply-safe` only for the narrow non-terminal transitions
+reported as apply-eligible. Close, block, and archive remain explicit workflow
+decisions routed through `reconcile`, `finish`, `release`, `close-task`, or
+`archive-task`.
 
 ## Human-Friendly Chief Talk Track
 

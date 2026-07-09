@@ -729,6 +729,9 @@ test('applySuperpowersFinishingADevelopmentBranchPatch materializes Harness base
     assert.match(skill, /`finishing-a-development-branch` owns the integration choice and immediate execution/);
     assert.match(skill, /Only hand off to `autonomous-release-closure` when the user or task explicitly requires unattended follow-through after PR creation, promote to main, cleanup, or adopt work/);
     assert.match(skill, /Do not hand off when there is no explicit closure obligation beyond the immediate finishing step/);
+    assert.match(skill, /## Lifecycle Anchor Receipt/);
+    assert.match(skill, /Anchor receipts are evidence for later `lifecycle-sweep` review/);
+    assert.match(skill, /A pushed branch is a weak anchor/);
     assert.ok(baseIndex >= 0);
     assert.ok(handoffIndex > baseIndex);
     assert.ok(optionsIndex > handoffIndex);
