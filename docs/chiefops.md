@@ -207,6 +207,21 @@ The chief should:
 - route proof and closure work to `verify`, `reconcile`, `finish`, or `release`
 - request or record outcome evidence through existing progress/receipt surfaces instead of inventing a ChiefOps-specific state file
 
+## Historical Session Routing
+
+When a user provides historical `threadId` or `sessionId` values and asks the chief to continue, handle, or carry forward that work, those historical `threadId` or `sessionId` values default to explicit worker/session routing. The chief must treat the IDs as a routing cue before doing inline work.
+
+The chief must explicitly choose and explain one route:
+
+- `continue_worker`: continue the referenced worker/session only when it is current enough, authority-bound, and safe.
+- `respawn_worker`: issue the same bounded slice to a fresh worker when the old session is stale, unavailable, or unsafe but the work still matters.
+- `handoff_worker`: produce a pending handoff or message path when direct continuation is unavailable and manual routing is safer.
+- `chief_direct`: execute inline only when the chief has a specific reason to own a bounded slice.
+
+Chief-direct remains allowed only with an explicit reason. The explanation must include any stale/unsafe rationale, bounded slice, proof target, evidence sink, and return-to-Chief gate. If those fields are missing, do not silently execute inline; narrow the intake or route to a worker/session path.
+
+This is only an intake and routing rule. It must not create a scheduler, worker registry, durable session database, second board, new receipt dialect, or external-thread write behavior.
+
 ## Derived Assignment Packet
 
 When the chief needs to hand off or frame one manual worker slice, derive an Assignment Packet from existing planning and receipt truth.

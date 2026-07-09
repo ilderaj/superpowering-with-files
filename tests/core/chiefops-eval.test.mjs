@@ -40,3 +40,34 @@ test('chiefops skill preserves authority, receipt, and bounded-governance guardr
   assert.match(rubric, /Keeps assignment intent in planning\/progress/);
   assert.doesNotMatch(`${skill}\n${template}\n${examples}\n${rubric}`, /TBD|TODO|implement later/i);
 });
+
+test('chiefops guidance treats historical session ids as explicit routing cues', async () => {
+  const skill = await readFile('harness/core/skills/chiefops/SKILL.md', 'utf8');
+  const docs = await readFile('docs/chiefops.md', 'utf8');
+  const combined = `${skill}\n${docs}`;
+
+  assert.match(combined, /Historical Session Routing/i);
+  assert.match(combined, /threadId/i);
+  assert.match(combined, /sessionId/i);
+  assert.match(combined, /continue_worker/i);
+  assert.match(combined, /respawn_worker/i);
+  assert.match(combined, /handoff_worker/i);
+  assert.match(combined, /chief_direct/i);
+  assert.match(
+    combined,
+    /historical `threadId` or `sessionId` values? default to explicit worker\/session routing/i
+  );
+  assert.match(
+    combined,
+    /Chief-direct remains allowed only with an explicit reason/i
+  );
+  assert.match(combined, /stale\/unsafe rationale/i);
+  assert.match(combined, /bounded slice/i);
+  assert.match(combined, /proof target/i);
+  assert.match(combined, /evidence sink/i);
+  assert.match(combined, /return-to-Chief gate/i);
+  assert.match(
+    combined,
+    /Assignment Packet[\s\S]*evidenceSink[\s\S]*returnToChiefInstruction/i
+  );
+});

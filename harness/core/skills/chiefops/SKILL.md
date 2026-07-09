@@ -61,6 +61,20 @@ ChiefOps Readout
 - Sync-back requirement: update planning/active/<task-id>/ after meaningful progress
 ```
 
+## Historical Session Routing
+When a user provides historical `threadId` or `sessionId` values and asks the chief to continue, handle, or carry forward that work, those historical `threadId` or `sessionId` values default to explicit worker/session routing. Treat the IDs as a routing cue, not only as background context.
+
+Before doing Chief inline work, explicitly choose and explain one route:
+
+- `continue_worker`: use when the referenced worker/session is current enough, bound to the same task authority, and safe to continue.
+- `respawn_worker`: use when the old session is stale, unavailable, or unsafe, but the bounded slice still matters and should be reissued in a fresh worker context.
+- `handoff_worker`: use when a message or manual handoff is the safest way to continue without claiming the worker has already started.
+- `chief_direct`: use only when the chief should intentionally take a bounded slice inline.
+
+Chief-direct remains allowed only with an explicit reason. The explanation must include any stale/unsafe rationale, the bounded slice, proof target, evidence sink, and return-to-Chief gate. If the chief cannot name those fields, route the work to a worker/session path or stop for intake clarification.
+
+Historical session routing does not create a worker registry or session manager. Record durable assignment intent only in the existing planning/progress surfaces when needed, and keep receipts for outcome evidence only.
+
 ## Assignment Packet
 When the next slice should be handed to a worker or framed for manual execution, derive an Assignment Packet from existing planning and receipt truth. The packet is a prompt contract, not a durable object or worker database.
 
