@@ -93,6 +93,8 @@ Recommended command flow:
 ```bash
 ./scripts/harness active-summary
 ./scripts/harness active-summary --json --output=.harness/planning-active-summary.json
+./scripts/harness lifecycle-sweep
+./scripts/harness lifecycle-sweep --json --output=.harness/lifecycle-sweep.json
 ```
 
 Checklist:
@@ -111,6 +113,8 @@ Lifecycle preflight heuristics:
 - Treat `waiting_review` as a claim, not as proof. Before keeping or promoting that status, confirm there is still a real review, PR, approval, or merge gate rather than a stale planning label.
 - If planning queue state and git/PR reality disagree, reconcile the task first. Do not silently trust the older surface.
 - Use `reconciliation_open` and similar active-summary anomalies as decision prompts, not as noise. They mean the queue still lacks durable readiness evidence.
+- Use `lifecycle-sweep` as a conservative recommendation layer over anchor receipts. It may surface `mark_waiting_review`, `mark_waiting_integration`, `recommend_close`, `mark_blocked`, or `manual_review`, but archive remains impossible without the existing closed/archive-eligible/reconciled/companion-synced gates.
+- Treat `lifecycle-sweep --apply-safe` as a narrow operator command. It must not set `Status: closed`, `Status: blocked`, `Archive Eligible: yes`, or move planning directories.
 
 `active-summary` is the operator-facing queue audit. `summary` remains a single-task session context tool and should not be repurposed as a multi-task audit surface. Use [State Convergence](state-convergence.md) when the audit also needs roadmap/backlog alignment decisions.
 
