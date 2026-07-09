@@ -60,6 +60,31 @@ test('validateBindingPacket requires office source authority before final truth'
   );
 });
 
+test('validateBindingPacket rejects empty sourceSet for office source authority', () => {
+  assert.throws(
+    () => validateBindingPacket({
+      ...baseBinding,
+      workType: 'office',
+      authorityMode: 'source_authority',
+      sourceSet: [],
+      systemOfRecord: 'source docs'
+    }),
+    /sourceSet.*systemOfRecord/
+  );
+});
+
+test('validateBindingPacket accepts non-empty sourceSet for source-backed work', () => {
+  const packet = validateBindingPacket({
+    ...baseBinding,
+    workType: 'office',
+    authorityMode: 'source_authority',
+    sourceSet: ['docs/source.md'],
+    systemOfRecord: 'source docs'
+  });
+
+  assert.deepEqual(packet.sourceSet, ['docs/source.md']);
+});
+
 test('validateBindingPacket requires approval and rollback for write operations', () => {
   assert.throws(
     () => validateBindingPacket({

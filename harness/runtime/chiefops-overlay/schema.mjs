@@ -72,7 +72,7 @@ export const BindingPacketSchema = z.object({
   if ((packet.action === 'continue_worker' || packet.action === 'handoff_worker') && !packet.threadId && !packet.sessionId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'threadId or sessionId is required for continue/handoff actions.' });
   }
-  if ((packet.workType === 'office' || packet.authorityMode === 'source_authority') && (!packet.sourceSet || !packet.systemOfRecord)) {
+  if ((packet.workType === 'office' || packet.authorityMode === 'source_authority') && (!packet.sourceSet?.length || !packet.systemOfRecord)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'sourceSet and systemOfRecord are required for office/source authority work.' });
   }
   if (packet.allowedOps.some((op) => ['write', 'publish', 'send'].includes(op))) {

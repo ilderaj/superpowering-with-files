@@ -104,11 +104,16 @@ test('manual handoff prompt includes binding identity and expected receipt', () 
   const prompt = buildManualHandoffPrompt({ bindingPacket });
   assert.match(prompt, /authorityTaskId: chiefops-demo/);
   assert.match(prompt, /bindingVersion: binding-v1/);
+  assert.match(prompt, /capabilityClass: balanced_execution/);
+  assert.match(prompt, /riskClass: medium/);
+  assert.match(prompt, /workType: coding/);
+  assert.match(prompt, /authorityMode: task_authority/);
   assert.match(prompt, /allowedOps: inspect/);
   assert.match(prompt, /nonGoals: do not publish externally/);
   assert.match(prompt, /sourceProgressRef\.file: planning\/active\/chiefops-demo\/progress\.md/);
   assert.match(prompt, /sourceProgressRef\.blockId: bind_1/);
   assert.match(prompt, /sourceProgressRef\.contentHash: sha256:abc123/);
+  assert.match(prompt, /sourceProgressRef\.observedAt: 2026-07-09T05:00:00\.000Z/);
   assert.doesNotMatch(prompt, /btok_1/);
   assert.match(prompt, /Return a ChiefOpsWorkerReceipt/);
   assert.doesNotMatch(prompt, /started.*true/);
@@ -144,6 +149,41 @@ test('chief gate rejects receipt identity mismatch', () => {
     status: 'done',
     summary: 'Done.',
     evidenceRefs: [],
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    { outcome: 'block', reason: 'binding_identity_mismatch' }
+  );
+});
+
+test('chief gate rejects contradictory receipt binding token even when public version matches', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_1a',
+    receiptType: 'done',
+    authorityTaskId: 'chiefops-demo',
+    workerId: 'worker-1',
+    threadId: 'thread-1',
+    sessionId: null,
+    bindingToken: 'wrong',
+    bindingVersion: bindingPacket.bindingVersion,
+    currentSlice: bindingPacket.currentSlice,
+    proofTarget: bindingPacket.proofTarget,
+    evidenceSink: bindingPacket.evidenceSink,
+    capabilityClass: bindingPacket.capabilityClass,
+    riskClass: bindingPacket.riskClass,
+    workType: bindingPacket.workType,
+    authorityMode: bindingPacket.authorityMode,
+    allowedOps: bindingPacket.allowedOps,
+    sourceProgressRef: bindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'done',
+    summary: 'Done.',
+    evidenceRefs: ['planning/active/chiefops-demo/progress.md#receipt'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
     nextSuggestedAction: 'gate',
     createdAt: '2026-07-09T05:05:00.000Z'
   };

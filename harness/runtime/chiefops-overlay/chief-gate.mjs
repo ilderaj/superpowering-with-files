@@ -25,15 +25,14 @@ function sameSourceProgressRef(left, right) {
 }
 
 function sameBindingIdentity(bindingPacket, receipt) {
-  if (receipt.bindingVersion) {
-    return receipt.bindingVersion === bindingPacket.bindingVersion;
+  const suppliedVersionMatches = !receipt.bindingVersion || receipt.bindingVersion === bindingPacket.bindingVersion;
+  const suppliedTokenMatches = !receipt.bindingToken || receipt.bindingToken === bindingPacket.bindingToken;
+
+  if (!suppliedVersionMatches || !suppliedTokenMatches) {
+    return false;
   }
 
-  if (receipt.bindingToken) {
-    return receipt.bindingToken === bindingPacket.bindingToken;
-  }
-
-  return false;
+  return Boolean(receipt.bindingVersion || receipt.bindingToken);
 }
 
 function isTerminalLifecycleStatus(status) {
