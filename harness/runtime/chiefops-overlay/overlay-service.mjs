@@ -1,5 +1,6 @@
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { parseChiefOpsBlocks } from './coordination-blocks.mjs';
 import { validateBindingPacket } from './schema.mjs';
 import { rebuildChiefOpsIndex } from './index-service.mjs';
 import { buildManualHandoffPrompt } from './manual-handoff.mjs';
@@ -12,6 +13,77 @@ export async function readJsonFile(file) {
 
 async function canonicalPath(target) {
   return realpath(target).catch(() => path.resolve(target));
+}
+
+function sameStringSet(left = [], right = []) {
+  if (left.length !== right.length) {
+    return false;
+  }
+
+  const normalizedLeft = new Set(left);
+  return right.every((value) => normalizedLeft.has(value));
+}
+
+function sameSourceProgressRef(left = {}, right = {}) {
+  return ['file', 'blockId', 'contentHash', 'observedAt'].every((field) => left[field] === right[field]);
+}
+
+function sameAuthoritativeBinding(left, right) {
+  return [
+    'bindingId',
+    'authorityTaskId',
+    'workerId',
+    'currentSlice',
+    'proofTarget',
+    'evidenceSink',
+    'capabilityClass',
+    'riskClass',
+    'workType',
+    'authorityMode',
+    'bindingVersion',
+    'bindingToken'
+  ].every((field) => left[field] === right[field])
+    && sameStringSet(left.allowedOps, right.allowedOps)
+    && sameSourceProgressRef(left.sourceProgressRef, right.sourceProgressRef);
+}
+
+async function readAuthoritativeBinding({ root, bindingPacket }) {
+  const progressPath = path.join(root, 'planning/active', bindingPacket.authorityTaskId, 'progress.md');
+  const markdown = await readFile(progressPath, 'utf8');
+  const bindingBlocks = parseChiefOpsBlocks(markdown)
+    .filter((block) => block.type === 'ChiefOpsWorkerBinding')
+    .map((block) => validateBindingPacket(block.value));
+
+  const authoritative = bindingBlocks.find((binding) => binding.bindingId === bindingPacket.bindingId);
+  if (!authoritative) {
+    throw new Error('binding packet is not present in authoritative progress truth');
+  }
+
+  if (!sameAuthoritativeBinding(authoritative, bindingPacket)) {
+    throw new Error('binding packet does not match authoritative progress truth');
+  }
+
+  return authoritative;
+}
+
+function validateAvailableModels(value) {
+  if (!Array.isArray(value)) {
+    throw new Error('available models must be a JSON array');
+  }
+
+  for (const [index, entry] of value.entries()) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(`available model entry ${index} must be an object`);
+    }
+    if (typeof entry.model !== 'string' || entry.model.trim() === '') {
+      throw new Error(`available model entry ${index} missing model`);
+    }
+    if (typeof entry.capabilityClass !== 'string' || entry.capabilityClass.trim() === '') {
+      throw new Error(`available model entry ${index} missing capabilityClass`);
+    }
+  }
+
+  return value;
 }
 
 export async function buildOverlayIndex({ root, taskId }) {
@@ -59,13 +131,14 @@ export async function buildHandoffFromFile({ root, file }) {
     bindingPacket
   });
 
-  return buildManualHandoffPrompt({ bindingPacket });
+  const authoritativeBinding = await readAuthoritativeBinding({ root, bindingPacket });
+  return buildManualHandoffPrompt({ bindingPacket: authoritativeBinding });
 }
 
 export async function resolveModelFromFile({ capabilityClass, availableFile }) {
   return resolveModel({
     capabilityClass,
-    availableModels: await readJsonFile(availableFile),
+    availableModels: validateAvailableModels(await readJsonFile(availableFile)),
     mapping: {}
   });
 }
