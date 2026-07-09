@@ -2,6 +2,8 @@
 
 `ChiefOps` is a narrow governance capability for tracked tasks in SWF.
 
+For the V0b thread-control overlay contract, see `docs/chiefops-v0b.md`.
+
 It adds:
 
 - a local skill: `harness/core/skills/chiefops/`

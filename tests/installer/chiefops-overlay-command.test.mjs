@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
@@ -256,6 +256,14 @@ test('harness chiefops overlay resolve-model rejects malformed model inventory',
   } finally {
     await removeHarnessFixture(root);
   }
+});
+
+test('chiefops v0b docs keep critical overlay safety semantics visible', async () => {
+  const doc = await readFile(path.resolve('docs/chiefops-v0b.md'), 'utf8');
+
+  assert.match(doc, /planning\/active\/<task-id>\/ remains the source of truth/i);
+  assert.match(doc, /Manual handoff output is pending only/i);
+  assert.match(doc, /no worker heartbeat runtime/i);
 });
 
 test('harness chiefops overlay index fails closed for missing authority trio', async () => {
