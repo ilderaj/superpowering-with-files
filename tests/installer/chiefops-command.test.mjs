@@ -80,6 +80,7 @@ test('harness chiefops --help prints usage', async () => {
     const { stdout, stderr } = await harnessCommand(root, 'chiefops', '--help');
     assert.equal(stderr, '');
     assert.match(stdout, /Usage: \.\/scripts\/harness chiefops board --task <task-id> \[--json\]/);
+    assert.match(stdout, /chiefops overlay index --task <task-id> \[--json\]/);
   } finally {
     await removeHarnessFixture(root);
   }
