@@ -121,6 +121,7 @@ Two helpers matter when the work stops being linear:
 
 - `goal2plan` expands sparse `/goal` intake into a reviewed implementation plan before execution starts.
 - `ChiefOps` adds a thin read-only governance lens for tracked work: restore the planning trio, read the board, classify the issue, and choose one bounded next slice.
+- For the V0b thread-control overlay contract, see `docs/chiefops-v0b.md`.
 - `autonomous-release-closure` drives review, promotion, cleanup, and adopt follow-through from current evidence instead of a one-shot release script.
 
 ### Optional simplicity helpers
