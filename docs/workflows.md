@@ -57,6 +57,21 @@ If a Chief-first manual assignment needs a durable pre-outcome trace, record it 
 
 Long-running continuation threads are a hygiene risk. When a tracked or deep-reasoning task crosses a major phase boundary or context churn gets heavy, prefer a fresh thread plus planning restore over extending the same continuation indefinitely.
 
+#### Coding Intake Contract
+
+For tracked coding work, use a lightweight intake contract before writing or
+reviewing the implementation plan:
+
+- domain terms and any glossary/ADR impact
+- highest practical test seam
+- one tracer-bullet vertical slice that can be independently verified
+- blocking edges between slices
+- Standards/Spec review split
+
+Keep this contract inside `planning/active/<task-id>/` and the companion plan.
+Do not introduce issue-tracker-first state, `tickets.md`, or a slash-command
+chain as a second authority root.
+
 ### `cloud-dev`
 
 Use `cloud-dev` when agent work should stage remotely from `origin/dev` without changing a local checkout.

@@ -11,6 +11,11 @@ import { applySuperpowersUsingGitWorktreesPatch } from './superpowers-using-git-
 import { applySuperpowersVerificationBeforeCompletionPatch } from './superpowers-verification-before-completion-patch.mjs';
 import { applySuperpowersWritingPlansPatch } from './superpowers-writing-plans-patch.mjs';
 import {
+  applySuperpowersDebugLoopPatch,
+  applySuperpowersReviewAxesPatch,
+  applySuperpowersTddSeamPatch
+} from './superpowers-coding-contracts-patch.mjs';
+import {
   ensureDirectoryProjection,
   linkDirectoryProjection,
   materializeDirectoryProjection,
@@ -100,6 +105,21 @@ async function applySkillPatches(projection) {
 
     if (patch.type === 'superpowers-using-git-worktrees') {
       await applySuperpowersUsingGitWorktreesPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'superpowers-tdd-seam') {
+      await applySuperpowersTddSeamPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'superpowers-debug-red-capable-loop') {
+      await applySuperpowersDebugLoopPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'superpowers-code-review-axes') {
+      await applySuperpowersReviewAxesPatch(projection.targetPath);
       continue;
     }
 

@@ -14,6 +14,11 @@ import { applySuperpowersSubagentDrivenDevelopmentBudgetPatch } from '../../harn
 import { applySuperpowersUsingGitWorktreesPatch } from '../../harness/installer/lib/superpowers-using-git-worktrees-patch.mjs';
 import { applySuperpowersVerificationBeforeCompletionPatch } from '../../harness/installer/lib/superpowers-verification-before-completion-patch.mjs';
 import {
+  applySuperpowersDebugLoopPatch,
+  applySuperpowersReviewAxesPatch,
+  applySuperpowersTddSeamPatch
+} from '../../harness/installer/lib/superpowers-coding-contracts-patch.mjs';
+import {
   classifySkillProjectionDuplicates,
   planSkillProjections,
   projectionForSkill
@@ -759,6 +764,100 @@ test('applySuperpowersFinishingADevelopmentBranchPatch is idempotent', async () 
     assert.equal(twice, once);
     assert.equal((twice.match(/## Autonomous Closure Handoff/g) ?? []).length, 1);
     assert.equal((twice.match(/### Step 4: Present Options/g) ?? []).length, 1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('planSkillProjections applies SWF coding contract patches for every supported target', async () => {
+  for (const target of ['codex', 'copilot', 'cursor', 'claude-code']) {
+    const plan = await planSkillProjections({
+      rootDir: process.cwd(),
+      homeDir: '/home/user',
+      scope: 'workspace',
+      target,
+      profileName: 'full'
+    });
+
+    const tdd = plan.find((entry) => entry.skillName === 'test-driven-development');
+    assert.ok(tdd, target);
+    assert.deepEqual(tdd.patches.map((patch) => patch.type), ['superpowers-tdd-seam']);
+    assert.match(tdd.targetPath, /test-driven-development$/, target);
+
+    const debugging = plan.find((entry) => entry.skillName === 'systematic-debugging');
+    assert.ok(debugging, target);
+    assert.deepEqual(debugging.patches.map((patch) => patch.type), ['superpowers-debug-red-capable-loop']);
+    assert.match(debugging.targetPath, /systematic-debugging$/, target);
+
+    const review = plan.find((entry) => entry.skillName === 'requesting-code-review');
+    assert.ok(review, target);
+    assert.deepEqual(review.patches.map((patch) => patch.type), ['superpowers-code-review-axes']);
+    assert.match(review.targetPath, /requesting-code-review$/, target);
+  }
+});
+
+test('applySuperpowersTddSeamPatch materializes seam-first TDD guidance', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-tdd-seam-patch-'));
+  try {
+    const target = path.join(dir, 'test-driven-development');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/test-driven-development'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersTddSeamPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+    assert.match(skill, /Harness Superpowers TDD seam contract patch/);
+    assert.match(skill, /highest practical test seam/);
+    assert.match(skill, /smallest vertical slice that can fail for the real requirement/);
+    assert.ok(skill.indexOf('Harness Superpowers TDD seam contract patch') < skill.indexOf('## The Iron Law'));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersDebugLoopPatch materializes red-capable loop guidance', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-debug-loop-patch-'));
+  try {
+    const target = path.join(dir, 'systematic-debugging');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/systematic-debugging'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersDebugLoopPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+    assert.match(skill, /Harness Superpowers debugging red-capable loop patch/);
+    assert.match(skill, /tight, deterministic, agent-runnable loop that can go red/);
+    assert.match(skill, /record the loop command and current red signal/);
+    assert.ok(skill.indexOf('Harness Superpowers debugging red-capable loop patch') < skill.indexOf('## The Four Phases'));
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('applySuperpowersReviewAxesPatch materializes Standards and Spec review axes', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-review-axes-patch-'));
+  try {
+    const target = path.join(dir, 'requesting-code-review');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/requesting-code-review'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersReviewAxesPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+    assert.match(skill, /Harness Superpowers code-review axes patch/);
+    assert.match(skill, /Standards: code quality/);
+    assert.match(skill, /Spec: whether the diff implements the stated requirement/);
+    assert.match(skill, /Do not let strong Standards results hide a Spec miss/);
+    assert.ok(skill.indexOf('Harness Superpowers code-review axes patch') < skill.indexOf('## When to Request Review'));
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
