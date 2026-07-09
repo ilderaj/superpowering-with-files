@@ -2,9 +2,11 @@
 
 ## Status
 
-Revised draft for user review.
+Revised draft for multi-agent design review.
 
 This is a constrained design spec, not an implementation plan. It records the V0b product and protocol boundaries that must be preserved before planning implementation work.
+
+This spec is a contract source, not an implementation-status report. Any shipped runtime, CLI, docs, or tests must still be verified against this contract before claiming feature completeness.
 
 ## Goal
 
@@ -21,6 +23,7 @@ The design must support coding and office work, reduce wrong-trio and wrong-sour
 - Do not rely on fixed model names in durable workflow rules.
 - Do not pretend thread control succeeded when the platform cannot perform it.
 - Do not create an always-on scheduler, autonomous worker queue, or separate worker backlog.
+- Do not let subagents become hidden durable workers or bypass the Binding Packet / Receipt contract.
 
 ## Selected V0b Shape
 
@@ -66,6 +69,26 @@ The authoritative state remains file-truth:
 
 Thread/session state is control plane only. It can help chief communicate with workers, but it cannot redefine scope, lifecycle, proof status, source authority, or acceptance.
 
+## Worker And Subagent Relationship
+
+Workers and subagents are not mutually exclusive, but they operate at different layers.
+
+- A worker is a session or thread-level owner for one bounded slice, with a Binding Packet, expected Receipt, and chief gate.
+- A subagent is a disposable tactic used by the chief or worker for narrow investigation, review, or parallel checking inside an already-bound owner context.
+- A subagent must inherit the same `authorityTaskId`, proof target, non-goals, source boundaries, and evidence sink as its owning chief or worker.
+- A subagent must not create a new planning trio, write worker mapping, update lifecycle state, or act as an independent durable execution owner.
+- A worker may use subagents only when the Assignment Packet allows the tactic or when the subagent work is read-only and does not widen the slice.
+- Chief may spawn subagents directly for read-only design review, plan review, compatibility review, or focused evidence gathering without creating a worker session.
+
+Priority rule:
+
+- use chief direct execution for quick work;
+- use chief-owned subagents for bounded read-only review or decision support;
+- use workers for bounded execution or proof work that benefits from session ownership;
+- use worker-owned subagents only for narrow tactical decomposition inside that worker-owned slice.
+
+If a subagent discovers work outside the current authority, it must report a candidate finding to its owner. The owner then decides whether to keep it local, route it to the current trio, create or reuse a child trio, or escalate to planning.
+
 ## Mapping Storage
 
 V0b uses per-trio authoritative mapping plus a generated global index.
@@ -82,7 +105,7 @@ Minimum index fields:
 - `authorityTaskId`
 - `planningRoot`
 - `workerId`
-- `threadId` or `sessionId`
+- `controlRef`: redacted `threadId` / `sessionId` ref or short hash
 - `status`
 - `lastCheckInAt`
 - `currentSlice`
@@ -95,6 +118,25 @@ The index may only be generated from parseable per-trio coordination blocks. It 
 
 Coordination blocks are the durable serialization of the canonical Binding Packet and Receipt schemas. They must not use a smaller or divergent schema.
 
+Coordination block envelope:
+
+````text
+<!-- chiefops:v0b:<binding|receipt> blockId=<id> contentHash=<sha256:...> -->
+```yaml
+...
+```
+<!-- /chiefops:v0b:<binding|receipt> -->
+````
+
+Block rules:
+
+- `blockId` format: `<authorityTaskId>.<binding|receipt>.<stable-id>`.
+- `stable-id` comes from `bindingId` or `receiptId`.
+- `contentHash` is computed from canonical YAML inside the fenced block only.
+- Canonicalization sorts object keys, preserves array order, normalizes line endings to `\n`, trims trailing whitespace, and excludes the envelope.
+- `sourceProgressRef` points to the authoritative progress coordination block last observed by the worker, not to an index row or a line number alone.
+- Generated indexes must rebuild only from blocks whose envelope hash matches the canonical block content.
+
 Minimum coordination block types:
 
 ```yaml
@@ -106,12 +148,15 @@ authorityTaskId: ...
 planningRoot: ...
 chiefThreadId: ...
 workerId: ...
-threadId: ...
-bindingToken: ...
+controlRef: ...
+bindingVersion: ...
 currentSlice: ...
 proofTarget: ...
 evidenceSink: ...
 capabilityClass: ...
+reasoningEffort: ...
+budgetReason: ...
+upgradeTrigger: ...
 riskClass: ...
 workType: ...
 authorityMode: ...
@@ -130,12 +175,15 @@ receiptId: ...
 receiptType: ...
 authorityTaskId: ...
 workerId: ...
-threadId: ...
-bindingToken: ...
+controlRef: ...
+bindingVersion: ...
 currentSlice: ...
 proofTarget: ...
 evidenceSink: ...
 capabilityClass: ...
+reasoningEffort: ...
+budgetReason: ...
+upgradeTrigger: ...
 riskClass: ...
 status: ...
 summary: ...
@@ -147,7 +195,31 @@ observedAt: ...
 createdAt: ...
 ```
 
-Duplicate `workerId`, `bindingId`, `receiptId`, or `bindingToken` conflicts must trigger reconcile. Abandoned or replaced workers need a superseding receipt instead of deleting history.
+Duplicate `workerId`, `bindingId`, `receiptId`, or `bindingVersion` conflicts must trigger reconcile. Abandoned or replaced workers need a superseding receipt instead of deleting history.
+
+`bindingToken` is runtime-sensitive identity material. Durable records, generated indexes, and manual handoff prompts should use `bindingVersion` plus redacted `controlRef`; if a platform requires a token, store only a redacted token ref or hash and never commit the raw token.
+
+## Cross-Trio Discovery
+
+Chief may discover related work while operating one authority trio. Discovery must not silently move the current worker, subagent, or chief into another task.
+
+Decision table:
+
+| Discovery shape | Chief action | Durable record |
+|---|---|---|
+| Local note, typo, or small follow-up | Keep in current trio | `progress.md` note or follow-up item |
+| Same goal and bounded execution work | Add execution unit or worker under current trio | current trio coordination block |
+| Separate objective, lifecycle, owner, source set, publish target, or acceptance gate | Create or reuse child trio after approval | parent progress note + child trio |
+| Architecture, proof, or scope impact is unclear | Route to planning / `goal2plan` | companion plan or planning record |
+| Lifecycle cleanup or archive question | Chief-owned lifecycle/reconcile review | finding plus lifecycle/reconcile note |
+| Worker or subagent finds unrelated work | Return `new_trio_candidate` | chief route decision before action |
+
+Parent/child records must include enough information to prevent wrong-trio execution:
+
+- parent records `childTaskId`, `coordinationReason`, `returnEvidenceExpected`, and whether the parent is blocked or continuing;
+- child records `parentTaskId`, `originatingFindingRef`, `handoffContract`, and expected return evidence;
+- workers remain bound to exactly one `authorityTaskId` at a time;
+- hooks may suggest context but must fail closed when `authorityTaskId` is absent, ambiguous, or inconsistent with the Binding Packet.
 
 ## Spawn Authority
 
@@ -236,18 +308,21 @@ Required fields:
 - `planningRoot`
 - `chiefThreadId`
 - `workerId`
-- `threadId` or `sessionId`, nullable only before spawn returns a handle
+- `controlRef`, nullable only before spawn returns a platform handle
 - `currentSlice`
 - `proofTarget`
 - `evidenceSink`
 - `capabilityClass`
+- `reasoningEffort`
+- `budgetReason`
+- `upgradeTrigger`
 - `riskClass`
 - `workType`
 - `authorityMode`
 - `allowedOps`
 - `requiresHumanApproval`
 - `createdAt`
-- `bindingToken` or `bindingVersion`
+- `bindingVersion`
 - `sourceProgressRef`
 - `observedAt`
 
@@ -259,11 +334,12 @@ Optional fields:
 - `publishTarget`
 - `approvalGate`
 - `nonGoals`
-- `upgradeTrigger`
 - `expectedCheckInBy`
 - `rollbackPlanRef`
 
 Worker must verify the binding before work. If verification fails, worker returns `binding_mismatch` and stops.
+
+`upgradeTrigger` is required but may be `none`. This keeps model-choice rationale durable without forcing escalation.
 
 Conditional office-work requirements:
 
@@ -282,12 +358,15 @@ Required fields:
 - `receiptType`
 - `authorityTaskId`
 - `workerId`
-- `threadId` or `sessionId`
-- `bindingToken` or `bindingVersion`
+- `controlRef`
+- `bindingVersion`
 - `currentSlice`
 - `proofTarget`
 - `evidenceSink`
 - `capabilityClass`
+- `reasoningEffort`
+- `budgetReason`
+- `upgradeTrigger`
 - `riskClass`
 - `sourceProgressRef`
 - `observedAt`
@@ -315,16 +394,59 @@ Standard receipt types:
 
 Markdown coordination notes may wrap these fields, but the key/value shape must remain parseable enough for index generation.
 
+Receipt status semantics:
+
+| Receipt type | Legal source | Status class | Chief gate implication |
+|---|---|---|---|
+| `manual_handoff_required` | chief capability check | pending | no worker started |
+| `handoff_pending` | chief generated prompt | pending | wait for pasted receipt |
+| `binding_verified` | real worker handshake | non-terminal | worker may begin bounded slice |
+| `started` | real worker after verified binding | non-terminal | no acceptance |
+| `check_in` | real worker observation or pasted receipt | non-terminal | gate may request changes or continue |
+| `blocked` | worker or chief fallback | terminal-for-slice until chief reroutes | cannot accept outcome |
+| `done` | real worker with evidence refs | terminal-for-slice | eligible for Chief Gate, not acceptance by itself |
+| `binding_mismatch` | worker or pasted receipt validation | terminal-for-slice | block and chief review |
+| `new_trio_candidate` | worker or subagent via owner | non-terminal discovery | chief route decision required |
+| `abandoned` | chief or worker after gate decision | terminal-for-slice | no acceptance |
+| `respawn_recommended` | chief or worker | non-terminal routing | chief decides respawn or abandon |
+| `capability_unavailable` | capability check | terminal for requested control action | manual or block |
+| `resolver_failed` | model resolver | terminal for requested worker action | choose approved alternate or block |
+
+`done` never means accepted. Acceptance requires Chief Gate pass and reconciliation into the authoritative trio.
+
 ## Office Work Authority
 
 Office work requires source authority, not just task authority.
 
 Office-work authority fields:
 
-- `sourceSet`: materials the worker may inspect or cite
+- `sourceSet`: structured materials the worker may inspect or cite
 - `systemOfRecord`: authoritative source when materials disagree
 - `publishTarget`: declared final destination, nullable in draft-only work
 - `allowedOps`: `inspect`, `draft`, `propose`, `write`, `publish`, or `send`
+
+Minimum source shape:
+
+```yaml
+sourceSet:
+  - ref: src-1
+    kind: local_file | drive_doc | sheet | email | ticket | url | pasted_context
+    locator: redacted-or-repo-relative-ref
+    accessScope: inspect | cite | write
+    freshness: observed-at-or-unknown
+systemOfRecord:
+  ref: src-1
+  reason: authoritative copy for this task
+sourceRefs:
+  - ref: src-1
+    claim: short claim or checked area
+publishRef:
+  ref: publish-1
+  target: redacted destination or repo-relative path
+  status: draft | written | published | sent | blocked
+```
+
+`systemOfRecord.ref` must point to a `sourceSet.ref` unless the packet explicitly names an external authority with a reason. If it cannot be resolved, the worker must return a source-authority blocker.
 
 Schema enums:
 
@@ -361,6 +483,22 @@ Resolver outputs:
 - `requestedCapabilityClass`
 - `resolvedModelAtRun`
 - fallback or downgrade explanation when needed
+
+Capability class vocabulary:
+
+- `frontier_reasoning`: planning, architecture, ambiguous scope, high-risk review
+- `balanced_execution`: everyday implementation, synthesis, medium-risk review
+- `economy_mechanical`: approved-plan mechanical work, formatting, clerical steps
+- `fast_check`: narrow validation, extraction, checklist review
+
+CLI contract:
+
+- input: JSON Binding Packet model fields plus an optional model inventory path
+- inventory source: configured host inventory, explicit JSON file, or environment-provided capability list
+- success exit code `0`: emits `requestedCapabilityClass`, `resolvedModelAtRun`, `reasoningEffort`, `budgetReason`, `downgradeApplied`, `upgradeApplied`, and `explanation`
+- failure exit code `2`: requested class unavailable or inventory invalid; emits `resolver_failed` reason and no model
+- policy exit code `3`: downgrade or upgrade would cross the declared budget or approval gate
+- no silent downgrade for `frontier_reasoning` or high-risk review work
 
 Resolver non-goals:
 
@@ -411,6 +549,32 @@ Gate outcomes:
 - `new_trio_candidate`: record discovery and route through chief decision
 
 Only a gated outcome may update acceptance, lifecycle, publish, release, or close state.
+
+Minimum accept conditions:
+
+- receipt identity matches the Binding Packet, including `authorityTaskId`, `workerId`, `bindingVersion`, `proofTarget`, and `evidenceSink`;
+- receipt type is `done`, not merely `started`, `check_in`, `handoff_pending`, or `binding_verified`;
+- `evidenceRefs` are present and point to the declared evidence sink or approved source refs;
+- `nonGoals`, `allowedOps`, `riskClass`, and lifecycle state are not contradicted;
+- office/source-authority work includes `sourceRefs`, and `systemOfRecord` is resolved;
+- write/publish/send work includes `publishRef` or an explicit blocker reason, plus approval and rollback/undo evidence when required;
+- release/merge/archive/destructive outcomes have the relevant approval gate and lifecycle/release evidence.
+
+If any minimum accept condition is missing, the Chief Gate must choose `request_changes`, `block`, `respawn`, `abandon`, or `new_trio_candidate`; it must not write acceptance state.
+
+## Mode-Aware Proof Contract
+
+Every implementation plan derived from this spec must include an explicit proof contract when the work is tracked or deep-reasoning. The proof contract must use the repo-owned seven-field shape:
+
+- `Proof Target`: the exact contract, behavior, or risk boundary being validated.
+- `Primary Proof`: the evidence most likely to catch the highest-risk failure for that mode.
+- `Backstop Proof`: secondary evidence for adjacent risk.
+- `Escalation Trigger`: the condition that stops execution, narrows scope, or requires review.
+- `Evidence Sink`: where the proof result is recorded.
+- `Reconcile Rule`: how proof outcomes update the authoritative trio or follow-up ownership.
+- `Unacceptable Substitute`: evidence that looks green but does not close the relevant risk.
+
+For this spec, the primary proof is review proof. Unit or fixture tests are backstops until they specifically exercise authority binding, source authority, receipt identity, platform fallback, and lifecycle boundaries.
 
 ## Redaction And Privacy
 
@@ -514,4 +678,4 @@ Unacceptable substitutes:
 
 ## Design Review Gate
 
-This spec is ready for user review. After approval, the next step is to write an implementation plan that decomposes V0b into narrow build units.
+This spec is ready for implementation planning after review approval and closure of required review findings.
