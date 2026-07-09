@@ -75,6 +75,20 @@ Chief-direct remains allowed only with an explicit reason. The explanation must 
 
 Historical session routing does not create a worker registry or session manager. Record durable assignment intent only in the existing planning/progress surfaces when needed, and keep receipts for outcome evidence only.
 
+## Visible Codex Session Worker Requests
+When the user explicitly asks for a visible Codex session worker, visible Codex session worker is the requested execution route. A subagent, hidden/internal worker slice, or Chief-direct implementation is a downgrade from that request, not an equivalent fulfillment.
+
+Before using a subagent, hidden/internal worker, or Chief-direct fallback, the chief must explicitly state:
+
+- the requested visible Codex session worker route;
+- the Codex thread/session tool path attempted or the gate that makes it unavailable;
+- the downgrade reason;
+- the bounded slice;
+- the proof target and evidence sink;
+- the return-to-Chief gate.
+
+If those fields are missing, do not claim the worker request is satisfied. Use Codex thread/session tools, produce a pending handoff, or stop for the missing gate instead of silently substituting subagent/internal worker wording.
+
 ## Assignment Packet
 When the next slice should be handed to a worker or framed for manual execution, derive an Assignment Packet from existing planning and receipt truth. The packet is a prompt contract, not a durable object or worker database.
 
