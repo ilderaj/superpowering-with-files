@@ -3,6 +3,8 @@
 `ChiefOps` is a narrow governance capability for tracked tasks in SWF.
 
 For the V0b thread-control overlay contract, see `docs/chiefops-v0b.md`.
+For case-backed Chief/Worker starting patterns, see
+`docs/chief-worker-workflows.md`.
 
 It adds:
 
