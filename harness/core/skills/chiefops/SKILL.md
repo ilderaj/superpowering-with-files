@@ -40,7 +40,8 @@ The chief prompt should stay compact and grounded in existing truth. It should:
 
 - restore `planning/active/<task-id>/task_plan.md`, `findings.md`, and `progress.md` first;
 - use the existing ChiefOps board/readout rather than chat history as state;
-- avoid direct implementation unless the enclosing task explicitly assigns that slice;
+- route tracked production to a visible session worker by default;
+- limit Chief-direct work to quick tasks and narrow gate or reconcile verification;
 - choose exactly one bounded next action;
 - avoid scope expansion;
 - route intake or plan deficiencies to `plan` / `goal2plan`;
@@ -92,28 +93,37 @@ If those fields are missing, do not claim the worker request is satisfied. Use C
 ## Assignment Packet
 When the next slice should be handed to a worker or framed for manual execution, derive an Assignment Packet from existing planning and receipt truth. The packet is a prompt contract, not a durable object or worker database.
 
-Tracked worker Assignment Packets require the authority fields below. The remaining slice fields are recommended unless the enclosing execution contract makes them mandatory:
+Use runtime field names when an existing V0b field already represents the requirement. `authorityRoot` may appear as a human-facing manual-handoff label, but the packet field is `planningRoot`; likewise, the bounded objective uses `currentSlice` rather than a second `objective` field.
 
-- `taskId`
+Tracked worker Assignment Packets require:
+
 - `authorityTaskId`
-- `authorityRoot`: absolute path to the single authority checkout
+- `planningRoot`: absolute path to the single authority checkout
 - `taskPlanPath`, `findingsPath`, and `progressPath`: exact absolute paths under that authority root
 - `bindingObservation`: current hashes for the exact trio files, or another observation the worker can actually verify
-- `unitId` or current execution-unit reference when one exists
-- `lane`
-- `workerRole`
-- `objective`
+- `majorPhase`: `discovery`, `design`, `execute`, `verify`, or `reconcile`
+- `currentSlice`: one bounded objective
 - `nonGoals`
-- `filesToRead`
-- `allowedChanges`
-- `forbiddenChanges`
 - `proofTarget`
 - `primaryProof`
 - `evidenceSink`
+- `capabilityClass`
+- `reasoningDemand`: `light`, `standard`, or `deep`
+- `costPreference`: `economy`, `balanced`, or `quality_first`
+- `latencyClass`: `interactive`, `standard`, or `long_running`
+- `riskClass`
+- `permissionClass`: `observe`, `workspace`, `egress_gated`, or `release`
+- `allowedOps`
+- `delegationPolicy`: `prohibited`, `worker_discretion`, or `encouraged`
+- `upgradeTrigger`
+- `expectedCheckInBy`: an ISO milestone deadline, not a poll interval
 - `stopCondition`
 - `expectedReceipt`
 - `returnToChiefInstruction`
-- `syncBackRequirement`
+
+Exact trio paths are derived from `planningRoot` plus `authorityTaskId`; they are rendered for worker preflight but are not duplicate schema fields. `bindingObservation` is transient handoff evidence. `allowedOps` plus `nonGoals` express allowed and forbidden surfaces. `latencyClass` selects the deadline class, while `expectedCheckInBy` is the concrete deadline. Existing `workerId`, `threadId`, and `sessionId` fields carry visible-worker identity.
+
+Tracked phases use `worker_discretion` as the tracked-phase default. `encouraged` is a preference, not a mandatory spawn. The Chief must not forward Chief chat history; derive the packet from the current trio and necessary source references.
 
 Default storage rule:
 
@@ -136,6 +146,27 @@ When delegating or framing a tracked worker slice, the worker prompt must includ
 - the instruction to use `task_plan.md` / `progress.md` for assignment intent and execution receipts only for outcome evidence;
 - the instruction not to create `release_board.md`, `worker_checkins.md`, `pr_truth.md`, a new receipt dialect, or any second planning directory.
 - the instruction to keep planning single-homed: do not copy, symlink, or unignore the trio inside a worker worktree, and do not use an unbounded home-directory scan as absence proof.
+
+## Major-Phase Gate And Audit
+
+- One primary visible worker session normally stays with one tracked task across phases.
+- Every declared major phase must return to Chief before the next phase begins; the worker remains autonomous inside the approved phase.
+- Chief uses file-first, session-as-an-audit-source review: start with the trio, receipt, and referenced evidence, then inspect targeted artifacts or session turns only when risk or contradiction requires it.
+- Receipts are outcome evidence. Chief alone accepts or rejects the claim and reconciles durable task state.
+- Direct human input is classified as `stop_or_safety`, `in_slice_clarification`, or `authority_changing_instruction`; authority changes stop at a safe point until Chief reconciles and reissues the packet.
+
+## Delegation And Permission
+
+- `prohibited` forbids worker-local delegation for the slice.
+- `worker_discretion` asks the worker to evaluate bounded independent tactics and is the tracked default.
+- `encouraged` asks the worker to prefer useful independent tactics but never requires a spawn.
+- Subagents are session-internal tactics. Their authority and permission are strict subsets of the parent ceiling, and they return only to the primary worker.
+- Promote a slice to a visible parallel worker when it becomes cross-phase, long-running, directly human-steered, independently outcome-bearing, or the owner of distinct mutable state.
+- Binding authorization does not prove runtime enforcement. Missing permission enforcement must fail closed rather than treating a worktree as a sandbox.
+
+## Check-In And Watchdog
+
+Worker returns are event-driven: started, blocked, authority change, safety or respawn issue, and major-phase-ready. Default milestone classes are startup at 2 minutes, quick checks at 5 minutes, standard slices at 10 minutes, and long slices at 20 to 30 minutes. The first miss receives one probe and a minute-scale grace period; do not busy poll.
 
 ## Guardrails
 - Keep `planning/active/<task-id>/` authoritative.
