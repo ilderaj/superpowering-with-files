@@ -17,6 +17,18 @@
           "type": "superpowers-finishing-a-development-branch",
           "marker": "Harness Superpowers finishing-a-development-branch base patch"
         },
+        "test-driven-development": {
+          "type": "superpowers-tdd-seam",
+          "marker": "Harness Superpowers TDD seam contract patch"
+        },
+        "systematic-debugging": {
+          "type": "superpowers-debug-red-capable-loop",
+          "marker": "Harness Superpowers debugging red-capable loop patch"
+        },
+        "requesting-code-review": {
+          "type": "superpowers-code-review-axes",
+          "marker": "Harness Superpowers code-review axes patch"
+        },
         "executing-plans": {
           "type": "superpowers-executing-plans-replan",
           "marker": "Harness Superpowers executing-plans replan patch"

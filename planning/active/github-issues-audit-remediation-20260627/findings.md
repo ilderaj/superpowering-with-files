@@ -38,3 +38,57 @@
 
 1. `.agents` 投影缺失是单个文件漏同步，还是 hidden `.codex/hooks/**` 这一类文件在 projection/sync 里整体有缺口？
 2. goal-writer evaluator 需要支持到什么程度的 plain-text command 才不会把普通叙述也放行？
+
+## Findings Record: 2026-07-10 01:18:49 UTC+8
+
+### Current P2 Recheck And #105 Result
+
+- Live GitHub truth has moved since this task was created:
+  - original scoped P2 issues `#97`, `#100`, and `#101` are no longer open;
+  - current open P2 work is a new set and should not be treated as already cleared.
+- `#105` is directly connected to this task's `#97` goal-writer validation boundary:
+  - the issue is real;
+  - a validation sentence containing `make sure` / `go over` previously passed because command words were detected anywhere in the prose;
+  - this weakens the intended "prose without a concrete command or evidence surface must fail" gate.
+- The isolated worktree fix keeps the conservative boundary:
+  - command detection now requires a command-like line/list item or explicit command prefix;
+  - `go` requires a known Go subcommand;
+  - `make sure` / `make certain` prose is not accepted as a make command;
+  - plain-text `node --test ...` and bare filename evidence still pass.
+- Worktree commit `b6fe825 fix: tighten goal validation command detection` is ready for Chief integration review, but not merged to `dev`.
+- Other current P2 issues should be handled by their mapped owners or a fresh issue-audit slice rather than silently closing this old lane.
+
+## Findings Record: 2026-07-10 09:56:38 UTC+8
+
+### #107 Complete Trio Evidence Gate
+
+- The issue was confirmed: the evaluator previously summed valid refs across all three arrays, so one valid `progress.md` ref could support both planning safety claims.
+- Accepted fix requires at least one valid ref in each category:
+  - `progressRefs` -> rollout `progress.md`;
+  - `taskPlanRefs` -> rollout `task_plan.md`;
+  - `findingsRefs` -> rollout `findings.md`.
+- Existing complete-trio real observation remains accepted.
+- Worker and Chief proof passed; independent review found no actionable issue.
+- This slice is not integrated and does not close the broader issue-audit task because current live P2 work still includes other owners/surfaces.
+
+## Findings Record: 2026-07-10 10:06:52 UTC+8
+
+### #103 Copilot Leaf Workspace Policy
+
+- The issue was confirmed: `always-on-core` already included the canonical Leaf Workspace Root Policy, but Copilot maps it to `copilot-always-on-thin`, which omitted the section.
+- Minimal accepted fix adds only `Leaf Workspace Root Policy` to the Copilot thin profile.
+- Regression proof compares the rendered Copilot section to canonical `base.md` content with only repeated blank-line normalization and checks the authority-root override vocabulary.
+- Existing thin exclusions remain covered by the surrounding suite.
+- Implementation is accepted but not integrated; #103 remains open until an explicit integration/issue-closure gate.
+
+## Findings Record: 2026-07-10 10:14:21 UTC+8
+
+### Current P2 Set Is Implementation-Complete But Not Integrated
+
+- The live P2 queue contains no issue without a reviewed local implementation commit.
+- This does not prove tracker closure or release readiness:
+  - seven issue commits are isolated from local `dev`;
+  - the ChiefOps overlay commit is only on local `dev`, which is ahead of `origin/dev`;
+  - all eight GitHub issues remain open.
+- Conservative disposition is therefore `waiting_integration`, not `closed` or `archived`.
+- P3 `#80` and pilot-doc issue `#55` remain outside this task's high-priority completion boundary and must not be silently absorbed into the P2 closeout claim.

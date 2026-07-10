@@ -18,6 +18,7 @@ import { chiefopsCommand } from './chiefops.mjs';
 import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { activeSummary } from './active-summary.mjs';
+import { lifecycleSweep } from './lifecycle-sweep.mjs';
 import { mcpApprove } from './mcp-approve.mjs';
 import { plugin } from './plugin.mjs';
 import { workspaceLink } from './workspace-link.mjs';
@@ -38,6 +39,7 @@ const commands = {
   summary,
   chiefops: chiefopsCommand,
   'active-summary': activeSummary,
+  'lifecycle-sweep': lifecycleSweep,
   record,
   'mcp-approve': mcpApprove,
   plugin,
@@ -67,6 +69,7 @@ function usage() {
     '  summary  Print structured session summary for the active task',
     '  chiefops  Read the derived ChiefOps board for an active tracked task',
     '  active-summary  Print lifecycle summary for all tasks under planning/active',
+    '  lifecycle-sweep  Recommend conservative lifecycle status changes from anchor receipts',
     '  record   Append a timestamped record block to task_plan, findings, progress, or reconciliation',
     '  mcp-approve  Sign a write plan out-of-band for MCP apply operations',
     '  plugin  Inspect and plan plugin adoption',

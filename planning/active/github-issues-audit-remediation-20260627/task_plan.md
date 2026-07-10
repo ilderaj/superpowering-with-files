@@ -4,9 +4,9 @@
 审计 `ilderaj/superpowering-with-files` 当前 open GitHub issues，优先定位并修复高优先级/高严重度问题，完成测试验收与代码 review；若执行过程中发现新的高优先级或高严重度问题，则提交到 GitHub issues 并继续闭环，直到高优先级/高严重度 issue 清零，再完成 commit 与 push。
 
 ## Current State
-Status: active
+Status: waiting_integration
 Archive Eligible: no
-Close Reason:
+Close Reason: Not closed; all eight currently open P2 issues have reviewed local implementation commits, but seven commits remain isolated from dev and none of the issues has passed the explicit integration, push, or GitHub closure gate.
 Reconcile: open
 
 ## Routing Decision
@@ -43,7 +43,7 @@ Phase 4
 - [x] Perform code review on the landed changes
 - [x] File new GitHub issues if new material high-priority/high-severity defects are discovered
 - [ ] Update planning evidence, then commit and push once the high-priority set is clear
-- **Status:** in_progress
+- **Status:** waiting_integration; implementation evidence is complete, while integration/push/issue closure remains explicitly gated
 
 ## Execution Contract
 
@@ -78,7 +78,7 @@ Phase 4
 
 ## Verification Contract
 
-### Mode: execution/review
+### Mode: execution
 - Proof Target: 当前 open P2 issues 的已确认代码根因是否被最小修复，并且没有在投影链、workflow 权限或 goal evaluator 上留下同等级回归
 - Primary Proof: 逐 issue 的 focused verification（hook tests / evaluator tests / workflow-facing contract checks）
 - Backstop Proof: 最终 diff review + 再次审计 GitHub open issues 列表
@@ -86,6 +86,15 @@ Phase 4
 - Evidence Sink: `planning/active/github-issues-audit-remediation-20260627/progress.md` 与 `findings.md`
 - Reconcile Rule: 每完成一条 issue 的修复或复验，都要把根因、验证结果、是否需要新 issue、以及剩余风险回写 planning
 - Unacceptable Substitute: 只看 issue 描述不读代码、只跑宽泛 verify 不做 issue-specific proof、或只做实现不做最终 review
+
+### Mode: review
+- Proof Target: GitHub issue 修复后的范围、风险、剩余 open issue 与回归边界必须被独立复核。
+- Primary Proof: issue-specific final diff review 与 open issue list 再审计。
+- Backstop Proof: focused verification 结果与 planning 中逐 issue 根因记录。
+- Escalation Trigger: 任何 P2 根因未被定位、验证缺口存在、或修复可能引入同等级回归。
+- Evidence Sink: `planning/active/github-issues-audit-remediation-20260627/progress.md` 与 `findings.md`
+- Reconcile Rule: review verdict 必须同步到本 trio，再决定 close、继续或 human gate。
+- Unacceptable Substitute: 只依赖测试绿灯，不做 issue-specific 范围复核。
 
 ## Risk Assessment
 
@@ -125,10 +134,45 @@ Phase 4
   - 新增 focused tests 覆盖 pass/fail 边界
 - Focused verification 全绿；diff-based self review 未发现新的 blocking issue。
 
+## Plan Record: 2026-07-10 01:18:49 UTC+8
+- Governance continuation rechecked live GitHub issue truth:
+  - original scoped issues `#97`, `#100`, and `#101` are no longer open;
+  - current open P2 set includes `#105`, `#103`, `#107`, `#112`, `#116`, plus ChiefOps overlay follow-ups `#121`, `#122`, and `#123`.
+- Mapped current issue ownership conservatively:
+  - `#105` belongs to this goal-writer validation/prose boundary lane and was Chief-executable;
+  - `#121`/`#122`/`#123` are owned by `chief-worker-session-routing-issue-20260709` and are locally committed there;
+  - `#112` maps to upstream release-locking;
+  - `#116` maps to planning hook/projection path resolution;
+  - `#107` maps to trio evidence acceptance;
+  - `#103` maps to Copilot leaf-workspace policy projection.
+- Created isolated worktree `.worktrees/202607091717-github-issues-audit-remediation-20260627-001` on branch `202607091717-github-issues-audit-remediation-20260627-001`.
+- TDD result for `#105`:
+  - red proof: new prose test failed because unanchored `make` / `go` verbs passed as commands;
+  - green proof: tightened command detection to anchored command shapes while preserving plain-text commands and evidence surfaces;
+  - commit: `b6fe825 fix: tighten goal validation command detection`.
+- Verification:
+  - `node --test tests/core/goal-writer-eval.test.mjs` -> 5/5 pass after fix;
+  - `node harness/core/skills/goal-writer/scripts/evaluate-goal-writer.mjs` -> 8/8 fixtures pass;
+  - `node --test tests/core/goal-writer-eval.test.mjs tests/core/local-skill-contract.test.mjs` -> 6/6 pass;
+  - `git diff --check` -> pass.
+- Lifecycle remains `active`; merge/cherry-pick to `dev`, push, PR, issue closure, and archive remain explicit gates.
+
+## Plan Record: 2026-07-10 10:14:21 UTC+8
+- Rechecked live GitHub truth: the open P2 set remains `#103`, `#105`, `#107`, `#112`, `#116`, `#121`, `#122`, and `#123`; lower-priority `#80` and `#55` are outside this high-priority closeout boundary.
+- Every current P2 now has a reviewed local implementation commit:
+  - `#121/#122/#123` -> `567e34a` on local `dev`;
+  - `#116` -> `55c7834` in its isolated worktree branch;
+  - `#112` -> `5ddf5a8` in its isolated worktree branch;
+  - `#107` -> `2fa0560` in its isolated worktree branch;
+  - `#105` -> `b6fe825` in its isolated worktree branch;
+  - `#103` -> `9d55bc8` in its isolated worktree branch.
+- Changed lifecycle from `active` to `waiting_integration`. This is not completion: integration, push, PR/merge where needed, remote issue closure, and archive remain explicit gates.
+
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | Shell quoting caused an unintended command expansion while searching for hook reminder text | 1 | Switched to single-quoted patterns and narrower file reads; record only, no code impact |
+| Chief initially used a non-existent direct evaluator script path while reproducing the worker backstop | 1 | Located the real `tests/evals/codex-concise-output/scripts/` entrypoint and reran the live observation successfully. |
 
 ## Notes
 - 每完成一条 issue 的定位、修复、验证或 review，都回写 planning。

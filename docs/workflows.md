@@ -57,6 +57,21 @@ If a Chief-first manual assignment needs a durable pre-outcome trace, record it 
 
 Long-running continuation threads are a hygiene risk. When a tracked or deep-reasoning task crosses a major phase boundary or context churn gets heavy, prefer a fresh thread plus planning restore over extending the same continuation indefinitely.
 
+#### Coding Intake Contract
+
+For tracked coding work, use a lightweight intake contract before writing or
+reviewing the implementation plan:
+
+- domain terms and any glossary/ADR impact
+- highest practical test seam
+- one tracer-bullet vertical slice that can be independently verified
+- blocking edges between slices
+- Standards/Spec review split
+
+Keep this contract inside `planning/active/<task-id>/` and the companion plan.
+Do not introduce issue-tracker-first state, `tickets.md`, or a slash-command
+chain as a second authority root.
+
 ### `cloud-dev`
 
 Use `cloud-dev` when agent work should stage remotely from `origin/dev` without changing a local checkout.
@@ -86,6 +101,7 @@ Typical checks:
 
 ```bash
 ./scripts/harness active-summary
+./scripts/harness lifecycle-sweep --task <task-id> --json
 git diff --stat
 gh pr view <number> --json state,mergeStateStatus,url
 ```
@@ -121,6 +137,7 @@ Typical commands:
 
 ```bash
 ./scripts/harness active-summary
+./scripts/harness lifecycle-sweep --task <task-id>
 ./scripts/harness record --file reconciliation --task <task-id>
 ./scripts/harness doctor --check-only
 ```
@@ -132,6 +149,7 @@ Use `finish` when a scoped branch is ready to return to the recorded worktree ba
 - Push the scoped branch first when you want a remote recovery point.
 - Merge back using the recorded worktree base rather than late guesses.
 - Record commit, merge, and push results in the task progress file.
+- When a meaningful integration event happens, record a lifecycle anchor receipt so later `lifecycle-sweep` can explain review or integration recommendations.
 
 Typical commands:
 
@@ -152,6 +170,7 @@ Use `release` when `dev` is ready to promote or when release documentation and a
 - Use `autonomous-release-closure` when promotion still includes review-to-merge, stacked PR, cleanup, or adopt follow-through loops.
 - Include adoption and context-governance evidence before promotion.
 - Keep release notes and release artifacts tied to the exact verified commit.
+- Release success, partial success, and blocked-with-evidence outcomes may produce lifecycle anchors, but those anchors are evidence for review/reconcile decisions and never direct archive permission.
 
 Typical commands:
 
@@ -173,6 +192,7 @@ Use `archive` only when the task is explicitly closed and archive eligible.
 - Move closed task state into `planning/archive/<timestamp>-<task-id>/`.
 - Keep companion-plan metadata synchronized before archive.
 - Do not archive tasks that only look complete.
+- Do not treat lifecycle anchors, PR merge, or release proof as archive readiness unless lifecycle state and reconciliation gates already agree.
 
 Typical commands:
 

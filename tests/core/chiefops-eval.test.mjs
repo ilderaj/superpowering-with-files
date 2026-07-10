@@ -40,3 +40,78 @@ test('chiefops skill preserves authority, receipt, and bounded-governance guardr
   assert.match(rubric, /Keeps assignment intent in planning\/progress/);
   assert.doesNotMatch(`${skill}\n${template}\n${examples}\n${rubric}`, /TBD|TODO|implement later/i);
 });
+
+test('chiefops guidance treats historical session ids as explicit routing cues', async () => {
+  const skill = await readFile('harness/core/skills/chiefops/SKILL.md', 'utf8');
+  const docs = await readFile('docs/chiefops.md', 'utf8');
+  const combined = `${skill}\n${docs}`;
+
+  assert.match(combined, /Historical Session Routing/i);
+  assert.match(combined, /threadId/i);
+  assert.match(combined, /sessionId/i);
+  assert.match(combined, /continue_worker/i);
+  assert.match(combined, /respawn_worker/i);
+  assert.match(combined, /handoff_worker/i);
+  assert.match(combined, /chief_direct/i);
+  assert.match(
+    combined,
+    /historical `threadId` or `sessionId` values? default to explicit worker\/session routing/i
+  );
+  assert.match(
+    combined,
+    /Chief-direct remains allowed only with an explicit reason/i
+  );
+  assert.match(combined, /stale\/unsafe rationale/i);
+  assert.match(combined, /bounded slice/i);
+  assert.match(combined, /proof target/i);
+  assert.match(combined, /evidence sink/i);
+  assert.match(combined, /return-to-Chief gate/i);
+  assert.match(
+    combined,
+    /Assignment Packet[\s\S]*evidenceSink[\s\S]*returnToChiefInstruction/i
+  );
+});
+
+test('chiefops guidance preserves explicit visible Codex session worker routing', async () => {
+  const skill = await readFile('harness/core/skills/chiefops/SKILL.md', 'utf8');
+  const docs = await readFile('docs/chiefops.md', 'utf8');
+  const combined = `${skill}\n${docs}`;
+
+  assert.match(combined, /Visible Codex Session Worker Requests/i);
+  assert.match(
+    combined,
+    /explicitly asks for a visible Codex session worker[\s\S]*requested execution route/i
+  );
+  assert.match(combined, /Codex thread\/session tools/i);
+  assert.match(
+    combined,
+    /subagent, hidden\/internal worker slice, or Chief-direct implementation is a downgrade/i
+  );
+  assert.match(
+    combined,
+    /Subagent\/internal worker wording alone must not be presented as satisfying an explicit visible Codex session worker request/i
+  );
+  assert.match(combined, /the downgrade reason/i);
+  assert.match(combined, /the proof target and evidence sink/i);
+  assert.match(combined, /the return-to-Chief gate/i);
+});
+
+test('chiefops assignment packets fail closed against the absolute authority root', async () => {
+  const skill = await readFile('harness/core/skills/chiefops/SKILL.md', 'utf8');
+  const docs = await readFile('docs/chiefops.md', 'utf8');
+  const template = await readFile('harness/core/skills/chiefops/template.md', 'utf8');
+  const combined = `${skill}\n${docs}\n${template}`;
+
+  assert.match(combined, /authorityRoot/i);
+  assert.match(combined, /authorityTaskId/i);
+  assert.match(combined, /taskPlanPath/i);
+  assert.match(combined, /findingsPath/i);
+  assert.match(combined, /progressPath/i);
+  assert.match(combined, /bindingObservation/i);
+  assert.match(combined, /HARNESS_PROJECT_ROOT/i);
+  assert.match(combined, /binding_mismatch/i);
+  assert.match(combined, /exact authoritative files/i);
+  assert.match(combined, /do not copy, symlink, or unignore/i);
+  assert.match(combined, /Tracked worker Assignment Packets require/i);
+  assert.match(combined, /Chief owns planning writeback/i);
+});

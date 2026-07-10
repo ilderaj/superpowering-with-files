@@ -21,9 +21,9 @@
   - waiting_integration: Work is done but not integrated
   - closed: Work is complete and may be archived if Archive Eligible is yes
 -->
-Status: active
+Status: waiting_review
 Archive Eligible: no
-Close Reason:
+Close Reason: Not closed; PR #109 merged and the old implementation branch has no commits outside origin/main, but the task goal names a 1.0.13 release while live GitHub latest is 1.0.12, and stale branch/worktree cleanup plus final release-scope acceptance require human approval.
 Reconcile: open
 
 ## Routing Decision
@@ -200,7 +200,7 @@ Phase 11
 ## Companion Plan
 - Companion plan path: `docs/superpowers/plans/2026-06-28-roadmap-backlog-implementation-plan-20260628.md`
 - Companion summary: 三波 release 主线 + backlog disposition + 低智能模型可执行步骤 + proof gates + native `/goal` prompt；`1.0.11`、`1.0.12`、`1.0.13` 已交付并完成 full verification，本轮继续处理 worktree -> `origin/main` 的 PR/merge/sync 收尾
-- Sync-back status: closure in progress; implementation was verified on 2026-06-29 and the current round is integrating the worktree branch into `origin/main` while re-syncing local/remote `main` and `dev`
+- Sync-back status: waiting human review of 1.0.13 release scope and stale branch/worktree closure
 
 ## Record Format
 <!--
@@ -238,3 +238,10 @@ Phase 11
 ## Task Metadata
 - Task ID: roadmap-backlog-implementation-plan-20260628
 - Planning Directory: /Users/jared/SuperpoweringWithFiles/planning/active/roadmap-backlog-implementation-plan-20260628
+
+## Plan Record: 2026-07-10 10:08:49 UTC+8
+- Chief verified PR `#109` merged into `main` and branch `codex/202606291338-roadmap-backlog-implementation-plan-20260628-001` has `0` commits not contained by current `origin/main`.
+- The remaining worktree changes are planning/companion metadata only; no unintegrated product-code diff remains on that branch.
+- However, the task goal explicitly names `1.0.13`, while live GitHub releases currently stop at `1.0.12`.
+- Destructive stale branch/worktree cleanup and any real 1.0.13 publication need human gates.
+- Lifecycle moved from `active` to `waiting_review`; Phase 11 remains the explicit decision surface and archive remains disallowed.

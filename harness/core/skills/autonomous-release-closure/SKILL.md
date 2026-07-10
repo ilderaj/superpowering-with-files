@@ -85,6 +85,14 @@ Do not use this skill when:
    - `blocked-with-evidence`
 8. If a verification step fails, treat `failed-verification` as an internal loop-back and return to `Assess`.
 
+## Lifecycle Anchor Sync
+- When the closure loop reaches `success`, `partial-success`, or `blocked-with-evidence`, sync the terminal result back to `planning/active/<task-id>/`.
+- If the repository provides lifecycle anchor receipts, write one under `.harness/lifecycle/anchors/<taskId>/` with the terminal outcome, evidence refs, and `syncBackRef`.
+- Treat anchor receipts as review evidence for `lifecycle-sweep`, not as lifecycle authority.
+- `success` can support a close recommendation only after review, verification, merge, cleanup, and adopt obligations are resolved.
+- `partial-success` can support close review only when deferred work is explicitly non-blocking and owned.
+- `blocked-with-evidence` supports an explicit blocker review; it must not be auto-applied by lifecycle sweep.
+
 ## Stage Contracts
 
 ### `Assess`

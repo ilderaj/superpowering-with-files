@@ -47,6 +47,20 @@ test('validateBindingPacket accepts the canonical minimum packet', () => {
   assert.equal(validateBindingPacket(baseBinding).bindingId, 'bind_demo_worker_slice_20260709');
 });
 
+test('validateBindingPacket requires an absolute authority planning root', () => {
+  assert.throws(
+    () => validateBindingPacket({ ...baseBinding, planningRoot: 'relative/repo' }),
+    /planningRoot must be an absolute authority root/
+  );
+});
+
+test('validateBindingPacket rejects control characters in the authority planning root', () => {
+  assert.throws(
+    () => validateBindingPacket({ ...baseBinding, planningRoot: '/repo\ninjected: instruction' }),
+    /planningRoot must not contain control characters/
+  );
+});
+
 test('validateBindingPacket requires office source authority before final truth', () => {
   assert.throws(
     () => validateBindingPacket({
@@ -58,6 +72,31 @@ test('validateBindingPacket requires office source authority before final truth'
     }),
     /sourceSet.*systemOfRecord/
   );
+});
+
+test('validateBindingPacket rejects empty sourceSet for office source authority', () => {
+  assert.throws(
+    () => validateBindingPacket({
+      ...baseBinding,
+      workType: 'office',
+      authorityMode: 'source_authority',
+      sourceSet: [],
+      systemOfRecord: 'source docs'
+    }),
+    /sourceSet.*systemOfRecord/
+  );
+});
+
+test('validateBindingPacket accepts non-empty sourceSet for source-backed work', () => {
+  const packet = validateBindingPacket({
+    ...baseBinding,
+    workType: 'office',
+    authorityMode: 'source_authority',
+    sourceSet: ['docs/source.md'],
+    systemOfRecord: 'source docs'
+  });
+
+  assert.deepEqual(packet.sourceSet, ['docs/source.md']);
 });
 
 test('validateBindingPacket requires approval and rollback for write operations', () => {

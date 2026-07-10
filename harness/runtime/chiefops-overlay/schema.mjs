@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import path from 'node:path';
 
 export const WORK_TYPES = ['coding', 'office', 'release', 'review', 'research'];
 export const AUTHORITY_MODES = ['task_authority', 'source_authority', 'release_authority'];
@@ -66,13 +67,19 @@ export const BindingPacketSchema = z.object({
   expectedCheckInBy: isoTimestamp.optional(),
   rollbackPlanRef: z.string().min(1).optional()
 }).superRefine((packet, ctx) => {
+  if (!path.isAbsolute(packet.planningRoot)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'planningRoot must be an absolute authority root.' });
+  }
+  if (/[\u0000-\u001f\u007f]/.test(packet.planningRoot)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'planningRoot must not contain control characters.' });
+  }
   if (!packet.bindingToken && !packet.bindingVersion) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'bindingToken or bindingVersion is required.' });
   }
   if ((packet.action === 'continue_worker' || packet.action === 'handoff_worker') && !packet.threadId && !packet.sessionId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'threadId or sessionId is required for continue/handoff actions.' });
   }
-  if ((packet.workType === 'office' || packet.authorityMode === 'source_authority') && (!packet.sourceSet || !packet.systemOfRecord)) {
+  if ((packet.workType === 'office' || packet.authorityMode === 'source_authority') && (!packet.sourceSet?.length || !packet.systemOfRecord)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'sourceSet and systemOfRecord are required for office/source authority work.' });
   }
   if (packet.allowedOps.some((op) => ['write', 'publish', 'send'].includes(op))) {

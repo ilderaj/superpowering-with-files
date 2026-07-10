@@ -61,12 +61,44 @@ ChiefOps Readout
 - Sync-back requirement: update planning/active/<task-id>/ after meaningful progress
 ```
 
+## Historical Session Routing
+When a user provides historical `threadId` or `sessionId` values and asks the chief to continue, handle, or carry forward that work, those historical `threadId` or `sessionId` values default to explicit worker/session routing. Treat the IDs as a routing cue, not only as background context.
+
+Before doing Chief inline work, explicitly choose and explain one route:
+
+- `continue_worker`: use when the referenced worker/session is current enough, bound to the same task authority, and safe to continue.
+- `respawn_worker`: use when the old session is stale, unavailable, or unsafe, but the bounded slice still matters and should be reissued in a fresh worker context.
+- `handoff_worker`: use when a message or manual handoff is the safest way to continue without claiming the worker has already started.
+- `chief_direct`: use only when the chief should intentionally take a bounded slice inline.
+
+Chief-direct remains allowed only with an explicit reason. The explanation must include any stale/unsafe rationale, the bounded slice, proof target, evidence sink, and return-to-Chief gate. If the chief cannot name those fields, route the work to a worker/session path or stop for intake clarification.
+
+Historical session routing does not create a worker registry or session manager. Record durable assignment intent only in the existing planning/progress surfaces when needed, and keep receipts for outcome evidence only.
+
+## Visible Codex Session Worker Requests
+When the user explicitly asks for a visible Codex session worker, visible Codex session worker is the requested execution route. A subagent, hidden/internal worker slice, or Chief-direct implementation is a downgrade from that request, not an equivalent fulfillment.
+
+Before using a subagent, hidden/internal worker, or Chief-direct fallback, the chief must explicitly state:
+
+- the requested visible Codex session worker route;
+- the Codex thread/session tool path attempted or the gate that makes it unavailable;
+- the downgrade reason;
+- the bounded slice;
+- the proof target and evidence sink;
+- the return-to-Chief gate.
+
+If those fields are missing, do not claim the worker request is satisfied. Use Codex thread/session tools, produce a pending handoff, or stop for the missing gate instead of silently substituting subagent/internal worker wording.
+
 ## Assignment Packet
 When the next slice should be handed to a worker or framed for manual execution, derive an Assignment Packet from existing planning and receipt truth. The packet is a prompt contract, not a durable object or worker database.
 
-Recommended fields:
+Tracked worker Assignment Packets require the authority fields below. The remaining slice fields are recommended unless the enclosing execution contract makes them mandatory:
 
 - `taskId`
+- `authorityTaskId`
+- `authorityRoot`: absolute path to the single authority checkout
+- `taskPlanPath`, `findingsPath`, and `progressPath`: exact absolute paths under that authority root
+- `bindingObservation`: current hashes for the exact trio files, or another observation the worker can actually verify
 - `unitId` or current execution-unit reference when one exists
 - `lane`
 - `workerRole`
@@ -90,16 +122,20 @@ Default storage rule:
 - do not persist assignment intent in execution receipts before work has actually been attempted or completed.
 
 ## Worker Prompt Contract
-When delegating or framing the next slice, the worker prompt should include:
+When delegating or framing a tracked worker slice, the worker prompt must include:
 
+- the absolute `authorityRoot`, `authorityTaskId`, exact trio paths, and current binding observation;
+- an exact-path preflight that reads the three authoritative files, compares the current hashes with `bindingObservation` before tracked edits, and returns `binding_mismatch` when they are missing, stale, or contradictory;
+- the instruction to set `HARNESS_PROJECT_ROOT` to the absolute authority root, or pass explicit `--root` when a Harness command supports it;
 - the bounded file or surface list;
 - the expected proof for that slice;
 - the current `Proof Target`, `Primary Proof`, and `Evidence Sink` when available;
 - the instruction to keep the next slice bounded and return to the chief after that single slice;
-- the requirement to sync durable progress back into `planning/active/<task-id>/`;
+- the requirement to return status and evidence to the Chief; Chief owns planning writeback into `planning/active/<task-id>/` unless the packet separately grants a bounded planning edit;
 - the requirement to reference the existing execution-receipt schema if a receipt is written;
 - the instruction to use `task_plan.md` / `progress.md` for assignment intent and execution receipts only for outcome evidence;
 - the instruction not to create `release_board.md`, `worker_checkins.md`, `pr_truth.md`, a new receipt dialect, or any second planning directory.
+- the instruction to keep planning single-homed: do not copy, symlink, or unignore the trio inside a worker worktree, and do not use an unbounded home-directory scan as absence proof.
 
 ## Guardrails
 - Keep `planning/active/<task-id>/` authoritative.

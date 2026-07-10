@@ -3,6 +3,8 @@
 `ChiefOps` is a narrow governance capability for tracked tasks in SWF.
 
 For the V0b thread-control overlay contract, see `docs/chiefops-v0b.md`.
+For case-backed Chief/Worker starting patterns, see
+`docs/chief-worker-workflows.md`.
 
 It adds:
 
@@ -132,14 +134,40 @@ Useful command surfaces:
 ```text
 ./scripts/harness chiefops board --task <task-id>
 ./scripts/harness chiefops board --task <task-id> --json
+./scripts/harness lifecycle-sweep --task <task-id> --json
 ```
 
 Keep the discipline simple:
 
 - assignment intent belongs in `task_plan.md` and `progress.md`
 - execution receipts stay outcome-only
+- lifecycle anchor receipts are review hints, not worker control state
 - the board is derived, never persisted
 - ChiefOps names the next slice; it does not become the slice owner forever
+
+## Lifecycle Sweep Boundary
+
+`lifecycle-sweep` is a Chief-owned review aid for planning hygiene. It reads
+task lifecycle state, execution receipts, follow-up closures, and lifecycle
+anchor receipts under `.harness/lifecycle/anchors/<taskId>/`.
+
+Use it when the Chief needs to decide whether a task should stay active, move
+to review/integration, or enter an explicit close/block/reconcile path:
+
+```text
+./scripts/harness lifecycle-sweep --task <task-id>
+./scripts/harness lifecycle-sweep --task <task-id> --json
+```
+
+Workers may write anchor receipts after real events, such as PR creation,
+PR merge, release proof, or a blocker discovery. Workers must not run
+`lifecycle-sweep --apply-safe`, close or block their own task, set
+`Archive Eligible: yes`, or treat anchors as a worker registry.
+
+The Chief may run `--apply-safe` only for the narrow non-terminal transitions
+reported as apply-eligible. Close, block, and archive remain explicit workflow
+decisions routed through `reconcile`, `finish`, `release`, `close-task`, or
+`archive-task`.
 
 ## Human-Friendly Chief Talk Track
 
@@ -165,29 +193,95 @@ Write a receipt only if work was actually attempted and reached an outcome.
 Return after that one slice.
 ```
 
-## Chief Prompt Contract
+## Chief And Worker Control
 
-The Chief side of ChiefOps is a prompt contract over existing truth, not a new runtime.
+ChiefOps keeps the Chief as the only human-facing owner. The Chief restores the
+planning trio, reads the current board/readout, chooses one bounded next slice,
+and decides whether that slice is Chief-direct, routed to a visible Codex
+session worker, handed off manually, or handled by a narrow subagent tactic.
 
-The chief should:
+That choice is a control decision, not a second workflow lane. It must stay
+grounded in the current task authority, proof target, evidence sink, and
+lifecycle state.
 
-- restore `planning/active/<task-id>/task_plan.md`, `findings.md`, and `progress.md` first
-- use the existing ChiefOps board/readout instead of chat history as state
-- avoid direct implementation unless that slice is explicitly assigned
-- choose exactly one bounded next action
-- avoid scope expansion
-- route intake or plan deficiencies to `plan` / `goal2plan`
-- route release-closure work to `autonomous-release-closure`
-- route proof and closure work to `verify`, `reconcile`, `finish`, or `release`
-- request or record outcome evidence through existing progress/receipt surfaces instead of inventing a ChiefOps-specific state file
+Use Chief-direct when the slice is small, local, and explicitly owned by the
+Chief. Use a visible Codex session worker when the work benefits from a
+separate recoverable thread, a separate worktree, long-running execution,
+independent review, parallel progress, or explicit user visibility. Reuse an
+existing worker only when it is current, bound to the same task authority, and
+still has a safe stop condition. Respawn instead when the old context is stale
+but the bounded slice remains valid. Use a subagent only for narrow review,
+research, or verification tactics; it is not a hidden worker.
+
+Route plan deficiencies to `plan` / `goal2plan`. Route release closure to
+`autonomous-release-closure` when that is the real slice. Route proof,
+reconcile, finish, release, and archive decisions through their existing lanes.
+ChiefOps may name the next slice; it does not own that slice forever.
+
+## Worker Lifecycle Control
+
+A worker starts from a bounded Assignment Packet and ends by returning to the
+Chief. The packet names the objective, non-goals, allowed surfaces, proof
+target, evidence sink, stop condition, and sync-back requirement. It is enough
+to make the worker recoverable without turning workers into a registry.
+
+The Chief may create or reuse up to two active workers when parallelism is
+useful and the slices are genuinely independent. More than two active workers
+requires a user-facing pause: explain why parallelism is needed, what each
+worker owns, and which merge or lifecycle risks increase.
+
+Workers do not close, archive, release, merge, or publish. They may produce
+proof, receipts, diffs, or handoff notes, but lifecycle decisions return to the
+Chief. The Chief gates the result, reconciles evidence into
+`planning/active/<task-id>/`, and decides whether the next state is another
+slice, review, integration, blocked, close, or archive.
+
+## Historical Session Routing
+
+When a user provides historical `threadId` or `sessionId` values and asks the
+Chief to continue, handle, or carry forward that work, those values are routing
+cues. The Chief must choose and explain one route before doing inline work:
+
+- `continue_worker`: the referenced worker/session is current enough, bound to the same task authority, and safe to continue.
+- `respawn_worker`: the old session is stale, unavailable, or unsafe, but the bounded slice still matters.
+- `handoff_worker`: direct continuation is unavailable and a pending handoff or message path is safer.
+- `chief_direct`: the Chief intentionally owns a bounded slice inline.
+
+Chief-direct remains valid only when the reason is explicit. The explanation
+must name the stale/unsafe rationale when relevant, bounded slice, proof target,
+evidence sink, and return-to-Chief gate.
+
+## Visible Codex Session Worker Requests
+
+When the user explicitly asks for a visible Codex session worker, that is the
+requested execution route. The Chief should use available Codex thread/session
+tools to create, continue, hand off, or message the worker session.
+
+If that route is gated or unavailable, say so directly. A fallback to
+Chief-direct, subagent, or hidden/internal worker execution is a downgrade, not
+equivalent fulfillment. A valid downgrade names the requested visible route,
+tool path attempted or missing gate, downgrade reason, bounded slice, proof
+target, evidence sink, and return-to-Chief gate.
+
+Subagent/internal worker wording alone must not be presented as satisfying an explicit visible Codex session worker request.
+
+This rule does not add a scheduler, daemon, worker registry, durable session
+database, second board, receipt dialect, lifecycle authority, or automatic
+external-thread write behavior.
 
 ## Derived Assignment Packet
 
-When the chief needs to hand off or frame one manual worker slice, derive an Assignment Packet from existing planning and receipt truth.
+When the Chief hands off or frames one worker slice, derive an Assignment Packet
+from existing planning and receipt truth. The packet is a prompt contract, not
+a durable worker database.
 
-Recommended fields:
+Tracked worker Assignment Packets require the authority fields below. Other slice fields remain proportional to the work:
 
 - `taskId`
+- `authorityTaskId`
+- `authorityRoot`: the absolute path to the single authority checkout
+- `taskPlanPath`, `findingsPath`, and `progressPath`: exact absolute paths to the authoritative trio
+- `bindingObservation`: current hashes for the exact trio files, or another observation the worker can actually verify
 - `unitId`
 - `lane`
 - `workerRole`
@@ -210,12 +304,16 @@ The packet is derived and ephemeral by default. It is not a durable worker datab
 
 The worker side should stay equally narrow:
 
+- read `taskPlanPath`, `findingsPath`, and `progressPath` from the exact `authorityRoot` before tracked edits
+- compare the exact file hashes with `bindingObservation`, and return `binding_mismatch` when they are missing, stale, or contradict the packet
+- set `HARNESS_PROJECT_ROOT` to `authorityRoot`, or pass explicit `--root` when the Harness command supports it
 - read only the bounded files or surfaces named by the packet
 - keep the slice limited to one bounded action
 - use the current `Proof Target`, `Primary Proof`, and `Evidence Sink`
-- sync durable progress back to `planning/active/<task-id>/`
+- return status and evidence to the Chief; Chief owns planning writeback into `planning/active/<task-id>/` unless the packet separately grants a bounded planning edit
 - return to the chief after the single slice
 - use execution receipts only when work was actually attempted and reached an outcome
+- keep planning single-homed; do not copy, symlink, or unignore the trio in the worker worktree, and do not treat an unbounded home-directory search as absence proof
 
 ## Minimal Packet Template
 
@@ -223,6 +321,12 @@ Use this when the chief wants one copy-pasteable worker slice without overdesign
 
 ```text
 Assignment Packet
+- authorityTaskId: <bound authority task id>
+- authorityRoot: <absolute authority root>
+- taskPlanPath: <absolute authority task_plan.md path>
+- findingsPath: <absolute authority findings.md path>
+- progressPath: <absolute authority progress.md path>
+- bindingObservation: <current hashes for taskPlanPath, findingsPath, and progressPath>
 - taskId: <task-id>
 - unitId: <existing unit or prompt-only id>
 - objective: <one bounded objective>

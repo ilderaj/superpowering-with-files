@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
@@ -157,6 +158,100 @@ test('harness chiefops overlay handoff creates a prompt but not a started receip
     assert.doesNotMatch(stdout, /btok_1/);
     assert.doesNotMatch(stdout, /canProceedAsStarted.*true/);
     assert.doesNotMatch(stdout, /started receipt/i);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness chiefops overlay handoff preserves authority truth from an out-of-tree worker cwd', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  const workerParent = await mkdtemp(path.join(os.tmpdir(), 'swf-codex-worker-'));
+  const workerRoot = path.join(workerParent, 'SuperpoweringWithFiles');
+  try {
+    await writeFile(path.join(root, '.gitignore'), 'planning/\n');
+    await writeFile(path.join(root, 'worker-anchor.txt'), 'tracked worktree anchor\n');
+    await execFileAsync('git', ['init'], { cwd: root });
+    await execFileAsync('git', ['add', '.gitignore', 'worker-anchor.txt'], { cwd: root });
+    await execFileAsync(
+      'git',
+      ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'commit', '-m', 'test: seed worker topology'],
+      { cwd: root }
+    );
+    await execFileAsync('git', ['worktree', 'add', '-b', 'codex/test-worker', workerRoot], { cwd: root });
+
+    const taskDir = path.join(root, 'planning/active/chiefops-demo');
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(
+      path.join(taskDir, 'task_plan.md'),
+      [
+        '# ChiefOps Demo',
+        '',
+        '## Current State',
+        'Status: active',
+        '',
+        '## Verification Contract',
+        '- **Proof Target:** manual handoff pending',
+        ''
+      ].join('\n')
+    );
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    const binding = demoBindingPacket(root);
+    await writeFile(
+      path.join(taskDir, 'progress.md'),
+      ['# Progress', '', 'handoff cli', 'manual handoff pending', '', serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding), ''].join('\n')
+    );
+    const file = path.join(root, 'binding.json');
+    await writeFile(file, JSON.stringify(binding, null, 2));
+
+    await assert.rejects(access(path.join(workerRoot, 'planning/active/chiefops-demo/task_plan.md')));
+
+    const { stdout, stderr } = await execFileAsync(
+      'node',
+      [path.join(root, 'harness/installer/commands/harness.mjs'), 'chiefops', 'overlay', 'handoff', '--file', file],
+      {
+        cwd: workerRoot,
+        env: { ...process.env, HARNESS_PROJECT_ROOT: root }
+      }
+    );
+
+    const canonicalRoot = await realpath(root);
+    assert.equal(stderr, '');
+    assert.match(stdout, new RegExp(`authorityRoot: ${canonicalRoot.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}`));
+    assert.match(stdout, new RegExp(`taskPlanPath: ${path.join(canonicalRoot, 'planning/active/chiefops-demo/task_plan.md').replace(/[.*+?^${}()|[\\]\\]/g, '\\$&')}`));
+    assert.match(stdout, /bindingObservation\.taskPlanHash: sha256:[a-f0-9]{64}/);
+    assert.match(stdout, /bindingObservation\.findingsHash: sha256:[a-f0-9]{64}/);
+    assert.match(stdout, /bindingObservation\.progressHash: sha256:[a-f0-9]{64}/);
+    assert.match(stdout, /HARNESS_PROJECT_ROOT/);
+  } finally {
+    await execFileAsync('git', ['worktree', 'remove', '--force', workerRoot], { cwd: root }).catch(() => {});
+    await rm(workerParent, { recursive: true, force: true });
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness chiefops overlay handoff rejects a contradictory authoritative planning root', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const taskDir = path.join(root, 'planning/active/chiefops-demo');
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(
+      path.join(taskDir, 'task_plan.md'),
+      '# ChiefOps Demo\n\n## Current State\nStatus: active\n\nmanual handoff pending\n'
+    );
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    const binding = demoBindingPacket(root);
+    const contradictory = { ...binding, planningRoot: path.join(root, 'other-authority') };
+    await writeFile(
+      path.join(taskDir, 'progress.md'),
+      ['# Progress', '', 'handoff cli', 'manual handoff pending', '', serializeChiefOpsBlock('ChiefOpsWorkerBinding', contradictory), ''].join('\n')
+    );
+    const file = path.join(root, 'binding.json');
+    await writeFile(file, JSON.stringify(binding, null, 2));
+
+    await assert.rejects(
+      harnessCommand(root, 'chiefops', 'overlay', 'handoff', '--file', file),
+      /binding packet does not match authoritative progress truth/
+    );
   } finally {
     await removeHarnessFixture(root);
   }
