@@ -32,7 +32,12 @@ export function assessPermissionEnforcement({ requestedClass, allowedOps, observ
       };
 }
 
-export function buildManualHandoffPrompt({ bindingPacket, bindingObservation }) {
+export function buildManualHandoffPrompt({
+  bindingPacket,
+  bindingObservation,
+  permissionEnforcementObservation = null,
+  modelResolution = null
+}) {
   if (!bindingPacket.bindingVersion) {
     throw new Error('bindingVersion is required for manual handoff');
   }
@@ -68,6 +73,10 @@ export function buildManualHandoffPrompt({ bindingPacket, bindingObservation }) 
     `reasoningDemand: ${bindingPacket.reasoningDemand ?? ''}`,
     `costPreference: ${bindingPacket.costPreference ?? ''}`,
     `latencyClass: ${bindingPacket.latencyClass ?? ''}`,
+    `resolvedModelAtRun: ${modelResolution?.resolvedModelAtRun ?? ''}`,
+    `resolvedThinkingAtRun: ${modelResolution?.resolvedThinkingAtRun ?? ''}`,
+    `modelResolutionReason: ${modelResolution?.modelResolutionReason ?? ''}`,
+    `nativeThreadControl: ${modelResolution?.nativeThreadControl ?? false}`,
     `riskClass: ${bindingPacket.riskClass}`,
     `permissionClass: ${bindingPacket.permissionClass ?? ''}`,
     `delegationPolicy: ${bindingPacket.delegationPolicy ?? ''}`,

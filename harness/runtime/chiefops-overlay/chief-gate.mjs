@@ -39,7 +39,13 @@ function isTerminalLifecycleStatus(status) {
   return ['closed', 'archived', 'done', 'complete'].includes(String(status || '').toLowerCase());
 }
 
-export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = false, taskState = {} }) {
+export function gateWorkerReceipt({
+  bindingPacket,
+  receipt,
+  approvalSatisfied = false,
+  taskState = {},
+  modelResolution = null
+}) {
   const identityFields = [
     'authorityTaskId',
     'workerId',
@@ -72,6 +78,31 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
 
   if (!sameBindingIdentity(bindingPacket, receipt)) {
     return { outcome: 'block', reason: 'binding_identity_mismatch' };
+  }
+
+  const hasOperatingModelProfile = [
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass'
+  ].every((field) => bindingPacket[field] !== undefined);
+  if (hasOperatingModelProfile) {
+    const resolutionFields = ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason'];
+    if (resolutionFields.some((field) => !receipt[field])) {
+      return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
+    }
+    if (modelResolution) {
+      const requestedMatches = modelResolution.requestedCapabilityClass === bindingPacket.capabilityClass
+        && modelResolution.requestedReasoningDemand === bindingPacket.reasoningDemand
+        && modelResolution.requestedCostPreference === bindingPacket.costPreference
+        && modelResolution.requestedLatencyClass === bindingPacket.latencyClass
+        && modelResolution.upgradeTrigger === (bindingPacket.upgradeTrigger ?? null);
+      const resolvedMatches = receipt.resolvedModelAtRun === modelResolution.resolvedModelAtRun
+        && receipt.resolvedThinkingAtRun === modelResolution.resolvedThinkingAtRun
+        && receipt.modelResolutionReason === modelResolution.modelResolutionReason;
+      if (!requestedMatches || !resolvedMatches) {
+        return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
+      }
+    }
   }
 
   if (bindingPacket.expectedReceipt && bindingPacket.expectedReceipt !== receipt.receiptType) {

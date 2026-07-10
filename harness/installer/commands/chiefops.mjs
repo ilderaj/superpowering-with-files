@@ -33,8 +33,8 @@ function usage() {
     'Usage: ./scripts/harness chiefops board --task <task-id> [--json]',
     '       ./scripts/harness chiefops overlay index --task <task-id> [--json]',
     '       ./scripts/harness chiefops overlay validate-binding --file <json-file>',
-    '       ./scripts/harness chiefops overlay handoff --file <json-file>',
-    '       ./scripts/harness chiefops overlay resolve-model --capability-class <class> --available <json-file>',
+    '       ./scripts/harness chiefops overlay handoff --file <json-file> [--model-resolution <json-file>]',
+    '       ./scripts/harness chiefops overlay resolve-model --capability-class <class> --reasoning-demand <demand> --cost-preference <preference> --latency-class <class> --available <json-file>',
     '',
     'Subcommands:',
     '  board           Read the derived ChiefOps board for an active task',
@@ -45,7 +45,12 @@ function usage() {
     '  --json            Print the derived board as JSON',
     '  --file <path>     Read a JSON file for validation or handoff',
     '  --capability-class <class>  Resolve a model for the requested capability class',
+    '  --reasoning-demand <demand>  Resolve the requested reasoning demand',
+    '  --cost-preference <preference>  Resolve the requested cost preference',
+    '  --latency-class <class>      Resolve the requested latency class',
+    '  --upgrade-trigger <text>     Record the reason an upgrade may be needed',
     '  --available <path>          Read available models from a JSON file',
+    '  --model-resolution <path>   Read exact resolver evidence for a handoff',
     '  --help, -h        Show this help message'
   ].join('\n');
 }
@@ -106,12 +111,17 @@ export async function chiefopsCommand(args = []) {
         throw new Error('Missing required --file <json-file>.');
       }
 
-      process.stdout.write(`${await buildHandoffFromFile({ root: rootDir, file })}\n`);
+      const modelResolutionFile = readOption(overlayArgs, '--model-resolution');
+      process.stdout.write(`${await buildHandoffFromFile({ root: rootDir, file, modelResolutionFile })}\n`);
       return;
     }
 
     if (overlayCommand === 'resolve-model') {
       const capabilityClass = readOption(overlayArgs, '--capability-class');
+      const reasoningDemand = readOption(overlayArgs, '--reasoning-demand');
+      const costPreference = readOption(overlayArgs, '--cost-preference');
+      const latencyClass = readOption(overlayArgs, '--latency-class');
+      const upgradeTrigger = readOption(overlayArgs, '--upgrade-trigger') ?? null;
       const availableFile = readOption(overlayArgs, '--available');
 
       if (!capabilityClass) {
@@ -120,8 +130,24 @@ export async function chiefopsCommand(args = []) {
       if (!availableFile) {
         throw new Error('Missing required --available <json-file>.');
       }
+      if (!reasoningDemand) {
+        throw new Error('Missing required --reasoning-demand <demand>.');
+      }
+      if (!costPreference) {
+        throw new Error('Missing required --cost-preference <preference>.');
+      }
+      if (!latencyClass) {
+        throw new Error('Missing required --latency-class <class>.');
+      }
 
-      const result = await resolveModelFromFile({ capabilityClass, availableFile });
+      const result = await resolveModelFromFile({
+        capabilityClass,
+        reasoningDemand,
+        costPreference,
+        latencyClass,
+        upgradeTrigger,
+        availableFile
+      });
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
       return;
     }

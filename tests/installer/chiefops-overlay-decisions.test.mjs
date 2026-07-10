@@ -126,6 +126,55 @@ test('resolveModel fails instead of silently downgrading missing capability', ()
   );
 });
 
+test('resolveModel selects an exact capability and execution profile without sku rules', () => {
+  assert.deepEqual(
+    resolveModel({
+      capabilityClass: 'balanced_execution',
+      reasoningDemand: 'standard',
+      costPreference: 'balanced',
+      latencyClass: 'standard',
+      upgradeTrigger: 'architecture ambiguity',
+      availableModels: [{
+        model: 'balanced-current',
+        capabilityClass: 'balanced_execution',
+        reasoningByDemand: { light: 'low', standard: 'medium', deep: 'high' },
+        costPreferences: ['balanced'],
+        latencyClasses: ['standard', 'long_running']
+      }]
+    }),
+    {
+      requestedCapabilityClass: 'balanced_execution',
+      requestedReasoningDemand: 'standard',
+      requestedCostPreference: 'balanced',
+      requestedLatencyClass: 'standard',
+      upgradeTrigger: 'architecture ambiguity',
+      resolvedModelAtRun: 'balanced-current',
+      resolvedThinkingAtRun: 'medium',
+      modelResolutionReason: 'first_compatible_profile_match',
+      nativeThreadControl: false
+    }
+  );
+});
+
+test('resolveModel fails if only a lower or incompatible profile exists', () => {
+  assert.throws(
+    () => resolveModel({
+      capabilityClass: 'balanced_execution',
+      reasoningDemand: 'deep',
+      costPreference: 'quality_first',
+      latencyClass: 'long_running',
+      availableModels: [{
+        model: 'balanced-cheap',
+        capabilityClass: 'balanced_execution',
+        reasoningByDemand: { light: 'low', standard: 'medium' },
+        costPreferences: ['economy'],
+        latencyClasses: ['interactive']
+      }]
+    }),
+    /resolver_failed/
+  );
+});
+
 test('manual handoff prompt includes binding identity and expected receipt', () => {
   const prompt = buildManualHandoffPrompt({ bindingPacket, bindingObservation });
   assert.match(prompt, /authorityTaskId: chiefops-demo/);
@@ -172,6 +221,27 @@ test('manual handoff prompt renders the operating-model phase and permission env
   assert.match(prompt, /returnToChiefInstruction: request design gate/);
 });
 
+test('manual handoff prompt renders the exact model-resolution evidence', () => {
+  const prompt = buildManualHandoffPrompt({
+    bindingPacket: operatingModelBindingPacket,
+    bindingObservation,
+    modelResolution: {
+      requestedCapabilityClass: 'balanced_execution',
+      requestedReasoningDemand: 'standard',
+      requestedCostPreference: 'balanced',
+      requestedLatencyClass: 'standard',
+      upgradeTrigger: 'scope change',
+      resolvedModelAtRun: 'balanced-current',
+      resolvedThinkingAtRun: 'medium',
+      modelResolutionReason: 'first_compatible_profile_match'
+    }
+  });
+
+  assert.match(prompt, /resolvedModelAtRun: balanced-current/);
+  assert.match(prompt, /resolvedThinkingAtRun: medium/);
+  assert.match(prompt, /modelResolutionReason: first_compatible_profile_match/);
+});
+
 test('permission admission fails closed without verified runtime enforcement', () => {
   assert.deepEqual(
     assessPermissionEnforcement({
@@ -209,6 +279,9 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
     reasoningDemand: operatingModelBindingPacket.reasoningDemand,
     costPreference: operatingModelBindingPacket.costPreference,
     latencyClass: operatingModelBindingPacket.latencyClass,
+    resolvedModelAtRun: 'balanced-current',
+    resolvedThinkingAtRun: 'medium',
+    modelResolutionReason: 'first_compatible_profile_match',
     permissionClass: operatingModelBindingPacket.permissionClass,
     delegationPolicy: operatingModelBindingPacket.delegationPolicy,
     sourceProgressRef: operatingModelBindingPacket.sourceProgressRef,
@@ -255,6 +328,76 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
       approvalSatisfied: true
     }),
     { outcome: 'block', reason: 'unexpected_receipt_type' }
+  );
+});
+
+test('chief gate rechecks resolver evidence before accepting a strict envelope receipt', () => {
+  const modelResolution = {
+    requestedCapabilityClass: operatingModelBindingPacket.capabilityClass,
+    requestedReasoningDemand: operatingModelBindingPacket.reasoningDemand,
+    requestedCostPreference: operatingModelBindingPacket.costPreference,
+    requestedLatencyClass: operatingModelBindingPacket.latencyClass,
+    upgradeTrigger: operatingModelBindingPacket.upgradeTrigger,
+    resolvedModelAtRun: 'balanced-current',
+    resolvedThinkingAtRun: 'medium',
+    modelResolutionReason: 'first_compatible_profile_match'
+  };
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_resolution_gate',
+    receiptType: 'done',
+    authorityTaskId: operatingModelBindingPacket.authorityTaskId,
+    workerId: operatingModelBindingPacket.workerId,
+    threadId: 'thread-resolution',
+    bindingVersion: operatingModelBindingPacket.bindingVersion,
+    currentSlice: operatingModelBindingPacket.currentSlice,
+    proofTarget: operatingModelBindingPacket.proofTarget,
+    evidenceSink: operatingModelBindingPacket.evidenceSink,
+    capabilityClass: operatingModelBindingPacket.capabilityClass,
+    riskClass: operatingModelBindingPacket.riskClass,
+    workType: operatingModelBindingPacket.workType,
+    authorityMode: operatingModelBindingPacket.authorityMode,
+    allowedOps: operatingModelBindingPacket.allowedOps,
+    majorPhase: operatingModelBindingPacket.majorPhase,
+    reasoningDemand: operatingModelBindingPacket.reasoningDemand,
+    costPreference: operatingModelBindingPacket.costPreference,
+    latencyClass: operatingModelBindingPacket.latencyClass,
+    permissionClass: operatingModelBindingPacket.permissionClass,
+    delegationPolicy: operatingModelBindingPacket.delegationPolicy,
+    resolvedModelAtRun: modelResolution.resolvedModelAtRun,
+    resolvedThinkingAtRun: modelResolution.resolvedThinkingAtRun,
+    modelResolutionReason: modelResolution.modelResolutionReason,
+    sourceProgressRef: operatingModelBindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'done',
+    summary: 'Completed resolver evidence proof.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-decisions.test.mjs'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({ bindingPacket: operatingModelBindingPacket, receipt, approvalSatisfied: true, modelResolution }),
+    { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt: { ...receipt, resolvedThinkingAtRun: 'low' },
+      approvalSatisfied: true,
+      modelResolution
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt: { ...receipt, resolvedModelAtRun: undefined },
+      approvalSatisfied: true,
+      modelResolution
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
   );
 });
 
