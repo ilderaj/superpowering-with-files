@@ -26,8 +26,8 @@
 ## Companion Metadata
 
 - Active task path: `planning/active/roadmap-backlog-implementation-plan-20260628/`
-- Lifecycle state: `active`
-- Sync-back status: closure in progress; implementation was verified on 2026-06-29 and the current round is integrating the worktree branch into `origin/main` while re-syncing local/remote `main` and `dev`
+- Lifecycle state: `waiting_review`
+- Sync-back status: waiting human review of 1.0.13 release scope and stale branch/worktree closure
 - **Human review gate:** required before execution
 - **Read-only reviewer subagent gate:** required before execution and after each material plan revision
 - **Review status:** passed after 3 reviewer rounds
