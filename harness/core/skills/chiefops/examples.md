@@ -84,3 +84,65 @@ Forbidden moves:
 - no new runner or scheduler
 - no ChiefOps-specific receipt dialect
 ```
+
+## Example 3: Non-Ultra worker discretion
+
+```text
+Assignment Packet:
+- authorityTaskId: policy-refresh
+- planningRoot: /workspace/project
+- majorPhase: verify
+- currentSlice: run independent read-only policy and fixture checks
+- proofTarget: rendered policy and fixtures express the same contract
+- primaryProof: focused policy and fixture tests
+- evidenceSink: test output and one worker receipt
+- capabilityClass: balanced_execution
+- reasoningDemand: standard
+- costPreference: balanced
+- latencyClass: standard
+- riskClass: medium
+- permissionClass: observe
+- allowedOps: inspect, propose
+- delegationPolicy: worker_discretion
+- upgradeTrigger: any shared mutable state or external action
+- expectedCheckInBy: 2026-07-10T12:10:00.000Z
+- stopCondition: return after the verification phase
+- expectedReceipt: done
+- returnToChiefInstruction: request the verify gate
+
+Worker behavior:
+- Explicitly evaluate whether bounded read-only subagents improve the slice.
+- Continue directly when delegation would add coordination cost without proof value.
+- Keep every delegated tactic below the parent permission ceiling and return one integrated result.
+```
+
+## Example 4: Prohibited delegation for a conflict-prone write
+
+```text
+Assignment Packet:
+- authorityTaskId: schema-migration
+- planningRoot: /workspace/project
+- majorPhase: execute
+- currentSlice: update one shared schema and its focused tests sequentially
+- nonGoals: no parallel edits, publish, send, or release
+- proofTarget: legacy packets remain readable after the additive change
+- primaryProof: schema compatibility tests
+- evidenceSink: focused test output and diff
+- capabilityClass: balanced_execution
+- reasoningDemand: deep
+- costPreference: quality_first
+- latencyClass: standard
+- riskClass: high
+- permissionClass: workspace
+- allowedOps: inspect, write
+- delegationPolicy: prohibited
+- upgradeTrigger: any need for external data or a second mutable-state owner
+- expectedCheckInBy: 2026-07-10T12:10:00.000Z
+- stopCondition: return after compatibility proof
+- expectedReceipt: done
+- returnToChiefInstruction: request the execute gate
+
+Worker behavior:
+- Do not delegate: the schema and tests share one conflict-prone mutable surface.
+- Stop on scope change or permission escalation and return to Chief.
+```

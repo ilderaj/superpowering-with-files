@@ -1,8 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decideCapabilityAction } from '../../harness/runtime/chiefops-overlay/capability-decision.mjs';
+import { decideWatchdogAction } from '../../harness/runtime/chiefops-overlay/watchdog-decision.mjs';
 import { resolveModel } from '../../harness/runtime/chiefops-overlay/model-resolver.mjs';
-import { buildManualHandoffPrompt } from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
+import {
+  assessPermissionEnforcement,
+  buildManualHandoffPrompt
+} from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
 import { gateWorkerReceipt } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
 
 const bindingPacket = {
@@ -42,6 +46,34 @@ const bindingObservation = {
   taskPlanHash: 'sha256:task-plan',
   findingsHash: 'sha256:findings',
   progressHash: 'sha256:progress'
+};
+
+const operatingModelBindingPacket = {
+  ...bindingPacket,
+  majorPhase: 'design',
+  reasoningDemand: 'standard',
+  costPreference: 'balanced',
+  latencyClass: 'standard',
+  permissionClass: 'observe',
+  delegationPolicy: 'worker_discretion',
+  primaryProof: 'focused proof',
+  upgradeTrigger: 'scope change',
+  expectedCheckInBy: '2026-07-10T14:10:00.000Z',
+  stopCondition: 'return at gate',
+  expectedReceipt: 'done',
+  returnToChiefInstruction: 'request design gate'
+};
+
+const operatingModelResolution = {
+  requestedCapabilityClass: operatingModelBindingPacket.capabilityClass,
+  requestedReasoningDemand: operatingModelBindingPacket.reasoningDemand,
+  requestedCostPreference: operatingModelBindingPacket.costPreference,
+  requestedLatencyClass: operatingModelBindingPacket.latencyClass,
+  upgradeTrigger: operatingModelBindingPacket.upgradeTrigger,
+  resolvedModelAtRun: 'balanced-current',
+  resolvedThinkingAtRun: 'medium',
+  modelResolutionReason: 'first_compatible_profile_match',
+  nativeThreadControl: false
 };
 
 test('decideCapabilityAction keeps manual spawn pending until paste-back receipt', () => {
@@ -96,12 +128,196 @@ test('decideCapabilityAction returns capability_unavailable for handoff actions 
   );
 });
 
+test('material drift requests restore and rebind before respawn', () => {
+  assert.deepEqual(
+    decideCapabilityAction({
+      action: 'continue_worker',
+      capabilities: { continue: true },
+      bindingValid: true,
+      materialDrift: true,
+      rebindAttempted: false
+    }),
+    {
+      mode: 'restore_rebind',
+      receiptType: 'binding_mismatch',
+      canProceedAsStarted: false
+    }
+  );
+});
+
+test('persistent context integrity failure after rebind recommends respawn', () => {
+  const decision = decideCapabilityAction({
+    action: 'continue_worker',
+    capabilities: { continue: true },
+    bindingValid: true,
+    materialDrift: true,
+    rebindAttempted: true,
+    contextIntegrityFailure: true
+  });
+  assert.equal(decision.receiptType, 'handoff_pending');
+  assert.equal(decision.respawnReason, 'persistent_context_failure');
+});
+
+test('direct respawn causes bypass context-drift restore', () => {
+  for (const input of [
+    { sessionAvailable: false, respawnReason: 'session_unavailable' },
+    { safeRebindPossible: false, respawnReason: 'rebind_impossible' },
+    { explicitFreshContext: true, respawnReason: 'explicit_fresh_context' },
+    { trustBoundaryChanged: true, respawnReason: 'trust_boundary_change' }
+  ]) {
+    assert.equal(decideCapabilityAction({
+      action: 'respawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      contextDrift: true,
+      ...input
+    }).mode, 'native_control_requested');
+  }
+});
+
+test('legacy respawn without a reason remains accepted while invalid reasons fail closed', () => {
+  assert.equal(
+    decideCapabilityAction({
+      action: 'respawn_worker',
+      capabilities: { create: true },
+      bindingValid: true
+    }).mode,
+    'native_control_requested'
+  );
+
+  assert.deepEqual(
+    decideCapabilityAction({
+      action: 'respawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      respawnReason: 'operator_typo'
+    }),
+    { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false }
+  );
+});
+
+test('watchdog uses one probe then grace instead of busy polling', () => {
+  assert.deepEqual(decideWatchdogAction({ deadlineMissed: false }), { action: 'none' });
+  assert.equal(decideWatchdogAction({ deadlineMissed: true }).action, 'probe');
+  assert.equal(decideWatchdogAction({
+    deadlineMissed: true,
+    probeSent: true,
+    graceExpired: false
+  }).action, 'wait_grace');
+});
+
+test('watchdog grants at most one extension and requires a credible milestone', () => {
+  const base = {
+    deadlineMissed: true,
+    probeSent: true,
+    graceExpired: true,
+    workerResponsive: true,
+    sessionAvailable: true,
+    bindingProbe: 'passed',
+    contextProbe: 'passed'
+  };
+
+  assert.equal(decideWatchdogAction({
+    ...base,
+    credibleMilestone: false,
+    extensionAlreadyGranted: false
+  }).action, 'stale');
+
+  assert.equal(decideWatchdogAction({
+    ...base,
+    credibleMilestone: true,
+    extensionAlreadyGranted: false
+  }).action, 'extend_deadline');
+
+  assert.equal(decideWatchdogAction({
+    ...base,
+    credibleMilestone: true,
+    extensionAlreadyGranted: true
+  }).action, 'stale');
+
+  assert.deepEqual(decideWatchdogAction({
+    ...base,
+    sessionAvailable: false,
+    credibleMilestone: true,
+    extensionAlreadyGranted: false
+  }), { action: 'respawn_recommended', reason: 'session_unavailable' });
+});
+
+test('watchdog restores binding before respawn and respawns after a second failed probe', () => {
+  assert.deepEqual(decideWatchdogAction({
+    deadlineMissed: true,
+    probeSent: true,
+    graceExpired: true,
+    sessionAvailable: true,
+    bindingProbe: 'failed',
+    rebindAttempted: false
+  }), { action: 'restore_rebind', reason: 'integrity_probe_failed' });
+
+  assert.deepEqual(decideWatchdogAction({
+    deadlineMissed: true,
+    probeSent: true,
+    graceExpired: true,
+    sessionAvailable: true,
+    bindingProbe: 'failed',
+    rebindAttempted: true
+  }), { action: 'respawn_recommended', reason: 'integrity_probe_failed_after_rebind' });
+});
+
 test('resolveModel fails instead of silently downgrading missing capability', () => {
   assert.throws(
     () => resolveModel({
       capabilityClass: 'frontier_reasoning',
       availableModels: [{ model: 'small', capabilityClass: 'economy_mechanical' }],
       mapping: {}
+    }),
+    /resolver_failed/
+  );
+});
+
+test('resolveModel selects an exact capability and execution profile without sku rules', () => {
+  assert.deepEqual(
+    resolveModel({
+      capabilityClass: 'balanced_execution',
+      reasoningDemand: 'standard',
+      costPreference: 'balanced',
+      latencyClass: 'standard',
+      upgradeTrigger: 'architecture ambiguity',
+      availableModels: [{
+        model: 'balanced-current',
+        capabilityClass: 'balanced_execution',
+        reasoningByDemand: { light: 'low', standard: 'medium', deep: 'high' },
+        costPreferences: ['balanced'],
+        latencyClasses: ['standard', 'long_running']
+      }]
+    }),
+    {
+      requestedCapabilityClass: 'balanced_execution',
+      requestedReasoningDemand: 'standard',
+      requestedCostPreference: 'balanced',
+      requestedLatencyClass: 'standard',
+      upgradeTrigger: 'architecture ambiguity',
+      resolvedModelAtRun: 'balanced-current',
+      resolvedThinkingAtRun: 'medium',
+      modelResolutionReason: 'first_compatible_profile_match',
+      nativeThreadControl: false
+    }
+  );
+});
+
+test('resolveModel fails if only a lower or incompatible profile exists', () => {
+  assert.throws(
+    () => resolveModel({
+      capabilityClass: 'balanced_execution',
+      reasoningDemand: 'deep',
+      costPreference: 'quality_first',
+      latencyClass: 'long_running',
+      availableModels: [{
+        model: 'balanced-cheap',
+        capabilityClass: 'balanced_execution',
+        reasoningByDemand: { light: 'low', standard: 'medium' },
+        costPreferences: ['economy'],
+        latencyClasses: ['interactive']
+      }]
     }),
     /resolver_failed/
   );
@@ -135,6 +351,298 @@ test('manual handoff prompt includes binding identity and expected receipt', () 
   assert.doesNotMatch(prompt, /btok_1/);
   assert.match(prompt, /Return a ChiefOpsWorkerReceipt/);
   assert.doesNotMatch(prompt, /started.*true/);
+});
+
+test('manual handoff prompt renders the operating-model phase and permission envelope', () => {
+  const prompt = buildManualHandoffPrompt({
+    bindingPacket: operatingModelBindingPacket,
+    bindingObservation
+  });
+
+  assert.match(prompt, /majorPhase: design/);
+  assert.match(prompt, /reasoningDemand: standard/);
+  assert.match(prompt, /costPreference: balanced/);
+  assert.match(prompt, /latencyClass: standard/);
+  assert.match(prompt, /permissionClass: observe/);
+  assert.match(prompt, /delegationPolicy: worker_discretion/);
+  assert.match(prompt, /expectedCheckInBy: 2026-07-10T14:10:00.000Z/);
+  assert.match(prompt, /returnToChiefInstruction: request design gate/);
+});
+
+test('manual handoff prompt renders the exact model-resolution evidence', () => {
+  const prompt = buildManualHandoffPrompt({
+    bindingPacket: operatingModelBindingPacket,
+    bindingObservation,
+    modelResolution: {
+      requestedCapabilityClass: 'balanced_execution',
+      requestedReasoningDemand: 'standard',
+      requestedCostPreference: 'balanced',
+      requestedLatencyClass: 'standard',
+      upgradeTrigger: 'scope change',
+      resolvedModelAtRun: 'balanced-current',
+      resolvedThinkingAtRun: 'medium',
+      modelResolutionReason: 'first_compatible_profile_match'
+    }
+  });
+
+  assert.match(prompt, /resolvedModelAtRun: balanced-current/);
+  assert.match(prompt, /resolvedThinkingAtRun: medium/);
+  assert.match(prompt, /modelResolutionReason: first_compatible_profile_match/);
+});
+
+test('permission admission fails closed without verified runtime enforcement', () => {
+  assert.deepEqual(
+    assessPermissionEnforcement({
+      requestedClass: 'workspace',
+      allowedOps: ['write'],
+      observation: null
+    }),
+    {
+      allowed: false,
+      receiptType: 'manual_handoff_required',
+      reason: 'permission_enforcement_unverified'
+    }
+  );
+});
+
+test('permission admission rejects effective operations outside the verified class', () => {
+  const cases = [
+    {
+      requestedClass: 'observe',
+      allowedOps: ['inspect'],
+      effectiveClass: 'observe',
+      effectiveOps: ['inspect', 'write'],
+      allowed: false
+    },
+    {
+      requestedClass: 'workspace',
+      allowedOps: ['inspect'],
+      effectiveClass: 'workspace',
+      effectiveOps: ['inspect', 'publish'],
+      allowed: false
+    },
+    {
+      requestedClass: 'workspace',
+      allowedOps: ['write'],
+      effectiveClass: 'workspace',
+      effectiveOps: ['inspect'],
+      allowed: false
+    },
+    {
+      requestedClass: 'workspace',
+      allowedOps: ['write'],
+      effectiveClass: 'workspace',
+      effectiveOps: ['inspect', 'write'],
+      allowed: true
+    }
+  ];
+
+  for (const scenario of cases) {
+    assert.equal(
+      assessPermissionEnforcement({
+        requestedClass: scenario.requestedClass,
+        allowedOps: scenario.allowedOps,
+        observation: {
+          status: 'verified',
+          effectiveClass: scenario.effectiveClass,
+          effectiveOps: scenario.effectiveOps,
+          evidenceRef: 'test:permission-observation'
+        }
+      }).allowed,
+      scenario.allowed
+    );
+  }
+});
+
+test('chief gate echoes operating-model identity and expected receipt', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_operating_model_done',
+    receiptType: 'done',
+    authorityTaskId: operatingModelBindingPacket.authorityTaskId,
+    workerId: operatingModelBindingPacket.workerId,
+    threadId: 'thread-1',
+    sessionId: null,
+    bindingVersion: operatingModelBindingPacket.bindingVersion,
+    currentSlice: operatingModelBindingPacket.currentSlice,
+    proofTarget: operatingModelBindingPacket.proofTarget,
+    evidenceSink: operatingModelBindingPacket.evidenceSink,
+    capabilityClass: operatingModelBindingPacket.capabilityClass,
+    riskClass: operatingModelBindingPacket.riskClass,
+    workType: operatingModelBindingPacket.workType,
+    authorityMode: operatingModelBindingPacket.authorityMode,
+    allowedOps: operatingModelBindingPacket.allowedOps,
+    majorPhase: operatingModelBindingPacket.majorPhase,
+    reasoningDemand: operatingModelBindingPacket.reasoningDemand,
+    costPreference: operatingModelBindingPacket.costPreference,
+    latencyClass: operatingModelBindingPacket.latencyClass,
+    resolvedModelAtRun: 'balanced-current',
+    resolvedThinkingAtRun: 'medium',
+    modelResolutionReason: 'first_compatible_profile_match',
+    permissionClass: operatingModelBindingPacket.permissionClass,
+    delegationPolicy: operatingModelBindingPacket.delegationPolicy,
+    sourceProgressRef: operatingModelBindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'done',
+    summary: 'Completed operating-model envelope proof.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-decisions.test.mjs'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true,
+      modelResolution: { ...operatingModelResolution, nativeThreadControl: undefined }
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
+  );
+
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
+    }),
+    { outcome: 'accept', reason: null }
+  );
+
+  for (const field of [
+    'majorPhase',
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass',
+    'permissionClass',
+    'delegationPolicy'
+  ]) {
+    assert.deepEqual(
+      gateWorkerReceipt({
+        bindingPacket: operatingModelBindingPacket,
+        receipt: { ...receipt, [field]: undefined },
+        approvalSatisfied: true,
+        modelResolution: operatingModelResolution
+      }),
+      { outcome: 'block', reason: 'binding_identity_mismatch' }
+    );
+  }
+
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt: { ...receipt, receiptType: 'check_in' },
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
+    }),
+    { outcome: 'block', reason: 'unexpected_receipt_type' }
+  );
+
+  for (const [field, value] of [['threadId', 'thread-bound'], ['sessionId', 'session-bound']]) {
+    const bound = {
+      ...operatingModelBindingPacket,
+      threadId: field === 'threadId' ? value : null,
+      sessionId: field === 'sessionId' ? value : null
+    };
+    const echoed = {
+      ...receipt,
+      threadId: bound.threadId,
+      sessionId: bound.sessionId
+    };
+    assert.deepEqual(
+      gateWorkerReceipt({ bindingPacket: bound, receipt: echoed, approvalSatisfied: true, modelResolution: operatingModelResolution }),
+      { outcome: 'accept', reason: null }
+    );
+    assert.deepEqual(
+      gateWorkerReceipt({
+        bindingPacket: bound,
+        receipt: { ...echoed, [field]: `${value}-wrong` },
+        approvalSatisfied: true,
+        modelResolution: operatingModelResolution
+      }),
+      { outcome: 'block', reason: 'binding_identity_mismatch' }
+    );
+  }
+});
+
+test('chief gate rechecks resolver evidence before accepting a strict envelope receipt', () => {
+  const modelResolution = operatingModelResolution;
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_resolution_gate',
+    receiptType: 'done',
+    authorityTaskId: operatingModelBindingPacket.authorityTaskId,
+    workerId: operatingModelBindingPacket.workerId,
+    threadId: 'thread-resolution',
+    bindingVersion: operatingModelBindingPacket.bindingVersion,
+    currentSlice: operatingModelBindingPacket.currentSlice,
+    proofTarget: operatingModelBindingPacket.proofTarget,
+    evidenceSink: operatingModelBindingPacket.evidenceSink,
+    capabilityClass: operatingModelBindingPacket.capabilityClass,
+    riskClass: operatingModelBindingPacket.riskClass,
+    workType: operatingModelBindingPacket.workType,
+    authorityMode: operatingModelBindingPacket.authorityMode,
+    allowedOps: operatingModelBindingPacket.allowedOps,
+    majorPhase: operatingModelBindingPacket.majorPhase,
+    reasoningDemand: operatingModelBindingPacket.reasoningDemand,
+    costPreference: operatingModelBindingPacket.costPreference,
+    latencyClass: operatingModelBindingPacket.latencyClass,
+    permissionClass: operatingModelBindingPacket.permissionClass,
+    delegationPolicy: operatingModelBindingPacket.delegationPolicy,
+    resolvedModelAtRun: modelResolution.resolvedModelAtRun,
+    resolvedThinkingAtRun: modelResolution.resolvedThinkingAtRun,
+    modelResolutionReason: modelResolution.modelResolutionReason,
+    sourceProgressRef: operatingModelBindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'done',
+    summary: 'Completed resolver evidence proof.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-decisions.test.mjs'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({ bindingPacket: operatingModelBindingPacket, receipt, approvalSatisfied: true, modelResolution }),
+    { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true,
+      modelResolution: { ...modelResolution, resolvedModelAtRun: undefined }
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt: { ...receipt, resolvedThinkingAtRun: 'low' },
+      approvalSatisfied: true,
+      modelResolution
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt: { ...receipt, resolvedModelAtRun: undefined },
+      approvalSatisfied: true,
+      modelResolution
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
+  );
 });
 
 test('manual handoff fails closed when no public bindingVersion is available', () => {

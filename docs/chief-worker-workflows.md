@@ -124,8 +124,9 @@ Route to a worker only if isolation, review, or long execution makes it useful.
 Return with proof and sync the trio.
 ```
 
-Default route: Chief-direct for small local edits; visible worker for longer or
-separable implementation.
+Default route: Chief-direct only for quick, single-stage work and narrow gate
+or reconcile verification. Tracked production defaults to one primary visible
+worker session, even when the first implementation slice is locally small.
 
 ### 2. External Method Absorption
 
@@ -210,17 +211,30 @@ Use this when delegating one slice:
 
 ```text
 Assignment Packet
-- taskId: <task-id>
-- workerRole: <planner | implementer | reviewer | verifier>
-- objective: <one bounded objective>
+- authorityTaskId: <task-id>
+- planningRoot: <absolute authority root>
+- taskPlanPath: <exact task_plan.md path>
+- findingsPath: <exact findings.md path>
+- progressPath: <exact progress.md path>
+- bindingObservation: <current trio hashes>
+- majorPhase: <discovery | design | execute | verify | reconcile>
+- currentSlice: <one bounded objective>
 - nonGoals: <what must not widen>
-- filesToRead: <small list>
-- allowedChanges: <bounded surfaces>
-- forbiddenChanges: <hard no-go surfaces>
 - proofTarget: <target>
 - primaryProof: <proof surface>
 - evidenceSink: <where to record result>
+- capabilityClass: <frontier_reasoning | balanced_execution | economy_mechanical | fast_check>
+- reasoningDemand: <light | standard | deep>
+- costPreference: <economy | balanced | quality_first>
+- latencyClass: <interactive | standard | long_running>
+- riskClass: <low | medium | high>
+- permissionClass: <observe | workspace | egress_gated | release>
+- allowedOps: <existing V0b operations>
+- delegationPolicy: <prohibited | worker_discretion | encouraged>
+- upgradeTrigger: <condition that forces a stronger route or stop>
+- expectedCheckInBy: <ISO milestone deadline>
 - stopCondition: <when to stop and return>
+- expectedReceipt: <existing receipt outcome>
 - returnToChiefInstruction: <what the worker reports back>
 ```
 
@@ -229,10 +243,18 @@ traceability. Execution receipts remain outcome evidence, not a worker queue.
 
 ## Practical Defaults
 
-- If the task is small and local, Chief-direct is faster.
-- If the task is long, separable, or should be visible, use a visible Codex
-  session worker.
-- If the task is only review or research, a narrow subagent tactic may be enough.
+- If the task is quick, single-stage, and non-durable, Chief-direct is valid.
+- If the task is tracked, route production to one primary visible Codex session
+  worker and return at every declared major phase boundary.
+- Use `worker_discretion` as the tracked-phase delegation default. Use
+  `prohibited` for shared-state or conflict-prone work and `encouraged` for
+  clearly independent read-heavy tactics; none of these gives subagents more
+  than the parent permission ceiling.
+- Use file-first, session-as-an-audit-source review. Receipts support the Chief
+  gate but do not accept their own outcome.
+- Use event-driven check-ins with milestone deadlines: 2 minutes for startup,
+  5 minutes for quick checks, 10 minutes for standard slices, and 20 to 30
+  minutes for long slices. Do not busy poll.
 - If the task touches release, merge, publish, archive, destructive cleanup, or
   external writes, Chief owns the gate.
 - If multiple active tasks exist, bind first. Do not guess.

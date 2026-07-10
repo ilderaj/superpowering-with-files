@@ -2,7 +2,9 @@
 
 ## Status
 
-Revised draft for multi-agent design review.
+Historical V0b design record, superseded by the user-approved 2026-07-10 Chief/visible-worker operating model design and current operator documentation. The historical decisions remain preserved; concurrency, respawn precedence, model-profile, and permission semantics follow the approved design.
+
+Implementation reference: `docs/superpowers/specs/2026-07-10-chief-worker-operating-model-design.md` and `docs/chiefops-v0b.md`.
 
 This is a constrained design spec, not an implementation plan. It records the V0b product and protocol boundaries that must be preserved before planning implementation work.
 

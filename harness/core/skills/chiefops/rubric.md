@@ -13,6 +13,11 @@
 - Keeps assignment intent in planning/progress until work has a real outcome, rather than storing pre-outcome state in execution receipts.
 - Does not introduce a new runner, scheduler, daemon, or second planning directory.
 - Does not invent a ChiefOps-specific receipt dialect, board file, or task database.
+- Rejects raw Chief chat history forwarding; packets must be derived from current task authority.
+- Rejects automatic advancement across a major phase boundary without a Chief gate.
+- Rejects worker-owned acceptance, reconciliation, archive, release, or other lifecycle decisions.
+- Rejects subagent authority or permission that exceeds the parent ceiling.
+- Requires `prohibited`, `worker_discretion`, or `encouraged`, with `worker_discretion` as the tracked-phase default.
 
 ## Quality Checks
 
@@ -21,5 +26,7 @@
 - The readout clearly states the current proof target or highest-risk claim.
 - The recommended next slice names compact files or surfaces.
 - The worker contract names sync-back and return-to-chief behavior explicitly.
+- The packet names capability, reasoning, cost, latency, risk, permission, delegation, and milestone-deadline fields.
+- File-first, session-as-an-audit-source review is explicit.
 - The sync-back requirement points back to `planning/active/<task-id>/`.
 - Examples stay variation-oriented and do not bloat the template.

@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   validateBindingPacket,
+  validateOperatingModelBindingPacket,
   validateWorkerReceipt,
   makeBindingId,
   makeReceiptId
@@ -45,6 +46,72 @@ const baseBinding = {
 
 test('validateBindingPacket accepts the canonical minimum packet', () => {
   assert.equal(validateBindingPacket(baseBinding).bindingId, 'bind_demo_worker_slice_20260709');
+});
+
+test('legacy v0b packets remain parseable while operating-model handoffs require the new envelope', () => {
+  assert.equal(validateBindingPacket(baseBinding).bindingId, baseBinding.bindingId);
+  assert.throws(
+    () => validateOperatingModelBindingPacket(baseBinding),
+    /missing operating model fields/
+  );
+
+  const operatingModelBinding = {
+    ...baseBinding,
+    majorPhase: 'design',
+    nonGoals: ['do not publish'],
+    primaryProof: 'review proof',
+    reasoningDemand: 'standard',
+    costPreference: 'balanced',
+    latencyClass: 'standard',
+    permissionClass: 'observe',
+    delegationPolicy: 'worker_discretion',
+    upgradeTrigger: 'scope or permission change',
+    expectedCheckInBy: '2026-07-10T14:10:00.000Z',
+    stopCondition: 'return at the major-phase gate',
+    expectedReceipt: 'done',
+    returnToChiefInstruction: 'request the design gate'
+  };
+
+  assert.equal(
+    validateOperatingModelBindingPacket(operatingModelBinding).delegationPolicy,
+    'worker_discretion'
+  );
+});
+
+test('observe permission rejects write publish and send operations', () => {
+  assert.throws(
+    () => validateBindingPacket({
+      ...baseBinding,
+      permissionClass: 'observe',
+      allowedOps: ['write'],
+      publishTarget: 'docs/example.md',
+      approvalGate: 'chief',
+      rollbackPlanRef: 'git revert'
+    }),
+    /observe permission cannot authorize write, publish, or send/
+  );
+});
+
+test('workspace local write does not require a publish target', () => {
+  assert.doesNotThrow(() => validateOperatingModelBindingPacket({
+    ...baseBinding,
+    majorPhase: 'execute',
+    nonGoals: ['do not publish'],
+    primaryProof: 'focused tests',
+    reasoningDemand: 'standard',
+    costPreference: 'balanced',
+    latencyClass: 'standard',
+    permissionClass: 'workspace',
+    delegationPolicy: 'worker_discretion',
+    upgradeTrigger: 'external action required',
+    expectedCheckInBy: '2026-07-10T14:10:00.000Z',
+    stopCondition: 'return after focused tests',
+    expectedReceipt: 'done',
+    returnToChiefInstruction: 'request the execute gate',
+    allowedOps: ['write'],
+    approvalGate: 'chief',
+    rollbackPlanRef: 'git revert HEAD'
+  }));
 });
 
 test('validateBindingPacket requires an absolute authority planning root', () => {
@@ -264,7 +331,7 @@ test('validateWorkerReceipt requires evidence and office source refs for final t
   assert.throws(() => validateWorkerReceipt(officeReceipt), /evidenceRefs.*sourceRefs/);
 });
 
-test('validateWorkerReceipt requires publish evidence or blocker for write outcomes', () => {
+test('validateWorkerReceipt accepts workspace-local write evidence without publish proof', () => {
   const writeReceipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_demo_write_done_20260709',
@@ -292,7 +359,7 @@ test('validateWorkerReceipt requires publish evidence or blocker for write outco
     createdAt: '2026-07-09T05:05:00.000Z'
   };
 
-  assert.throws(() => validateWorkerReceipt(writeReceipt), /publishRef.*blockerReason/);
+  assert.doesNotThrow(() => validateWorkerReceipt(writeReceipt));
 });
 
 test('id helpers are deterministic and redacted enough for durable records', () => {

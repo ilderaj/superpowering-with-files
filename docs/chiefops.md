@@ -204,14 +204,14 @@ That choice is a control decision, not a second workflow lane. It must stay
 grounded in the current task authority, proof target, evidence sink, and
 lifecycle state.
 
-Use Chief-direct when the slice is small, local, and explicitly owned by the
-Chief. Use a visible Codex session worker when the work benefits from a
-separate recoverable thread, a separate worktree, long-running execution,
-independent review, parallel progress, or explicit user visibility. Reuse an
-existing worker only when it is current, bound to the same task authority, and
-still has a safe stop condition. Respawn instead when the old context is stale
-but the bounded slice remains valid. Use a subagent only for narrow review,
-research, or verification tactics; it is not a hidden worker.
+Tracked production work defaults to a visible session worker. Chief-direct is
+limited to quick, single-stage work and narrow gate or reconcile verification.
+Use one primary visible worker session per tracked task across major phases
+while its binding and context remain trustworthy. Reuse an existing worker only
+when it is current, bound to the same task authority, and still has a safe stop
+condition. Respawn only after the approved restore/rebind rules or another
+explicit trust-boundary reason applies. Worker-local subagents are
+session-internal tactics, not hidden substitutes for a visible worker.
 
 Route plan deficiencies to `plan` / `goal2plan`. Route release closure to
 `autonomous-release-closure` when that is the real slice. Route proof,
@@ -225,10 +225,11 @@ Chief. The packet names the objective, non-goals, allowed surfaces, proof
 target, evidence sink, stop condition, and sync-back requirement. It is enough
 to make the worker recoverable without turning workers into a registry.
 
-The Chief may create or reuse up to two active workers when parallelism is
-useful and the slices are genuinely independent. More than two active workers
-requires a user-facing pause: explain why parallelism is needed, what each
-worker owns, and which merge or lifecycle risks increase.
+The default global capacity is two Chief-managed visible executing lanes.
+More than two visible lanes requires explicit human approval after Chief
+explains the parallel benefit, ownership, gate, and reconciliation risk.
+Active or waiting tasks do not consume a lane, and worker-local subagents do
+not consume a visible lane unless they cross the promotion boundary.
 
 Workers do not close, archive, release, merge, or publish. They may produce
 proof, receipts, diffs, or handoff notes, but lifecycle decisions return to the
@@ -275,28 +276,37 @@ When the Chief hands off or frames one worker slice, derive an Assignment Packet
 from existing planning and receipt truth. The packet is a prompt contract, not
 a durable worker database.
 
-Tracked worker Assignment Packets require the authority fields below. Other slice fields remain proportional to the work:
+Tracked worker Assignment Packets use existing V0b runtime field names:
 
-- `taskId`
 - `authorityTaskId`
-- `authorityRoot`: the absolute path to the single authority checkout
+- `planningRoot`: the absolute path to the single authority checkout; a manual prompt may render this as `authorityRoot`
 - `taskPlanPath`, `findingsPath`, and `progressPath`: exact absolute paths to the authoritative trio
 - `bindingObservation`: current hashes for the exact trio files, or another observation the worker can actually verify
-- `unitId`
-- `lane`
-- `workerRole`
-- `objective`
+- `majorPhase`
+- `currentSlice`: the bounded objective
 - `nonGoals`
-- `filesToRead`
-- `allowedChanges`
-- `forbiddenChanges`
 - `proofTarget`
 - `primaryProof`
 - `evidenceSink`
+- `capabilityClass`
+- `reasoningDemand`
+- `costPreference`
+- `latencyClass`
+- `riskClass`
+- `permissionClass`
+- `allowedOps`
+- `delegationPolicy`
+- `upgradeTrigger`
+- `expectedCheckInBy`
 - `stopCondition`
 - `expectedReceipt`
 - `returnToChiefInstruction`
-- `syncBackRequirement`
+
+Exact trio paths are derived from `planningRoot` plus `authorityTaskId`, while
+`bindingObservation` remains transient handoff evidence. Tracked phases use
+`worker_discretion` as the tracked-phase default; `encouraged` never means a
+mandatory spawn. Do not forward Chief chat history. Derive the packet from the
+current trio and necessary source references.
 
 The packet is derived and ephemeral by default. It is not a durable worker database, not a queue file, and not a new registry.
 
@@ -310,10 +320,35 @@ The worker side should stay equally narrow:
 - read only the bounded files or surfaces named by the packet
 - keep the slice limited to one bounded action
 - use the current `Proof Target`, `Primary Proof`, and `Evidence Sink`
+- verify `majorPhase`, `currentSlice`, `permissionClass`, and `delegationPolicy`
 - return status and evidence to the Chief; Chief owns planning writeback into `planning/active/<task-id>/` unless the packet separately grants a bounded planning edit
 - return to the chief after the single slice
 - use execution receipts only when work was actually attempted and reached an outcome
 - keep planning single-homed; do not copy, symlink, or unignore the trio in the worker worktree, and do not treat an unbounded home-directory search as absence proof
+
+## Phase Gate, Audit, Delegation, And Watchdog
+
+Every declared major phase must return to Chief before the next phase begins.
+Within the approved phase, the primary worker proceeds autonomously. Chief uses
+file-first, session-as-an-audit-source review: start with trio, receipt, and
+referenced proof, then inspect targeted artifacts or session turns only when a
+risk or contradiction requires it. Receipts are evidence, not acceptance.
+
+Direct human input is classified as `stop_or_safety`,
+`in_slice_clarification`, or `authority_changing_instruction`. An authority
+change stops at a safe point until Chief reconciles the trio and reissues the
+packet.
+
+Delegation uses `prohibited`, `worker_discretion`, or `encouraged`. Subagents
+remain session-internal, return only to the primary worker, and may never exceed
+the parent permission ceiling. Promote work to a visible parallel worker when
+it becomes cross-phase, long-running, independently human-steered,
+independently outcome-bearing, or the owner of distinct mutable state.
+
+Check-ins are event-driven. `expectedCheckInBy` is a milestone deadline, not a
+poll interval: startup uses 2 minutes, quick checks 5 minutes, standard slices
+10 minutes, and long slices 20 to 30 minutes. The first miss receives one probe
+and a minute-scale grace period; do not busy poll.
 
 ## Minimal Packet Template
 
@@ -322,22 +357,30 @@ Use this when the chief wants one copy-pasteable worker slice without overdesign
 ```text
 Assignment Packet
 - authorityTaskId: <bound authority task id>
-- authorityRoot: <absolute authority root>
+- planningRoot: <absolute authority root; manual prompt label: authorityRoot>
 - taskPlanPath: <absolute authority task_plan.md path>
 - findingsPath: <absolute authority findings.md path>
 - progressPath: <absolute authority progress.md path>
 - bindingObservation: <current hashes for taskPlanPath, findingsPath, and progressPath>
-- taskId: <task-id>
-- unitId: <existing unit or prompt-only id>
-- objective: <one bounded objective>
+- majorPhase: <discovery | design | execute | verify | reconcile>
+- currentSlice: <one bounded objective>
 - nonGoals: <what must not widen>
-- filesToRead: <small list>
-- allowedChanges: <bounded surfaces>
 - proofTarget: <target>
 - primaryProof: <proof surface>
 - evidenceSink: <where the result should be recorded>
+- capabilityClass: <frontier_reasoning | balanced_execution | economy_mechanical | fast_check>
+- reasoningDemand: <light | standard | deep>
+- costPreference: <economy | balanced | quality_first>
+- latencyClass: <interactive | standard | long_running>
+- riskClass: <low | medium | high>
+- permissionClass: <observe | workspace | egress_gated | release>
+- allowedOps: <existing V0b operations>
+- delegationPolicy: <prohibited | worker_discretion | encouraged>
+- upgradeTrigger: <condition that forces a stronger route or stop>
+- expectedCheckInBy: <ISO milestone deadline>
 - stopCondition: <when to stop and return>
-- expectedReceipt: <none yet | blocked | failed | done_with_evidence>
+- expectedReceipt: <existing receipt outcome>
+- returnToChiefInstruction: <major-phase gate request>
 ```
 
 ## Recording Manual Assignment Intent

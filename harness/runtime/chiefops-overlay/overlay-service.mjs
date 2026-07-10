@@ -1,12 +1,32 @@
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { parseChiefOpsBlocks } from './coordination-blocks.mjs';
-import { validateBindingPacket } from './schema.mjs';
+import {
+  CAPABILITY_CLASSES,
+  COST_PREFERENCES,
+  LATENCY_CLASSES,
+  REASONING_DEMANDS,
+  validateBindingPacket,
+  validateOperatingModelBindingPacket
+} from './schema.mjs';
 import { rebuildChiefOpsIndex } from './index-service.mjs';
-import { buildManualHandoffPrompt } from './manual-handoff.mjs';
+import { assessPermissionEnforcement, buildManualHandoffPrompt } from './manual-handoff.mjs';
 import { resolveModel } from './model-resolver.mjs';
 import { resolveAuthorityBinding } from './authority-binding.mjs';
 import { hashContent } from './source-progress-ref.mjs';
+
+const OPERATING_MODEL_MARKER_FIELDS = [
+  'majorPhase',
+  'primaryProof',
+  'reasoningDemand',
+  'costPreference',
+  'latencyClass',
+  'permissionClass',
+  'delegationPolicy',
+  'stopCondition',
+  'expectedReceipt',
+  'returnToChiefInstruction'
+];
 
 export async function readJsonFile(file) {
   return JSON.parse(await readFile(file, 'utf8'));
@@ -40,6 +60,12 @@ function sameAuthoritativeBinding(left, right) {
     'evidenceSink',
     'capabilityClass',
     'riskClass',
+    'majorPhase',
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass',
+    'permissionClass',
+    'delegationPolicy',
     'workType',
     'authorityMode'
   ].every((field) => left[field] === right[field])
@@ -102,8 +128,68 @@ function validateAvailableModels(value) {
     if (typeof entry.capabilityClass !== 'string' || entry.capabilityClass.trim() === '') {
       throw new Error(`available model entry ${index} missing capabilityClass`);
     }
+    if (!CAPABILITY_CLASSES.includes(entry.capabilityClass)) {
+      throw new Error(`available model entry ${index} has invalid capabilityClass`);
+    }
+    const allowedKeys = new Set([
+      'model',
+      'capabilityClass',
+      'reasoningByDemand',
+      'costPreferences',
+      'latencyClasses'
+    ]);
+    const unknown = Object.keys(entry).find((key) => !allowedKeys.has(key));
+    if (unknown) {
+      throw new Error(`available model entry ${index} has unknown field ${unknown}`);
+    }
+    if (!entry.reasoningByDemand || typeof entry.reasoningByDemand !== 'object' || Array.isArray(entry.reasoningByDemand)) {
+      throw new Error(`available model entry ${index} missing reasoningByDemand`);
+    }
+    const reasoningKeys = Object.keys(entry.reasoningByDemand);
+    if (reasoningKeys.length === 0 || reasoningKeys.some((key) => !REASONING_DEMANDS.includes(key))) {
+      throw new Error(`available model entry ${index} has invalid reasoningByDemand`);
+    }
+    if (reasoningKeys.some((key) => typeof entry.reasoningByDemand[key] !== 'string' || entry.reasoningByDemand[key].trim() === '')) {
+      throw new Error(`available model entry ${index} has invalid reasoningByDemand values`);
+    }
+    for (const field of ['costPreferences', 'latencyClasses']) {
+      if (!Array.isArray(entry[field]) || entry[field].length === 0) {
+        throw new Error(`available model entry ${index} missing ${field}`);
+      }
+    }
+    if (entry.costPreferences.some((value) => !COST_PREFERENCES.includes(value))) {
+      throw new Error(`available model entry ${index} has invalid costPreferences`);
+    }
+    if (entry.latencyClasses.some((value) => !LATENCY_CLASSES.includes(value))) {
+      throw new Error(`available model entry ${index} has invalid latencyClasses`);
+    }
   }
 
+  return value;
+}
+
+function validateModelResolution(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('model_resolution_invalid');
+  }
+  const requiredStrings = [
+    'requestedCapabilityClass',
+    'requestedReasoningDemand',
+    'requestedCostPreference',
+    'requestedLatencyClass',
+    'resolvedModelAtRun',
+    'resolvedThinkingAtRun',
+    'modelResolutionReason'
+  ];
+  if (requiredStrings.some((field) => typeof value[field] !== 'string' || value[field].trim() === '')) {
+    throw new Error('model_resolution_invalid');
+  }
+  if (value.upgradeTrigger !== null && typeof value.upgradeTrigger !== 'string') {
+    throw new Error('model_resolution_invalid');
+  }
+  if (value.nativeThreadControl !== false) {
+    throw new Error('model_resolution_invalid');
+  }
   return value;
 }
 
@@ -133,7 +219,12 @@ export async function validateBindingFile({ file }) {
   return validateBindingPacket(await readJsonFile(file));
 }
 
-export async function buildHandoffFromFile({ root, file }) {
+export async function buildHandoffFromFile({
+  root,
+  file,
+  permissionEnforcementObservation = null,
+  modelResolutionFile = null
+}) {
   const bindingPacket = await validateBindingFile({ file });
   const [expectedRoot, packetRoot] = await Promise.all([
     canonicalPath(root),
@@ -153,20 +244,70 @@ export async function buildHandoffFromFile({ root, file }) {
   });
 
   const authoritative = await readAuthoritativeBinding({ root, bindingPacket });
+  const isOperatingModelBinding = OPERATING_MODEL_MARKER_FIELDS
+    .some((field) => authoritative.bindingPacket[field] !== undefined);
+  const handoffPacket = isOperatingModelBinding
+    ? validateOperatingModelBindingPacket(authoritative.bindingPacket)
+    : authoritative.bindingPacket;
+
+  let modelResolution = null;
+  if (isOperatingModelBinding) {
+    if (!modelResolutionFile) {
+      throw new Error('model_resolution_required');
+    }
+    modelResolution = validateModelResolution(await readJsonFile(modelResolutionFile));
+    const profileMatches = modelResolution.requestedCapabilityClass === handoffPacket.capabilityClass
+      && modelResolution.requestedReasoningDemand === handoffPacket.reasoningDemand
+      && modelResolution.requestedCostPreference === handoffPacket.costPreference
+      && modelResolution.requestedLatencyClass === handoffPacket.latencyClass
+      && modelResolution.upgradeTrigger === (handoffPacket.upgradeTrigger ?? null);
+    if (!profileMatches) {
+      throw new Error('model_resolution_profile_mismatch');
+    }
+
+    const permission = assessPermissionEnforcement({
+      requestedClass: handoffPacket.permissionClass,
+      allowedOps: handoffPacket.allowedOps,
+      observation: permissionEnforcementObservation
+    });
+    if (!permission.allowed) {
+      const error = new Error(permission.reason);
+      error.code = permission.receiptType;
+      throw error;
+    }
+  }
+
+  if (modelResolutionFile && !modelResolution) {
+    modelResolution = await readJsonFile(modelResolutionFile);
+  }
+
   const bindingObservation = await readTrioObservation({
     root: expectedRoot,
     taskId: bindingPacket.authorityTaskId,
     progress: authoritative.progress
   });
   return buildManualHandoffPrompt({
-    bindingPacket: { ...authoritative.bindingPacket, planningRoot: expectedRoot },
-    bindingObservation
+    bindingPacket: { ...handoffPacket, planningRoot: expectedRoot },
+    bindingObservation,
+    permissionEnforcementObservation,
+    modelResolution
   });
 }
 
-export async function resolveModelFromFile({ capabilityClass, availableFile }) {
+export async function resolveModelFromFile({
+  capabilityClass,
+  reasoningDemand,
+  costPreference,
+  latencyClass,
+  upgradeTrigger = null,
+  availableFile
+}) {
   return resolveModel({
     capabilityClass,
+    reasoningDemand,
+    costPreference,
+    latencyClass,
+    upgradeTrigger,
     availableModels: validateAvailableModels(await readJsonFile(availableFile)),
     mapping: {}
   });

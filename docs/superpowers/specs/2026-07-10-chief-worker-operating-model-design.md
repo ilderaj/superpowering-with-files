@@ -2,19 +2,19 @@
 
 ## Status
 
-Reviewed specification awaiting user review.
+Reviewed and user-approved specification. Implementation is authorized; post-implementation remediation and reconciliation are pending.
 
 This is a design specification, not an implementation plan. It records the approved Chief/visible-worker operating model and the constraints that a later implementation plan must preserve.
 
 ## Authority And Lifecycle
 
 - Active task: `planning/active/chief-worker-operating-model-20260710/`
-- Lifecycle state: waiting_review, Planning Stage 3
+- Lifecycle state: implementation authorized; post-implementation remediation and reconciliation pending
 - Durable authority: the task-scoped planning trio
 - Companion role: detailed design only
 - Sync-back status: reviewer verdict and accepted revisions synchronized to the trio
 
-If this specification conflicts with the current planning trio, the trio wins and the conflict must be reconciled before implementation planning.
+If this specification conflicts with the current planning trio, the trio wins and the conflict must be reconciled before acceptance or lifecycle closure.
 
 ## Problem
 

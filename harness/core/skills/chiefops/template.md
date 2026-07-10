@@ -29,21 +29,40 @@ Next slice:
 
 Assignment Packet:
 - authorityTaskId: <bound authority task id>
-- authorityRoot: <absolute authority root>
+- planningRoot: <absolute authority root; rendered as authorityRoot in a manual prompt>
 - taskPlanPath: <absolute authority task_plan.md path>
 - findingsPath: <absolute authority findings.md path>
 - progressPath: <absolute authority progress.md path>
 - bindingObservation: <current hashes for taskPlanPath, findingsPath, and progressPath>
-- unitId: <existing execution unit or temporary prompt-only id>
-- Non-goals: <what this slice must not widen into>
-- Allowed changes: <bounded surface>
-- Expected receipt: <none yet | blocked | failed | done_with_evidence after work>
-- Return to chief: <what to report back>
+- majorPhase: <discovery | design | execute | verify | reconcile>
+- currentSlice: <one bounded objective>
+- nonGoals: <what this slice must not widen into>
+- proofTarget: <claim to prove>
+- primaryProof: <highest-risk proof>
+- evidenceSink: <existing evidence surface>
+- capabilityClass: <frontier_reasoning | balanced_execution | economy_mechanical | fast_check>
+- reasoningDemand: <light | standard | deep>
+- costPreference: <economy | balanced | quality_first>
+- latencyClass: <interactive | standard | long_running>
+- riskClass: <low | medium | high>
+- permissionClass: <observe | workspace | egress_gated | release>
+- allowedOps: <existing V0b operations>
+- delegationPolicy: <prohibited | worker_discretion | encouraged>
+- upgradeTrigger: <condition that forces a stronger route or stop>
+- expectedCheckInBy: <ISO milestone deadline>
+- stopCondition: <safe return condition>
+- expectedReceipt: <existing receipt outcome>
+- returnToChiefInstruction: <major-phase gate request>
 
 Worker Prompt Contract:
 - Read and hash the exact authoritative files before tracked edits; return binding_mismatch if they differ from bindingObservation or are missing/contradictory
 - Set HARNESS_PROJECT_ROOT to authorityRoot, or pass explicit --root when supported
+- Do not forward Chief chat history; use the trio-derived packet and necessary source references
 - Keep planning single-homed; do not copy, symlink, or unignore the trio in the worker checkout
+- Verify majorPhase, currentSlice, proofTarget, permissionClass, and delegationPolicy before work
+- Treat worker_discretion as the tracked-phase default; subagent permission cannot exceed the parent ceiling
+- Return at the major phase boundary; stay autonomous only inside the approved phase
+- Treat expectedCheckInBy as a milestone deadline, not a polling interval
 - Return status and evidence to Chief; Chief owns planning writeback unless this packet explicitly grants a bounded planning edit
 - Use task_plan/progress for assignment intent
 - Write an execution receipt only if work was actually attempted and reached an outcome

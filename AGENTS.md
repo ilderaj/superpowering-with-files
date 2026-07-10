@@ -23,6 +23,21 @@ By default:
 - Isolate concurrent work by task id instead of sharing one project-root planning file set.
 - At the start of complex work, scan existing active tasks when stale context may matter, but do not move legacy or completed-looking tasks automatically.
 
+### Chief And Worker Operating Model
+
+- Tracked production work defaults to a visible session worker when the platform provides a visible worker surface.
+- Chief owns intake, binding, business judgment, authorization, major-phase gates, acceptance, reconciliation, and lifecycle.
+- Chief-direct is limited to quick work and narrow gate or reconcile verification.
+- Use one primary visible worker session per tracked task across phases; session context is a cache, not authority.
+- Every major phase boundary returns to Chief. Within an approved phase, the worker may proceed autonomously.
+- Chief chat history is not task authority. Restore and update the exact bound trio before deriving an Assignment Packet.
+- Default capacity is two Chief-managed visible executing lanes. Additional visible lanes require explicit human approval.
+- Worker-local subagents are session-internal implementation details, not visible-worker substitutes or lifecycle owners.
+- Their authority and runtime permission are strict subsets of the parent worker envelope.
+- Use `prohibited`, `worker_discretion`, or `encouraged`; tracked phases default to `worker_discretion`.
+- Promote a delegated slice to a visible parallel worker when it becomes cross-phase, long-running, independently human-steered, independently outcome-bearing, or the owner of distinct mutable state.
+- Wait for delegated work to return before the parent claims the phase outcome.
+
 ### Simplicity Ladder
 
 Before expanding scope, complexity, or dependencies:
@@ -88,32 +103,24 @@ Before each substantive goal round, continuation tick, or phase boundary:
 5. Bound plan-polishing and execution-time replan loops together. Attempt 1 revises from verifier feedback. Attempt 2 re-verifies the failed areas. Attempt 3 performs a broader rethink. If the 3rd review round is still a failed review, record blockers and unresolved assumptions in the authoritative planning files, then stop the current execution attempt instead of looping forever.
 6. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, review verdicts, execution mode, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
 
-For tracked and deep-reasoning work, major phase boundaries, completion of a reviewed plan, or unusually long continuation history are good cues to prefer a fresh thread and restore from `planning/active/<task-id>/` instead of stretching one continuation indefinitely. This is soft guidance for hygiene, not a hard stop.
-
-This protocol is repository-owned guidance, not a separate runner. Hooks may inject reminders or compact context, but they do not replace round-start restore, reclassification, routing, or sync-back discipline.
+Deep or unusually long work may use a fresh thread that restores the trio. This is repository guidance, not a runner; hooks do not replace restore, routing, or sync-back discipline.
 
 ### Mode-Aware Verification Contract
 
-The `Mode-Aware Verification Contract` is the repo-owned vocabulary for choosing proof by failure risk. It explains which evidence is supposed to catch the most dangerous failure for the current kind of work. It does not create a second runner, replace native `/goal`, or force heavy process onto quick tasks.
+The `Mode-Aware Verification Contract` selects proof by failure risk. It does not create a runner, replace native `/goal`, or force heavyweight process onto quick tasks.
 
 Harness uses six mode families:
 
-| Mode Family | Typical Surface | Typical Failure Risk |
+| Mode Family | Main risk |
 | --- | --- | --- |
-| design/planning | intake shaping, task memory, companion plans, acceptance design | wrong scope, missing constraints, or unverifiable success criteria |
-| execution | implementation, templates, adapters, focused checks | broken invariants, wrong files, partial rollout |
-| review | plan review, diff review, PR review, architecture review | accepted-but-wrong scope, unsafe change, weak rollback or review blind spots |
-| acceptance/verify | focused verification, fixtures, user-visible workflow checks | unmet acceptance criteria, broken workflow, silent user-facing regressions |
-| reconcile/lifecycle | reconciliation, finish, archive, task-state transitions | drift between intent, implementation, evidence, and lifecycle state |
-| operations/release/adoption | install, sync, doctor, backup/takeover, release, adoption | rollout, recovery, migration, or support regressions |
+| design/planning | wrong scope or unverifiable criteria |
+| execution | broken invariants or partial rollout |
+| review | scope, architecture, rollback, or approval drift |
+| acceptance/verify | unmet user-visible outcomes |
+| reconcile/lifecycle | source-of-truth or archive drift |
+| operations/release/adoption | rollout, recovery, or migration failure |
 
-Harness distinguishes proof types so the contract can match the risk:
-
-- `unit/invariant proof`: code-level or structural evidence that narrow logic, schemas, parsers, adapters, and invariants still hold.
-- `BDD/acceptance proof`: scenario or workflow evidence that user-visible outcomes still match the claim.
-- `review proof`: reviewer evidence about scope fit, architecture, rollback, docs, and risk framing.
-- `lifecycle/governance proof`: evidence that task state, reconciliation, ownership, backlog/docs updates, and archive readiness are correctly aligned.
-- `operational proof`: evidence that install, sync, doctor, release, adoption, recovery, or takeover behavior is safe in practice.
+Proof types are `unit/invariant`, `BDD/acceptance`, `review`, `lifecycle/governance`, and `operational`; choose the type that covers the mode's main risk.
 
 The proof-stack core vocabulary is:
 
@@ -122,25 +129,15 @@ The proof-stack core vocabulary is:
 - `Unacceptable Substitute`: evidence that may look green or busy but does not actually close the relevant risk.
 - `Evidence Sink`: where the proof result is recorded so future review, reconciliation, or operations work can find it.
 
-When a tracked or deep-reasoning task needs an explicit proof design, the minimal declared contract shape is seven fields:
+When a tracked task needs an explicit proof design, declare:
 
-- `Proof Target`: the exact claim, artifact, or risk boundary the proof stack is meant to validate.
-- `Primary Proof`: the evidence most likely to catch the highest-risk failure for the current mode family.
-- `Backstop Proof`: secondary evidence that covers residual or adjacent risk without pretending to replace the primary proof.
-- `Escalation Trigger`: the condition that forces the task to stop, narrow scope, or seek review because the declared proof is missing, failed, or contradicted.
-- `Evidence Sink`: where the proof result is recorded so future review, reconciliation, or operations work can find it.
-- `Reconcile Rule`: how the task must sync proof outcomes back into lifecycle state, reconciliation, or follow-up ownership.
-- `Unacceptable Substitute`: evidence that may look green or busy but does not actually close the relevant risk.
+- `Proof Target`, `Primary Proof`, and `Backstop Proof`;
+- `Escalation Trigger`, `Evidence Sink`, and `Reconcile Rule`;
+- `Unacceptable Substitute`.
 
-Proof choice must match failure risk rather than defaulting to unit versus BDD:
+Use unit proof for invariants, BDD for user-visible behavior, review proof for scope/architecture/approval, lifecycle proof for task state, and operational proof for install/release/recovery.
 
-- if the risk is local invariant breakage, `unit/invariant proof` can be primary and BDD may only be a backstop
-- if the risk is user-facing behavior drift, `BDD/acceptance proof` should be primary and unit checks are only a backstop
-- if the risk is scope, architecture, rollback, policy, or approval drift, `review proof` must be primary even when tests are green
-- if the risk is lifecycle state, source-of-truth alignment, or archive readiness, `lifecycle/governance proof` must be primary
-- if the risk is install, release, adoption, or recovery failure, `operational proof` must be primary
-
-Quick tasks stay lightweight. They usually rely on direct proof in-session and may omit a declared verification contract entirely. Tracked and deep-reasoning tasks may declare a `Mode-Aware Verification Contract` when the proof target, proof stack, escalation rule, evidence sink, reconcile rule, or unacceptable substitutes need to be explicit. Declaring the contract documents proof design only; it does not add a new runner.
+Quick tasks stay lightweight with direct in-session proof; tracked/deep tasks declare the contract only when needed.
 
 ## When Superpowers Is Allowed
 
@@ -234,3 +231,22 @@ When Codex uses `/goal`, repository-local `/plan-goal`, or any goal-like continu
 
 Hooks stay lightweight in Codex. They may inject compact planning reminders or hot context for the next prompt, but the core round-start discipline lives in rendered guidance and task-scoped planning files.
 
+## Codex Visible Session Controls
+
+- Use native visible task or thread controls for tracked workers when the host exposes them.
+- Do not forward Chief chat history into a worker. Send the bounded Assignment Packet, exact trio paths, current binding observation, and necessary source references.
+- When create, continue, model, or permission controls are unavailable, fail honestly to a bounded manual handoff instead of claiming native control.
+- A worktree and narrow packet are defense in depth; they do not prove an atomic per-thread permission boundary.
+
+## Scope Autonomy And Human Gates
+
+- Inside an already-authorized scope, do not seek extra confirmation; execute the approved work.
+- Explicit human gates remain mandatory for more than two visible lanes and for release, merge, publish, send, deploy, destructive, external, security, or data-loss actions.
+
+## Codex Concise Output Guidance
+
+User-visible chat wording only.
+
+- Use 1-2 short `did / next / blocker` sentences.
+- Skip play-by-play, repeated context, and planning-file recaps.
+- Trio writeback is primary; chat wording is optional.

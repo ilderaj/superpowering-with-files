@@ -1,8 +1,24 @@
+const APPROVED_RESPAWN_REASONS = new Set([
+  'session_unavailable',
+  'rebind_impossible',
+  'explicit_fresh_context',
+  'trust_boundary_change',
+  'persistent_context_failure'
+]);
+
 export function decideCapabilityAction({
   action,
   capabilities = {},
   bindingValid,
   materialDrift,
+  contextDrift = materialDrift,
+  sessionAvailable = true,
+  safeRebindPossible = true,
+  explicitFreshContext = false,
+  trustBoundaryChanged = false,
+  rebindAttempted = false,
+  contextIntegrityFailure = false,
+  respawnReason = null,
   sliceStillMatters = true,
   manualHandoffAllowed = true
 }) {
@@ -10,11 +26,67 @@ export function decideCapabilityAction({
     return { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false };
   }
 
-  if (materialDrift) {
-    return { mode: 'respawn', receiptType: 'respawn_recommended', canProceedAsStarted: false };
+  if (action === 'respawn_worker'
+      && respawnReason !== null
+      && !APPROVED_RESPAWN_REASONS.has(respawnReason)) {
+    return { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false };
   }
 
-  if (action === 'spawn_worker' || action === 'respawn_worker') {
+  let effectiveAction = action;
+  let effectiveRespawnReason = respawnReason;
+
+  if (!sessionAvailable) {
+    effectiveAction = 'respawn_worker';
+    effectiveRespawnReason = 'session_unavailable';
+  } else if (!safeRebindPossible) {
+    effectiveAction = 'respawn_worker';
+    effectiveRespawnReason = 'rebind_impossible';
+  } else if (explicitFreshContext) {
+    effectiveAction = 'respawn_worker';
+    effectiveRespawnReason = 'explicit_fresh_context';
+  } else if (trustBoundaryChanged) {
+    effectiveAction = 'respawn_worker';
+    effectiveRespawnReason = 'trust_boundary_change';
+  } else if (contextIntegrityFailure && rebindAttempted) {
+    effectiveAction = 'respawn_worker';
+    effectiveRespawnReason = 'persistent_context_failure';
+  }
+
+  if (effectiveAction !== 'respawn_worker' && contextDrift && !rebindAttempted) {
+    return { mode: 'restore_rebind', receiptType: 'binding_mismatch', canProceedAsStarted: false };
+  }
+
+  if (effectiveAction !== 'respawn_worker' && contextDrift) {
+    return { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false };
+  }
+
+  if (effectiveAction === 'respawn_worker') {
+    if (capabilities.create) {
+      return {
+        mode: 'native_control_requested',
+        receiptType: 'binding_verified',
+        canProceedAsStarted: false,
+        requiresWorkerReceipt: true,
+        respawnReason: effectiveRespawnReason
+      };
+    }
+
+    return manualHandoffAllowed
+      ? {
+          mode: 'manual_handoff',
+          receiptType: 'handoff_pending',
+          canProceedAsStarted: false,
+          respawnReason: effectiveRespawnReason
+        }
+      : {
+          mode: 'unsupported',
+          receiptType: 'capability_unavailable',
+          canProceedAsStarted: false,
+          respawnReason: effectiveRespawnReason
+        };
+  }
+
+  if (effectiveAction === 'spawn_worker') {
     if (capabilities.create) {
       return {
         mode: 'native_control_requested',
@@ -29,7 +101,7 @@ export function decideCapabilityAction({
       : { mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false };
   }
 
-  if (action === 'continue_worker') {
+  if (effectiveAction === 'continue_worker') {
     if (capabilities.continue) {
       return {
         mode: 'native_control_requested',
@@ -48,7 +120,7 @@ export function decideCapabilityAction({
       : { mode: 'abandon', receiptType: 'abandoned', canProceedAsStarted: false };
   }
 
-  if (action === 'handoff_worker' || action === 'send_instruction') {
+  if (effectiveAction === 'handoff_worker' || effectiveAction === 'send_instruction') {
     if (capabilities.message || capabilities.handoff) {
       return {
         mode: 'native_control_requested',

@@ -115,3 +115,28 @@ test('chiefops assignment packets fail closed against the absolute authority roo
   assert.match(combined, /Tracked worker Assignment Packets require/i);
   assert.match(combined, /Chief owns planning writeback/i);
 });
+
+test('chiefops guidance exposes the approved operating-model packet envelope', async () => {
+  const skill = await readFile('harness/core/skills/chiefops/SKILL.md', 'utf8');
+  const template = await readFile('harness/core/skills/chiefops/template.md', 'utf8');
+  const docs = await readFile('docs/chiefops.md', 'utf8');
+  const combined = `${skill}\n${template}\n${docs}`;
+
+  for (const field of [
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass',
+    'permissionClass',
+    'delegationPolicy',
+    'expectedCheckInBy'
+  ]) {
+    assert.match(combined, new RegExp(field));
+  }
+
+  assert.match(combined, /worker_discretion.*tracked-phase default/is);
+  assert.match(combined, /file-first, session-as-an-audit-source/i);
+  assert.match(combined, /major phase.*return.*Chief/is);
+  assert.match(combined, /2 minutes.*5 minutes.*10 minutes.*20.*30 minutes/is);
+  assert.match(combined, /do not forward.*Chief chat history/is);
+  assert.match(combined, /permission.*parent.*ceiling/is);
+});

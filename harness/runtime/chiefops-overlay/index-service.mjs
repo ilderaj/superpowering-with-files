@@ -26,6 +26,10 @@ function workerIndexEntry(root, taskId, binding, receipt = null) {
     currentSlice: binding.currentSlice,
     proofTarget: binding.proofTarget,
     evidenceSink: binding.evidenceSink,
+    capabilityClass: binding.capabilityClass,
+    reasoningDemand: binding.reasoningDemand,
+    permissionClass: binding.permissionClass,
+    delegationPolicy: binding.delegationPolicy,
     sourceProgressRef: {
       file: path.relative(root, sourceProgressRef(root, taskId)),
       blockId: binding.sourceProgressRef.blockId,
@@ -67,15 +71,13 @@ function detectDuplicateConflicts(taskId, bindings, receipts = [], seenByField, 
 }
 
 function sameBindingIdentity(binding, receipt) {
-  if (receipt.bindingVersion) {
-    return receipt.bindingVersion === binding.bindingVersion;
-  }
+  const versionMatches = !receipt.bindingVersion || receipt.bindingVersion === binding.bindingVersion;
+  const tokenMatches = !receipt.bindingToken || receipt.bindingToken === binding.bindingToken;
+  const boundSessionMatches = (!binding.threadId || receipt.threadId === binding.threadId)
+    && (!binding.sessionId || receipt.sessionId === binding.sessionId);
 
-  if (receipt.bindingToken) {
-    return receipt.bindingToken === binding.bindingToken;
-  }
-
-  return false;
+  return versionMatches && tokenMatches && boundSessionMatches
+    && Boolean(receipt.bindingVersion || receipt.bindingToken);
 }
 
 export async function rebuildChiefOpsIndex({ root, taskIds }) {

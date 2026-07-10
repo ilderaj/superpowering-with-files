@@ -10,6 +10,13 @@ When Codex uses `/goal`, repository-local `/plan-goal`, or any goal-like continu
 
 Hooks stay lightweight in Codex. They may inject compact planning reminders or hot context for the next prompt, but the core round-start discipline lives in rendered guidance and task-scoped planning files.
 
+## Codex Visible Session Controls
+
+- Use native visible task or thread controls for tracked workers when the host exposes them.
+- Do not forward Chief chat history into a worker. Send the bounded Assignment Packet, exact trio paths, current binding observation, and necessary source references.
+- When create, continue, model, or permission controls are unavailable, fail honestly to a bounded manual handoff instead of claiming native control.
+- A worktree and narrow packet are defense in depth; they do not prove an atomic per-thread permission boundary.
+
 ## Codex Concise Output Guidance
 
 User-visible chat wording only.

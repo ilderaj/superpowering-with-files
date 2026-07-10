@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
+import { buildHandoffFromFile } from '../../harness/runtime/chiefops-overlay/overlay-service.mjs';
 import { createHarnessFixture, removeHarnessFixture } from '../helpers/harness-fixture.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -158,6 +159,120 @@ test('harness chiefops overlay handoff creates a prompt but not a started receip
     assert.doesNotMatch(stdout, /btok_1/);
     assert.doesNotMatch(stdout, /canProceedAsStarted.*true/);
     assert.doesNotMatch(stdout, /started receipt/i);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness chiefops overlay handoff keeps legacy timing and upgrade fields out of the strict envelope', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const taskDir = path.join(root, 'planning/active/chiefops-demo');
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(path.join(taskDir, 'task_plan.md'), '# ChiefOps Demo\n');
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    const binding = demoBindingPacket(root, {
+      upgradeTrigger: 'legacy escalation note',
+      expectedCheckInBy: '2026-07-09T05:10:00.000Z'
+    });
+    await writeFile(
+      path.join(taskDir, 'progress.md'),
+      ['# Progress', '', serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding), ''].join('\n')
+    );
+    const file = path.join(root, 'binding.json');
+    await writeFile(file, JSON.stringify(binding, null, 2));
+
+    const { stdout } = await harnessCommand(root, 'chiefops', 'overlay', 'handoff', '--file', file);
+    assert.match(stdout, /Return a ChiefOpsWorkerReceipt/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness chiefops overlay strict handoff fails closed without runtime permission evidence', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const taskDir = path.join(root, 'planning/active/chiefops-demo');
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(path.join(taskDir, 'task_plan.md'), '# ChiefOps Demo\n\n## Current State\nStatus: active\n');
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    const binding = demoBindingPacket(root, {
+      majorPhase: 'design',
+      nonGoals: ['do not publish'],
+      primaryProof: 'focused envelope tests',
+      reasoningDemand: 'standard',
+      costPreference: 'balanced',
+      latencyClass: 'standard',
+      permissionClass: 'observe',
+      delegationPolicy: 'worker_discretion',
+      upgradeTrigger: 'scope change',
+      expectedCheckInBy: '2026-07-09T05:10:00.000Z',
+      stopCondition: 'return at design gate',
+      expectedReceipt: 'done',
+      returnToChiefInstruction: 'request design gate'
+    });
+    await writeFile(
+      path.join(taskDir, 'progress.md'),
+      ['# Progress', '', 'operating model handoff', '', serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding), ''].join('\n')
+    );
+    const file = path.join(root, 'binding.json');
+    await writeFile(file, JSON.stringify(binding, null, 2));
+    const modelResolutionFile = path.join(root, 'model-resolution.json');
+    await writeFile(modelResolutionFile, JSON.stringify({
+      requestedCapabilityClass: binding.capabilityClass,
+      requestedReasoningDemand: binding.reasoningDemand,
+      requestedCostPreference: binding.costPreference,
+      requestedLatencyClass: binding.latencyClass,
+      upgradeTrigger: binding.upgradeTrigger,
+      resolvedModelAtRun: 'balanced-current',
+      resolvedThinkingAtRun: 'medium',
+      modelResolutionReason: 'first_compatible_profile_match',
+      nativeThreadControl: false
+    }, null, 2));
+
+    await assert.rejects(
+      harnessCommand(root, 'chiefops', 'overlay', 'handoff', '--file', file, '--model-resolution', modelResolutionFile),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /permission_enforcement_unverified/);
+        return true;
+      }
+    );
+
+    const prompt = await buildHandoffFromFile({
+      root,
+      file,
+      modelResolutionFile,
+      permissionEnforcementObservation: {
+        status: 'verified',
+        effectiveClass: 'observe',
+        effectiveOps: ['inspect'],
+        evidenceRef: 'test:permission-observation'
+      }
+    });
+    assert.match(prompt, /resolvedModelAtRun: balanced-current/);
+    assert.match(prompt, /resolvedThinkingAtRun: medium/);
+    assert.match(prompt, /modelResolutionReason: first_compatible_profile_match/);
+
+    const mismatchedResolutionFile = path.join(root, 'model-resolution-mismatch.json');
+    await writeFile(mismatchedResolutionFile, JSON.stringify({
+      ...JSON.parse(await readFile(modelResolutionFile, 'utf8')),
+      requestedCostPreference: 'economy'
+    }, null, 2));
+    await assert.rejects(
+      buildHandoffFromFile({
+        root,
+        file,
+        modelResolutionFile: mismatchedResolutionFile,
+        permissionEnforcementObservation: {
+          status: 'verified',
+          effectiveClass: 'observe',
+          effectiveOps: ['inspect'],
+          evidenceRef: 'test:permission-observation'
+        }
+      }),
+      /model_resolution_profile_mismatch/
+    );
   } finally {
     await removeHarnessFixture(root);
   }
@@ -343,8 +458,20 @@ test('harness chiefops overlay resolve-model prints resolved model JSON', async 
       file,
       JSON.stringify(
         [
-          { model: 'balanced-1', capabilityClass: 'balanced_execution' },
-          { model: 'frontier-1', capabilityClass: 'frontier_reasoning' }
+          {
+            model: 'balanced-1',
+            capabilityClass: 'balanced_execution',
+            reasoningByDemand: { light: 'low', standard: 'medium', deep: 'high' },
+            costPreferences: ['balanced'],
+            latencyClasses: ['standard', 'long_running']
+          },
+          {
+            model: 'frontier-1',
+            capabilityClass: 'frontier_reasoning',
+            reasoningByDemand: { standard: 'high', deep: 'max' },
+            costPreferences: ['quality_first'],
+            latencyClasses: ['standard', 'long_running']
+          }
         ],
         null,
         2
@@ -358,6 +485,14 @@ test('harness chiefops overlay resolve-model prints resolved model JSON', async 
       'resolve-model',
       '--capability-class',
       'balanced_execution',
+      '--reasoning-demand',
+      'standard',
+      '--cost-preference',
+      'balanced',
+      '--latency-class',
+      'standard',
+      '--upgrade-trigger',
+      'architecture ambiguity',
       '--available',
       file
     );
@@ -365,8 +500,13 @@ test('harness chiefops overlay resolve-model prints resolved model JSON', async 
 
     assert.equal(stderr, '');
     assert.equal(parsed.requestedCapabilityClass, 'balanced_execution');
+    assert.equal(parsed.requestedReasoningDemand, 'standard');
+    assert.equal(parsed.requestedCostPreference, 'balanced');
+    assert.equal(parsed.requestedLatencyClass, 'standard');
+    assert.equal(parsed.upgradeTrigger, 'architecture ambiguity');
     assert.equal(parsed.resolvedModelAtRun, 'balanced-1');
-    assert.equal(parsed.fallbackReason, null);
+    assert.equal(parsed.resolvedThinkingAtRun, 'medium');
+    assert.equal(parsed.modelResolutionReason, 'first_compatible_profile_match');
   } finally {
     await removeHarnessFixture(root);
   }
@@ -379,7 +519,7 @@ test('harness chiefops overlay resolve-model rejects malformed model inventory',
     await writeFile(file, JSON.stringify([{ capabilityClass: 'balanced_execution' }], null, 2));
 
     await assert.rejects(
-      harnessCommand(root, 'chiefops', 'overlay', 'resolve-model', '--capability-class', 'balanced_execution', '--available', file),
+      harnessCommand(root, 'chiefops', 'overlay', 'resolve-model', '--capability-class', 'balanced_execution', '--reasoning-demand', 'standard', '--cost-preference', 'balanced', '--latency-class', 'standard', '--available', file),
       (error) => {
         assert.equal(error.code, 1);
         assert.match(error.stderr, /missing model/i);
@@ -399,6 +539,13 @@ test('chiefops v0b docs keep critical overlay safety semantics visible', async (
   assert.match(doc, /does not create a second durable memory root/i);
   assert.match(doc, /Manual handoff output is pending only/i);
   assert.match(doc, /no worker heartbeat runtime/i);
+  assert.match(doc, /two Chief-managed visible executing lanes/i);
+  assert.match(doc, /restore and rebind before respawn/i);
+  assert.match(doc, /worker_discretion/i);
+  assert.match(doc, /permissionClass/i);
+  assert.match(doc, /reasoning-demand/i);
+  assert.match(doc, /does not provide a native visible-thread spawn adapter/i);
+  assert.doesNotMatch(doc, /V0b hard max: `3`/i);
 });
 
 test('harness chiefops overlay index fails closed for missing authority trio', async () => {

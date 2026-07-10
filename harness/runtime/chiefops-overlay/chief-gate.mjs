@@ -35,11 +35,36 @@ function sameBindingIdentity(bindingPacket, receipt) {
   return Boolean(receipt.bindingVersion || receipt.bindingToken);
 }
 
+function sameBoundSession(bindingPacket, receipt) {
+  return (!bindingPacket.threadId || receipt.threadId === bindingPacket.threadId)
+    && (!bindingPacket.sessionId || receipt.sessionId === bindingPacket.sessionId);
+}
+
+function isCompleteModelResolution(modelResolution) {
+  return Boolean(modelResolution)
+    && [
+      'requestedCapabilityClass',
+      'requestedReasoningDemand',
+      'requestedCostPreference',
+      'requestedLatencyClass',
+      'resolvedModelAtRun',
+      'resolvedThinkingAtRun',
+      'modelResolutionReason'
+    ].every((field) => typeof modelResolution[field] === 'string' && modelResolution[field].length > 0)
+    && modelResolution.nativeThreadControl === false;
+}
+
 function isTerminalLifecycleStatus(status) {
   return ['closed', 'archived', 'done', 'complete'].includes(String(status || '').toLowerCase());
 }
 
-export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = false, taskState = {} }) {
+export function gateWorkerReceipt({
+  bindingPacket,
+  receipt,
+  approvalSatisfied = false,
+  taskState = {},
+  modelResolution = null
+}) {
   const identityFields = [
     'authorityTaskId',
     'workerId',
@@ -48,6 +73,12 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
     'evidenceSink',
     'capabilityClass',
     'riskClass',
+    'majorPhase',
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass',
+    'permissionClass',
+    'delegationPolicy',
     'workType',
     'authorityMode'
   ];
@@ -66,6 +97,37 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
 
   if (!sameBindingIdentity(bindingPacket, receipt)) {
     return { outcome: 'block', reason: 'binding_identity_mismatch' };
+  }
+
+  if (!sameBoundSession(bindingPacket, receipt)) {
+    return { outcome: 'block', reason: 'binding_identity_mismatch' };
+  }
+
+  const hasOperatingModelProfile = [
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass'
+  ].every((field) => bindingPacket[field] !== undefined);
+  if (hasOperatingModelProfile) {
+    const resolutionFields = ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason'];
+    if (!isCompleteModelResolution(modelResolution) || resolutionFields.some((field) => !receipt[field])) {
+      return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
+    }
+    const requestedMatches = modelResolution.requestedCapabilityClass === bindingPacket.capabilityClass
+      && modelResolution.requestedReasoningDemand === bindingPacket.reasoningDemand
+      && modelResolution.requestedCostPreference === bindingPacket.costPreference
+      && modelResolution.requestedLatencyClass === bindingPacket.latencyClass
+      && modelResolution.upgradeTrigger === (bindingPacket.upgradeTrigger ?? null);
+    const resolvedMatches = receipt.resolvedModelAtRun === modelResolution.resolvedModelAtRun
+      && receipt.resolvedThinkingAtRun === modelResolution.resolvedThinkingAtRun
+      && receipt.modelResolutionReason === modelResolution.modelResolutionReason;
+    if (!requestedMatches || !resolvedMatches) {
+      return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
+    }
+  }
+
+  if (bindingPacket.expectedReceipt && bindingPacket.expectedReceipt !== receipt.receiptType) {
+    return { outcome: 'block', reason: 'unexpected_receipt_type' };
   }
 
   if (bindingPacket.requiresHumanApproval && !approvalSatisfied) {
@@ -96,7 +158,7 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
       return { outcome: 'block', reason: 'source_evidence_missing' };
     }
 
-    if (bindingPacket.allowedOps.some((op) => ['write', 'publish', 'send'].includes(op)) && !receipt.publishRef) {
+    if (bindingPacket.allowedOps.some((op) => ['publish', 'send'].includes(op)) && !receipt.publishRef) {
       if (receipt.blockerReason) {
         return { outcome: 'block', reason: 'publish_blocked' };
       }

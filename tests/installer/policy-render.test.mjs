@@ -56,6 +56,37 @@ test('codex rendered policy documents soft model tiering while copilot stays thi
   assert.doesNotMatch(copilotRendered, /Soft Model Tiering/);
 });
 
+test('codex policy renders the approved chief and visible worker operating model', async () => {
+  const codexRendered = await renderEntry(process.cwd(), 'codex', 'always-on-core');
+  const trackedEntry = await readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8');
+
+  for (const text of [codexRendered, trackedEntry]) {
+    assert.match(text, /Tracked production work defaults to a visible session worker/);
+    assert.match(text, /Chief chat history is not task authority/);
+    assert.match(text, /one primary visible worker session per tracked task/i);
+    assert.match(text, /major phase boundary/i);
+    assert.match(text, /two Chief-managed visible executing lanes/);
+    assert.match(text, /prohibited.*worker_discretion.*encouraged/s);
+    assert.match(text, /subagents.*session-internal implementation details/is);
+  }
+
+  assert.doesNotMatch(codexRendered, /Spawn subagents automatically/);
+});
+
+test('task completion stays autonomous inside scope while preserving explicit human gates', async () => {
+  const [basePolicy, agentsDoc] = await Promise.all([
+    readFile(path.join(process.cwd(), 'harness/core/policy/base.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8')
+  ]);
+
+  for (const text of [basePolicy, agentsDoc]) {
+    assert.match(text, /already-authorized scope.*do not seek extra confirmation/is);
+    assert.match(text, /more than two visible lanes/i);
+    assert.match(text, /release.*merge.*publish.*send.*deploy/is);
+    assert.match(text, /destructive.*external.*security.*data-loss/is);
+  }
+});
+
 test('rendered always-on entries keep the simplicity ladder and deliberate simplification marker', async () => {
   const [codexRendered, copilotRendered] = await Promise.all([
     renderEntry(process.cwd(), 'codex', 'always-on-core'),

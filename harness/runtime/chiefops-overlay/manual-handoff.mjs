@@ -1,6 +1,53 @@
 import path from 'node:path';
 
-export function buildManualHandoffPrompt({ bindingPacket, bindingObservation }) {
+const PERMISSION_RANK = new Map([
+  ['observe', 0],
+  ['workspace', 1],
+  ['egress_gated', 2],
+  ['release', 3]
+]);
+
+const LEGAL_OPS_BY_PERMISSION_CLASS = new Map([
+  ['observe', new Set(['inspect', 'draft', 'propose'])],
+  ['workspace', new Set(['inspect', 'draft', 'propose', 'write'])],
+  ['egress_gated', new Set(['inspect', 'draft', 'propose', 'write', 'publish', 'send'])],
+  ['release', new Set(['inspect', 'draft', 'propose', 'write', 'publish', 'send'])]
+]);
+
+export function assessPermissionEnforcement({ requestedClass, allowedOps, observation }) {
+  const verified = observation?.status === 'verified'
+    && typeof observation.evidenceRef === 'string'
+    && observation.evidenceRef.length > 0;
+  const withinCeiling = verified
+    && PERMISSION_RANK.has(observation.effectiveClass)
+    && PERMISSION_RANK.get(observation.effectiveClass) <= PERMISSION_RANK.get(requestedClass);
+  const operationsCovered = withinCeiling
+    && Array.isArray(observation.effectiveOps)
+    && allowedOps.every((op) => observation.effectiveOps.includes(op));
+  const effectiveOpsAreLegal = operationsCovered
+    && observation.effectiveOps.every((op) => LEGAL_OPS_BY_PERMISSION_CLASS
+      .get(observation.effectiveClass)?.has(op));
+
+  return effectiveOpsAreLegal
+    ? {
+        allowed: true,
+        effectiveClass: observation.effectiveClass,
+        effectiveOps: observation.effectiveOps,
+        evidenceRef: observation.evidenceRef
+      }
+    : {
+        allowed: false,
+        receiptType: 'manual_handoff_required',
+        reason: 'permission_enforcement_unverified'
+      };
+}
+
+export function buildManualHandoffPrompt({
+  bindingPacket,
+  bindingObservation,
+  permissionEnforcementObservation = null,
+  modelResolution = null
+}) {
   if (!bindingPacket.bindingVersion) {
     throw new Error('bindingVersion is required for manual handoff');
   }
@@ -27,15 +74,31 @@ export function buildManualHandoffPrompt({ bindingPacket, bindingObservation }) 
     `progressPath: ${path.join(taskDir, 'progress.md')}`,
     `workerId: ${bindingPacket.workerId}`,
     `bindingVersion: ${bindingPacket.bindingVersion}`,
+    `majorPhase: ${bindingPacket.majorPhase ?? ''}`,
     `currentSlice: ${bindingPacket.currentSlice}`,
     `proofTarget: ${bindingPacket.proofTarget}`,
     `evidenceSink: ${bindingPacket.evidenceSink}`,
+    `primaryProof: ${bindingPacket.primaryProof ?? ''}`,
     `capabilityClass: ${bindingPacket.capabilityClass}`,
+    `reasoningDemand: ${bindingPacket.reasoningDemand ?? ''}`,
+    `costPreference: ${bindingPacket.costPreference ?? ''}`,
+    `latencyClass: ${bindingPacket.latencyClass ?? ''}`,
+    `resolvedModelAtRun: ${modelResolution?.resolvedModelAtRun ?? ''}`,
+    `resolvedThinkingAtRun: ${modelResolution?.resolvedThinkingAtRun ?? ''}`,
+    `modelResolutionReason: ${modelResolution?.modelResolutionReason ?? ''}`,
+    `nativeThreadControl: ${modelResolution?.nativeThreadControl ?? false}`,
     `riskClass: ${bindingPacket.riskClass}`,
+    `permissionClass: ${bindingPacket.permissionClass ?? ''}`,
+    `delegationPolicy: ${bindingPacket.delegationPolicy ?? ''}`,
     `workType: ${bindingPacket.workType}`,
     `authorityMode: ${bindingPacket.authorityMode}`,
     `allowedOps: ${bindingPacket.allowedOps.join(', ')}`,
     `nonGoals: ${bindingPacket.nonGoals?.join(' | ') ?? ''}`,
+    `upgradeTrigger: ${bindingPacket.upgradeTrigger ?? ''}`,
+    `expectedCheckInBy: ${bindingPacket.expectedCheckInBy ?? ''}`,
+    `stopCondition: ${bindingPacket.stopCondition ?? ''}`,
+    `expectedReceipt: ${bindingPacket.expectedReceipt ?? ''}`,
+    `returnToChiefInstruction: ${bindingPacket.returnToChiefInstruction ?? ''}`,
     `sourceProgressRef.file: ${bindingPacket.sourceProgressRef?.file ?? ''}`,
     `sourceProgressRef.blockId: ${bindingPacket.sourceProgressRef?.blockId ?? ''}`,
     `sourceProgressRef.contentHash: ${bindingPacket.sourceProgressRef?.contentHash ?? ''}`,
