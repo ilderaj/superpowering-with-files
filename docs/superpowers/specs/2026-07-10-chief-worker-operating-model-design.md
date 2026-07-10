@@ -2,14 +2,14 @@
 
 ## Status
 
-Reviewed specification awaiting user review.
+Reviewed and user-approved specification. Planning Stage 4 is complete; implementation has not been authorized.
 
 This is a design specification, not an implementation plan. It records the approved Chief/visible-worker operating model and the constraints that a later implementation plan must preserve.
 
 ## Authority And Lifecycle
 
 - Active task: `planning/active/chief-worker-operating-model-20260710/`
-- Lifecycle state: waiting_review, Planning Stage 3
+- Lifecycle state: waiting_review, awaiting Stage 5 authorization
 - Durable authority: the task-scoped planning trio
 - Companion role: detailed design only
 - Sync-back status: reviewer verdict and accepted revisions synchronized to the trio
