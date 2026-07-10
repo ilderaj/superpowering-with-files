@@ -9,7 +9,7 @@ This is a design specification, not an implementation plan. It records the appro
 ## Authority And Lifecycle
 
 - Active task: `planning/active/chief-worker-operating-model-20260710/`
-- Lifecycle state: waiting_review, awaiting Stage 5 authorization
+- Lifecycle state: implementation authorized under the reviewed plan; final reconciliation pending
 - Durable authority: the task-scoped planning trio
 - Companion role: detailed design only
 - Sync-back status: reviewer verdict and accepted revisions synchronized to the trio

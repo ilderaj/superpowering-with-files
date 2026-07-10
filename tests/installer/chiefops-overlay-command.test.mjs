@@ -514,6 +514,13 @@ test('chiefops v0b docs keep critical overlay safety semantics visible', async (
   assert.match(doc, /does not create a second durable memory root/i);
   assert.match(doc, /Manual handoff output is pending only/i);
   assert.match(doc, /no worker heartbeat runtime/i);
+  assert.match(doc, /two Chief-managed visible executing lanes/i);
+  assert.match(doc, /restore and rebind before respawn/i);
+  assert.match(doc, /worker_discretion/i);
+  assert.match(doc, /permissionClass/i);
+  assert.match(doc, /reasoning-demand/i);
+  assert.match(doc, /does not provide a native visible-thread spawn adapter/i);
+  assert.doesNotMatch(doc, /V0b hard max: `3`/i);
 });
 
 test('harness chiefops overlay index fails closed for missing authority trio', async () => {
