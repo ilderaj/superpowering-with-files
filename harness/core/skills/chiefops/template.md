@@ -28,6 +28,12 @@ Next slice:
 - Sync-back: update planning/active/<task-id>/ after meaningful progress
 
 Assignment Packet:
+- authorityTaskId: <bound authority task id>
+- authorityRoot: <absolute authority root>
+- taskPlanPath: <absolute authority task_plan.md path>
+- findingsPath: <absolute authority findings.md path>
+- progressPath: <absolute authority progress.md path>
+- bindingObservation: <current hashes for taskPlanPath, findingsPath, and progressPath>
 - unitId: <existing execution unit or temporary prompt-only id>
 - Non-goals: <what this slice must not widen into>
 - Allowed changes: <bounded surface>
@@ -35,6 +41,10 @@ Assignment Packet:
 - Return to chief: <what to report back>
 
 Worker Prompt Contract:
+- Read and hash the exact authoritative files before tracked edits; return binding_mismatch if they differ from bindingObservation or are missing/contradictory
+- Set HARNESS_PROJECT_ROOT to authorityRoot, or pass explicit --root when supported
+- Keep planning single-homed; do not copy, symlink, or unignore the trio in the worker checkout
+- Return status and evidence to Chief; Chief owns planning writeback unless this packet explicitly grants a bounded planning edit
 - Use task_plan/progress for assignment intent
 - Write an execution receipt only if work was actually attempted and reached an outcome
 - Return after one bounded slice

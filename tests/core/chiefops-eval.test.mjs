@@ -95,3 +95,23 @@ test('chiefops guidance preserves explicit visible Codex session worker routing'
   assert.match(combined, /the proof target and evidence sink/i);
   assert.match(combined, /the return-to-Chief gate/i);
 });
+
+test('chiefops assignment packets fail closed against the absolute authority root', async () => {
+  const skill = await readFile('harness/core/skills/chiefops/SKILL.md', 'utf8');
+  const docs = await readFile('docs/chiefops.md', 'utf8');
+  const template = await readFile('harness/core/skills/chiefops/template.md', 'utf8');
+  const combined = `${skill}\n${docs}\n${template}`;
+
+  assert.match(combined, /authorityRoot/i);
+  assert.match(combined, /authorityTaskId/i);
+  assert.match(combined, /taskPlanPath/i);
+  assert.match(combined, /findingsPath/i);
+  assert.match(combined, /progressPath/i);
+  assert.match(combined, /bindingObservation/i);
+  assert.match(combined, /HARNESS_PROJECT_ROOT/i);
+  assert.match(combined, /binding_mismatch/i);
+  assert.match(combined, /exact authoritative files/i);
+  assert.match(combined, /do not copy, symlink, or unignore/i);
+  assert.match(combined, /Tracked worker Assignment Packets require/i);
+  assert.match(combined, /Chief owns planning writeback/i);
+});

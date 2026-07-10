@@ -6,6 +6,7 @@ import { rebuildChiefOpsIndex } from './index-service.mjs';
 import { buildManualHandoffPrompt } from './manual-handoff.mjs';
 import { resolveModel } from './model-resolver.mjs';
 import { resolveAuthorityBinding } from './authority-binding.mjs';
+import { hashContent } from './source-progress-ref.mjs';
 
 export async function readJsonFile(file) {
   return JSON.parse(await readFile(file, 'utf8'));
@@ -32,6 +33,7 @@ function sameAuthoritativeBinding(left, right) {
   const sharedFieldsMatch = [
     'bindingId',
     'authorityTaskId',
+    'planningRoot',
     'workerId',
     'currentSlice',
     'proofTarget',
@@ -67,7 +69,22 @@ async function readAuthoritativeBinding({ root, bindingPacket }) {
     throw new Error('binding packet does not match authoritative progress truth');
   }
 
-  return authoritative;
+  return { bindingPacket: authoritative, progress: markdown };
+}
+
+async function readTrioObservation({ root, taskId, progress }) {
+  const taskDir = path.join(root, 'planning/active', taskId);
+  const [taskPlan, findings] = await Promise.all([
+    readFile(path.join(taskDir, 'task_plan.md'), 'utf8'),
+    readFile(path.join(taskDir, 'findings.md'), 'utf8')
+  ]);
+
+  return {
+    observedAt: new Date().toISOString(),
+    taskPlanHash: hashContent(taskPlan),
+    findingsHash: hashContent(findings),
+    progressHash: hashContent(progress)
+  };
 }
 
 function validateAvailableModels(value) {
@@ -135,8 +152,16 @@ export async function buildHandoffFromFile({ root, file }) {
     bindingPacket
   });
 
-  const authoritativeBinding = await readAuthoritativeBinding({ root, bindingPacket });
-  return buildManualHandoffPrompt({ bindingPacket: authoritativeBinding });
+  const authoritative = await readAuthoritativeBinding({ root, bindingPacket });
+  const bindingObservation = await readTrioObservation({
+    root: expectedRoot,
+    taskId: bindingPacket.authorityTaskId,
+    progress: authoritative.progress
+  });
+  return buildManualHandoffPrompt({
+    bindingPacket: { ...authoritative.bindingPacket, planningRoot: expectedRoot },
+    bindingObservation
+  });
 }
 
 export async function resolveModelFromFile({ capabilityClass, availableFile }) {

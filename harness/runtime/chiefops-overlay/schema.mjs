@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import path from 'node:path';
 
 export const WORK_TYPES = ['coding', 'office', 'release', 'review', 'research'];
 export const AUTHORITY_MODES = ['task_authority', 'source_authority', 'release_authority'];
@@ -66,6 +67,12 @@ export const BindingPacketSchema = z.object({
   expectedCheckInBy: isoTimestamp.optional(),
   rollbackPlanRef: z.string().min(1).optional()
 }).superRefine((packet, ctx) => {
+  if (!path.isAbsolute(packet.planningRoot)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'planningRoot must be an absolute authority root.' });
+  }
+  if (/[\u0000-\u001f\u007f]/.test(packet.planningRoot)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'planningRoot must not contain control characters.' });
+  }
   if (!packet.bindingToken && !packet.bindingVersion) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'bindingToken or bindingVersion is required.' });
   }

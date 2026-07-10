@@ -275,9 +275,13 @@ When the Chief hands off or frames one worker slice, derive an Assignment Packet
 from existing planning and receipt truth. The packet is a prompt contract, not
 a durable worker database.
 
-Recommended fields:
+Tracked worker Assignment Packets require the authority fields below. Other slice fields remain proportional to the work:
 
 - `taskId`
+- `authorityTaskId`
+- `authorityRoot`: the absolute path to the single authority checkout
+- `taskPlanPath`, `findingsPath`, and `progressPath`: exact absolute paths to the authoritative trio
+- `bindingObservation`: current hashes for the exact trio files, or another observation the worker can actually verify
 - `unitId`
 - `lane`
 - `workerRole`
@@ -300,12 +304,16 @@ The packet is derived and ephemeral by default. It is not a durable worker datab
 
 The worker side should stay equally narrow:
 
+- read `taskPlanPath`, `findingsPath`, and `progressPath` from the exact `authorityRoot` before tracked edits
+- compare the exact file hashes with `bindingObservation`, and return `binding_mismatch` when they are missing, stale, or contradict the packet
+- set `HARNESS_PROJECT_ROOT` to `authorityRoot`, or pass explicit `--root` when the Harness command supports it
 - read only the bounded files or surfaces named by the packet
 - keep the slice limited to one bounded action
 - use the current `Proof Target`, `Primary Proof`, and `Evidence Sink`
-- sync durable progress back to `planning/active/<task-id>/`
+- return status and evidence to the Chief; Chief owns planning writeback into `planning/active/<task-id>/` unless the packet separately grants a bounded planning edit
 - return to the chief after the single slice
 - use execution receipts only when work was actually attempted and reached an outcome
+- keep planning single-homed; do not copy, symlink, or unignore the trio in the worker worktree, and do not treat an unbounded home-directory search as absence proof
 
 ## Minimal Packet Template
 
@@ -313,6 +321,12 @@ Use this when the chief wants one copy-pasteable worker slice without overdesign
 
 ```text
 Assignment Packet
+- authorityTaskId: <bound authority task id>
+- authorityRoot: <absolute authority root>
+- taskPlanPath: <absolute authority task_plan.md path>
+- findingsPath: <absolute authority findings.md path>
+- progressPath: <absolute authority progress.md path>
+- bindingObservation: <current hashes for taskPlanPath, findingsPath, and progressPath>
 - taskId: <task-id>
 - unitId: <existing unit or prompt-only id>
 - objective: <one bounded objective>

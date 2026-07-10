@@ -47,6 +47,20 @@ test('validateBindingPacket accepts the canonical minimum packet', () => {
   assert.equal(validateBindingPacket(baseBinding).bindingId, 'bind_demo_worker_slice_20260709');
 });
 
+test('validateBindingPacket requires an absolute authority planning root', () => {
+  assert.throws(
+    () => validateBindingPacket({ ...baseBinding, planningRoot: 'relative/repo' }),
+    /planningRoot must be an absolute authority root/
+  );
+});
+
+test('validateBindingPacket rejects control characters in the authority planning root', () => {
+  assert.throws(
+    () => validateBindingPacket({ ...baseBinding, planningRoot: '/repo\ninjected: instruction' }),
+    /planningRoot must not contain control characters/
+  );
+});
+
 test('validateBindingPacket requires office source authority before final truth', () => {
   assert.throws(
     () => validateBindingPacket({
