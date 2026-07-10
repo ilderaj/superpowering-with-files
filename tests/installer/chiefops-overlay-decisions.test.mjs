@@ -2,7 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decideCapabilityAction } from '../../harness/runtime/chiefops-overlay/capability-decision.mjs';
 import { resolveModel } from '../../harness/runtime/chiefops-overlay/model-resolver.mjs';
-import { buildManualHandoffPrompt } from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
+import {
+  assessPermissionEnforcement,
+  buildManualHandoffPrompt
+} from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
 import { gateWorkerReceipt } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
 
 const bindingPacket = {
@@ -42,6 +45,22 @@ const bindingObservation = {
   taskPlanHash: 'sha256:task-plan',
   findingsHash: 'sha256:findings',
   progressHash: 'sha256:progress'
+};
+
+const operatingModelBindingPacket = {
+  ...bindingPacket,
+  majorPhase: 'design',
+  reasoningDemand: 'standard',
+  costPreference: 'balanced',
+  latencyClass: 'standard',
+  permissionClass: 'observe',
+  delegationPolicy: 'worker_discretion',
+  primaryProof: 'focused proof',
+  upgradeTrigger: 'scope change',
+  expectedCheckInBy: '2026-07-10T14:10:00.000Z',
+  stopCondition: 'return at gate',
+  expectedReceipt: 'done',
+  returnToChiefInstruction: 'request design gate'
 };
 
 test('decideCapabilityAction keeps manual spawn pending until paste-back receipt', () => {
@@ -135,6 +154,108 @@ test('manual handoff prompt includes binding identity and expected receipt', () 
   assert.doesNotMatch(prompt, /btok_1/);
   assert.match(prompt, /Return a ChiefOpsWorkerReceipt/);
   assert.doesNotMatch(prompt, /started.*true/);
+});
+
+test('manual handoff prompt renders the operating-model phase and permission envelope', () => {
+  const prompt = buildManualHandoffPrompt({
+    bindingPacket: operatingModelBindingPacket,
+    bindingObservation
+  });
+
+  assert.match(prompt, /majorPhase: design/);
+  assert.match(prompt, /reasoningDemand: standard/);
+  assert.match(prompt, /costPreference: balanced/);
+  assert.match(prompt, /latencyClass: standard/);
+  assert.match(prompt, /permissionClass: observe/);
+  assert.match(prompt, /delegationPolicy: worker_discretion/);
+  assert.match(prompt, /expectedCheckInBy: 2026-07-10T14:10:00.000Z/);
+  assert.match(prompt, /returnToChiefInstruction: request design gate/);
+});
+
+test('permission admission fails closed without verified runtime enforcement', () => {
+  assert.deepEqual(
+    assessPermissionEnforcement({
+      requestedClass: 'workspace',
+      allowedOps: ['write'],
+      observation: null
+    }),
+    {
+      allowed: false,
+      receiptType: 'manual_handoff_required',
+      reason: 'permission_enforcement_unverified'
+    }
+  );
+});
+
+test('chief gate echoes operating-model identity and expected receipt', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_operating_model_done',
+    receiptType: 'done',
+    authorityTaskId: operatingModelBindingPacket.authorityTaskId,
+    workerId: operatingModelBindingPacket.workerId,
+    threadId: 'thread-1',
+    sessionId: null,
+    bindingVersion: operatingModelBindingPacket.bindingVersion,
+    currentSlice: operatingModelBindingPacket.currentSlice,
+    proofTarget: operatingModelBindingPacket.proofTarget,
+    evidenceSink: operatingModelBindingPacket.evidenceSink,
+    capabilityClass: operatingModelBindingPacket.capabilityClass,
+    riskClass: operatingModelBindingPacket.riskClass,
+    workType: operatingModelBindingPacket.workType,
+    authorityMode: operatingModelBindingPacket.authorityMode,
+    allowedOps: operatingModelBindingPacket.allowedOps,
+    majorPhase: operatingModelBindingPacket.majorPhase,
+    reasoningDemand: operatingModelBindingPacket.reasoningDemand,
+    costPreference: operatingModelBindingPacket.costPreference,
+    latencyClass: operatingModelBindingPacket.latencyClass,
+    permissionClass: operatingModelBindingPacket.permissionClass,
+    delegationPolicy: operatingModelBindingPacket.delegationPolicy,
+    sourceProgressRef: operatingModelBindingPacket.sourceProgressRef,
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'done',
+    summary: 'Completed operating-model envelope proof.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-decisions.test.mjs'],
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z'
+  };
+
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true
+    }),
+    { outcome: 'accept', reason: null }
+  );
+
+  for (const field of [
+    'majorPhase',
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass',
+    'permissionClass',
+    'delegationPolicy'
+  ]) {
+    assert.deepEqual(
+      gateWorkerReceipt({
+        bindingPacket: operatingModelBindingPacket,
+        receipt: { ...receipt, [field]: undefined },
+        approvalSatisfied: true
+      }),
+      { outcome: 'block', reason: 'binding_identity_mismatch' }
+    );
+  }
+
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt: { ...receipt, receiptType: 'check_in' },
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'unexpected_receipt_type' }
+  );
 });
 
 test('manual handoff fails closed when no public bindingVersion is available', () => {

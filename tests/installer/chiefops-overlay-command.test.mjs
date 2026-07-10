@@ -163,6 +163,48 @@ test('harness chiefops overlay handoff creates a prompt but not a started receip
   }
 });
 
+test('harness chiefops overlay strict handoff fails closed without runtime permission evidence', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const taskDir = path.join(root, 'planning/active/chiefops-demo');
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(path.join(taskDir, 'task_plan.md'), '# ChiefOps Demo\n\n## Current State\nStatus: active\n');
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    const binding = demoBindingPacket(root, {
+      majorPhase: 'design',
+      nonGoals: ['do not publish'],
+      primaryProof: 'focused envelope tests',
+      reasoningDemand: 'standard',
+      costPreference: 'balanced',
+      latencyClass: 'standard',
+      permissionClass: 'observe',
+      delegationPolicy: 'worker_discretion',
+      upgradeTrigger: 'scope change',
+      expectedCheckInBy: '2026-07-09T05:10:00.000Z',
+      stopCondition: 'return at design gate',
+      expectedReceipt: 'done',
+      returnToChiefInstruction: 'request design gate'
+    });
+    await writeFile(
+      path.join(taskDir, 'progress.md'),
+      ['# Progress', '', 'operating model handoff', '', serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding), ''].join('\n')
+    );
+    const file = path.join(root, 'binding.json');
+    await writeFile(file, JSON.stringify(binding, null, 2));
+
+    await assert.rejects(
+      harnessCommand(root, 'chiefops', 'overlay', 'handoff', '--file', file),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /permission_enforcement_unverified/);
+        return true;
+      }
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('harness chiefops overlay handoff preserves authority truth from an out-of-tree worker cwd', async () => {
   const root = await createHarnessFixture({ linkNodeModules: true });
   const workerParent = await mkdtemp(path.join(os.tmpdir(), 'swf-codex-worker-'));

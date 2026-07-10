@@ -48,6 +48,12 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
     'evidenceSink',
     'capabilityClass',
     'riskClass',
+    'majorPhase',
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass',
+    'permissionClass',
+    'delegationPolicy',
     'workType',
     'authorityMode'
   ];
@@ -66,6 +72,10 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
 
   if (!sameBindingIdentity(bindingPacket, receipt)) {
     return { outcome: 'block', reason: 'binding_identity_mismatch' };
+  }
+
+  if (bindingPacket.expectedReceipt && bindingPacket.expectedReceipt !== receipt.receiptType) {
+    return { outcome: 'block', reason: 'unexpected_receipt_type' };
   }
 
   if (bindingPacket.requiresHumanApproval && !approvalSatisfied) {
@@ -96,7 +106,7 @@ export function gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied = 
       return { outcome: 'block', reason: 'source_evidence_missing' };
     }
 
-    if (bindingPacket.allowedOps.some((op) => ['write', 'publish', 'send'].includes(op)) && !receipt.publishRef) {
+    if (bindingPacket.allowedOps.some((op) => ['publish', 'send'].includes(op)) && !receipt.publishRef) {
       if (receipt.blockerReason) {
         return { outcome: 'block', reason: 'publish_blocked' };
       }

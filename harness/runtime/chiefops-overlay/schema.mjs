@@ -21,6 +21,12 @@ export const RECEIPT_TYPES = [
 ];
 export const CAPABILITY_CLASSES = ['frontier_reasoning', 'balanced_execution', 'economy_mechanical', 'fast_check'];
 export const RISK_CLASSES = ['low', 'medium', 'high'];
+export const REASONING_DEMANDS = ['light', 'standard', 'deep'];
+export const COST_PREFERENCES = ['economy', 'balanced', 'quality_first'];
+export const LATENCY_CLASSES = ['interactive', 'standard', 'long_running'];
+export const PERMISSION_CLASSES = ['observe', 'workspace', 'egress_gated', 'release'];
+export const DELEGATION_POLICIES = ['prohibited', 'worker_discretion', 'encouraged'];
+export const MAJOR_PHASES = ['discovery', 'design', 'execute', 'verify', 'reconcile'];
 export const RECEIPT_TYPES_REQUIRING_SESSION_HANDLE = ['binding_verified', 'started', 'check_in', 'blocked', 'done', 'new_trio_candidate', 'abandoned'];
 
 const isoTimestamp = z.string().datetime();
@@ -48,6 +54,13 @@ export const BindingPacketSchema = z.object({
   evidenceSink: z.string().min(1),
   capabilityClass: z.enum(CAPABILITY_CLASSES),
   riskClass: z.enum(RISK_CLASSES),
+  majorPhase: z.enum(MAJOR_PHASES).optional(),
+  primaryProof: z.string().min(1).optional(),
+  reasoningDemand: z.enum(REASONING_DEMANDS).optional(),
+  costPreference: z.enum(COST_PREFERENCES).optional(),
+  latencyClass: z.enum(LATENCY_CLASSES).optional(),
+  permissionClass: z.enum(PERMISSION_CLASSES).optional(),
+  delegationPolicy: z.enum(DELEGATION_POLICIES).optional(),
   workType: z.enum(WORK_TYPES),
   authorityMode: z.enum(AUTHORITY_MODES),
   allowedOps: z.array(z.enum(ALLOWED_OPS)).min(1),
@@ -65,7 +78,10 @@ export const BindingPacketSchema = z.object({
   nonGoals: z.array(z.string().min(1)).optional(),
   upgradeTrigger: z.string().min(1).optional(),
   expectedCheckInBy: isoTimestamp.optional(),
-  rollbackPlanRef: z.string().min(1).optional()
+  rollbackPlanRef: z.string().min(1).optional(),
+  stopCondition: z.string().min(1).optional(),
+  expectedReceipt: z.enum(RECEIPT_TYPES).optional(),
+  returnToChiefInstruction: z.string().min(1).optional()
 }).superRefine((packet, ctx) => {
   if (!path.isAbsolute(packet.planningRoot)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'planningRoot must be an absolute authority root.' });
@@ -82,11 +98,36 @@ export const BindingPacketSchema = z.object({
   if ((packet.workType === 'office' || packet.authorityMode === 'source_authority') && (!packet.sourceSet?.length || !packet.systemOfRecord)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'sourceSet and systemOfRecord are required for office/source authority work.' });
   }
-  if (packet.allowedOps.some((op) => ['write', 'publish', 'send'].includes(op))) {
+  if (packet.permissionClass === 'observe' && packet.allowedOps.some((op) => ['write', 'publish', 'send'].includes(op))) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'observe permission cannot authorize write, publish, or send operations.'
+    });
+  }
+  if (packet.permissionClass === 'workspace' && packet.allowedOps.some((op) => ['publish', 'send'].includes(op))) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'workspace permission cannot authorize publish or send operations.'
+    });
+  }
+  if (packet.allowedOps.includes('write')) {
+    const missing = ['approvalGate', 'rollbackPlanRef'].filter((field) => !packet[field]);
+    if (missing.length > 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${missing.join(', ')} are required for local write operations.` });
+    }
+  }
+  if (packet.allowedOps.some((op) => ['publish', 'send'].includes(op))) {
     const missing = ['publishTarget', 'approvalGate', 'rollbackPlanRef'].filter((field) => !packet[field]);
     if (missing.length > 0) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${missing.join(', ')} are required for write/publish/send operations.` });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `${missing.join(', ')} are required for publish/send operations.` });
     }
+  }
+  if (packet.permissionClass === 'release' &&
+      (packet.authorityMode !== 'release_authority' || packet.requiresHumanApproval !== true)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'release permission requires release authority and human approval.'
+    });
   }
 });
 
@@ -105,6 +146,12 @@ export const WorkerReceiptSchema = z.object({
   evidenceSink: z.string().min(1),
   capabilityClass: z.enum(CAPABILITY_CLASSES),
   riskClass: z.enum(RISK_CLASSES),
+  majorPhase: z.enum(MAJOR_PHASES).optional(),
+  reasoningDemand: z.enum(REASONING_DEMANDS).optional(),
+  costPreference: z.enum(COST_PREFERENCES).optional(),
+  latencyClass: z.enum(LATENCY_CLASSES).optional(),
+  permissionClass: z.enum(PERMISSION_CLASSES).optional(),
+  delegationPolicy: z.enum(DELEGATION_POLICIES).optional(),
   workType: z.enum(WORK_TYPES),
   authorityMode: z.enum(AUTHORITY_MODES),
   allowedOps: z.array(z.enum(ALLOWED_OPS)).min(1),
@@ -119,6 +166,9 @@ export const WorkerReceiptSchema = z.object({
   sourceRefs: z.array(z.string().min(1)).optional(),
   publishRef: z.string().min(1).optional(),
   blockerReason: z.string().min(1).optional(),
+  resolvedModelAtRun: z.string().min(1).optional(),
+  resolvedThinkingAtRun: z.string().min(1).optional(),
+  modelResolutionReason: z.string().min(1).optional(),
   scopeCheck: z.object({
     nonGoalsChecked: z.boolean(),
     violations: z.array(z.string().min(1))
@@ -146,7 +196,7 @@ export const WorkerReceiptSchema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'sourceRefs are required for office/source authority done receipts.' });
     }
   }
-  if (receipt.receiptType === 'done' && receipt.allowedOps.some((op) => ['write', 'publish', 'send'].includes(op)) && !receipt.publishRef && !receipt.blockerReason) {
+  if (receipt.receiptType === 'done' && receipt.allowedOps.some((op) => ['publish', 'send'].includes(op)) && !receipt.publishRef && !receipt.blockerReason) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'publishRef or blockerReason is required for write/publish/send done receipts.' });
   }
 });
@@ -173,6 +223,33 @@ export function makeReceiptId({ authorityTaskId, workerId, receiptType, createdA
 
 export function validateBindingPacket(value) {
   return BindingPacketSchema.parse(value);
+}
+
+const operatingModelFields = [
+  'majorPhase',
+  'primaryProof',
+  'reasoningDemand',
+  'costPreference',
+  'latencyClass',
+  'permissionClass',
+  'delegationPolicy',
+  'upgradeTrigger',
+  'expectedCheckInBy',
+  'stopCondition',
+  'expectedReceipt',
+  'returnToChiefInstruction'
+];
+
+export function validateOperatingModelBindingPacket(value) {
+  const packet = validateBindingPacket(value);
+  const missing = operatingModelFields.filter((field) => !packet[field]);
+  if (!packet.nonGoals?.length) {
+    missing.push('nonGoals');
+  }
+  if (missing.length > 0) {
+    throw new Error(`missing operating model fields: ${missing.join(', ')}`);
+  }
+  return packet;
 }
 
 export function validateWorkerReceipt(value) {

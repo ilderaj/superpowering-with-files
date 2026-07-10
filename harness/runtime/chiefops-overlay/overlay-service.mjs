@@ -1,9 +1,9 @@
 import { readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import { parseChiefOpsBlocks } from './coordination-blocks.mjs';
-import { validateBindingPacket } from './schema.mjs';
+import { validateBindingPacket, validateOperatingModelBindingPacket } from './schema.mjs';
 import { rebuildChiefOpsIndex } from './index-service.mjs';
-import { buildManualHandoffPrompt } from './manual-handoff.mjs';
+import { assessPermissionEnforcement, buildManualHandoffPrompt } from './manual-handoff.mjs';
 import { resolveModel } from './model-resolver.mjs';
 import { resolveAuthorityBinding } from './authority-binding.mjs';
 import { hashContent } from './source-progress-ref.mjs';
@@ -40,6 +40,12 @@ function sameAuthoritativeBinding(left, right) {
     'evidenceSink',
     'capabilityClass',
     'riskClass',
+    'majorPhase',
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass',
+    'permissionClass',
+    'delegationPolicy',
     'workType',
     'authorityMode'
   ].every((field) => left[field] === right[field])
@@ -133,7 +139,7 @@ export async function validateBindingFile({ file }) {
   return validateBindingPacket(await readJsonFile(file));
 }
 
-export async function buildHandoffFromFile({ root, file }) {
+export async function buildHandoffFromFile({ root, file, permissionEnforcementObservation = null }) {
   const bindingPacket = await validateBindingFile({ file });
   const [expectedRoot, packetRoot] = await Promise.all([
     canonicalPath(root),
@@ -153,13 +159,45 @@ export async function buildHandoffFromFile({ root, file }) {
   });
 
   const authoritative = await readAuthoritativeBinding({ root, bindingPacket });
+  const operatingModelFields = [
+    'majorPhase',
+    'primaryProof',
+    'reasoningDemand',
+    'costPreference',
+    'latencyClass',
+    'permissionClass',
+    'delegationPolicy',
+    'upgradeTrigger',
+    'expectedCheckInBy',
+    'stopCondition',
+    'expectedReceipt',
+    'returnToChiefInstruction'
+  ];
+  const isOperatingModelBinding = operatingModelFields.some((field) => authoritative.bindingPacket[field] !== undefined);
+  const handoffPacket = isOperatingModelBinding
+    ? validateOperatingModelBindingPacket(authoritative.bindingPacket)
+    : authoritative.bindingPacket;
+
+  if (isOperatingModelBinding) {
+    const permission = assessPermissionEnforcement({
+      requestedClass: handoffPacket.permissionClass,
+      allowedOps: handoffPacket.allowedOps,
+      observation: permissionEnforcementObservation
+    });
+    if (!permission.allowed) {
+      const error = new Error(permission.reason);
+      error.code = permission.receiptType;
+      throw error;
+    }
+  }
+
   const bindingObservation = await readTrioObservation({
     root: expectedRoot,
     taskId: bindingPacket.authorityTaskId,
     progress: authoritative.progress
   });
   return buildManualHandoffPrompt({
-    bindingPacket: { ...authoritative.bindingPacket, planningRoot: expectedRoot },
+    bindingPacket: { ...handoffPacket, planningRoot: expectedRoot },
     bindingObservation
   });
 }

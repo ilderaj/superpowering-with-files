@@ -74,6 +74,31 @@ test('rebuildChiefOpsIndex derives worker mapping from active trio progress only
   assert.equal(index.conflicts.length, 0);
 });
 
+test('rebuildChiefOpsIndex exposes redacted operating-model control fields', async () => {
+  const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-operating-model');
+  await rm(root, { recursive: true, force: true });
+  await mkdir(path.join(root, 'planning/active/chiefops-demo'), { recursive: true });
+  await writeFile(path.join(root, 'planning/active/chiefops-demo/task_plan.md'), '# Demo\n');
+  await writeFile(path.join(root, 'planning/active/chiefops-demo/findings.md'), '# Findings\n');
+  await writeFile(
+    path.join(root, 'planning/active/chiefops-demo/progress.md'),
+    serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding({
+      planningRoot: root,
+      reasoningDemand: 'standard',
+      permissionClass: 'workspace',
+      delegationPolicy: 'worker_discretion',
+      bindingToken: 'secret-token'
+    }))
+  );
+
+  const index = await rebuildChiefOpsIndex({ root, taskIds: ['chiefops-demo'] });
+
+  assert.equal(index.workers[0].reasoningDemand, 'standard');
+  assert.equal(index.workers[0].permissionClass, 'workspace');
+  assert.equal(index.workers[0].delegationPolicy, 'worker_discretion');
+  assert.equal(JSON.stringify(index).includes('secret-token'), false);
+});
+
 test('rebuildChiefOpsIndex reports duplicate binding tokens instead of picking a winner', async () => {
   const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-conflict');
   await rm(root, { recursive: true, force: true });
