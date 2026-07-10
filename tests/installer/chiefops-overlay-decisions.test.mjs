@@ -64,6 +64,18 @@ const operatingModelBindingPacket = {
   returnToChiefInstruction: 'request design gate'
 };
 
+const operatingModelResolution = {
+  requestedCapabilityClass: operatingModelBindingPacket.capabilityClass,
+  requestedReasoningDemand: operatingModelBindingPacket.reasoningDemand,
+  requestedCostPreference: operatingModelBindingPacket.costPreference,
+  requestedLatencyClass: operatingModelBindingPacket.latencyClass,
+  upgradeTrigger: operatingModelBindingPacket.upgradeTrigger,
+  resolvedModelAtRun: 'balanced-current',
+  resolvedThinkingAtRun: 'medium',
+  modelResolutionReason: 'first_compatible_profile_match',
+  nativeThreadControl: false
+};
+
 test('decideCapabilityAction keeps manual spawn pending until paste-back receipt', () => {
   assert.deepEqual(
     decideCapabilityAction({
@@ -393,6 +405,55 @@ test('permission admission fails closed without verified runtime enforcement', (
   );
 });
 
+test('permission admission rejects effective operations outside the verified class', () => {
+  const cases = [
+    {
+      requestedClass: 'observe',
+      allowedOps: ['inspect'],
+      effectiveClass: 'observe',
+      effectiveOps: ['inspect', 'write'],
+      allowed: false
+    },
+    {
+      requestedClass: 'workspace',
+      allowedOps: ['inspect'],
+      effectiveClass: 'workspace',
+      effectiveOps: ['inspect', 'publish'],
+      allowed: false
+    },
+    {
+      requestedClass: 'workspace',
+      allowedOps: ['write'],
+      effectiveClass: 'workspace',
+      effectiveOps: ['inspect'],
+      allowed: false
+    },
+    {
+      requestedClass: 'workspace',
+      allowedOps: ['write'],
+      effectiveClass: 'workspace',
+      effectiveOps: ['inspect', 'write'],
+      allowed: true
+    }
+  ];
+
+  for (const scenario of cases) {
+    assert.equal(
+      assessPermissionEnforcement({
+        requestedClass: scenario.requestedClass,
+        allowedOps: scenario.allowedOps,
+        observation: {
+          status: 'verified',
+          effectiveClass: scenario.effectiveClass,
+          effectiveOps: scenario.effectiveOps,
+          evidenceRef: 'test:permission-observation'
+        }
+      }).allowed,
+      scenario.allowed
+    );
+  }
+});
+
 test('chief gate echoes operating-model identity and expected receipt', () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
@@ -436,6 +497,25 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
       receipt,
       approvalSatisfied: true
     }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true,
+      modelResolution: { ...operatingModelResolution, nativeThreadControl: undefined }
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
+  );
+
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
+    }),
     { outcome: 'accept', reason: null }
   );
 
@@ -451,7 +531,8 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
       gateWorkerReceipt({
         bindingPacket: operatingModelBindingPacket,
         receipt: { ...receipt, [field]: undefined },
-        approvalSatisfied: true
+        approvalSatisfied: true,
+        modelResolution: operatingModelResolution
       }),
       { outcome: 'block', reason: 'binding_identity_mismatch' }
     );
@@ -461,23 +542,41 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
     gateWorkerReceipt({
       bindingPacket: operatingModelBindingPacket,
       receipt: { ...receipt, receiptType: 'check_in' },
-      approvalSatisfied: true
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
     }),
     { outcome: 'block', reason: 'unexpected_receipt_type' }
   );
+
+  for (const [field, value] of [['threadId', 'thread-bound'], ['sessionId', 'session-bound']]) {
+    const bound = {
+      ...operatingModelBindingPacket,
+      threadId: field === 'threadId' ? value : null,
+      sessionId: field === 'sessionId' ? value : null
+    };
+    const echoed = {
+      ...receipt,
+      threadId: bound.threadId,
+      sessionId: bound.sessionId
+    };
+    assert.deepEqual(
+      gateWorkerReceipt({ bindingPacket: bound, receipt: echoed, approvalSatisfied: true, modelResolution: operatingModelResolution }),
+      { outcome: 'accept', reason: null }
+    );
+    assert.deepEqual(
+      gateWorkerReceipt({
+        bindingPacket: bound,
+        receipt: { ...echoed, [field]: `${value}-wrong` },
+        approvalSatisfied: true,
+        modelResolution: operatingModelResolution
+      }),
+      { outcome: 'block', reason: 'binding_identity_mismatch' }
+    );
+  }
 });
 
 test('chief gate rechecks resolver evidence before accepting a strict envelope receipt', () => {
-  const modelResolution = {
-    requestedCapabilityClass: operatingModelBindingPacket.capabilityClass,
-    requestedReasoningDemand: operatingModelBindingPacket.reasoningDemand,
-    requestedCostPreference: operatingModelBindingPacket.costPreference,
-    requestedLatencyClass: operatingModelBindingPacket.latencyClass,
-    upgradeTrigger: operatingModelBindingPacket.upgradeTrigger,
-    resolvedModelAtRun: 'balanced-current',
-    resolvedThinkingAtRun: 'medium',
-    modelResolutionReason: 'first_compatible_profile_match'
-  };
+  const modelResolution = operatingModelResolution;
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_resolution_gate',
@@ -516,6 +615,15 @@ test('chief gate rechecks resolver evidence before accepting a strict envelope r
   assert.deepEqual(
     gateWorkerReceipt({ bindingPacket: operatingModelBindingPacket, receipt, approvalSatisfied: true, modelResolution }),
     { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true,
+      modelResolution: { ...modelResolution, resolvedModelAtRun: undefined }
+    }),
+    { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
   );
   assert.deepEqual(
     gateWorkerReceipt({

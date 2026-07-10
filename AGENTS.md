@@ -238,6 +238,11 @@ Hooks stay lightweight in Codex. They may inject compact planning reminders or h
 - When create, continue, model, or permission controls are unavailable, fail honestly to a bounded manual handoff instead of claiming native control.
 - A worktree and narrow packet are defense in depth; they do not prove an atomic per-thread permission boundary.
 
+## Scope Autonomy And Human Gates
+
+- Inside an already-authorized scope, do not seek extra confirmation; execute the approved work.
+- Explicit human gates remain mandatory for more than two visible lanes and for release, merge, publish, send, deploy, destructive, external, security, or data-loss actions.
+
 ## Codex Concise Output Guidance
 
 User-visible chat wording only.

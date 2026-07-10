@@ -164,6 +164,31 @@ test('harness chiefops overlay handoff creates a prompt but not a started receip
   }
 });
 
+test('harness chiefops overlay handoff keeps legacy timing and upgrade fields out of the strict envelope', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const taskDir = path.join(root, 'planning/active/chiefops-demo');
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(path.join(taskDir, 'task_plan.md'), '# ChiefOps Demo\n');
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    const binding = demoBindingPacket(root, {
+      upgradeTrigger: 'legacy escalation note',
+      expectedCheckInBy: '2026-07-09T05:10:00.000Z'
+    });
+    await writeFile(
+      path.join(taskDir, 'progress.md'),
+      ['# Progress', '', serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding), ''].join('\n')
+    );
+    const file = path.join(root, 'binding.json');
+    await writeFile(file, JSON.stringify(binding, null, 2));
+
+    const { stdout } = await harnessCommand(root, 'chiefops', 'overlay', 'handoff', '--file', file);
+    assert.match(stdout, /Return a ChiefOpsWorkerReceipt/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('harness chiefops overlay strict handoff fails closed without runtime permission evidence', async () => {
   const root = await createHarnessFixture({ linkNodeModules: true });
   try {

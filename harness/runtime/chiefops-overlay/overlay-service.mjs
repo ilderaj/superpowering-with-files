@@ -15,6 +15,19 @@ import { resolveModel } from './model-resolver.mjs';
 import { resolveAuthorityBinding } from './authority-binding.mjs';
 import { hashContent } from './source-progress-ref.mjs';
 
+const OPERATING_MODEL_MARKER_FIELDS = [
+  'majorPhase',
+  'primaryProof',
+  'reasoningDemand',
+  'costPreference',
+  'latencyClass',
+  'permissionClass',
+  'delegationPolicy',
+  'stopCondition',
+  'expectedReceipt',
+  'returnToChiefInstruction'
+];
+
 export async function readJsonFile(file) {
   return JSON.parse(await readFile(file, 'utf8'));
 }
@@ -231,21 +244,8 @@ export async function buildHandoffFromFile({
   });
 
   const authoritative = await readAuthoritativeBinding({ root, bindingPacket });
-  const operatingModelFields = [
-    'majorPhase',
-    'primaryProof',
-    'reasoningDemand',
-    'costPreference',
-    'latencyClass',
-    'permissionClass',
-    'delegationPolicy',
-    'upgradeTrigger',
-    'expectedCheckInBy',
-    'stopCondition',
-    'expectedReceipt',
-    'returnToChiefInstruction'
-  ];
-  const isOperatingModelBinding = operatingModelFields.some((field) => authoritative.bindingPacket[field] !== undefined);
+  const isOperatingModelBinding = OPERATING_MODEL_MARKER_FIELDS
+    .some((field) => authoritative.bindingPacket[field] !== undefined);
   const handoffPacket = isOperatingModelBinding
     ? validateOperatingModelBindingPacket(authoritative.bindingPacket)
     : authoritative.bindingPacket;

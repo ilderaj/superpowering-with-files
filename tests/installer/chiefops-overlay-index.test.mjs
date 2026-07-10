@@ -39,6 +39,41 @@ function binding(overrides = {}) {
   };
 }
 
+function receipt(overrides = {}) {
+  return {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_1',
+    receiptType: 'started',
+    authorityTaskId: 'chiefops-demo',
+    workerId: 'worker-1',
+    threadId: 'thread-1',
+    sessionId: null,
+    bindingToken: 'btok_1',
+    currentSlice: 'index rebuild',
+    proofTarget: 'index is derived',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_1',
+      startLine: null,
+      contentHash: 'sha256:abc123',
+      observedAt: '2026-07-09T05:00:00.000Z'
+    },
+    observedAt: '2026-07-09T05:05:00.000Z',
+    status: 'started',
+    summary: 'Started after binding check.',
+    evidenceRefs: ['planning/active/chiefops-demo/progress.md#receipt'],
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-09T05:05:00.000Z',
+    ...overrides
+  };
+}
+
 test('serializeChiefOpsBlock and parseChiefOpsBlocks round-trip canonical JSON blocks', () => {
   const block = serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding());
   assert.match(block, /```chiefops-json/);
@@ -142,6 +177,37 @@ test('rebuildChiefOpsIndex reports duplicate binding versions instead of picking
   assert.equal(index.conflicts[0].reason, 'duplicate_bindingVersion');
 });
 
+test('rebuildChiefOpsIndex ignores receipts with a contradictory token despite a public version match', async () => {
+  const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-contradictory-token');
+  await rm(root, { recursive: true, force: true });
+  await mkdir(path.join(root, 'planning/active/chiefops-demo'), { recursive: true });
+  const bound = binding({ planningRoot: root, bindingVersion: 'public-1' });
+  const contradictory = receipt({ bindingVersion: 'public-1', bindingToken: 'btok_wrong' });
+  await writeFile(
+    path.join(root, 'planning/active/chiefops-demo/progress.md'),
+    `${serializeChiefOpsBlock('ChiefOpsWorkerBinding', bound)}\n${serializeChiefOpsBlock('ChiefOpsWorkerReceipt', contradictory)}`
+  );
+
+  const index = await rebuildChiefOpsIndex({ root, taskIds: ['chiefops-demo'] });
+  assert.equal(index.workers[0].status, 'bound');
+});
+
+test('rebuildChiefOpsIndex ignores receipts for the wrong bound session', async () => {
+  const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-wrong-session');
+  await rm(root, { recursive: true, force: true });
+  await mkdir(path.join(root, 'planning/active/chiefops-demo'), { recursive: true });
+  const bound = binding({ planningRoot: root, bindingVersion: 'public-1', threadId: null, sessionId: 'session-bound' });
+  const wrongSession = receipt({ bindingVersion: 'public-1', threadId: null, sessionId: 'session-wrong' });
+  await writeFile(
+    path.join(root, 'planning/active/chiefops-demo/progress.md'),
+    `${serializeChiefOpsBlock('ChiefOpsWorkerBinding', bound)}\n${serializeChiefOpsBlock('ChiefOpsWorkerReceipt', wrongSession)}`
+  );
+
+  const index = await rebuildChiefOpsIndex({ root, taskIds: ['chiefops-demo'] });
+  assert.equal(index.workers[0].status, 'bound');
+  assert.equal(index.workers[0].threadRef, 'ref:-bound');
+});
+
 test('rebuildChiefOpsIndex redacts raw session handles and reports duplicate receipts across task ids', async () => {
   const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-overlay-index-receipt');
   await rm(root, { recursive: true, force: true });
@@ -202,6 +268,7 @@ test('rebuildChiefOpsIndex redacts raw session handles and reports duplicate rec
           authorityTaskId: 'chiefops-demo-a',
           bindingId: 'bind_a',
           workerId: 'worker-1',
+          threadId: 'thread-secret-123456',
           bindingToken: 'btok_a',
           evidenceSink: 'planning/active/chiefops-demo-a/progress.md',
           sourceProgressRef: {
@@ -225,6 +292,7 @@ test('rebuildChiefOpsIndex redacts raw session handles and reports duplicate rec
           authorityTaskId: 'chiefops-demo-b',
           bindingId: 'bind_b',
           workerId: 'worker-2',
+          threadId: 'thread-secret-654321',
           bindingToken: 'btok_b',
           evidenceSink: 'planning/active/chiefops-demo-b/progress.md',
           sourceProgressRef: {

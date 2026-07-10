@@ -7,6 +7,13 @@ const PERMISSION_RANK = new Map([
   ['release', 3]
 ]);
 
+const LEGAL_OPS_BY_PERMISSION_CLASS = new Map([
+  ['observe', new Set(['inspect', 'draft', 'propose'])],
+  ['workspace', new Set(['inspect', 'draft', 'propose', 'write'])],
+  ['egress_gated', new Set(['inspect', 'draft', 'propose', 'write', 'publish', 'send'])],
+  ['release', new Set(['inspect', 'draft', 'propose', 'write', 'publish', 'send'])]
+]);
+
 export function assessPermissionEnforcement({ requestedClass, allowedOps, observation }) {
   const verified = observation?.status === 'verified'
     && typeof observation.evidenceRef === 'string'
@@ -17,8 +24,11 @@ export function assessPermissionEnforcement({ requestedClass, allowedOps, observ
   const operationsCovered = withinCeiling
     && Array.isArray(observation.effectiveOps)
     && allowedOps.every((op) => observation.effectiveOps.includes(op));
+  const effectiveOpsAreLegal = operationsCovered
+    && observation.effectiveOps.every((op) => LEGAL_OPS_BY_PERMISSION_CLASS
+      .get(observation.effectiveClass)?.has(op));
 
-  return operationsCovered
+  return effectiveOpsAreLegal
     ? {
         allowed: true,
         effectiveClass: observation.effectiveClass,

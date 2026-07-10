@@ -71,15 +71,13 @@ function detectDuplicateConflicts(taskId, bindings, receipts = [], seenByField, 
 }
 
 function sameBindingIdentity(binding, receipt) {
-  if (receipt.bindingVersion) {
-    return receipt.bindingVersion === binding.bindingVersion;
-  }
+  const versionMatches = !receipt.bindingVersion || receipt.bindingVersion === binding.bindingVersion;
+  const tokenMatches = !receipt.bindingToken || receipt.bindingToken === binding.bindingToken;
+  const boundSessionMatches = (!binding.threadId || receipt.threadId === binding.threadId)
+    && (!binding.sessionId || receipt.sessionId === binding.sessionId);
 
-  if (receipt.bindingToken) {
-    return receipt.bindingToken === binding.bindingToken;
-  }
-
-  return false;
+  return versionMatches && tokenMatches && boundSessionMatches
+    && Boolean(receipt.bindingVersion || receipt.bindingToken);
 }
 
 export async function rebuildChiefOpsIndex({ root, taskIds }) {

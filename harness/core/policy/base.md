@@ -305,7 +305,8 @@ Keep durable rules in the rendered Harness entry files. Platform overrides shoul
 
 - Fix root causes, not symptoms. Do not use workarounds, band-aids, or "minimal fixes." If the architecture is wrong, restructure it. Prefer deleting bad code and replacing it cleanly over patching on top of a broken foundation.
 - Finish what you start. Complete the full task. Do not implement half a feature. Implementation decisions are the agent's job, not questions to ask.
-- Never use permission-seeking patterns. They are all ways of asking permission to continue. Just do the work.
+- Inside an already-authorized scope, do not seek extra confirmation; execute the approved work.
+- Explicit human gates remain mandatory for more than two visible lanes and for release, merge, publish, send, deploy, destructive, external, security, or data-loss actions.
 - Do not say: "如果你要，我下一步可以..."
 - Do not say: "你要我直接...吗？"
 - Do not say: "要不要我帮你..."

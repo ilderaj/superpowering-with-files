@@ -35,6 +35,25 @@ function sameBindingIdentity(bindingPacket, receipt) {
   return Boolean(receipt.bindingVersion || receipt.bindingToken);
 }
 
+function sameBoundSession(bindingPacket, receipt) {
+  return (!bindingPacket.threadId || receipt.threadId === bindingPacket.threadId)
+    && (!bindingPacket.sessionId || receipt.sessionId === bindingPacket.sessionId);
+}
+
+function isCompleteModelResolution(modelResolution) {
+  return Boolean(modelResolution)
+    && [
+      'requestedCapabilityClass',
+      'requestedReasoningDemand',
+      'requestedCostPreference',
+      'requestedLatencyClass',
+      'resolvedModelAtRun',
+      'resolvedThinkingAtRun',
+      'modelResolutionReason'
+    ].every((field) => typeof modelResolution[field] === 'string' && modelResolution[field].length > 0)
+    && modelResolution.nativeThreadControl === false;
+}
+
 function isTerminalLifecycleStatus(status) {
   return ['closed', 'archived', 'done', 'complete'].includes(String(status || '').toLowerCase());
 }
@@ -80,6 +99,10 @@ export function gateWorkerReceipt({
     return { outcome: 'block', reason: 'binding_identity_mismatch' };
   }
 
+  if (!sameBoundSession(bindingPacket, receipt)) {
+    return { outcome: 'block', reason: 'binding_identity_mismatch' };
+  }
+
   const hasOperatingModelProfile = [
     'reasoningDemand',
     'costPreference',
@@ -87,21 +110,19 @@ export function gateWorkerReceipt({
   ].every((field) => bindingPacket[field] !== undefined);
   if (hasOperatingModelProfile) {
     const resolutionFields = ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason'];
-    if (resolutionFields.some((field) => !receipt[field])) {
+    if (!isCompleteModelResolution(modelResolution) || resolutionFields.some((field) => !receipt[field])) {
       return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
     }
-    if (modelResolution) {
-      const requestedMatches = modelResolution.requestedCapabilityClass === bindingPacket.capabilityClass
-        && modelResolution.requestedReasoningDemand === bindingPacket.reasoningDemand
-        && modelResolution.requestedCostPreference === bindingPacket.costPreference
-        && modelResolution.requestedLatencyClass === bindingPacket.latencyClass
-        && modelResolution.upgradeTrigger === (bindingPacket.upgradeTrigger ?? null);
-      const resolvedMatches = receipt.resolvedModelAtRun === modelResolution.resolvedModelAtRun
-        && receipt.resolvedThinkingAtRun === modelResolution.resolvedThinkingAtRun
-        && receipt.modelResolutionReason === modelResolution.modelResolutionReason;
-      if (!requestedMatches || !resolvedMatches) {
-        return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
-      }
+    const requestedMatches = modelResolution.requestedCapabilityClass === bindingPacket.capabilityClass
+      && modelResolution.requestedReasoningDemand === bindingPacket.reasoningDemand
+      && modelResolution.requestedCostPreference === bindingPacket.costPreference
+      && modelResolution.requestedLatencyClass === bindingPacket.latencyClass
+      && modelResolution.upgradeTrigger === (bindingPacket.upgradeTrigger ?? null);
+    const resolvedMatches = receipt.resolvedModelAtRun === modelResolution.resolvedModelAtRun
+      && receipt.resolvedThinkingAtRun === modelResolution.resolvedThinkingAtRun
+      && receipt.modelResolutionReason === modelResolution.modelResolutionReason;
+    if (!requestedMatches || !resolvedMatches) {
+      return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
     }
   }
 
