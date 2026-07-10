@@ -104,6 +104,35 @@ test('lifecycle sweep reports branch push but never applies it automatically', a
   }
 });
 
+test('lifecycle sweep uses the selected anchor for apply eligibility', async () => {
+  const root = await createFixture('lifecycle-sweep-selected-anchor-guard');
+  try {
+    await writeTask(root, 'task-demo', 'active');
+    await writeAnchor(root, 'task-demo', {
+      anchorId: 'a-pr-created',
+      anchorType: 'pr_created',
+      anchorStrength: 'moderate',
+      observedAt: '2026-07-08T05:21:33.000Z',
+      recommendedStatus: 'waiting_review'
+    });
+    await writeAnchor(root, 'task-demo', {
+      anchorId: 'z-branch-pushed',
+      anchorType: 'branch_pushed',
+      anchorStrength: 'moderate',
+      observedAt: '2026-07-09T05:21:33.000Z',
+      recommendedStatus: 'waiting_integration'
+    });
+
+    const report = await getLifecycleSweepReport({ root, now: Date.parse('2026-07-10T05:21:33.000Z') });
+    const recommendation = report.recommendations.find((entry) => entry.taskId === 'task-demo');
+    assert.equal(recommendation.action, 'mark_waiting_integration');
+    assert.equal(recommendation.recommendedStatus, 'waiting_integration');
+    assert.equal(recommendation.applyEligible, false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('lifecycle sweep recommends close for strong merged PR but never applies close', async () => {
   const root = await createFixture('lifecycle-sweep-pr-merged');
   try {

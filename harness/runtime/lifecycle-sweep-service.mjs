@@ -72,7 +72,7 @@ function sortAnchors(anchors) {
   });
 }
 
-function baseRecommendation(task, anchors) {
+function baseRecommendation(task, anchors, selectedAnchor) {
   if (anchors.length === 0) {
     return {
       taskId: task.task_id,
@@ -88,7 +88,7 @@ function baseRecommendation(task, anchors) {
     };
   }
 
-  const anchor = sortAnchors(anchors)[0];
+  const anchor = selectedAnchor;
   const compactAnchors = anchors.map((entry) => ({
     anchorId: entry.anchorId,
     anchorType: entry.anchorType,
@@ -217,7 +217,8 @@ export function classifyLifecycleRecommendation(task, anchors = [], options = {}
     blockers.push('Task has lifecycle anchor wrong target branch evidence.');
   }
 
-  const recommendation = baseRecommendation(task, anchors);
+  const selectedAnchor = sortAnchors(anchors)[0];
+  const recommendation = baseRecommendation(task, anchors, selectedAnchor);
   if (blockers.length > 0) {
     return withManualReview(recommendation, blockers);
   }
@@ -225,7 +226,7 @@ export function classifyLifecycleRecommendation(task, anchors = [], options = {}
   const transition = `${task.status}->${recommendation.recommendedStatus}`;
   const allowedNonTerminalApply =
     APPLY_TRANSITIONS.has(transition) &&
-    !['branch_pushed'].includes(anchors[0]?.anchorType) &&
+    !['branch_pushed'].includes(selectedAnchor?.anchorType) &&
     !['recommend_close', 'mark_blocked'].includes(recommendation.action);
 
   return {
