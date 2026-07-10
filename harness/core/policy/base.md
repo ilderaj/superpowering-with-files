@@ -20,6 +20,21 @@ By default:
 - Isolate concurrent work by task id instead of sharing one project-root planning file set.
 - At the start of complex work, scan existing active tasks when stale context may matter, but do not move legacy or completed-looking tasks automatically.
 
+### Chief And Worker Operating Model
+
+- Tracked production work defaults to a visible session worker when the platform provides a visible worker surface.
+- Chief owns intake, binding, business judgment, authorization, major-phase gates, acceptance, reconciliation, and lifecycle.
+- Chief-direct is limited to quick work and narrow gate or reconcile verification.
+- Use one primary visible worker session per tracked task across phases; session context is a cache, not authority.
+- Every major phase boundary returns to Chief. Within an approved phase, the worker may proceed autonomously.
+- Chief chat history is not task authority. Restore and update the exact bound trio before deriving an Assignment Packet.
+- Default capacity is two Chief-managed visible executing lanes. Additional visible lanes require explicit human approval.
+- Worker-local subagents are session-internal implementation details, not visible-worker substitutes or lifecycle owners.
+- Their authority and runtime permission are strict subsets of the parent worker envelope.
+- Use `prohibited`, `worker_discretion`, or `encouraged`; tracked phases default to `worker_discretion`.
+- Promote a delegated slice to a visible parallel worker when it becomes cross-phase, long-running, independently human-steered, independently outcome-bearing, or the owner of distinct mutable state.
+- Wait for delegated work to return before the parent claims the phase outcome.
+
 ### Simplicity Ladder
 
 Before expanding scope, complexity, or dependencies:
@@ -361,9 +376,10 @@ Keep durable rules in the rendered Harness entry files. Platform overrides shoul
 ## Subagents
 
 - Always wait for all subagents to complete before yielding.
-- Spawn subagents automatically for parallelizable work such as install plus verify, test plus typecheck, or multiple independent tasks from a plan.
-- Spawn subagents automatically for long-running or blocking tasks where a worker can run independently.
-- Spawn subagents automatically when isolation is useful for risky changes or checks.
+- Worker-local subagents are session-internal implementation details, not visible-worker substitutes or lifecycle owners.
+- Their authority and runtime permission are strict subsets of the parent worker envelope.
+- Use `prohibited`, `worker_discretion`, or `encouraged`; tracked phases default to `worker_discretion`.
+- Promote work to a visible parallel worker when it becomes cross-phase, long-running, independently human-steered, independently outcome-bearing, or the owner of distinct mutable state.
 
 ## Output Style
 
