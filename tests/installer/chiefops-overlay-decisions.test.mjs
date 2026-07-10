@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { decideCapabilityAction } from '../../harness/runtime/chiefops-overlay/capability-decision.mjs';
+import { decideWatchdogAction } from '../../harness/runtime/chiefops-overlay/watchdog-decision.mjs';
 import { resolveModel } from '../../harness/runtime/chiefops-overlay/model-resolver.mjs';
 import {
   assessPermissionEnforcement,
@@ -113,6 +114,141 @@ test('decideCapabilityAction returns capability_unavailable for handoff actions 
     }),
     { mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false }
   );
+});
+
+test('material drift requests restore and rebind before respawn', () => {
+  assert.deepEqual(
+    decideCapabilityAction({
+      action: 'continue_worker',
+      capabilities: { continue: true },
+      bindingValid: true,
+      materialDrift: true,
+      rebindAttempted: false
+    }),
+    {
+      mode: 'restore_rebind',
+      receiptType: 'binding_mismatch',
+      canProceedAsStarted: false
+    }
+  );
+});
+
+test('persistent context integrity failure after rebind recommends respawn', () => {
+  const decision = decideCapabilityAction({
+    action: 'continue_worker',
+    capabilities: { continue: true },
+    bindingValid: true,
+    materialDrift: true,
+    rebindAttempted: true,
+    contextIntegrityFailure: true
+  });
+  assert.equal(decision.receiptType, 'handoff_pending');
+  assert.equal(decision.respawnReason, 'persistent_context_failure');
+});
+
+test('direct respawn causes bypass context-drift restore', () => {
+  for (const input of [
+    { sessionAvailable: false, respawnReason: 'session_unavailable' },
+    { safeRebindPossible: false, respawnReason: 'rebind_impossible' },
+    { explicitFreshContext: true, respawnReason: 'explicit_fresh_context' },
+    { trustBoundaryChanged: true, respawnReason: 'trust_boundary_change' }
+  ]) {
+    assert.equal(decideCapabilityAction({
+      action: 'respawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      contextDrift: true,
+      ...input
+    }).mode, 'native_control_requested');
+  }
+});
+
+test('legacy respawn without a reason remains accepted while invalid reasons fail closed', () => {
+  assert.equal(
+    decideCapabilityAction({
+      action: 'respawn_worker',
+      capabilities: { create: true },
+      bindingValid: true
+    }).mode,
+    'native_control_requested'
+  );
+
+  assert.deepEqual(
+    decideCapabilityAction({
+      action: 'respawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      respawnReason: 'operator_typo'
+    }),
+    { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false }
+  );
+});
+
+test('watchdog uses one probe then grace instead of busy polling', () => {
+  assert.deepEqual(decideWatchdogAction({ deadlineMissed: false }), { action: 'none' });
+  assert.equal(decideWatchdogAction({ deadlineMissed: true }).action, 'probe');
+  assert.equal(decideWatchdogAction({
+    deadlineMissed: true,
+    probeSent: true,
+    graceExpired: false
+  }).action, 'wait_grace');
+});
+
+test('watchdog grants at most one extension and requires a credible milestone', () => {
+  const base = {
+    deadlineMissed: true,
+    probeSent: true,
+    graceExpired: true,
+    workerResponsive: true,
+    sessionAvailable: true,
+    bindingProbe: 'passed',
+    contextProbe: 'passed'
+  };
+
+  assert.equal(decideWatchdogAction({
+    ...base,
+    credibleMilestone: false,
+    extensionAlreadyGranted: false
+  }).action, 'stale');
+
+  assert.equal(decideWatchdogAction({
+    ...base,
+    credibleMilestone: true,
+    extensionAlreadyGranted: false
+  }).action, 'extend_deadline');
+
+  assert.equal(decideWatchdogAction({
+    ...base,
+    credibleMilestone: true,
+    extensionAlreadyGranted: true
+  }).action, 'stale');
+
+  assert.deepEqual(decideWatchdogAction({
+    ...base,
+    sessionAvailable: false,
+    credibleMilestone: true,
+    extensionAlreadyGranted: false
+  }), { action: 'respawn_recommended', reason: 'session_unavailable' });
+});
+
+test('watchdog restores binding before respawn and respawns after a second failed probe', () => {
+  assert.deepEqual(decideWatchdogAction({
+    deadlineMissed: true,
+    probeSent: true,
+    graceExpired: true,
+    sessionAvailable: true,
+    bindingProbe: 'failed',
+    rebindAttempted: false
+  }), { action: 'restore_rebind', reason: 'integrity_probe_failed' });
+
+  assert.deepEqual(decideWatchdogAction({
+    deadlineMissed: true,
+    probeSent: true,
+    graceExpired: true,
+    sessionAvailable: true,
+    bindingProbe: 'failed',
+    rebindAttempted: true
+  }), { action: 'respawn_recommended', reason: 'integrity_probe_failed_after_rebind' });
 });
 
 test('resolveModel fails instead of silently downgrading missing capability', () => {
