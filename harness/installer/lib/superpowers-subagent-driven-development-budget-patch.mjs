@@ -22,6 +22,7 @@ const BUDGET_SECTION = [
   '- Add another worker only when the next task owns a disjoint write set and the controller can keep moving locally.',
   '- Treat review loops as budgeted: one task-review pass by default; extra loops need a concrete defect or mismatch.',
   '- Before upgrading model capability, first narrow the task slice or trim context.',
+  '- Every subagent dispatch must declare an explicit model and thinking, be mechanically narrower than its parent envelope, use Terra/high without verified detailed-plan eligibility, and keep Luna/high/Sol as manual-contract exceptions rather than native host enforcement.',
   '- If the task still needs broad repo discovery, split out an explorer or escalate instead of widening every worker prompt.'
 ].join('\n');
 

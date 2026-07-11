@@ -31,6 +31,8 @@ By default:
 - Default capacity is two Chief-managed visible executing lanes. Additional visible lanes require explicit human approval.
 - Worker-local subagents are session-internal implementation details, not visible-worker substitutes or lifecycle owners.
 - Their authority and runtime permission are strict subsets of the parent worker envelope.
+- Every Chief or visible-worker subagent dispatch must declare an explicit model and thinking value. The child must be mechanically narrower than the parent envelope; no verified detailed-plan eligibility means Terra/high, Luna/high requires verified plan bytes and eligibility, and Sol requires its recorded admission. These are manual contracts, not native host enforcement.
+- When a binding declares child dispatches, child return validation occurs before parent acceptance: every declared child needs exactly one matching, revalidated return; no declared child means no return is expected.
 - Use `prohibited`, `worker_discretion`, or `encouraged`; tracked phases default to `worker_discretion`.
 - Promote a delegated slice to a visible parallel worker when it becomes cross-phase, long-running, independently human-steered, independently outcome-bearing, or the owner of distinct mutable state.
 - Wait for delegated work to return before the parent claims the phase outcome.

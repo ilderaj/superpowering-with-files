@@ -140,3 +140,19 @@ test('chiefops guidance exposes the approved operating-model packet envelope', a
   assert.match(combined, /do not forward.*Chief chat history/is);
   assert.match(combined, /permission.*parent.*ceiling/is);
 });
+
+test('chiefops guidance requires explicit child model contracts and preserves manual-only limits', async () => {
+  const [skill, template, policy, docs] = await Promise.all([
+    readFile('harness/core/skills/chiefops/SKILL.md', 'utf8'),
+    readFile('harness/core/skills/chiefops/template.md', 'utf8'),
+    readFile('harness/core/policy/base.md', 'utf8'),
+    readFile('docs/chiefops-v0b.md', 'utf8')
+  ]);
+  const combined = `${skill}\n${template}\n${policy}\n${docs}`;
+  assert.match(combined, /subagent.*explicit.*model.*thinking/is);
+  assert.match(combined, /mechanically.*narrower.*parent envelope/is);
+  assert.match(combined, /Luna\/high.*eligibility/is);
+  assert.match(combined, /Sol.*admission/is);
+  assert.match(combined, /manual.*not.*native.*enforcement/is);
+  assert.match(combined, /child return validation.*before parent acceptance/is);
+});

@@ -701,6 +701,27 @@ test('harness chiefops overlay resolve-model rejects malformed model inventory',
   }
 });
 
+test('public non-explicit resolve-model rejects an economy high candidate without authority eligibility', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const file = path.join(root, 'economy-models.json');
+    await writeFile(file, JSON.stringify([{
+      model: 'economy-current', capabilityClass: 'economy_mechanical',
+      reasoningByDemand: { deep: 'high' }, costPreferences: ['economy'], latencyClasses: ['standard']
+    }]));
+    await assert.rejects(
+      harnessCommand(root, 'chiefops', 'overlay', 'resolve-model', '--capability-class', 'economy_mechanical', '--reasoning-demand', 'deep', '--cost-preference', 'economy', '--latency-class', 'standard', '--available', file),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /detailed_plan_eligibility_required/);
+        return true;
+      }
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('chiefops v0b docs keep critical overlay safety semantics visible', async () => {
   const doc = await readFile(path.resolve('docs/chiefops-v0b.md'), 'utf8');
 

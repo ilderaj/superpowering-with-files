@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { resolveAuthorityBinding } from '../../harness/runtime/chiefops-overlay/authority-binding.mjs';
 import { hashChiefOpsBlock, serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
-import { buildHandoffFromFile, readVerifiedUpgradeAdmission, verifyTrustedDispatchContext } from '../../harness/runtime/chiefops-overlay/overlay-service.mjs';
+import { buildHandoffFromFile, readDetailedPlanEligibility, readVerifiedUpgradeAdmission, resolveAuthorityAwareModel, verifyTrustedDispatchContext } from '../../harness/runtime/chiefops-overlay/overlay-service.mjs';
 import { readLiveCodexModelInventory } from '../../harness/runtime/chiefops-overlay/model-inventory.mjs';
 import { gateWorkerReceiptWithAuthority } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
 
@@ -16,6 +16,129 @@ async function task(root, taskId, title = taskId, extraProgress = '') {
   await writeFile(path.join(dir, 'findings.md'), '# Findings\n');
   await writeFile(path.join(dir, 'progress.md'), `# Progress\n${extraProgress}`);
 }
+
+function detailedPlanEligibilityFixture(overrides = {}) {
+  return {
+    eligibilityId: 'eligibility_1',
+    authorityTaskId: 'chiefops-demo',
+    bindingId: 'bind_1',
+    approvedPlanPath: 'docs/superpowers/plans/approved-plan.md',
+    approvedPlanHash: 'sha256:pending',
+    checkedAt: '2026-07-11T00:00:00.000Z',
+    expiresAt: '2026-07-11T01:00:00.000Z',
+    status: 'eligible',
+    actor: 'chief-thread',
+    checklist: {
+      codeSteps: true,
+      interfacesAndScope: true,
+      validationCommands: true,
+      rollback: true,
+      stopConditions: true
+    },
+    upgradeSignals: [],
+    ...overrides
+  };
+}
+
+function detailedPlanEligibilityBinding(eligibility, overrides = {}) {
+  return {
+    authorityTaskId: 'chiefops-demo',
+    bindingId: 'bind_1',
+    chiefThreadId: 'chief-thread',
+    capabilityClass: 'economy_mechanical',
+    detailedPlanEligibility: {
+      eligibilityId: eligibility.eligibilityId,
+      eligibilityBlockHash: hashChiefOpsBlock({
+        type: 'ChiefOpsDetailedPlanEligibility',
+        value: eligibility
+      })
+    },
+    ...overrides
+  };
+}
+
+test('detailed plan eligibility accepts only a bound Chief attestation over held approved-plan bytes', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-plan-eligibility-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await task(root, 'chiefops-demo');
+  const planPath = path.join(root, 'docs/superpowers/plans/approved-plan.md');
+  await mkdir(path.dirname(planPath), { recursive: true });
+  await writeFile(planPath, '# Approved plan\n\n- bounded\n');
+  const { createHash } = await import('node:crypto');
+  const eligibility = detailedPlanEligibilityFixture({
+    approvedPlanHash: 'sha256:' + createHash('sha256').update('# Approved plan\n\n- bounded\n').digest('hex')
+  });
+  await writeFile(
+    path.join(root, 'planning/active/chiefops-demo/findings.md'),
+    '# Findings\n\n' + serializeChiefOpsBlock('ChiefOpsDetailedPlanEligibility', eligibility) + '\n'
+  );
+
+  const verified = await readDetailedPlanEligibility({
+    root,
+    bindingPacket: detailedPlanEligibilityBinding(eligibility),
+    now: '2026-07-11T00:30:00.000Z'
+  });
+  assert.equal(verified.eligibilityId, eligibility.eligibilityId);
+  assert.equal(verified.approvedPlanHash, eligibility.approvedPlanHash);
+});
+
+test('authority-aware economy selection rereads held eligibility before Luna and otherwise falls back to Terra', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-authority-economy-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const codexHome = path.join(root, '.codex');
+  await mkdir(codexHome, { recursive: true });
+  await writeFile(path.join(codexHome, 'models_cache.json'), JSON.stringify({
+    models: [
+      { slug: 'economy-current', supported_reasoning_levels: [{ effort: 'high' }] },
+      { slug: 'balanced-current', supported_reasoning_levels: [{ effort: 'high' }] }
+    ]
+  }));
+  const now = new Date().toISOString();
+  const inventory = await readLiveCodexModelInventory({ codexHome, now });
+  await task(root, 'chiefops-demo');
+  const planText = '# Approved plan\n\n- bounded\n';
+  const planPath = path.join(root, 'docs/superpowers/plans/approved-plan.md');
+  await mkdir(path.dirname(planPath), { recursive: true });
+  await writeFile(planPath, planText);
+  const { createHash } = await import('node:crypto');
+  const eligibility = detailedPlanEligibilityFixture({
+    checkedAt: now,
+    expiresAt: new Date(Date.parse(now) + 3600000).toISOString(),
+    approvedPlanHash: 'sha256:' + createHash('sha256').update(planText).digest('hex')
+  });
+  const binding = {
+    schemaVersion: 'chiefops.v0b', bindingId: 'bind_1', action: 'spawn_worker', authorityTaskId: 'chiefops-demo',
+    planningRoot: root, chiefThreadId: 'chief-thread', workerId: 'worker-1', threadId: null, currentSlice: 'bounded economy slice',
+    proofTarget: 'authority-aware model proof', evidenceSink: 'planning/active/chiefops-demo/progress.md', capabilityClass: 'economy_mechanical',
+    riskClass: 'low', majorPhase: 'execute', primaryProof: 'focused tests', reasoningDemand: 'deep', costPreference: 'economy',
+    latencyClass: 'standard', permissionClass: 'observe', delegationPolicy: 'prohibited', dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+    dispatchDecision: { decidedBy: 'chief-thread', decidedAt: now, inventory, preferredModel: 'economy-current', preferredThinking: 'high', applicationStatus: 'manual_pending' },
+    detailedPlanEligibility: detailedPlanEligibilityBinding(eligibility).detailedPlanEligibility,
+    workType: 'coding', authorityMode: 'task_authority', allowedOps: ['inspect'], requiresHumanApproval: false, createdAt: now, bindingVersion: 'binding-v1',
+    sourceProgressRef: { file: 'planning/active/chiefops-demo/progress.md', blockId: 'bind_1', startLine: null, contentHash: 'sha256:abc123', observedAt: now },
+    observedAt: now, nonGoals: ['no native application claim'], expectedCheckInBy: new Date(Date.parse(now) + 600000).toISOString(),
+    stopCondition: 'return to Chief', expectedReceipt: 'done', returnToChiefInstruction: 'return only to Chief'
+  };
+  await writeFile(path.join(root, 'planning/active/chiefops-demo/progress.md'), '# Progress\n\n' + serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding) + '\n');
+  await writeFile(path.join(root, 'planning/active/chiefops-demo/findings.md'), '# Findings\n\n' + serializeChiefOpsBlock('ChiefOpsDetailedPlanEligibility', eligibility) + '\n');
+  const modelRequest = {
+    availableModels: [
+      { model: 'economy-current', capabilityClass: 'economy_mechanical', reasoningByDemand: { deep: 'high' }, costPreferences: ['economy'], latencyClasses: ['standard'] },
+      { model: 'balanced-current', capabilityClass: 'balanced_execution', reasoningByDemand: { deep: 'high' }, costPreferences: ['balanced'], latencyClasses: ['standard'] }
+    ],
+    mapping: { economy_mechanical: 'economy-current', balanced_execution: 'balanced-current' }
+  };
+  const verified = await resolveAuthorityAwareModel({ root, bindingPacket: binding, modelRequest, codexHome, now });
+  assert.equal(verified.resolvedModelAtRun, 'economy-current');
+  assert.equal(verified.resolvedThinkingAtRun, 'high');
+  assert.equal(verified.applicationStatus, 'manual_pending');
+
+  await writeFile(path.join(root, 'planning/active/chiefops-demo/findings.md'), '# Findings\n');
+  const fallback = await resolveAuthorityAwareModel({ root, bindingPacket: binding, modelRequest, codexHome, now });
+  assert.equal(fallback.resolvedModelAtRun, 'balanced-current');
+  assert.equal(fallback.resolvedThinkingAtRun, 'high');
+  assert.equal(fallback.applicationStatus, 'unverified');
+});
 
 test('resolveAuthorityBinding fails closed when multiple active tasks exist without explicit authority', async () => {
   const root = path.join(process.cwd(), 'tests/installer/.artifacts/chiefops-authority-multi');
@@ -445,6 +568,55 @@ test('Chief receipt gate rereads findings after handoff and rejects mutated repl
     }),
     { outcome: 'accept', reason: null },
     'authority-aware gate accepts only after fresh trusted reread'
+  );
+  const childDispatch = {
+    parentBindingId: binding.bindingId,
+    childId: 'child_1',
+    model: 'frontier-current',
+    thinking: 'high',
+    capabilityClass: 'fast_check',
+    currentSlice: 'inspect the bounded result',
+    proofTarget: 'child inspection proof',
+    evidenceSink: 'parent receipt',
+    permissionClass: 'observe',
+    allowedOps: ['inspect'],
+    nonGoals: ['no native application claim', 'no writes'],
+    delegationPolicy: 'prohibited'
+  };
+  binding.delegationPolicy = 'worker_discretion';
+  binding.subagentDispatches = [childDispatch];
+  receipt.delegationPolicy = 'worker_discretion';
+  await writeFile(bindingFile, JSON.stringify(binding));
+  await writeFile(path.join(taskDir, 'progress.md'), '# Progress\n\n' + serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding) + '\n');
+  await assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: binding, receipt: { ...receipt, delegationPolicy: 'worker_discretion' }, approvalSatisfied: true, modelResolution }),
+    { outcome: 'block', reason: 'subagent_return_missing' },
+    'declared child dispatch requires one return before parent done can accept'
+  );
+  const childContractHash = hashChiefOpsBlock({ type: 'ChiefOpsSubagentDispatch', value: childDispatch });
+  const childReturn = {
+    childId: childDispatch.childId,
+    contractHash: childContractHash,
+    model: childDispatch.model,
+    thinking: childDispatch.thinking,
+    status: 'done',
+    evidenceRefs: ['child-proof'],
+    contract: childDispatch
+  };
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: binding, receipt: { ...receipt, subagentReturns: [childReturn] }, approvalSatisfied: true, modelResolution }),
+    { outcome: 'accept', reason: null },
+    'one matching revalidated child return permits parent done'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: binding, receipt: { ...receipt, subagentReturns: [{ ...childReturn, contractHash: 'sha256:' + '0'.repeat(64) }] }, approvalSatisfied: true, modelResolution }),
+    { outcome: 'block', reason: 'subagent_return_mismatch' },
+    'wrong child contract hash blocks parent done'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: binding, receipt: { ...receipt, subagentReturns: [childReturn, childReturn] }, approvalSatisfied: true, modelResolution }),
+    { outcome: 'block', reason: 'subagent_return_duplicate' },
+    'duplicate child return blocks parent done'
   );
   for (const applicationStatus of ['applied', 'unverified']) {
     assert.deepEqual(

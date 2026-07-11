@@ -34,8 +34,10 @@ function usage() {
     '       ./scripts/harness chiefops overlay index --task <task-id> [--json]',
     '       ./scripts/harness chiefops overlay validate-binding --file <json-file>',
     '       ./scripts/harness chiefops overlay handoff --file <json-file> [--model-resolution <json-file>] [--codex-home <dir>]',
+    '       ./scripts/harness chiefops overlay subagent-handoff --file <parent-binding.json> --child <child-dispatch.json> --codex-home <dir>',
+    '       ./scripts/harness chiefops overlay subagent-return --file <parent-binding.json> --child <child-contract.json> --return <child-return.json> --codex-home <dir>',
     '       ./scripts/harness chiefops overlay resolve-model --capability-class <class> --reasoning-demand <demand> --cost-preference <preference> --latency-class <class> --available <json-file>',
-    '       ./scripts/harness chiefops overlay resolve-model --dispatch-intent --codex-home <dir> --mapping <json-file> --capability-class <class> --reasoning-demand <demand> --cost-preference <preference> --latency-class <class>',
+    '       ./scripts/harness chiefops overlay resolve-model --dispatch-intent --codex-home <dir> --mapping <json-file> --binding <json-file> --capability-class <class> --reasoning-demand <demand> --cost-preference <preference> --latency-class <class>',
     '',
     'Subcommands:',
     '  board           Read the derived ChiefOps board for an active task',
@@ -54,6 +56,7 @@ function usage() {
     '  --dispatch-intent           Use the trusted explicit-dispatch path',
     '  --codex-home <dir>          Explicit Codex home for trusted inventory',
     '  --mapping <path>            Profile mapping for explicit dispatch',
+    '  --binding <path>            Required authority binding for explicit economy dispatch',
     '  --model-resolution <path>   Read exact resolver evidence for a handoff',
     '  --help, -h        Show this help message'
   ].join('\n');
@@ -73,7 +76,10 @@ export async function chiefopsCommand(args = []) {
       buildHandoffFromFile,
       buildOverlayIndex,
       buildOverlayIndexText,
+      prepareSubagentHandoff,
+      readJsonFile,
       resolveModelFromFile,
+      validateSubagentReturn,
       validateBindingFile
     } = await import('../../runtime/chiefops-overlay/overlay-service.mjs');
 
@@ -121,6 +127,25 @@ export async function chiefopsCommand(args = []) {
       return;
     }
 
+    if (overlayCommand === 'subagent-handoff' || overlayCommand === 'subagent-return') {
+      const file = readOption(overlayArgs, '--file');
+      const childFile = readOption(overlayArgs, '--child');
+      const codexHome = readOption(overlayArgs, '--codex-home');
+      if (!file || !childFile || !codexHome) {
+        throw new Error(`${overlayCommand} requires --file, --child, and --codex-home.`);
+      }
+      const parentBinding = await validateBindingFile({ file });
+      const child = await readJsonFile(childFile);
+      if (overlayCommand === 'subagent-handoff') {
+        process.stdout.write(`${JSON.stringify(await prepareSubagentHandoff({ root: rootDir, parentBinding, childDispatch: child, codexHome }), null, 2)}\n`);
+        return;
+      }
+      const returnFile = readOption(overlayArgs, '--return');
+      if (!returnFile) throw new Error('subagent-return requires --return <child-return.json>.');
+      process.stdout.write(`${JSON.stringify(await validateSubagentReturn({ root: rootDir, parentBinding, childContract: child, childReturn: await readJsonFile(returnFile), codexHome }), null, 2)}\n`);
+      return;
+    }
+
     if (overlayCommand === 'resolve-model') {
       const capabilityClass = readOption(overlayArgs, '--capability-class');
       const reasoningDemand = readOption(overlayArgs, '--reasoning-demand');
@@ -131,6 +156,7 @@ export async function chiefopsCommand(args = []) {
       const dispatchIntent = hasFlag(overlayArgs, '--dispatch-intent');
       const codexHome = readOption(overlayArgs, '--codex-home');
       const mappingFile = readOption(overlayArgs, '--mapping');
+      const bindingFile = readOption(overlayArgs, '--binding');
 
       if (!capabilityClass) {
         throw new Error('Missing required --capability-class <class>.');
@@ -160,7 +186,9 @@ export async function chiefopsCommand(args = []) {
         availableFile,
         dispatchIntent,
         codexHome,
-        mappingFile
+        mappingFile,
+        bindingFile,
+        root: rootDir
       });
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
       return;

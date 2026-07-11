@@ -214,8 +214,44 @@ export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...
       codexHome,
       now
     });
+    const declaredChildren = args.bindingPacket.subagentDispatches ?? [];
+    const returnedChildren = args.receipt?.subagentReturns ?? [];
+    if (declaredChildren.length === 0 && returnedChildren.length > 0) {
+      return { outcome: 'block', reason: 'subagent_return_unexpected' };
+    }
+    if (declaredChildren.length > 0 && returnedChildren.length === 0) {
+      return { outcome: 'block', reason: 'subagent_return_missing' };
+    }
+    const { prepareSubagentHandoff, validateSubagentReturn } = await import('./overlay-service.mjs');
+    const declaredIds = new Set(declaredChildren.map((child) => child.childId));
+    if (declaredIds.size !== declaredChildren.length || returnedChildren.some((child) => !declaredIds.has(child.childId))) {
+      return { outcome: 'block', reason: 'subagent_return_unexpected' };
+    }
+    for (const childDispatch of declaredChildren) {
+      const matches = returnedChildren.filter((child) => child.childId === childDispatch.childId);
+      if (matches.length === 0) return { outcome: 'block', reason: 'subagent_return_missing' };
+      if (matches.length !== 1) return { outcome: 'block', reason: 'subagent_return_duplicate' };
+      const childContract = await prepareSubagentHandoff({
+        root,
+        parentBinding: args.bindingPacket,
+        childDispatch,
+        codexHome,
+        now
+      });
+      await validateSubagentReturn({
+        root,
+        parentBinding: args.bindingPacket,
+        childContract,
+        childReturn: matches[0],
+        codexHome,
+        now
+      });
+    }
     return verdict;
-  } catch {
+  } catch (error) {
+    if (typeof error?.message === 'string' && error.message.startsWith('subagent_return_')) {
+      return { outcome: 'block', reason: error.message };
+    }
     return { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' };
   }
 }

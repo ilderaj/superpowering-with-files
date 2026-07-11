@@ -5,7 +5,7 @@ function supportsProfile(entry, { capabilityClass, reasoningDemand, costPreferen
     && entry.latencyClasses?.includes(latencyClass);
 }
 
-export function resolveModel({
+function resolveModelInternal({
   capabilityClass,
   reasoningDemand,
   costPreference,
@@ -38,6 +38,11 @@ export function resolveModel({
   }
 
   const resolvedThinkingAtRun = selected.reasoningByDemand[reasoningDemand];
+  if (capabilityClass === 'economy_mechanical'
+    && resolvedThinkingAtRun === 'high'
+  ) {
+    throw new Error('detailed_plan_eligibility_required');
+  }
   const inventoryEntry = dispatchDecision
     ? liveInventory.models?.find((entry) => entry.model === selected.model)
     : null;
@@ -68,4 +73,8 @@ export function resolveModel({
     };
   }
   return resolution;
+}
+
+export function resolveModel(args) {
+  return resolveModelInternal(args);
 }

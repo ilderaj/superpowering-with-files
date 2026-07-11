@@ -17,6 +17,7 @@
 - Rejects automatic advancement across a major phase boundary without a Chief gate.
 - Rejects worker-owned acceptance, reconciliation, archive, release, or other lifecycle decisions.
 - Rejects subagent authority or permission that exceeds the parent ceiling.
+- Requires explicit child model and thinking, mechanically narrower parent-envelope evidence, verified detailed-plan eligibility for Luna/high, and recorded admission for Sol; never claims native host enforcement.
 - Requires `prohibited`, `worker_discretion`, or `encouraged`, with `worker_discretion` as the tracked-phase default.
 
 ## Quality Checks

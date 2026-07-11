@@ -6,12 +6,15 @@ import path from 'node:path';
 import { decideCapabilityAction } from '../../harness/runtime/chiefops-overlay/capability-decision.mjs';
 import { decideWatchdogAction } from '../../harness/runtime/chiefops-overlay/watchdog-decision.mjs';
 import { readLiveCodexModelInventory } from '../../harness/runtime/chiefops-overlay/model-inventory.mjs';
-import { resolveModel } from '../../harness/runtime/chiefops-overlay/model-resolver.mjs';
+import * as modelResolver from '../../harness/runtime/chiefops-overlay/model-resolver.mjs';
 import {
   assessPermissionEnforcement,
   buildManualHandoffPrompt
 } from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
 import { gateWorkerReceipt } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
+import { validateBoundSubagentReturn, validateNarrowSubagentDispatch } from '../../harness/runtime/chiefops-overlay/subagent-dispatch.mjs';
+
+const { resolveModel } = modelResolver;
 
 const bindingPacket = {
   schemaVersion: 'chiefops.v0b',
@@ -405,6 +408,112 @@ test('resolveModel requires live inventory for explicit dispatch and preserves g
       dispatchDecision: { decidedBy: 'chief', decidedAt: '2026-07-11T00:00:00.000Z' }
     }),
     /model_inventory_required/
+  );
+});
+
+test('generic explicit economy resolution cannot select a high-thinking mechanical model without authority evidence', () => {
+  assert.throws(
+    () => resolveModel({
+      capabilityClass: 'economy_mechanical',
+      reasoningDemand: 'deep',
+      costPreference: 'economy',
+      latencyClass: 'standard',
+      availableModels: [{
+        model: 'economy-current',
+        capabilityClass: 'economy_mechanical',
+        reasoningByDemand: { deep: 'high' },
+        costPreferences: ['economy'],
+        latencyClasses: ['standard']
+      }],
+      mapping: { economy_mechanical: 'economy-current' },
+      dispatchDecision: { source: 'untrusted' },
+      liveInventory: {
+        sourceRef: 'test',
+        observedAt: '2026-07-11T00:00:00.000Z',
+        fingerprint: 'sha256:' + 'a'.repeat(64),
+        models: [{ model: 'economy-current', supportedReasoningLevels: ['high'] }]
+      }
+    }),
+    /detailed_plan_eligibility_required/
+  );
+});
+
+test('generic non-explicit economy resolution cannot select high thinking without authority evidence', () => {
+  assert.throws(
+    () => resolveModel({
+      capabilityClass: 'economy_mechanical',
+      reasoningDemand: 'deep',
+      costPreference: 'economy',
+      latencyClass: 'standard',
+      availableModels: [{
+        model: 'economy-current', capabilityClass: 'economy_mechanical',
+        reasoningByDemand: { deep: 'high' }, costPreferences: ['economy'], latencyClasses: ['standard']
+      }],
+      mapping: { economy_mechanical: 'economy-current' }
+    }),
+    /detailed_plan_eligibility_required/
+  );
+});
+
+test('resolver exports and caller arguments cannot manufacture economy authority', () => {
+  const request = {
+    capabilityClass: 'economy_mechanical', reasoningDemand: 'deep', costPreference: 'economy', latencyClass: 'standard',
+    availableModels: [{
+      model: 'economy-current', capabilityClass: 'economy_mechanical',
+      reasoningByDemand: { deep: 'high' }, costPreferences: ['economy'], latencyClasses: ['standard']
+    }],
+    mapping: { economy_mechanical: 'economy-current' }
+  };
+  assert.equal(modelResolver.resolveAuthorityEligibleModel, undefined);
+  assert.throws(() => modelResolver.resolveModel({ ...request, authorityEligibleEconomy: true }), /detailed_plan_eligibility_required/);
+});
+
+test('subagent dispatch requires an explicit trusted model and a mechanically narrower parent envelope', () => {
+  const parent = {
+    ...operatingModelBindingPacket,
+    bindingId: 'bind_parent',
+    capabilityClass: 'balanced_execution',
+    permissionClass: 'workspace',
+    allowedOps: ['inspect', 'draft'],
+    nonGoals: ['no publish'],
+    delegationPolicy: 'worker_discretion',
+    sourceSet: ['harness/runtime']
+  };
+  const contract = validateNarrowSubagentDispatch({
+    parentBinding: parent,
+    childDispatch: {
+      parentBindingId: 'bind_parent', childId: 'child_1', model: 'terra', thinking: 'high',
+      capabilityClass: 'balanced_execution', currentSlice: 'review one file', proofTarget: 'review proof',
+      evidenceSink: 'parent receipt', permissionClass: 'observe', allowedOps: ['inspect'],
+      nonGoals: ['no publish', 'no writes'], delegationPolicy: 'prohibited', sourceSet: ['harness/runtime']
+    },
+    inventory: { models: [{ model: 'terra', supportedReasoningLevels: ['high'] }] }
+  });
+  assert.equal(contract.applicationStatus, 'manual_pending');
+  assert.equal(contract.nativeThreadControl, false);
+  assert.throws(
+    () => validateNarrowSubagentDispatch({
+      parentBinding: parent,
+      childDispatch: {
+        parentBindingId: 'bind_parent', childId: 'child_2', model: 'terra', thinking: 'high',
+        capabilityClass: 'balanced_execution', currentSlice: 'review one file', proofTarget: 'review proof',
+        evidenceSink: 'parent receipt', permissionClass: 'workspace', allowedOps: ['inspect', 'draft'],
+        nonGoals: ['no publish'], delegationPolicy: 'prohibited', sourceSet: ['harness/runtime']
+      },
+      inventory: { models: [{ model: 'terra', supportedReasoningLevels: ['high'] }] }
+    }),
+    /subagent_envelope_not_narrowed/
+  );
+  assert.deepEqual(
+    validateBoundSubagentReturn({
+      childContract: contract,
+      childReturn: { childId: 'child_1', contractHash: contract.contractHash, model: 'terra', thinking: 'high', status: 'done', evidenceRefs: ['test'], contract: {
+        parentBindingId: 'bind_parent', childId: 'child_1', model: 'terra', thinking: 'high', capabilityClass: 'balanced_execution',
+        currentSlice: 'review one file', proofTarget: 'review proof', evidenceSink: 'parent receipt', permissionClass: 'observe',
+        allowedOps: ['inspect'], nonGoals: ['no publish', 'no writes'], delegationPolicy: 'prohibited', sourceSet: ['harness/runtime']
+      } }
+    }).status,
+    'done'
   );
 });
 

@@ -61,6 +61,7 @@ Worker Prompt Contract:
 - Keep planning single-homed; do not copy, symlink, or unignore the trio in the worker checkout
 - Verify majorPhase, currentSlice, proofTarget, permissionClass, and delegationPolicy before work
 - Treat worker_discretion as the tracked-phase default; subagent permission cannot exceed the parent ceiling
+- Every subagent dispatch declares explicit model and thinking, is mechanically narrower than the parent envelope, uses Terra/high without verified detailed-plan eligibility, and treats Luna/high/Sol admission as manual contract checks rather than native enforcement
 - Return at the major phase boundary; stay autonomous only inside the approved phase
 - Treat expectedCheckInBy as a milestone deadline, not a polling interval
 - Return status and evidence to Chief; Chief owns planning writeback unless this packet explicitly grants a bounded planning edit

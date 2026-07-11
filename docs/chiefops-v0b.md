@@ -15,6 +15,8 @@
 - Chief owns intake, binding, business judgment, phase gates, acceptance, and reconciliation; tracked production work belongs in the visible worker lane.
 - The default capacity is two Chief-managed visible executing lanes. More than two requires explicit human approval.
 - Worker-local subagents remain session-internal details under the parent worker envelope; tracked phases default to `worker_discretion`.
+- Every child dispatch explicitly declares model and thinking and must be mechanically narrower than its parent envelope. Luna/high needs verified detailed-plan bytes plus eligibility; otherwise use Terra/high. Sol still needs its recorded admission. These remain manual contracts, not native host enforcement.
+- Parent acceptance validates declared child returns first: every dispatch has exactly one matching current return; missing, duplicate, unexpected, or drifted returns block acceptance.
 - Session context is a cache and audit source, not task authority. The exact planning trio remains authoritative.
 
 ## Safe Defaults
