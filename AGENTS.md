@@ -237,6 +237,7 @@ Hooks stay lightweight in Codex. They may inject compact planning reminders or h
 - Do not forward Chief chat history into a worker. Send the bounded Assignment Packet, exact trio paths, current binding observation, and necessary source references.
 - When create, continue, model, or permission controls are unavailable, fail honestly to a bounded manual handoff instead of claiming native control.
 - A worktree and narrow packet are defense in depth; they do not prove an atomic per-thread permission boundary.
+- Treat model dispatch as capability-first, Chief-authored, and manual-pending unless a future trusted host adapter proves otherwise. Keep current SKU mappings and migration procedures in operator documentation, not always-on policy.
 
 ## Scope Autonomy And Human Gates
 

@@ -58,7 +58,7 @@ function isTerminalLifecycleStatus(status) {
   return ['closed', 'archived', 'done', 'complete'].includes(String(status || '').toLowerCase());
 }
 
-export function gateWorkerReceipt({
+function gateWorkerReceiptCore({
   bindingPacket,
   receipt,
   approvalSatisfied = false,
@@ -124,6 +124,11 @@ export function gateWorkerReceipt({
     if (!requestedMatches || !resolvedMatches) {
       return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
     }
+    if (bindingPacket.dispatchIntentVersion
+      && (modelResolution.applicationStatus !== 'manual_pending'
+        || receipt.applicationStatus !== 'manual_pending')) {
+      return { outcome: 'block', reason: 'model_application_unverified' };
+    }
   }
 
   if (bindingPacket.expectedReceipt && bindingPacket.expectedReceipt !== receipt.receiptType) {
@@ -185,4 +190,32 @@ export function gateWorkerReceipt({
   }
 
   return { outcome: 'request_changes', reason: receipt.receiptType };
+}
+
+export function gateWorkerReceipt(args) {
+  if (args.bindingPacket?.dispatchIntentVersion) {
+    return { outcome: 'block', reason: 'trusted_authority_context_required' };
+  }
+  return gateWorkerReceiptCore(args);
+}
+
+// The synchronous gate retains legacy compatibility. New explicit-dispatch
+// callers must use this authority-aware wrapper so a receipt cannot supply
+// its own catalog or frontier-admission evidence.
+export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...args }) {
+  const verdict = gateWorkerReceiptCore(args);
+  if (verdict.outcome !== 'accept' || !args.bindingPacket.dispatchIntentVersion) return verdict;
+  const { verifyTrustedDispatchContext } = await import('./overlay-service.mjs');
+  try {
+    await verifyTrustedDispatchContext({
+      root,
+      bindingPacket: args.bindingPacket,
+      modelResolution: args.modelResolution,
+      codexHome,
+      now
+    });
+    return verdict;
+  } catch {
+    return { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' };
+  }
 }

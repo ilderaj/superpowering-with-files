@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { decideCapabilityAction } from '../../harness/runtime/chiefops-overlay/capability-decision.mjs';
 import { decideWatchdogAction } from '../../harness/runtime/chiefops-overlay/watchdog-decision.mjs';
+import { readLiveCodexModelInventory } from '../../harness/runtime/chiefops-overlay/model-inventory.mjs';
 import { resolveModel } from '../../harness/runtime/chiefops-overlay/model-resolver.mjs';
 import {
   assessPermissionEnforcement,
@@ -321,6 +325,196 @@ test('resolveModel fails if only a lower or incompatible profile exists', () => 
     }),
     /resolver_failed/
   );
+});
+
+test('readLiveCodexModelInventory derives canonical evidence only from the exact cache path', async () => {
+  const codexHome = await mkdtemp(path.join(os.tmpdir(), 'chiefops-model-cache-'));
+  try {
+    await writeFile(
+      path.join(codexHome, 'models_cache.json'),
+      JSON.stringify({
+        models: [
+          {
+            slug: 'preferred-balanced',
+            supported_reasoning_levels: [{ effort: 'medium' }, { effort: 'high' }],
+            ignored: 'must not enter evidence'
+          },
+          {
+            slug: 'other',
+            supported_reasoning_levels: [{ effort: 'low' }]
+          }
+        ]
+      })
+    );
+
+    const result = await readLiveCodexModelInventory({
+      codexHome,
+      now: new Date().toISOString()
+    });
+
+    assert.equal(result.sourceRef, 'codex.models_cache');
+    assert.deepEqual(result.models, [
+      { model: 'other', supportedReasoningLevels: ['low'] },
+      { model: 'preferred-balanced', supportedReasoningLevels: ['high', 'medium'] }
+    ]);
+    assert.match(result.fingerprint, /^sha256:[a-f0-9]{64}$/);
+    assert.match(result.observedAt, /^\d{4}-\d{2}-\d{2}T/);
+  } finally {
+    await rm(codexHome, { recursive: true, force: true });
+  }
+});
+
+test('readLiveCodexModelInventory rejects a cache symlink and stale/future catalog evidence', async () => {
+  const codexHome = await mkdtemp(path.join(os.tmpdir(), 'chiefops-model-cache-'));
+  const target = await mkdtemp(path.join(os.tmpdir(), 'chiefops-model-cache-target-'));
+  try {
+    await writeFile(path.join(target, 'models_cache.json'), JSON.stringify({ models: [] }));
+    await symlink(path.join(target, 'models_cache.json'), path.join(codexHome, 'models_cache.json'));
+
+    await assert.rejects(
+      () => readLiveCodexModelInventory({ codexHome, now: new Date().toISOString() }),
+      /model_inventory_source_symlink/
+    );
+  } finally {
+    await rm(codexHome, { recursive: true, force: true });
+    await rm(target, { recursive: true, force: true });
+  }
+});
+
+test('resolveModel requires live inventory for explicit dispatch and preserves generic resolution otherwise', () => {
+  const availableModels = [{
+    model: 'preferred-balanced',
+    capabilityClass: 'balanced_execution',
+    reasoningByDemand: { standard: 'medium' },
+    costPreferences: ['balanced'],
+    latencyClasses: ['standard']
+  }];
+  const base = {
+    capabilityClass: 'balanced_execution',
+    reasoningDemand: 'standard',
+    costPreference: 'balanced',
+    latencyClass: 'standard',
+    availableModels,
+    mapping: { balanced_execution: 'preferred-balanced' }
+  };
+
+  assert.equal(resolveModel(base).resolvedModelAtRun, 'preferred-balanced');
+  assert.throws(
+    () => resolveModel({
+      ...base,
+      dispatchDecision: { decidedBy: 'chief', decidedAt: '2026-07-11T00:00:00.000Z' }
+    }),
+    /model_inventory_required/
+  );
+});
+
+test('chief gate rejects an explicit dispatch receipt that claims application', () => {
+  const binding = {
+    ...operatingModelBindingPacket,
+    dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+    dispatchDecision: {
+      decidedBy: 'chief-thread',
+      decidedAt: '2026-07-10T14:00:00.000Z',
+      inventory: {
+        sourceRef: 'codex.models_cache',
+        observedAt: '2026-07-10T14:00:00.000Z',
+        fingerprint: 'sha256:inventory'
+      },
+      preferredModel: 'balanced-current',
+      preferredThinking: 'medium',
+      applicationStatus: 'manual_pending'
+    }
+  };
+  const receipt = {
+    ...operatingModelBindingPacket,
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_1',
+    receiptType: 'done',
+    threadId: 'thread-1',
+    bindingVersion: 'binding-v1',
+    status: 'done',
+    summary: 'done',
+    evidenceRefs: ['test'],
+    nextSuggestedAction: 'gate',
+    createdAt: '2026-07-10T14:11:00.000Z',
+    observedAt: '2026-07-10T14:11:00.000Z',
+    resolvedModelAtRun: 'balanced-current',
+    resolvedThinkingAtRun: 'medium',
+    modelResolutionReason: 'first_compatible_profile_match',
+    applicationStatus: 'applied',
+    scopeCheck: { nonGoalsChecked: true, violations: [] }
+  };
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: binding,
+      receipt: { ...receipt, applicationStatus: 'manual_pending' },
+      approvalSatisfied: true,
+      modelResolution: { ...operatingModelResolution, applicationStatus: 'manual_pending' }
+    }),
+    { outcome: 'block', reason: 'trusted_authority_context_required' }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: binding,
+      receipt,
+      approvalSatisfied: true,
+      modelResolution: {
+        ...operatingModelResolution,
+        applicationStatus: 'manual_pending'
+      }
+    }),
+    { outcome: 'block', reason: 'trusted_authority_context_required' }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: binding,
+      receipt: { ...receipt, applicationStatus: 'unverified' },
+      approvalSatisfied: true,
+      modelResolution: {
+        ...operatingModelResolution,
+        applicationStatus: 'manual_pending'
+      }
+    }),
+    { outcome: 'block', reason: 'trusted_authority_context_required' }
+  );
+});
+
+test('readLiveCodexModelInventory rejects a Codex home parent swap before open', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-model-parent-swap-'));
+  const trustedHome = path.join(root, 'trusted');
+  const outsideHome = path.join(root, 'outside');
+  const codexHome = path.join(root, 'current');
+  const fs = await import('node:fs/promises');
+  try {
+    await mkdir(trustedHome);
+    await mkdir(outsideHome);
+    await writeFile(path.join(trustedHome, 'models_cache.json'), JSON.stringify({
+      models: [{ slug: 'trusted-model', supported_reasoning_levels: [{ effort: 'medium' }] }]
+    }));
+    await writeFile(path.join(outsideHome, 'models_cache.json'), JSON.stringify({
+      models: [{ slug: 'outside-model', supported_reasoning_levels: [{ effort: 'medium' }] }]
+    }));
+    await symlink(trustedHome, codexHome);
+    let swapped = false;
+    const fsOps = {
+      ...fs,
+      constants: (await import('node:fs')).constants,
+      async open(file, ...args) {
+        if (!swapped) {
+          swapped = true;
+          await fs.rm(codexHome);
+          await fs.symlink(outsideHome, codexHome);
+        }
+        return fs.open(file, ...args);
+      }
+    };
+    await assert.rejects(
+      readLiveCodexModelInventory({ codexHome, now: new Date().toISOString(), fsOps }),
+      /model_inventory_source_identity_changed/
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test('manual handoff prompt includes binding identity and expected receipt', () => {

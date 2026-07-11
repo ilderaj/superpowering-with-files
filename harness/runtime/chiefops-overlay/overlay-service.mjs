@@ -1,6 +1,7 @@
-import { readFile, realpath } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { lstat, open, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { parseChiefOpsBlocks } from './coordination-blocks.mjs';
+import { hashChiefOpsBlock, parseChiefOpsBlocks } from './coordination-blocks.mjs';
 import {
   CAPABILITY_CLASSES,
   COST_PREFERENCES,
@@ -12,6 +13,7 @@ import {
 import { rebuildChiefOpsIndex } from './index-service.mjs';
 import { assessPermissionEnforcement, buildManualHandoffPrompt } from './manual-handoff.mjs';
 import { resolveModel } from './model-resolver.mjs';
+import { readLiveCodexModelInventory } from './model-inventory.mjs';
 import { resolveAuthorityBinding } from './authority-binding.mjs';
 import { hashContent } from './source-progress-ref.mjs';
 
@@ -111,6 +113,122 @@ async function readTrioObservation({ root, taskId, progress }) {
     findingsHash: hashContent(findings),
     progressHash: hashContent(progress)
   };
+}
+
+function sameAdmissionProfile(bindingPacket, profile = {}) {
+  return ['capabilityClass', 'reasoningDemand', 'riskClass', 'costPreference']
+    .every((field) => bindingPacket[field] === profile[field]);
+}
+
+const ADMISSION_TRIGGER_CODES = new Set([
+  'architecture_or_protocol_judgment',
+  'security_data_loss_or_rollback_judgment',
+  'conflicting_interpretations_or_missing_context',
+  'balanced_model_blocked_after_bounded_attempt',
+  'high_risk_release_or_compliance_review'
+]);
+
+function isRfc3339Utc(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(value) && Number.isFinite(Date.parse(value));
+}
+
+function validAdmissionShape(admission, bindingPacket, now) {
+  const keys = ['admissionId', 'authorityTaskId', 'bindingId', 'triggerCode', 'triggerObservedAt', 'triggerRationale', 'status', 'actor', 'approvedAt', 'expiresAt', 'profile'];
+  if (!admission || Object.keys(admission).length !== keys.length || keys.some((key) => !(key in admission))) return false;
+  const rationale = typeof admission.triggerRationale === 'string' ? admission.triggerRationale : '';
+  const normalized = rationale.normalize('NFKC').trim();
+  const triggerMs = Date.parse(admission.triggerObservedAt);
+  const approvedMs = Date.parse(admission.approvedAt);
+  const expiresMs = Date.parse(admission.expiresAt);
+  const nowMs = Date.parse(now);
+  return ADMISSION_TRIGGER_CODES.has(admission.triggerCode)
+    && rationale === normalized && [...rationale].length >= 40 && [...rationale].length <= 500
+    && [admission.triggerObservedAt, admission.approvedAt, admission.expiresAt].every(isRfc3339Utc)
+    && triggerMs <= approvedMs && approvedMs <= nowMs + 60000 && approvedMs - triggerMs <= 86400000
+    && nowMs < expiresMs && expiresMs - approvedMs <= 86400000
+    && admission.authorityTaskId === bindingPacket.authorityTaskId && admission.bindingId === bindingPacket.bindingId
+    && admission.status === 'satisfied' && admission.actor === bindingPacket.chiefThreadId && sameAdmissionProfile(bindingPacket, admission.profile);
+}
+
+async function evidenceRefsAreTrusted({ root, findingsPath, refs }) {
+  if (!Array.isArray(refs) || refs.length === 0) return false;
+  const resolvedRoot = await realpath(root);
+  const resolvedFindings = await realpath(findingsPath);
+  for (const ref of refs) {
+    if (typeof ref !== 'string' || ref.includes('#')) return false;
+    const candidate = path.resolve(resolvedRoot, ref);
+    if (!candidate.startsWith(resolvedRoot + path.sep) || candidate === resolvedFindings) return false;
+    let handle;
+    try {
+      handle = await open(candidate, constants.O_RDONLY | constants.O_NOFOLLOW);
+      const metadata = await handle.stat();
+      if (!metadata.isFile() || (await lstat(candidate)).isSymbolicLink()) return false;
+      if (await realpath(candidate) !== candidate) return false;
+    } catch {
+      return false;
+    } finally {
+      await handle?.close();
+    }
+  }
+  return true;
+}
+
+export async function readVerifiedUpgradeAdmission({
+  root,
+  bindingPacket,
+  now = new Date().toISOString()
+}) {
+  const wrapper = bindingPacket.upgradeAdmission;
+  if (!wrapper?.admissionId || !wrapper.admissionBlockHash) {
+    throw new Error('dispatch_admission_invalid');
+  }
+  const findingsPath = path.join(root, 'planning/active', bindingPacket.authorityTaskId, 'findings.md');
+  const markdown = await readFile(findingsPath, 'utf8');
+  const admissionBlocks = parseChiefOpsBlocks(markdown)
+    .filter((block) => block.type === 'ChiefOpsModelUpgradeAdmission');
+  const matches = admissionBlocks.filter((block) => block.value.admissionId === wrapper.admissionId);
+  if (admissionBlocks.length !== 1 || matches.length !== 1) {
+    throw new Error('dispatch_admission_invalid');
+  }
+
+  const admission = matches[0].value;
+  const nowMs = Date.parse(now);
+  const approvedAtMs = Date.parse(admission.approvedAt);
+  const expiresAtMs = Date.parse(admission.expiresAt);
+  if (
+    wrapper.admissionBlockHash !== hashChiefOpsBlock({
+      type: 'ChiefOpsModelUpgradeAdmission',
+      value: admission
+    })
+    || !validAdmissionShape(admission, bindingPacket, now)
+  ) {
+    throw new Error('dispatch_admission_invalid');
+  }
+  return admission;
+}
+
+export async function verifyTrustedDispatchContext({ root, bindingPacket, modelResolution, codexHome, now }) {
+  if (!bindingPacket.dispatchIntentVersion) return null;
+  if (!codexHome || !modelResolution) throw new Error('trusted_dispatch_context_required');
+  const inventory = await readLiveCodexModelInventory({ codexHome, now });
+  const decisionInventory = bindingPacket.dispatchDecision?.inventory;
+  const evidenceMatches = decisionInventory?.sourceRef === inventory.sourceRef
+    && decisionInventory?.observedAt === inventory.observedAt
+    && decisionInventory?.fingerprint === inventory.fingerprint
+    && modelResolution.inventorySourceRef === inventory.sourceRef
+    && modelResolution.inventoryObservedAt === inventory.observedAt
+    && modelResolution.inventoryFingerprint === inventory.fingerprint;
+  const catalogEntry = inventory.models.find((entry) => entry.model === modelResolution.resolvedModelAtRun);
+  const preferredMatches = decisionInventory
+    && bindingPacket.dispatchDecision?.preferredModel === modelResolution.resolvedModelAtRun
+    && bindingPacket.dispatchDecision?.preferredThinking === modelResolution.resolvedThinkingAtRun;
+  if (!evidenceMatches || !preferredMatches || !catalogEntry?.supportedReasoningLevels.includes(modelResolution.resolvedThinkingAtRun)) {
+    throw new Error('trusted_dispatch_context_mismatch');
+  }
+  if (bindingPacket.capabilityClass === 'frontier_reasoning') {
+    await readVerifiedUpgradeAdmission({ root, bindingPacket, now });
+  }
+  return inventory;
 }
 
 function validateAvailableModels(value) {
@@ -223,7 +341,9 @@ export async function buildHandoffFromFile({
   root,
   file,
   permissionEnforcementObservation = null,
-  modelResolutionFile = null
+  modelResolutionFile = null,
+  codexHome = null,
+  now = new Date().toISOString()
 }) {
   const bindingPacket = await validateBindingFile({ file });
   const [expectedRoot, packetRoot] = await Promise.all([
@@ -251,6 +371,7 @@ export async function buildHandoffFromFile({
     : authoritative.bindingPacket;
 
   let modelResolution = null;
+  let assessedPermissionObservation = null;
   if (isOperatingModelBinding) {
     if (!modelResolutionFile) {
       throw new Error('model_resolution_required');
@@ -264,16 +385,36 @@ export async function buildHandoffFromFile({
     if (!profileMatches) {
       throw new Error('model_resolution_profile_mismatch');
     }
+    if (handoffPacket.dispatchIntentVersion) {
+      await verifyTrustedDispatchContext({
+        root: expectedRoot,
+        bindingPacket: handoffPacket,
+        modelResolution,
+        codexHome,
+        now
+      });
+      if (modelResolution.applicationStatus !== 'manual_pending') {
+        throw new Error('model_application_unverified');
+      }
+    }
 
-    const permission = assessPermissionEnforcement({
-      requestedClass: handoffPacket.permissionClass,
-      allowedOps: handoffPacket.allowedOps,
-      observation: permissionEnforcementObservation
-    });
-    if (!permission.allowed) {
-      const error = new Error(permission.reason);
-      error.code = permission.receiptType;
-      throw error;
+    if (permissionEnforcementObservation || !handoffPacket.dispatchIntentVersion) {
+      const permission = assessPermissionEnforcement({
+        requestedClass: handoffPacket.permissionClass,
+        allowedOps: handoffPacket.allowedOps,
+        observation: permissionEnforcementObservation
+      });
+      if (!permission.allowed) {
+        const error = new Error(permission.reason);
+        error.code = permission.receiptType;
+        throw error;
+      }
+      assessedPermissionObservation = {
+        status: 'verified',
+        effectiveClass: permission.effectiveClass,
+        effectiveOps: permission.effectiveOps,
+        evidenceRef: permission.evidenceRef
+      };
     }
   }
 
@@ -289,7 +430,7 @@ export async function buildHandoffFromFile({
   return buildManualHandoffPrompt({
     bindingPacket: { ...handoffPacket, planningRoot: expectedRoot },
     bindingObservation,
-    permissionEnforcementObservation,
+    permissionEnforcementObservation: assessedPermissionObservation,
     modelResolution
   });
 }
@@ -300,8 +441,31 @@ export async function resolveModelFromFile({
   costPreference,
   latencyClass,
   upgradeTrigger = null,
-  availableFile
+  availableFile,
+  dispatchIntent = false,
+  codexHome = null,
+  mappingFile = null
 }) {
+  if (dispatchIntent) {
+    if (availableFile || !codexHome || !mappingFile) {
+      throw new Error('explicit dispatch requires --codex-home and --mapping, and forbids --available');
+    }
+    const availableModels = validateAvailableModels(await readJsonFile(mappingFile));
+    const mapping = Object.fromEntries(availableModels.map((entry) => [entry.capabilityClass, entry.model]));
+    const liveInventory = await readLiveCodexModelInventory({ codexHome });
+    return resolveModel({
+      capabilityClass,
+      reasoningDemand,
+      costPreference,
+      latencyClass,
+      upgradeTrigger,
+      availableModels,
+      mapping,
+      dispatchDecision: { source: 'public_explicit_dispatch' },
+      liveInventory
+    });
+  }
+  if (!availableFile) throw new Error('available models are required for generic resolution');
   return resolveModel({
     capabilityClass,
     reasoningDemand,

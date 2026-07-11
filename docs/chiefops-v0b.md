@@ -39,6 +39,12 @@ These defaults keep V0b in a narrow governance role. If a workflow needs more co
 - If thread or session control is unavailable, fall back to manual handoff without pretending that execution already started.
 - The operating envelope carries `permissionClass`, `delegationPolicy`, `reasoningDemand`, `costPreference`, and `latencyClass` as bounded intent fields.
 
+### Model Dispatch Boundary
+
+- An explicit dispatch intent remains capability-first. Its selected model must come from the current local models_cache.json catalog and matching preferred mapping; packet and receipt evidence stays manual_pending and never proves native model application.
+- Frontier work requires one pre-existing ChiefOpsModelUpgradeAdmission block in the bound task findings.md. The block is identified by admissionId and canonical block hash, is Chief-authored and time-bounded, and cannot be replaced by a worker receipt or a free-form trigger string.
+- A trusted host adapter with authenticated thread/session evidence is the future upgrade trigger for application proof. Token audit remains post-hoc observability only.
+
 ## CLI Surfaces
 
 Use the current overlay command set:
@@ -48,6 +54,7 @@ Use the current overlay command set:
 ./scripts/harness chiefops overlay validate-binding --file binding.json
 ./scripts/harness chiefops overlay handoff --file binding.json
 ./scripts/harness chiefops overlay resolve-model --capability-class balanced_execution --reasoning-demand standard --cost-preference balanced --latency-class standard --available models.json
+./scripts/harness codex-model-default inspect
 ```
 
 Keep the command semantics narrow:
@@ -58,3 +65,5 @@ Keep the command semantics narrow:
 - `resolve-model` matches a requested capability and execution profile to an available runtime model without changing workflow ownership. Use `--upgrade-trigger` when recording a reason for a possible escalation.
 
 This repository does not provide a native visible-thread spawn adapter or native continue adapter, nor atomic per-thread permission selection. Resolver output and manual handoff are advisory evidence only; they never imply that a model or restricted permission was actually applied.
+
+The codex-model-default command is an explicit Chief-only operator surface. It reads root model and model_reasoning_effort only before TOML tables and migrates only the root model key through atomic same-directory replacement. Failed migrations recover only from the original open backup handle; the returned backup path is a manual recovery artifact, not a public rollback API. It does not search for a latest backup or run adoption.

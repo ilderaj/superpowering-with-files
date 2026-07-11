@@ -208,6 +208,17 @@ test('validateWorkerReceipt requires binding identity echo', () => {
 
   assert.equal(validateWorkerReceipt(receipt).receiptType, 'done');
   assert.throws(() => validateWorkerReceipt({ ...receipt, bindingToken: undefined }), /bindingToken/);
+  for (const [name, extra] of [
+    ['upgrade admission', { upgradeAdmission: { admissionId: 'admission_1', admissionBlockHash: 'sha256:' + '0'.repeat(64) } }],
+    ['trigger code', { triggerCode: 'architecture_or_protocol_judgment' }],
+    ['trigger rationale', { triggerRationale: 'A'.repeat(40) }]
+  ]) {
+    assert.throws(
+      () => validateWorkerReceipt({ ...receipt, ...extra }),
+      /unrecognized|unknown/i,
+      `receipt must reject ${name}`
+    );
+  }
 });
 
 test('validateWorkerReceipt accepts sessionId when threadId is unavailable', () => {

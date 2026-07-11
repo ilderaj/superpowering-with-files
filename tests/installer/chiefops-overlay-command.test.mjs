@@ -7,6 +7,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
 import { buildHandoffFromFile } from '../../harness/runtime/chiefops-overlay/overlay-service.mjs';
+import { readLiveCodexModelInventory } from '../../harness/runtime/chiefops-overlay/model-inventory.mjs';
 import { createHarnessFixture, removeHarnessFixture } from '../helpers/harness-fixture.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -278,6 +279,140 @@ test('harness chiefops overlay strict handoff fails closed without runtime permi
   }
 });
 
+test('public explicit-dispatch handoff uses trusted catalog evidence and stays manual pending', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const taskDir = path.join(root, 'planning/active/chiefops-demo');
+    const codexHome = path.join(root, '.codex');
+    await mkdir(taskDir, { recursive: true });
+    await mkdir(codexHome, { recursive: true });
+    await writeFile(path.join(taskDir, 'task_plan.md'), '# ChiefOps Demo\n\n## Current State\nStatus: active\n');
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    await writeFile(path.join(codexHome, 'models_cache.json'), JSON.stringify({
+      models: [
+        { slug: 'balanced-preferred', supported_reasoning_levels: [{ effort: 'medium' }, { effort: 'high' }] },
+        { slug: 'balanced-substitute', supported_reasoning_levels: [{ effort: 'medium' }] }
+      ]
+    }));
+    const now = new Date().toISOString();
+    const inventory = await readLiveCodexModelInventory({ codexHome, now });
+    const binding = demoBindingPacket(root, {
+      majorPhase: 'execute',
+      nonGoals: ['no native application claim'],
+      primaryProof: 'public handoff integration',
+      reasoningDemand: 'standard',
+      costPreference: 'balanced',
+      latencyClass: 'standard',
+      permissionClass: 'observe',
+      delegationPolicy: 'prohibited',
+      dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+      dispatchDecision: {
+        decidedBy: 'chief-thread',
+        decidedAt: now,
+        inventory,
+        preferredModel: 'balanced-preferred',
+        preferredThinking: 'medium',
+        applicationStatus: 'manual_pending'
+      },
+      upgradeTrigger: 'scope change',
+      expectedCheckInBy: new Date(Date.parse(now) + 600000).toISOString(),
+      stopCondition: 'return to Chief',
+      expectedReceipt: 'done',
+      returnToChiefInstruction: 'return only to Chief'
+    });
+    const resolution = {
+      requestedCapabilityClass: 'balanced_execution',
+      requestedReasoningDemand: 'standard',
+      requestedCostPreference: 'balanced',
+      requestedLatencyClass: 'standard',
+      upgradeTrigger: 'scope change',
+      resolvedModelAtRun: 'balanced-preferred',
+      resolvedThinkingAtRun: 'medium',
+      modelResolutionReason: 'preferred_profile_match',
+      nativeThreadControl: false,
+      inventorySourceRef: inventory.sourceRef,
+      inventoryObservedAt: inventory.observedAt,
+      inventoryFingerprint: inventory.fingerprint,
+      applicationStatus: 'manual_pending'
+    };
+    await writeFile(path.join(taskDir, 'progress.md'), '# Progress\n\n' + serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding) + '\n');
+    const bindingFile = path.join(root, 'dispatch-binding.json');
+    const resolutionFile = path.join(root, 'dispatch-resolution.json');
+    await writeFile(bindingFile, JSON.stringify(binding));
+    await writeFile(resolutionFile, JSON.stringify(resolution));
+
+    const command = ['chiefops', 'overlay', 'handoff', '--file', bindingFile, '--model-resolution', resolutionFile, '--codex-home', codexHome];
+    const { stdout, stderr } = await harnessCommand(root, ...command);
+    assert.equal(stderr, '');
+    assert.match(stdout, /resolvedModelAtRun: balanced-preferred/);
+    assert.match(stdout, /resolvedThinkingAtRun: medium/);
+    assert.match(stdout, /applicationStatus: manual_pending/);
+    assert.match(stdout, /permissionEnforcementStatus: unverified/);
+
+    await assert.rejects(
+      buildHandoffFromFile({
+        root,
+        file: bindingFile,
+        modelResolutionFile: resolutionFile,
+        codexHome,
+        now,
+        permissionEnforcementObservation: {
+          status: 'verified',
+          effectiveClass: 'observe',
+          effectiveOps: ['inspect']
+        }
+      }),
+      /permission_enforcement_unverified/,
+      'forged verified observation without evidence must fail'
+    );
+    await assert.rejects(
+      buildHandoffFromFile({
+        root,
+        file: bindingFile,
+        modelResolutionFile: resolutionFile,
+        codexHome,
+        now,
+        permissionEnforcementObservation: {
+          status: 'verified',
+          effectiveClass: 'workspace',
+          effectiveOps: ['inspect', 'write'],
+          evidenceRef: 'test:overprivileged'
+        }
+      }),
+      /permission_enforcement_unverified/,
+      'over-privileged observation must fail'
+    );
+    const assessedPrompt = await buildHandoffFromFile({
+      root,
+      file: bindingFile,
+      modelResolutionFile: resolutionFile,
+      codexHome,
+      now,
+      permissionEnforcementObservation: {
+        status: 'verified',
+        effectiveClass: 'observe',
+        effectiveOps: ['inspect'],
+        evidenceRef: 'test:permission-observation'
+      }
+    });
+    assert.match(assessedPrompt, /permissionEnforcementStatus: verified/);
+
+    for (const [name, overrides] of [
+      ['model', { resolvedModelAtRun: 'balanced-substitute' }],
+      ['thinking', { resolvedThinkingAtRun: 'high' }]
+    ]) {
+      await writeFile(resolutionFile, JSON.stringify({ ...resolution, ...overrides }));
+      await assert.rejects(
+        harnessCommand(root, ...command),
+        (error) => error.code === 1 && /trusted_dispatch_context_mismatch/.test(error.stderr),
+        `substituted ${name} must fail through the public route`
+      );
+    }
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('harness chiefops overlay handoff preserves authority truth from an out-of-tree worker cwd', async () => {
   const root = await createHarnessFixture({ linkNodeModules: true });
   const workerParent = await mkdtemp(path.join(os.tmpdir(), 'swf-codex-worker-'));
@@ -512,6 +647,41 @@ test('harness chiefops overlay resolve-model prints resolved model JSON', async 
   }
 });
 
+test('public explicit-dispatch CLI requires the trusted catalog producer and preferred mapping', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const codexHome = path.join(root, '.codex');
+    const mapping = path.join(root, 'mapping.json');
+    const callerInventory = path.join(root, 'caller-inventory.json');
+    await mkdir(codexHome, { recursive: true });
+    await writeFile(path.join(codexHome, 'models_cache.json'), JSON.stringify({
+      models: [
+        { slug: 'balanced-preferred', supported_reasoning_levels: [{ effort: 'medium' }] },
+        { slug: 'balanced-substitute', supported_reasoning_levels: [{ effort: 'medium' }] }
+      ]
+    }));
+    await writeFile(mapping, JSON.stringify([{
+      model: 'balanced-preferred', capabilityClass: 'balanced_execution', reasoningByDemand: { standard: 'medium' },
+      costPreferences: ['balanced'], latencyClasses: ['standard']
+    }]));
+    await writeFile(callerInventory, JSON.stringify([{
+      model: 'caller-authored', capabilityClass: 'balanced_execution', reasoningByDemand: { standard: 'medium' },
+      costPreferences: ['balanced'], latencyClasses: ['standard']
+    }]));
+
+    const args = ['chiefops', 'overlay', 'resolve-model', '--dispatch-intent', '--codex-home', codexHome, '--mapping', mapping,
+      '--capability-class', 'balanced_execution', '--reasoning-demand', 'standard', '--cost-preference', 'balanced', '--latency-class', 'standard'];
+    const { stdout } = await harnessCommand(root, ...args);
+    assert.equal(JSON.parse(stdout).resolvedModelAtRun, 'balanced-preferred');
+    await assert.rejects(
+      harnessCommand(root, ...args, '--available', callerInventory),
+      (error) => error.code === 1 && /forbids --available/i.test(error.stderr)
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('harness chiefops overlay resolve-model rejects malformed model inventory', async () => {
   const root = await createHarnessFixture({ linkNodeModules: true });
   try {
@@ -545,6 +715,11 @@ test('chiefops v0b docs keep critical overlay safety semantics visible', async (
   assert.match(doc, /permissionClass/i);
   assert.match(doc, /reasoning-demand/i);
   assert.match(doc, /does not provide a native visible-thread spawn adapter/i);
+  assert.match(doc, /ChiefOpsModelUpgradeAdmission/i);
+  assert.match(doc, /models_cache\.json/i);
+  assert.match(doc, /manual_pending/i);
+  assert.match(doc, /trusted host adapter/i);
+  assert.match(doc, /manual recovery artifact, not a public rollback API/i);
   assert.doesNotMatch(doc, /V0b hard max: `3`/i);
 });
 

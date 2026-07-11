@@ -12,7 +12,9 @@ export function resolveModel({
   latencyClass,
   upgradeTrigger = null,
   availableModels = [],
-  mapping = {}
+  mapping = {},
+  dispatchDecision = null,
+  liveInventory = null
 }) {
   const compatible = availableModels.filter((entry) => supportsProfile(entry, {
     capabilityClass,
@@ -21,23 +23,49 @@ export function resolveModel({
     latencyClass
   }));
   const preferred = mapping[capabilityClass];
-  const selected = compatible.find((entry) => entry.model === preferred) || compatible[0];
+  if (dispatchDecision && !liveInventory) {
+    throw new Error('model_inventory_required');
+  }
+  if (dispatchDecision && !preferred) {
+    throw new Error('model_mapping_required');
+  }
+  const selected = dispatchDecision
+    ? compatible.find((entry) => entry.model === preferred)
+    : compatible.find((entry) => entry.model === preferred) || compatible[0];
 
   if (!selected) {
     throw new Error(`resolver_failed: no model satisfies ${capabilityClass} and requested profile`);
   }
 
-  return {
+  const resolvedThinkingAtRun = selected.reasoningByDemand[reasoningDemand];
+  const inventoryEntry = dispatchDecision
+    ? liveInventory.models?.find((entry) => entry.model === selected.model)
+    : null;
+  if (dispatchDecision && (!inventoryEntry || !inventoryEntry.supportedReasoningLevels?.includes(resolvedThinkingAtRun))) {
+    throw new Error('model_inventory_mismatch');
+  }
+
+  const resolution = {
     requestedCapabilityClass: capabilityClass,
     requestedReasoningDemand: reasoningDemand,
     requestedCostPreference: costPreference,
     requestedLatencyClass: latencyClass,
     upgradeTrigger,
     resolvedModelAtRun: selected.model,
-    resolvedThinkingAtRun: selected.reasoningByDemand[reasoningDemand],
+    resolvedThinkingAtRun,
     modelResolutionReason: preferred
       ? (selected.model === preferred ? 'preferred_profile_match' : 'preferred_unavailable_for_profile')
       : 'first_compatible_profile_match',
     nativeThreadControl: false
   };
+  if (dispatchDecision) {
+    return {
+      ...resolution,
+      inventorySourceRef: liveInventory.sourceRef,
+      inventoryObservedAt: liveInventory.observedAt,
+      inventoryFingerprint: liveInventory.fingerprint,
+      applicationStatus: 'manual_pending'
+    };
+  }
+  return resolution;
 }

@@ -82,7 +82,7 @@ export async function renderEntry(rootDir, target, profileNames) {
   return renderTemplate(template, {
     basePolicy: policyProfile,
     platformOverride: finalPlatformOverride,
-  });
+  }).trimEnd() + '\n';
 }
 
 export function entriesForScope(rootDir, homeDir, adapter, scope) {

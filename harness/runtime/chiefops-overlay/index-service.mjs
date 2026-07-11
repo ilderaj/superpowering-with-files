@@ -30,6 +30,7 @@ function workerIndexEntry(root, taskId, binding, receipt = null) {
     reasoningDemand: binding.reasoningDemand,
     permissionClass: binding.permissionClass,
     delegationPolicy: binding.delegationPolicy,
+    applicationStatus: binding.dispatchDecision?.applicationStatus ?? 'unverified',
     sourceProgressRef: {
       file: path.relative(root, sourceProgressRef(root, taskId)),
       blockId: binding.sourceProgressRef.blockId,

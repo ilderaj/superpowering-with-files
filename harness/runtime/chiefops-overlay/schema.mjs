@@ -61,6 +61,23 @@ export const BindingPacketSchema = z.object({
   latencyClass: z.enum(LATENCY_CLASSES).optional(),
   permissionClass: z.enum(PERMISSION_CLASSES).optional(),
   delegationPolicy: z.enum(DELEGATION_POLICIES).optional(),
+  dispatchIntentVersion: z.literal('chiefops.dispatch-intent.v1').optional(),
+  dispatchDecision: z.object({
+    decidedBy: z.string().min(1),
+    decidedAt: isoTimestamp,
+    inventory: z.object({
+      sourceRef: z.string().min(1),
+      observedAt: isoTimestamp,
+      fingerprint: z.string().regex(/^sha256:[a-f0-9]{64}$/)
+    }),
+    preferredModel: z.string().min(1),
+    preferredThinking: z.string().min(1),
+    applicationStatus: z.literal('manual_pending')
+  }).optional(),
+  upgradeAdmission: z.object({
+    admissionId: z.string().min(1),
+    admissionBlockHash: z.string().regex(/^sha256:[a-f0-9]{64}$/)
+  }).optional(),
   workType: z.enum(WORK_TYPES),
   authorityMode: z.enum(AUTHORITY_MODES),
   allowedOps: z.array(z.enum(ALLOWED_OPS)).min(1),
@@ -129,6 +146,21 @@ export const BindingPacketSchema = z.object({
       message: 'release permission requires release authority and human approval.'
     });
   }
+  if (Boolean(packet.dispatchIntentVersion) !== Boolean(packet.dispatchDecision)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dispatch intent version and decision are required together.' });
+  }
+  if (packet.dispatchDecision?.decidedBy !== undefined && packet.dispatchDecision.decidedBy !== packet.chiefThreadId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dispatch decision must be authored by the bound Chief thread.' });
+  }
+  if (packet.dispatchIntentVersion && packet.capabilityClass === 'frontier_reasoning') {
+    const validFrontierProfile = packet.riskClass === 'high'
+      && packet.reasoningDemand === 'deep'
+      && packet.costPreference === 'quality_first'
+      && Boolean(packet.upgradeAdmission);
+    if (!validFrontierProfile) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'frontier dispatch requires verified admission profile fields.' });
+    }
+  }
 });
 
 export const WorkerReceiptSchema = z.object({
@@ -169,11 +201,12 @@ export const WorkerReceiptSchema = z.object({
   resolvedModelAtRun: z.string().min(1).optional(),
   resolvedThinkingAtRun: z.string().min(1).optional(),
   modelResolutionReason: z.string().min(1).optional(),
+  applicationStatus: z.enum(['manual_pending', 'unverified']).optional(),
   scopeCheck: z.object({
     nonGoalsChecked: z.boolean(),
     violations: z.array(z.string().min(1))
   }).optional()
-}).superRefine((receipt, ctx) => {
+}).strict().superRefine((receipt, ctx) => {
   if (!receipt.bindingToken && !receipt.bindingVersion) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'bindingToken or bindingVersion is required.' });
   }
