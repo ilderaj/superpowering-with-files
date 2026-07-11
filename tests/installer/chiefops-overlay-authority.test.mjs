@@ -7,7 +7,7 @@ import { resolveAuthorityBinding } from '../../harness/runtime/chiefops-overlay/
 import { hashChiefOpsBlock, serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
 import { buildHandoffFromFile, readDetailedPlanEligibility, readVerifiedUpgradeAdmission, resolveAuthorityAwareModel, verifyTrustedDispatchContext } from '../../harness/runtime/chiefops-overlay/overlay-service.mjs';
 import { readLiveCodexModelInventory } from '../../harness/runtime/chiefops-overlay/model-inventory.mjs';
-import { gateWorkerReceiptWithAuthority } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
+import { gateWorkerReceipt, gateWorkerReceiptWithAuthority } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
 
 async function task(root, taskId, title = taskId, extraProgress = '') {
   const dir = path.join(root, 'planning/active', taskId);
@@ -134,6 +134,13 @@ test('authority-aware economy selection rereads held eligibility before Luna and
   assert.equal(verified.applicationStatus, 'manual_pending');
 
   await writeFile(path.join(root, 'planning/active/chiefops-demo/findings.md'), '# Findings\n');
+  const omittedEligibility = { ...binding };
+  delete omittedEligibility.detailedPlanEligibility;
+  await assert.rejects(
+    () => verifyTrustedDispatchContext({ root, bindingPacket: omittedEligibility, modelResolution: verified, codexHome, now }),
+    /detailed_plan_eligibility_invalid/,
+    'an untrusted packet cannot omit the authoritative economy eligibility reread'
+  );
   const fallback = await resolveAuthorityAwareModel({ root, bindingPacket: binding, modelRequest, codexHome, now });
   assert.equal(fallback.resolvedModelAtRun, 'balanced-current');
   assert.equal(fallback.resolvedThinkingAtRun, 'high');
@@ -618,6 +625,29 @@ test('Chief receipt gate rereads findings after handoff and rejects mutated repl
     { outcome: 'block', reason: 'subagent_return_duplicate' },
     'duplicate child return blocks parent done'
   );
+  const childBindingWithoutDispatch = { ...binding };
+  delete childBindingWithoutDispatch.dispatchIntentVersion;
+  delete childBindingWithoutDispatch.dispatchDecision;
+  const childReceiptWithoutDispatch = { ...receipt };
+  delete childReceiptWithoutDispatch.dispatchIntentVersion;
+  delete childReceiptWithoutDispatch.dispatchDecision;
+  await writeFile(path.join(taskDir, 'progress.md'), '# Progress\n\n' + serializeChiefOpsBlock('ChiefOpsWorkerBinding', childBindingWithoutDispatch) + '\n');
+  assert.deepEqual(
+    gateWorkerReceipt({ bindingPacket: childBindingWithoutDispatch, receipt: childReceiptWithoutDispatch, approvalSatisfied: true, modelResolution }),
+    { outcome: 'block', reason: 'trusted_authority_context_required' },
+    'synchronous gate cannot bypass declared child return validation'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: childBindingWithoutDispatch, receipt: childReceiptWithoutDispatch, approvalSatisfied: true, modelResolution }),
+    { outcome: 'block', reason: 'subagent_return_missing' },
+    'authority wrapper validates missing return without an explicit dispatch intent'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: childBindingWithoutDispatch, receipt: { ...childReceiptWithoutDispatch, subagentReturns: [childReturn] }, approvalSatisfied: true, modelResolution }),
+    { outcome: 'accept', reason: null },
+    'authority wrapper accepts one valid child return without an explicit dispatch intent'
+  );
+  await writeFile(path.join(taskDir, 'progress.md'), '# Progress\n\n' + serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding) + '\n');
   for (const applicationStatus of ['applied', 'unverified']) {
     assert.deepEqual(
       await gateWorkerReceiptWithAuthority({

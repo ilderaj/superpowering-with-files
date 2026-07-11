@@ -366,8 +366,9 @@ export async function verifyTrustedDispatchContext({ root, bindingPacket, modelR
   if (bindingPacket.capabilityClass === 'frontier_reasoning') {
     await readVerifiedUpgradeAdmission({ root, bindingPacket, now });
   }
-  if (bindingPacket.capabilityClass === 'economy_mechanical' && bindingPacket.detailedPlanEligibility) {
-    await readDetailedPlanEligibility({ root, bindingPacket, now });
+  if (bindingPacket.capabilityClass === 'economy_mechanical') {
+    const authoritative = await readAuthoritativeBinding({ root, bindingPacket });
+    await readDetailedPlanEligibility({ root, bindingPacket: authoritative.bindingPacket, now });
   }
   return inventory;
 }

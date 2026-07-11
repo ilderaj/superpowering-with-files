@@ -193,27 +193,30 @@ function gateWorkerReceiptCore({
 }
 
 export function gateWorkerReceipt(args) {
-  if (args.bindingPacket?.dispatchIntentVersion) {
+  if (args.bindingPacket?.dispatchIntentVersion || args.bindingPacket?.subagentDispatches?.length > 0) {
     return { outcome: 'block', reason: 'trusted_authority_context_required' };
   }
   return gateWorkerReceiptCore(args);
 }
 
-// The synchronous gate retains legacy compatibility. New explicit-dispatch
-// callers must use this authority-aware wrapper so a receipt cannot supply
-// its own catalog or frontier-admission evidence.
+// The synchronous gate retains legacy compatibility. Explicit-dispatch or
+// child-dispatch callers must use this authority-aware wrapper so a receipt
+// cannot supply its own catalog, admission, or child-return evidence.
 export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...args }) {
   const verdict = gateWorkerReceiptCore(args);
-  if (verdict.outcome !== 'accept' || !args.bindingPacket.dispatchIntentVersion) return verdict;
-  const { verifyTrustedDispatchContext } = await import('./overlay-service.mjs');
+  const requiresAuthorityContext = Boolean(args.bindingPacket.dispatchIntentVersion || args.bindingPacket.subagentDispatches?.length > 0);
+  if (verdict.outcome !== 'accept' || !requiresAuthorityContext) return verdict;
   try {
-    await verifyTrustedDispatchContext({
-      root,
-      bindingPacket: args.bindingPacket,
-      modelResolution: args.modelResolution,
-      codexHome,
-      now
-    });
+    if (args.bindingPacket.dispatchIntentVersion) {
+      const { verifyTrustedDispatchContext } = await import('./overlay-service.mjs');
+      await verifyTrustedDispatchContext({
+        root,
+        bindingPacket: args.bindingPacket,
+        modelResolution: args.modelResolution,
+        codexHome,
+        now
+      });
+    }
     const declaredChildren = args.bindingPacket.subagentDispatches ?? [];
     const returnedChildren = args.receipt?.subagentReturns ?? [];
     if (declaredChildren.length === 0 && returnedChildren.length > 0) {
