@@ -11,6 +11,7 @@ import { applyPlanningWithFilesSkillRootPatch } from '../../harness/installer/li
 import { applySuperpowersExecutingPlansReplanPatch } from '../../harness/installer/lib/superpowers-executing-plans-replan-patch.mjs';
 import { applySuperpowersFinishingADevelopmentBranchPatch } from '../../harness/installer/lib/superpowers-finishing-a-development-branch-patch.mjs';
 import { applySuperpowersSubagentDrivenDevelopmentBudgetPatch } from '../../harness/installer/lib/superpowers-subagent-driven-development-budget-patch.mjs';
+import { applySuperpowersUsingSuperpowersRoutingPatch } from '../../harness/installer/lib/superpowers-using-superpowers-routing-patch.mjs';
 import { applySuperpowersUsingGitWorktreesPatch } from '../../harness/installer/lib/superpowers-using-git-worktrees-patch.mjs';
 import { applySuperpowersVerificationBeforeCompletionPatch } from '../../harness/installer/lib/superpowers-verification-before-completion-patch.mjs';
 import {
@@ -109,6 +110,31 @@ test('planSkillProjections expands superpowers collection children', async () =>
   assert.equal(usingSuperpowers.strategy, 'materialize');
   assert.match(usingSuperpowers.sourcePath, /harness\/upstream\/superpowers\/skills\/using-superpowers$/);
   assert.match(usingSuperpowers.targetPath, /\.agents\/skills\/using-superpowers$/);
+  assert.deepEqual(usingSuperpowers.patches.map((patch) => patch.type), ['superpowers-using-superpowers-routing']);
+});
+
+test('applySuperpowersUsingSuperpowersRoutingPatch makes the projected starter skill manual-only', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-using-superpowers-routing-'));
+  try {
+    const target = path.join(dir, 'using-superpowers');
+    await materializeDirectoryProjection({
+      sourcePath: path.join(process.cwd(), 'harness/upstream/superpowers/skills/using-superpowers'),
+      targetPath: target,
+      ownedTargets: new Set(),
+      conflictMode: 'reject'
+    });
+
+    await applySuperpowersUsingSuperpowersRoutingPatch(target);
+    const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
+
+    assert.match(skill, /Harness Superpowers using-superpowers routing patch/);
+    assert.match(skill, /Manual-only routing reference/);
+    assert.match(skill, /must not auto-invoke/i);
+    assert.doesNotMatch(skill, /Use when starting any conversation/);
+    assert.doesNotMatch(skill, /even a 1% chance a skill might apply/i);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
 
 test('planSkillProjections marks Superpowers writing-plans for Harness plan-location patching', async () => {

@@ -16,7 +16,6 @@
     ],
     "minimal-global": [
       "planning-with-files",
-      "superpowers:using-superpowers",
       "superpowers:writing-plans",
       "superpowers:executing-plans",
       "superpowers:verification-before-completion"
@@ -24,7 +23,6 @@
     "copilot-default": [
       "planning-with-files",
       "risk-assessment-before-destructive-changes",
-      "superpowers:using-superpowers",
       "superpowers:writing-plans",
       "superpowers:executing-plans",
       "superpowers:verification-before-completion"

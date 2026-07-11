@@ -79,7 +79,7 @@ test('sync installs copilot planning hooks aligned with the official VS Code lif
   }
 });
 
-test('sync installs copilot superpowers hooks when hookMode is on', async () => {
+test('sync does not install copilot Superpowers session-start hooks', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -92,14 +92,8 @@ test('sync installs copilot superpowers hooks when hookMode is on', async () => 
     });
 
     await withCwd(root, () => sync([]));
-
-    const hooks = JSON.parse(await readFile(path.join(root, '.github/hooks/superpowers.json'), 'utf8'));
-    assert.ok(hooks.hooks.sessionStart);
-    assert.match(JSON.stringify(hooks), /Harness-managed superpowers hook/);
-
-    const sessionStart = await readFile(path.join(root, '.github/hooks/session-start'), 'utf8');
-    assert.match(sessionStart, /You have superpowers/);
-    assert.match(sessionStart, /planning\/active\/<task-id>\//);
+    await assert.rejects(readFile(path.join(root, '.github/hooks/superpowers.json'), 'utf8'), /ENOENT/);
+    await assert.rejects(readFile(path.join(root, '.github/hooks/session-start'), 'utf8'), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -161,12 +155,52 @@ test('sync installs codex planning hooks when hookMode is on', async () => {
       await readFile(path.join(root, '.codex/hooks/planning-hot-context.mjs'), 'utf8'),
       /buildPlanningHotContext/
     );
-    assert.match(JSON.stringify(hooks), /Harness-managed superpowers hook/);
-    const sessionStart = await readFile(path.join(root, '.codex/hooks/session-start'), 'utf8');
-    assert.match(sessionStart, /You have superpowers/);
-    assert.match(sessionStart, /projected skill/);
-    assert.match(sessionStart, /planning\/active\/<task-id>\//);
-    assert.doesNotMatch(sessionStart, /description: Use when starting any conversation/);
+    assert.doesNotMatch(JSON.stringify(hooks), /Harness-managed superpowers hook/);
+    await assert.rejects(readFile(path.join(root, '.codex/hooks/session-start'), 'utf8'), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync removes a previously managed Codex Superpowers hook while preserving planning hooks', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'on',
+      policyProfile: 'always-on-core',
+      targets: { codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] } },
+      upstream: {}
+    });
+    const indexPath = path.join(root, 'harness/core/skills/index.json');
+    const index = JSON.parse(await readFile(indexPath, 'utf8'));
+    index.skills.superpowers.hooks = {
+      codex: {
+        source: 'harness/core/hooks/superpowers',
+        config: 'codex-hooks.json',
+        scriptRoot: 'scripts',
+        scripts: ['session-start', 'run-hook.cmd'],
+        events: ['SessionStart']
+      }
+    };
+    await writeFile(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+
+    await withCwd(root, () => sync([]));
+    assert.match(
+      await readFile(path.join(root, '.codex/hooks.json'), 'utf8'),
+      /Harness-managed superpowers hook/
+    );
+
+    delete index.skills.superpowers.hooks;
+    await writeFile(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+    await withCwd(root, () => sync([]));
+
+    const hooks = await readFile(path.join(root, '.codex/hooks.json'), 'utf8');
+    assert.doesNotMatch(hooks, /Harness-managed superpowers hook/);
+    assert.match(hooks, /Harness-managed planning-with-files hook/);
+    await assert.rejects(readFile(path.join(root, '.codex/hooks/session-start'), 'utf8'), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -355,18 +389,18 @@ test('sync installs claude hooks into settings while preserving settings fields'
       allow: ['Bash(node --test)']
     });
     assert.match(JSON.stringify(settings.hooks), /Harness-managed planning-with-files hook/);
-    assert.match(JSON.stringify(settings.hooks), /Harness-managed superpowers hook/);
+    assert.doesNotMatch(JSON.stringify(settings.hooks), /Harness-managed superpowers hook/);
     assert.match(
       await readFile(path.join(root, '.claude/hooks/task-scoped-hook.sh'), 'utf8'),
       /planning\/active/
     );
-    assert.match(settings.hooks.SessionStart[0].hooks[0].command, /\.claude\/hooks\/session-start.*claude-code/);
+    assert.equal(settings.hooks.SessionStart, undefined);
   } finally {
     await removeHarnessFixture(root);
   }
 });
 
-test('sync merges cursor superpowers and planning hooks', async () => {
+test('sync installs only routing-aware planning hooks for cursor', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -381,14 +415,11 @@ test('sync merges cursor superpowers and planning hooks', async () => {
     await withCwd(root, () => sync([]));
     const hooks = JSON.parse(await readFile(path.join(root, '.cursor/hooks.json'), 'utf8'));
 
-    assert.ok(hooks.hooks.sessionStart);
+    assert.equal(hooks.hooks.sessionStart, undefined);
     assert.ok(hooks.hooks.preToolUse);
-    assert.match(JSON.stringify(hooks), /Harness-managed superpowers hook/);
+    assert.doesNotMatch(JSON.stringify(hooks), /Harness-managed superpowers hook/);
     assert.match(JSON.stringify(hooks), /Harness-managed planning-with-files hook/);
-    assert.match(
-      hooks.hooks.sessionStart[0].command,
-      /\.cursor\/hooks\/session-start cursor.*\$HOME\/\.cursor\/hooks\/session-start" cursor/
-    );
+    await assert.rejects(readFile(path.join(root, '.cursor/hooks/session-start'), 'utf8'), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }
