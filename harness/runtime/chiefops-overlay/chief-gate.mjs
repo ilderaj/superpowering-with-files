@@ -58,10 +58,6 @@ function isTerminalLifecycleStatus(status) {
   return ['closed', 'archived', 'done', 'complete'].includes(String(status || '').toLowerCase());
 }
 
-function hasOperatingModelProfile(bindingPacket = {}) {
-  return ['reasoningDemand', 'costPreference', 'latencyClass'].every((field) => bindingPacket[field] !== undefined);
-}
-
 function sameDispatchDecision(left, right) {
   if (!left || !right) return left === right;
   return ['decidedBy', 'decidedAt', 'preferredModel', 'preferredThinking', 'applicationStatus']
@@ -204,23 +200,13 @@ function gateWorkerReceiptCore({
 }
 
 export function gateWorkerReceipt(args) {
-  if (args.bindingPacket?.dispatchIntentVersion
-    || args.bindingPacket?.subagentDispatches?.length > 0
-    || (args.bindingPacket?.capabilityClass === 'economy_mechanical'
-      && args.receipt?.resolvedThinkingAtRun === 'high')) {
-    return { outcome: 'block', reason: 'trusted_authority_context_required' };
-  }
-  return gateWorkerReceiptCore(args);
+  return { outcome: 'block', reason: 'trusted_authority_context_required' };
 }
 
-// The synchronous gate retains legacy compatibility. Explicit-dispatch or
-// child-dispatch callers must use this authority-aware wrapper so a receipt
-// cannot supply its own catalog, admission, or child-return evidence.
+// The synchronous helper never accepts. The authority-aware wrapper is the
+// sole accepting route so a receipt cannot supply its own binding, catalog,
+// admission, or child-return evidence.
 export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...args }) {
-  const callerRequiresAuthorityContext = Boolean(args.bindingPacket.dispatchIntentVersion
-    || args.bindingPacket.subagentDispatches?.length > 0
-    || hasOperatingModelProfile(args.bindingPacket));
-  if (!callerRequiresAuthorityContext) return gateWorkerReceiptCore(args);
   try {
     const { readAuthoritativeBinding, verifyTrustedDispatchContext } = await import('./overlay-service.mjs');
     const authoritative = await readAuthoritativeBinding({ root, bindingPacket: args.bindingPacket });
@@ -228,7 +214,9 @@ export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...
     const dispatchStateMatches = authoritativeBinding.dispatchIntentVersion === args.bindingPacket.dispatchIntentVersion
       && sameDispatchDecision(authoritativeBinding.dispatchDecision, args.bindingPacket.dispatchDecision)
       && same(authoritativeBinding.detailedPlanEligibility?.eligibilityId, args.bindingPacket.detailedPlanEligibility?.eligibilityId)
-      && same(authoritativeBinding.detailedPlanEligibility?.eligibilityBlockHash, args.bindingPacket.detailedPlanEligibility?.eligibilityBlockHash);
+      && same(authoritativeBinding.detailedPlanEligibility?.eligibilityBlockHash, args.bindingPacket.detailedPlanEligibility?.eligibilityBlockHash)
+      && same(authoritativeBinding.upgradeAdmission?.admissionId, args.bindingPacket.upgradeAdmission?.admissionId)
+      && same(authoritativeBinding.upgradeAdmission?.admissionBlockHash, args.bindingPacket.upgradeAdmission?.admissionBlockHash);
     const childDispatchesMatch = JSON.stringify(authoritativeBinding.subagentDispatches ?? []) === JSON.stringify(args.bindingPacket.subagentDispatches ?? []);
     if (!dispatchStateMatches || !childDispatchesMatch) {
       return { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' };

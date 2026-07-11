@@ -11,7 +11,8 @@ import {
   assessPermissionEnforcement,
   buildManualHandoffPrompt
 } from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
-import { gateWorkerReceipt } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
+import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
+import { gateWorkerReceipt, gateWorkerReceiptWithAuthority } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
 import { validateBoundSubagentReturn, validateNarrowSubagentDispatch } from '../../harness/runtime/chiefops-overlay/subagent-dispatch.mjs';
 
 const { resolveModel } = modelResolver;
@@ -82,6 +83,23 @@ const operatingModelResolution = {
   modelResolutionReason: 'first_compatible_profile_match',
   nativeThreadControl: false
 };
+
+async function gateReceiptWithAuthority({ bindingPacket, ...args }) {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-decision-gate-'));
+  try {
+    const taskDir = path.join(root, 'planning/active', bindingPacket.authorityTaskId);
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(path.join(taskDir, 'task_plan.md'), '# Task\n');
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    await writeFile(
+      path.join(taskDir, 'progress.md'),
+      '# Progress\n\n' + serializeChiefOpsBlock('ChiefOpsWorkerBinding', bindingPacket) + '\n'
+    );
+    return await gateWorkerReceiptWithAuthority({ root, bindingPacket, ...args });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
 
 test('decideCapabilityAction keeps manual spawn pending until paste-back receipt', () => {
   assert.deepEqual(
@@ -517,7 +535,7 @@ test('subagent dispatch requires an explicit trusted model and a mechanically na
   );
 });
 
-test('chief gate rejects an explicit dispatch receipt that claims application', () => {
+test('chief gate rejects an explicit dispatch receipt that claims application', async () => {
   const binding = {
     ...operatingModelBindingPacket,
     dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
@@ -527,7 +545,7 @@ test('chief gate rejects an explicit dispatch receipt that claims application', 
       inventory: {
         sourceRef: 'codex.models_cache',
         observedAt: '2026-07-10T14:00:00.000Z',
-        fingerprint: 'sha256:inventory'
+        fingerprint: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
       },
       preferredModel: 'balanced-current',
       preferredThinking: 'medium',
@@ -554,16 +572,7 @@ test('chief gate rejects an explicit dispatch receipt that claims application', 
     scopeCheck: { nonGoalsChecked: true, violations: [] }
   };
   assert.deepEqual(
-    gateWorkerReceipt({
-      bindingPacket: binding,
-      receipt: { ...receipt, applicationStatus: 'manual_pending' },
-      approvalSatisfied: true,
-      modelResolution: { ...operatingModelResolution, applicationStatus: 'manual_pending' }
-    }),
-    { outcome: 'block', reason: 'trusted_authority_context_required' }
-  );
-  assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: binding,
       receipt,
       approvalSatisfied: true,
@@ -572,10 +581,10 @@ test('chief gate rejects an explicit dispatch receipt that claims application', 
         applicationStatus: 'manual_pending'
       }
     }),
-    { outcome: 'block', reason: 'trusted_authority_context_required' }
+    { outcome: 'block', reason: 'model_application_unverified' }
   );
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: binding,
       receipt: { ...receipt, applicationStatus: 'unverified' },
       approvalSatisfied: true,
@@ -584,7 +593,7 @@ test('chief gate rejects an explicit dispatch receipt that claims application', 
         applicationStatus: 'manual_pending'
       }
     }),
-    { outcome: 'block', reason: 'trusted_authority_context_required' }
+    { outcome: 'block', reason: 'model_application_unverified' }
   );
 });
 
@@ -757,7 +766,7 @@ test('permission admission rejects effective operations outside the verified cla
   }
 });
 
-test('chief gate echoes operating-model identity and expected receipt', () => {
+test('chief gate echoes operating-model identity and expected receipt', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_operating_model_done',
@@ -795,7 +804,7 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: operatingModelBindingPacket,
       receipt,
       approvalSatisfied: true
@@ -803,7 +812,7 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
     { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
   );
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: operatingModelBindingPacket,
       receipt,
       approvalSatisfied: true,
@@ -813,13 +822,22 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
   );
 
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: operatingModelBindingPacket,
       receipt,
       approvalSatisfied: true,
       modelResolution: operatingModelResolution
     }),
     { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    gateWorkerReceipt({
+      bindingPacket: operatingModelBindingPacket,
+      receipt,
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
+    }),
+    { outcome: 'block', reason: 'trusted_authority_context_required' }
   );
 
   for (const field of [
@@ -831,7 +849,7 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
     'delegationPolicy'
   ]) {
     assert.deepEqual(
-      gateWorkerReceipt({
+      await gateReceiptWithAuthority({
         bindingPacket: operatingModelBindingPacket,
         receipt: { ...receipt, [field]: undefined },
         approvalSatisfied: true,
@@ -842,7 +860,7 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
   }
 
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: operatingModelBindingPacket,
       receipt: { ...receipt, receiptType: 'check_in' },
       approvalSatisfied: true,
@@ -863,11 +881,11 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
       sessionId: bound.sessionId
     };
     assert.deepEqual(
-      gateWorkerReceipt({ bindingPacket: bound, receipt: echoed, approvalSatisfied: true, modelResolution: operatingModelResolution }),
+      await gateReceiptWithAuthority({ bindingPacket: bound, receipt: echoed, approvalSatisfied: true, modelResolution: operatingModelResolution }),
       { outcome: 'accept', reason: null }
     );
     assert.deepEqual(
-      gateWorkerReceipt({
+      await gateReceiptWithAuthority({
         bindingPacket: bound,
         receipt: { ...echoed, [field]: `${value}-wrong` },
         approvalSatisfied: true,
@@ -878,7 +896,7 @@ test('chief gate echoes operating-model identity and expected receipt', () => {
   }
 });
 
-test('chief gate rechecks resolver evidence before accepting a strict envelope receipt', () => {
+test('chief gate rechecks resolver evidence before accepting a strict envelope receipt', async () => {
   const modelResolution = operatingModelResolution;
   const receipt = {
     schemaVersion: 'chiefops.v0b',
@@ -916,11 +934,11 @@ test('chief gate rechecks resolver evidence before accepting a strict envelope r
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket: operatingModelBindingPacket, receipt, approvalSatisfied: true, modelResolution }),
+    await gateReceiptWithAuthority({ bindingPacket: operatingModelBindingPacket, receipt, approvalSatisfied: true, modelResolution }),
     { outcome: 'accept', reason: null }
   );
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: operatingModelBindingPacket,
       receipt,
       approvalSatisfied: true,
@@ -929,7 +947,7 @@ test('chief gate rechecks resolver evidence before accepting a strict envelope r
     { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
   );
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: operatingModelBindingPacket,
       receipt: { ...receipt, resolvedThinkingAtRun: 'low' },
       approvalSatisfied: true,
@@ -938,7 +956,7 @@ test('chief gate rechecks resolver evidence before accepting a strict envelope r
     { outcome: 'block', reason: 'model_resolution_evidence_mismatch' }
   );
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket: operatingModelBindingPacket,
       receipt: { ...receipt, resolvedModelAtRun: undefined },
       approvalSatisfied: true,
@@ -972,7 +990,7 @@ test('manual handoff rejects control characters in the final rendered authority 
   );
 });
 
-test('chief gate rejects receipt identity mismatch', () => {
+test('chief gate rejects receipt identity mismatch', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_1',
@@ -1000,12 +1018,12 @@ test('chief gate rejects receipt identity mismatch', () => {
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'binding_identity_mismatch' }
   );
 });
 
-test('chief gate rejects contradictory receipt binding token even when public version matches', () => {
+test('chief gate rejects contradictory receipt binding token even when public version matches', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_1a',
@@ -1035,12 +1053,12 @@ test('chief gate rejects contradictory receipt binding token even when public ve
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'binding_identity_mismatch' }
   );
 });
 
-test('chief gate rejects sourceProgressRef mismatch', () => {
+test('chief gate rejects sourceProgressRef mismatch', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_1b',
@@ -1072,12 +1090,12 @@ test('chief gate rejects sourceProgressRef mismatch', () => {
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'binding_identity_mismatch' }
   );
 });
 
-test('chief gate rejects done receipts with contradictory blocked status', () => {
+test('chief gate rejects done receipts with contradictory blocked status', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_1c',
@@ -1106,12 +1124,12 @@ test('chief gate rejects done receipts with contradictory blocked status', () =>
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'receipt_status_conflict' }
   );
 });
 
-test('chief gate rejects done receipts without evidence', () => {
+test('chief gate rejects done receipts without evidence', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_2',
@@ -1139,15 +1157,17 @@ test('chief gate rejects done receipts without evidence', () => {
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'evidence_missing' }
   );
 });
 
-test('chief gate requires source evidence for source-authority done receipts', () => {
+test('chief gate requires source evidence for source-authority done receipts', async () => {
   const bindingPacketWithSourceAuthority = {
     ...bindingPacket,
-    authorityMode: 'source_authority'
+    authorityMode: 'source_authority',
+    sourceSet: ['docs'],
+    systemOfRecord: 'docs'
   };
   const receipt = {
     schemaVersion: 'chiefops.v0b',
@@ -1177,12 +1197,12 @@ test('chief gate requires source evidence for source-authority done receipts', (
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket: bindingPacketWithSourceAuthority, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket: bindingPacketWithSourceAuthority, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'source_evidence_missing' }
   );
 });
 
-test('chief gate requires explicit non-goal scope check before accepting done', () => {
+test('chief gate requires explicit non-goal scope check before accepting done', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_3',
@@ -1210,15 +1230,18 @@ test('chief gate requires explicit non-goal scope check before accepting done', 
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'scope_check_missing' }
   );
 });
 
-test('chief gate requires publish evidence for publish-capable done receipts', () => {
+test('chief gate requires publish evidence for publish-capable done receipts', async () => {
   const bindingPacketWithPublish = {
     ...bindingPacket,
-    allowedOps: ['inspect', 'publish']
+    allowedOps: ['inspect', 'publish'],
+    publishTarget: 'test:publish',
+    approvalGate: 'test:approval',
+    rollbackPlanRef: 'test:rollback'
   };
   const receipt = {
     schemaVersion: 'chiefops.v0b',
@@ -1248,15 +1271,18 @@ test('chief gate requires publish evidence for publish-capable done receipts', (
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket: bindingPacketWithPublish, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket: bindingPacketWithPublish, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'publish_evidence_missing' }
   );
 });
 
-test('chief gate reports publish_blocked when publish-capable receipt carries blockerReason', () => {
+test('chief gate reports publish_blocked when publish-capable receipt carries blockerReason', async () => {
   const bindingPacketWithPublish = {
     ...bindingPacket,
-    allowedOps: ['inspect', 'publish']
+    allowedOps: ['inspect', 'publish'],
+    publishTarget: 'test:publish',
+    approvalGate: 'test:approval',
+    rollbackPlanRef: 'test:rollback'
   };
   const receipt = {
     schemaVersion: 'chiefops.v0b',
@@ -1287,12 +1313,12 @@ test('chief gate reports publish_blocked when publish-capable receipt carries bl
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket: bindingPacketWithPublish, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket: bindingPacketWithPublish, receipt, approvalSatisfied: true }),
     { outcome: 'block', reason: 'publish_blocked' }
   );
 });
 
-test('chief gate blocks when required human approval is missing', () => {
+test('chief gate blocks when required human approval is missing', async () => {
   const bindingPacketRequiringApproval = {
     ...bindingPacket,
     requiresHumanApproval: true
@@ -1325,12 +1351,12 @@ test('chief gate blocks when required human approval is missing', () => {
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket: bindingPacketRequiringApproval, receipt, approvalSatisfied: false }),
+    await gateReceiptWithAuthority({ bindingPacket: bindingPacketRequiringApproval, receipt, approvalSatisfied: false }),
     { outcome: 'block', reason: 'approval_gate_missing' }
   );
 });
 
-test('chief gate blocks done receipts when task lifecycle is already terminal', () => {
+test('chief gate blocks done receipts when task lifecycle is already terminal', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_3e',
@@ -1359,12 +1385,12 @@ test('chief gate blocks done receipts when task lifecycle is already terminal', 
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true, taskState: { status: 'archived' } }),
+    await gateReceiptWithAuthority({ bindingPacket, receipt, approvalSatisfied: true, taskState: { status: 'archived' } }),
     { outcome: 'block', reason: 'task_lifecycle_not_active' }
   );
 });
 
-test('chief gate blocks stale receipts superseded by newer task truth', () => {
+test('chief gate blocks stale receipts superseded by newer task truth', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_3f',
@@ -1393,7 +1419,7 @@ test('chief gate blocks stale receipts superseded by newer task truth', () => {
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({
+    await gateReceiptWithAuthority({
       bindingPacket,
       receipt,
       approvalSatisfied: true,
@@ -1403,7 +1429,7 @@ test('chief gate blocks stale receipts superseded by newer task truth', () => {
   );
 });
 
-test('chief gate accepts public bindingVersion without requiring raw bindingToken', () => {
+test('chief gate accepts public bindingVersion without requiring raw bindingToken', async () => {
   const receipt = {
     schemaVersion: 'chiefops.v0b',
     receiptId: 'receipt_4',
@@ -1432,15 +1458,18 @@ test('chief gate accepts public bindingVersion without requiring raw bindingToke
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket, receipt, approvalSatisfied: true }),
     { outcome: 'accept', reason: null }
   );
 });
 
-test('chief gate treats allowedOps as an order-insensitive identity set', () => {
+test('chief gate treats allowedOps as an order-insensitive identity set', async () => {
   const bindingPacketWithPublish = {
     ...bindingPacket,
-    allowedOps: ['publish', 'inspect']
+    allowedOps: ['publish', 'inspect'],
+    publishTarget: 'test:publish',
+    approvalGate: 'test:approval',
+    rollbackPlanRef: 'test:rollback'
   };
   const receipt = {
     schemaVersion: 'chiefops.v0b',
@@ -1471,7 +1500,7 @@ test('chief gate treats allowedOps as an order-insensitive identity set', () => 
   };
 
   assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket: bindingPacketWithPublish, receipt, approvalSatisfied: true }),
+    await gateReceiptWithAuthority({ bindingPacket: bindingPacketWithPublish, receipt, approvalSatisfied: true }),
     { outcome: 'accept', reason: null }
   );
 });

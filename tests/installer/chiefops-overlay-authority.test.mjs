@@ -132,27 +132,30 @@ test('authority-aware economy selection rereads held eligibility before Luna and
   assert.equal(verified.resolvedModelAtRun, 'economy-current');
   assert.equal(verified.resolvedThinkingAtRun, 'high');
   assert.equal(verified.applicationStatus, 'manual_pending');
-  const strippedDispatchBinding = { ...binding };
-  delete strippedDispatchBinding.dispatchIntentVersion;
-  delete strippedDispatchBinding.dispatchDecision;
-  delete strippedDispatchBinding.detailedPlanEligibility;
-  const strippedDispatchReceipt = {
-    ...strippedDispatchBinding,
+  const economyReceipt = {
+    ...binding,
     receiptId: 'receipt_1', receiptType: 'done', threadId: 'thread-1', status: 'done', summary: 'done',
     evidenceRefs: ['focused-tests'], nextSuggestedAction: 'gate', createdAt: now, scopeCheck: { nonGoalsChecked: true, violations: [] },
     resolvedModelAtRun: verified.resolvedModelAtRun, resolvedThinkingAtRun: verified.resolvedThinkingAtRun,
     modelResolutionReason: verified.modelResolutionReason, applicationStatus: 'manual_pending'
   };
-  assert.deepEqual(
-    gateWorkerReceipt({ bindingPacket: strippedDispatchBinding, receipt: strippedDispatchReceipt, approvalSatisfied: true, modelResolution: verified }),
-    { outcome: 'block', reason: 'trusted_authority_context_required' },
-    'synchronous gate cannot accept a caller-downgraded explicit economy binding'
-  );
-  assert.deepEqual(
-    await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: strippedDispatchBinding, receipt: strippedDispatchReceipt, approvalSatisfied: true, modelResolution: verified }),
-    { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' },
-    'authority gate rereads and rejects a caller-downgraded explicit economy binding'
-  );
+  for (const [name, callerBinding] of [
+    ['stripped dispatch intent', (() => { const value = { ...binding }; delete value.dispatchIntentVersion; return value; })()],
+    ['mutated dispatch decision', { ...binding, dispatchDecision: { ...binding.dispatchDecision, preferredModel: 'balanced-current' } }],
+    ['stripped detailed eligibility', (() => { const value = { ...binding }; delete value.detailedPlanEligibility; return value; })()]
+  ]) {
+    const callerReceipt = { ...economyReceipt, ...callerBinding };
+    assert.deepEqual(
+      gateWorkerReceipt({ bindingPacket: callerBinding, receipt: callerReceipt, approvalSatisfied: true, modelResolution: verified }),
+      { outcome: 'block', reason: 'trusted_authority_context_required' },
+      `${name} synchronous gate`
+    );
+    assert.deepEqual(
+      await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: callerBinding, receipt: callerReceipt, approvalSatisfied: true, modelResolution: verified }),
+      { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' },
+      `${name} authority gate`
+    );
+  }
 
   await writeFile(path.join(root, 'planning/active/chiefops-demo/findings.md'), '# Findings\n');
   const omittedEligibility = { ...binding };
@@ -616,6 +619,16 @@ test('Chief receipt gate rereads findings after handoff and rejects mutated repl
   receipt.delegationPolicy = 'worker_discretion';
   await writeFile(bindingFile, JSON.stringify(binding));
   await writeFile(path.join(taskDir, 'progress.md'), '# Progress\n\n' + serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding) + '\n');
+  for (const [name, callerBinding] of [
+    ['mutated upgrade admission', { ...binding, upgradeAdmission: { ...binding.upgradeAdmission, admissionId: 'admission_other' } }],
+    ['stripped child dispatches', { ...binding, subagentDispatches: [] }]
+  ]) {
+    assert.deepEqual(
+      await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: callerBinding, receipt, approvalSatisfied: true, modelResolution }),
+      { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' },
+      name
+    );
+  }
   await assert.deepEqual(
     await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: binding, receipt: { ...receipt, delegationPolicy: 'worker_discretion' }, approvalSatisfied: true, modelResolution }),
     { outcome: 'block', reason: 'subagent_return_missing' },
