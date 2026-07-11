@@ -161,6 +161,8 @@ When delegating or framing a tracked worker slice, the worker prompt must includ
 - `worker_discretion` asks the worker to evaluate bounded independent tactics and is the tracked default.
 - `encouraged` asks the worker to prefer useful independent tactics but never requires a spawn.
 - Subagents are session-internal tactics. Their authority and permission are strict subsets of the parent ceiling, and they return only to the primary worker.
+- Every child dispatch declares an explicit model and thinking value and is mechanically narrower than its parent envelope. Luna/high requires verified detailed-plan bytes and eligibility; without it, use Terra/high. Sol still requires its recorded admission. These are manual contract checks, not native host enforcement.
+- When a parent binding declares child dispatches, validate every matching child return before parent acceptance; reject missing, duplicate, unexpected, or drifted returns.
 - Promote a slice to a visible parallel worker when it becomes cross-phase, long-running, directly human-steered, independently outcome-bearing, or the owner of distinct mutable state.
 - Binding authorization does not prove runtime enforcement. Missing permission enforcement must fail closed rather than treating a worktree as a sandbox.
 

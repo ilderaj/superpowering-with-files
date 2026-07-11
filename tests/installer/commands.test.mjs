@@ -162,7 +162,25 @@ test('harness --help prints top-level usage', async () => {
       /worktree-name  Suggest a canonical worktree label and branch name for the active task/
     );
     assert.match(stdout, /token-audit  Print a weekly cross-session token audit/);
+    assert.match(stdout, /codex-model-default  Inspect, assess, or migrate the Codex model default/);
     assert.match(stdout, /verify   Print or write verification reports/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness public dispatcher exposes codex-model-default inspect assess and migrate', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  const codexHome = path.join(root, '.codex-model-default');
+  try {
+    await mkdir(codexHome, { recursive: true });
+    await writeFile(path.join(codexHome, 'config.toml'), 'model = "model-a"\nmodel_reasoning_effort = "high"\n');
+    const inspect = await harnessCommand(root, 'codex-model-default', 'inspect', '--codex-home', codexHome);
+    assert.equal(JSON.parse(inspect.stdout).model, 'model-a');
+    const assess = await harnessCommand(root, 'codex-model-default', 'assess', '--codex-home', codexHome, '--expected-model', 'model-a', '--expected-reasoning', 'high');
+    assert.equal(JSON.parse(assess.stdout).status, 'match');
+    const migrate = await harnessCommand(root, 'codex-model-default', 'migrate', '--codex-home', codexHome, '--expected-model', 'model-a', '--expected-reasoning', 'high', '--model', 'model-b', '--reasoning', 'high');
+    assert.equal(JSON.parse(migrate.stdout).after.model, 'model-b');
   } finally {
     await removeHarnessFixture(root);
   }

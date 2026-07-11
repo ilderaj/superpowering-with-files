@@ -258,6 +258,38 @@ test('runTokenAudit rejects invalid explicit audit window values', async () => {
   );
 });
 
+test('runTokenAudit keeps ordered mixed model transitions without allocating tokens to a model', async () => {
+  const sessionsRoot = await mkdtemp(path.join(os.tmpdir(), 'token-audit-mixed-'));
+  try {
+    await writeRollout(sessionsRoot, '2026/07/11/rollout-mixed.jsonl', [
+      sessionMeta({ id: 'mixed', timestamp: '2026-07-11T01:00:00Z', cwd: '/workspace/demo' }),
+      turnContext({ timestamp: '2026-07-11T01:01:00Z', cwd: '/workspace/demo', model: 'model-a', effort: 'medium' }),
+      turnContext({ timestamp: '2026-07-11T01:02:00Z', cwd: '/workspace/demo', model: 'model-a', effort: 'medium' }),
+      turnContext({ timestamp: '2026-07-11T01:03:00Z', cwd: '/workspace/demo', model: 'model-b', effort: 'high' }),
+      tokenCount({
+        timestamp: '2026-07-11T01:04:00Z',
+        totalUsage: { input_tokens: 10, cached_input_tokens: 0, output_tokens: 5, total_tokens: 15 }
+      })
+    ]);
+
+    const report = await runTokenAudit({
+      sessionsRoot,
+      dateFrom: '2026-07-11T00:00:00Z',
+      dateTo: '2026-07-11T23:59:59Z'
+    });
+    assert.deepEqual(report.leaderboards.sessions[0].modelTransitions, [
+      { model: 'model-a', effort: 'medium', observedAt: '2026-07-11T01:01:00Z' },
+      { model: 'model-b', effort: 'high', observedAt: '2026-07-11T01:03:00Z' }
+    ]);
+    assert.equal(report.leaderboards.sessions[0].modelState, 'mixed');
+    assert.equal(report.breakdowns.models['mixed/unattributable'].totalTokens, 15);
+    assert.equal(report.breakdowns.models['model-a'], undefined);
+    assert.match(renderTokenAuditMarkdown(report), /model-a\/medium -> model-b\/high/);
+  } finally {
+    await rm(sessionsRoot, { recursive: true, force: true });
+  }
+});
+
 test('runTokenAudit falls back to recursive rollout discovery and skips incomplete sessions', async () => {
   const sessionsRoot = await mkdtemp(path.join(os.tmpdir(), 'token-audit-runtime-recursive-'));
 

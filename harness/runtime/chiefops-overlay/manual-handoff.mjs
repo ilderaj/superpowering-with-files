@@ -86,7 +86,9 @@ export function buildManualHandoffPrompt({
     `resolvedModelAtRun: ${modelResolution?.resolvedModelAtRun ?? ''}`,
     `resolvedThinkingAtRun: ${modelResolution?.resolvedThinkingAtRun ?? ''}`,
     `modelResolutionReason: ${modelResolution?.modelResolutionReason ?? ''}`,
+    `applicationStatus: ${modelResolution?.applicationStatus ?? 'unverified'}`,
     `nativeThreadControl: ${modelResolution?.nativeThreadControl ?? false}`,
+    `permissionEnforcementStatus: ${permissionEnforcementObservation?.status ?? 'unverified'}`,
     `riskClass: ${bindingPacket.riskClass}`,
     `permissionClass: ${bindingPacket.permissionClass ?? ''}`,
     `delegationPolicy: ${bindingPacket.delegationPolicy ?? ''}`,
@@ -112,6 +114,8 @@ export function buildManualHandoffPrompt({
     'Run Harness commands with HARNESS_PROJECT_ROOT set to authorityRoot, or pass the explicit authority root through --root when the command supports it.',
     'If an exact file is missing, the binding observation is stale, or the restored trio contradicts the assignment, stop and return receiptType: binding_mismatch.',
     'Do not scan the entire home directory. Do not copy, symlink, or unignore the planning trio inside the worker checkout.',
+    'Every worker-local subagent dispatch must declare an exact model and thinking value. Do not inherit an ambient session model; use only a validated manual child contract that is mechanically narrower than this parent envelope.',
+    'A child contract remains manual_pending and does not prove native spawn, model application, or runtime permission enforcement.',
     'Return a ChiefOpsWorkerReceipt with the same binding identity. Do not claim started/done unless you actually performed the bounded slice and can provide evidenceRefs.'
   ].join('\n');
 }

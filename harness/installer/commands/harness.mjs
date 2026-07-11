@@ -23,6 +23,7 @@ import { mcpApprove } from './mcp-approve.mjs';
 import { plugin } from './plugin.mjs';
 import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
+import { codexModelDefault } from './codex-model-default.mjs';
 import { upstreamLockCommand } from './upstream-lock.mjs';
 
 const commands = {
@@ -50,7 +51,8 @@ const commands = {
   'adopt-global': adoptGlobal,
   'adoption-status': adoptionStatus,
   'workspace-link': workspaceLink,
-  'token-audit': tokenAudit
+  'token-audit': tokenAudit,
+  'codex-model-default': codexModelDefault
 };
 
 function usage() {
@@ -81,6 +83,7 @@ function usage() {
     '  adoption-status  Report user-global adoption drift and health',
     '  workspace-link  Link the current leaf workspace back to an authority root',
     '  token-audit  Print a weekly cross-session token audit',
+    '  codex-model-default  Inspect, assess, or migrate the Codex model default',
     '  worktree-name  Suggest a canonical worktree label and branch name for the active task',
     '  worktree-preflight  Recommend an explicit base before creating a Git worktree'
   ].join('\n');

@@ -31,6 +31,20 @@ export const RECEIPT_TYPES_REQUIRING_SESSION_HANDLE = ['binding_verified', 'star
 
 const isoTimestamp = z.string().datetime();
 
+export const SubagentDispatchSchema = z.object({
+  parentBindingId: z.string().min(1), childId: z.string().min(1), model: z.string().min(1), thinking: z.string().min(1),
+  capabilityClass: z.enum(CAPABILITY_CLASSES), currentSlice: z.string().min(1), proofTarget: z.string().min(1),
+  evidenceSink: z.string().min(1), permissionClass: z.enum(PERMISSION_CLASSES),
+  allowedOps: z.array(z.enum(ALLOWED_OPS)).min(1), nonGoals: z.array(z.string().min(1)),
+  delegationPolicy: z.enum(DELEGATION_POLICIES), sourceSet: z.array(z.string().min(1)).optional()
+}).strict();
+
+export const SubagentReturnSchema = z.object({
+  childId: z.string().min(1), contractHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  model: z.string().min(1), thinking: z.string().min(1), status: z.enum(['done', 'blocked']),
+  evidenceRefs: z.array(z.string().min(1)), contract: SubagentDispatchSchema
+}).strict();
+
 export const SourceProgressRefSchema = z.object({
   file: z.string().min(1),
   blockId: z.string().min(1),
@@ -61,6 +75,28 @@ export const BindingPacketSchema = z.object({
   latencyClass: z.enum(LATENCY_CLASSES).optional(),
   permissionClass: z.enum(PERMISSION_CLASSES).optional(),
   delegationPolicy: z.enum(DELEGATION_POLICIES).optional(),
+  dispatchIntentVersion: z.literal('chiefops.dispatch-intent.v1').optional(),
+  dispatchDecision: z.object({
+    decidedBy: z.string().min(1),
+    decidedAt: isoTimestamp,
+    inventory: z.object({
+      sourceRef: z.string().min(1),
+      observedAt: isoTimestamp,
+      fingerprint: z.string().regex(/^sha256:[a-f0-9]{64}$/)
+    }),
+    preferredModel: z.string().min(1),
+    preferredThinking: z.string().min(1),
+    applicationStatus: z.literal('manual_pending')
+  }).optional(),
+  upgradeAdmission: z.object({
+    admissionId: z.string().min(1),
+    admissionBlockHash: z.string().regex(/^sha256:[a-f0-9]{64}$/)
+  }).optional(),
+  detailedPlanEligibility: z.object({
+    eligibilityId: z.string().min(1),
+    eligibilityBlockHash: z.string().regex(/^sha256:[a-f0-9]{64}$/)
+  }).strict().optional(),
+  subagentDispatches: z.array(SubagentDispatchSchema).optional(),
   workType: z.enum(WORK_TYPES),
   authorityMode: z.enum(AUTHORITY_MODES),
   allowedOps: z.array(z.enum(ALLOWED_OPS)).min(1),
@@ -129,6 +165,28 @@ export const BindingPacketSchema = z.object({
       message: 'release permission requires release authority and human approval.'
     });
   }
+  if (Boolean(packet.dispatchIntentVersion) !== Boolean(packet.dispatchDecision)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dispatch intent version and decision are required together.' });
+  }
+  if (packet.dispatchDecision?.decidedBy !== undefined && packet.dispatchDecision.decidedBy !== packet.chiefThreadId) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dispatch decision must be authored by the bound Chief thread.' });
+  }
+  if (packet.dispatchIntentVersion && packet.capabilityClass === 'frontier_reasoning') {
+    const validFrontierProfile = packet.riskClass === 'high'
+      && packet.reasoningDemand === 'deep'
+      && packet.costPreference === 'quality_first'
+      && Boolean(packet.upgradeAdmission);
+    if (!validFrontierProfile) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'frontier dispatch requires verified admission profile fields.' });
+    }
+  }
+  if (packet.detailedPlanEligibility
+      && (!packet.dispatchIntentVersion || packet.capabilityClass !== 'economy_mechanical')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'detailed plan eligibility is valid only for explicit economy dispatch.'
+    });
+  }
 });
 
 export const WorkerReceiptSchema = z.object({
@@ -169,11 +227,13 @@ export const WorkerReceiptSchema = z.object({
   resolvedModelAtRun: z.string().min(1).optional(),
   resolvedThinkingAtRun: z.string().min(1).optional(),
   modelResolutionReason: z.string().min(1).optional(),
+  applicationStatus: z.enum(['manual_pending', 'unverified']).optional(),
+  subagentReturns: z.array(SubagentReturnSchema).optional(),
   scopeCheck: z.object({
     nonGoalsChecked: z.boolean(),
     violations: z.array(z.string().min(1))
   }).optional()
-}).superRefine((receipt, ctx) => {
+}).strict().superRefine((receipt, ctx) => {
   if (!receipt.bindingToken && !receipt.bindingVersion) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'bindingToken or bindingVersion is required.' });
   }
@@ -254,4 +314,12 @@ export function validateOperatingModelBindingPacket(value) {
 
 export function validateWorkerReceipt(value) {
   return WorkerReceiptSchema.parse(value);
+}
+
+export function validateSubagentDispatch(value) {
+  return SubagentDispatchSchema.parse(value);
+}
+
+export function validateSubagentReturn(value) {
+  return SubagentReturnSchema.parse(value);
 }

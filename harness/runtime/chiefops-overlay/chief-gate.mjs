@@ -58,7 +58,14 @@ function isTerminalLifecycleStatus(status) {
   return ['closed', 'archived', 'done', 'complete'].includes(String(status || '').toLowerCase());
 }
 
-export function gateWorkerReceipt({
+function sameDispatchDecision(left, right) {
+  if (!left || !right) return left === right;
+  return ['decidedBy', 'decidedAt', 'preferredModel', 'preferredThinking', 'applicationStatus']
+    .every((field) => left[field] === right[field])
+    && ['sourceRef', 'observedAt', 'fingerprint'].every((field) => left.inventory?.[field] === right.inventory?.[field]);
+}
+
+function gateWorkerReceiptCore({
   bindingPacket,
   receipt,
   approvalSatisfied = false,
@@ -124,6 +131,11 @@ export function gateWorkerReceipt({
     if (!requestedMatches || !resolvedMatches) {
       return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
     }
+    if (bindingPacket.dispatchIntentVersion
+      && (modelResolution.applicationStatus !== 'manual_pending'
+        || receipt.applicationStatus !== 'manual_pending')) {
+      return { outcome: 'block', reason: 'model_application_unverified' };
+    }
   }
 
   if (bindingPacket.expectedReceipt && bindingPacket.expectedReceipt !== receipt.receiptType) {
@@ -185,4 +197,80 @@ export function gateWorkerReceipt({
   }
 
   return { outcome: 'request_changes', reason: receipt.receiptType };
+}
+
+export function gateWorkerReceipt(args) {
+  return { outcome: 'block', reason: 'trusted_authority_context_required' };
+}
+
+// The synchronous helper never accepts. The authority-aware wrapper is the
+// sole accepting route so a receipt cannot supply its own binding, catalog,
+// admission, or child-return evidence.
+export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...args }) {
+  try {
+    const { readAuthoritativeBinding, verifyTrustedDispatchContext } = await import('./overlay-service.mjs');
+    const authoritative = await readAuthoritativeBinding({ root, bindingPacket: args.bindingPacket });
+    const authoritativeBinding = authoritative.bindingPacket;
+    const dispatchStateMatches = authoritativeBinding.dispatchIntentVersion === args.bindingPacket.dispatchIntentVersion
+      && sameDispatchDecision(authoritativeBinding.dispatchDecision, args.bindingPacket.dispatchDecision)
+      && same(authoritativeBinding.detailedPlanEligibility?.eligibilityId, args.bindingPacket.detailedPlanEligibility?.eligibilityId)
+      && same(authoritativeBinding.detailedPlanEligibility?.eligibilityBlockHash, args.bindingPacket.detailedPlanEligibility?.eligibilityBlockHash)
+      && same(authoritativeBinding.upgradeAdmission?.admissionId, args.bindingPacket.upgradeAdmission?.admissionId)
+      && same(authoritativeBinding.upgradeAdmission?.admissionBlockHash, args.bindingPacket.upgradeAdmission?.admissionBlockHash);
+    const childDispatchesMatch = JSON.stringify(authoritativeBinding.subagentDispatches ?? []) === JSON.stringify(args.bindingPacket.subagentDispatches ?? []);
+    if (!dispatchStateMatches || !childDispatchesMatch) {
+      return { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' };
+    }
+    const verdict = gateWorkerReceiptCore({ ...args, bindingPacket: authoritativeBinding });
+    const requiresAuthorityContext = Boolean(authoritativeBinding.dispatchIntentVersion || authoritativeBinding.subagentDispatches?.length > 0);
+    if (verdict.outcome !== 'accept' || !requiresAuthorityContext) return verdict;
+    if (authoritativeBinding.dispatchIntentVersion) {
+      await verifyTrustedDispatchContext({
+        root,
+        bindingPacket: authoritativeBinding,
+        modelResolution: args.modelResolution,
+        codexHome,
+        now
+      });
+    }
+    const declaredChildren = authoritativeBinding.subagentDispatches ?? [];
+    const returnedChildren = args.receipt?.subagentReturns ?? [];
+    if (declaredChildren.length === 0 && returnedChildren.length > 0) {
+      return { outcome: 'block', reason: 'subagent_return_unexpected' };
+    }
+    if (declaredChildren.length > 0 && returnedChildren.length === 0) {
+      return { outcome: 'block', reason: 'subagent_return_missing' };
+    }
+    const { prepareSubagentHandoff, validateSubagentReturn } = await import('./overlay-service.mjs');
+    const declaredIds = new Set(declaredChildren.map((child) => child.childId));
+    if (declaredIds.size !== declaredChildren.length || returnedChildren.some((child) => !declaredIds.has(child.childId))) {
+      return { outcome: 'block', reason: 'subagent_return_unexpected' };
+    }
+    for (const childDispatch of declaredChildren) {
+      const matches = returnedChildren.filter((child) => child.childId === childDispatch.childId);
+      if (matches.length === 0) return { outcome: 'block', reason: 'subagent_return_missing' };
+      if (matches.length !== 1) return { outcome: 'block', reason: 'subagent_return_duplicate' };
+      const childContract = await prepareSubagentHandoff({
+        root,
+        parentBinding: authoritativeBinding,
+        childDispatch,
+        codexHome,
+        now
+      });
+      await validateSubagentReturn({
+        root,
+        parentBinding: authoritativeBinding,
+        childContract,
+        childReturn: matches[0],
+        codexHome,
+        now
+      });
+    }
+    return verdict;
+  } catch (error) {
+    if (typeof error?.message === 'string' && error.message.startsWith('subagent_return_')) {
+      return { outcome: 'block', reason: error.message };
+    }
+    return { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' };
+  }
 }

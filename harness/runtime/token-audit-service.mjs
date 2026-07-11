@@ -118,7 +118,7 @@ function toTaskFamilyHint(taskFamily) {
 }
 
 function summarizeSession(filePath, summary) {
-  const { meta, model, effort, totalUsage, firstTimestamp, taskIdMatches } = summary;
+  const { meta, model, effort, modelTransitions, totalUsage, firstTimestamp, taskIdMatches } = summary;
   if (!meta || !totalUsage) {
     return null;
   }
@@ -130,6 +130,11 @@ function summarizeSession(filePath, summary) {
 
   const taskId = extractPrimaryTaskId(taskIdMatches);
 
+  const transitions = modelTransitions.filter((entry, index) =>
+    index === 0
+      || entry.model !== modelTransitions[index - 1].model
+      || entry.effort !== modelTransitions[index - 1].effort
+  );
   return {
     sessionId: String(meta.id ?? path.basename(filePath)),
     timestamp,
@@ -140,6 +145,8 @@ function summarizeSession(filePath, summary) {
     threadSource: normalizeThreadSource(meta.source),
     model: typeof model === 'string' ? model : 'unknown',
     effort: typeof effort === 'string' ? effort : 'unknown',
+    modelTransitions: transitions,
+    modelState: transitions.length > 1 ? 'mixed' : 'single',
     taskId,
     taskFamily: normalizeTaskFamily(taskId),
     taskFamilyHint: toTaskFamilyHint(normalizeTaskFamily(taskId)),
@@ -157,6 +164,7 @@ async function parseRolloutFile(filePath) {
     meta: null,
     model: 'unknown',
     effort: 'unknown',
+    modelTransitions: [],
     totalUsage: null,
     firstTimestamp: null,
     taskIdMatches: new Map()
@@ -198,6 +206,13 @@ async function parseRolloutFile(filePath) {
     if (record.type === 'turn_context' && record.payload && typeof record.payload === 'object') {
       summary.model = record.payload.model ?? summary.model;
       summary.effort = record.payload.effort ?? summary.effort;
+      if (typeof record.payload.model === 'string' && typeof record.payload.effort === 'string') {
+        summary.modelTransitions.push({
+          model: record.payload.model,
+          effort: record.payload.effort,
+          observedAt: record.timestamp
+        });
+      }
       continue;
     }
 
@@ -262,12 +277,15 @@ function aggregateSessions(sessions) {
     totals.freshProxy += session.freshProxy;
 
     threadSource[session.threadSource] ??= createEmptyBucket();
-    models[session.model] ??= createEmptyBucket();
+    const modelAggregationKey = session.modelState === 'mixed'
+      ? 'mixed/unattributable'
+      : session.model;
+    models[modelAggregationKey] ??= createEmptyBucket();
     workspaces[session.workspace] ??= createEmptyBucket();
     tasks[session.taskFamilyHint] ??= createEmptyBucket();
 
     accumulate(threadSource[session.threadSource], session);
-    accumulate(models[session.model], session);
+    accumulate(models[modelAggregationKey], session);
     accumulate(workspaces[session.workspace], session);
     accumulate(tasks[session.taskFamilyHint], session);
   }
@@ -291,6 +309,9 @@ function aggregateSessions(sessions) {
           taskFamilyHint: session.taskFamilyHint,
           threadSource: session.threadSource,
           model: session.model,
+          effort: session.effort,
+          modelState: session.modelState,
+          modelTransitions: session.modelTransitions,
           totalTokens: session.totalTokens,
           freshProxy: session.freshProxy
         }))
@@ -350,6 +371,24 @@ function renderWorkspaceLines(entries) {
   ];
 }
 
+function renderSessionLines(entries) {
+  if (entries.length === 0) {
+    return ['Top sessions:', '- none'];
+  }
+  return [
+    'Top sessions:',
+    ...entries.map((entry) => {
+      const transitions = entry.modelTransitions
+        .map((transition) => transition.model + '/' + transition.effort)
+        .join(' -> ');
+      return '- ' + entry.sessionId
+        + ': model_state=' + entry.modelState
+        + ', transitions=' + (transitions || 'unknown')
+        + ', total=' + formatNumber(entry.totalTokens);
+    })
+  ];
+}
+
 async function collectRolloutFiles({ sessionsRoot, start, end, allowRecursiveFallback }) {
   const files = [];
   const seen = new Set();
@@ -399,6 +438,8 @@ export function renderTokenAuditMarkdown(report) {
     `- subagent: sessions=${formatNumber(report.breakdowns.threadSource.subagent?.sessions ?? 0)}, total=${formatNumber(report.breakdowns.threadSource.subagent?.totalTokens ?? 0)}, fresh=${formatNumber(report.breakdowns.threadSource.subagent?.freshProxy ?? 0)}`,
     '',
     ...renderBucketLines('Model mix:', report.leaderboards.models.slice(0, 5), 'model'),
+    '',
+    ...renderSessionLines(report.leaderboards.sessions.slice(0, 5)),
     '',
     ...renderWorkspaceLines(report.leaderboards.workspaces.slice(0, 5)),
     '',
