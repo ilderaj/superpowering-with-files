@@ -132,6 +132,27 @@ test('authority-aware economy selection rereads held eligibility before Luna and
   assert.equal(verified.resolvedModelAtRun, 'economy-current');
   assert.equal(verified.resolvedThinkingAtRun, 'high');
   assert.equal(verified.applicationStatus, 'manual_pending');
+  const strippedDispatchBinding = { ...binding };
+  delete strippedDispatchBinding.dispatchIntentVersion;
+  delete strippedDispatchBinding.dispatchDecision;
+  delete strippedDispatchBinding.detailedPlanEligibility;
+  const strippedDispatchReceipt = {
+    ...strippedDispatchBinding,
+    receiptId: 'receipt_1', receiptType: 'done', threadId: 'thread-1', status: 'done', summary: 'done',
+    evidenceRefs: ['focused-tests'], nextSuggestedAction: 'gate', createdAt: now, scopeCheck: { nonGoalsChecked: true, violations: [] },
+    resolvedModelAtRun: verified.resolvedModelAtRun, resolvedThinkingAtRun: verified.resolvedThinkingAtRun,
+    modelResolutionReason: verified.modelResolutionReason, applicationStatus: 'manual_pending'
+  };
+  assert.deepEqual(
+    gateWorkerReceipt({ bindingPacket: strippedDispatchBinding, receipt: strippedDispatchReceipt, approvalSatisfied: true, modelResolution: verified }),
+    { outcome: 'block', reason: 'trusted_authority_context_required' },
+    'synchronous gate cannot accept a caller-downgraded explicit economy binding'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, codexHome, now, bindingPacket: strippedDispatchBinding, receipt: strippedDispatchReceipt, approvalSatisfied: true, modelResolution: verified }),
+    { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' },
+    'authority gate rereads and rejects a caller-downgraded explicit economy binding'
+  );
 
   await writeFile(path.join(root, 'planning/active/chiefops-demo/findings.md'), '# Findings\n');
   const omittedEligibility = { ...binding };

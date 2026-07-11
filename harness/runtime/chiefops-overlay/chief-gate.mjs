@@ -58,6 +58,17 @@ function isTerminalLifecycleStatus(status) {
   return ['closed', 'archived', 'done', 'complete'].includes(String(status || '').toLowerCase());
 }
 
+function hasOperatingModelProfile(bindingPacket = {}) {
+  return ['reasoningDemand', 'costPreference', 'latencyClass'].every((field) => bindingPacket[field] !== undefined);
+}
+
+function sameDispatchDecision(left, right) {
+  if (!left || !right) return left === right;
+  return ['decidedBy', 'decidedAt', 'preferredModel', 'preferredThinking', 'applicationStatus']
+    .every((field) => left[field] === right[field])
+    && ['sourceRef', 'observedAt', 'fingerprint'].every((field) => left.inventory?.[field] === right.inventory?.[field]);
+}
+
 function gateWorkerReceiptCore({
   bindingPacket,
   receipt,
@@ -193,7 +204,10 @@ function gateWorkerReceiptCore({
 }
 
 export function gateWorkerReceipt(args) {
-  if (args.bindingPacket?.dispatchIntentVersion || args.bindingPacket?.subagentDispatches?.length > 0) {
+  if (args.bindingPacket?.dispatchIntentVersion
+    || args.bindingPacket?.subagentDispatches?.length > 0
+    || (args.bindingPacket?.capabilityClass === 'economy_mechanical'
+      && args.receipt?.resolvedThinkingAtRun === 'high')) {
     return { outcome: 'block', reason: 'trusted_authority_context_required' };
   }
   return gateWorkerReceiptCore(args);
@@ -203,21 +217,35 @@ export function gateWorkerReceipt(args) {
 // child-dispatch callers must use this authority-aware wrapper so a receipt
 // cannot supply its own catalog, admission, or child-return evidence.
 export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...args }) {
-  const verdict = gateWorkerReceiptCore(args);
-  const requiresAuthorityContext = Boolean(args.bindingPacket.dispatchIntentVersion || args.bindingPacket.subagentDispatches?.length > 0);
-  if (verdict.outcome !== 'accept' || !requiresAuthorityContext) return verdict;
+  const callerRequiresAuthorityContext = Boolean(args.bindingPacket.dispatchIntentVersion
+    || args.bindingPacket.subagentDispatches?.length > 0
+    || hasOperatingModelProfile(args.bindingPacket));
+  if (!callerRequiresAuthorityContext) return gateWorkerReceiptCore(args);
   try {
-    if (args.bindingPacket.dispatchIntentVersion) {
-      const { verifyTrustedDispatchContext } = await import('./overlay-service.mjs');
+    const { readAuthoritativeBinding, verifyTrustedDispatchContext } = await import('./overlay-service.mjs');
+    const authoritative = await readAuthoritativeBinding({ root, bindingPacket: args.bindingPacket });
+    const authoritativeBinding = authoritative.bindingPacket;
+    const dispatchStateMatches = authoritativeBinding.dispatchIntentVersion === args.bindingPacket.dispatchIntentVersion
+      && sameDispatchDecision(authoritativeBinding.dispatchDecision, args.bindingPacket.dispatchDecision)
+      && same(authoritativeBinding.detailedPlanEligibility?.eligibilityId, args.bindingPacket.detailedPlanEligibility?.eligibilityId)
+      && same(authoritativeBinding.detailedPlanEligibility?.eligibilityBlockHash, args.bindingPacket.detailedPlanEligibility?.eligibilityBlockHash);
+    const childDispatchesMatch = JSON.stringify(authoritativeBinding.subagentDispatches ?? []) === JSON.stringify(args.bindingPacket.subagentDispatches ?? []);
+    if (!dispatchStateMatches || !childDispatchesMatch) {
+      return { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' };
+    }
+    const verdict = gateWorkerReceiptCore({ ...args, bindingPacket: authoritativeBinding });
+    const requiresAuthorityContext = Boolean(authoritativeBinding.dispatchIntentVersion || authoritativeBinding.subagentDispatches?.length > 0);
+    if (verdict.outcome !== 'accept' || !requiresAuthorityContext) return verdict;
+    if (authoritativeBinding.dispatchIntentVersion) {
       await verifyTrustedDispatchContext({
         root,
-        bindingPacket: args.bindingPacket,
+        bindingPacket: authoritativeBinding,
         modelResolution: args.modelResolution,
         codexHome,
         now
       });
     }
-    const declaredChildren = args.bindingPacket.subagentDispatches ?? [];
+    const declaredChildren = authoritativeBinding.subagentDispatches ?? [];
     const returnedChildren = args.receipt?.subagentReturns ?? [];
     if (declaredChildren.length === 0 && returnedChildren.length > 0) {
       return { outcome: 'block', reason: 'subagent_return_unexpected' };
@@ -236,14 +264,14 @@ export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...
       if (matches.length !== 1) return { outcome: 'block', reason: 'subagent_return_duplicate' };
       const childContract = await prepareSubagentHandoff({
         root,
-        parentBinding: args.bindingPacket,
+        parentBinding: authoritativeBinding,
         childDispatch,
         codexHome,
         now
       });
       await validateSubagentReturn({
         root,
-        parentBinding: args.bindingPacket,
+        parentBinding: authoritativeBinding,
         childContract,
         childReturn: matches[0],
         codexHome,

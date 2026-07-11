@@ -84,7 +84,7 @@ function sameAuthoritativeBinding(left, right) {
   return sharedFieldsMatch && subagentDispatchesMatch && !tokenContradictsTruth && (publicVersionMatches || privateTokenMatches);
 }
 
-async function readAuthoritativeBinding({ root, bindingPacket }) {
+export async function readAuthoritativeBinding({ root, bindingPacket }) {
   const progressPath = path.join(root, 'planning/active', bindingPacket.authorityTaskId, 'progress.md');
   const markdown = await readFile(progressPath, 'utf8');
   const bindingBlocks = parseChiefOpsBlocks(markdown)
