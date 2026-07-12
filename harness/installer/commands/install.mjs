@@ -2,7 +2,11 @@ import os from 'node:os';
 import { loadPlatforms, normalizeScope, normalizeTargets } from '../lib/metadata.mjs';
 import { loadPolicyProfiles } from '../lib/policy-render.mjs';
 import { resolveTargetPaths } from '../lib/paths.mjs';
-import { defaultSkillProfileForTargets, loadSkillProfiles } from '../lib/skill-projection.mjs';
+import {
+  defaultSkillProfileForTargets,
+  loadSkillProfiles,
+  policyProfileForSkillProfile
+} from '../lib/skill-projection.mjs';
 import { isSafetyPolicyProfile } from '../lib/safety-projection.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import {
@@ -19,7 +23,28 @@ function readOption(args, name, fallback) {
   return value ? value.slice(prefix.length) : fallback;
 }
 
+function usage() {
+  return [
+    'Usage: ./scripts/harness install [options]',
+    '',
+    'Options:',
+    '  --scope=workspace|user-global|both',
+    '  --targets=all|codex,copilot,cursor,claude-code',
+    '  --skills-profile=<name>',
+    '  --profile=<entry-policy-profile>',
+    '  --projection=link|portable',
+    '  --mode=ensure|force',
+    '  --hooks=off|on',
+    '  --help, -h'
+  ].join('\n');
+}
+
 export async function install(args = [], options = {}) {
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(usage());
+    return;
+  }
+
   const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
   const metadata = await loadPlatforms(rootDir);
   const policyProfiles = await loadPolicyProfiles(rootDir);
@@ -27,14 +52,7 @@ export async function install(args = [], options = {}) {
   const scope = normalizeScope(readOption(args, 'scope', metadata.defaultScope));
   const mode = readOption(args, 'mode', 'ensure');
   const projectionMode = readOption(args, 'projection', 'link');
-  const requestedPolicyProfile = readOption(args, 'profile', policyProfiles.defaultProfile);
   const deploymentProfile = readOption(args, 'deployment-profile', DEFAULT_DEPLOYMENT_PROFILE);
-  const { policyProfile, workspacePolicyOverlay } = normalizePolicySelection(requestedPolicyProfile);
-  const hookMode = readOption(
-    args,
-    'hooks',
-    isSafetyPolicyProfile(requestedPolicyProfile) ? 'on' : 'off'
-  );
   const targetArg = readOption(args, 'targets', 'all');
   const targets = normalizeTargets(metadata, targetArg.split(',').filter(Boolean));
   const skillProfile = defaultSkillProfileForTargets(
@@ -42,6 +60,22 @@ export async function install(args = [], options = {}) {
     targets,
     readOption(args, 'skills-profile', undefined),
     scope
+  );
+  if (!skillProfiles.profiles[skillProfile]) {
+    throw new Error(
+      `Invalid skills profile: ${skillProfile}. Expected one of: ${Object.keys(skillProfiles.profiles).join(', ')}.`
+    );
+  }
+  const requestedPolicyProfile = policyProfileForSkillProfile(
+    skillProfiles,
+    skillProfile,
+    readOption(args, 'profile', undefined)
+  );
+  const { policyProfile, workspacePolicyOverlay } = normalizePolicySelection(requestedPolicyProfile);
+  const hookMode = readOption(
+    args,
+    'hooks',
+    isSafetyPolicyProfile(requestedPolicyProfile) ? 'on' : 'off'
   );
 
   if (!['link', 'portable'].includes(projectionMode)) {
@@ -73,12 +107,6 @@ export async function install(args = [], options = {}) {
   if (scope !== 'workspace' && deploymentProfile !== DEFAULT_DEPLOYMENT_PROFILE) {
     throw new Error(
       `Deployment profile ${deploymentProfile} is workspace-only. Refusing it for ${scope} scope.`
-    );
-  }
-
-  if (!skillProfiles.profiles[skillProfile]) {
-    throw new Error(
-      `Invalid skills profile: ${skillProfile}. Expected one of: ${Object.keys(skillProfiles.profiles).join(', ')}.`
     );
   }
 

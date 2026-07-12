@@ -65,6 +65,74 @@
         }
       }
     },
+    "mattpocock-skills": {
+      "source": "https://github.com/mattpocock/skills",
+      "baselinePath": "harness/upstream/mattpocock-skills/skills",
+      "layout": "collection",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      },
+      "childPatches": {
+        "engineering/tdd": {
+          "type": "matt-tdd-harness-authority",
+          "marker": "Harness Matt TDD authority patch"
+        },
+        "engineering/code-review": {
+          "type": "matt-code-review-harness-authority",
+          "marker": "Harness Matt code-review authority patch"
+        },
+        "engineering/domain-modeling": {
+          "type": "matt-domain-modeling-harness-authority",
+          "marker": "Harness Matt domain-modeling authority patch"
+        },
+        "engineering/diagnosing-bugs": {
+          "type": "matt-debug-harness-authority",
+          "marker": "Harness Matt debugging authority patch"
+        },
+        "engineering/codebase-design": {
+          "type": "matt-codebase-design-harness-authority",
+          "marker": "Harness Matt codebase-design authority patch",
+          "requiredMarkers": [
+            {
+              "path": "DESIGN-IT-TWICE.md",
+              "marker": "Harness Matt design-it-twice dispatch patch"
+            }
+          ]
+        },
+        "engineering/implement": {
+          "type": "matt-implement-harness-authority",
+          "marker": "Harness Matt implement authority patch"
+        },
+        "engineering/research": {
+          "type": "matt-research-harness-authority",
+          "marker": "Harness Matt research authority patch"
+        },
+        "engineering/prototype": {
+          "type": "matt-prototype-harness-authority",
+          "marker": "Harness Matt prototype authority patch"
+        },
+        "engineering/improve-codebase-architecture": {
+          "type": "matt-architecture-harness-authority",
+          "marker": "Harness Matt architecture workflow authority patch"
+        },
+        "engineering/grill-with-docs": {
+          "type": "matt-grill-with-docs-harness-authority",
+          "marker": "Harness Matt grill-with-docs authority patch"
+        },
+        "productivity/grilling": {
+          "type": "matt-grilling-harness-authority",
+          "marker": "Harness Matt grilling authority patch"
+        },
+        "productivity/writing-great-skills": {
+          "type": "matt-writing-skills-harness-authority",
+          "marker": "Harness Matt writing-skills authority patch"
+        }
+      }
+    },
     "planning-with-files": {
       "source": "https://github.com/OthmanAdi/planning-with-files",
       "baselinePath": "harness/upstream/planning-with-files",
@@ -100,6 +168,19 @@
           "source": "harness/core/hooks/planning-with-files",
           "adapter": "task-scoped-planning"
         }
+      }
+    },
+    "office-work-quality": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/office-work-quality",
+      "layout": "single",
+      "targetName": "office-work-quality",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
       }
     },
     "risk-assessment-before-destructive-changes": {

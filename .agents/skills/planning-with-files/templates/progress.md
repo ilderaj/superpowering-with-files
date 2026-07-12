@@ -3,6 +3,7 @@
   WHAT: Your session log - a chronological record of what you did, when, and what happened.
   WHY: Answers "What have I done?" in the 5-Question Reboot Test. Helps you resume after breaks.
   WHEN: Update after completing each phase or encountering errors. More detailed than task_plan.md.
+  ORDER: Keep session blocks top-to-bottom chronological, with earlier records above later ones.
 -->
 
 ## Session: [TIMESTAMP]

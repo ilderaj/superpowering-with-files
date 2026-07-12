@@ -27,6 +27,19 @@ Maintenance flow:
 
 `fetch` retrieves upstream candidates. `update` applies accepted candidates. `sync` regenerates installed projections and garbage-collects stale Harness-managed paths that are no longer desired.
 
+For this repository's skills, use the independent workspace control plane:
+
+```bash
+./scripts/harness workspace-skills set --skill-profile=standard
+./scripts/harness workspace-skills plan
+./scripts/harness workspace-skills sync --takeover
+./scripts/harness workspace-skills check
+```
+
+`set` changes the committed desired profile only. First adoption requires `--takeover`; known tracked/canonical skill directories may be replaced or pruned, modified/ambiguous/symlinked paths fail closed, and unknown skills are preserved. CI runs `workspace-skills check`. Personal-global state and manifests are not workspace correctness inputs.
+
+Before changing a skill profile or validating an upstream refresh, consult [Skill Profiles And Projection Map](skill-profiles.md). It records the canonical profile → entry-policy → allow-list relationship, including the curated Matt default and the restricted Superpowers toolbox.
+
 ## Upstream Compatibility Baseline
 
 Treat imported upstream trees under `harness/upstream/` as refreshable snapshots, not as the default home for long-lived repo-specific behavior.
@@ -289,11 +302,31 @@ After any Superpowers update that touches `finishing-a-development-branch`, run 
 ./scripts/harness update --source=planning-with-files
 ```
 
+Matt Skills is refreshed through the same locked workflow. Keep its vendor tree unmodified; change profile curation and routing only in Harness-owned files.
+
+```bash
+./scripts/harness upstream-lock --source=mattpocock-skills
+./scripts/harness fetch --source=mattpocock-skills
+./scripts/harness update --source=mattpocock-skills
+```
+
 The update command may only write into `harness/upstream/<source-name>`. It must not modify `harness/core`, `harness/adapters`, `harness/installer`, or `planning/active`.
 
-Do not patch `harness/upstream/superpowers` or `harness/upstream/planning-with-files` to enforce local workflow policy. Those directories are upstream baselines and may be replaced during update. Keep local governance and workflow mechanics in Harness-owned layers.
+Do not patch `harness/upstream/superpowers`, `harness/upstream/mattpocock-skills`, or `harness/upstream/planning-with-files` to enforce local workflow policy. Those directories are upstream baselines and may be replaced during update. Keep local governance and workflow mechanics in Harness-owned layers.
 
-After any upstream update, run:
+After any upstream update, run the repository skill proof:
+
+```bash
+./scripts/harness workspace-skills plan
+./scripts/harness workspace-skills sync --takeover
+./scripts/harness workspace-skills check
+```
+
+Automation must call `fetch --no-state` and `update --no-state`; a post-hoc restore of `.harness/state.json` is not an acceptable substitute. For personal/global projections, continue to use the legacy installer/sync/doctor flow deliberately.
+
+The temporary `matt-pilot`, `superpowers-pilot`, and `hybrid-candidate` profiles are evaluated by matched replay, not random projects. See [Skill Profile Evaluation](skill-profile-evaluation.md).
+
+Legacy personal/global validation commands remain:
 
 ```bash
 npm run verify:all
@@ -355,7 +388,7 @@ Required checks:
 - confirm rendered entries stay on the always-on core profile unless a target explicitly needs more detail
 - confirm `hookMode: off` remains the low-overhead default
 - if hook files changed, confirm runtime hook payload measurements stay within the configured budgets
-- if skill projection changed, verify the lean user-global default `minimal-global` profile and the explicit opt-in `full` profile
+- if skill projection changed, verify the Matt-backed workspace `standard` profile, lean user-global `minimal-global`, and explicit `high-assurance` profile
 
 User-global calibration must be isolated unless the goal is to intentionally update the operator's real user-global files. Use a disposable clone and a disposable home/profile, then perform an actual sync before verification:
 

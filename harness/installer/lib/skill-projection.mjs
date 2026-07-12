@@ -25,13 +25,13 @@ function validateSkillProfilesConfig(config) {
   }
 
   for (const key of Object.keys(config)) {
-    if (!['schemaVersion', 'defaultProfile', 'profiles'].includes(key)) {
+    if (!['schemaVersion', 'defaultProfile', 'policyProfileBySkillProfile', 'profiles'].includes(key)) {
       throw new TypeError(`Harness skill profiles contains unsupported field: ${key}`);
     }
   }
 
-  if (config.schemaVersion !== 1) {
-    throw new TypeError('Harness skill profiles schemaVersion must be 1.');
+  if (config.schemaVersion !== 2) {
+    throw new TypeError('Harness skill profiles schemaVersion must be 2.');
   }
 
   if (typeof config.defaultProfile !== 'string' || !config.defaultProfile) {
@@ -53,9 +53,19 @@ function validateSkillProfilesConfig(config) {
       `Harness skill profiles defaultProfile ${config.defaultProfile} must reference an existing profile.`
     );
   }
+
+  if (!config.policyProfileBySkillProfile || typeof config.policyProfileBySkillProfile !== 'object' || Array.isArray(config.policyProfileBySkillProfile)) {
+    throw new TypeError('Harness skill profiles policyProfileBySkillProfile must be a JSON object.');
+  }
+
+  for (const profileName of Object.keys(config.profiles)) {
+    if (typeof config.policyProfileBySkillProfile[profileName] !== 'string' || !config.policyProfileBySkillProfile[profileName]) {
+      throw new TypeError(`Harness skill profile ${profileName} must map to an entry policy profile.`);
+    }
+  }
 }
 
-function validateSkillProfileEntries(profileName, profileEntries, index, childNamesByParent) {
+function validateSkillProfileEntries(profileName, profileEntries, index, childDescriptorsByParent) {
   for (const entry of profileEntries) {
     const [parentSkillName, childName] = entry.split(':');
 
@@ -78,7 +88,7 @@ function validateSkillProfileEntries(profileName, profileEntries, index, childNa
       );
     }
 
-    if (!childNamesByParent[parentSkillName]?.includes(childName)) {
+    if (!childDescriptorsByParent[parentSkillName]?.some((child) => child.id === childName)) {
       throw new TypeError(`Harness skill profile ${profileName} references unknown child: ${entry}`);
     }
   }
@@ -102,6 +112,19 @@ export function defaultSkillProfileForTargets(skillProfiles, targets, requestedS
   return targets.length === 1 && targets[0] === 'copilot'
     ? 'copilot-default'
     : skillProfiles.defaultProfile;
+}
+
+export function policyProfileForSkillProfile(skillProfiles, skillProfile, requestedPolicyProfile) {
+  if (requestedPolicyProfile) {
+    return requestedPolicyProfile;
+  }
+
+  const policyProfile = skillProfiles.policyProfileBySkillProfile?.[skillProfile];
+  if (!policyProfile) {
+    throw new Error(`No entry policy profile is configured for skills profile: ${skillProfile}.`);
+  }
+
+  return policyProfile;
 }
 
 function resolveSkillProfileName(skillProfiles, requestedProfile) {
@@ -134,9 +157,9 @@ function buildProfileSelection(profileEntries) {
   return { allowedParents, allowedChildren };
 }
 
-function selectedCollectionChildren(profileSelection, parentSkillName, childNames) {
+function selectedCollectionChildren(profileSelection, parentSkillName, children) {
   if (profileSelection.allowedParents.has(parentSkillName)) {
-    return childNames;
+    return children;
   }
 
   const allowedChildren = profileSelection.allowedChildren.get(parentSkillName);
@@ -144,7 +167,7 @@ function selectedCollectionChildren(profileSelection, parentSkillName, childName
     return [];
   }
 
-  return childNames.filter((childName) => allowedChildren.has(childName));
+  return children.filter((child) => allowedChildren.has(child.id));
 }
 
 async function loadSkillIndex(rootDir) {
@@ -167,12 +190,30 @@ function strategyFor(skill, target) {
   return strategy;
 }
 
-async function collectionChildNames(sourcePath) {
-  const entries = await readdir(sourcePath, { withFileTypes: true });
-  return entries
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
+async function collectionChildDescriptors(sourcePath) {
+  const children = [];
+
+  async function visit(directory, relativeDirectory = '') {
+    const entries = await readdir(directory, { withFileTypes: true });
+    for (const entry of entries.filter((candidate) => candidate.isDirectory()).sort((left, right) => left.name.localeCompare(right.name))) {
+      const relativePath = relativeDirectory ? path.join(relativeDirectory, entry.name) : entry.name;
+      const childPath = path.join(directory, entry.name);
+
+      if (await pathExists(path.join(childPath, 'SKILL.md'))) {
+        children.push({
+          id: relativePath.split(path.sep).join('/'),
+          sourcePath: childPath,
+          targetName: entry.name
+        });
+        continue;
+      }
+
+      await visit(childPath, relativePath);
+    }
+  }
+
+  await visit(sourcePath);
+  return children.sort((left, right) => left.id.localeCompare(right.id));
 }
 
 async function pathExists(targetPath) {
@@ -380,7 +421,7 @@ export async function planSkillProjections({
       continue;
     }
 
-    collectionChildrenByParent[parentSkillName] = await collectionChildNames(
+    collectionChildrenByParent[parentSkillName] = await collectionChildDescriptors(
       path.join(rootDir, skill.baselinePath)
     );
   }
@@ -398,13 +439,13 @@ export async function planSkillProjections({
     const strategy = strategyFor(skill, target);
 
     if (skill.layout === 'collection') {
-      const childNames = selectedCollectionChildren(
+      const children = selectedCollectionChildren(
         profileSelection,
         parentSkillName,
         collectionChildrenByParent[parentSkillName] ?? []
       );
 
-      if (!childNames.length) {
+      if (!children.length) {
         continue;
       }
 
@@ -415,22 +456,22 @@ export async function planSkillProjections({
         target,
         {
           layout: 'collection',
-          childNames
+          childNames: children.map((child) => child.targetName)
         },
         deploymentProfile
       );
 
-      for (const childName of childNames) {
-        for (const targetPath of targetPaths.filter((candidate) => path.basename(candidate) === childName)) {
-          const patches = normalizePatches(skill.childPatches?.[childName]);
+      for (const child of children) {
+        for (const targetPath of targetPaths.filter((candidate) => path.basename(candidate) === child.targetName)) {
+          const patches = normalizePatches(skill.childPatches?.[child.id] ?? skill.childPatches?.[child.targetName]);
           projections.push({
             kind: 'skill',
             parentSkillName,
-            skillName: childName,
+            skillName: child.targetName,
             target,
             deploymentProfile,
             strategy,
-            sourcePath: path.join(sourceRoot, childName),
+            sourcePath: child.sourcePath,
             targetPath,
             patches
           });
@@ -463,6 +504,85 @@ export async function planSkillProjections({
           sourcePath: sourceRoot,
           targetPath,
           patches
+        });
+      }
+      continue;
+    }
+
+    throw new Error(`Unsupported skill layout: ${skill.layout}`);
+  }
+
+  return projections;
+}
+
+export async function listSkillCatalogProjections({
+  rootDir,
+  homeDir,
+  scope,
+  target,
+  deploymentProfile = 'standard'
+}) {
+  const [index, metadata] = await Promise.all([
+    loadSkillIndex(rootDir),
+    loadPlatformsMetadata(rootDir)
+  ]);
+  if (!metadata.platforms[target]) {
+    throw new Error(`Unknown target: ${target}`);
+  }
+
+  const projections = [];
+  for (const [parentSkillName, skill] of Object.entries(index.skills).sort(([left], [right]) =>
+    left.localeCompare(right)
+  )) {
+    const strategy = strategyFor(skill, target);
+    if (skill.layout === 'collection') {
+      const children = await collectionChildDescriptors(path.join(rootDir, skill.baselinePath));
+      const targetPaths = resolveSkillTargetPaths(
+        rootDir,
+        homeDir,
+        scope,
+        target,
+        { layout: 'collection', childNames: children.map((child) => child.targetName) },
+        deploymentProfile
+      );
+      for (const child of children) {
+        for (const targetPath of targetPaths.filter((candidate) => path.basename(candidate) === child.targetName)) {
+          projections.push({
+            kind: 'skill',
+            parentSkillName,
+            skillName: child.targetName,
+            target,
+            deploymentProfile,
+            strategy,
+            sourcePath: child.sourcePath,
+            targetPath,
+            patches: normalizePatches(skill.childPatches?.[child.id] ?? skill.childPatches?.[child.targetName])
+          });
+        }
+      }
+      continue;
+    }
+
+    if (skill.layout === 'single') {
+      const sourcePath = await resolveSingleSkillSourceRoot(rootDir, skill);
+      for (const targetPath of resolveSkillTargetPaths(
+        rootDir,
+        homeDir,
+        scope,
+        target,
+        skill,
+        deploymentProfile
+      )) {
+        projections.push({
+          kind: 'skill',
+          parentSkillName,
+          skillName: skill.targetName,
+          target,
+          deploymentProfile,
+          strategy,
+          sourcePath,
+          targetPath,
+          patches: resolvePatches(skill.patches, target)
         });
       }
       continue;

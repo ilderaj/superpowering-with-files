@@ -208,6 +208,45 @@ test('fetchCommand stages git planning-with-files candidate without touching cor
   }
 });
 
+test('fetch --no-state leaves absent state absent and existing state byte-identical', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fetch-no-state-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
+  try {
+    await writeSources(root, source);
+    const commitSha = await createGitSource(source, 'stateless fetch');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
+    await withCwd(root, () => fetchCommand(['--source=planning-with-files', '--no-state']));
+    await assert.rejects(readFile(path.join(root, '.harness/state.json')), /ENOENT/);
+
+    await mkdir(path.join(root, '.harness'), { recursive: true });
+    const sentinel = '{"sentinel":"unchanged"}\n';
+    await writeFile(path.join(root, '.harness/state.json'), sentinel);
+    await withCwd(root, () => fetchCommand(['--source=planning-with-files', '--no-state']));
+    assert.equal(await readFile(path.join(root, '.harness/state.json'), 'utf8'), sentinel);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});
+
+test('fetch --no-state failure leaves existing state byte-identical', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fetch-no-state-failure-'));
+  try {
+    await mkdir(path.join(root, 'harness/upstream'), { recursive: true });
+    await writeFile(path.join(root, 'harness/upstream/sources.json'), '{"schemaVersion":2,"sources":{}}');
+    await mkdir(path.join(root, '.harness'), { recursive: true });
+    const sentinel = '{"sentinel":"fetch-failure"}\n';
+    await writeFile(path.join(root, '.harness/state.json'), sentinel);
+    await assert.rejects(
+      withCwd(root, () => fetchCommand(['--source=missing', '--no-state'])),
+      /Unknown upstream source/
+    );
+    assert.equal(await readFile(path.join(root, '.harness/state.json'), 'utf8'), sentinel);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test('fetchCommand clones the locked tag commit instead of raw HEAD', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-fetch-locked-ref-'));
   const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-tagged-source-'));
@@ -345,6 +384,49 @@ test('updateCommand applies candidate only to harness upstream path', async () =
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(source, { recursive: true, force: true });
+  }
+});
+
+test('update --no-state applies the candidate without creating or changing state', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-no-state-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-source-'));
+  try {
+    await writeSources(root, source);
+    await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
+    const commitSha = await createGitSource(source, 'stateless update');
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
+    await withCwd(root, async () => {
+      await fetchCommand(['--source=planning-with-files', '--no-state']);
+      await updateCommand(['--source=planning-with-files', '--no-state']);
+    });
+    assert.equal(await readFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'utf8'), 'stateless update');
+    await assert.rejects(readFile(path.join(root, '.harness/state.json')), /ENOENT/);
+
+    const sentinel = '{"sentinel":"unchanged"}\n';
+    await writeFile(path.join(root, '.harness/state.json'), sentinel);
+    await withCwd(root, () => updateCommand(['--source=planning-with-files', '--no-state']));
+    assert.equal(await readFile(path.join(root, '.harness/state.json'), 'utf8'), sentinel);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});
+
+test('update --no-state failure leaves existing state byte-identical', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-no-state-failure-'));
+  try {
+    await mkdir(path.join(root, 'harness/upstream'), { recursive: true });
+    await writeFile(path.join(root, 'harness/upstream/sources.json'), '{"schemaVersion":2,"sources":{}}');
+    await mkdir(path.join(root, '.harness'), { recursive: true });
+    const sentinel = '{"sentinel":"update-failure"}\n';
+    await writeFile(path.join(root, '.harness/state.json'), sentinel);
+    await assert.rejects(
+      withCwd(root, () => updateCommand(['--source=missing', '--no-state'])),
+      /Unknown upstream source/
+    );
+    assert.equal(await readFile(path.join(root, '.harness/state.json'), 'utf8'), sentinel);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
 

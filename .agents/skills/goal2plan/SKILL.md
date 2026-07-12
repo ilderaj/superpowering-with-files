@@ -30,7 +30,7 @@ Do not use this skill when:
 | --- | --- |
 | 1 | Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` first |
 | 2 | Check whether objective, success criteria, scope, surfaces, validation, and review needs are known enough, and record the missing intake dimensions |
-| 3 | If broad context is missing, use `brainstorming`; if only one or two narrow facts are missing, ask concise Q&A |
+| 3 | If broad context is missing, run a bounded native intake audit; if only one or two narrow facts are missing, ask concise Q&A |
 | 4 | Use `goal-writer` or [template.md](template.md) to draft exactly one native Codex `/goal` prompt |
 | 5 | Require the goal loop to draft a reviewed implementation plan under `docs/superpowers/plans/<date>-<task-id>.md` |
 | 6 | Require named checkpoints and a short `progress.md` log for the planning loop |
@@ -40,15 +40,16 @@ Do not use this skill when:
 ## Workflow
 1. Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md`.
 2. Check intake sufficiency across root objective, success criteria, scope boundaries, impacted files or work domains, validation method, rollback or review needs, execution-unit boundaries, and blocking external facts.
-3. If broad context is missing, invoke `brainstorming`; if only narrow facts are missing, ask concise Q&A.
-4. Use `goal-writer` or [template.md](template.md) to produce one native `/goal` prompt whose objective is a reviewed implementation plan.
-5. The goal loop drafts the plan using `writing-plans` structure, saves the companion artifact under `docs/superpowers/plans/<date>-<task-id>.md`, and works checkpoint by checkpoint instead of treating plan generation as one opaque pass.
-6. After each checkpoint, append a short progress log to `planning/active/<task-id>/progress.md` so the planning loop stays inspectable.
-7. Require `1` read-only reviewer subagent for every new or materially revised plan.
-8. Revise under a `3`-round cap.
-9. If the reviewed plan proves the work is straightforward enough for direct or tracked execution, stop Goal2Plan, reclassify, and fall back instead of forcing more planning rounds.
-10. Sync summary, reviewer verdict, blockers, plan path, checkpoint status, and any fallback decision back to `planning/active/<task-id>/`.
-11. Stop at the reviewed plan unless the user explicitly asks to execute implementation.
+3. For coding tasks, add a lightweight coding intake contract before plan drafting: clarify domain terms, the highest practical test seam, one tracer-bullet vertical slice, blocking edges, and the Standards/Spec review split. Keep these fields inside `planning/active/<task-id>/` or the companion plan, never in `tickets.md` as an authority root.
+4. If broad context is missing, run a bounded native intake audit across the unresolved dimensions and ask only questions whose answers materially change scope, architecture, risk, or acceptance. If only narrow facts are missing, ask concise Q&A. Do not depend on an unprojected brainstorming skill.
+5. Use `goal-writer` or [template.md](template.md) to produce one native `/goal` prompt whose objective is a reviewed implementation plan.
+6. The goal loop drafts the plan using `writing-plans` structure, saves the companion artifact under `docs/superpowers/plans/<date>-<task-id>.md`, and works checkpoint by checkpoint instead of treating plan generation as one opaque pass.
+7. After each checkpoint, append a short progress log to `planning/active/<task-id>/progress.md` so the planning loop stays inspectable.
+8. Require `1` read-only reviewer subagent for every new or materially revised plan.
+9. Revise under a `3`-round cap.
+10. If the reviewed plan proves the work is straightforward enough for direct or tracked execution, stop Goal2Plan, reclassify, and fall back instead of forcing more planning rounds.
+11. Sync summary, reviewer verdict, blockers, plan path, checkpoint status, and any fallback decision back to `planning/active/<task-id>/`.
+12. Stop at the reviewed plan unless the user explicitly asks to execute implementation.
 
 ## Common Mistakes
 - Treating Goal2Plan as a replacement for Codex `/goal` instead of a prompt-contract skill for Codex `/goal`

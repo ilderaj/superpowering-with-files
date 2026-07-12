@@ -11,11 +11,15 @@ test('each declared policy profile renders independently', async () => {
   const rootDir = process.cwd();
 
   const alwaysOnCore = await renderPolicyProfile(rootDir, 'always-on-core');
+  const highAssurance = await renderPolicyProfile(rootDir, 'high-assurance');
   const trackedTaskExtended = await renderPolicyProfile(rootDir, 'tracked-task-extended');
   const deepReasoningReference = await renderPolicyProfile(rootDir, 'deep-reasoning-reference');
 
   assert.match(alwaysOnCore, /Rule Precedence/);
-  assert.match(alwaysOnCore, /Goal Round Start Protocol/);
+  assert.match(alwaysOnCore, /Quality Kernel/);
+  assert.match(alwaysOnCore, /Lightweight Round Routing/);
+  assert.doesNotMatch(alwaysOnCore, /## Deep-Reasoning Round Gate/);
+  assert.match(highAssurance, /Deep-Reasoning Round Gate/);
   assert.match(trackedTaskExtended, /Planning-With-Files Lifecycle Rule/);
   assert.match(deepReasoningReference, /Companion Plan Model/);
 });
@@ -39,26 +43,29 @@ test('renderEntry uses a thinner always-on profile for Copilot by default', asyn
   assert.doesNotMatch(copilotRendered, /When Superpowers Is Allowed/);
   assert.doesNotMatch(copilotRendered, /When Superpowers Is Not Allowed/);
   assert.doesNotMatch(copilotRendered, /Tool Preferences/);
-  assert.match(codexRendered, /Goal Round Start Protocol/);
-  assert.match(codexRendered, /When Superpowers Is Allowed/);
+  assert.match(codexRendered, /Lightweight Round Routing/);
+  assert.doesNotMatch(codexRendered, /## Deep-Reasoning Round Gate/);
+  assert.doesNotMatch(codexRendered, /When Superpowers Is Allowed/);
   assert.match(codexRendered, /Tool Preferences/);
   assert.ok(measureText(copilotRendered).approxTokens < measureText(codexRendered).approxTokens);
 });
 
-test('codex rendered policy documents soft model tiering while copilot stays thin', async () => {
-  const [codexRendered, copilotRendered] = await Promise.all([
-    renderEntry(process.cwd(), 'codex', 'always-on-core'),
+test('high-assurance policy documents soft model tiering while lightweight entries stay thin', async () => {
+  const [highAssuranceRendered, copilotRendered, codexRendered] = await Promise.all([
+    renderEntry(process.cwd(), 'codex', 'high-assurance'),
     renderEntry(process.cwd(), 'copilot', 'always-on-core')
+    ,renderEntry(process.cwd(), 'codex', 'always-on-core')
   ]);
 
-  assert.match(codexRendered, /Soft Model Tiering/);
-  assert.match(codexRendered, /cheap model only for approved-plan mechanical work/);
+  assert.match(highAssuranceRendered, /Soft Model Tiering/);
+  assert.match(highAssuranceRendered, /cheap model only for approved-plan mechanical work/);
+  assert.doesNotMatch(codexRendered, /Soft Model Tiering/);
   assert.doesNotMatch(copilotRendered, /Soft Model Tiering/);
 });
 
 test('codex policy makes model and effort changes evidence-led', async () => {
   const [rendered, cursorRendered, claudeRendered, copilotRendered, trackedEntry, maintenance] = await Promise.all([
-    renderEntry(process.cwd(), 'codex', 'always-on-core'),
+    renderEntry(process.cwd(), 'codex', 'high-assurance'),
     renderEntry(process.cwd(), 'cursor', 'always-on-core'),
     renderEntry(process.cwd(), 'claude-code', 'always-on-core'),
     renderEntry(process.cwd(), 'copilot', 'always-on-core'),
@@ -78,7 +85,7 @@ test('codex policy makes model and effort changes evidence-led', async () => {
   assert.doesNotMatch(rendered, /Fix root causes, not symptoms/i);
   assert.equal((rendered.match(/already-authorized scope/gi) ?? []).length, 1);
   assert.equal((rendered.match(/Explicit human gates remain mandatory/gi) ?? []).length, 1);
-  assert.equal(trackedEntry, rendered);
+  assert.match(trackedEntry, /Hybrid Workflow Policy/);
   assert.match(maintenance, /token-audit.*not.*bill/is);
   assert.match(maintenance, /gpt-5\.6-terra\/high.*incumbent benchmark/is);
 
@@ -102,8 +109,8 @@ test('tracked and deep work get a phase-boundary session-reset guard without cha
   }
 });
 
-test('codex policy renders the approved chief and visible worker operating model', async () => {
-  const codexRendered = await renderEntry(process.cwd(), 'codex', 'always-on-core');
+test('high-assurance policy renders the approved chief and visible worker operating model', async () => {
+  const codexRendered = await renderEntry(process.cwd(), 'codex', 'high-assurance');
   const trackedEntry = await readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8');
 
   for (const text of [codexRendered, trackedEntry]) {
@@ -135,8 +142,8 @@ test('task completion stays autonomous inside scope while preserving explicit hu
 
 test('rendered always-on entries keep the simplicity ladder and deliberate simplification marker', async () => {
   const [codexRendered, copilotRendered] = await Promise.all([
-    renderEntry(process.cwd(), 'codex', 'always-on-core'),
-    renderEntry(process.cwd(), 'copilot', 'always-on-core')
+    renderEntry(process.cwd(), 'codex', 'high-assurance'),
+    renderEntry(process.cwd(), 'copilot', 'high-assurance')
   ]);
 
   for (const rendered of [codexRendered, copilotRendered]) {
@@ -159,14 +166,11 @@ test('default always-on entries keep tracked and deep reasoning details opt-in',
   }
 });
 
-test('codex rendered guidance keeps quick rounds lightweight while documenting bounded replan loops', async () => {
-  const rendered = await renderEntry(process.cwd(), 'codex', 'always-on-core');
+test('high-assurance guidance keeps quick rounds lightweight while documenting the deep gate', async () => {
+  const rendered = await renderEntry(process.cwd(), 'codex', 'high-assurance');
 
-  assert.match(rendered, /distinguish a `plan issue` from an `execution issue`\./);
-  assert.match(
-    rendered,
-    /a bounded mini review\/revise\/verify loop may run inside normal Superpowers execution discipline\./
-  );
+  assert.match(rendered, /Deep-Reasoning Round Gate/);
+  assert.match(rendered, /at most three review\/revise attempts/);
   assert.match(
     rendered,
     /`quick`: stay lightweight\. Do not create a companion plan and do not add subagents just because a goal loop is running\./
@@ -248,7 +252,7 @@ test('safety overlays add safety rules without duplicating the core policy', asy
   const rendered = await renderPolicyProfile(process.cwd(), ['always-on-core', 'safety-overlay']);
 
   assert.match(rendered, /# Safety Policy/);
-  assert.equal((rendered.match(/## Default Behavior/g) ?? []).length, 1);
+  assert.equal((rendered.match(/## Quality Kernel/g) ?? []).length, 1);
 });
 
 test('renderPolicyProfile does not split on code fences that contain section-like headings', async () => {

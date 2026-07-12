@@ -18,6 +18,7 @@ Every generated Goal2Plan prompt must:
 12. include at least one numeric done criterion
 13. include stop or escalate conditions
 14. define checkpoints and a short progress log for the planning loop
+15. for coding tasks, include a coding intake contract covering test seam, tracer-bullet vertical slice, blocking edges, and Standards/Spec review split without moving authority to `tickets.md`
 
 ## Pass Threshold
 
@@ -34,3 +35,4 @@ Every generated Goal2Plan prompt must:
 - Missing fallback: say Goal2Plan stops and reclassifies when direct or tracked execution is sufficient
 - Missing reviewer gate: add `1` read-only reviewer subagent
 - Opaque planning loop: define checkpoints and write a short `progress.md` log after each checkpoint
+- Missing coding intake: add test seam, tracer-bullet slice, blocking edges, and Standards/Spec review split while keeping `planning/active/<task-id>/` authoritative

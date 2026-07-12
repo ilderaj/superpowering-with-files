@@ -17,6 +17,20 @@ import {
   applySuperpowersTddSeamPatch
 } from './superpowers-coding-contracts-patch.mjs';
 import {
+  applyMattArchitectureHarnessPatch,
+  applyMattCodebaseDesignHarnessPatch,
+  applyMattCodeReviewHarnessPatch,
+  applyMattDebugHarnessPatch,
+  applyMattDomainModelingHarnessPatch,
+  applyMattGrillingHarnessPatch,
+  applyMattGrillWithDocsHarnessPatch,
+  applyMattImplementHarnessPatch,
+  applyMattPrototypeHarnessPatch,
+  applyMattResearchHarnessPatch,
+  applyMattWritingSkillsHarnessPatch,
+  applyMattTddHarnessPatch
+} from './matt-coding-contracts-patch.mjs';
+import {
   ensureDirectoryProjection,
   linkDirectoryProjection,
   materializeDirectoryProjection,
@@ -58,7 +72,7 @@ function isManagedSessionBoundary(targetPath, rootDir, homeDir) {
   );
 }
 
-async function applySkillPatches(projection) {
+export async function applySkillPatches(projection) {
   for (const patch of projection.patches ?? []) {
     if (patch.type === 'planning-with-files-companion-plan') {
       await applyPlanningWithFilesCompanionPlanPatch(projection.targetPath);
@@ -126,6 +140,37 @@ async function applySkillPatches(projection) {
 
     if (patch.type === 'superpowers-code-review-axes') {
       await applySuperpowersReviewAxesPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'matt-tdd-harness-authority') {
+      await applyMattTddHarnessPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'matt-code-review-harness-authority') {
+      await applyMattCodeReviewHarnessPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'matt-domain-modeling-harness-authority') {
+      await applyMattDomainModelingHarnessPatch(projection.targetPath);
+      continue;
+    }
+
+    const mattPatchHandlers = {
+      'matt-debug-harness-authority': applyMattDebugHarnessPatch,
+      'matt-codebase-design-harness-authority': applyMattCodebaseDesignHarnessPatch,
+      'matt-implement-harness-authority': applyMattImplementHarnessPatch,
+      'matt-research-harness-authority': applyMattResearchHarnessPatch,
+      'matt-prototype-harness-authority': applyMattPrototypeHarnessPatch,
+      'matt-architecture-harness-authority': applyMattArchitectureHarnessPatch,
+      'matt-grill-with-docs-harness-authority': applyMattGrillWithDocsHarnessPatch,
+      'matt-grilling-harness-authority': applyMattGrillingHarnessPatch,
+      'matt-writing-skills-harness-authority': applyMattWritingSkillsHarnessPatch
+    };
+    if (mattPatchHandlers[patch.type]) {
+      await mattPatchHandlers[patch.type](projection.targetPath);
       continue;
     }
 

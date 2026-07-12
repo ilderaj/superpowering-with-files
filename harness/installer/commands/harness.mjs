@@ -25,6 +25,7 @@ import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
 import { codexModelDefault } from './codex-model-default.mjs';
 import { upstreamLockCommand } from './upstream-lock.mjs';
+import { workspaceSkills } from './workspace-skills.mjs';
 
 const commands = {
   install,
@@ -52,7 +53,8 @@ const commands = {
   'adoption-status': adoptionStatus,
   'workspace-link': workspaceLink,
   'token-audit': tokenAudit,
-  'codex-model-default': codexModelDefault
+  'codex-model-default': codexModelDefault,
+  'workspace-skills': workspaceSkills
 };
 
 function usage() {
@@ -82,6 +84,7 @@ function usage() {
     '  adopt-global     Apply the current repo baseline to the user-global install',
     '  adoption-status  Report user-global adoption drift and health',
     '  workspace-link  Link the current leaf workspace back to an authority root',
+    '  workspace-skills  Plan, sync, check, or set the repository skill profile',
     '  token-audit  Print a weekly cross-session token audit',
     '  codex-model-default  Inspect, assess, or migrate the Codex model default',
     '  worktree-name  Suggest a canonical worktree label and branch name for the active task',

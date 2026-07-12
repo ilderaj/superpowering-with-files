@@ -22,6 +22,10 @@ test('loadUpstreamSources reads configured upstream sources', async () => {
   assert.equal(sources.superpowers.path, 'harness/upstream/superpowers');
   assert.equal(sources['planning-with-files'].type, 'git');
   assert.equal(sources['planning-with-files'].url, 'https://github.com/OthmanAdi/planning-with-files');
+  assert.equal(sources['mattpocock-skills'].type, 'git');
+  assert.equal(sources['mattpocock-skills'].url, 'https://github.com/mattpocock/skills');
+  assert.equal(sources['mattpocock-skills'].path, 'harness/upstream/mattpocock-skills');
+  assert.equal(sources['mattpocock-skills'].resolution.strategy, 'latest-release');
 });
 
 test('upstream paths are constrained to harness/upstream', async () => {

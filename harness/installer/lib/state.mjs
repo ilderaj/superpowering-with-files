@@ -5,7 +5,7 @@ import { isSafetyPolicyProfile } from './safety-projection.mjs';
 
 export const DEFAULT_DEPLOYMENT_PROFILE = 'standard';
 export const DEFAULT_POLICY_PROFILE = 'always-on-core';
-export const DEFAULT_SKILL_PROFILE = 'full';
+export const DEFAULT_SKILL_PROFILE = 'standard';
 export const GITHUB_CLOUD_DEPLOYMENT_PROFILE = 'github-cloud';
 const DEPLOYMENT_PROFILES = new Set([DEFAULT_DEPLOYMENT_PROFILE, GITHUB_CLOUD_DEPLOYMENT_PROFILE]);
 
@@ -191,7 +191,9 @@ function normalizeStateShape(state) {
     policyProfile: normalizedPolicySelection.policyProfile,
     workspacePolicyOverlay:
       state.workspacePolicyOverlay ?? normalizedPolicySelection.workspacePolicyOverlay,
-    skillProfile: state.skillProfile ?? DEFAULT_SKILL_PROFILE
+    // Existing v1 state omitted this field while `full` was the default. Keep that
+    // persisted-state compatibility while new state starts from `standard`.
+    skillProfile: state.skillProfile ?? 'full'
   };
 }
 

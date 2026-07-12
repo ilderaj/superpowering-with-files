@@ -7,7 +7,16 @@ This project uses a hybrid workflow:
 - Persistent task state must live only under `planning/active/<task-id>/`:
   - required core planning trio: `task_plan.md`, `findings.md`, `progress.md`
   - optional lifecycle artifact: `reconciliation.md`
-  - explicitly closed task state may move to `planning/archive/<timestamp>-<task-id>/`
+- explicitly closed task state may move to `planning/archive/<timestamp>-<task-id>/`
+
+## Quality Kernel
+
+1. Understand the goal, constraints, and success criteria before changing files.
+2. Inspect the relevant code or artifact before modifying it.
+3. Do not expand scope beyond the user's authorization.
+4. Finish with verification proportionate to the task's risk.
+5. Report actual evidence, not an unsupported completion claim.
+6. Keep long-running and cross-session task state in `planning/active/<task-id>/`.
 
 ## Default Behavior
 
@@ -82,7 +91,7 @@ Classify the task before choosing the workflow:
 
 Tool-call count is only a supporting signal. Exceeding five meaningful tool calls may indicate tracked work, but it does not override the task classification above by itself.
 
-## Goal Round Start Protocol
+## Lightweight Round Routing
 
 Before each substantive goal round, continuation tick, or phase boundary:
 
@@ -91,15 +100,21 @@ Before each substantive goal round, continuation tick, or phase boundary:
 3. Route the round by its current classification:
    - `quick`: stay lightweight. Do not create a companion plan and do not add subagents just because a goal loop is running.
    - `tracked`: keep `planning/active/<task-id>/` authoritative and update the planning files after meaningful progress, phase changes, validation results, or durable decisions.
-   - `deep-reasoning`: create or update `docs/superpowers/plans/<date>-<task-id>.md`. If that companion plan is new or materially revised, require 1 read-only reviewer subagent before execution. The reviewer may assess plan completeness, architecture fit, scope alignment, rollback, or validation commands, but must not edit code or planning files. Revise from the review, re-review when needed, and execute only from an approved companion plan. After approval, follow normal Superpowers execution discipline: choose inline execution or subagents as appropriate, honor worktree isolation guidance when needed, and preserve progress with commits, checkpoints, pushes, or PR handoff when useful.
-4. When execution reveals a mismatch, distinguish a `plan issue` from an `execution issue`. This is execution-time plan-mismatch escalation, not a new runner:
+   - `deep-reasoning`: enter the Deep-Reasoning Round Gate.
+4. When execution reveals a mismatch, distinguish a `plan issue` from an `execution issue`:
    - `quick`: stay lightweight and resolve ordinary execution issues directly. Do not trigger a replan loop just because a goal loop is active.
-   - `tracked` and `deep-reasoning`: if the plan itself is the issue, a bounded mini review/revise/verify loop may run inside normal Superpowers execution discipline. If the current plan is still sound and only execution failed, treat it as an execution issue and keep working from the approved plan.
+   - `tracked`: if the plan itself is the issue, record and repair the plan; otherwise continue from the sound plan.
    - Keep root-goal stability, avoid goal drift, and preserve `planning/active/<task-id>/` as the authoritative planning record while the companion plan or synced summaries are revised.
-5. Bound plan-polishing and execution-time replan loops together. Attempt 1 revises from verifier feedback. Attempt 2 re-verifies the failed areas. Attempt 3 performs a broader rethink. If the 3rd review round is still a failed review, record blockers and unresolved assumptions in the authoritative planning files, then stop the current execution attempt instead of looping forever.
-6. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, review verdicts, execution mode, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
 
-For tracked or deep work, at a major phase boundary or after roughly 12-16 substantive turns, prefer handing off to a fresh session that restores the exact trio. Do not reset mid-phase merely to satisfy a turn count; when continuing is cheaper or safer, record the concrete reason in `progress.md`. This is repository guidance, not a runner; hooks do not replace restore, routing, or sync-back discipline.
+For tracked work, at a major phase boundary or after roughly 12-16 substantive turns, prefer handing off to a fresh session that restores the exact trio. Do not reset mid-phase merely to satisfy a turn count; when continuing is cheaper or safer, record the concrete reason in `progress.md`.
+
+## Deep-Reasoning Round Gate
+
+For a deep-reasoning round, create or update `docs/superpowers/plans/<date>-<task-id>.md`. A new or materially revised companion plan requires one read-only reviewer before execution. Revise from the review and execute only from an approved plan; use Superpowers only as the high-assurance toolbox for the approved phase.
+
+If a plan issue appears during execution, run at most three review/revise attempts: revise from feedback, re-verify the failed area, then perform one broader rethink. After a third failed review, record blockers and stop the execution attempt.
+
+After each major phase, synchronize durable decisions, lifecycle state, validation results, reviewer verdicts, execution mode, and companion-plan reference back to the task trio. The trio remains authoritative.
 
 ### Mode-Aware Verification Contract
 

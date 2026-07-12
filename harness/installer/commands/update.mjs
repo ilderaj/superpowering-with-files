@@ -29,8 +29,9 @@ export async function updateCommand(args = []) {
     updatedBySource.push({ sourceName, path: await applyCandidate(rootDir, sourceName, source) });
   }
 
+  const noState = args.includes('--no-state');
   const lastUpdate = new Date().toISOString();
-  await updateState(rootDir, (state) => ({
+  if (!noState) await updateState(rootDir, (state) => ({
     ...state,
     lastUpdate,
     upstream: Object.fromEntries([

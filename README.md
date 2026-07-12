@@ -100,9 +100,13 @@ Proof choice follows failure risk, not habit. Green unit or BDD results are not 
 
 Notes:
 
-- user-global and `--scope=both` installs default to the lean `minimal-global` skill profile
-- use `--skills-profile=full` only when a workspace intentionally needs the complete skill surface
+- workspace installs default to the lightweight Matt-backed `standard` profile; user-global and `--scope=both` installs stay on lean `minimal-global`
+- use `--skills-profile=high-assurance` (or compatibility alias `full`) only when a task needs the Superpowers quality toolbox
 - `sync --dry-run` is the safe preview before any projection change
+
+See [Skill Profiles And Projection Map](docs/skill-profiles.md) for the exact profile → entry-policy → skill allow-list and target-path mapping.
+
+This repository is governed separately from the personal-global profile: `harness/workspace-skill-profile.json` is the committed desired state, and `./scripts/harness workspace-skills plan|sync|check|set` owns only repository skill roots plus its independent runtime manifest. Standard uses adapted Matt coding disciplines and frequent Harness governance; high-assurance adds non-overlapping Superpowers lifecycle tools. See [Skill Profile Evaluation](docs/skill-profile-evaluation.md) for the three-arm matched-task trial.
 
 ## Workflow Lanes
 
@@ -143,7 +147,7 @@ Harness has six implementation layers:
 - `harness/installer`: install, sync, doctor, status, update, adoption
 - `harness/runtime`: shared services used by CLI and MCP
 - `harness/mcp`: governed MCP facade over runtime services
-- `harness/upstream`: vendored `superpowers` and `planning-with-files` baselines
+- `harness/upstream`: vendored `mattpocock-skills`, `superpowers`, and `planning-with-files` baselines
 
 The key separation is:
 
@@ -226,11 +230,12 @@ npm run release:pack
 
 ## Upstream, License, Credit
 
-Harness vendors two upstream systems and adds stricter local governance on top.
+Harness vendors three upstream systems and adds stricter local governance on top.
 
 | Upstream | Original role | License | Harness usage |
 | --- | --- | --- | --- |
 | [`superpowers`](https://github.com/obra/superpowers) | agentic skills framework and workflow | MIT | optional reasoning layer for deep-reasoning phases |
+| [`mattpocock/skills`](https://github.com/mattpocock/skills) | composable development disciplines | MIT | lightweight default coding skills, curated by profile |
 | [`planning-with-files`](https://github.com/OthmanAdi/planning-with-files) | persistent markdown planning and session recovery | MIT | the only durable task-memory system |
 
 Thanks to the upstream authors and communities whose work this repository builds on.

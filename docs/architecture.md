@@ -30,6 +30,12 @@ If a feature can be shared between CLI and MCP, it belongs in `harness/runtime`,
 
 `harness/core/policy/base.md` remains the canonical policy source. Entry files are rendered from heading-based profiles, so the always-on startup payload is smaller than the full canonical policy. Tracked-task and deep-reasoning detail still lives in `base.md`, but it is not injected into every session start by default.
 
+Skill routing is intentionally layered: the `standard` profile projects curated Matt development disciplines and the small Quality Kernel; `high-assurance` adds the selected Superpowers toolbox and deep-review policy; `office` keeps artifact-quality routing separate. `full` remains a compatibility alias for `high-assurance`. None of these profiles changes the sole durable task authority under `planning/active/<task-id>/`.
+
+The full allow-list, entry-policy pairing, source-leaf naming, and target-root projection rules are maintained in [Skill Profiles And Projection Map](skill-profiles.md). `harness/core/skills/profiles.json` is the executable source of that table.
+
+Personal-global projection and repository skill governance are independent control planes. The legacy `.harness/state.json` and `.harness/projections.json` continue to represent personal/global installer state. The repository commits `harness/workspace-skill-profile.json`; `workspace-skills` writes only `.agents/skills`, `.claude/skills`, and `.harness/workspace-skill-projections.json`. This split permits `minimal-global` and repository `standard` to coexist without one scope overwriting the other.
+
 Planning with Files is the only durable agent task-memory system. Active task state lives under `planning/active/<task-id>/`; closed task state may move to `planning/archive/<timestamp>-<task-id>/` only after the lifecycle guard passes. Documentation directories such as `docs/**`, `docs/superpowers/plans/**`, and `docs/plans/**` are not active task state unless the user explicitly asks for a human-facing documentation artifact.
 All supported IDE entry files render from the same core policy source, but they do so through a thin default profile. That preserves tracked-task precedence in the canonical policy without forcing the tracked-task and deep-reasoning sections into every session start across Codex, GitHub Copilot, Cursor, and Claude Code.
 
@@ -102,7 +108,7 @@ Health checks include plan-location diagnostics. Root-level `task_plan.md`, `fin
 
 Platform metadata also records unsupported installer targets. Gemini CLI is currently metadata-listed as unsupported so the installer can fail explicitly instead of pretending partial projection exists.
 
-`fetch` and `update` operate on known upstream source names from `harness/upstream/sources.json`. `update` refreshes only `harness/upstream/*`. It does not mutate IDE directories directly. The next `sync` reads the refreshed upstream baseline and updates Harness-owned projections.
+`fetch` and `update` operate on known upstream source names from `harness/upstream/sources.json`. `update` refreshes only `harness/upstream/*`. It does not mutate IDE directories directly. Interactive commands retain legacy state receipts; automation uses `--no-state`, then `workspace-skills plan`, `workspace-skills sync --takeover`, and `workspace-skills check` so upstream refresh cannot create or mutate personal-global state.
 
 ## Operator Surface
 

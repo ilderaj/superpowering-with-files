@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "skillProfile": "standard",
+  "deploymentProfile": "standard",
+  "projectionMode": "portable",
+  "targets": [
+    "codex",
+    "claude-code"
+  ]
+}

@@ -5,13 +5,13 @@ import path from 'node:path';
 
 export const PROJECTION_MANIFEST_RELATIVE_PATH = '.harness/projections.json';
 
-export function projectionManifestPath(rootDir) {
-  return path.join(rootDir, PROJECTION_MANIFEST_RELATIVE_PATH);
+export function projectionManifestPath(rootDir, options = {}) {
+  return path.join(rootDir, options.relativePath ?? PROJECTION_MANIFEST_RELATIVE_PATH);
 }
 
-export async function readProjectionManifest(rootDir) {
+export async function readProjectionManifest(rootDir, options = {}) {
   try {
-    const manifest = JSON.parse(await readFile(projectionManifestPath(rootDir), 'utf8'));
+    const manifest = JSON.parse(await readFile(projectionManifestPath(rootDir, options), 'utf8'));
     if (manifest.schemaVersion !== 1 || !Array.isArray(manifest.entries)) {
       throw new Error('Invalid projection manifest.');
     }
@@ -24,8 +24,8 @@ export async function readProjectionManifest(rootDir) {
   }
 }
 
-export async function writeProjectionManifest(rootDir, manifest) {
-  const filePath = projectionManifestPath(rootDir);
+export async function writeProjectionManifest(rootDir, manifest, options = {}) {
+  const filePath = projectionManifestPath(rootDir, options);
   await mkdir(path.dirname(filePath), { recursive: true });
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`;
 

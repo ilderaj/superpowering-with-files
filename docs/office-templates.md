@@ -1,6 +1,6 @@
 # Office Templates
 
-Harness remains coding-first. Office templates are lightweight planning shapes for everyday research, decisions, reviews, follow-ups, and approvals when the work benefits from durable state but does not need a worktree, code diff, or code verification.
+Harness keeps Office work independent from coding profiles. `office-work-quality` routes document, spreadsheet, presentation, and PDF production to the host-native artifact skills, then requires source/data validation and rendered/opened artifact inspection before acceptance. Office templates are lightweight planning shapes for everyday research, decisions, reviews, follow-ups, and approvals when the work benefits from durable state but does not need a worktree, code diff, or code verification.
 
 ## How To Use
 

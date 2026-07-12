@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "profiles": ["matt-pilot", "superpowers-pilot", "hybrid-candidate"],
+  "metrics": [
+    "success",
+    "evidenceCompleteness",
+    "reworkOrEscalation",
+    "tokens",
+    "latency",
+    "trustworthyCost",
+    "subagentCount",
+    "humanConfirmationCount",
+    "scopeDrift",
+    "falseSkillInvocation",
+    "extraAuthorityFiles"
+  ],
+  "taskClasses": [
+    {
+      "id": "small-bug-fix",
+      "baseReference": "same-base-sha",
+      "assignmentPacket": "bounded historical bug packet",
+      "expectedEvidence": ["red-capable regression proof", "focused green proof"],
+      "acceptanceRubric": ["symptom fixed", "no scope drift"]
+    },
+    {
+      "id": "medium-feature",
+      "baseReference": "same-base-sha",
+      "assignmentPacket": "bounded historical feature packet",
+      "expectedEvidence": ["acceptance proof", "focused tests"],
+      "acceptanceRubric": ["requested behavior complete", "existing behavior preserved"]
+    },
+    {
+      "id": "hard-to-reproduce-bug",
+      "baseReference": "same-base-sha",
+      "assignmentPacket": "bounded historical diagnosis packet",
+      "expectedEvidence": ["tight reproduction loop", "root-cause evidence"],
+      "acceptanceRubric": ["cause falsifiably demonstrated", "regression prevented"]
+    },
+    {
+      "id": "multi-file-refactor",
+      "baseReference": "same-base-sha",
+      "assignmentPacket": "bounded historical refactor packet",
+      "expectedEvidence": ["invariant proof", "architecture review"],
+      "acceptanceRubric": ["public behavior preserved", "target seam improved"]
+    },
+    {
+      "id": "cross-session-tracked-task",
+      "baseReference": "same-base-sha",
+      "assignmentPacket": "bounded historical tracked-task packet",
+      "expectedEvidence": ["trio restoration", "phase sync-back"],
+      "acceptanceRubric": ["authority remains single-homed", "resume succeeds without chat history"]
+    },
+    {
+      "id": "high-risk-migration-release",
+      "baseReference": "same-base-sha",
+      "assignmentPacket": "bounded historical migration or release packet",
+      "expectedEvidence": ["rollback proof", "operational verification"],
+      "acceptanceRubric": ["no data-loss boundary violation", "delivery evidence complete"]
+    }
+  ],
+  "officeControlLane": {
+    "profile": "office",
+    "purpose": "non-competing artifact-quality control"
+  },
+  "adoptionRule": "matched-replay-before-low-risk-live-pilot"
+}
