@@ -310,6 +310,15 @@ current trio and necessary source references.
 
 The packet is derived and ephemeral by default. It is not a durable worker database, not a queue file, and not a new registry.
 
+Packet context contract:
+
+- **Stable governance prefix:** durable authority, autonomy/approval boundaries, capability and child-envelope constraints, and the required return contract.
+- **Dynamic execution delta:** exact trio paths and hashes, current slice, allowed surfaces, proof target/evidence sink, deadline, and stop condition.
+- Return concise status in this order: conclusion, required evidence, material caveat, and next action.
+- Prompt caching, persisted reasoning, Programmatic Tool Calling, multi-agent, Pro mode, and max reasoning effort are API practices, not native Codex thread controls.
+
+This is prompt shaping only; it is not cache configuration or a persisted packet schema.
+
 ## Worker Prompt Contract
 
 The worker side should stay equally narrow:

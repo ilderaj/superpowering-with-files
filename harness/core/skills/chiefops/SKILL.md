@@ -131,6 +131,15 @@ Default storage rule:
 - if assignment intent needs a durable trace, record it in the existing execution-unit contract inside `task_plan.md` and a timestamped coordination note in `progress.md`;
 - do not persist assignment intent in execution receipts before work has actually been attempted or completed.
 
+Packet context contract:
+
+- **Stable governance prefix:** durable authority, autonomy/approval boundaries, capability and child-envelope constraints, and the required return contract.
+- **Dynamic execution delta:** exact trio paths and hashes, current slice, allowed surfaces, proof target/evidence sink, deadline, and stop condition.
+- Return concise status in this order: conclusion, required evidence, material caveat, and next action.
+- Prompt caching, persisted reasoning, Programmatic Tool Calling, multi-agent, Pro mode, and max reasoning effort are API practices, not native Codex thread controls.
+
+The split is a prompt-shaping convention, not cache configuration or a persisted packet schema.
+
 ## Worker Prompt Contract
 When delegating or framing a tracked worker slice, the worker prompt must include:
 

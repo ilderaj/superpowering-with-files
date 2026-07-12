@@ -20,8 +20,7 @@ Hooks stay lightweight in Codex. They may inject compact planning reminders or h
 
 ## Scope Autonomy And Human Gates
 
-- Inside an already-authorized scope, do not seek extra confirmation; execute the approved work.
-- Explicit human gates remain mandatory for more than two visible lanes and for release, merge, publish, send, deploy, destructive, external, security, or data-loss actions.
+Apply the shared `Scope Autonomy And Human Gates` policy above; this Codex override adds no second autonomy or approval rule.
 
 ## Codex Concise Output Guidance
 

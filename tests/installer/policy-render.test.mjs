@@ -56,6 +56,39 @@ test('codex rendered policy documents soft model tiering while copilot stays thi
   assert.doesNotMatch(copilotRendered, /Soft Model Tiering/);
 });
 
+test('codex policy makes model and effort changes evidence-led', async () => {
+  const [rendered, cursorRendered, claudeRendered, copilotRendered, trackedEntry, maintenance] = await Promise.all([
+    renderEntry(process.cwd(), 'codex', 'always-on-core'),
+    renderEntry(process.cwd(), 'cursor', 'always-on-core'),
+    renderEntry(process.cwd(), 'claude-code', 'always-on-core'),
+    renderEntry(process.cwd(), 'copilot', 'always-on-core'),
+    readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'docs/maintenance.md'), 'utf8')
+  ]);
+
+  assert.match(rendered, /representative task set/i);
+  assert.match(rendered, /required-evidence completeness/i);
+  assert.match(rendered, /capability-first/i);
+  assert.match(rendered, /Luna\/high requires/i);
+  assert.match(rendered, /Sol.*recorded admission/is);
+  assert.match(rendered, /## Scope Autonomy And Human Gates/i);
+  assert.match(rendered, /For answer, explain, review, diagnose, or plan requests/i);
+  assert.match(rendered, /For change, build, or fix requests/i);
+  assert.match(rendered, /material scope expansion/i);
+  assert.doesNotMatch(rendered, /Fix root causes, not symptoms/i);
+  assert.equal((rendered.match(/already-authorized scope/gi) ?? []).length, 1);
+  assert.equal((rendered.match(/Explicit human gates remain mandatory/gi) ?? []).length, 1);
+  assert.equal(trackedEntry, rendered);
+  assert.match(maintenance, /token-audit.*not.*bill/is);
+  assert.match(maintenance, /gpt-5\.6-terra\/high.*incumbent benchmark/is);
+
+  for (const target of [cursorRendered, claudeRendered]) {
+    assert.match(target, /## Scope Autonomy And Human Gates/i);
+    assert.doesNotMatch(target, /Fix root causes, not symptoms/i);
+  }
+  assert.doesNotMatch(copilotRendered, /## Scope Autonomy And Human Gates/i);
+});
+
 test('tracked and deep work get a phase-boundary session-reset guard without changing quick-task routing', async () => {
   const [basePolicy, codexRendered] = await Promise.all([
     readFile(path.join(process.cwd(), 'harness/core/policy/base.md'), 'utf8'),

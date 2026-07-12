@@ -43,6 +43,10 @@ Use `token-audit` for weekly observability. It complements `verify` and `doctor`
 
 When piloting soft model tiering, compare `model mix`, `fresh_proxy`, and rework notes together. A cheaper tier is only a success when the task stays bounded and quality gates do not bounce the work back up immediately.
 
+## Model and effort experiments
+
+Treat the currently available `gpt-5.6-terra/high` configuration as an incumbent benchmark when it is the chosen balanced route, not as an always-on policy or proof that the host applied the requested model. Compare it with one proposed configuration on a bounded representative task set. Record task success, required-evidence completeness, rework or escalation, total tokens, latency, and trustworthy cost when available. Adopt a proposal only when it preserves the proof/quality bar and its trade-off is explicitly preferable. `token-audit` is observability, not a bill or native-dispatch proof.
+
 From a linked or nested leaf workspace, these mutating commands still target the authority root by default rather than creating duplicate projections under the leaf directory.
 
 Use `sync --dry-run` to inspect the desired projection diff without writing files. Use `sync --check` when you want a non-zero exit code if projections are out of sync.
