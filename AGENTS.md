@@ -105,7 +105,7 @@ Before each substantive goal round, continuation tick, or phase boundary:
 5. Bound plan-polishing and execution-time replan loops together. Attempt 1 revises from verifier feedback. Attempt 2 re-verifies the failed areas. Attempt 3 performs a broader rethink. If the 3rd review round is still a failed review, record blockers and unresolved assumptions in the authoritative planning files, then stop the current execution attempt instead of looping forever.
 6. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, review verdicts, execution mode, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
 
-Deep or unusually long work may use a fresh thread that restores the trio. This is repository guidance, not a runner; hooks do not replace restore, routing, or sync-back discipline.
+For tracked or deep work, at a major phase boundary or after roughly 12-16 substantive turns, prefer handing off to a fresh session that restores the exact trio. Do not reset mid-phase merely to satisfy a turn count; when continuing is cheaper or safer, record the concrete reason in `progress.md`. This is repository guidance, not a runner; hooks do not replace restore, routing, or sync-back discipline.
 
 ### Mode-Aware Verification Contract
 
@@ -155,10 +155,12 @@ Use superpowers only when:
 ## Soft Model Tiering
 
 
+- Keep routing capability-first; keep current SKU mappings and migration procedures in operator documentation, not always-on policy.
 - Use the most capable model for intake shaping, reviewed planning, architecture or protocol analysis, rollback judgment, and high-risk review.
 - Use a standard model for multi-file integration, uncertain debugging, and medium-risk review.
 - Use a cheap model only for approved-plan mechanical work, narrow diff checks, clerical worktree or release steps, and bounded checklist review.
 - Upgrade from cheap -> standard -> capable when the task becomes blocked by missing context, conflicting interpretations, or design judgment.
+- Before changing a model/effort baseline, lowering effort, or claiming an alternative is better, compare the incumbent and proposal on a bounded representative task set. Record task success, required-evidence completeness, rework or escalation, total tokens, latency, and trustworthy cost when available. Adopt the proposal only when it preserves the proof/quality bar and the trade-off is explicitly preferable.
 
 ## When Superpowers Is Not Allowed
 
@@ -171,6 +173,16 @@ Do not use superpowers for:
 - renames, moves, formatting, or low-risk refactors
 - routine implementation even if a skill might loosely apply
 - tasks where direct execution is clear and the reasoning value does not justify the token cost
+
+## Scope Autonomy And Human Gates
+
+
+- For answer, explain, review, diagnose, or plan requests: inspect the relevant materials and report the result; do not implement unless asked.
+- For change, build, or fix requests: make in-scope local changes and run relevant non-destructive validation without asking again.
+- Require confirmation for external writes, destructive actions, purchases, security-sensitive actions, data-loss risk, or material scope expansion.
+- Inside an already-authorized scope, do not seek extra confirmation; execute the approved work.
+- Explicit human gates remain mandatory for more than two visible lanes and for release, merge, publish, send, deploy, destructive, external, security, or data-loss actions.
+- For short user-visible status, preserve conclusion, required evidence, material caveat, and next action before trimming secondary detail.
 
 ## Communication Guidelines
 
@@ -243,8 +255,7 @@ Hooks stay lightweight in Codex. They may inject compact planning reminders or h
 
 ## Scope Autonomy And Human Gates
 
-- Inside an already-authorized scope, do not seek extra confirmation; execute the approved work.
-- Explicit human gates remain mandatory for more than two visible lanes and for release, merge, publish, send, deploy, destructive, external, security, or data-loss actions.
+Apply the shared `Scope Autonomy And Human Gates` policy above; this Codex override adds no second autonomy or approval rule.
 
 ## Codex Concise Output Guidance
 

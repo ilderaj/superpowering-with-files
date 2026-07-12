@@ -17,9 +17,8 @@ Hook installation must be explicit:
 | Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
 | `planning-with-files` task-scoped hook | Supported via verified-event allowlist when hooks are enabled in the installed Codex build; Harness retains `SessionStart` and `UserPromptSubmit` and omits planning `Stop` | Supported | Supported | Supported |
-| `superpowers` session-start hook | Supported via Harness wrapper | Supported | Supported | Supported |
 
-Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. That platform-level support is separate from event-level verification: Codex needs hooks enabled in the installed build, but Harness only projects the Codex events it has verified for each adapter. VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
+Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. That platform-level support is separate from event-level verification: Codex needs hooks enabled in the installed build, but Harness only projects the Codex events it has verified for each adapter. VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature. Superpowers is an explicit skill route; Harness does not install a Superpowers session-start hook.
 
 Planning hooks are not the only hooks in this repository. When the `safety` profile is installed with hooks enabled, Harness can also project safety-hook behavior for supported targets.
 
@@ -34,7 +33,7 @@ Hook evidence is tracked in layers:
 | Target | Workspace hook files | User-global hook files |
 | --- | --- | --- |
 | Codex | `.codex/hooks.json`, `.codex/hooks/*` | `~/.codex/hooks.json`, `~/.codex/hooks/*` |
-| GitHub Copilot | `.github/hooks/planning-with-files.json`, `.github/hooks/superpowers.json`, `.github/hooks/task-scoped-hook.sh`, `.github/hooks/session-start` | `~/.copilot/hooks/planning-with-files.json`, `~/.copilot/hooks/superpowers.json`, `~/.copilot/hooks/task-scoped-hook.sh`, `~/.copilot/hooks/session-start` |
+| GitHub Copilot | `.github/hooks/planning-with-files.json`, `.github/hooks/task-scoped-hook.sh` | `~/.copilot/hooks/planning-with-files.json`, `~/.copilot/hooks/task-scoped-hook.sh` |
 | Cursor | `.cursor/hooks.json`, `.cursor/hooks/*` | `~/.cursor/hooks.json`, `~/.cursor/hooks/*` |
 | Claude Code | `.claude/settings.json`, `.claude/hooks/*` | `~/.claude/settings.json`, `~/.claude/hooks/*` |
 
@@ -71,7 +70,7 @@ Smoke test after `sync`:
 
 ```bash
 bash .codex/hooks/task-scoped-hook.sh codex session-start
-bash .cursor/hooks/session-start
+bash .cursor/hooks/task-scoped-hook.sh cursor session-start
 bash .github/hooks/task-scoped-hook.sh copilot session-start
 bash .claude/hooks/task-scoped-hook.sh claude-code user-prompt-submit
 ./scripts/harness summary --task <task-id>

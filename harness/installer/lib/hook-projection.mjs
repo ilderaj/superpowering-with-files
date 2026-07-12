@@ -1,11 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { resolveHookRoots } from './paths.mjs';
+import { isSafetyPolicyProfile } from './safety-projection.mjs';
 import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
 const PLANNING_SUPPORTED_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
 const SAFETY_SUPPORTED_TARGETS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
-const SAFETY_POLICY_PROFILES = new Set(['safety', 'cloud-safe']);
 
 const PLANNING_EVENTS_BY_TARGET = {
   codex: ['SessionStart', 'UserPromptSubmit'],
@@ -183,7 +183,7 @@ export async function planHookProjections({ rootDir, homeDir, scope, target, hoo
     }
   }
 
-  if (SAFETY_POLICY_PROFILES.has(policyProfile)) {
+  if (isSafetyPolicyProfile(policyProfile)) {
     for (const root of roots) {
       projections.push(safetyHookProjection({ rootDir, root, target }));
     }

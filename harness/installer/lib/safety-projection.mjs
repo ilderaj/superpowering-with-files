@@ -1,7 +1,12 @@
 import path from 'node:path';
 import { resolveHarnessSourcePath } from '../../runtime/source-root.mjs';
 
-const SAFETY_POLICY_PROFILES = new Set(['safety', 'cloud-safe']);
+export const SAFETY_POLICY_PROFILES = new Set([
+  'safety',
+  'cloud-safe',
+  'safety-overlay',
+  'cloud-safe-overlay'
+]);
 const SAFETY_FILES = [
   'protected-paths.txt',
   'dangerous-patterns.txt',

@@ -33,7 +33,7 @@ export async function install(args = [], options = {}) {
   const hookMode = readOption(
     args,
     'hooks',
-    ['safety', 'cloud-safe'].includes(requestedPolicyProfile) ? 'on' : 'off'
+    isSafetyPolicyProfile(requestedPolicyProfile) ? 'on' : 'off'
   );
   const targetArg = readOption(args, 'targets', 'all');
   const targets = normalizeTargets(metadata, targetArg.split(',').filter(Boolean));

@@ -54,6 +54,13 @@ Assignment Packet:
 - expectedReceipt: <existing receipt outcome>
 - returnToChiefInstruction: <major-phase gate request>
 
+Packet context contract:
+- Stable governance prefix: durable authority, autonomy/approval boundaries, capability and child-envelope constraints, and the required return contract
+- Dynamic execution delta: exact trio paths and hashes, current slice, allowed surfaces, proof target/evidence sink, deadline, and stop condition
+- Return concise status in this order: conclusion, required evidence, material caveat, and next action
+- Prompt caching, persisted reasoning, Programmatic Tool Calling, multi-agent, Pro mode, and max reasoning effort are API practices, not native Codex thread controls
+- This is prompt shaping only; it is not cache configuration or a persisted packet schema
+
 Worker Prompt Contract:
 - Read and hash the exact authoritative files before tracked edits; return binding_mismatch if they differ from bindingObservation or are missing/contradictory
 - Set HARNESS_PROJECT_ROOT to authorityRoot, or pass explicit --root when supported

@@ -26,6 +26,7 @@ test('minimal-global only projects the allow-listed subset for user-global Codex
   ]);
   assert.ok(plan.every((projection) => projection.targetPath.startsWith(allowedGlobalRoot)));
   assert.ok(!plan.some((projection) => projection.parentSkillName === 'superpowers' && projection.skillName === 'using-git-worktrees'));
+  assert.ok(keys.includes('superpowers:using-superpowers'));
   assert.ok(plan.some((projection) => projection.skillName === 'planning-with-files'));
   assert.ok(!keys.includes('overengineering-review:overengineering-review'));
   assert.ok(!keys.includes('simplification-ledger:simplification-ledger'));

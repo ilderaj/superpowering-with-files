@@ -8,6 +8,7 @@ import { applySuperpowersExecutingPlansReplanPatch } from './superpowers-executi
 import { applySuperpowersFinishingADevelopmentBranchPatch } from './superpowers-finishing-a-development-branch-patch.mjs';
 import { applySuperpowersSubagentDrivenDevelopmentBudgetPatch } from './superpowers-subagent-driven-development-budget-patch.mjs';
 import { applySuperpowersUsingGitWorktreesPatch } from './superpowers-using-git-worktrees-patch.mjs';
+import { applySuperpowersUsingSuperpowersRoutingPatch } from './superpowers-using-superpowers-routing-patch.mjs';
 import { applySuperpowersVerificationBeforeCompletionPatch } from './superpowers-verification-before-completion-patch.mjs';
 import { applySuperpowersWritingPlansPatch } from './superpowers-writing-plans-patch.mjs';
 import {
@@ -105,6 +106,11 @@ async function applySkillPatches(projection) {
 
     if (patch.type === 'superpowers-using-git-worktrees') {
       await applySuperpowersUsingGitWorktreesPatch(projection.targetPath);
+      continue;
+    }
+
+    if (patch.type === 'superpowers-using-superpowers-routing') {
+      await applySuperpowersUsingSuperpowersRoutingPatch(projection.targetPath);
       continue;
     }
 

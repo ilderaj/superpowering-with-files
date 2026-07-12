@@ -824,6 +824,11 @@ test('sync trims full-only skills when switching to minimal-global', async () =>
         skillName
       );
     }
+    const usingSuperpowers = await readFile(
+      path.join(root, '.agents/skills/using-superpowers/SKILL.md'),
+      'utf8'
+    );
+    assert.match(usingSuperpowers, /Harness Superpowers using-superpowers routing patch/);
 
     const planning = await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8');
     assert.match(planning, /Harness planning-with-files companion-plan patch/);

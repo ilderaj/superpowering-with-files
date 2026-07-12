@@ -63,8 +63,6 @@ test('readHarnessHealth honors minimal-global selection boundaries', async () =>
     await withCwd(root, () => sync([]));
     await mkdir(path.join(root, '.agents/skills/using-git-worktrees'), { recursive: true });
     await writeFile(path.join(root, '.agents/skills/using-git-worktrees/NOT_SELECTED.txt'), 'ignored');
-    await rm(path.join(root, '.agents/skills/using-superpowers'), { recursive: true, force: true });
-
     const health = await readHarnessHealth(root, '/home/user');
 
     assert.ok(
@@ -72,9 +70,12 @@ test('readHarnessHealth honors minimal-global selection boundaries', async () =>
       'minimal-global should not inspect unselected heavy skills'
     );
     assert.ok(
-      health.problems.some((problem) => problem.includes('using-superpowers')),
-      'missing allow-listed skill should be reported'
+      health.targets.codex.skills.some(
+        (skill) => skill.skillName === 'using-superpowers' && skill.status === 'ok'
+      ),
+      'minimal-global should retain the manual-only starter skill'
     );
+    assert.ok(!health.problems.some((problem) => problem.includes('using-superpowers')));
     assert.ok(!health.problems.some((problem) => problem.includes('using-git-worktrees')));
   } finally {
     await removeHarnessFixture(root);
@@ -599,11 +600,11 @@ test('readHarnessHealth reports hook status without failing unsupported adapters
     );
     assert.equal(
       health.targets.cursor.hooks.find((hook) => hook.parentSkillName === 'superpowers').status,
-      'ok'
+      'unsupported'
     );
     assert.equal(
       health.targets.codex.hooks.find((hook) => hook.parentSkillName === 'superpowers').status,
-      'ok'
+      'unsupported'
     );
     assert.equal(health.problems.length, 0);
   } finally {
@@ -685,7 +686,7 @@ test('readHarnessHealth measures projected hook runtime scripts', async () => {
 
     await withCwd(root, () => sync([]));
 
-    const projectedScript = path.join(root, '.codex/hooks/session-start');
+    const projectedScript = path.join(root, '.codex/hooks/task-scoped-hook.sh');
     const projectedOutput = [
       '#!/usr/bin/env bash',
       `printf '%s\\n' '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"projected runtime marker"}}'`
@@ -693,13 +694,13 @@ test('readHarnessHealth measures projected hook runtime scripts', async () => {
     await writeFile(projectedScript, projectedOutput);
 
     const health = await readHarnessHealth(root, '/home/user');
-    const superpowersPayload = health.context.hooks.find(
-      (hook) => hook.parentSkillName === 'superpowers' && hook.eventName === 'SessionStart'
+    const planningPayload = health.context.hooks.find(
+      (hook) => hook.parentSkillName === 'planning-with-files'
     );
 
-    assert.equal(superpowersPayload.runtimePath, projectedScript);
+    assert.equal(planningPayload.runtimePath, projectedScript);
     assert.equal(
-      superpowersPayload.measurement.chars,
+      planningPayload.measurement.chars,
       measureText(
         '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"projected runtime marker"}}\n'
       ).chars
@@ -743,24 +744,20 @@ test('readHarnessHealth records measured hook payloads in context', async () => 
     await withCwd(root, () => sync([]));
     const health = await readHarnessHealth(root, '/home/user');
 
-    const superpowersPayload = health.context.hooks.find(
-      (hook) => hook.parentSkillName === 'superpowers' && hook.eventName === 'SessionStart'
-    );
     const planningPayload = health.context.hooks.find(
       (hook) => hook.parentSkillName === 'planning-with-files' && hook.eventName === 'UserPromptSubmit'
     );
 
-    assert.ok(superpowersPayload);
     assert.ok(planningPayload);
-    assert.equal(superpowersPayload.evaluation.verdict, 'ok');
     assert.equal(planningPayload.evaluation.verdict, 'ok');
+    assert.ok(!health.context.hooks.some((hook) => hook.parentSkillName === 'superpowers' && hook.measurement));
     assert.ok(health.problems.length === 0);
   } finally {
     await removeHarnessFixture(root);
   }
 });
 
-test('readHarnessHealth measures compact superpowers hook payloads for all supported targets', async () => {
+test('readHarnessHealth measures compact planning hook payloads for all supported targets', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
@@ -801,11 +798,11 @@ test('readHarnessHealth measures compact superpowers hook payloads for all suppo
       const payload = health.context.hooks.find(
         (hook) =>
           hook.target === target &&
-          hook.parentSkillName === 'superpowers' &&
-          /sessionstart/i.test(hook.eventName)
+          hook.parentSkillName === 'planning-with-files' &&
+          /userpromptsubmit/i.test(hook.eventName)
       );
 
-      assert.ok(payload, `expected superpowers payload for ${target}`);
+      assert.ok(payload, `expected planning payload for ${target}`);
       assert.equal(payload.status, 'ok', target);
       assert.ok(payload.measurement.approxTokens > 0, target);
       assert.ok(payload.measurement.approxTokens < 500, target);
@@ -1043,28 +1040,38 @@ test('readHarnessHealth does not double count Copilot hook payloads across both 
       upstream: {}
     });
 
+    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/compact-task/task_plan.md'),
+      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
+    );
+    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
+
     await withCwd(root, () => sync([]));
 
     const sharedPayload = '{"hookSpecificOutput":{"hookEventName":"sessionStart","additionalContext":"shared logical payload"}}\n';
     await Promise.all([
       writeFile(
-        path.join(root, '.github/hooks/session-start'),
+        path.join(root, '.github/hooks/task-scoped-hook.sh'),
         ['#!/usr/bin/env bash', `printf '%s\\n' '${sharedPayload.replace(/\n$/, '')}'`].join('\n')
       ),
       writeFile(
-        path.join(home, '.copilot/hooks/session-start'),
+        path.join(home, '.copilot/hooks/task-scoped-hook.sh'),
         ['#!/usr/bin/env bash', `printf '%s\\n' '${sharedPayload.replace(/\n$/, '')}'`].join('\n')
       )
     ]);
 
     const health = await readHarnessHealth(root, home);
-    const superpowersPayload = health.context.hooks.find((hook) => hook.target === 'copilot' && hook.parentSkillName === 'superpowers');
+    const planningPayload = health.context.hooks.find(
+      (hook) => hook.target === 'copilot' && hook.parentSkillName === 'planning-with-files'
+    );
 
-    assert.ok(superpowersPayload);
-    assert.deepEqual(superpowersPayload.measurement, measureText(sharedPayload));
-    assert.deepEqual(superpowersPayload.runtimePaths.sort(), [
-      path.join(home, '.copilot/hooks/session-start'),
-      path.join(root, '.github/hooks/session-start')
+    assert.ok(planningPayload);
+    assert.deepEqual(planningPayload.measurement, measureText(sharedPayload));
+    assert.deepEqual(planningPayload.runtimePaths.sort(), [
+      path.join(home, '.copilot/hooks/task-scoped-hook.sh'),
+      path.join(root, '.github/hooks/task-scoped-hook.sh')
     ].sort());
   } finally {
     await removeHarnessFixture(root);
@@ -1253,12 +1260,12 @@ test('readHarnessHealth records hook payload warning verdicts in context warning
 
     assert.ok(
       health.context.warnings.some((warning) =>
-        warning.includes('context hook payload codex superpowers SessionStart warning')
+        warning.includes('context hook payload codex planning-with-files UserPromptSubmit warning')
       )
     );
     assert.ok(
       health.warnings.some((warning) =>
-        warning.includes('context hook payload codex superpowers SessionStart warning')
+        warning.includes('context hook payload codex planning-with-files UserPromptSubmit warning')
       )
     );
   } finally {
@@ -1332,16 +1339,16 @@ test('readHarnessHealth records hook payload problems in both warnings and probl
 
     assert.ok(
       health.context.warnings.some((warning) =>
-        warning.includes('context hook payload codex superpowers SessionStart problem')
+        warning.includes('context hook payload codex planning-with-files UserPromptSubmit problem')
       )
     );
     assert.ok(
       health.problems.some((problem) =>
-        problem.includes('context hook payload codex superpowers SessionStart problem')
+        problem.includes('context hook payload codex planning-with-files UserPromptSubmit problem')
       )
     );
     assert.equal(
-      health.context.hooks.find((hook) => hook.parentSkillName === 'superpowers' && hook.eventName === 'SessionStart').status,
+      health.context.hooks.find((hook) => hook.parentSkillName === 'planning-with-files' && hook.eventName === 'UserPromptSubmit').status,
       'problem'
     );
   } finally {
@@ -1382,7 +1389,7 @@ test('readHarnessHealth records hook payload output validation failures', async 
 
     await withCwd(root, () => sync([]));
     await writeFile(
-      path.join(root, '.codex/hooks/session-start'),
+      path.join(root, '.codex/hooks/task-scoped-hook.sh'),
       [
         '#!/usr/bin/env bash',
         "printf '%s\\n' 'not-json-output'",
@@ -1391,12 +1398,12 @@ test('readHarnessHealth records hook payload output validation failures', async 
     );
 
     const health = await readHarnessHealth(root, '/home/user');
-    const superpowersPayload = health.context.hooks.find(
-      (hook) => hook.parentSkillName === 'superpowers' && hook.eventName === 'SessionStart'
+    const planningPayload = health.context.hooks.find(
+      (hook) => hook.parentSkillName === 'planning-with-files' && hook.eventName === 'UserPromptSubmit'
     );
 
-    assert.equal(superpowersPayload.status, 'problem');
-    assert.match(superpowersPayload.message, /not valid JSON/);
+    assert.equal(planningPayload.status, 'problem');
+    assert.match(planningPayload.message, /not valid JSON/);
     assert.ok(
       health.problems.some((problem) => problem.includes('Hook payload output is not valid JSON'))
     );

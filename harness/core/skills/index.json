@@ -13,6 +13,10 @@
         "claude-code": "materialize"
       },
       "childPatches": {
+        "using-superpowers": {
+          "type": "superpowers-using-superpowers-routing",
+          "marker": "Harness Superpowers using-superpowers routing patch"
+        },
         "finishing-a-development-branch": {
           "type": "superpowers-finishing-a-development-branch",
           "marker": "Harness Superpowers finishing-a-development-branch base patch"
@@ -58,36 +62,6 @@
         "writing-plans": {
           "type": "superpowers-writing-plans",
           "marker": "Harness Superpowers writing-plans location patch"
-        }
-      },
-      "hooks": {
-        "copilot": {
-          "source": "harness/core/hooks/superpowers",
-          "config": "copilot-hooks.json",
-          "scriptRoot": "scripts",
-          "scripts": ["session-start", "run-hook.cmd"],
-          "events": ["sessionStart"]
-        },
-        "cursor": {
-          "source": "harness/core/hooks/superpowers",
-          "config": "cursor-hooks.json",
-          "scriptRoot": "scripts",
-          "scripts": ["session-start", "run-hook.cmd"],
-          "events": ["sessionStart"]
-        },
-        "claude-code": {
-          "source": "harness/core/hooks/superpowers",
-          "config": "claude-hooks.json",
-          "scriptRoot": "scripts",
-          "scripts": ["session-start", "run-hook.cmd"],
-          "events": ["SessionStart"]
-        },
-        "codex": {
-          "source": "harness/core/hooks/superpowers",
-          "config": "codex-hooks.json",
-          "scriptRoot": "scripts",
-          "scripts": ["session-start", "run-hook.cmd"],
-          "events": ["SessionStart"]
         }
       }
     },

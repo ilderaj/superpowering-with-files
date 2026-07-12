@@ -106,7 +106,7 @@ Codex also receives two optional repo-owned helpers inspired by the `ponytail` f
 - `simplification-ledger` scans the canonical `swf-simplify:` marker and reports simplification ceilings plus upgrade triggers.
 - `swf-simplify:` is the V1 comment marker for deliberate simplifications; use it when you want a simplification to stay visible without promoting it into a new runtime rule.
 
-Harness projects Codex hooks only when `--hooks=on` is selected. It projects the verified planning-with-files `SessionStart` and `UserPromptSubmit` events, plus the superpowers `SessionStart` wrapper. When the `safety` profile is active, Harness can also project Codex `SessionStart` and `PreToolUse` safety hooks. Those remain repository-owned policy checks and do not replace host-platform approvals.
+Harness projects Codex hooks only when `--hooks=on` is selected. It projects the verified planning-with-files `SessionStart` and `UserPromptSubmit` events. The `using-superpowers` skill remains available for explicit, deep-reasoning routing, but Harness does not install a Superpowers session-start hook. When the `safety` profile is active, Harness can also project Codex `SessionStart` and `PreToolUse` safety hooks. Those remain repository-owned policy checks and do not replace host-platform approvals.
 
 When these hooks run in a live Codex session, Harness writes runtime trace evidence under `.harness/runtime-hooks/codex.jsonl` and surfaces it in `doctor` and `verify` as runtime evidence instead of guessing.
 

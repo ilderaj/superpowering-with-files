@@ -8,6 +8,7 @@
       "Task Classification",
       "Goal Round Start Protocol",
       "Soft Model Tiering",
+      "Scope Autonomy And Human Gates",
       "When Superpowers Is Allowed",
       "When Superpowers Is Not Allowed",
       "Communication Guidelines",
@@ -39,8 +40,14 @@
     "safety": {
       "include": ["base.md", "safety.md"]
     },
+    "safety-overlay": {
+      "include": ["safety.md"]
+    },
     "cloud-safe": {
       "include": ["base.md", "safety.md", "cloud-safe.md"]
+    },
+    "cloud-safe-overlay": {
+      "include": ["safety.md", "cloud-safe.md"]
     }
   }
 }

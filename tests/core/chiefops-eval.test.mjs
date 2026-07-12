@@ -141,6 +141,31 @@ test('chiefops guidance exposes the approved operating-model packet envelope', a
   assert.match(combined, /permission.*parent.*ceiling/is);
 });
 
+test('chiefops keeps stable governance separate from dynamic execution context', async () => {
+  const [skill, template, docs, workflows] = await Promise.all([
+    readFile('harness/core/skills/chiefops/SKILL.md', 'utf8'),
+    readFile('harness/core/skills/chiefops/template.md', 'utf8'),
+    readFile('docs/chiefops.md', 'utf8'),
+    readFile('docs/chief-worker-workflows.md', 'utf8')
+  ]);
+
+  for (const [surface, text] of Object.entries({ skill, template, docs, workflows })) {
+    assert.match(text, /Stable governance prefix/i, `${surface} stable prefix`);
+    assert.match(text, /Dynamic execution delta/i, `${surface} dynamic delta`);
+    assert.match(
+      text,
+      /conclusion.*required evidence.*material caveat.*next action/is,
+      `${surface} return order`
+    );
+    assert.match(
+      text,
+      /prompt caching.*persisted reasoning.*Programmatic Tool Calling.*multi-agent.*Pro mode.*max reasoning effort.*not native Codex thread controls/is,
+      `${surface} host boundary`
+    );
+  }
+  assert.match(skill, /derived.*ephemeral/is);
+});
+
 test('chiefops guidance requires explicit child model contracts and preserves manual-only limits', async () => {
   const [skill, template, policy, docs] = await Promise.all([
     readFile('harness/core/skills/chiefops/SKILL.md', 'utf8'),

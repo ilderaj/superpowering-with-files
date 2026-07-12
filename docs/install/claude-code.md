@@ -35,18 +35,14 @@ Optional hooks:
 
 ```text
 .claude/settings.json
-.claude/hooks/run-hook.cmd
 .claude/hooks/task-scoped-hook.sh
-.claude/hooks/session-start
 ~/.claude/settings.json
-~/.claude/hooks/run-hook.cmd
 ~/.claude/hooks/task-scoped-hook.sh
-~/.claude/hooks/session-start
 ```
 
 Hook definitions are merged into the `hooks` field of the Claude Code settings JSON files.
 
-Claude Code receives the Harness planning-with-files task-scoped hook and the vendored superpowers session-start hook when hooks are enabled.
+Claude Code receives the Harness planning-with-files task-scoped hook when hooks are enabled. Superpowers remains an explicit skill route and has no auto-start hook.
 
 Claude Code remains the native owner of `.claude/settings*.json`. VS Code and Cursor can read Claude-format hooks as a compatibility surface, but Harness treats these settings files as the Claude Code contract and keeps other targets on their native hook adapters.
 

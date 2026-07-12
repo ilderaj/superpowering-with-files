@@ -37,14 +37,12 @@ Optional hooks:
 
 ```text
 .cursor/hooks.json
-.cursor/hooks/session-start
 .cursor/hooks/task-scoped-hook.sh
 ~/.cursor/hooks.json
-~/.cursor/hooks/session-start
 ~/.cursor/hooks/task-scoped-hook.sh
 ```
 
-Cursor receives the Harness planning-with-files task-scoped hook and the vendored superpowers session-start hook when hooks are enabled. Cursor now has official native hooks documentation for `.cursor/hooks.json` / `~/.cursor/hooks.json`, and official third-party Claude hook compatibility. Harness keeps the native Cursor format as the primary adapter; Claude-compatible loading is migration/compatibility behavior, not the default projection path.
+Cursor receives the Harness planning-with-files task-scoped hook when hooks are enabled. Superpowers remains an explicit skill route and has no auto-start hook. Cursor now has official native hooks documentation for `.cursor/hooks.json` / `~/.cursor/hooks.json`, and official third-party Claude hook compatibility. Harness keeps the native Cursor format as the primary adapter; Claude-compatible loading is migration/compatibility behavior, not the default projection path.
 
 Run:
 
@@ -74,7 +72,7 @@ Run with hooks:
 ./scripts/harness install --targets=cursor --scope=workspace --hooks=on
 ./scripts/harness sync
 ./scripts/harness doctor --check-only
-bash .cursor/hooks/session-start
+bash .cursor/hooks/task-scoped-hook.sh cursor session-start
 ```
 
 By default, `sync` refuses to overwrite non-Harness-owned files. To preserve a backup and continue:

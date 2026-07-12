@@ -39,16 +39,12 @@ Optional hooks:
 
 ```text
 .github/hooks/planning-with-files.json
-.github/hooks/superpowers.json
 .github/hooks/task-scoped-hook.sh
-.github/hooks/session-start
 ~/.copilot/hooks/planning-with-files.json
-~/.copilot/hooks/superpowers.json
 ~/.copilot/hooks/task-scoped-hook.sh
-~/.copilot/hooks/session-start
 ```
 
-GitHub Copilot / VS Code Chat now has official preview hooks support. Harness uses native Copilot hook files under `.github/hooks/*.json` and `~/.copilot/hooks` as the primary contract. VS Code can also read Claude-format hooks from `.claude/settings*.json`, but Harness treats that as compatibility only because VS Code ignores Claude matchers and uses different tool names / input field names.
+GitHub Copilot / VS Code Chat now has official preview hooks support. Harness projects only the task-scoped planning hook under `.github/hooks/*.json` and `~/.copilot/hooks`; Superpowers remains an explicit skill route and has no auto-start hook. VS Code can also read Claude-format hooks from `.claude/settings*.json`, but Harness treats that as compatibility only because VS Code ignores Claude matchers and uses different tool names / input field names.
 
 Run:
 

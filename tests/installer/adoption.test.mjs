@@ -366,7 +366,7 @@ test('adopt-global stores Claude Code verification details in the success receip
     );
 
     assert.equal(receipt.doctorPassed, true);
-    assert.equal(receipt.verification.runtimeInvocationVerified, false);
+    assert.equal(receipt.verification.runtimeInvocationVerified, true);
     assert.equal(
       receipt.verification.hookEvidence['claude-code']['planning-with-files'].runtime,
       'runtime-invocation-verified'
@@ -375,7 +375,7 @@ test('adopt-global stores Claude Code verification details in the success receip
       receipt.verification.hookEvidence['claude-code']['planning-with-files'].payload,
       'local-payload-verified'
     );
-    assert.equal(receipt.verification.hookEvidence['claude-code'].superpowers.runtime, 'not-measured');
+    assert.equal(receipt.verification.hookEvidence['claude-code'].superpowers, undefined);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -422,7 +422,7 @@ test('adoption-status keeps Claude Code runtime evidence as a non-failing reason
 
     assert.equal(status.status, 'in_sync');
     assert.ok(
-      status.reasons.some((reason) =>
+      !status.reasons.some((reason) =>
         /Claude Code runtime hook invocation is not measured; local settings and payload checks passed only\./.test(reason)
       )
     );

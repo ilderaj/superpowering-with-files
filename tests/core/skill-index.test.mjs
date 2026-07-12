@@ -52,11 +52,10 @@ test('skill index declares layouts required for filesystem projection', async ()
   assert.equal(index.skills.chiefops.targetName, 'chiefops');
 });
 
-test('skill index declares hook projection metadata', async () => {
+test('skill index keeps Superpowers activation out of hook projection metadata', async () => {
   const index = JSON.parse(await readFile('harness/core/skills/index.json', 'utf8'));
 
-  assert.equal(index.skills.superpowers.hooks.cursor.config, 'cursor-hooks.json');
-  assert.equal(index.skills.superpowers.hooks['claude-code'].config, 'claude-hooks.json');
+  assert.equal(index.skills.superpowers.hooks, undefined);
   assert.equal(index.skills['planning-with-files'].hooks.default.adapter, 'task-scoped-planning');
 });
 
@@ -84,5 +83,9 @@ test('skill index registers the executing-plans replan patch on the superpowers 
   assert.deepEqual(index.skills.superpowers.childPatches['verification-before-completion'], {
     type: 'superpowers-verification-before-completion',
     marker: 'Harness Superpowers verification-before-completion proof patch'
+  });
+  assert.deepEqual(index.skills.superpowers.childPatches['using-superpowers'], {
+    type: 'superpowers-using-superpowers-routing',
+    marker: 'Harness Superpowers using-superpowers routing patch'
   });
 });

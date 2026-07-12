@@ -241,6 +241,15 @@ Assignment Packet
 Keep assignment intent in `task_plan.md` or `progress.md` when it needs durable
 traceability. Execution receipts remain outcome evidence, not a worker queue.
 
+Packet context contract:
+
+- **Stable governance prefix:** durable authority, autonomy/approval boundaries, capability and child-envelope constraints, and the required return contract.
+- **Dynamic execution delta:** exact trio paths and hashes, current slice, allowed surfaces, proof target/evidence sink, deadline, and stop condition.
+- Return concise status in this order: conclusion, required evidence, material caveat, and next action.
+- Prompt caching, persisted reasoning, Programmatic Tool Calling, multi-agent, Pro mode, and max reasoning effort are API practices, not native Codex thread controls.
+
+This is prompt shaping only; it is not cache configuration or a persisted packet schema.
+
 ## Practical Defaults
 
 - If the task is quick, single-stage, and non-durable, Chief-direct is valid.
