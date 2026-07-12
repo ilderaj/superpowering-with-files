@@ -69,9 +69,16 @@ export function normalizePolicySelection(policyProfile) {
 }
 
 export function effectiveEntryPolicyProfiles(state) {
-  return state.workspacePolicyOverlay
-    ? [state.policyProfile, state.workspacePolicyOverlay]
-    : state.policyProfile;
+  if (!state.workspacePolicyOverlay) {
+    return state.policyProfile;
+  }
+
+  const overlayProfile = {
+    safety: 'safety-overlay',
+    'cloud-safe': 'cloud-safe-overlay'
+  }[state.workspacePolicyOverlay] ?? state.workspacePolicyOverlay;
+
+  return [state.policyProfile, overlayProfile];
 }
 
 export function activeSafetyPolicyProfile(state) {

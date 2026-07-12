@@ -244,6 +244,13 @@ test('renderPolicyProfile supports include-based safety profiles', async () => {
   assert.match(rendered, /Companion Plan Model/);
 });
 
+test('safety overlays add safety rules without duplicating the core policy', async () => {
+  const rendered = await renderPolicyProfile(process.cwd(), ['always-on-core', 'safety-overlay']);
+
+  assert.match(rendered, /# Safety Policy/);
+  assert.equal((rendered.match(/## Default Behavior/g) ?? []).length, 1);
+});
+
 test('renderPolicyProfile does not split on code fences that contain section-like headings', async () => {
   const rendered = await renderPolicyProfile(process.cwd(), 'tracked-task-extended');
   const currentStateMatches = rendered.match(/## Current State/g) ?? [];
