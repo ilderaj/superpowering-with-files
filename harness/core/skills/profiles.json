@@ -16,6 +16,7 @@
     ],
     "minimal-global": [
       "planning-with-files",
+      "superpowers:using-superpowers",
       "superpowers:writing-plans",
       "superpowers:executing-plans",
       "superpowers:verification-before-completion"

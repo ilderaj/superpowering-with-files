@@ -50,9 +50,8 @@ Hook support is adapter-based:
 | Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
 | --- | --- | --- | --- | --- |
 | `planning-with-files` task-scoped hook | Supported via verified-event allowlist when hooks are enabled in the installed Codex build; retains `SessionStart` and `UserPromptSubmit`, omits planning `Stop` | Supported | Supported | Supported |
-| `superpowers` session-start hook | Supported via Harness wrapper | Supported | Supported | Supported |
 
-Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. Harness then narrows projection to the event-level contracts it has actually verified for that adapter. Codex still needs hooks enabled in the installed build; VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
+Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. Harness then narrows projection to the event-level contracts it has actually verified for that adapter. Superpowers is an explicit skill route; Harness does not install a Superpowers session-start hook. Codex still needs hooks enabled in the installed build; VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
 
 Hook facts must be backed by official platform documentation before Harness treats them as verified contracts:
 
