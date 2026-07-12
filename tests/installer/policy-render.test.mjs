@@ -56,6 +56,19 @@ test('codex rendered policy documents soft model tiering while copilot stays thi
   assert.doesNotMatch(copilotRendered, /Soft Model Tiering/);
 });
 
+test('tracked and deep work get a phase-boundary session-reset guard without changing quick-task routing', async () => {
+  const [basePolicy, codexRendered] = await Promise.all([
+    readFile(path.join(process.cwd(), 'harness/core/policy/base.md'), 'utf8'),
+    renderEntry(process.cwd(), 'codex', 'always-on-core')
+  ]);
+
+  for (const text of [basePolicy, codexRendered]) {
+    assert.match(text, /12-16 substantive turns/);
+    assert.match(text, /phase boundary/i);
+    assert.match(text, /do not reset mid-phase merely to satisfy a turn count/i);
+  }
+});
+
 test('codex policy renders the approved chief and visible worker operating model', async () => {
   const codexRendered = await renderEntry(process.cwd(), 'codex', 'always-on-core');
   const trackedEntry = await readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8');

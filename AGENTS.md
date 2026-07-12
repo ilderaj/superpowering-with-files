@@ -105,7 +105,7 @@ Before each substantive goal round, continuation tick, or phase boundary:
 5. Bound plan-polishing and execution-time replan loops together. Attempt 1 revises from verifier feedback. Attempt 2 re-verifies the failed areas. Attempt 3 performs a broader rethink. If the 3rd review round is still a failed review, record blockers and unresolved assumptions in the authoritative planning files, then stop the current execution attempt instead of looping forever.
 6. Sync back after each phase. Keep detailed reasoning in the companion plan, but write durable decisions, lifecycle and phase status, validation results, review verdicts, execution mode, companion-plan path, summary, and sync-back status into `planning/active/<task-id>/`.
 
-Deep or unusually long work may use a fresh thread that restores the trio. This is repository guidance, not a runner; hooks do not replace restore, routing, or sync-back discipline.
+For tracked or deep work, at a major phase boundary or after roughly 12-16 substantive turns, prefer handing off to a fresh session that restores the exact trio. Do not reset mid-phase merely to satisfy a turn count; when continuing is cheaper or safer, record the concrete reason in `progress.md`. This is repository guidance, not a runner; hooks do not replace restore, routing, or sync-back discipline.
 
 ### Mode-Aware Verification Contract
 
