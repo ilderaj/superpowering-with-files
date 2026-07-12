@@ -70,8 +70,10 @@ test('readHarnessHealth honors minimal-global selection boundaries', async () =>
       'minimal-global should not inspect unselected heavy skills'
     );
     assert.ok(
-      !health.targets.codex.skills.some((skill) => skill.skillName === 'using-superpowers'),
-      'minimal-global should omit the manual-only starter skill'
+      health.targets.codex.skills.some(
+        (skill) => skill.skillName === 'using-superpowers' && skill.status === 'ok'
+      ),
+      'minimal-global should retain the manual-only starter skill'
     );
     assert.ok(!health.problems.some((problem) => problem.includes('using-superpowers')));
     assert.ok(!health.problems.some((problem) => problem.includes('using-git-worktrees')));
