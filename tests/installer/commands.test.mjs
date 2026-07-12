@@ -424,6 +424,26 @@ test('install stores the selected entry and skills profiles in state', async () 
   }
 });
 
+test('install normalizes a direct safety overlay to the guarded workspace state', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await harnessCommand(
+      root,
+      'install',
+      '--scope=workspace',
+      '--targets=codex',
+      '--profile=safety-overlay'
+    );
+
+    const state = await readState(root);
+    assert.equal(state.policyProfile, 'always-on-core');
+    assert.equal(state.workspacePolicyOverlay, 'safety-overlay');
+    assert.equal(state.hookMode, 'on');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('install defaults Copilot-only installs to copilot-default skills profile', async () => {
   const root = await createHarnessFixture();
   try {
@@ -507,6 +527,14 @@ test('install rejects safety profiles outside workspace scope', async () => {
     );
     await assert.rejects(
       harnessCommand(root, 'install', '--scope=both', '--targets=all', '--profile=cloud-safe'),
+      /Safety profiles are workspace-only/
+    );
+    await assert.rejects(
+      harnessCommand(root, 'install', '--scope=user-global', '--targets=all', '--profile=safety-overlay'),
+      /Safety profiles are workspace-only/
+    );
+    await assert.rejects(
+      harnessCommand(root, 'install', '--scope=both', '--targets=all', '--profile=cloud-safe-overlay'),
       /Safety profiles are workspace-only/
     );
   } finally {
