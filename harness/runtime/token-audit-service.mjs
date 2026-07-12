@@ -16,7 +16,11 @@ function freshProxy(totalUsage = {}) {
   return input - cached + output;
 }
 
-function normalizeThreadSource(source) {
+function normalizeThreadSource(source, threadSource) {
+  if (threadSource === 'subagent' || threadSource === 'main') {
+    return threadSource;
+  }
+
   return source && typeof source === 'object' && 'subagent' in source ? 'subagent' : 'main';
 }
 
@@ -142,7 +146,7 @@ function summarizeSession(filePath, summary) {
     cwd: typeof meta.cwd === 'string' ? meta.cwd : 'unknown',
     workspace: typeof meta.cwd === 'string' ? meta.cwd : 'unknown',
     workspaceLabel: basenameFromCwd(meta.cwd),
-    threadSource: normalizeThreadSource(meta.source),
+    threadSource: normalizeThreadSource(meta.source, meta.thread_source),
     model: typeof model === 'string' ? model : 'unknown',
     effort: typeof effort === 'string' ? effort : 'unknown',
     modelTransitions: transitions,

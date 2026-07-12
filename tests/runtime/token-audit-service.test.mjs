@@ -25,7 +25,8 @@ function sessionMeta({
   id,
   timestamp,
   cwd,
-  source = 'vscode'
+  source = 'vscode',
+  threadSource
 }) {
   return {
     timestamp,
@@ -35,6 +36,7 @@ function sessionMeta({
       timestamp,
       cwd,
       source,
+      ...(threadSource ? { thread_source: threadSource } : {}),
       model_provider: 'openai'
     }
   };
@@ -256,6 +258,42 @@ test('runTokenAudit rejects invalid explicit audit window values', async () => {
     }),
     /Invalid audit window/
   );
+});
+
+test('runTokenAudit prefers explicit thread_source metadata over legacy source', async () => {
+  const sessionsRoot = await mkdtemp(path.join(os.tmpdir(), 'token-audit-thread-source-'));
+  try {
+    await writeRollout(sessionsRoot, '2026/07/12/rollout-visible-worker.jsonl', [
+      sessionMeta({
+        id: 'visible-worker',
+        timestamp: '2026-07-12T03:43:53Z',
+        cwd: '/workspace/SuperpoweringWithFiles',
+        source: 'vscode',
+        threadSource: 'subagent'
+      }),
+      turnContext({
+        timestamp: '2026-07-12T03:44:00Z',
+        cwd: '/workspace/SuperpoweringWithFiles',
+        model: 'gpt-5.6-terra',
+        effort: 'high'
+      }),
+      tokenCount({
+        timestamp: '2026-07-12T03:44:10Z',
+        totalUsage: { input_tokens: 100, cached_input_tokens: 60, output_tokens: 20, total_tokens: 120 }
+      })
+    ]);
+
+    const report = await runTokenAudit({
+      sessionsRoot,
+      dateFrom: '2026-07-12T00:00:00Z',
+      dateTo: '2026-07-12T23:59:59Z'
+    });
+
+    assert.equal(report.breakdowns.threadSource.subagent.sessions, 1);
+    assert.equal(report.breakdowns.threadSource.main?.sessions ?? 0, 0);
+  } finally {
+    await rm(sessionsRoot, { recursive: true, force: true });
+  }
 });
 
 test('runTokenAudit keeps ordered mixed model transitions without allocating tokens to a model', async () => {
