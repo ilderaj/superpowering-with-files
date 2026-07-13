@@ -111,7 +111,15 @@ export async function chiefopsCommand(args = []) {
       }
 
       const packet = await validateBindingFile({ file });
-      process.stdout.write(`${JSON.stringify({ ok: true, bindingId: packet.bindingId }, null, 2)}\n`);
+      const bindingIdentity = packet.schemaVersion === 'chiefops.v0b'
+        ? packet.bindingId
+        : packet.kind === 'stable_prefix'
+          ? packet.prefixBindingId
+          : packet.deltaBindingId;
+      const result = packet.schemaVersion === 'chiefops.v0b'
+        ? { ok: true, bindingId: bindingIdentity }
+        : { ok: true, bindingIdentity };
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
       return;
     }
 

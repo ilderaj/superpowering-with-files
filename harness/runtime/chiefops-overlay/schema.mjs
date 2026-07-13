@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import path from 'node:path';
+import { PhaseEnvelopeSchema } from './phase-envelope.mjs';
 
 export const WORK_TYPES = ['coding', 'office', 'release', 'review', 'research'];
 export const AUTHORITY_MODES = ['task_authority', 'source_authority', 'release_authority'];
@@ -30,6 +31,7 @@ export const MAJOR_PHASES = ['discovery', 'design', 'execute', 'verify', 'reconc
 export const RECEIPT_TYPES_REQUIRING_SESSION_HANDLE = ['binding_verified', 'started', 'check_in', 'blocked', 'done', 'new_trio_candidate', 'abandoned'];
 
 const isoTimestamp = z.string().datetime();
+const safeV2Identity = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 
 export const SubagentDispatchSchema = z.object({
   parentBindingId: z.string().min(1), childId: z.string().min(1), model: z.string().min(1), thinking: z.string().min(1),
@@ -53,7 +55,7 @@ export const SourceProgressRefSchema = z.object({
   observedAt: isoTimestamp
 });
 
-export const BindingPacketSchema = z.object({
+const BindingPacketObject = z.object({
   schemaVersion: z.literal('chiefops.v0b'),
   bindingId: z.string().min(1),
   action: z.enum(['spawn_worker', 'continue_worker', 'respawn_worker', 'handoff_worker']),
@@ -118,7 +120,9 @@ export const BindingPacketSchema = z.object({
   stopCondition: z.string().min(1).optional(),
   expectedReceipt: z.enum(RECEIPT_TYPES).optional(),
   returnToChiefInstruction: z.string().min(1).optional()
-}).superRefine((packet, ctx) => {
+});
+
+function validateBindingPacketInvariants(packet, ctx) {
   if (!path.isAbsolute(packet.planningRoot)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'planningRoot must be an absolute authority root.' });
   }
@@ -185,6 +189,91 @@ export const BindingPacketSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: 'detailed plan eligibility is valid only for explicit economy dispatch.'
+    });
+  }
+}
+
+export const BindingPacketSchema = BindingPacketObject.superRefine(validateBindingPacketInvariants);
+
+export const V2StablePrefixSchema = BindingPacketObject
+  .omit({
+    schemaVersion: true,
+    bindingId: true,
+    sourceProgressRef: true,
+    bindingToken: true,
+    bindingVersion: true,
+    majorPhase: true,
+    expectedCheckInBy: true
+  })
+  .extend({
+    schemaVersion: z.literal('chiefops.v2'),
+    kind: z.literal('stable_prefix'),
+    prefixBindingId: safeV2Identity,
+    bindingId: safeV2Identity,
+    authorityTaskId: safeV2Identity,
+    bindingVersion: z.string().min(1),
+    majorPhase: z.enum(MAJOR_PHASES),
+    expectedCheckInBy: isoTimestamp,
+    phaseEnvelope: PhaseEnvelopeSchema.optional()
+  })
+  .strict()
+  .superRefine((prefix, ctx) => {
+    validateBindingPacketInvariants(prefix, ctx);
+    if (prefix.bindingId !== prefix.prefixBindingId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'bindingId must equal prefixBindingId for V2 stable prefixes.'
+      });
+    }
+    if (prefix.phaseEnvelope) {
+      const matches = prefix.phaseEnvelope.startPhase === prefix.majorPhase
+        && prefix.phaseEnvelope.objective === prefix.currentSlice
+        && JSON.stringify(prefix.phaseEnvelope.nonGoals) === JSON.stringify(prefix.nonGoals ?? [])
+        && prefix.phaseEnvelope.proofTarget === prefix.proofTarget
+        && prefix.phaseEnvelope.permissionCeiling === prefix.permissionClass
+        && prefix.phaseEnvelope.delegationPolicy === prefix.delegationPolicy;
+      if (!matches) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'phaseEnvelope must exactly align with its stable prefix authority fields.'
+        });
+      }
+    }
+  });
+
+export const V2ExecutionDeltaSchema = z.object({
+  schemaVersion: z.literal('chiefops.v2'),
+  kind: z.literal('execution_delta'),
+  deltaBindingId: safeV2Identity,
+  authorityTaskId: safeV2Identity,
+  planningRoot: z.string().min(1),
+  bindingVersion: z.string().min(1),
+  prefixBindingId: safeV2Identity,
+  prefixHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  sequence: z.number().int().positive(),
+  predecessorDeltaHash: z.string().regex(/^sha256:[a-f0-9]{64}$/).nullable(),
+  currentSlice: z.string().min(1),
+  majorPhase: z.enum(MAJOR_PHASES),
+  expectedCheckInBy: isoTimestamp.optional(),
+  observedAt: isoTimestamp,
+  createdAt: isoTimestamp
+}).strict().superRefine((delta, ctx) => {
+  if (!path.isAbsolute(delta.planningRoot)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'planningRoot must be an absolute authority root.' });
+  }
+  if (/[\u0000-\u001f\u007f]/.test(delta.planningRoot)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'planningRoot must not contain control characters.' });
+  }
+  if (delta.deltaBindingId !== makeDeltaBindingId({
+    prefixBindingId: delta.prefixBindingId,
+    sequence: delta.sequence
+  })) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'deltaBindingId must match its canonical prefixBindingId and sequence.' });
+  }
+  if ((delta.sequence === 1) !== (delta.predecessorDeltaHash === null)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'sequence 1 requires null predecessorDeltaHash and later sequences require one.'
     });
   }
 });
@@ -281,8 +370,25 @@ export function makeReceiptId({ authorityTaskId, workerId, receiptType, createdA
   return `receipt_${slug(authorityTaskId)}_${slug(workerId)}_${slug(receiptType)}_${safeTimestamp(createdAt)}`;
 }
 
+export function makeDeltaBindingId({ prefixBindingId, sequence }) {
+  return `delta_${prefixBindingId}_${sequence}`;
+}
+
 export function validateBindingPacket(value) {
   return BindingPacketSchema.parse(value);
+}
+
+export function validateBindingInput(value) {
+  if (value?.schemaVersion === 'chiefops.v0b') {
+    return validateBindingPacket(value);
+  }
+  if (value?.schemaVersion === 'chiefops.v2' && value?.kind === 'execution_delta') {
+    return V2ExecutionDeltaSchema.parse(value);
+  }
+  if (value?.schemaVersion === 'chiefops.v2' && value?.kind === 'stable_prefix') {
+    return V2StablePrefixSchema.parse(value);
+  }
+  throw new Error('unsupported ChiefOps binding input schema.');
 }
 
 const operatingModelFields = [

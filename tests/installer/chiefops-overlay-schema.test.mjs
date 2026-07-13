@@ -2,14 +2,22 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   validateBindingPacket,
+  validateBindingInput,
   validateOperatingModelBindingPacket,
   validateWorkerReceipt,
   makeBindingId,
+  makeDeltaBindingId,
   makeReceiptId
 } from '../../harness/runtime/chiefops-overlay/schema.mjs';
 import {
+  hashChiefOpsBlock,
+  parseChiefOpsBlocks
+} from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
+import {
+  compareChiefOpsBlockSourceProgressRef,
   compareSourceProgressRef,
   hashContent,
+  makeChiefOpsBlockSourceProgressRef,
   makeSourceProgressRef
 } from '../../harness/runtime/chiefops-overlay/source-progress-ref.mjs';
 
@@ -46,6 +54,87 @@ const baseBinding = {
 
 test('validateBindingPacket accepts the canonical minimum packet', () => {
   assert.equal(validateBindingPacket(baseBinding).bindingId, 'bind_demo_worker_slice_20260709');
+});
+
+test('V2 delta input requires its canonical unique delta binding id', () => {
+  const delta = {
+    schemaVersion: 'chiefops.v2',
+    kind: 'execution_delta',
+    deltaBindingId: 'delta_prefix-demo_1',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: '/repo',
+    bindingVersion: 'binding-v2',
+    prefixBindingId: 'prefix-demo',
+    prefixHash: 'sha256:' + 'a'.repeat(64),
+    sequence: 1,
+    predecessorDeltaHash: null,
+    currentSlice: 'continue design',
+    majorPhase: 'design',
+    observedAt: '2026-07-13T00:15:00.000Z',
+    createdAt: '2026-07-13T00:15:00.000Z'
+  };
+
+  assert.equal(makeDeltaBindingId({ prefixBindingId: 'prefix-demo', sequence: 1 }), delta.deltaBindingId);
+  assert.deepEqual(validateBindingInput(delta), delta);
+  assert.throws(
+    () => validateBindingInput({ ...delta, deltaBindingId: 'delta_alias_1' }),
+    /deltaBindingId/
+  );
+});
+
+test('V2 stable prefix is inspectable without a caller supplied source-progress reference', () => {
+  const { sourceProgressRef, bindingToken, ...stableAuthority } = baseBinding;
+  const prefix = {
+    ...stableAuthority,
+    schemaVersion: 'chiefops.v2',
+    kind: 'stable_prefix',
+    prefixBindingId: 'prefix-demo',
+    bindingId: 'prefix-demo',
+    bindingVersion: 'binding-v2',
+    majorPhase: 'design',
+    expectedCheckInBy: '2026-07-13T01:00:00.000Z'
+  };
+
+  assert.deepEqual(validateBindingInput(prefix), prefix);
+  assert.throws(
+    () => validateBindingInput({ ...prefix, bindingId: 'other-binding' }),
+    /bindingId/
+  );
+  assert.throws(
+    () => validateBindingInput({ ...prefix, sourceProgressRef }),
+    /Unrecognized key/
+  );
+});
+
+test('V2 source refs retain raw fenced bytes while chain hashes stay semantic', () => {
+  const firstMarkdown = [
+    '```chiefops-json',
+    '{"type":"ChiefOpsV2ExecutionDelta","deltaBindingId":"delta_prefix-demo_1","sequence":1}',
+    '```'
+  ].join('\n');
+  const rewrittenMarkdown = [
+    '```chiefops-json',
+    '{ "sequence": 1, "deltaBindingId": "delta_prefix-demo_1", "type": "ChiefOpsV2ExecutionDelta" }',
+    '```'
+  ].join('\n');
+  const [first] = parseChiefOpsBlocks(firstMarkdown);
+  const [rewritten] = parseChiefOpsBlocks(rewrittenMarkdown);
+  const ref = makeChiefOpsBlockSourceProgressRef({
+    file: 'planning/active/chiefops-demo/progress.md',
+    block: first,
+    observedAt: '2026-07-13T00:15:00.000Z'
+  });
+
+  assert.equal(first.raw, firstMarkdown);
+  assert.equal(
+    hashChiefOpsBlock(first),
+    hashChiefOpsBlock(rewritten)
+  );
+  assert.equal(ref.contentHash, hashContent(firstMarkdown));
+  assert.deepEqual(
+    compareChiefOpsBlockSourceProgressRef(ref, 'planning/active/chiefops-demo/progress.md', rewritten),
+    { drifted: true, reason: 'content_hash_mismatch' }
+  );
 });
 
 test('legacy v0b packets remain parseable while operating-model handoffs require the new envelope', () => {

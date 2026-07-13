@@ -14,6 +14,19 @@ export function makeSourceProgressRef({ file, blockId, content, startLine = null
   };
 }
 
+export function makeChiefOpsBlockSourceProgressRef({ file, block, observedAt }) {
+  const blockId = block?.value?.deltaBindingId;
+  if (!blockId || typeof block?.raw !== 'string') {
+    throw new Error('V2 source-progress references require a parsed delta block with raw fenced bytes.');
+  }
+  return makeSourceProgressRef({
+    file,
+    blockId,
+    content: block.raw,
+    observedAt
+  });
+}
+
 export function compareSourceProgressRef(observedRef, currentBlock) {
   if (!currentBlock) {
     return { drifted: true, reason: 'missing_current_block' };
@@ -32,4 +45,15 @@ export function compareSourceProgressRef(observedRef, currentBlock) {
   }
 
   return { drifted: false, reason: null };
+}
+
+export function compareChiefOpsBlockSourceProgressRef(observedRef, file, currentBlock) {
+  if (!currentBlock) {
+    return { drifted: true, reason: 'missing_current_block' };
+  }
+  return compareSourceProgressRef(observedRef, {
+    file,
+    blockId: currentBlock.value?.deltaBindingId,
+    content: currentBlock.raw
+  });
 }

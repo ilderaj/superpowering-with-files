@@ -7,17 +7,19 @@ import {
   CAPABILITY_CLASSES,
   COST_PREFERENCES,
   LATENCY_CLASSES,
+  validateBindingInput,
   REASONING_DEMANDS,
   validateBindingPacket,
   validateOperatingModelBindingPacket
 } from './schema.mjs';
 import { rebuildChiefOpsIndex } from './index-service.mjs';
-import { assessPermissionEnforcement, buildManualHandoffPrompt } from './manual-handoff.mjs';
+import { assessPermissionEnforcement, buildManualHandoffPrompt, buildV2DeltaHandoffPrompt } from './manual-handoff.mjs';
 import { resolveModel } from './model-resolver.mjs';
 import { readLiveCodexModelInventory } from './model-inventory.mjs';
 import { resolveAuthorityBinding } from './authority-binding.mjs';
-import { hashContent } from './source-progress-ref.mjs';
+import { hashContent, makeChiefOpsBlockSourceProgressRef } from './source-progress-ref.mjs';
 import { validateBoundSubagentReturn, validateNarrowSubagentDispatch } from './subagent-dispatch.mjs';
+import { classifyPhaseEnvelopeTransition } from './phase-envelope.mjs';
 
 const OPERATING_MODEL_MARKER_FIELDS = [
   'majorPhase',
@@ -84,7 +86,7 @@ function sameAuthoritativeBinding(left, right) {
   return sharedFieldsMatch && subagentDispatchesMatch && !tokenContradictsTruth && (publicVersionMatches || privateTokenMatches);
 }
 
-export async function readAuthoritativeBinding({ root, bindingPacket }) {
+async function readAuthoritativeV0bBinding({ root, bindingPacket }) {
   const progressPath = path.join(root, 'planning/active', bindingPacket.authorityTaskId, 'progress.md');
   const markdown = await readFile(progressPath, 'utf8');
   const bindingBlocks = parseChiefOpsBlocks(markdown)
@@ -100,7 +102,197 @@ export async function readAuthoritativeBinding({ root, bindingPacket }) {
     throw new Error('binding packet does not match authoritative progress truth');
   }
 
-  return { bindingPacket: authoritative, progress: markdown };
+  return {
+    effectiveV0bBinding: authoritative,
+    origin: { kind: 'v0b' },
+    progress: markdown
+  };
+}
+
+function bindingMismatch() {
+  throw new Error('binding_mismatch');
+}
+
+function uniqueBy(values, key) {
+  return new Set(values.map(key)).size === values.length;
+}
+
+function canonicalProgressFile(taskId) {
+  return path.posix.join('planning/active', taskId, 'progress.md');
+}
+
+async function buildTrustedEnvelopeFacts({ root, authorityTaskId, progress, prefix }) {
+  await readTrioObservation({ root, taskId: authorityTaskId, progress });
+  const releaseOrExternalEffect = prefix.allowedOps.some((op) => ['publish', 'send'].includes(op)
+    || prefix.permissionClass === 'release');
+  return {
+    bindingVerified: true,
+    trioConsistent: true,
+    objectiveChanged: false,
+    nonGoalChanged: false,
+    architectureOutsideAllowedSurfaces: false,
+    proofTargetChanged: false,
+    newMutableSurface: false,
+    crossTaskConflict: false,
+    permissionEscalation: false,
+    releaseOrExternalEffect,
+    destructiveOrIrreversible: false,
+    evidenceOrTrioConflict: false,
+    bindingInvalid: false,
+    userAuthorityChange: false,
+    finalOutcomeAcceptance: false,
+    lifecycleClosure: false,
+    proofUnchanged: true,
+    mutableSurfacesSubset: true
+  };
+}
+
+async function resolveEffectiveV2Binding({ root, candidate }) {
+  const [resolvedRoot, resolvedCandidateRoot] = await Promise.all([
+    canonicalPath(root),
+    canonicalPath(candidate.planningRoot)
+  ]);
+  if (resolvedRoot !== resolvedCandidateRoot) bindingMismatch();
+  const progressPath = path.join(root, 'planning/active', candidate.authorityTaskId, 'progress.md');
+  const markdown = await readFile(progressPath, 'utf8');
+  let prefixes;
+  let deltas;
+  try {
+    const blocks = parseChiefOpsBlocks(markdown);
+    prefixes = blocks
+      .filter((block) => block.type === 'ChiefOpsV2StablePrefix')
+      .map((block) => ({ ...block, input: validateBindingInput(block.value) }));
+    deltas = blocks
+      .filter((block) => block.type === 'ChiefOpsV2ExecutionDelta')
+      .map((block) => ({ ...block, input: validateBindingInput(block.value) }));
+  } catch {
+    bindingMismatch();
+  }
+
+  if (!uniqueBy(prefixes, (block) => block.input.prefixBindingId)
+    || !uniqueBy(deltas, (block) => block.input.deltaBindingId)) {
+    bindingMismatch();
+  }
+
+  const prefix = prefixes.find((block) => block.input.prefixBindingId === candidate.prefixBindingId);
+  if (!prefix
+    || hashChiefOpsBlock(prefix) !== candidate.prefixHash
+    || prefix.input.authorityTaskId !== candidate.authorityTaskId
+    || prefix.input.planningRoot !== candidate.planningRoot
+    || prefix.input.bindingVersion !== candidate.bindingVersion) {
+    bindingMismatch();
+  }
+
+  const chain = deltas
+    .filter((block) => block.input.prefixBindingId === prefix.input.prefixBindingId)
+    .sort((left, right) => left.input.sequence - right.input.sequence);
+  if (chain.length === 0) bindingMismatch();
+
+  let deadline = prefix.input.expectedCheckInBy;
+  let previousHash = null;
+  let previousPhase = prefix.input.majorPhase;
+  let previousSlice = prefix.input.currentSlice;
+  let trustedEnvelopeFacts = null;
+  if (prefix.input.phaseEnvelope) {
+    try {
+      trustedEnvelopeFacts = await buildTrustedEnvelopeFacts({
+        root,
+        authorityTaskId: candidate.authorityTaskId,
+        progress: markdown,
+        prefix: prefix.input
+      });
+    } catch {
+      bindingMismatch();
+    }
+  }
+  for (let index = 0; index < chain.length; index += 1) {
+    const delta = chain[index].input;
+    const expectedSequence = index + 1;
+    if (delta.sequence !== expectedSequence
+      || delta.authorityTaskId !== prefix.input.authorityTaskId
+      || delta.planningRoot !== prefix.input.planningRoot
+      || delta.bindingVersion !== prefix.input.bindingVersion
+      || delta.prefixHash !== candidate.prefixHash
+      || delta.predecessorDeltaHash !== previousHash) {
+      bindingMismatch();
+    }
+    if (prefix.input.phaseEnvelope) {
+      const transition = classifyPhaseEnvelopeTransition({
+        priorEffectiveBinding: { ...prefix.input, majorPhase: previousPhase, currentSlice: previousSlice },
+        envelope: prefix.input.phaseEnvelope,
+        candidateDelta: delta,
+        trustedFacts: trustedEnvelopeFacts
+      });
+      if (transition === 'binding_mismatch') bindingMismatch();
+      if (transition === 'chief_gate_required') throw new Error('chief_gate_required');
+    } else if (delta.majorPhase !== previousPhase) {
+      throw new Error('chief_gate_required');
+    }
+    if (delta.expectedCheckInBy !== undefined) {
+      if (Date.parse(delta.expectedCheckInBy) > Date.parse(deadline)) bindingMismatch();
+      deadline = delta.expectedCheckInBy;
+    }
+    previousHash = hashChiefOpsBlock(chain[index]);
+    previousPhase = delta.majorPhase;
+    previousSlice = delta.currentSlice;
+  }
+
+  const latest = chain.at(-1);
+  const sourceCandidate = chain.find((block) => block.input.deltaBindingId === candidate.deltaBindingId);
+  if (!sourceCandidate
+    || sourceCandidate.input.sequence !== latest.input.sequence
+    || hashChiefOpsBlock(sourceCandidate) !== hashChiefOpsBlock({
+      type: 'ChiefOpsV2ExecutionDelta',
+      value: candidate
+    })) {
+    bindingMismatch();
+  }
+
+  const { kind, prefixBindingId, phaseEnvelope, ...stableFields } = prefix.input;
+  const sourceProgressRef = makeChiefOpsBlockSourceProgressRef({
+    file: canonicalProgressFile(candidate.authorityTaskId),
+    block: latest,
+    observedAt: latest.input.observedAt
+  });
+  const effectiveV0bBinding = validateBindingPacket({
+    ...stableFields,
+    schemaVersion: 'chiefops.v0b',
+    currentSlice: latest.input.currentSlice,
+    majorPhase: latest.input.majorPhase,
+    expectedCheckInBy: deadline,
+    observedAt: latest.input.observedAt,
+    sourceProgressRef
+  });
+  return {
+    effectiveV0bBinding,
+    origin: {
+      kind: 'v2',
+      prefixBindingId: prefix.input.prefixBindingId,
+      deltaBindingId: latest.input.deltaBindingId,
+      sourceProgressRef
+    },
+    progress: markdown
+  };
+}
+
+export async function resolveAuthoritativeBindingInput({ root, bindingPacket }) {
+  const input = validateBindingInput(bindingPacket);
+  if (input.schemaVersion === 'chiefops.v0b') {
+    return readAuthoritativeV0bBinding({ root, bindingPacket: input });
+  }
+  if (input.kind === 'stable_prefix') {
+    throw new Error('v2_delta_required');
+  }
+  return resolveEffectiveV2Binding({ root, candidate: input });
+}
+
+export async function readAuthoritativeBinding({ root, bindingPacket }) {
+  const resolved = await resolveAuthoritativeBindingInput({ root, bindingPacket });
+  return {
+    bindingPacket: resolved.effectiveV0bBinding,
+    progress: resolved.progress,
+    origin: resolved.origin
+  };
 }
 
 async function readTrioObservation({ root, taskId, progress }) {
@@ -577,7 +769,7 @@ export function buildOverlayIndexText(index) {
 }
 
 export async function validateBindingFile({ file }) {
-  return validateBindingPacket(await readJsonFile(file));
+  return validateBindingInput(await readJsonFile(file));
 }
 
 export async function buildHandoffFromFile({
@@ -588,25 +780,24 @@ export async function buildHandoffFromFile({
   codexHome = null,
   now = new Date().toISOString()
 }) {
-  const bindingPacket = await validateBindingFile({ file });
+  const bindingInput = await validateBindingFile({ file });
   const [expectedRoot, packetRoot] = await Promise.all([
     canonicalPath(root),
-    canonicalPath(bindingPacket.planningRoot)
+    canonicalPath(bindingInput.planningRoot)
   ]);
 
   if (expectedRoot !== packetRoot) {
     throw new Error('planningRoot points outside the expected authority root');
   }
 
+  const authoritative = await readAuthoritativeBinding({ root, bindingPacket: bindingInput });
   await resolveAuthorityBinding({
     root,
-    authorityTaskId: bindingPacket.authorityTaskId,
+    authorityTaskId: authoritative.bindingPacket.authorityTaskId,
     planningRoot: root,
-    activeTaskIds: [bindingPacket.authorityTaskId],
-    bindingPacket
+    activeTaskIds: [authoritative.bindingPacket.authorityTaskId],
+    bindingPacket: authoritative.bindingPacket
   });
-
-  const authoritative = await readAuthoritativeBinding({ root, bindingPacket });
   const isOperatingModelBinding = OPERATING_MODEL_MARKER_FIELDS
     .some((field) => authoritative.bindingPacket[field] !== undefined);
   const handoffPacket = isOperatingModelBinding
@@ -667,9 +858,17 @@ export async function buildHandoffFromFile({
 
   const bindingObservation = await readTrioObservation({
     root: expectedRoot,
-    taskId: bindingPacket.authorityTaskId,
+    taskId: authoritative.bindingPacket.authorityTaskId,
     progress: authoritative.progress
   });
+  if (bindingInput.schemaVersion === 'chiefops.v2') {
+    return buildV2DeltaHandoffPrompt({
+      delta: bindingInput,
+      effectiveV0bBinding: { ...handoffPacket, planningRoot: expectedRoot },
+      bindingObservation
+    });
+  }
+
   return buildManualHandoffPrompt({
     bindingPacket: { ...handoffPacket, planningRoot: expectedRoot },
     bindingObservation,
