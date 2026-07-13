@@ -4,7 +4,7 @@
 
 Sparse architecture work with unclear repo surfaces:
 - audit intake sufficiency and list the missing intake dimensions first
-- enrich intake with `brainstorming`
+- enrich intake with a bounded native intake audit
 - produce one native `/goal` prompt
 - use the goal loop to draft and review the implementation plan checkpoint by checkpoint with short `progress.md` updates
 

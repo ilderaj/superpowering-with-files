@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { resolveAuthorityBinding } from '../../harness/runtime/chiefops-overlay/authority-binding.mjs';
 import { hashChiefOpsBlock, serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
-import { buildHandoffFromFile, readDetailedPlanEligibility, readVerifiedUpgradeAdmission, resolveAuthorityAwareModel, verifyTrustedDispatchContext } from '../../harness/runtime/chiefops-overlay/overlay-service.mjs';
+import { buildHandoffFromFile, readAuthoritativeBinding, readDetailedPlanEligibility, readVerifiedUpgradeAdmission, resolveAuthorityAwareModel, verifyTrustedDispatchContext } from '../../harness/runtime/chiefops-overlay/overlay-service.mjs';
 import { readLiveCodexModelInventory } from '../../harness/runtime/chiefops-overlay/model-inventory.mjs';
 import { gateWorkerReceipt, gateWorkerReceiptWithAuthority } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
 
@@ -16,6 +16,268 @@ async function task(root, taskId, title = taskId, extraProgress = '') {
   await writeFile(path.join(dir, 'findings.md'), '# Findings\n');
   await writeFile(path.join(dir, 'progress.md'), `# Progress\n${extraProgress}`);
 }
+
+function v2StablePrefix(root, overrides = {}) {
+  return {
+    schemaVersion: 'chiefops.v2',
+    kind: 'stable_prefix',
+    prefixBindingId: 'prefix_demo',
+    bindingId: 'prefix_demo',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'stable design boundary',
+    proofTarget: 'V2 source reference is resolved',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    bindingVersion: 'binding-v2',
+    majorPhase: 'design',
+    nonGoals: ['do not publish'],
+    primaryProof: 'focused authority proof',
+    reasoningDemand: 'standard',
+    costPreference: 'balanced',
+    latencyClass: 'standard',
+    permissionClass: 'observe',
+    delegationPolicy: 'worker_discretion',
+    upgradeTrigger: 'scope change',
+    expectedCheckInBy: '2026-07-13T01:00:00.000Z',
+    stopCondition: 'return at gate',
+    expectedReceipt: 'done',
+    returnToChiefInstruction: 'return to Chief',
+    createdAt: '2026-07-13T00:15:00.000Z',
+    observedAt: '2026-07-13T00:15:00.000Z',
+    ...overrides
+  };
+}
+
+function v2Delta(prefix, overrides = {}) {
+  return {
+    schemaVersion: 'chiefops.v2',
+    kind: 'execution_delta',
+    deltaBindingId: 'delta_prefix_demo_1',
+    authorityTaskId: prefix.authorityTaskId,
+    planningRoot: prefix.planningRoot,
+    bindingVersion: prefix.bindingVersion,
+    prefixBindingId: prefix.prefixBindingId,
+    prefixHash: hashChiefOpsBlock({ type: 'ChiefOpsV2StablePrefix', value: prefix }),
+    sequence: 1,
+    predecessorDeltaHash: null,
+    currentSlice: 'resolve V2 input',
+    majorPhase: 'design',
+    observedAt: '2026-07-13T00:16:00.000Z',
+    createdAt: '2026-07-13T00:16:00.000Z',
+    ...overrides
+  };
+}
+
+test('V2 latest delta resolves to a V0b-effective binding with a raw source-progress reference', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-v2-resolver-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const prefix = v2StablePrefix(root);
+  const delta = v2Delta(prefix);
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    ['# V2', serializeChiefOpsBlock('ChiefOpsV2StablePrefix', prefix), serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', delta)].join('\n\n')
+  );
+
+  const resolved = await readAuthoritativeBinding({ root, bindingPacket: delta });
+  assert.equal(resolved.bindingPacket.schemaVersion, 'chiefops.v0b');
+  assert.equal(resolved.bindingPacket.bindingId, prefix.prefixBindingId);
+  assert.equal(resolved.bindingPacket.currentSlice, delta.currentSlice);
+  assert.equal(resolved.bindingPacket.sourceProgressRef.blockId, delta.deltaBindingId);
+  assert.equal(resolved.bindingPacket.sourceProgressRef.observedAt, delta.observedAt);
+
+  const deltaFile = path.join(root, 'latest-delta.json');
+  await writeFile(deltaFile, JSON.stringify(delta, null, 2));
+  const modelResolutionFile = path.join(root, 'model-resolution.json');
+  const modelResolution = {
+    requestedCapabilityClass: prefix.capabilityClass,
+    requestedReasoningDemand: prefix.reasoningDemand,
+    requestedCostPreference: prefix.costPreference,
+    requestedLatencyClass: prefix.latencyClass,
+    upgradeTrigger: prefix.upgradeTrigger,
+    resolvedModelAtRun: 'balanced-current',
+    resolvedThinkingAtRun: 'medium',
+    modelResolutionReason: 'fixture',
+    nativeThreadControl: false
+  };
+  await writeFile(modelResolutionFile, JSON.stringify(modelResolution, null, 2));
+  const handoff = await buildHandoffFromFile({
+    root,
+    file: deltaFile,
+    modelResolutionFile,
+    permissionEnforcementObservation: {
+      status: 'verified',
+      effectiveClass: 'observe',
+      effectiveOps: ['inspect'],
+      evidenceRef: 'test:permission-observation'
+    }
+  });
+  assert.match(handoff, /You are a ChiefOps V2 delta worker/);
+  assert.match(handoff, /deltaBindingId: delta_prefix_demo_1/);
+  assert.doesNotMatch(handoff, /allowedOps:/);
+  assert.doesNotMatch(handoff, /permissionClass:/);
+
+  const receipt = {
+    ...resolved.bindingPacket,
+    receiptId: 'receipt_v2_done',
+    receiptType: 'done',
+    threadId: 'thread-1',
+    status: 'done',
+    summary: 'V2 source reference was verified',
+    evidenceRefs: ['tests/installer/chiefops-overlay-authority.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    resolvedModelAtRun: modelResolution.resolvedModelAtRun,
+    resolvedThinkingAtRun: modelResolution.resolvedThinkingAtRun,
+    modelResolutionReason: modelResolution.modelResolutionReason,
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    createdAt: '2026-07-13T00:17:00.000Z'
+  };
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, bindingPacket: delta, receipt, modelResolution, approvalSatisfied: true }),
+    { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: delta,
+      receipt: { ...receipt, sourceProgressRef: { ...receipt.sourceProgressRef, contentHash: delta.prefixHash } },
+      modelResolution,
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'binding_identity_mismatch' }
+  );
+});
+
+test('V2 authority resolution rejects prefix-only, replayed, duplicate, and deadline-extending input', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-v2-reject-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const prefix = v2StablePrefix(root);
+  const first = v2Delta(prefix);
+  const second = v2Delta(prefix, {
+    deltaBindingId: 'delta_prefix_demo_2',
+    sequence: 2,
+    predecessorDeltaHash: hashChiefOpsBlock({ type: 'ChiefOpsV2ExecutionDelta', value: first }),
+    currentSlice: 'latest V2 input',
+    observedAt: '2026-07-13T00:17:00.000Z',
+    createdAt: '2026-07-13T00:17:00.000Z'
+  });
+
+  async function writeProgress(blocks) {
+    await task(
+      root,
+      'chiefops-demo',
+      'chiefops-demo',
+      ['# V2', ...blocks].join('\n\n')
+    );
+  }
+
+  await writeProgress([
+    serializeChiefOpsBlock('ChiefOpsV2StablePrefix', prefix),
+    serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', first)
+  ]);
+  await assert.rejects(
+    () => readAuthoritativeBinding({ root, bindingPacket: prefix }),
+    /v2_delta_required/
+  );
+
+  await writeProgress([
+    serializeChiefOpsBlock('ChiefOpsV2StablePrefix', prefix),
+    serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', first),
+    serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', second)
+  ]);
+  await assert.rejects(
+    () => readAuthoritativeBinding({ root, bindingPacket: first }),
+    /binding_mismatch/
+  );
+
+  await writeProgress([
+    serializeChiefOpsBlock('ChiefOpsV2StablePrefix', prefix),
+    serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', first),
+    serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', first)
+  ]);
+  await assert.rejects(
+    () => readAuthoritativeBinding({ root, bindingPacket: first }),
+    /binding_mismatch/
+  );
+
+  const extendedDeadline = v2Delta(prefix, { expectedCheckInBy: '2026-07-13T02:00:00.000Z' });
+  await writeProgress([
+    serializeChiefOpsBlock('ChiefOpsV2StablePrefix', prefix),
+    serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', extendedDeadline)
+  ]);
+  await assert.rejects(
+    () => readAuthoritativeBinding({ root, bindingPacket: extendedDeadline }),
+    /binding_mismatch/
+  );
+});
+
+test('V2 resolution permits only a trusted envelope transition and keeps no-envelope transitions at Chief', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-v2-envelope-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const prefix = v2StablePrefix(root, {
+    majorPhase: 'discovery',
+    currentSlice: 'approved objective',
+    proofTarget: 'focused phase tests',
+    nonGoals: ['no publish'],
+    permissionClass: 'workspace',
+    delegationPolicy: 'worker_discretion',
+    phaseEnvelope: {
+      startPhase: 'discovery',
+      allowedNextPhases: ['design'],
+      objective: 'approved objective',
+      nonGoals: ['no publish'],
+      allowedSurfaces: ['src/example.mjs', 'planning/active/chiefops-demo/progress.md'],
+      proofTarget: 'focused phase tests',
+      permissionCeiling: 'workspace',
+      delegationPolicy: 'worker_discretion',
+      boundedRepairPolicy: { enabled: false, reverifyUnchangedProof: false },
+      hardGateTriggers: [
+        'objective_change', 'non_goal_change', 'architecture_outside_allowed_surfaces', 'proof_target_change',
+        'new_mutable_surface', 'cross_task_conflict', 'permission_escalation', 'release_or_external_effect',
+        'destructive_or_irreversible', 'evidence_or_trio_conflict', 'binding_invalid', 'user_authority_change',
+        'final_outcome_acceptance', 'lifecycle_closure'
+      ],
+      finalReturnCondition: 'return after approved proof'
+    }
+  });
+  const delta = v2Delta(prefix, { majorPhase: 'design', currentSlice: 'approved objective' });
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    ['# V2', serializeChiefOpsBlock('ChiefOpsV2StablePrefix', prefix), serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', delta)].join('\n\n')
+  );
+  assert.equal((await readAuthoritativeBinding({ root, bindingPacket: delta })).bindingPacket.majorPhase, 'design');
+
+  const noEnvelope = v2StablePrefix(root, {
+    majorPhase: 'discovery',
+    currentSlice: 'approved objective',
+    proofTarget: 'focused phase tests'
+  });
+  const noEnvelopeDelta = v2Delta(noEnvelope, { majorPhase: 'design', currentSlice: 'approved objective' });
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    ['# V2', serializeChiefOpsBlock('ChiefOpsV2StablePrefix', noEnvelope), serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', noEnvelopeDelta)].join('\n\n')
+  );
+  await assert.rejects(
+    () => readAuthoritativeBinding({ root, bindingPacket: noEnvelopeDelta }),
+    /chief_gate_required/
+  );
+});
 
 function detailedPlanEligibilityFixture(overrides = {}) {
   return {

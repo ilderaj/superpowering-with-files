@@ -96,21 +96,23 @@ test('projectionForSkill rejects unknown targets', async () => {
   );
 });
 
-test('planSkillProjections expands superpowers collection children', async () => {
+test('high-assurance profile keeps Matt coding ownership and selected Superpowers lifecycle tools', async () => {
   const plan = await planSkillProjections({
     rootDir: process.cwd(),
     homeDir: '/home/user',
     scope: 'workspace',
-    target: 'codex'
+    target: 'codex',
+    skillProfile: 'high-assurance'
   });
 
-  const usingSuperpowers = plan.find((entry) => entry.skillName === 'using-superpowers');
-  assert.ok(usingSuperpowers);
-  assert.equal(usingSuperpowers.parentSkillName, 'superpowers');
-  assert.equal(usingSuperpowers.strategy, 'materialize');
-  assert.match(usingSuperpowers.sourcePath, /harness\/upstream\/superpowers\/skills\/using-superpowers$/);
-  assert.match(usingSuperpowers.targetPath, /\.agents\/skills\/using-superpowers$/);
-  assert.deepEqual(usingSuperpowers.patches.map((patch) => patch.type), ['superpowers-using-superpowers-routing']);
+  const tdd = plan.find((entry) => entry.skillName === 'tdd');
+  assert.ok(tdd);
+  assert.equal(tdd.parentSkillName, 'mattpocock-skills');
+  assert.equal(tdd.strategy, 'materialize');
+  assert.match(tdd.sourcePath, /harness\/upstream\/mattpocock-skills\/skills\/engineering\/tdd$/);
+  assert.ok(plan.some((entry) => entry.skillName === 'verification-before-completion'));
+  assert.ok(!plan.some((entry) => entry.skillName === 'test-driven-development'));
+  assert.ok(!plan.some((entry) => entry.skillName === 'using-superpowers'));
 });
 
 test('applySuperpowersUsingSuperpowersRoutingPatch makes the projected starter skill manual-only', async () => {
@@ -142,7 +144,8 @@ test('planSkillProjections marks Superpowers writing-plans for Harness plan-loca
     rootDir: process.cwd(),
     homeDir: '/home/user',
     scope: 'workspace',
-    target: 'codex'
+    target: 'codex',
+    skillProfile: 'high-assurance'
   });
 
   const writingPlans = plan.find((entry) => entry.skillName === 'writing-plans');
@@ -156,7 +159,8 @@ test('planSkillProjections marks Superpowers verification-before-completion for 
     rootDir: process.cwd(),
     homeDir: '/home/user',
     scope: 'workspace',
-    target: 'codex'
+    target: 'codex',
+    skillProfile: 'high-assurance'
   });
 
   const verificationSkill = plan.find((entry) => entry.skillName === 'verification-before-completion');
@@ -171,12 +175,13 @@ test('planSkillProjections marks Superpowers verification-before-completion for 
   );
 });
 
-test('planSkillProjections includes local goal-writer in the full Codex workspace profile', async () => {
+test('planSkillProjections includes local goal-writer in the high-assurance Codex workspace profile', async () => {
   const plan = await planSkillProjections({
     rootDir: process.cwd(),
     homeDir: '/home/user',
     scope: 'workspace',
-    target: 'codex'
+    target: 'codex',
+    skillProfile: 'high-assurance'
   });
 
   const goalWriter = plan.find((entry) => entry.skillName === 'goal-writer');
@@ -188,12 +193,13 @@ test('planSkillProjections includes local goal-writer in the full Codex workspac
   assert.match(goalWriter.targetPath, /\.agents\/skills\/goal-writer$/);
 });
 
-test('planSkillProjections includes local goal2plan in the full Codex workspace profile', async () => {
+test('planSkillProjections includes local goal2plan in the high-assurance Codex workspace profile', async () => {
   const plan = await planSkillProjections({
     rootDir: process.cwd(),
     homeDir: '/home/user',
     scope: 'workspace',
-    target: 'codex'
+    target: 'codex',
+    skillProfile: 'high-assurance'
   });
 
   const goal2plan = plan.find((entry) => entry.skillName === 'goal2plan');
@@ -205,12 +211,13 @@ test('planSkillProjections includes local goal2plan in the full Codex workspace 
   assert.match(goal2plan.targetPath, /\.agents\/skills\/goal2plan$/);
 });
 
-test('planSkillProjections includes local autonomous-release-closure in the full Codex workspace profile', async () => {
+test('planSkillProjections includes local autonomous-release-closure in the high-assurance Codex workspace profile', async () => {
   const plan = await planSkillProjections({
     rootDir: process.cwd(),
     homeDir: '/home/user',
     scope: 'workspace',
-    target: 'codex'
+    target: 'codex',
+    skillProfile: 'high-assurance'
   });
 
   const closureSkill = plan.find((entry) => entry.skillName === 'autonomous-release-closure');
@@ -222,12 +229,13 @@ test('planSkillProjections includes local autonomous-release-closure in the full
   assert.match(closureSkill.targetPath, /\.agents\/skills\/autonomous-release-closure$/);
 });
 
-test('planSkillProjections includes local ponytail borrow skills in the full Codex workspace profile', async () => {
+test('planSkillProjections includes local ponytail borrow skills in the high-assurance Codex workspace profile', async () => {
   const plan = await planSkillProjections({
     rootDir: process.cwd(),
     homeDir: '/home/user',
     scope: 'workspace',
-    target: 'codex'
+    target: 'codex',
+    skillProfile: 'high-assurance'
   });
 
   const overengineeringReview = plan.find((entry) => entry.skillName === 'overengineering-review');
@@ -247,12 +255,13 @@ test('planSkillProjections includes local ponytail borrow skills in the full Cod
   assert.match(simplificationLedger.targetPath, /\.agents\/skills\/simplification-ledger$/);
 });
 
-test('planSkillProjections includes local chiefops in the full Codex workspace profile', async () => {
+test('planSkillProjections includes local chiefops in the high-assurance Codex workspace profile', async () => {
   const plan = await planSkillProjections({
     rootDir: process.cwd(),
     homeDir: '/home/user',
     scope: 'workspace',
-    target: 'codex'
+    target: 'codex',
+    skillProfile: 'high-assurance'
   });
 
   const chiefops = plan.find((entry) => entry.skillName === 'chiefops');
@@ -277,7 +286,8 @@ test('planSkillProjections applies the writing-plans patch for every supported t
       rootDir: process.cwd(),
       homeDir: '/home/user',
       scope: 'workspace',
-      target
+      target,
+      skillProfile: 'superpowers-pilot'
     });
 
     const writingPlans = plan.find((entry) => entry.skillName === 'writing-plans');
@@ -304,7 +314,8 @@ test('planSkillProjections applies the using-git-worktrees naming patch for ever
       rootDir: process.cwd(),
       homeDir: '/home/user',
       scope: 'workspace',
-      target
+      target,
+      skillProfile: 'high-assurance'
     });
 
     const usingGitWorktrees = plan.find((entry) => entry.skillName === 'using-git-worktrees');
@@ -343,7 +354,8 @@ test('planSkillProjections applies the finishing-a-development-branch base patch
       rootDir: process.cwd(),
       homeDir: '/home/user',
       scope: 'workspace',
-      target
+      target,
+      skillProfile: 'high-assurance'
     });
 
     const finishingBranch = plan.find((entry) => entry.skillName === 'finishing-a-development-branch');
@@ -382,7 +394,8 @@ test('planSkillProjections applies the executing-plans replan patch for every su
       rootDir: process.cwd(),
       homeDir: '/home/user',
       scope: 'workspace',
-      target
+      target,
+      skillProfile: 'high-assurance'
     });
 
     const executingPlans = plan.find((entry) => entry.skillName === 'executing-plans');
@@ -421,7 +434,8 @@ test('planSkillProjections applies the subagent-driven-development budget patch 
       rootDir: process.cwd(),
       homeDir: '/home/user',
       scope: 'workspace',
-      target
+      target,
+      skillProfile: 'superpowers-pilot'
     });
 
     const subagentSkill = plan.find((entry) => entry.skillName === 'subagent-driven-development');
@@ -474,7 +488,8 @@ test('planSkillProjections applies the verification-before-completion proof patc
       rootDir: process.cwd(),
       homeDir: '/home/user',
       scope: 'workspace',
-      target
+      target,
+      skillProfile: 'high-assurance'
     });
 
     const verificationSkill = plan.find((entry) => entry.skillName === 'verification-before-completion');
@@ -798,14 +813,14 @@ test('applySuperpowersFinishingADevelopmentBranchPatch is idempotent', async () 
   }
 });
 
-test('planSkillProjections applies SWF coding contract patches for every supported target', async () => {
+test('superpowers pilot applies SWF coding contract patches for every supported target', async () => {
   for (const target of ['codex', 'copilot', 'cursor', 'claude-code']) {
     const plan = await planSkillProjections({
       rootDir: process.cwd(),
       homeDir: '/home/user',
       scope: 'workspace',
       target,
-      profileName: 'full'
+      skillProfile: 'superpowers-pilot'
     });
 
     const tdd = plan.find((entry) => entry.skillName === 'test-driven-development');

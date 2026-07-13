@@ -14,7 +14,6 @@ import { checkpointPushCommand } from './checkpoint-push.mjs';
 import { cloudBootstrap } from './cloud-bootstrap.mjs';
 import { linkPersonal } from './link-personal.mjs';
 import { summary } from './summary.mjs';
-import { chiefopsCommand } from './chiefops.mjs';
 import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { activeSummary } from './active-summary.mjs';
@@ -25,6 +24,12 @@ import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
 import { codexModelDefault } from './codex-model-default.mjs';
 import { upstreamLockCommand } from './upstream-lock.mjs';
+import { workspaceSkills } from './workspace-skills.mjs';
+
+async function chiefopsCommand(args) {
+  const chiefops = await import('./chiefops.mjs');
+  return chiefops.chiefopsCommand(args);
+}
 
 const commands = {
   install,
@@ -52,7 +57,8 @@ const commands = {
   'adoption-status': adoptionStatus,
   'workspace-link': workspaceLink,
   'token-audit': tokenAudit,
-  'codex-model-default': codexModelDefault
+  'codex-model-default': codexModelDefault,
+  'workspace-skills': workspaceSkills
 };
 
 function usage() {
@@ -82,6 +88,7 @@ function usage() {
     '  adopt-global     Apply the current repo baseline to the user-global install',
     '  adoption-status  Report user-global adoption drift and health',
     '  workspace-link  Link the current leaf workspace back to an authority root',
+    '  workspace-skills  Plan, sync, check, or set the repository skill profile',
     '  token-audit  Print a weekly cross-session token audit',
     '  codex-model-default  Inspect, assess, or migrate the Codex model default',
     '  worktree-name  Suggest a canonical worktree label and branch name for the active task',

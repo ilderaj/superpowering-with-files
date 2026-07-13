@@ -25,7 +25,7 @@ export function parseChiefOpsBlocks(markdown = '') {
   while ((match = pattern.exec(markdown)) !== null) {
     const value = JSON.parse(match[1]);
     const { type, ...rest } = value;
-    blocks.push({ type, value: rest });
+    blocks.push({ type, value: rest, raw: match[0] });
   }
 
   return blocks;

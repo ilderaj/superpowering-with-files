@@ -126,6 +126,35 @@ test('harness chiefops overlay validate-binding prints minimal success JSON', as
   }
 });
 
+test('harness chiefops overlay validate-binding reports a V2 delta identity without a V0b alias', async () => {
+  const root = await createHarnessFixture({ linkNodeModules: true });
+  try {
+    const file = path.join(root, 'v2-delta.json');
+    await writeFile(file, JSON.stringify({
+      schemaVersion: 'chiefops.v2',
+      kind: 'execution_delta',
+      deltaBindingId: 'delta_prefix-demo_1',
+      authorityTaskId: 'chiefops-demo',
+      planningRoot: root,
+      bindingVersion: 'binding-v2',
+      prefixBindingId: 'prefix-demo',
+      prefixHash: 'sha256:' + 'a'.repeat(64),
+      sequence: 1,
+      predecessorDeltaHash: null,
+      currentSlice: 'validate V2 CLI input',
+      majorPhase: 'design',
+      observedAt: '2026-07-13T00:15:00.000Z',
+      createdAt: '2026-07-13T00:15:00.000Z'
+    }, null, 2));
+
+    const { stdout, stderr } = await harnessCommand(root, 'chiefops', 'overlay', 'validate-binding', '--file', file);
+    assert.equal(stderr, '');
+    assert.deepEqual(JSON.parse(stdout), { ok: true, bindingIdentity: 'delta_prefix-demo_1' });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('harness chiefops overlay handoff creates a prompt but not a started receipt', async () => {
   const root = await createHarnessFixture({ linkNodeModules: true });
   try {

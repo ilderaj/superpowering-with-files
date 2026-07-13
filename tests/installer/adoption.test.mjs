@@ -153,6 +153,26 @@ test('adopt-global lets an explicit Copilot skills profile override win over the
   }
 });
 
+test('adopt-global derives the matching entry policy from an explicit high-assurance skills profile', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await initGitRepo(root);
+
+    await harnessCommand(root, homeDir, 'adopt-global', '--targets=codex', '--skills-profile=high-assurance');
+
+    const state = await readState(root);
+    const receipt = JSON.parse(await readFile(path.join(root, '.harness/adoption/global.json'), 'utf8'));
+    assert.equal(state.skillProfile, 'high-assurance');
+    assert.equal(state.policyProfile, 'high-assurance');
+    assert.equal(receipt.skillProfile, 'high-assurance');
+    assert.equal(receipt.policyProfile, 'high-assurance');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('adopt-global treats an empty user-global state as lean bootstrap for Copilot', async () => {
   const root = await createHarnessFixture();
   const homeDir = path.join(root, 'home');

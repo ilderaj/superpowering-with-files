@@ -181,3 +181,21 @@ test('chiefops guidance requires explicit child model contracts and preserves ma
   assert.match(combined, /manual.*not.*native.*enforcement/is);
   assert.match(combined, /child return validation.*before parent acceptance/is);
 });
+
+test('chiefops keeps ordinary intake in a compact core and names operation-specific references', async () => {
+  const skill = await readFile('harness/core/skills/chiefops/SKILL.md', 'utf8');
+  const references = [
+    'session-routing.md',
+    'assignment-packet.md',
+    'permission-delegation.md',
+    'checkin-watchdog.md'
+  ];
+
+  for (const reference of references) {
+    assert.match(skill, new RegExp(`references/${reference.replace('.', '\\.')}`));
+    const text = await readFile(`harness/core/skills/chiefops/references/${reference}`, 'utf8');
+    assert.match(text, /ChiefOps/i);
+  }
+  assert.match(skill, /load a named reference before performing its optional operation/i);
+  assert.match(skill, /does not create durable state, replace task memory, or act as a runner/i);
+});

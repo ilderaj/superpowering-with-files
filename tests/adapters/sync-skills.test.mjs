@@ -11,13 +11,14 @@ import {
   withCwd
 } from '../helpers/harness-fixture.mjs';
 
-test('sync projects workspace entries and skills', async () => {
+test('sync projects selected workspace entries and skills', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
       schemaVersion: 1,
       scope: 'workspace',
       projectionMode: 'link',
+      skillProfile: 'superpowers-pilot',
       targets: {
         codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] },
         copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
@@ -28,11 +29,7 @@ test('sync projects workspace entries and skills', async () => {
     await withCwd(root, () => sync([]));
 
     assert.match(await readFile(path.join(root, 'AGENTS.md'), 'utf8'), /Harness Policy For Codex/);
-    assert.equal((await lstat(path.join(root, '.agents/skills/using-superpowers'))).isDirectory(), true);
-    assert.match(
-      await readFile(path.join(root, '.agents/skills/using-superpowers/SKILL.md'), 'utf8'),
-      /name: using-superpowers/
-    );
+    await assert.rejects(lstat(path.join(root, '.agents/skills/using-superpowers')), /ENOENT/);
 
     const copilotPlanning = await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8');
     assert.match(copilotPlanning, /Harness planning-with-files companion-plan patch/);
@@ -229,35 +226,6 @@ test('sync projects workspace entries and skills', async () => {
     assert.match(goal2planRubric, /Hard Checks/);
     assert.match(goal2planRubric, /does not implement a runner/i);
 
-    const releaseClosure = await readFile(
-      path.join(root, '.agents/skills/autonomous-release-closure/SKILL.md'),
-      'utf8'
-    );
-    assert.match(releaseClosure, /name: autonomous-release-closure/);
-    assert.match(releaseClosure, /## Outcome Contract/);
-    assert.match(releaseClosure, /## Stage Contracts/);
-    assert.match(releaseClosure, /15-minute review polling cadence|Re-check on a 15-minute cadence/);
-    assert.match(releaseClosure, /planning\/active\/<task-id>\//);
-
-    const releaseClosureTemplate = await readFile(
-      path.join(root, '.agents/skills/autonomous-release-closure/template.md'),
-      'utf8'
-    );
-    assert.match(releaseClosureTemplate, /Assess/);
-    assert.match(releaseClosureTemplate, /blocked-with-evidence/);
-
-    const releaseClosureFixture = await readFile(
-      path.join(root, '.agents/skills/autonomous-release-closure/fixtures/pr-closure.json'),
-      'utf8'
-    );
-    assert.match(releaseClosureFixture, /15-minute/);
-
-    const releaseClosureOutput = await readFile(
-      path.join(root, '.agents/skills/autonomous-release-closure/outputs/pr-closure.md'),
-      'utf8'
-    );
-    assert.match(releaseClosureOutput, /Start every closure loop in `Assess`|Start every loop in `Assess`/);
-
     const overengineeringReview = await readFile(
       path.join(root, '.agents/skills/overengineering-review/SKILL.md'),
       'utf8'
@@ -330,6 +298,35 @@ test('sync projects workspace entries and skills', async () => {
     const chiefopsRubric = await readFile(path.join(root, '.agents/skills/chiefops/rubric.md'), 'utf8');
     assert.match(chiefopsRubric, /only durable task memory/);
     assert.match(chiefopsRubric, /one bounded next slice/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync materializes autonomous-release-closure for the full profile', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writeState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      skillProfile: 'full',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await withCwd(root, () => sync([]));
+
+    const releaseClosure = await readFile(
+      path.join(root, '.agents/skills/autonomous-release-closure/SKILL.md'),
+      'utf8'
+    );
+    assert.match(releaseClosure, /name: autonomous-release-closure/);
+    assert.match(releaseClosure, /## Outcome Contract/);
+    assert.match(releaseClosure, /## Stage Contracts/);
+    assert.match(releaseClosure, /planning\/active\/<task-id>\//);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -749,13 +746,14 @@ test('sync refreshes materialized Copilot skill after upstream changes', async (
   }
 });
 
-test('sync refreshes materialized Codex collection skill after upstream changes', async () => {
+test('sync refreshes a materialized Codex collection skill after upstream changes', async () => {
   const root = await createHarnessFixture();
   try {
     await writeState(root, {
       schemaVersion: 1,
       scope: 'workspace',
       projectionMode: 'link',
+      skillProfile: 'superpowers-pilot',
       targets: {
         codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
       },
@@ -764,13 +762,13 @@ test('sync refreshes materialized Codex collection skill after upstream changes'
 
     await withCwd(root, () => sync([]));
     await writeFile(
-      path.join(root, 'harness/upstream/superpowers/skills/using-superpowers/UPSTREAM_REFRESH_MARKER.md'),
+      path.join(root, 'harness/upstream/superpowers/skills/writing-plans/UPSTREAM_REFRESH_MARKER.md'),
       'refreshed baseline'
     );
     await withCwd(root, () => sync([]));
 
     assert.equal(
-      await readFile(path.join(root, '.agents/skills/using-superpowers/UPSTREAM_REFRESH_MARKER.md'), 'utf8'),
+      await readFile(path.join(root, '.agents/skills/writing-plans/UPSTREAM_REFRESH_MARKER.md'), 'utf8'),
       'refreshed baseline'
     );
   } finally {
@@ -811,24 +809,15 @@ test('sync trims full-only skills when switching to minimal-global', async () =>
     await assert.rejects(lstat(path.join(root, '.agents/skills/using-git-worktrees')), /ENOENT/);
     await assert.rejects(lstat(path.join(root, '.agents/skills/brainstorming')), /ENOENT/);
 
+    assert.equal((await lstat(path.join(root, '.agents/skills/planning-with-files'))).isDirectory(), true);
     for (const skillName of [
-      'planning-with-files',
       'using-superpowers',
       'writing-plans',
       'executing-plans',
       'verification-before-completion'
     ]) {
-      assert.equal(
-        (await lstat(path.join(root, '.agents/skills', skillName))).isDirectory(),
-        true,
-        skillName
-      );
+      await assert.rejects(lstat(path.join(root, '.agents/skills', skillName)), /ENOENT/, skillName);
     }
-    const usingSuperpowers = await readFile(
-      path.join(root, '.agents/skills/using-superpowers/SKILL.md'),
-      'utf8'
-    );
-    assert.match(usingSuperpowers, /Harness Superpowers using-superpowers routing patch/);
 
     const planning = await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8');
     assert.match(planning, /Harness planning-with-files companion-plan patch/);

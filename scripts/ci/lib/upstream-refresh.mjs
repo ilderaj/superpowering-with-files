@@ -17,6 +17,7 @@ const conflictFailurePattern = /\b(CONFLICT|conflict|merge conflict|merge failed
 const runtimeOnlyFiles = new Set([
   '.harness/projections.json',
   '.harness/state.json',
+  '.harness/workspace-skill-projections.json',
   resultPath
 ]);
 
@@ -145,14 +146,13 @@ export function buildRefreshExecutionCommandChain({ sourceFilter } = {}) {
   const sourceArgs = sourceFilter ? [`--source=${sourceFilter}`] : [];
 
   return [
-    { file: './scripts/harness', args: ['install', '--scope=workspace', '--targets=all', '--projection=link', '--mode=force'] },
-    { file: './scripts/harness', args: ['fetch', ...sourceArgs] },
-    { file: './scripts/harness', args: ['update', ...sourceArgs] },
+    { file: './scripts/harness', args: ['fetch', ...sourceArgs, '--no-state'] },
+    { file: './scripts/harness', args: ['update', ...sourceArgs, '--no-state'] },
     { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
     { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] },
-    { file: './scripts/harness', args: ['sync', '--dry-run'] },
-    { file: './scripts/harness', args: ['sync'] },
-    { file: './scripts/harness', args: ['doctor'] }
+    { file: './scripts/harness', args: ['workspace-skills', 'plan'] },
+    { file: './scripts/harness', args: ['workspace-skills', 'sync', '--takeover'] },
+    { file: './scripts/harness', args: ['workspace-skills', 'check'] }
   ];
 }
 

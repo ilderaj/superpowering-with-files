@@ -79,3 +79,42 @@ test('upstream-lock command writes .source-lock.json for selected sources', asyn
     await rm(source, { recursive: true, force: true });
   }
 });
+
+test('upstream-lock command preserves unrelated existing lock entries when filtering sources', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-upstream-lock-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-upstream-lock-source-'));
+  try {
+    await createTaggedGitSource(source, { content: '# Superpowers v6.1.1\n', tag: 'v6.1.1' });
+    await writeSourceConfig(root, source);
+    await writeFile(
+      path.join(root, 'harness/upstream/.source-lock.json'),
+      JSON.stringify({
+        schemaVersion: 2,
+        refreshedAt: '2026-07-01T00:00:00.000Z',
+        sources: {
+          'planning-with-files': {
+            name: 'planning-with-files',
+            strategy: 'latest-release',
+            fallbackUsed: false,
+            refreshedAt: '2026-07-01T00:00:00.000Z',
+            resolved: {
+              kind: 'latest-release',
+              version: 'v1.0.0',
+              ref: 'refs/tags/v1.0.0',
+              commitSha: '0123456789012345678901234567890123456789'
+            }
+          }
+        }
+      }) + '\n'
+    );
+
+    await harnessCommand(root, 'upstream-lock', '--source=superpowers');
+
+    const lock = JSON.parse(await readFile(path.join(root, 'harness/upstream/.source-lock.json'), 'utf8'));
+    assert.equal(lock.sources.superpowers.resolved.version, 'v6.1.1');
+    assert.equal(lock.sources['planning-with-files'].resolved.version, 'v1.0.0');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});

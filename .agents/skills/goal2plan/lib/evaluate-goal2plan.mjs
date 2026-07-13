@@ -142,6 +142,15 @@ export function evaluatePrompt(fixture, prompt) {
   );
   maybeAdd(
     hardFailures,
+    /test seam/i.test(innerPrompt) &&
+      /tracer-bullet vertical slice/i.test(innerPrompt) &&
+      /blocking edges/i.test(innerPrompt) &&
+      /Standards\/Spec review split/i.test(innerPrompt) &&
+      /not `?tickets\.md`?/i.test(innerPrompt),
+    'prompt must include the SWF coding intake contract without making tickets.md authoritative'
+  );
+  maybeAdd(
+    hardFailures,
     constraints.includes('planning/active/<task-id>/') || workDiscipline.includes('planning/active/<task-id>/'),
     'prompt must preserve `planning/active/<task-id>/` as authoritative memory'
   );

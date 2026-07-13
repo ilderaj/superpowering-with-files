@@ -45,8 +45,9 @@ export async function fetchCommand(args = []) {
     throw new Error(`Unsupported upstream source type: ${source.type}`);
   }
 
+  const noState = args.includes('--no-state');
   const lastFetch = new Date().toISOString();
-  await updateState(rootDir, (state) => ({
+  if (!noState) await updateState(rootDir, (state) => ({
     ...state,
     lastFetch,
     upstream: Object.fromEntries([

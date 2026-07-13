@@ -1,11 +1,12 @@
 ```text
 /goal Objective: Produce a reviewed implementation plan for the sparse, high-complexity Goal2Plan request; do not execute implementation.
-Context: The task is broad, likely long-running, and under-specified enough that a direct execution plan would be unreliable. Assumptions: missing details may be gathered through brainstorming or concise Q&A before the final plan is approved.
+Context: The task is broad, likely long-running, and under-specified enough that a direct execution plan would be unreliable. Assumptions: missing details may be gathered through a bounded native intake audit or concise Q&A before the final plan is approved.
 Constraints: Keep `planning/active/<task-id>/` authoritative, save the companion artifact to `docs/superpowers/plans/<date>-<task-id>.md`, use a native /goal flow, and do not implement a runner or any external runner.
 Work Discipline:
 - Restore `planning/active/<task-id>/task_plan.md`, `progress.md`, and `findings.md` before every substantive round.
 - Audit intake sufficiency and list the missing intake dimensions before drafting the plan.
-- If broad intake is missing, use brainstorming; if only narrow facts are missing, use concise Q&A.
+- For coding work, capture domain terms, highest practical test seam, tracer-bullet vertical slice, blocking edges, and Standards/Spec review split; keep authority in `planning/active/<task-id>/`, not `tickets.md`.
+- If broad intake is missing, run a bounded native intake audit; if only narrow facts are missing, use concise Q&A.
 - Draft the implementation plan using writing-plans structure.
 - Break the planning loop into checkpoints and append a short progress log to `planning/active/<task-id>/progress.md` after each checkpoint.
 - Use `1` read-only reviewer subagent for every new or materially revised plan.

@@ -112,6 +112,12 @@ When using `date`, normalize offsets like `UTC+0800` to the canonical `UTC+8`
 suffix before writing. Use the same timestamp shape for all planning records:
 `## Session: <timestamp>`, `- **Started:** <timestamp>`, error log rows,
 `## Findings Record: <timestamp>`, and `## Plan Record: <timestamp>`.
+Never hand-write a timestamp that is later than the real current tool-derived
+time; if you did not fetch the timestamp from tooling in this round, do not
+guess it.
+Keep dated planning blocks top-to-bottom chronological. Append new dated blocks
+at the end of the file by default. If you manually backfill an older record,
+restore full chronological order before leaving the file.
 
 ## Quick Start
 

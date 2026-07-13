@@ -7,7 +7,11 @@ import { readHarnessHealth } from './health.mjs';
 import { loadPlatforms, normalizeTargets } from './metadata.mjs';
 import { loadPolicyProfiles } from './policy-render.mjs';
 import { resolveTargetPaths } from './paths.mjs';
-import { defaultSkillProfileForTargets, loadSkillProfiles } from './skill-projection.mjs';
+import {
+  defaultSkillProfileForTargets,
+  loadSkillProfiles,
+  policyProfileForSkillProfile
+} from './skill-projection.mjs';
 import {
   DEFAULT_DEPLOYMENT_PROFILE,
   activeSafetyPolicyProfile,
@@ -142,17 +146,30 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
 
   const projectionMode = options.projectionMode ?? state.projectionMode ?? 'link';
   const hookMode = options.hookMode ?? state.hookMode ?? 'off';
-  const requestedPolicyProfile = options.policyProfile ?? state.policyProfile ?? policyProfiles.defaultProfile;
-  const { policyProfile, workspacePolicyOverlay } = normalizePolicySelection(requestedPolicyProfile);
   const requestedSkillProfile = options.skillProfile;
   const deploymentProfile = options.deploymentProfile ?? state.deploymentProfile ?? DEFAULT_DEPLOYMENT_PROFILE;
   const preservingExistingUserGlobalState =
-    state.scope === 'user-global' && !isEffectivelyEmptyState(state) && mode !== 'force';
+    state.scope === 'user-global' &&
+    !isEffectivelyEmptyState(state) &&
+    mode !== 'force' &&
+    !options.policyProfile &&
+    !options.skillProfile;
   const skillProfile =
     requestedSkillProfile ??
     (preservingExistingUserGlobalState
       ? state.skillProfile
       : defaultSkillProfileForTargets(skillProfiles, requestedTargets, undefined, 'user-global'));
+  if (!skillProfiles.profiles[skillProfile]) {
+    throw new Error(
+      `Invalid skills profile: ${skillProfile}. Expected one of: ${Object.keys(skillProfiles.profiles).join(', ')}.`
+    );
+  }
+  const requestedPolicyProfile = policyProfileForSkillProfile(
+    skillProfiles,
+    skillProfile,
+    options.policyProfile ?? (preservingExistingUserGlobalState ? state.policyProfile : undefined)
+  );
+  const { policyProfile, workspacePolicyOverlay } = normalizePolicySelection(requestedPolicyProfile);
 
   validateProjectionMode(projectionMode);
   validateHookMode(hookMode);
@@ -167,12 +184,6 @@ export async function ensureUserGlobalState(rootDir, options = {}) {
   if (activeSafetyPolicyProfile(state) || activeSafetyPolicyProfile({ policyProfile, workspacePolicyOverlay })) {
     throw new Error(
       `Safety profiles are workspace-only. Refusing ${requestedPolicyProfile} for user-global scope.`
-    );
-  }
-
-  if (!skillProfiles.profiles[skillProfile]) {
-    throw new Error(
-      `Invalid skills profile: ${skillProfile}. Expected one of: ${Object.keys(skillProfiles.profiles).join(', ')}.`
     );
   }
 

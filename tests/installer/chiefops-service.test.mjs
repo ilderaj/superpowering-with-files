@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { writeExecutionReceipt } from '../../harness/runtime/execution-receipt.mjs';
-import { getChiefOpsBoard } from '../../harness/runtime/chiefops-service.mjs';
+import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
+import { buildChiefOpsControlBrief, getChiefOpsBoard, getChiefOpsInbox } from '../../harness/runtime/chiefops-service.mjs';
 
 async function createFixture(name) {
   const root = path.join(process.cwd(), 'tests/installer/.artifacts', name);
@@ -35,6 +36,58 @@ async function writeTask(root, taskId, files = {}) {
   if (files.progress !== undefined) {
     await writeFile(path.join(taskDir, 'progress.md'), files.progress);
   }
+}
+
+function v0bBinding(root, taskId, overrides = {}) {
+  return {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: `bind_${taskId}`,
+    bindingVersion: `public_${taskId}`,
+    action: 'spawn_worker',
+    authorityTaskId: taskId,
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: `worker_${taskId}`,
+    threadId: `thread_${taskId}`,
+    bindingToken: `token_${taskId}`,
+    currentSlice: 'derived inbox proof',
+    proofTarget: 'keep Inbox derived',
+    evidenceSink: `planning/active/${taskId}/progress.md`,
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    status: 'bound',
+    sourceProgressRef: {
+      file: `planning/active/${taskId}/progress.md`,
+      blockId: `bind_${taskId}`,
+      startLine: null,
+      contentHash: 'sha256:abc123',
+      observedAt: '2026-07-09T05:00:00.000Z'
+    },
+    observedAt: '2026-07-09T05:00:00.000Z',
+    createdAt: '2026-07-09T05:00:00.000Z',
+    ...overrides
+  };
+}
+
+function activeTaskPlan(title) {
+  return [
+    `# ${title}`,
+    '',
+    '## Current State',
+    'Status: active',
+    'Archive Eligible: no',
+    'Close Reason:',
+    'Reconcile: complete',
+    '',
+    '## Routing Decision',
+    '- Selected Route: tracked',
+    '- Route Reason: bounded execution',
+    '- Route Evidence Surface: planning + receipts'
+  ].join('\n');
 }
 
 test('getChiefOpsBoard derives governance state from summary and receipt truth', async () => {
@@ -197,6 +250,120 @@ test('getChiefOpsBoard treats failed receipts as high-risk execution issues', as
     assert.deepEqual(board.blockedSignals, ['execution_receipt_failed']);
     assert.equal(board.derivedRisk, 'high');
     assert.match(board.recommendedNextAction, /Resolve the blocked or failed execution unit/);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('getChiefOpsInbox is an in-memory rebuildable projection and its Control Brief restores trios without raw worker handles', async () => {
+  const root = await createFixture('chiefops-service-inbox-rebuild');
+  try {
+    const running = 'chiefops-running';
+    const unknown = 'chiefops-unknown';
+    await writeTask(root, running, {
+      taskPlan: activeTaskPlan('ChiefOps Running'),
+      findings: '# Findings\n',
+      progress: `# Progress\n\n${serializeChiefOpsBlock('ChiefOpsWorkerBinding', v0bBinding(root, running))}`
+    });
+    await writeTask(root, unknown, {
+      taskPlan: activeTaskPlan('ChiefOps Unknown'),
+      findings: '# Findings\n',
+      progress: '# Progress\n'
+    });
+
+    const beforeReceiptDir = await stat(path.join(root, '.harness', 'execution', 'receipts')).then(() => true).catch(() => false);
+    const input = { root, now: () => '2026-07-13T00:00:00.000Z' };
+    const first = await getChiefOpsInbox(input);
+    const second = await getChiefOpsInbox(input);
+    const afterReceiptDir = await stat(path.join(root, '.harness', 'execution', 'receipts')).then(() => true).catch(() => false);
+
+    assert.equal(beforeReceiptDir, false);
+    assert.equal(afterReceiptDir, false);
+    assert.deepEqual(second, first);
+    assert.equal(first.schemaVersion, 'chiefops.v1.inbox');
+    assert.deepEqual(first.tasks.map((task) => [task.taskId, task.lane]), [
+      [running, 'running'],
+      [unknown, 'unknown']
+    ]);
+
+    const brief = buildChiefOpsControlBrief(first);
+    assert.match(brief, /Restore task_plan\.md, findings\.md, and progress\.md before acting\./);
+    assert.match(brief, /chiefops-running/);
+    assert.doesNotMatch(brief, /thread_chiefops-running/);
+  } finally {
+    await removeFixture(root);
+  }
+});
+
+test('getChiefOpsInbox blocks both sides of index conflicts and does not report terminal or approval-required workers as running', async () => {
+  const root = await createFixture('chiefops-service-inbox-conflicts');
+  try {
+    const first = 'chiefops-first';
+    const second = 'chiefops-second';
+    const done = 'chiefops-done';
+    const approval = 'chiefops-approval';
+    const firstBinding = v0bBinding(root, first, {
+      workerId: 'shared-worker',
+      bindingVersion: 'public-first',
+      bindingToken: 'token-first'
+    });
+    const secondBinding = v0bBinding(root, second, {
+      workerId: 'shared-worker',
+      bindingVersion: 'public-second',
+      bindingToken: 'token-second'
+    });
+    const doneBinding = v0bBinding(root, done);
+    const doneReceipt = {
+      schemaVersion: 'chiefops.v0b',
+      receiptId: 'receipt_done',
+      receiptType: 'done',
+      authorityTaskId: done,
+      workerId: doneBinding.workerId,
+      threadId: doneBinding.threadId,
+      sessionId: null,
+      bindingVersion: doneBinding.bindingVersion,
+      bindingToken: doneBinding.bindingToken,
+      currentSlice: doneBinding.currentSlice,
+      proofTarget: doneBinding.proofTarget,
+      evidenceSink: doneBinding.evidenceSink,
+      capabilityClass: doneBinding.capabilityClass,
+      riskClass: doneBinding.riskClass,
+      workType: doneBinding.workType,
+      authorityMode: doneBinding.authorityMode,
+      allowedOps: doneBinding.allowedOps,
+      sourceProgressRef: doneBinding.sourceProgressRef,
+      observedAt: '2026-07-09T05:05:00.000Z',
+      status: 'done',
+      summary: 'Completed.',
+      evidenceRefs: ['planning/active/chiefops-done/progress.md#receipt_done'],
+      nextSuggestedAction: 'return to Chief',
+      createdAt: '2026-07-09T05:05:00.000Z'
+    };
+
+    await Promise.all([
+      writeTask(root, first, { taskPlan: activeTaskPlan('First'), findings: '# Findings\n', progress: serializeChiefOpsBlock('ChiefOpsWorkerBinding', firstBinding) }),
+      writeTask(root, second, { taskPlan: activeTaskPlan('Second'), findings: '# Findings\n', progress: serializeChiefOpsBlock('ChiefOpsWorkerBinding', secondBinding) }),
+      writeTask(root, done, {
+        taskPlan: activeTaskPlan('Done'),
+        findings: '# Findings\n',
+        progress: [serializeChiefOpsBlock('ChiefOpsWorkerBinding', doneBinding), serializeChiefOpsBlock('ChiefOpsWorkerReceipt', doneReceipt)].join('\n\n')
+      }),
+      writeTask(root, approval, {
+        taskPlan: activeTaskPlan('Approval'),
+        findings: '# Findings\n',
+        progress: serializeChiefOpsBlock('ChiefOpsWorkerBinding', v0bBinding(root, approval, { requiresHumanApproval: true }))
+      })
+    ]);
+
+    const inbox = await getChiefOpsInbox({ root, now: () => '2026-07-13T00:00:00.000Z' });
+    assert.deepEqual(inbox.observationErrors, []);
+    assert.deepEqual(Object.fromEntries(inbox.tasks.map((task) => [task.taskId, task.lane])), {
+      [approval]: 'unknown',
+      [done]: 'unknown',
+      [first]: 'blocked',
+      [second]: 'blocked'
+    });
+    assert.equal(inbox.conflicts.length, 1);
   } finally {
     await removeFixture(root);
   }

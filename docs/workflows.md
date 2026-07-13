@@ -33,7 +33,7 @@ Use `plan` when the work is tracked, multi-phase, or likely to outlive the curre
 
 - Create or reuse `planning/active/<task-id>/`.
 - Keep `planning-with-files` as the only durable task-memory system.
-- Use Superpowers only for deep-reasoning phases, then sync decisions back.
+- Use Matt Skills for ordinary coding discipline. Use Superpowers only for approved high-assurance/deep-reasoning phases, then sync decisions back.
 - If the task is clearly complex but the intake is too sparse to write a credible implementation plan, call the projected `goal2plan` skill first to enrich intake and produce a reviewed plan before execution.
 - Record worktree base before isolated implementation starts.
 
@@ -206,7 +206,7 @@ bash harness/core/upstream-overlays/planning-with-files/scripts/archive-task.sh 
 - [State convergence](state-convergence.md) keeps `planning/active`, roadmap, and backlog status aligned during review or maintenance.
 - [Cloud Dev parity](cloud-dev-parity.md) defines the agent-neutral cloud task contract and evidence gates for remote work.
 - [MCP read-only compatibility](mcp-read-only-compatibility.md) defines native adapter, MCP read-only, and docs-only/manual tiers.
-- [Office templates](office-templates.md) cover lightweight non-coding tasks without changing the coding workflow.
+- [Office templates](office-templates.md) and `office-work-quality` cover artifact production through host-native document, spreadsheet, presentation, and PDF skills without changing the coding workflow.
 
 ## Optional Contracts
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "refreshedAt": "2026-07-04T06:26:36.842Z",
+  "refreshedAt": "2026-07-12T13:23:39.301Z",
   "sources": {
     "superpowers": {
       "name": "superpowers",
@@ -25,6 +25,18 @@
         "commitSha": "8459756b18998f5f99d0325c3ee28043fd423760"
       },
       "refreshedAt": "2026-07-04T06:26:36.842Z"
+    },
+    "mattpocock-skills": {
+      "name": "mattpocock-skills",
+      "strategy": "latest-release",
+      "fallbackUsed": false,
+      "resolved": {
+        "kind": "latest-release",
+        "version": "v1.1.0",
+        "ref": "v1.1.0",
+        "commitSha": "d574778f94cf620fcc8ce741584093bc650a61d3"
+      },
+      "refreshedAt": "2026-07-12T13:23:39.301Z"
     }
   }
 }

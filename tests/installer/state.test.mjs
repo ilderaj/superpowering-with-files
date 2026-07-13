@@ -14,7 +14,7 @@ test('defaultState creates v1 workspace state', () => {
     deploymentProfile: 'standard',
     policyProfile: 'always-on-core',
     workspacePolicyOverlay: null,
-    skillProfile: 'full',
+    skillProfile: 'standard',
     targets: {},
     upstream: {}
   });
@@ -143,7 +143,7 @@ test('readState treats missing policyProfile as always-on-core for v1 compatibil
   }
 });
 
-test('readState treats missing skillProfile as full for v1 compatibility', async () => {
+test('readState treats missing skillProfile as full for v1 compatibility while new state defaults to standard', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
   try {
     const stateFile = path.join(dir, '.harness', 'state.json');

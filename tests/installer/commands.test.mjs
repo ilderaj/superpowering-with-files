@@ -197,6 +197,44 @@ test('sync --help prints usage without executing sync', async () => {
   }
 });
 
+test('install --help prints usage without writing state', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const { stdout } = await harnessCommand(root, 'install', '--help');
+    assert.match(stdout, /Usage: .* install/);
+    await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('workspace-skills --help prints read-only action usage', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const { stdout } = await harnessCommand(root, 'workspace-skills', '--help');
+    assert.match(stdout, /workspace-skills (plan|sync|check|set)/);
+    await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
+    await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('workspace-skills plan reads committed desired state without writing legacy control-plane files', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const { stdout } = await harnessCommand(root, 'workspace-skills', 'plan');
+    const report = JSON.parse(stdout);
+    assert.equal(report.skillProfile, 'standard');
+    assert.ok(report.skills.length > 0);
+    assert.ok(report.skills.every((entry) => entry.kind === 'skill'));
+    await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
+    await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('verify --help prints usage without writing reports', async () => {
   const root = await createHarnessFixture();
   try {
@@ -457,6 +495,19 @@ test('install defaults Copilot-only installs to copilot-default skills profile',
   }
 });
 
+test('install defaults workspace coding installs to Matt-backed standard skills and compact policy', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await harnessCommand(root, 'install', '--scope=workspace', '--targets=codex');
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'standard');
+    assert.equal(state.policyProfile, 'always-on-core');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('install defaults user-global installs to minimal-global skills profile', async () => {
   const root = await createHarnessFixture();
   const homeDir = path.join(root, 'home');
@@ -501,6 +552,25 @@ test('install lets an explicit Copilot skills profile override win over the defa
     const state = await readState(root);
     assert.equal(state.skillProfile, 'minimal-global');
     assert.equal(state.targets.copilot.enabled, true);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('install derives high-assurance entry policy from an explicit high-assurance skills profile', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await harnessCommand(
+      root,
+      'install',
+      '--scope=workspace',
+      '--targets=codex',
+      '--skills-profile=high-assurance'
+    );
+
+    const state = await readState(root);
+    assert.equal(state.skillProfile, 'high-assurance');
+    assert.equal(state.policyProfile, 'high-assurance');
   } finally {
     await removeHarnessFixture(root);
   }

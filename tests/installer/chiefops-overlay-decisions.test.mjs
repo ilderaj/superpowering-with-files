@@ -9,7 +9,9 @@ import { readLiveCodexModelInventory } from '../../harness/runtime/chiefops-over
 import * as modelResolver from '../../harness/runtime/chiefops-overlay/model-resolver.mjs';
 import {
   assessPermissionEnforcement,
-  buildManualHandoffPrompt
+  buildManualHandoffPrompt,
+  buildV2DeltaHandoffPrompt,
+  measureChiefOpsHandoffText
 } from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
 import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
 import { gateWorkerReceipt, gateWorkerReceiptWithAuthority } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
@@ -663,6 +665,84 @@ test('manual handoff prompt includes binding identity and expected receipt', () 
   assert.doesNotMatch(prompt, /btok_1/);
   assert.match(prompt, /Return a ChiefOpsWorkerReceipt/);
   assert.doesNotMatch(prompt, /started.*true/);
+});
+
+test('V2 delta handoff is compact, source-bound, and measurably smaller than the V0b manual prompt', () => {
+  const delta = {
+    schemaVersion: 'chiefops.v2',
+    kind: 'execution_delta',
+    prefixBindingId: 'prefix_1',
+    prefixHash: 'sha256:prefix',
+    deltaBindingId: 'delta_prefix_1_2',
+    sequence: 2,
+    currentSlice: 'verify focused proof',
+    majorPhase: 'verify',
+    expectedCheckInBy: '2026-07-10T14:00:00.000Z'
+  };
+  const effective = {
+    ...operatingModelBindingPacket,
+    bindingId: 'prefix_1',
+    currentSlice: delta.currentSlice,
+    majorPhase: delta.majorPhase,
+    expectedCheckInBy: delta.expectedCheckInBy,
+    sourceProgressRef: {
+      ...bindingPacket.sourceProgressRef,
+      blockId: delta.deltaBindingId,
+      contentHash: 'sha256:delta-content',
+      observedAt: '2026-07-10T13:00:00.000Z'
+    }
+  };
+
+  const prompt = buildV2DeltaHandoffPrompt({
+    delta,
+    effectiveV0bBinding: effective,
+    bindingObservation
+  });
+  const v0bPrompt = buildManualHandoffPrompt({ bindingPacket: effective, bindingObservation });
+
+  assert.match(prompt, /deltaBindingId: delta_prefix_1_2/);
+  assert.match(prompt, /prefixHash: sha256:prefix/);
+  assert.match(prompt, /sourceProgressRef\.contentHash: sha256:delta-content/);
+  assert.match(prompt, /Read taskPlanPath, findingsPath, and progressPath/);
+  assert.doesNotMatch(prompt, /permissionClass: observe/);
+  assert.doesNotMatch(prompt, /nonGoals: do not publish externally/);
+  assert.doesNotMatch(prompt, /allowedOps: inspect/);
+  assert.ok(measureChiefOpsHandoffText(prompt).approxTokens < measureChiefOpsHandoffText(v0bPrompt).approxTokens);
+});
+
+test('V2 delta handoff rejects mismatched source identity and oversized dynamic payloads', () => {
+  const delta = {
+    schemaVersion: 'chiefops.v2',
+    kind: 'execution_delta',
+    prefixBindingId: 'prefix_1',
+    prefixHash: 'sha256:prefix',
+    deltaBindingId: 'delta_prefix_1_1',
+    sequence: 1,
+    currentSlice: 'small',
+    majorPhase: 'design'
+  };
+  const effective = {
+    ...bindingPacket,
+    bindingId: 'prefix_1',
+    majorPhase: delta.majorPhase,
+    sourceProgressRef: { ...bindingPacket.sourceProgressRef, blockId: 'wrong_delta' }
+  };
+  assert.throws(
+    () => buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding: effective, bindingObservation }),
+    /v2_delta_handoff_identity_mismatch/
+  );
+  assert.throws(
+    () => buildV2DeltaHandoffPrompt({
+      delta: { ...delta, currentSlice: 'x'.repeat(10000) },
+      effectiveV0bBinding: {
+        ...effective,
+        currentSlice: 'x'.repeat(10000),
+        sourceProgressRef: { ...effective.sourceProgressRef, blockId: delta.deltaBindingId }
+      },
+      bindingObservation
+    }),
+    /v2_delta_handoff_budget_exceeded/
+  );
 });
 
 test('manual handoff prompt renders the operating-model phase and permission envelope', () => {
