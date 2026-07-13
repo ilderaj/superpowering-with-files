@@ -109,13 +109,12 @@ function allowedWorkspaceSkillRoots(rootDir) {
   ]);
 }
 
-async function assertWorkspaceProjectionTarget(rootDir, targetPath) {
-  const resolved = path.resolve(targetPath);
-  const declaredRoot = path.dirname(resolved);
-  if (!allowedWorkspaceSkillRoots(rootDir).has(declaredRoot)) {
-    throw new Error(`Workspace skill target escapes declared skill roots: ${targetPath}`);
+async function assertWorkspaceSkillRoot(rootDir, declaredRoot) {
+  const resolvedRoot = path.resolve(declaredRoot);
+  if (!allowedWorkspaceSkillRoots(rootDir).has(resolvedRoot)) {
+    throw new Error(`Workspace skill root is not declared: ${declaredRoot}`);
   }
-  const relativeRoot = path.relative(rootDir, declaredRoot);
+  const relativeRoot = path.relative(rootDir, resolvedRoot);
   let cursor = path.resolve(rootDir);
   for (const segment of relativeRoot.split(path.sep).filter(Boolean)) {
     cursor = path.join(cursor, segment);
@@ -125,6 +124,15 @@ async function assertWorkspaceProjectionTarget(rootDir, targetPath) {
       throw new Error(`Workspace skill root contains a symlink or non-directory ancestor: ${cursor}`);
     }
   }
+}
+
+async function assertWorkspaceProjectionTarget(rootDir, targetPath) {
+  const resolved = path.resolve(targetPath);
+  const declaredRoot = path.dirname(resolved);
+  if (!allowedWorkspaceSkillRoots(rootDir).has(declaredRoot)) {
+    throw new Error(`Workspace skill target escapes declared skill roots: ${targetPath}`);
+  }
+  await assertWorkspaceSkillRoot(rootDir, declaredRoot);
 }
 
 async function containsSymlink(directoryPath) {
@@ -152,7 +160,7 @@ async function renderedProjectionDigest(projection) {
 
 async function knownWorkspaceCatalog({ rootDir, plan }) {
   const known = new Map();
-  for (const target of plan.targets) {
+  for (const target of SUPPORTED_TARGETS) {
     const projections = await listSkillCatalogProjections({
       rootDir,
       homeDir: rootDir,
@@ -203,8 +211,9 @@ export async function checkWorkspaceSkills({ rootDir, plan }) {
   const knownCatalog = await knownWorkspaceCatalog({ rootDir, plan });
   const extraKnown = [];
   const unknownPreserved = [];
-  const roots = [...new Set(plan.skillWrites.map((projection) => path.dirname(projection.targetPath)))];
+  const roots = [...allowedWorkspaceSkillRoots(rootDir)];
   for (const root of roots) {
+    await assertWorkspaceSkillRoot(rootDir, root);
     let entries;
     try {
       entries = await readdir(root, { withFileTypes: true });

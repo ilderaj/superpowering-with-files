@@ -33,7 +33,7 @@ test('readHarnessHealth reports entry and skill status per target', async () => 
 
     assert.equal(health.targets.codex.entries[0].status, 'ok');
     assert.equal(
-      health.targets.codex.skills.find((skill) => skill.skillName === 'using-superpowers').status,
+      health.targets.codex.skills.find((skill) => skill.skillName === 'planning-with-files').status,
       'ok'
     );
     assert.equal(
@@ -71,11 +71,11 @@ test('readHarnessHealth honors minimal-global selection boundaries', async () =>
     );
     assert.ok(
       health.targets.codex.skills.some(
-        (skill) => skill.skillName === 'using-superpowers' && skill.status === 'ok'
+        (skill) => skill.skillName === 'planning-with-files' && skill.status === 'ok'
       ),
-      'minimal-global should retain the manual-only starter skill'
+      'minimal-global should retain the planning skill'
     );
-    assert.ok(!health.problems.some((problem) => problem.includes('using-superpowers')));
+    assert.ok(!health.targets.codex.skills.some((skill) => skill.skillName === 'using-superpowers'));
     assert.ok(!health.problems.some((problem) => problem.includes('using-git-worktrees')));
   } finally {
     await removeHarnessFixture(root);
@@ -398,6 +398,7 @@ test('readHarnessHealth reports a problem when a required prompt patch marker is
       schemaVersion: 1,
       scope: 'workspace',
       projectionMode: 'link',
+      skillProfile: 'superpowers-pilot',
       targets: {
         codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
       },
@@ -1955,7 +1956,7 @@ test('readHarnessHealth reports Claude shared skill root symlink as unsupported 
 
     const health = await readHarnessHealth(root, '/home/user');
     const skill = health.targets['claude-code'].skills.find(
-      (entry) => entry.skillName === 'using-superpowers'
+      (entry) => entry.skillName === 'planning-with-files'
     );
 
     assert.equal(skill.status, 'problem');
@@ -3180,6 +3181,7 @@ test('readHarnessHealth classifies symlinked Copilot skill duplicates without fa
       schemaVersion: 1,
       scope: 'both',
       projectionMode: 'link',
+      skillProfile: 'superpowers-pilot',
       targets: {
         copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
       },
@@ -3188,9 +3190,9 @@ test('readHarnessHealth classifies symlinked Copilot skill duplicates without fa
 
     await withCwd(root, () => sync([]));
 
-    const workspaceSkill = path.join(root, '.agents/skills/using-superpowers');
-    const globalSkill = path.join(home, '.agents/skills/using-superpowers');
-    const canonicalSource = path.join(root, 'harness/upstream/superpowers/skills/using-superpowers');
+    const workspaceSkill = path.join(root, '.agents/skills/writing-plans');
+    const globalSkill = path.join(home, '.agents/skills/writing-plans');
+    const canonicalSource = path.join(root, 'harness/upstream/superpowers/skills/writing-plans');
 
     await rm(workspaceSkill, { recursive: true, force: true });
     await rm(globalSkill, { recursive: true, force: true });
@@ -3201,14 +3203,14 @@ test('readHarnessHealth classifies symlinked Copilot skill duplicates without fa
 
     const health = await readHarnessHealth(root, home);
     const duplicateMessage = health.warnings.find((warning) =>
-      warning.includes('skill duplicate copilot using-superpowers: display-duplicate')
+      warning.includes('skill duplicate copilot writing-plans: display-duplicate')
     );
 
     assert.ok(duplicateMessage);
     assert.match(duplicateMessage, /source path:/);
     assert.match(duplicateMessage, /resolved path:/);
     assert.match(duplicateMessage, /target path:/);
-    assert.ok(!health.problems.some((problem) => problem.includes('skill duplicate copilot using-superpowers')));
+    assert.ok(!health.problems.some((problem) => problem.includes('skill duplicate copilot writing-plans')));
   } finally {
     await removeHarnessFixture(root);
   }
@@ -3224,6 +3226,7 @@ test('readHarnessHealth classifies symlinked Cursor skill duplicates without fai
       schemaVersion: 1,
       scope: 'both',
       projectionMode: 'link',
+      skillProfile: 'superpowers-pilot',
       targets: {
         cursor: { enabled: true, paths: [path.join(root, '.cursor/rules/harness.mdc')] }
       },
@@ -3232,9 +3235,9 @@ test('readHarnessHealth classifies symlinked Cursor skill duplicates without fai
 
     await withCwd(root, () => sync([]));
 
-    const workspaceSkill = path.join(root, '.agents/skills/using-superpowers');
-    const globalSkill = path.join(home, '.agents/skills/using-superpowers');
-    const canonicalSource = path.join(root, 'harness/upstream/superpowers/skills/using-superpowers');
+    const workspaceSkill = path.join(root, '.agents/skills/writing-plans');
+    const globalSkill = path.join(home, '.agents/skills/writing-plans');
+    const canonicalSource = path.join(root, 'harness/upstream/superpowers/skills/writing-plans');
 
     await rm(workspaceSkill, { recursive: true, force: true });
     await rm(globalSkill, { recursive: true, force: true });
@@ -3245,14 +3248,14 @@ test('readHarnessHealth classifies symlinked Cursor skill duplicates without fai
 
     const health = await readHarnessHealth(root, home);
     const duplicateMessage = health.warnings.find((warning) =>
-      warning.includes('skill duplicate cursor using-superpowers: display-duplicate')
+      warning.includes('skill duplicate cursor writing-plans: display-duplicate')
     );
 
     assert.ok(duplicateMessage);
     assert.match(duplicateMessage, /source path:/);
     assert.match(duplicateMessage, /resolved path:/);
     assert.match(duplicateMessage, /target path:/);
-    assert.ok(!health.problems.some((problem) => problem.includes('skill duplicate cursor using-superpowers')));
+    assert.ok(!health.problems.some((problem) => problem.includes('skill duplicate cursor writing-plans')));
   } finally {
     await removeHarnessFixture(root);
   }

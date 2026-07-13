@@ -14,7 +14,6 @@ import { checkpointPushCommand } from './checkpoint-push.mjs';
 import { cloudBootstrap } from './cloud-bootstrap.mjs';
 import { linkPersonal } from './link-personal.mjs';
 import { summary } from './summary.mjs';
-import { chiefopsCommand } from './chiefops.mjs';
 import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { activeSummary } from './active-summary.mjs';
@@ -26,6 +25,11 @@ import { tokenAudit } from './token-audit.mjs';
 import { codexModelDefault } from './codex-model-default.mjs';
 import { upstreamLockCommand } from './upstream-lock.mjs';
 import { workspaceSkills } from './workspace-skills.mjs';
+
+async function chiefopsCommand(args) {
+  const chiefops = await import('./chiefops.mjs');
+  return chiefops.chiefopsCommand(args);
+}
 
 const commands = {
   install,

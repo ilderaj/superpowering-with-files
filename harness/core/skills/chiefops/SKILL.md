@@ -5,16 +5,27 @@ description: Use when a tracked task needs a bounded governance lens over planni
 
 # ChiefOps
 
+## Outcome Contract
+
+- **Outcome:** one bounded governance readout or next-slice contract is derived from the authoritative task trio and available execution receipts.
+- **Done when:** the next slice, proof target, primary proof, evidence sink, material risk, and return-to-Chief gate are explicit without creating new durable state.
+- **Evidence:** exact trio paths, the current derived board/readout, relevant receipt evidence, and the recorded Chief acceptance or rejection.
+- **Output:** a concise conclusion, required evidence, material caveat, and next action for the tracked task.
+
+## When to Use
+
+- A tracked task needs one bounded governance readout or next-slice contract.
+- Chief must evaluate worker evidence, authority drift, a human gate, or the return point for a major phase.
+- A replacement Chief needs a compact restoration path from the exact trio and derived execution evidence.
+
+Do not use ChiefOps for quick work, plan authoring, or a new scheduler, daemon, queue, registry, or session manager.
+
 ## Core Boundary
 
 ChiefOps is a narrow governance skill for tracked execution. It does not create durable state, replace task memory, or act as a runner. The only durable task
 memory is `planning/active/<task-id>/`; execution truth is
 `.harness/execution/receipts/<taskId>/*.json` when receipts exist. Use the
 existing derived board/readout rather than Chief chat history.
-
-It is appropriate only for a tracked task needing one bounded governance
-readout or next-slice contract. Do not use it for quick work, plan authoring,
-or a new scheduler/daemon/session manager.
 
 ## Ordinary Intake
 

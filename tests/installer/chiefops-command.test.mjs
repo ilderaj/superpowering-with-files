@@ -9,6 +9,10 @@ import { createHarnessFixture, removeHarnessFixture } from '../helpers/harness-f
 
 const execFileAsync = promisify(execFile);
 
+function createChiefOpsFixture() {
+  return createHarnessFixture({ linkNodeModules: true });
+}
+
 function harnessCommand(root, ...args) {
   return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
     cwd: root,
@@ -75,7 +79,7 @@ test('harness --help lists the chiefops command', async () => {
 });
 
 test('harness chiefops --help prints usage', async () => {
-  const root = await createHarnessFixture();
+  const root = await createChiefOpsFixture();
   try {
     const { stdout, stderr } = await harnessCommand(root, 'chiefops', '--help');
     assert.equal(stderr, '');
@@ -87,7 +91,7 @@ test('harness chiefops --help prints usage', async () => {
 });
 
 test('harness chiefops board prints a compact text readout for a blocked task', async () => {
-  const root = await createHarnessFixture();
+  const root = await createChiefOpsFixture();
   try {
     await writeTask(root, 'chiefops-demo', {
       taskPlan: activeTaskPlan('ChiefOps Demo'),
@@ -124,7 +128,7 @@ test('harness chiefops board prints a compact text readout for a blocked task', 
 });
 
 test('harness chiefops board --json prints runtime-shaped JSON', async () => {
-  const root = await createHarnessFixture();
+  const root = await createChiefOpsFixture();
   try {
     await writeTask(root, 'chiefops-demo', {
       taskPlan: activeTaskPlan('ChiefOps Demo'),
@@ -148,7 +152,7 @@ test('harness chiefops board --json prints runtime-shaped JSON', async () => {
 });
 
 test('harness chiefops board requires --task', async () => {
-  const root = await createHarnessFixture();
+  const root = await createChiefOpsFixture();
   try {
     await assert.rejects(
       harnessCommand(root, 'chiefops', 'board'),
@@ -164,7 +168,7 @@ test('harness chiefops board requires --task', async () => {
 });
 
 test('harness chiefops board exits with code 1 when the requested task is missing', async () => {
-  const root = await createHarnessFixture();
+  const root = await createChiefOpsFixture();
   try {
     await assert.rejects(
       harnessCommand(root, 'chiefops', 'board', '--task', 'missing-task'),
@@ -180,7 +184,7 @@ test('harness chiefops board exits with code 1 when the requested task is missin
 });
 
 test('harness chiefops board adds a bounded next action beyond active-summary', async () => {
-  const root = await createHarnessFixture();
+  const root = await createChiefOpsFixture();
   try {
     await writeTask(root, 'chiefops-demo', {
       taskPlan: activeTaskPlan('ChiefOps Demo', [

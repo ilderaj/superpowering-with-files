@@ -187,6 +187,42 @@ test('workspace takeover prunes known stale skills and preserves unknown workspa
   }
 });
 
+test('workspace sync prunes owned skills from a target removed from the desired profile', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const initialProfile = await readWorkspaceSkillProfile(root);
+    const initialPlan = await planWorkspaceSkills({ rootDir: root, profile: initialProfile });
+    await applyWorkspaceSkills({ rootDir: root, plan: initialPlan });
+
+    const claudeSkillRoot = path.join(root, '.claude/skills');
+    const removedTargets = initialPlan.skillWrites
+      .filter((entry) => entry.targetPath.startsWith(`${claudeSkillRoot}${path.sep}`))
+      .map((entry) => entry.targetPath)
+      .sort();
+    assert.ok(removedTargets.length > 0);
+
+    const codexOnlyPlan = await planWorkspaceSkills({
+      rootDir: root,
+      profile: { ...initialProfile, targets: ['codex'] }
+    });
+    const beforeSync = await checkWorkspaceSkills({ rootDir: root, plan: codexOnlyPlan });
+    assert.deepEqual(beforeSync.extraKnown, removedTargets);
+
+    await applyWorkspaceSkills({ rootDir: root, plan: codexOnlyPlan });
+
+    assert.equal((await checkWorkspaceSkills({ rootDir: root, plan: codexOnlyPlan })).ok, true);
+    for (const targetPath of removedTargets) {
+      await assert.rejects(access(targetPath), /ENOENT/);
+    }
+    const workspaceManifest = await readProjectionManifest(root, {
+      relativePath: '.harness/workspace-skill-projections.json'
+    });
+    assert.ok(workspaceManifest.entries.every((entry) => entry.targetPath.startsWith(`${root}/.agents/skills/`)));
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('workspace takeover refuses a modified desired skill without an ownership receipt', async () => {
   const root = await createHarnessFixture();
   try {
