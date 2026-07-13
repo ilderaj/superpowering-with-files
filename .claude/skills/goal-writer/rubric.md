@@ -22,6 +22,7 @@ Every generated prompt must pass all hard checks:
 8. Encodes quick / tracked / deep-reasoning round discipline and limits companion-plan/verifier use to deep-reasoning rounds
 9. `Validation` names at least one concrete command or authoritative evidence surface
 10. Includes stop/escalate conditions
+11. Prompts marked iterative by the closed Objective/Context markers include one causal `Iteration Contract:` line under Work Discipline; ordinary planning or validation loops do not need it
 
 ## Tracked / Deep Add-on Checks
 

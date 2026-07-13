@@ -52,6 +52,7 @@ Next Step: [the immediate first action once the goal starts]
 - Choose the compact frame first for genuinely simple goals instead of filling the standard frame mechanically.
 - Start from one proof target and one finish line before adding orchestration language.
 - For tracked or deeper prompts, name the checkpoints and the short `progress.md` logging rule explicitly instead of assuming the loop stays legible on its own.
+- If Objective or Context explicitly marks repeated/bounded passes, add one `Iteration Contract:` line under Work Discipline: each pass re-reads fresh evidence/feedback/state, uses it to select the next bounded action, and reclassifies to one-shot/staged work if it cannot change that choice.
 - Prefer one short paragraph for `Context` and `Constraints`.
 - Keep `Validation` and `Done Criteria` to the smallest set that still proves success.
 - Remove narration, rationale, and history that do not change execution.
