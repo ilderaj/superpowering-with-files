@@ -889,6 +889,57 @@ test('V2 delta handoff is compact, source-bound, and measurably smaller than the
   assert.ok(measureChiefOpsHandoffText(prompt).approxTokens < measureChiefOpsHandoffText(v0bPrompt).approxTokens);
 });
 
+test('V2 manual-pending handoff renders trusted legacy selection evidence', () => {
+  const delta = {
+    schemaVersion: 'chiefops.v2',
+    kind: 'execution_delta',
+    prefixBindingId: 'prefix_1',
+    prefixHash: 'sha256:prefix',
+    deltaBindingId: 'delta_prefix_1_2',
+    sequence: 2,
+    currentSlice: 'return manual-pending proof',
+    majorPhase: 'verify',
+    expectedCheckInBy: '2026-07-10T14:00:00.000Z'
+  };
+  const effective = {
+    ...operatingModelBindingPacket,
+    bindingId: 'prefix_1',
+    currentSlice: delta.currentSlice,
+    majorPhase: delta.majorPhase,
+    expectedCheckInBy: delta.expectedCheckInBy,
+    dispatchRequest: {
+      requestedModel: 'balanced-current',
+      reasoningEffort: 'medium',
+      speed: 'standard',
+      availabilityStatus: 'manual_pending'
+    },
+    sourceProgressRef: {
+      ...bindingPacket.sourceProgressRef,
+      blockId: delta.deltaBindingId,
+      contentHash: 'sha256:delta-content',
+      observedAt: '2026-07-10T13:00:00.000Z'
+    }
+  };
+  const modelResolution = {
+    ...operatingModelResolution,
+    applicationStatus: 'manual_pending'
+  };
+  const prompt = buildV2DeltaHandoffPrompt({
+    delta,
+    effectiveV0bBinding: effective,
+    bindingObservation,
+    modelResolution
+  });
+
+  assert.match(prompt, /resolvedModelAtRun: balanced-current/);
+  assert.match(prompt, /resolvedThinkingAtRun: medium/);
+  assert.match(prompt, /modelResolutionReason: first_compatible_profile_match/);
+  assert.match(prompt, /applicationStatus: manual_pending/);
+  assert.ok(measureChiefOpsHandoffText(prompt).lines <= 48);
+  assert.ok(measureChiefOpsHandoffText(prompt).chars <= 4000);
+  assert.ok(measureChiefOpsHandoffText(prompt).approxTokens <= 1000);
+});
+
 test('V2 delta handoff rejects mismatched source identity and oversized dynamic payloads', () => {
   const delta = {
     schemaVersion: 'chiefops.v2',

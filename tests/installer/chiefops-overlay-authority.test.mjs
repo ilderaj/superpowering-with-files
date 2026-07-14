@@ -250,6 +250,15 @@ test('V2 stable-prefix to delta ingress preserves route and both dispatch eviden
     assert.match(handoff, /requestedRoute: visible_worker/);
     assert.match(handoff, new RegExp(`availabilityStatus: ${availabilityStatus}`));
     assert.match(handoff, /resolvedSpeed: null/);
+    if (availabilityStatus === 'manual_pending') {
+      assert.match(handoff, /resolvedModelAtRun: balanced-current/);
+      assert.match(handoff, /resolvedThinkingAtRun: medium/);
+      assert.match(handoff, /modelResolutionReason: fixture/);
+      assert.match(handoff, /applicationStatus: manual_pending/);
+    } else {
+      assert.doesNotMatch(handoff, /resolvedModelAtRun:/);
+      assert.doesNotMatch(handoff, /modelResolutionReason:/);
+    }
 
     const resolved = await readAuthoritativeBinding({ root, bindingPacket: delta });
     const receipt = {
@@ -277,11 +286,16 @@ test('V2 stable-prefix to delta ingress preserves route and both dispatch eviden
       scopeCheck: { nonGoalsChecked: true, violations: [] }
     };
     if (availabilityStatus === 'manual_pending') {
+      const promptValue = (field) => {
+        const match = handoff.match(new RegExp(`^${field}: (.*)$`, 'm'));
+        assert.ok(match, `V2 prompt must provide ${field}`);
+        return match[1];
+      };
       Object.assign(receipt, {
-        resolvedModelAtRun: modelResolution.resolvedModelAtRun,
-        resolvedThinkingAtRun: modelResolution.resolvedThinkingAtRun,
-        modelResolutionReason: modelResolution.modelResolutionReason,
-        applicationStatus: 'manual_pending'
+        resolvedModelAtRun: promptValue('resolvedModelAtRun'),
+        resolvedThinkingAtRun: promptValue('resolvedThinkingAtRun'),
+        modelResolutionReason: promptValue('modelResolutionReason'),
+        applicationStatus: promptValue('applicationStatus')
       });
     }
     assert.deepEqual(

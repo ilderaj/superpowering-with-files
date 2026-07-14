@@ -173,7 +173,23 @@ export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingO
   if (/[\u0000-\u001f\u007f]/.test(authorityRoot)) {
     throw new Error('canonical authority root must not contain control characters');
   }
+  const manualPendingDispatch = effectiveV0bBinding.dispatchRequest?.availabilityStatus === 'manual_pending';
+  if (manualPendingDispatch
+    && (!modelResolution
+      || typeof modelResolution.resolvedModelAtRun !== 'string'
+      || typeof modelResolution.resolvedThinkingAtRun !== 'string'
+      || typeof modelResolution.modelResolutionReason !== 'string'
+      || modelResolution.applicationStatus !== 'manual_pending')) {
+    throw new Error('v2_manual_pending_model_resolution_required');
+  }
   const taskDir = path.join(authorityRoot, 'planning/active', effectiveV0bBinding.authorityTaskId);
+  const trustedSelectionEvidence = manualPendingDispatch
+    ? [
+        `resolvedModelAtRun: ${modelResolution.resolvedModelAtRun}`,
+        `resolvedThinkingAtRun: ${modelResolution.resolvedThinkingAtRun}`,
+        `modelResolutionReason: ${modelResolution.modelResolutionReason}`
+      ]
+    : [];
   const prompt = [
     'You are a ChiefOps V2 delta worker. Verify the delta and exact authority before acting.',
     '',
@@ -198,6 +214,7 @@ export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingO
     `reasoningEffort: ${effectiveV0bBinding.dispatchRequest?.reasoningEffort ?? ''}`,
     `speed: ${effectiveV0bBinding.dispatchRequest?.speed ?? ''}`,
     `availabilityStatus: ${effectiveV0bBinding.dispatchRequest?.availabilityStatus ?? ''}`,
+    ...trustedSelectionEvidence,
     `resolvedModel: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
     `resolvedReasoningEffort: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
     `resolvedSpeed: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
