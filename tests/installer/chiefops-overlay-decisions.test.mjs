@@ -154,6 +154,31 @@ test('decideCapabilityAction emits binding-owned route evidence only for classif
   assert.equal(deep.routeDecision.requestedRoute, 'visible_worker');
   assert.equal(deep.routeDecision.resolutionStatus, 'handoff_pending');
 
+  const documentedDeepReasoning = decideCapabilityAction({
+    action: 'spawn_worker',
+    capabilities: { create: false },
+    bindingValid: true,
+    materialDrift: false,
+    taskClassification: 'deep-reasoning',
+    manualHandoffAllowed: true
+  });
+  assert.deepEqual(documentedDeepReasoning.routeDecision, {
+    taskClassification: 'deep_reasoning',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'handoff_pending',
+    approvedResolvedRoute: null
+  });
+  assert.equal(
+    decideCapabilityAction({
+      action: 'spawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      materialDrift: false,
+      taskClassification: 'deep-reasoning-invalid'
+    }).receiptType,
+    'binding_mismatch'
+  );
+
   assert.equal(
     decideCapabilityAction({
       action: 'spawn_worker',

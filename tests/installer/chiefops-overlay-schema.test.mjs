@@ -67,6 +67,28 @@ test('route and dispatch cohorts are strict while legacy packets remain optional
     }
   });
   assert.equal(routeBinding.routeDecision.requestedRoute, 'visible_worker');
+  const documentedDeepReasoning = validateBindingPacket({
+    ...baseBinding,
+    routeDecision: {
+      taskClassification: 'deep-reasoning',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_requested',
+      approvedResolvedRoute: null
+    }
+  });
+  assert.equal(documentedDeepReasoning.routeDecision.taskClassification, 'deep_reasoning');
+  assert.throws(
+    () => validateBindingPacket({
+      ...baseBinding,
+      routeDecision: {
+        taskClassification: 'deep-reasoning-invalid',
+        requestedRoute: 'visible_worker',
+        resolutionStatus: 'native_control_requested',
+        approvedResolvedRoute: null
+      }
+    }),
+    /Invalid enum value|deep-reasoning-invalid/
+  );
   assert.throws(
     () => validateBindingPacket({
       ...baseBinding,
@@ -168,6 +190,16 @@ test('dispatch outcomes keep actual application evidence null and reject legacy 
     }
   };
   assert.equal(validateWorkerReceipt(receipt).dispatchOutcome.applicationStatus, 'manual_pending');
+  const normalizedRouteReceipt = validateWorkerReceipt({
+    ...receipt,
+    routeOutcome: {
+      taskClassification: 'deep-reasoning',
+      requestedRoute: 'visible_worker',
+      resolvedRoute: null,
+      resolutionStatus: 'handoff_pending'
+    }
+  });
+  assert.equal(normalizedRouteReceipt.routeOutcome.taskClassification, 'deep_reasoning');
   assert.throws(
     () => validateWorkerReceipt({ ...receipt, dispatchOutcome: { ...receipt.dispatchOutcome, resolvedSpeed: 'standard' } }),
     /actual resolved values null/

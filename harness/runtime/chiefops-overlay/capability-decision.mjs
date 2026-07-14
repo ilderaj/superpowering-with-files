@@ -1,4 +1,4 @@
-import { ROUTES, TASK_CLASSIFICATIONS } from './schema.mjs';
+import { normalizeTaskClassification, ROUTES, TASK_CLASSIFICATIONS } from './schema.mjs';
 
 const APPROVED_RESPAWN_REASONS = new Set([
   'session_unavailable',
@@ -26,18 +26,19 @@ export function decideCapabilityAction({
   taskClassification,
   requestedRoute
 }) {
-  if ((taskClassification !== undefined && !TASK_CLASSIFICATIONS.includes(taskClassification))
+  const normalizedTaskClassification = normalizeTaskClassification(taskClassification);
+  if ((normalizedTaskClassification !== undefined && !TASK_CLASSIFICATIONS.includes(normalizedTaskClassification))
     || (requestedRoute !== undefined && !ROUTES.includes(requestedRoute))
-    || (requestedRoute !== undefined && taskClassification === undefined)) {
+    || (requestedRoute !== undefined && normalizedTaskClassification === undefined)) {
     return { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false };
   }
 
-  const route = requestedRoute ?? (['tracked', 'deep_reasoning'].includes(taskClassification) ? 'visible_worker' : null);
+  const route = requestedRoute ?? (['tracked', 'deep_reasoning'].includes(normalizedTaskClassification) ? 'visible_worker' : null);
   const withRouteDecision = (decision, resolutionStatus) => route
     ? {
         ...decision,
         routeDecision: {
-          taskClassification,
+          taskClassification: normalizedTaskClassification,
           requestedRoute: route,
           resolutionStatus,
           approvedResolvedRoute: null

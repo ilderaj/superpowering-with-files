@@ -34,6 +34,12 @@ export const ROUTES = ['visible_worker', 'subagent', 'chief_direct'];
 export const ROUTE_DECISION_STATUSES = ['native_control_requested', 'handoff_pending', 'capability_unavailable', 'chief_downgrade'];
 export const ROUTE_OUTCOME_STATUSES = ['native_control_verified', 'handoff_pending', 'capability_unavailable', 'chief_downgrade'];
 
+export function normalizeTaskClassification(value) {
+  return value === 'deep-reasoning' ? 'deep_reasoning' : value;
+}
+
+const TaskClassificationSchema = z.preprocess(normalizeTaskClassification, z.enum(TASK_CLASSIFICATIONS));
+
 const isoTimestamp = z.string().datetime();
 const safeV2Identity = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 
@@ -60,7 +66,7 @@ export const SourceProgressRefSchema = z.object({
 });
 
 export const RouteDecisionSchema = z.object({
-  taskClassification: z.enum(TASK_CLASSIFICATIONS),
+  taskClassification: TaskClassificationSchema,
   requestedRoute: z.enum(ROUTES),
   resolutionStatus: z.enum(ROUTE_DECISION_STATUSES),
   approvedResolvedRoute: z.enum(ROUTES).nullable(),
@@ -87,7 +93,7 @@ export const RouteDecisionSchema = z.object({
 });
 
 export const RouteOutcomeSchema = z.object({
-  taskClassification: z.enum(TASK_CLASSIFICATIONS),
+  taskClassification: TaskClassificationSchema,
   requestedRoute: z.enum(ROUTES),
   resolvedRoute: z.enum(ROUTES).nullable(),
   resolutionStatus: z.enum(ROUTE_OUTCOME_STATUSES)
