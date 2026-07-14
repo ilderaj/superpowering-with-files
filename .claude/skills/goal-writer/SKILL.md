@@ -38,6 +38,7 @@ Do not use this skill when:
 | 8 | For tracked or deeper goals, define checkpoints and a short progress log in `planning/active/<task-id>/progress.md` |
 | 9 | Return exactly one markdown fenced block and keep the inner prompt within its budget |
 | 10 | Run the evaluator and fix any failed hard checks |
+| 11 | If Objective or Context explicitly marks repeated/bounded passes, add one `Iteration Contract:` line under Work Discipline: each pass re-reads fresh evidence/feedback/state, uses it to select the next bounded action, and reclassifies to one-shot/staged work if it cannot change that choice |
 
 ## Implementation
 1. Start from the root goal and its smallest proof target, not the implementation plan. The prompt should describe what success means, not narrate how you will reason.

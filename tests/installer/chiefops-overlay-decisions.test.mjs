@@ -15,6 +15,7 @@ import {
 } from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
 import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
 import { gateWorkerReceipt, gateWorkerReceiptWithAuthority } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
+import { validateWorkerReceipt } from '../../harness/runtime/chiefops-overlay/schema.mjs';
 import { validateBoundSubagentReturn, validateNarrowSubagentDispatch } from '../../harness/runtime/chiefops-overlay/subagent-dispatch.mjs';
 
 const { resolveModel } = modelResolver;
@@ -125,6 +126,210 @@ test('decideCapabilityAction does not turn native create capability into started
       materialDrift: false
     }),
     { mode: 'native_control_requested', receiptType: 'binding_verified', canProceedAsStarted: false, requiresWorkerReceipt: true }
+  );
+});
+
+test('decideCapabilityAction emits binding-owned route evidence only for classified routes', () => {
+  const tracked = decideCapabilityAction({
+    action: 'spawn_worker',
+    capabilities: { create: true },
+    bindingValid: true,
+    materialDrift: false,
+    taskClassification: 'tracked'
+  });
+  assert.deepEqual(tracked.routeDecision, {
+    taskClassification: 'tracked',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'native_control_requested',
+    approvedResolvedRoute: null
+  });
+
+  const deep = decideCapabilityAction({
+    action: 'spawn_worker',
+    capabilities: { create: false },
+    bindingValid: true,
+    materialDrift: false,
+    taskClassification: 'deep_reasoning',
+    manualHandoffAllowed: true
+  });
+  assert.equal(deep.routeDecision.requestedRoute, 'visible_worker');
+  assert.equal(deep.routeDecision.resolutionStatus, 'handoff_pending');
+
+  const documentedDeepReasoning = decideCapabilityAction({
+    action: 'spawn_worker',
+    capabilities: { create: false },
+    bindingValid: true,
+    materialDrift: false,
+    taskClassification: 'deep-reasoning',
+    manualHandoffAllowed: true
+  });
+  assert.deepEqual(documentedDeepReasoning.routeDecision, {
+    taskClassification: 'deep_reasoning',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'handoff_pending',
+    approvedResolvedRoute: null
+  });
+  assert.equal(
+    decideCapabilityAction({
+      action: 'spawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      materialDrift: false,
+      taskClassification: 'deep-reasoning-invalid'
+    }).receiptType,
+    'binding_mismatch'
+  );
+
+  assert.equal(
+    decideCapabilityAction({
+      action: 'spawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      materialDrift: false,
+      taskClassification: 'quick'
+    }).routeDecision,
+    undefined
+  );
+  assert.equal(
+    decideCapabilityAction({
+      action: 'spawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      materialDrift: false
+    }).routeDecision,
+    undefined
+  );
+});
+
+test('authority gate pairs route and dispatch cohorts before normal receipt acceptance', async () => {
+  const receiptFor = (binding, overrides = {}) => ({
+    authorityTaskId: binding.authorityTaskId,
+    workerId: binding.workerId,
+    currentSlice: binding.currentSlice,
+    proofTarget: binding.proofTarget,
+    evidenceSink: binding.evidenceSink,
+    capabilityClass: binding.capabilityClass,
+    riskClass: binding.riskClass,
+    majorPhase: binding.majorPhase,
+    reasoningDemand: binding.reasoningDemand,
+    costPreference: binding.costPreference,
+    latencyClass: binding.latencyClass,
+    permissionClass: binding.permissionClass,
+    delegationPolicy: binding.delegationPolicy,
+    workType: binding.workType,
+    authorityMode: binding.authorityMode,
+    allowedOps: binding.allowedOps,
+    sourceProgressRef: binding.sourceProgressRef,
+    bindingVersion: binding.bindingVersion,
+    receiptId: 'receipt_route_dispatch',
+    receiptType: 'done',
+    status: 'done',
+    summary: 'Bounded proof completed.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-decisions.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    createdAt: '2026-07-09T05:10:00.000Z',
+    observedAt: '2026-07-09T05:10:00.000Z',
+    ...overrides
+  });
+  const routeBinding = {
+    ...operatingModelBindingPacket,
+    routeDecision: {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_requested',
+      approvedResolvedRoute: null
+    }
+  };
+  const nativeReceipt = receiptFor(routeBinding, {
+    resolvedModelAtRun: operatingModelResolution.resolvedModelAtRun,
+    resolvedThinkingAtRun: operatingModelResolution.resolvedThinkingAtRun,
+    modelResolutionReason: operatingModelResolution.modelResolutionReason,
+    routeOutcome: {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolvedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_verified'
+    }
+  });
+  assert.deepEqual(
+    await gateReceiptWithAuthority({ bindingPacket: routeBinding, receipt: nativeReceipt, approvalSatisfied: true, modelResolution: operatingModelResolution }),
+    { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket: bindingPacket,
+      receipt: receiptFor(bindingPacket, { routeOutcome: nativeReceipt.routeOutcome }),
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'route_evidence_unbound' }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket: routeBinding,
+      receipt: receiptFor(routeBinding, { routeOutcome: undefined }),
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
+    }),
+    { outcome: 'block', reason: 'route_evidence_unbound' }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket: routeBinding,
+      receipt: receiptFor(routeBinding, {
+        routeOutcome: {
+          taskClassification: 'tracked',
+          requestedRoute: 'visible_worker',
+          resolvedRoute: 'subagent',
+          resolutionStatus: 'chief_downgrade'
+        }
+      }),
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
+    }),
+    { outcome: 'block', reason: 'route_transition_mismatch' }
+  );
+
+  const unavailableBinding = {
+    ...operatingModelBindingPacket,
+    dispatchRequest: {
+      requestedModel: 'gpt-5.6-luna',
+      reasoningEffort: 'xhigh',
+      speed: 'standard',
+      availabilityStatus: 'capability_unavailable'
+    }
+  };
+  const unavailableReceipt = receiptFor(unavailableBinding, {
+    dispatchOutcome: {
+      resolvedModel: null,
+      resolvedReasoningEffort: null,
+      resolvedSpeed: null,
+      applicationStatus: 'capability_unavailable'
+    }
+  });
+  assert.deepEqual(
+    await gateReceiptWithAuthority({ bindingPacket: unavailableBinding, receipt: unavailableReceipt, approvalSatisfied: true }),
+    { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket,
+      receipt: receiptFor(bindingPacket, {
+        dispatchOutcome: unavailableReceipt.dispatchOutcome
+      }),
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'dispatch_evidence_unbound' }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket: unavailableBinding,
+      receipt: receiptFor(unavailableBinding, {
+        dispatchOutcome: { ...unavailableReceipt.dispatchOutcome, resolvedSpeed: 'standard' }
+      }),
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'dispatch_resolution_evidence_mismatch' }
   );
 });
 
@@ -710,6 +915,57 @@ test('V2 delta handoff is compact, source-bound, and measurably smaller than the
   assert.ok(measureChiefOpsHandoffText(prompt).approxTokens < measureChiefOpsHandoffText(v0bPrompt).approxTokens);
 });
 
+test('V2 manual-pending handoff renders trusted legacy selection evidence', () => {
+  const delta = {
+    schemaVersion: 'chiefops.v2',
+    kind: 'execution_delta',
+    prefixBindingId: 'prefix_1',
+    prefixHash: 'sha256:prefix',
+    deltaBindingId: 'delta_prefix_1_2',
+    sequence: 2,
+    currentSlice: 'return manual-pending proof',
+    majorPhase: 'verify',
+    expectedCheckInBy: '2026-07-10T14:00:00.000Z'
+  };
+  const effective = {
+    ...operatingModelBindingPacket,
+    bindingId: 'prefix_1',
+    currentSlice: delta.currentSlice,
+    majorPhase: delta.majorPhase,
+    expectedCheckInBy: delta.expectedCheckInBy,
+    dispatchRequest: {
+      requestedModel: 'balanced-current',
+      reasoningEffort: 'medium',
+      speed: 'standard',
+      availabilityStatus: 'manual_pending'
+    },
+    sourceProgressRef: {
+      ...bindingPacket.sourceProgressRef,
+      blockId: delta.deltaBindingId,
+      contentHash: 'sha256:delta-content',
+      observedAt: '2026-07-10T13:00:00.000Z'
+    }
+  };
+  const modelResolution = {
+    ...operatingModelResolution,
+    applicationStatus: 'manual_pending'
+  };
+  const prompt = buildV2DeltaHandoffPrompt({
+    delta,
+    effectiveV0bBinding: effective,
+    bindingObservation,
+    modelResolution
+  });
+
+  assert.match(prompt, /resolvedModelAtRun: balanced-current/);
+  assert.match(prompt, /resolvedThinkingAtRun: medium/);
+  assert.match(prompt, /modelResolutionReason: first_compatible_profile_match/);
+  assert.match(prompt, /applicationStatus: manual_pending/);
+  assert.ok(measureChiefOpsHandoffText(prompt).lines <= 48);
+  assert.ok(measureChiefOpsHandoffText(prompt).chars <= 4000);
+  assert.ok(measureChiefOpsHandoffText(prompt).approxTokens <= 1000);
+});
+
 test('V2 delta handoff rejects mismatched source identity and oversized dynamic payloads', () => {
   const delta = {
     schemaVersion: 'chiefops.v2',
@@ -780,6 +1036,242 @@ test('manual handoff prompt renders the exact model-resolution evidence', () => 
   assert.match(prompt, /resolvedModelAtRun: balanced-current/);
   assert.match(prompt, /resolvedThinkingAtRun: medium/);
   assert.match(prompt, /modelResolutionReason: first_compatible_profile_match/);
+});
+
+test('manual visible handoff prompts render the terminal route outcome template', () => {
+  const routeDecision = {
+    taskClassification: 'tracked',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'handoff_pending',
+    approvedResolvedRoute: null
+  };
+  const manualRouteBinding = {
+    ...operatingModelBindingPacket,
+    routeDecision
+  };
+  const v0bPrompt = buildManualHandoffPrompt({
+    bindingPacket: manualRouteBinding,
+    bindingObservation
+  });
+  for (const [field, value] of [
+    ['taskClassification', 'tracked'],
+    ['requestedRoute', 'visible_worker'],
+    ['resolvedRoute', 'visible_worker'],
+    ['resolutionStatus', 'manual_handoff_completed']
+  ]) {
+    assert.match(v0bPrompt, new RegExp(`^routeOutcome\\.${field}: ${value}$`, 'm'));
+  }
+
+  const promptValue = (prompt, field) => {
+    const match = prompt.match(new RegExp(`^routeOutcome\\.${field}: (.*)$`, 'm'));
+    assert.ok(match, `prompt must provide routeOutcome.${field}`);
+    return match[1];
+  };
+  assert.doesNotThrow(() => validateWorkerReceipt({
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_manual_route_prompt',
+    receiptType: 'done',
+    authorityTaskId: manualRouteBinding.authorityTaskId,
+    workerId: manualRouteBinding.workerId,
+    threadId: 'thread-1',
+    bindingVersion: manualRouteBinding.bindingVersion,
+    currentSlice: manualRouteBinding.currentSlice,
+    proofTarget: manualRouteBinding.proofTarget,
+    evidenceSink: manualRouteBinding.evidenceSink,
+    capabilityClass: manualRouteBinding.capabilityClass,
+    riskClass: manualRouteBinding.riskClass,
+    majorPhase: manualRouteBinding.majorPhase,
+    reasoningDemand: manualRouteBinding.reasoningDemand,
+    costPreference: manualRouteBinding.costPreference,
+    latencyClass: manualRouteBinding.latencyClass,
+    permissionClass: manualRouteBinding.permissionClass,
+    delegationPolicy: manualRouteBinding.delegationPolicy,
+    workType: manualRouteBinding.workType,
+    authorityMode: manualRouteBinding.authorityMode,
+    allowedOps: manualRouteBinding.allowedOps,
+    sourceProgressRef: manualRouteBinding.sourceProgressRef,
+    observedAt: manualRouteBinding.observedAt,
+    status: 'done',
+    summary: 'Manual visible route completed from prompt guidance.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-decisions.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    createdAt: manualRouteBinding.createdAt,
+    routeOutcome: {
+      taskClassification: promptValue(v0bPrompt, 'taskClassification'),
+      requestedRoute: promptValue(v0bPrompt, 'requestedRoute'),
+      resolvedRoute: promptValue(v0bPrompt, 'resolvedRoute'),
+      resolutionStatus: promptValue(v0bPrompt, 'resolutionStatus')
+    }
+  }));
+
+  const delta = {
+    schemaVersion: 'chiefops.v2',
+    kind: 'execution_delta',
+    prefixBindingId: 'prefix_1',
+    prefixHash: 'sha256:prefix',
+    deltaBindingId: 'delta_prefix_1_2',
+    sequence: 2,
+    currentSlice: 'return manual route proof',
+    majorPhase: 'verify',
+    expectedCheckInBy: '2026-07-10T14:00:00.000Z'
+  };
+  const effective = {
+    ...manualRouteBinding,
+    bindingId: 'prefix_1',
+    currentSlice: delta.currentSlice,
+    majorPhase: delta.majorPhase,
+    expectedCheckInBy: delta.expectedCheckInBy,
+    sourceProgressRef: {
+      ...bindingPacket.sourceProgressRef,
+      blockId: delta.deltaBindingId,
+      contentHash: 'sha256:delta-content',
+      observedAt: '2026-07-10T13:00:00.000Z'
+    }
+  };
+  const v2Prompt = buildV2DeltaHandoffPrompt({
+    delta,
+    effectiveV0bBinding: effective,
+    bindingObservation
+  });
+  for (const [field, value] of [
+    ['taskClassification', 'tracked'],
+    ['requestedRoute', 'visible_worker'],
+    ['resolvedRoute', 'visible_worker'],
+    ['resolutionStatus', 'manual_handoff_completed']
+  ]) {
+    assert.match(v2Prompt, new RegExp(`^routeOutcome\\.${field}: ${value}$`, 'm'));
+  }
+  assert.ok(measureChiefOpsHandoffText(v2Prompt).lines <= 48);
+  assert.ok(measureChiefOpsHandoffText(v2Prompt).chars <= 4000);
+  assert.ok(measureChiefOpsHandoffText(v2Prompt).approxTokens <= 1000);
+
+  const routeVariants = [
+    {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_requested',
+      approvedResolvedRoute: null
+    },
+    {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'capability_unavailable',
+      approvedResolvedRoute: null
+    },
+    {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'chief_downgrade',
+      approvedResolvedRoute: 'subagent',
+      downgradeReason: 'bounded Chief downgrade'
+    },
+    {
+      taskClassification: 'tracked',
+      requestedRoute: 'subagent',
+      resolutionStatus: 'handoff_pending',
+      approvedResolvedRoute: null
+    }
+  ];
+  for (const candidate of routeVariants) {
+    const v0bCandidate = buildManualHandoffPrompt({
+      bindingPacket: { ...operatingModelBindingPacket, routeDecision: candidate },
+      bindingObservation
+    });
+    const v2Candidate = buildV2DeltaHandoffPrompt({
+      delta,
+      effectiveV0bBinding: { ...effective, routeDecision: candidate },
+      bindingObservation
+    });
+    assert.doesNotMatch(v0bCandidate, /^routeOutcome\./m);
+    assert.doesNotMatch(v2Candidate, /^routeOutcome\./m);
+  }
+});
+
+test('capability-unavailable handoffs render a schema-safe nested dispatch outcome', () => {
+  const unavailableBinding = {
+    ...operatingModelBindingPacket,
+    dispatchRequest: {
+      requestedModel: 'gpt-5.6-luna',
+      reasoningEffort: 'xhigh',
+      speed: 'standard',
+      availabilityStatus: 'capability_unavailable'
+    }
+  };
+  const unavailablePrompt = buildManualHandoffPrompt({
+    bindingPacket: unavailableBinding,
+    bindingObservation
+  });
+  const promptValue = (field) => {
+    const match = unavailablePrompt.match(new RegExp(`^dispatchOutcome\\.${field}: (.*)$`, 'm'));
+    assert.ok(match, `unavailable prompt must provide dispatchOutcome.${field}`);
+    return match[1] === 'null' ? null : match[1];
+  };
+  const dispatchOutcome = {
+    resolvedModel: promptValue('resolvedModel'),
+    resolvedReasoningEffort: promptValue('resolvedReasoningEffort'),
+    resolvedSpeed: promptValue('resolvedSpeed'),
+    applicationStatus: promptValue('applicationStatus')
+  };
+  assert.deepEqual(dispatchOutcome, {
+    resolvedModel: null,
+    resolvedReasoningEffort: null,
+    resolvedSpeed: null,
+    applicationStatus: 'capability_unavailable'
+  });
+  for (const field of ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason', 'resolvedModel', 'resolvedReasoningEffort', 'resolvedSpeed', 'applicationStatus']) {
+    assert.doesNotMatch(unavailablePrompt, new RegExp(`^${field}:`, 'm'), `unavailable prompt must omit top-level ${field}`);
+  }
+
+  const unavailableReceipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_unavailable_prompt',
+    receiptType: 'handoff_pending',
+    authorityTaskId: unavailableBinding.authorityTaskId,
+    workerId: unavailableBinding.workerId,
+    bindingVersion: unavailableBinding.bindingVersion,
+    currentSlice: unavailableBinding.currentSlice,
+    proofTarget: unavailableBinding.proofTarget,
+    evidenceSink: unavailableBinding.evidenceSink,
+    capabilityClass: unavailableBinding.capabilityClass,
+    riskClass: unavailableBinding.riskClass,
+    majorPhase: unavailableBinding.majorPhase,
+    reasoningDemand: unavailableBinding.reasoningDemand,
+    costPreference: unavailableBinding.costPreference,
+    latencyClass: unavailableBinding.latencyClass,
+    permissionClass: unavailableBinding.permissionClass,
+    delegationPolicy: unavailableBinding.delegationPolicy,
+    workType: unavailableBinding.workType,
+    authorityMode: unavailableBinding.authorityMode,
+    allowedOps: unavailableBinding.allowedOps,
+    sourceProgressRef: unavailableBinding.sourceProgressRef,
+    observedAt: unavailableBinding.observedAt,
+    status: 'pending',
+    summary: 'Capability remains unavailable.',
+    evidenceRefs: [],
+    nextSuggestedAction: 'return to Chief',
+    createdAt: unavailableBinding.createdAt,
+    dispatchOutcome
+  };
+  assert.doesNotThrow(() => validateWorkerReceipt(unavailableReceipt));
+
+  const manualPendingPrompt = buildManualHandoffPrompt({
+    bindingPacket: {
+      ...operatingModelBindingPacket,
+      dispatchRequest: {
+        requestedModel: 'balanced-current',
+        reasoningEffort: 'medium',
+        speed: 'standard',
+        availabilityStatus: 'manual_pending'
+      }
+    },
+    bindingObservation,
+    modelResolution: { ...operatingModelResolution, applicationStatus: 'manual_pending' }
+  });
+  assert.match(manualPendingPrompt, /resolvedModelAtRun: balanced-current/);
+  assert.match(manualPendingPrompt, /resolvedThinkingAtRun: medium/);
+  assert.match(manualPendingPrompt, /modelResolutionReason: first_compatible_profile_match/);
+  assert.match(manualPendingPrompt, /applicationStatus: manual_pending/);
+  assert.doesNotMatch(manualPendingPrompt, /^dispatchOutcome\./m);
 });
 
 test('permission admission fails closed without verified runtime enforcement', () => {

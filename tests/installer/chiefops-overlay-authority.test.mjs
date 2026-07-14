@@ -160,6 +160,162 @@ test('V2 latest delta resolves to a V0b-effective binding with a raw source-prog
   );
 });
 
+test('V2 stable-prefix to delta ingress preserves route and both dispatch evidence branches', async (t) => {
+  async function runBranch(availabilityStatus) {
+    const root = await mkdtemp(path.join(os.tmpdir(), `chiefops-v2-${availabilityStatus}-`));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const now = new Date().toISOString();
+    const codexHome = availabilityStatus === 'manual_pending' ? path.join(root, '.codex') : null;
+    let inventory = null;
+    if (codexHome) {
+      await mkdir(codexHome, { recursive: true });
+      await writeFile(path.join(codexHome, 'models_cache.json'), JSON.stringify({
+        models: [{ slug: 'balanced-current', supported_reasoning_levels: [{ effort: 'medium' }] }]
+      }));
+      inventory = await readLiveCodexModelInventory({ codexHome, now });
+    }
+
+    const prefix = v2StablePrefix(root, {
+      routeDecision: {
+        taskClassification: 'tracked',
+        requestedRoute: 'visible_worker',
+        resolutionStatus: 'native_control_requested',
+        approvedResolvedRoute: null
+      },
+      dispatchRequest: {
+        requestedModel: availabilityStatus === 'manual_pending' ? 'balanced-current' : 'gpt-5.6-luna',
+        reasoningEffort: availabilityStatus === 'manual_pending' ? 'medium' : 'xhigh',
+        speed: 'standard',
+        availabilityStatus
+      },
+      ...(availabilityStatus === 'manual_pending'
+        ? {
+            dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+            dispatchDecision: {
+              decidedBy: 'chief-thread',
+              decidedAt: now,
+              inventory,
+              preferredModel: 'balanced-current',
+              preferredThinking: 'medium',
+              applicationStatus: 'manual_pending'
+            }
+          }
+        : {})
+    });
+    const delta = v2Delta(prefix);
+    await task(
+      root,
+      'chiefops-demo',
+      'chiefops-demo',
+      ['# V2', serializeChiefOpsBlock('ChiefOpsV2StablePrefix', prefix), serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', delta)].join('\n\n')
+    );
+    const deltaFile = path.join(root, `${availabilityStatus}-delta.json`);
+    await writeFile(deltaFile, JSON.stringify(delta, null, 2));
+
+    let modelResolution = null;
+    let modelResolutionFile = null;
+    if (availabilityStatus === 'manual_pending') {
+      modelResolution = {
+        requestedCapabilityClass: prefix.capabilityClass,
+        requestedReasoningDemand: prefix.reasoningDemand,
+        requestedCostPreference: prefix.costPreference,
+        requestedLatencyClass: prefix.latencyClass,
+        upgradeTrigger: prefix.upgradeTrigger,
+        resolvedModelAtRun: 'balanced-current',
+        resolvedThinkingAtRun: 'medium',
+        modelResolutionReason: 'fixture',
+        nativeThreadControl: false,
+        inventorySourceRef: inventory.sourceRef,
+        inventoryObservedAt: inventory.observedAt,
+        inventoryFingerprint: inventory.fingerprint,
+        applicationStatus: 'manual_pending'
+      };
+      modelResolutionFile = path.join(root, 'model-resolution.json');
+      await writeFile(modelResolutionFile, JSON.stringify(modelResolution, null, 2));
+    }
+
+    const handoff = await buildHandoffFromFile({
+      root,
+      file: deltaFile,
+      modelResolutionFile,
+      codexHome,
+      now,
+      permissionEnforcementObservation: {
+        status: 'verified',
+        effectiveClass: 'observe',
+        effectiveOps: ['inspect'],
+        evidenceRef: 'test:v2-dispatch-branch'
+      }
+    });
+    assert.match(handoff, /requestedRoute: visible_worker/);
+    assert.match(handoff, new RegExp(`availabilityStatus: ${availabilityStatus}`));
+    assert.match(handoff, /resolvedSpeed: null/);
+    if (availabilityStatus === 'manual_pending') {
+      assert.match(handoff, /resolvedModelAtRun: balanced-current/);
+      assert.match(handoff, /resolvedThinkingAtRun: medium/);
+      assert.match(handoff, /modelResolutionReason: fixture/);
+      assert.match(handoff, /applicationStatus: manual_pending/);
+    } else {
+      assert.doesNotMatch(handoff, /resolvedModelAtRun:/);
+      assert.doesNotMatch(handoff, /modelResolutionReason:/);
+    }
+
+    const resolved = await readAuthoritativeBinding({ root, bindingPacket: delta });
+    const receipt = {
+      ...resolved.bindingPacket,
+      receiptId: `receipt_v2_${availabilityStatus}`,
+      receiptType: 'done',
+      threadId: 'thread-1',
+      status: 'done',
+      summary: 'V2 route and dispatch evidence was verified.',
+      evidenceRefs: ['tests/installer/chiefops-overlay-authority.test.mjs'],
+      nextSuggestedAction: 'return to Chief',
+      createdAt: now,
+      routeOutcome: {
+        taskClassification: 'tracked',
+        requestedRoute: 'visible_worker',
+        resolvedRoute: 'visible_worker',
+        resolutionStatus: 'native_control_verified'
+      },
+      dispatchOutcome: {
+        resolvedModel: null,
+        resolvedReasoningEffort: null,
+        resolvedSpeed: null,
+        applicationStatus: availabilityStatus
+      },
+      scopeCheck: { nonGoalsChecked: true, violations: [] }
+    };
+    if (availabilityStatus === 'manual_pending') {
+      const promptValue = (field) => {
+        const match = handoff.match(new RegExp(`^${field}: (.*)$`, 'm'));
+        assert.ok(match, `V2 prompt must provide ${field}`);
+        return match[1];
+      };
+      Object.assign(receipt, {
+        resolvedModelAtRun: promptValue('resolvedModelAtRun'),
+        resolvedThinkingAtRun: promptValue('resolvedThinkingAtRun'),
+        modelResolutionReason: promptValue('modelResolutionReason'),
+        applicationStatus: promptValue('applicationStatus')
+      });
+    }
+    assert.deepEqual(
+      await gateWorkerReceiptWithAuthority({
+        root,
+        codexHome,
+        now,
+        bindingPacket: delta,
+        receipt,
+        approvalSatisfied: true,
+        modelResolution
+      }),
+      { outcome: 'accept', reason: null }
+    );
+  }
+
+  await runBranch('manual_pending');
+  await runBranch('capability_unavailable');
+});
+
 test('V2 authority resolution rejects prefix-only, replayed, duplicate, and deadline-extending input', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-v2-reject-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -221,6 +377,602 @@ test('V2 authority resolution rejects prefix-only, replayed, duplicate, and dead
     () => readAuthoritativeBinding({ root, bindingPacket: extendedDeadline }),
     /binding_mismatch/
   );
+});
+
+test('V0b authority resolution rejects duplicate candidate binding ids before selection', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-v0b-duplicate-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = '2026-07-13T00:15:00.000Z';
+  const binding = {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: 'bind_duplicate',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'duplicate authority proof',
+    proofTarget: 'duplicate binding ids fail closed',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_duplicate',
+      startLine: null,
+      contentHash: 'sha256:duplicate',
+      observedAt: now
+    },
+    observedAt: now
+  };
+  const block = serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding);
+  await task(root, 'chiefops-demo', 'chiefops-demo', `# Progress\n\n${block}\n\n${block}\n`);
+  await assert.rejects(
+    () => readAuthoritativeBinding({ root, bindingPacket: binding }),
+    /duplicate bindingId/
+  );
+});
+
+test('authority gate canonicalizes documented deep-reasoning route evidence', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-route-alias-gate-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = '2026-07-13T00:15:00.000Z';
+  const authoritativeBinding = {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: 'bind_route_alias',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'documented route alias proof',
+    proofTarget: 'canonical route evidence is accepted',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    routeDecision: {
+      taskClassification: 'deep_reasoning',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_requested',
+      approvedResolvedRoute: null
+    },
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_route_alias',
+      startLine: null,
+      contentHash: 'sha256:route-alias',
+      observedAt: now
+    },
+    observedAt: now
+  };
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    `# Progress\n\n${serializeChiefOpsBlock('ChiefOpsWorkerBinding', authoritativeBinding)}\n`
+  );
+
+  const callerBinding = {
+    ...authoritativeBinding,
+    routeDecision: {
+      ...authoritativeBinding.routeDecision,
+      taskClassification: 'deep-reasoning'
+    }
+  };
+  const receipt = {
+    ...callerBinding,
+    receiptId: 'receipt_route_alias',
+    receiptType: 'done',
+    status: 'done',
+    summary: 'documented route alias was accepted',
+    evidenceRefs: ['tests/installer/chiefops-overlay-authority.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    createdAt: now,
+    routeOutcome: {
+      taskClassification: 'deep-reasoning',
+      requestedRoute: 'visible_worker',
+      resolvedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_verified'
+    },
+    scopeCheck: { nonGoalsChecked: true, violations: [] }
+  };
+
+  const resolved = await readAuthoritativeBinding({ root, bindingPacket: callerBinding });
+  assert.equal(resolved.bindingPacket.routeDecision.taskClassification, 'deep_reasoning');
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, bindingPacket: callerBinding, receipt }),
+    { outcome: 'accept', reason: null },
+    'raw documented classification aliases are canonicalized before authority comparisons'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: { ...callerBinding, routeDecision: { ...callerBinding.routeDecision, taskClassification: 'invalid' } },
+      receipt
+    }),
+    { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' },
+    'invalid caller classifications still fail closed'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: callerBinding,
+      receipt: { ...receipt, routeOutcome: { ...receipt.routeOutcome, taskClassification: 'invalid' } }
+    }),
+    { outcome: 'block', reason: 'route_transition_mismatch' },
+    'invalid receipt classifications still fail closed'
+  );
+});
+
+test('manual visible handoff completion is accepted only from authoritative pending routes', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-manual-route-terminal-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = '2026-07-13T00:15:00.000Z';
+  const manualRoute = {
+    taskClassification: 'tracked',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'handoff_pending',
+    approvedResolvedRoute: null
+  };
+  const makeBinding = (bindingId, routeDecision, overrides = {}) => ({
+    schemaVersion: 'chiefops.v0b',
+    bindingId,
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: 'thread-bound',
+    sessionId: null,
+    currentSlice: `${bindingId} proof`,
+    proofTarget: 'manual route terminal outcome is authority-bound',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    permissionClass: 'observe',
+    requiresHumanApproval: false,
+    nonGoals: ['do not widen scope'],
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    routeDecision,
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: bindingId,
+      startLine: null,
+      contentHash: `sha256:${bindingId}`,
+      observedAt: now
+    },
+    observedAt: now,
+    ...overrides
+  });
+  const pendingBinding = makeBinding('bind_manual_route_pending', manualRoute);
+  const nativeBinding = makeBinding('bind_manual_route_native', {
+    taskClassification: 'tracked',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'native_control_requested',
+    approvedResolvedRoute: null
+  });
+  const unavailableBinding = makeBinding('bind_manual_route_unavailable', {
+    taskClassification: 'tracked',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'capability_unavailable',
+    approvedResolvedRoute: null
+  });
+  const downgradeBinding = makeBinding('bind_manual_route_downgrade', {
+    taskClassification: 'tracked',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'chief_downgrade',
+    approvedResolvedRoute: 'subagent',
+    downgradeReason: 'bounded Chief downgrade'
+  });
+  const nonVisibleBinding = makeBinding('bind_manual_route_non_visible', {
+    taskClassification: 'tracked',
+    requestedRoute: 'subagent',
+    resolutionStatus: 'handoff_pending',
+    approvedResolvedRoute: null
+  });
+  const legacyBinding = makeBinding('bind_manual_route_legacy', undefined);
+  const dispatchBinding = makeBinding('bind_manual_route_dispatch', manualRoute, {
+    dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+    dispatchDecision: {
+      decidedBy: 'chief-thread',
+      decidedAt: now,
+      inventory: {
+        sourceRef: 'codex.models_cache',
+        observedAt: now,
+        fingerprint: 'sha256:' + 'a'.repeat(64)
+      },
+      preferredModel: 'balanced-current',
+      preferredThinking: 'medium',
+      applicationStatus: 'manual_pending'
+    },
+    dispatchRequest: {
+      requestedModel: 'balanced-current',
+      reasoningEffort: 'medium',
+      speed: 'standard',
+      availabilityStatus: 'manual_pending'
+    }
+  });
+  const bindings = [
+    pendingBinding,
+    nativeBinding,
+    unavailableBinding,
+    downgradeBinding,
+    nonVisibleBinding,
+    legacyBinding,
+    dispatchBinding
+  ];
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    bindings.map((binding) => serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding)).join('\n\n')
+  );
+
+  const receiptFor = (binding, overrides = {}) => ({
+    authorityTaskId: binding.authorityTaskId,
+    workerId: binding.workerId,
+    threadId: binding.threadId,
+    sessionId: binding.sessionId,
+    currentSlice: binding.currentSlice,
+    proofTarget: binding.proofTarget,
+    evidenceSink: binding.evidenceSink,
+    capabilityClass: binding.capabilityClass,
+    riskClass: binding.riskClass,
+    permissionClass: binding.permissionClass,
+    workType: binding.workType,
+    authorityMode: binding.authorityMode,
+    allowedOps: binding.allowedOps,
+    sourceProgressRef: binding.sourceProgressRef,
+    bindingVersion: binding.bindingVersion,
+    receiptId: `receipt_${binding.bindingId}`,
+    receiptType: 'done',
+    status: 'done',
+    summary: 'Manual handoff completion was pasted back.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-authority.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    createdAt: now,
+    observedAt: now,
+    routeOutcome: {
+      taskClassification: 'tracked',
+      requestedRoute: binding.routeDecision?.requestedRoute ?? 'visible_worker',
+      resolvedRoute: 'visible_worker',
+      resolutionStatus: 'manual_handoff_completed'
+    },
+    ...overrides
+  });
+
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, bindingPacket: pendingBinding, receipt: receiptFor(pendingBinding) }),
+    { outcome: 'accept', reason: null }
+  );
+  for (const binding of [nativeBinding, unavailableBinding, downgradeBinding, nonVisibleBinding]) {
+    assert.deepEqual(
+      await gateWorkerReceiptWithAuthority({ root, bindingPacket: binding, receipt: receiptFor(binding) }),
+      { outcome: 'block', reason: 'route_transition_mismatch' },
+      `${binding.bindingId} must not accept manual_handoff_completed`
+    );
+  }
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: pendingBinding,
+      receipt: receiptFor(pendingBinding, {
+        routeOutcome: {
+          taskClassification: 'tracked',
+          requestedRoute: 'visible_worker',
+          resolvedRoute: null,
+          resolutionStatus: 'handoff_pending'
+        }
+      })
+    }),
+    { outcome: 'block', reason: 'route_transition_mismatch' },
+    'handoff_pending cannot be a done route outcome'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: unavailableBinding,
+      receipt: receiptFor(unavailableBinding, {
+        routeOutcome: {
+          taskClassification: 'tracked',
+          requestedRoute: 'visible_worker',
+          resolvedRoute: null,
+          resolutionStatus: 'capability_unavailable'
+        }
+      })
+    }),
+    { outcome: 'block', reason: 'route_transition_mismatch' },
+    'capability_unavailable cannot be a done route outcome'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: pendingBinding,
+      receipt: receiptFor(pendingBinding, { receiptType: 'blocked', status: 'blocked' })
+    }),
+    { outcome: 'block', reason: 'route_transition_mismatch' },
+    'manual_handoff_completed is terminal and requires a done receipt'
+  );
+  for (const resolvedRoute of [null, 'subagent']) {
+    assert.deepEqual(
+      await gateWorkerReceiptWithAuthority({
+        root,
+        bindingPacket: pendingBinding,
+        receipt: receiptFor(pendingBinding, {
+          routeOutcome: {
+            taskClassification: 'tracked',
+            requestedRoute: 'visible_worker',
+            resolvedRoute,
+            resolutionStatus: 'manual_handoff_completed'
+          }
+        })
+      }),
+      { outcome: 'block', reason: 'route_transition_mismatch' }
+    );
+  }
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: pendingBinding,
+      receipt: receiptFor(pendingBinding, { routeOutcome: undefined })
+    }),
+    { outcome: 'block', reason: 'route_evidence_unbound' }
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: legacyBinding,
+      receipt: receiptFor(legacyBinding)
+    }),
+    { outcome: 'block', reason: 'route_evidence_unbound' }
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: pendingBinding,
+      receipt: receiptFor(pendingBinding, { evidenceRefs: [] })
+    }),
+    { outcome: 'block', reason: 'evidence_missing' }
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: pendingBinding,
+      receipt: receiptFor(pendingBinding, { threadId: 'thread-forged' })
+    }),
+    { outcome: 'block', reason: 'binding_identity_mismatch' }
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: pendingBinding,
+      receipt: receiptFor(pendingBinding, { permissionClass: 'workspace' })
+    }),
+    { outcome: 'block', reason: 'binding_identity_mismatch' }
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: pendingBinding,
+      receipt: receiptFor(pendingBinding, { scopeCheck: undefined })
+    }),
+    { outcome: 'block', reason: 'scope_check_missing' }
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: dispatchBinding,
+      receipt: receiptFor(dispatchBinding)
+    }),
+    { outcome: 'block', reason: 'dispatch_evidence_unbound' }
+  );
+});
+
+test('dispatch-only unavailable handoff retains permission assessment without model resolution', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-dispatch-only-unavailable-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = '2026-07-13T00:15:00.000Z';
+  const binding = {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: 'bind_dispatch_only_unavailable',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'dispatch-only unavailable proof',
+    proofTarget: 'permission assessment remains authoritative',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    dispatchRequest: {
+      requestedModel: 'gpt-5.6-luna',
+      reasoningEffort: 'xhigh',
+      speed: 'standard',
+      availabilityStatus: 'capability_unavailable'
+    },
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_dispatch_only_unavailable',
+      startLine: null,
+      contentHash: 'sha256:dispatch-only',
+      observedAt: now
+    },
+    observedAt: now
+  };
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    `# Progress\n\n${serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding)}\n`
+  );
+  const bindingFile = path.join(root, 'binding.json');
+  await writeFile(bindingFile, JSON.stringify(binding, null, 2));
+
+  await assert.rejects(
+    () => buildHandoffFromFile({ root, file: bindingFile }),
+    /permission_enforcement_unverified/,
+    'unavailable dispatch-only handoff requires permission evidence'
+  );
+  await assert.rejects(
+    () => buildHandoffFromFile({
+      root,
+      file: bindingFile,
+      permissionEnforcementObservation: {
+        status: 'verified',
+        effectiveClass: 'workspace',
+        effectiveOps: ['inspect'],
+        evidenceRef: 'test:insufficient-permission-ceiling'
+      }
+    }),
+    /permission_enforcement_unverified/,
+    'unavailable dispatch-only handoff rejects an insufficient permission ceiling'
+  );
+  const handoff = await buildHandoffFromFile({
+    root,
+    file: bindingFile,
+    permissionEnforcementObservation: {
+      status: 'verified',
+      effectiveClass: 'observe',
+      effectiveOps: ['inspect'],
+      evidenceRef: 'test:permission-observation'
+    }
+  });
+  assert.match(handoff, /availabilityStatus: capability_unavailable/);
+  assert.match(handoff, /permissionEnforcementStatus: verified/);
+});
+
+test('dispatch-only manual-pending handoff retains trusted selection and permission assessment', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-dispatch-only-manual-pending-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = new Date().toISOString();
+  const codexHome = path.join(root, '.codex');
+  await mkdir(codexHome, { recursive: true });
+  await writeFile(path.join(codexHome, 'models_cache.json'), JSON.stringify({
+    models: [{ slug: 'balanced-current', supported_reasoning_levels: [{ effort: 'medium' }] }]
+  }));
+  const inventory = await readLiveCodexModelInventory({ codexHome, now });
+  const binding = {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: 'bind_dispatch_only_manual_pending',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'dispatch-only manual pending proof',
+    proofTarget: 'trusted selection and permission assessment remain authoritative',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    dispatchRequest: {
+      requestedModel: 'balanced-current',
+      reasoningEffort: 'medium',
+      speed: 'standard',
+      availabilityStatus: 'manual_pending'
+    },
+    dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+    dispatchDecision: {
+      decidedBy: 'chief-thread',
+      decidedAt: now,
+      inventory,
+      preferredModel: 'balanced-current',
+      preferredThinking: 'medium',
+      applicationStatus: 'manual_pending'
+    },
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_dispatch_only_manual_pending',
+      startLine: null,
+      contentHash: 'sha256:dispatch-only-manual-pending',
+      observedAt: now
+    },
+    observedAt: now
+  };
+  const modelResolution = {
+    requestedCapabilityClass: binding.capabilityClass,
+    requestedReasoningDemand: 'standard',
+    requestedCostPreference: 'balanced',
+    requestedLatencyClass: 'standard',
+    upgradeTrigger: null,
+    resolvedModelAtRun: binding.dispatchRequest.requestedModel,
+    resolvedThinkingAtRun: binding.dispatchRequest.reasoningEffort,
+    modelResolutionReason: 'trusted fixture',
+    nativeThreadControl: false,
+    inventorySourceRef: inventory.sourceRef,
+    inventoryObservedAt: inventory.observedAt,
+    inventoryFingerprint: inventory.fingerprint,
+    applicationStatus: 'manual_pending'
+  };
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    `# Progress\n\n${serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding)}\n`
+  );
+  const bindingFile = path.join(root, 'binding.json');
+  const modelResolutionFile = path.join(root, 'model-resolution.json');
+  await writeFile(bindingFile, JSON.stringify(binding, null, 2));
+  await writeFile(modelResolutionFile, JSON.stringify(modelResolution, null, 2));
+
+  await assert.rejects(
+    () => buildHandoffFromFile({ root, file: bindingFile, modelResolutionFile, codexHome, now }),
+    /permission_enforcement_unverified/,
+    'manual-pending dispatch-only handoff requires permission evidence'
+  );
+  const handoff = await buildHandoffFromFile({
+    root,
+    file: bindingFile,
+    modelResolutionFile,
+    codexHome,
+    now,
+    permissionEnforcementObservation: {
+      status: 'verified',
+      effectiveClass: 'observe',
+      effectiveOps: ['inspect'],
+      evidenceRef: 'test:permission-observation'
+    }
+  });
+  assert.match(handoff, /availabilityStatus: manual_pending/);
+  assert.match(handoff, /resolvedModelAtRun: balanced-current/);
+  assert.match(handoff, /permissionEnforcementStatus: verified/);
 });
 
 test('V2 resolution permits only a trusted envelope transition and keeps no-envelope transitions at Chief', async (t) => {

@@ -343,6 +343,12 @@ test('public explicit-dispatch handoff uses trusted catalog evidence and stays m
         preferredThinking: 'medium',
         applicationStatus: 'manual_pending'
       },
+      dispatchRequest: {
+        requestedModel: 'balanced-preferred',
+        reasoningEffort: 'medium',
+        speed: 'standard',
+        availabilityStatus: 'manual_pending'
+      },
       upgradeTrigger: 'scope change',
       expectedCheckInBy: new Date(Date.parse(now) + 600000).toISOString(),
       stopCondition: 'return to Chief',
@@ -367,16 +373,59 @@ test('public explicit-dispatch handoff uses trusted catalog evidence and stays m
     await writeFile(path.join(taskDir, 'progress.md'), '# Progress\n\n' + serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding) + '\n');
     const bindingFile = path.join(root, 'dispatch-binding.json');
     const resolutionFile = path.join(root, 'dispatch-resolution.json');
+    const permissionObservationFile = path.join(root, 'dispatch-permission.json');
+    const insufficientPermissionFile = path.join(root, 'dispatch-permission-insufficient.json');
+    const invalidPermissionFile = path.join(root, 'dispatch-permission-invalid.json');
     await writeFile(bindingFile, JSON.stringify(binding));
     await writeFile(resolutionFile, JSON.stringify(resolution));
+    await writeFile(permissionObservationFile, JSON.stringify({
+      status: 'verified',
+      effectiveClass: 'observe',
+      effectiveOps: ['inspect'],
+      evidenceRef: 'test:permission-observation'
+    }));
+    await writeFile(insufficientPermissionFile, JSON.stringify({
+      status: 'verified',
+      effectiveClass: 'workspace',
+      effectiveOps: ['inspect', 'write'],
+      evidenceRef: 'test:insufficient-permission'
+    }));
+    await writeFile(invalidPermissionFile, '{invalid json');
 
     const command = ['chiefops', 'overlay', 'handoff', '--file', bindingFile, '--model-resolution', resolutionFile, '--codex-home', codexHome];
-    const { stdout, stderr } = await harnessCommand(root, ...command);
+    await assert.rejects(
+      harnessCommand(root, ...command),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /permission_enforcement_unverified/);
+        return true;
+      },
+      'dispatch handoff without permission observation must fail'
+    );
+    await assert.rejects(
+      harnessCommand(root, ...command, '--permission-observation', insufficientPermissionFile),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /permission_enforcement_unverified/);
+        return true;
+      },
+      'dispatch handoff with insufficient permission observation must fail'
+    );
+    await assert.rejects(
+      harnessCommand(root, ...command, '--permission-observation', invalidPermissionFile),
+      (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /JSON|Unexpected token/);
+        return true;
+      },
+      'dispatch handoff with invalid permission observation must fail'
+    );
+    const { stdout, stderr } = await harnessCommand(root, ...command, '--permission-observation', permissionObservationFile);
     assert.equal(stderr, '');
     assert.match(stdout, /resolvedModelAtRun: balanced-preferred/);
     assert.match(stdout, /resolvedThinkingAtRun: medium/);
     assert.match(stdout, /applicationStatus: manual_pending/);
-    assert.match(stdout, /permissionEnforcementStatus: unverified/);
+    assert.match(stdout, /permissionEnforcementStatus: verified/);
 
     await assert.rejects(
       buildHandoffFromFile({

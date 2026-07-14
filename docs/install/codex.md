@@ -64,6 +64,11 @@ For `design/planning` in Codex, `review proof` remains primary; `lifecycle/gover
 
 This vocabulary does not change Codex native `/goal` positioning. It only makes proof expectations explicit so review, reconciliation, and operational evidence can be primary when unit or BDD checks are not the highest-value proof.
 
+For ChiefOps route and dispatch evidence, keep binding requests separate from
+receipt outcomes. Optional route and dispatch cohorts must be present on both
+sides or neither side; unobserved host application stays null and manual
+pending/unavailable rather than claiming a model, effort, or speed was applied.
+
 ## Goal-like Continuations
 
 Codex `/goal` stays native. Harness does not add an external runner and does not modify Codex internals.

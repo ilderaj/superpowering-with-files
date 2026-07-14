@@ -13,6 +13,15 @@ const SECTION_LABELS = [
   'Next Step'
 ];
 
+const ITERATIVE_INTENT_MARKERS = [
+  /\b(?:repeat|re-run|iterate)\b[^\r\n]{0,80}\b(?:pass(?:es)?|iterations?)\b/i,
+  /\b(?:bounded|iterative)\s+(?:pass(?:es)?|workflows?)\b/i,
+  /\buntil\s+(?:convergence|no measurable progress|target is met)\b/i
+];
+
+const ITERATION_CONTRACT_PATTERN =
+  /^Iteration Contract:\s*each pass re[- ]reads fresh evidence\/feedback\/state and uses it to select the next bounded action\s*[.;,]?\s*if it cannot change that choice\s*[,;:]?\s*the task is reclassified as a one[- ]shot or staged workflow\s*\.?$/i;
+
 function defaultSkillRoot() {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 }
@@ -60,6 +69,23 @@ function includesAll(text, terms) {
   return terms.every((term) => normalizedText.includes(term.replaceAll('`', '')));
 }
 
+function hasIterativeIntent(objective, context) {
+  const scope = `${objective}\n${context}`;
+  return ITERATIVE_INTENT_MARKERS.some((marker) => marker.test(scope));
+}
+
+function hasIterationContract(workDiscipline) {
+  const contractLine = workDiscipline
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find((line) => /^Iteration Contract:/i.test(line));
+  if (!contractLine) {
+    return false;
+  }
+
+  return ITERATION_CONTRACT_PATTERN.test(contractLine.replaceAll('`', '').replace(/\s+/g, ' '));
+}
+
 function hasNumericTarget(doneCriteria) {
   return /\b\d+(?:\.\d+)?\b/.test(doneCriteria);
 }
@@ -103,6 +129,8 @@ export function evaluatePrompt(fixture, prompt) {
   const innerPrompt = fencedPrompt ?? prompt;
   const sections = extractSections(innerPrompt);
   const doneCriteria = sections.get('Done Criteria') ?? '';
+  const objective = sections.get('Objective') ?? '';
+  const context = sections.get('Context') ?? '';
   const workDiscipline = sections.get('Work Discipline') ?? '';
   const validation = sections.get('Validation') ?? '';
   const stopEscalate = sections.get('Stop/Escalate') ?? '';
@@ -147,6 +175,14 @@ export function evaluatePrompt(fixture, prompt) {
   );
   maybeAdd(hardFailures, stopEscalate.length > 0, 'Stop/Escalate section must be non-empty');
   maybeAdd(hardFailures, nextStep.length > 0, 'Next Step section must be non-empty');
+
+  if (hasIterativeIntent(objective, context)) {
+    maybeAdd(
+      hardFailures,
+      hasIterationContract(workDiscipline),
+      'Iterative prompts must include one causal `Iteration Contract:` line: each pass re-reads fresh evidence/feedback/state, uses it to select the next bounded action, and falls back to one-shot or staged work when it cannot change that choice'
+    );
+  }
 
   if (fixture.requireAssumptions) {
     maybeAdd(hardFailures, innerPrompt.includes('Assumptions:'), 'fixture requires explicit assumptions');

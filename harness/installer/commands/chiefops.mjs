@@ -33,7 +33,7 @@ function usage() {
     'Usage: ./scripts/harness chiefops board --task <task-id> [--json]',
     '       ./scripts/harness chiefops overlay index --task <task-id> [--json]',
     '       ./scripts/harness chiefops overlay validate-binding --file <json-file>',
-    '       ./scripts/harness chiefops overlay handoff --file <json-file> [--model-resolution <json-file>] [--codex-home <dir>]',
+    '       ./scripts/harness chiefops overlay handoff --file <json-file> [--model-resolution <json-file>] [--permission-observation <json-file>] [--codex-home <dir>]',
     '       ./scripts/harness chiefops overlay subagent-handoff --file <parent-binding.json> --child <child-dispatch.json> --codex-home <dir>',
     '       ./scripts/harness chiefops overlay subagent-return --file <parent-binding.json> --child <child-contract.json> --return <child-return.json> --codex-home <dir>',
     '       ./scripts/harness chiefops overlay resolve-model --capability-class <class> --reasoning-demand <demand> --cost-preference <preference> --latency-class <class> --available <json-file>',
@@ -58,6 +58,7 @@ function usage() {
     '  --mapping <path>            Profile mapping for explicit dispatch',
     '  --binding <path>            Required authority binding for explicit economy dispatch',
     '  --model-resolution <path>   Read exact resolver evidence for a handoff',
+    '  --permission-observation <path>  Read JSON permission enforcement evidence for a handoff',
     '  --help, -h        Show this help message'
   ].join('\n');
 }
@@ -130,8 +131,18 @@ export async function chiefopsCommand(args = []) {
       }
 
       const modelResolutionFile = readOption(overlayArgs, '--model-resolution');
+      const permissionObservationFile = readOption(overlayArgs, '--permission-observation');
       const codexHome = readOption(overlayArgs, '--codex-home');
-      process.stdout.write(`${await buildHandoffFromFile({ root: rootDir, file, modelResolutionFile, codexHome })}\n`);
+      const permissionEnforcementObservation = permissionObservationFile
+        ? await readJsonFile(permissionObservationFile)
+        : null;
+      process.stdout.write(`${await buildHandoffFromFile({
+        root: rootDir,
+        file,
+        modelResolutionFile,
+        codexHome,
+        permissionEnforcementObservation
+      })}\n`);
       return;
     }
 
