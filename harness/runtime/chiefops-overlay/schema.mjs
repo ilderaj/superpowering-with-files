@@ -32,7 +32,7 @@ export const RECEIPT_TYPES_REQUIRING_SESSION_HANDLE = ['binding_verified', 'star
 export const TASK_CLASSIFICATIONS = ['quick', 'tracked', 'deep_reasoning'];
 export const ROUTES = ['visible_worker', 'subagent', 'chief_direct'];
 export const ROUTE_DECISION_STATUSES = ['native_control_requested', 'handoff_pending', 'capability_unavailable', 'chief_downgrade'];
-export const ROUTE_OUTCOME_STATUSES = ['native_control_verified', 'handoff_pending', 'capability_unavailable', 'chief_downgrade'];
+export const ROUTE_OUTCOME_STATUSES = ['native_control_verified', 'handoff_pending', 'capability_unavailable', 'chief_downgrade', 'manual_handoff_completed'];
 
 export function normalizeTaskClassification(value) {
   return value === 'deep-reasoning' ? 'deep_reasoning' : value;
@@ -107,6 +107,12 @@ export const RouteOutcomeSchema = z.object({
   if (outcome.resolutionStatus === 'chief_downgrade') {
     if (outcome.requestedRoute !== 'visible_worker' || !['subagent', 'chief_direct'].includes(outcome.resolvedRoute)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'chief_downgrade requires a visible_worker request and a resolved subagent or chief_direct route.' });
+    }
+    return;
+  }
+  if (outcome.resolutionStatus === 'manual_handoff_completed') {
+    if (outcome.requestedRoute !== 'visible_worker' || outcome.resolvedRoute !== outcome.requestedRoute) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'manual_handoff_completed requires a visible_worker request and matching resolved route.' });
     }
     return;
   }
@@ -451,6 +457,10 @@ export const WorkerReceiptSchema = z.object({
     && ['handoff_pending', 'capability_unavailable'].includes(receipt.routeOutcome.resolutionStatus)
     && receipt.receiptType === 'done') {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'pending or unavailable route outcomes cannot be done receipts.' });
+  }
+  if (receipt.routeOutcome?.resolutionStatus === 'manual_handoff_completed'
+    && receipt.receiptType !== 'done') {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'manual_handoff_completed route outcomes require done receipts.' });
   }
   if (receipt.dispatchOutcome?.applicationStatus === 'manual_pending') {
     const missing = ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason', 'applicationStatus']

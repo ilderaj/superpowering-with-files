@@ -30,6 +30,19 @@ function capabilityUnavailableDispatchOutcomeGuidance() {
   ];
 }
 
+function manualHandoffCompletedRouteOutcomeGuidance(routeDecision) {
+  if (routeDecision?.resolutionStatus !== 'handoff_pending'
+    || routeDecision.requestedRoute !== 'visible_worker') {
+    return [];
+  }
+  return [
+    `routeOutcome.taskClassification: ${routeDecision.taskClassification}`,
+    `routeOutcome.requestedRoute: ${routeDecision.requestedRoute}`,
+    'routeOutcome.resolvedRoute: visible_worker',
+    'routeOutcome.resolutionStatus: manual_handoff_completed'
+  ];
+}
+
 export function assessPermissionEnforcement({ requestedClass, allowedOps, observation }) {
   const verified = observation?.status === 'verified'
     && typeof observation.evidenceRef === 'string'
@@ -79,6 +92,7 @@ export function buildManualHandoffPrompt({
     throw new Error('canonical authority root must not contain control characters');
   }
   const taskDir = path.join(authorityRoot, 'planning/active', bindingPacket.authorityTaskId);
+  const routeOutcomeEvidence = manualHandoffCompletedRouteOutcomeGuidance(bindingPacket.routeDecision);
   const dispatchUnavailable = bindingPacket.dispatchRequest?.availabilityStatus === 'capability_unavailable';
   const selectionEvidence = dispatchUnavailable
     ? []
@@ -122,6 +136,7 @@ export function buildManualHandoffPrompt({
     `routeResolutionStatus: ${bindingPacket.routeDecision?.resolutionStatus ?? ''}`,
     `approvedResolvedRoute: ${bindingPacket.routeDecision ? bindingPacket.routeDecision.approvedResolvedRoute : ''}`,
     `downgradeReason: ${bindingPacket.routeDecision?.downgradeReason ?? ''}`,
+    ...routeOutcomeEvidence,
     `requestedModel: ${bindingPacket.dispatchRequest?.requestedModel ?? ''}`,
     `reasoningEffort: ${bindingPacket.dispatchRequest?.reasoningEffort ?? ''}`,
     `speed: ${bindingPacket.dispatchRequest?.speed ?? ''}`,
@@ -206,6 +221,7 @@ export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingO
     throw new Error('v2_manual_pending_model_resolution_required');
   }
   const taskDir = path.join(authorityRoot, 'planning/active', effectiveV0bBinding.authorityTaskId);
+  const routeOutcomeEvidence = manualHandoffCompletedRouteOutcomeGuidance(effectiveV0bBinding.routeDecision);
   const dispatchUnavailable = effectiveV0bBinding.dispatchRequest?.availabilityStatus === 'capability_unavailable';
   const trustedSelectionEvidence = manualPendingDispatch
     ? [
@@ -244,6 +260,7 @@ export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingO
     `requestedRoute: ${effectiveV0bBinding.routeDecision?.requestedRoute ?? ''}`,
     `routeResolutionStatus: ${effectiveV0bBinding.routeDecision?.resolutionStatus ?? ''}`,
     `approvedResolvedRoute: ${effectiveV0bBinding.routeDecision ? effectiveV0bBinding.routeDecision.approvedResolvedRoute : ''}`,
+    ...routeOutcomeEvidence,
     `requestedModel: ${effectiveV0bBinding.dispatchRequest?.requestedModel ?? ''}`,
     `reasoningEffort: ${effectiveV0bBinding.dispatchRequest?.reasoningEffort ?? ''}`,
     `speed: ${effectiveV0bBinding.dispatchRequest?.speed ?? ''}`,

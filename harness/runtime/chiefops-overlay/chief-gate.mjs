@@ -122,6 +122,11 @@ function routeEvidenceVerdict({ bindingPacket, receipt }) {
   const nativeVerified = normalizedBindingRoute.resolutionStatus === 'native_control_requested'
     && normalizedReceiptRoute.resolutionStatus === 'native_control_verified'
     && normalizedReceiptRoute.resolvedRoute === normalizedReceiptRoute.requestedRoute;
+  const manualHandoffCompleted = normalizedBindingRoute.resolutionStatus === 'handoff_pending'
+    && normalizedBindingRoute.requestedRoute === 'visible_worker'
+    && normalizedReceiptRoute.resolutionStatus === 'manual_handoff_completed'
+    && normalizedReceiptRoute.resolvedRoute === normalizedReceiptRoute.requestedRoute
+    && receipt.receiptType === 'done';
   const authorizedDowngrade = normalizedBindingRoute.resolutionStatus === 'chief_downgrade'
     && normalizedReceiptRoute.resolutionStatus === 'chief_downgrade'
     && normalizedReceiptRoute.resolvedRoute === normalizedBindingRoute.approvedResolvedRoute;
@@ -129,7 +134,7 @@ function routeEvidenceVerdict({ bindingPacket, receipt }) {
   if (receipt.receiptType === 'done' && samePendingStatus) {
     return { outcome: 'block', reason: 'route_transition_mismatch' };
   }
-  if (!samePendingStatus && !nativeVerified && !authorizedDowngrade) {
+  if (!samePendingStatus && !nativeVerified && !manualHandoffCompleted && !authorizedDowngrade) {
     return { outcome: 'block', reason: 'route_transition_mismatch' };
   }
   return null;

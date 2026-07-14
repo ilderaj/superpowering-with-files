@@ -225,6 +225,87 @@ test('dispatch outcomes keep actual application evidence null and reject legacy 
   );
 });
 
+test('manual handoff route completion is a visible-worker done-only outcome', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_manual_route_completed',
+    receiptType: 'done',
+    authorityTaskId: baseBinding.authorityTaskId,
+    workerId: baseBinding.workerId,
+    threadId: 'thread-1',
+    bindingVersion: 'binding-v1',
+    currentSlice: baseBinding.currentSlice,
+    proofTarget: baseBinding.proofTarget,
+    evidenceSink: baseBinding.evidenceSink,
+    capabilityClass: baseBinding.capabilityClass,
+    riskClass: baseBinding.riskClass,
+    workType: baseBinding.workType,
+    authorityMode: baseBinding.authorityMode,
+    allowedOps: baseBinding.allowedOps,
+    sourceProgressRef: baseBinding.sourceProgressRef,
+    observedAt: baseBinding.observedAt,
+    status: 'done',
+    summary: 'Manual visible handoff completed.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-schema.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    createdAt: baseBinding.observedAt,
+    routeOutcome: {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolvedRoute: 'visible_worker',
+      resolutionStatus: 'manual_handoff_completed'
+    }
+  };
+
+  assert.equal(validateWorkerReceipt(receipt).routeOutcome.resolutionStatus, 'manual_handoff_completed');
+  assert.throws(
+    () => validateWorkerReceipt({ ...receipt, receiptType: 'handoff_pending', status: 'pending' }),
+    /manual_handoff_completed route outcomes require done receipts/
+  );
+  assert.throws(
+    () => validateWorkerReceipt({
+      ...receipt,
+      routeOutcome: { ...receipt.routeOutcome, requestedRoute: 'subagent', resolvedRoute: 'subagent' }
+    }),
+    /manual_handoff_completed requires a visible_worker request/
+  );
+  assert.throws(
+    () => validateWorkerReceipt({
+      ...receipt,
+      routeOutcome: { ...receipt.routeOutcome, resolvedRoute: null }
+    }),
+    /manual_handoff_completed requires a visible_worker request/
+  );
+  assert.throws(
+    () => validateWorkerReceipt({
+      ...receipt,
+      routeOutcome: { ...receipt.routeOutcome, resolvedRoute: 'subagent' }
+    }),
+    /manual_handoff_completed requires a visible_worker request/
+  );
+  assert.throws(
+    () => validateWorkerReceipt({
+      ...receipt,
+      routeOutcome: { ...receipt.routeOutcome, resolvedRoute: null, resolutionStatus: 'handoff_pending' }
+    }),
+    /pending or unavailable route outcomes cannot be done receipts/
+  );
+  assert.throws(
+    () => validateWorkerReceipt({
+      ...receipt,
+      routeOutcome: { ...receipt.routeOutcome, resolvedRoute: null, resolutionStatus: 'capability_unavailable' }
+    }),
+    /pending or unavailable route outcomes cannot be done receipts/
+  );
+  assert.throws(
+    () => validateWorkerReceipt({
+      ...receipt,
+      routeOutcome: { ...receipt.routeOutcome, taskClassification: 'invalid' }
+    }),
+    /Invalid enum value|invalid/
+  );
+});
+
 test('V2 delta input requires its canonical unique delta binding id', () => {
   const delta = {
     schemaVersion: 'chiefops.v2',

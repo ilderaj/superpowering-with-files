@@ -1038,6 +1038,155 @@ test('manual handoff prompt renders the exact model-resolution evidence', () => 
   assert.match(prompt, /modelResolutionReason: first_compatible_profile_match/);
 });
 
+test('manual visible handoff prompts render the terminal route outcome template', () => {
+  const routeDecision = {
+    taskClassification: 'tracked',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'handoff_pending',
+    approvedResolvedRoute: null
+  };
+  const manualRouteBinding = {
+    ...operatingModelBindingPacket,
+    routeDecision
+  };
+  const v0bPrompt = buildManualHandoffPrompt({
+    bindingPacket: manualRouteBinding,
+    bindingObservation
+  });
+  for (const [field, value] of [
+    ['taskClassification', 'tracked'],
+    ['requestedRoute', 'visible_worker'],
+    ['resolvedRoute', 'visible_worker'],
+    ['resolutionStatus', 'manual_handoff_completed']
+  ]) {
+    assert.match(v0bPrompt, new RegExp(`^routeOutcome\\.${field}: ${value}$`, 'm'));
+  }
+
+  const promptValue = (prompt, field) => {
+    const match = prompt.match(new RegExp(`^routeOutcome\\.${field}: (.*)$`, 'm'));
+    assert.ok(match, `prompt must provide routeOutcome.${field}`);
+    return match[1];
+  };
+  assert.doesNotThrow(() => validateWorkerReceipt({
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_manual_route_prompt',
+    receiptType: 'done',
+    authorityTaskId: manualRouteBinding.authorityTaskId,
+    workerId: manualRouteBinding.workerId,
+    threadId: 'thread-1',
+    bindingVersion: manualRouteBinding.bindingVersion,
+    currentSlice: manualRouteBinding.currentSlice,
+    proofTarget: manualRouteBinding.proofTarget,
+    evidenceSink: manualRouteBinding.evidenceSink,
+    capabilityClass: manualRouteBinding.capabilityClass,
+    riskClass: manualRouteBinding.riskClass,
+    majorPhase: manualRouteBinding.majorPhase,
+    reasoningDemand: manualRouteBinding.reasoningDemand,
+    costPreference: manualRouteBinding.costPreference,
+    latencyClass: manualRouteBinding.latencyClass,
+    permissionClass: manualRouteBinding.permissionClass,
+    delegationPolicy: manualRouteBinding.delegationPolicy,
+    workType: manualRouteBinding.workType,
+    authorityMode: manualRouteBinding.authorityMode,
+    allowedOps: manualRouteBinding.allowedOps,
+    sourceProgressRef: manualRouteBinding.sourceProgressRef,
+    observedAt: manualRouteBinding.observedAt,
+    status: 'done',
+    summary: 'Manual visible route completed from prompt guidance.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-decisions.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    createdAt: manualRouteBinding.createdAt,
+    routeOutcome: {
+      taskClassification: promptValue(v0bPrompt, 'taskClassification'),
+      requestedRoute: promptValue(v0bPrompt, 'requestedRoute'),
+      resolvedRoute: promptValue(v0bPrompt, 'resolvedRoute'),
+      resolutionStatus: promptValue(v0bPrompt, 'resolutionStatus')
+    }
+  }));
+
+  const delta = {
+    schemaVersion: 'chiefops.v2',
+    kind: 'execution_delta',
+    prefixBindingId: 'prefix_1',
+    prefixHash: 'sha256:prefix',
+    deltaBindingId: 'delta_prefix_1_2',
+    sequence: 2,
+    currentSlice: 'return manual route proof',
+    majorPhase: 'verify',
+    expectedCheckInBy: '2026-07-10T14:00:00.000Z'
+  };
+  const effective = {
+    ...manualRouteBinding,
+    bindingId: 'prefix_1',
+    currentSlice: delta.currentSlice,
+    majorPhase: delta.majorPhase,
+    expectedCheckInBy: delta.expectedCheckInBy,
+    sourceProgressRef: {
+      ...bindingPacket.sourceProgressRef,
+      blockId: delta.deltaBindingId,
+      contentHash: 'sha256:delta-content',
+      observedAt: '2026-07-10T13:00:00.000Z'
+    }
+  };
+  const v2Prompt = buildV2DeltaHandoffPrompt({
+    delta,
+    effectiveV0bBinding: effective,
+    bindingObservation
+  });
+  for (const [field, value] of [
+    ['taskClassification', 'tracked'],
+    ['requestedRoute', 'visible_worker'],
+    ['resolvedRoute', 'visible_worker'],
+    ['resolutionStatus', 'manual_handoff_completed']
+  ]) {
+    assert.match(v2Prompt, new RegExp(`^routeOutcome\\.${field}: ${value}$`, 'm'));
+  }
+  assert.ok(measureChiefOpsHandoffText(v2Prompt).lines <= 48);
+  assert.ok(measureChiefOpsHandoffText(v2Prompt).chars <= 4000);
+  assert.ok(measureChiefOpsHandoffText(v2Prompt).approxTokens <= 1000);
+
+  const routeVariants = [
+    {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_requested',
+      approvedResolvedRoute: null
+    },
+    {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'capability_unavailable',
+      approvedResolvedRoute: null
+    },
+    {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'chief_downgrade',
+      approvedResolvedRoute: 'subagent',
+      downgradeReason: 'bounded Chief downgrade'
+    },
+    {
+      taskClassification: 'tracked',
+      requestedRoute: 'subagent',
+      resolutionStatus: 'handoff_pending',
+      approvedResolvedRoute: null
+    }
+  ];
+  for (const candidate of routeVariants) {
+    const v0bCandidate = buildManualHandoffPrompt({
+      bindingPacket: { ...operatingModelBindingPacket, routeDecision: candidate },
+      bindingObservation
+    });
+    const v2Candidate = buildV2DeltaHandoffPrompt({
+      delta,
+      effectiveV0bBinding: { ...effective, routeDecision: candidate },
+      bindingObservation
+    });
+    assert.doesNotMatch(v0bCandidate, /^routeOutcome\./m);
+    assert.doesNotMatch(v2Candidate, /^routeOutcome\./m);
+  }
+});
+
 test('capability-unavailable handoffs render a schema-safe nested dispatch outcome', () => {
   const unavailableBinding = {
     ...operatingModelBindingPacket,
