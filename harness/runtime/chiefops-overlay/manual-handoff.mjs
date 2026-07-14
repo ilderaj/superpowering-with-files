@@ -21,6 +21,15 @@ const LEGAL_OPS_BY_PERMISSION_CLASS = new Map([
   ['release', new Set(['inspect', 'draft', 'propose', 'write', 'publish', 'send'])]
 ]);
 
+function capabilityUnavailableDispatchOutcomeGuidance() {
+  return [
+    'dispatchOutcome.resolvedModel: null',
+    'dispatchOutcome.resolvedReasoningEffort: null',
+    'dispatchOutcome.resolvedSpeed: null',
+    'dispatchOutcome.applicationStatus: capability_unavailable'
+  ];
+}
+
 export function assessPermissionEnforcement({ requestedClass, allowedOps, observation }) {
   const verified = observation?.status === 'verified'
     && typeof observation.evidenceRef === 'string'
@@ -70,6 +79,24 @@ export function buildManualHandoffPrompt({
     throw new Error('canonical authority root must not contain control characters');
   }
   const taskDir = path.join(authorityRoot, 'planning/active', bindingPacket.authorityTaskId);
+  const dispatchUnavailable = bindingPacket.dispatchRequest?.availabilityStatus === 'capability_unavailable';
+  const selectionEvidence = dispatchUnavailable
+    ? []
+    : [
+        `resolvedModelAtRun: ${modelResolution?.resolvedModelAtRun ?? ''}`,
+        `resolvedThinkingAtRun: ${modelResolution?.resolvedThinkingAtRun ?? ''}`,
+        `modelResolutionReason: ${modelResolution?.modelResolutionReason ?? ''}`
+      ];
+  const actualDispatchEvidence = dispatchUnavailable
+    ? capabilityUnavailableDispatchOutcomeGuidance()
+    : [
+        `resolvedModel: ${bindingPacket.dispatchRequest ? 'null' : ''}`,
+        `resolvedReasoningEffort: ${bindingPacket.dispatchRequest ? 'null' : ''}`,
+        `resolvedSpeed: ${bindingPacket.dispatchRequest ? 'null' : ''}`
+      ];
+  const applicationEvidence = dispatchUnavailable
+    ? []
+    : [`applicationStatus: ${modelResolution?.applicationStatus ?? bindingPacket.dispatchRequest?.availabilityStatus ?? 'unverified'}`];
 
   return [
     'You are a ChiefOps V0b worker. First verify the binding below.',
@@ -99,13 +126,9 @@ export function buildManualHandoffPrompt({
     `reasoningEffort: ${bindingPacket.dispatchRequest?.reasoningEffort ?? ''}`,
     `speed: ${bindingPacket.dispatchRequest?.speed ?? ''}`,
     `availabilityStatus: ${bindingPacket.dispatchRequest?.availabilityStatus ?? ''}`,
-    `resolvedModelAtRun: ${modelResolution?.resolvedModelAtRun ?? ''}`,
-    `resolvedThinkingAtRun: ${modelResolution?.resolvedThinkingAtRun ?? ''}`,
-    `modelResolutionReason: ${modelResolution?.modelResolutionReason ?? ''}`,
-    `resolvedModel: ${bindingPacket.dispatchRequest ? 'null' : ''}`,
-    `resolvedReasoningEffort: ${bindingPacket.dispatchRequest ? 'null' : ''}`,
-    `resolvedSpeed: ${bindingPacket.dispatchRequest ? 'null' : ''}`,
-    `applicationStatus: ${modelResolution?.applicationStatus ?? bindingPacket.dispatchRequest?.availabilityStatus ?? 'unverified'}`,
+    ...selectionEvidence,
+    ...actualDispatchEvidence,
+    ...applicationEvidence,
     `nativeThreadControl: ${modelResolution?.nativeThreadControl ?? false}`,
     `permissionEnforcementStatus: ${permissionEnforcementObservation?.status ?? 'unverified'}`,
     `riskClass: ${bindingPacket.riskClass}`,
@@ -183,6 +206,7 @@ export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingO
     throw new Error('v2_manual_pending_model_resolution_required');
   }
   const taskDir = path.join(authorityRoot, 'planning/active', effectiveV0bBinding.authorityTaskId);
+  const dispatchUnavailable = effectiveV0bBinding.dispatchRequest?.availabilityStatus === 'capability_unavailable';
   const trustedSelectionEvidence = manualPendingDispatch
     ? [
         `resolvedModelAtRun: ${modelResolution.resolvedModelAtRun}`,
@@ -190,6 +214,16 @@ export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingO
         `modelResolutionReason: ${modelResolution.modelResolutionReason}`
       ]
     : [];
+  const actualDispatchEvidence = dispatchUnavailable
+    ? capabilityUnavailableDispatchOutcomeGuidance()
+    : [
+        `resolvedModel: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
+        `resolvedReasoningEffort: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
+        `resolvedSpeed: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`
+      ];
+  const applicationEvidence = dispatchUnavailable
+    ? []
+    : [`applicationStatus: ${modelResolution?.applicationStatus ?? effectiveV0bBinding.dispatchRequest?.availabilityStatus ?? 'unverified'}`];
   const prompt = [
     'You are a ChiefOps V2 delta worker. Verify the delta and exact authority before acting.',
     '',
@@ -215,10 +249,8 @@ export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingO
     `speed: ${effectiveV0bBinding.dispatchRequest?.speed ?? ''}`,
     `availabilityStatus: ${effectiveV0bBinding.dispatchRequest?.availabilityStatus ?? ''}`,
     ...trustedSelectionEvidence,
-    `resolvedModel: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
-    `resolvedReasoningEffort: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
-    `resolvedSpeed: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
-    `applicationStatus: ${modelResolution?.applicationStatus ?? effectiveV0bBinding.dispatchRequest?.availabilityStatus ?? 'unverified'}`,
+    ...actualDispatchEvidence,
+    ...applicationEvidence,
     `sourceProgressRef.file: ${effectiveV0bBinding.sourceProgressRef.file}`,
     `sourceProgressRef.blockId: ${effectiveV0bBinding.sourceProgressRef.blockId}`,
     `sourceProgressRef.contentHash: ${effectiveV0bBinding.sourceProgressRef.contentHash}`,

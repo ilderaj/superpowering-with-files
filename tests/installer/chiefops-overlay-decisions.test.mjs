@@ -15,6 +15,7 @@ import {
 } from '../../harness/runtime/chiefops-overlay/manual-handoff.mjs';
 import { serializeChiefOpsBlock } from '../../harness/runtime/chiefops-overlay/coordination-blocks.mjs';
 import { gateWorkerReceipt, gateWorkerReceiptWithAuthority } from '../../harness/runtime/chiefops-overlay/chief-gate.mjs';
+import { validateWorkerReceipt } from '../../harness/runtime/chiefops-overlay/schema.mjs';
 import { validateBoundSubagentReturn, validateNarrowSubagentDispatch } from '../../harness/runtime/chiefops-overlay/subagent-dispatch.mjs';
 
 const { resolveModel } = modelResolver;
@@ -1035,6 +1036,93 @@ test('manual handoff prompt renders the exact model-resolution evidence', () => 
   assert.match(prompt, /resolvedModelAtRun: balanced-current/);
   assert.match(prompt, /resolvedThinkingAtRun: medium/);
   assert.match(prompt, /modelResolutionReason: first_compatible_profile_match/);
+});
+
+test('capability-unavailable handoffs render a schema-safe nested dispatch outcome', () => {
+  const unavailableBinding = {
+    ...operatingModelBindingPacket,
+    dispatchRequest: {
+      requestedModel: 'gpt-5.6-luna',
+      reasoningEffort: 'xhigh',
+      speed: 'standard',
+      availabilityStatus: 'capability_unavailable'
+    }
+  };
+  const unavailablePrompt = buildManualHandoffPrompt({
+    bindingPacket: unavailableBinding,
+    bindingObservation
+  });
+  const promptValue = (field) => {
+    const match = unavailablePrompt.match(new RegExp(`^dispatchOutcome\\.${field}: (.*)$`, 'm'));
+    assert.ok(match, `unavailable prompt must provide dispatchOutcome.${field}`);
+    return match[1] === 'null' ? null : match[1];
+  };
+  const dispatchOutcome = {
+    resolvedModel: promptValue('resolvedModel'),
+    resolvedReasoningEffort: promptValue('resolvedReasoningEffort'),
+    resolvedSpeed: promptValue('resolvedSpeed'),
+    applicationStatus: promptValue('applicationStatus')
+  };
+  assert.deepEqual(dispatchOutcome, {
+    resolvedModel: null,
+    resolvedReasoningEffort: null,
+    resolvedSpeed: null,
+    applicationStatus: 'capability_unavailable'
+  });
+  for (const field of ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason', 'resolvedModel', 'resolvedReasoningEffort', 'resolvedSpeed', 'applicationStatus']) {
+    assert.doesNotMatch(unavailablePrompt, new RegExp(`^${field}:`, 'm'), `unavailable prompt must omit top-level ${field}`);
+  }
+
+  const unavailableReceipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_unavailable_prompt',
+    receiptType: 'handoff_pending',
+    authorityTaskId: unavailableBinding.authorityTaskId,
+    workerId: unavailableBinding.workerId,
+    bindingVersion: unavailableBinding.bindingVersion,
+    currentSlice: unavailableBinding.currentSlice,
+    proofTarget: unavailableBinding.proofTarget,
+    evidenceSink: unavailableBinding.evidenceSink,
+    capabilityClass: unavailableBinding.capabilityClass,
+    riskClass: unavailableBinding.riskClass,
+    majorPhase: unavailableBinding.majorPhase,
+    reasoningDemand: unavailableBinding.reasoningDemand,
+    costPreference: unavailableBinding.costPreference,
+    latencyClass: unavailableBinding.latencyClass,
+    permissionClass: unavailableBinding.permissionClass,
+    delegationPolicy: unavailableBinding.delegationPolicy,
+    workType: unavailableBinding.workType,
+    authorityMode: unavailableBinding.authorityMode,
+    allowedOps: unavailableBinding.allowedOps,
+    sourceProgressRef: unavailableBinding.sourceProgressRef,
+    observedAt: unavailableBinding.observedAt,
+    status: 'pending',
+    summary: 'Capability remains unavailable.',
+    evidenceRefs: [],
+    nextSuggestedAction: 'return to Chief',
+    createdAt: unavailableBinding.createdAt,
+    dispatchOutcome
+  };
+  assert.doesNotThrow(() => validateWorkerReceipt(unavailableReceipt));
+
+  const manualPendingPrompt = buildManualHandoffPrompt({
+    bindingPacket: {
+      ...operatingModelBindingPacket,
+      dispatchRequest: {
+        requestedModel: 'balanced-current',
+        reasoningEffort: 'medium',
+        speed: 'standard',
+        availabilityStatus: 'manual_pending'
+      }
+    },
+    bindingObservation,
+    modelResolution: { ...operatingModelResolution, applicationStatus: 'manual_pending' }
+  });
+  assert.match(manualPendingPrompt, /resolvedModelAtRun: balanced-current/);
+  assert.match(manualPendingPrompt, /resolvedThinkingAtRun: medium/);
+  assert.match(manualPendingPrompt, /modelResolutionReason: first_compatible_profile_match/);
+  assert.match(manualPendingPrompt, /applicationStatus: manual_pending/);
+  assert.doesNotMatch(manualPendingPrompt, /^dispatchOutcome\./m);
 });
 
 test('permission admission fails closed without verified runtime enforcement', () => {
