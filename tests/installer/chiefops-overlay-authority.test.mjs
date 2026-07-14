@@ -421,6 +421,105 @@ test('V0b authority resolution rejects duplicate candidate binding ids before se
   );
 });
 
+test('authority gate canonicalizes documented deep-reasoning route evidence', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-route-alias-gate-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = '2026-07-13T00:15:00.000Z';
+  const authoritativeBinding = {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: 'bind_route_alias',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'documented route alias proof',
+    proofTarget: 'canonical route evidence is accepted',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    routeDecision: {
+      taskClassification: 'deep_reasoning',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_requested',
+      approvedResolvedRoute: null
+    },
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_route_alias',
+      startLine: null,
+      contentHash: 'sha256:route-alias',
+      observedAt: now
+    },
+    observedAt: now
+  };
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    `# Progress\n\n${serializeChiefOpsBlock('ChiefOpsWorkerBinding', authoritativeBinding)}\n`
+  );
+
+  const callerBinding = {
+    ...authoritativeBinding,
+    routeDecision: {
+      ...authoritativeBinding.routeDecision,
+      taskClassification: 'deep-reasoning'
+    }
+  };
+  const receipt = {
+    ...callerBinding,
+    receiptId: 'receipt_route_alias',
+    receiptType: 'done',
+    status: 'done',
+    summary: 'documented route alias was accepted',
+    evidenceRefs: ['tests/installer/chiefops-overlay-authority.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    createdAt: now,
+    routeOutcome: {
+      taskClassification: 'deep-reasoning',
+      requestedRoute: 'visible_worker',
+      resolvedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_verified'
+    },
+    scopeCheck: { nonGoalsChecked: true, violations: [] }
+  };
+
+  const resolved = await readAuthoritativeBinding({ root, bindingPacket: callerBinding });
+  assert.equal(resolved.bindingPacket.routeDecision.taskClassification, 'deep_reasoning');
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({ root, bindingPacket: callerBinding, receipt }),
+    { outcome: 'accept', reason: null },
+    'raw documented classification aliases are canonicalized before authority comparisons'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: { ...callerBinding, routeDecision: { ...callerBinding.routeDecision, taskClassification: 'invalid' } },
+      receipt
+    }),
+    { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' },
+    'invalid caller classifications still fail closed'
+  );
+  assert.deepEqual(
+    await gateWorkerReceiptWithAuthority({
+      root,
+      bindingPacket: callerBinding,
+      receipt: { ...receipt, routeOutcome: { ...receipt.routeOutcome, taskClassification: 'invalid' } }
+    }),
+    { outcome: 'block', reason: 'route_transition_mismatch' },
+    'invalid receipt classifications still fail closed'
+  );
+});
+
 test('dispatch-only unavailable handoff retains permission assessment without model resolution', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-dispatch-only-unavailable-'));
   t.after(() => rm(root, { recursive: true, force: true }));

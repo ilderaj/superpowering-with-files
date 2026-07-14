@@ -1,3 +1,5 @@
+import { normalizeTaskClassification, TASK_CLASSIFICATIONS } from './schema.mjs';
+
 function same(left, right) {
   return left === right;
 }
@@ -69,6 +71,29 @@ function hasAnyFields(value, fields) {
   return fields.some((field) => value?.[field] !== undefined);
 }
 
+function canonicalRouteEvidence(value) {
+  if (value === undefined || value === null) {
+    return { valid: true, value: null };
+  }
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    return { valid: false, value: null };
+  }
+
+  const taskClassification = normalizeTaskClassification(value.taskClassification);
+  if (!TASK_CLASSIFICATIONS.includes(taskClassification)) {
+    return { valid: false, value: null };
+  }
+  return { valid: true, value: { ...value, taskClassification } };
+}
+
+function sameCanonicalRouteDecision(left, right) {
+  const canonicalLeft = canonicalRouteEvidence(left);
+  const canonicalRight = canonicalRouteEvidence(right);
+  return canonicalLeft.valid
+    && canonicalRight.valid
+    && JSON.stringify(canonicalLeft.value) === JSON.stringify(canonicalRight.value);
+}
+
 function routeEvidenceVerdict({ bindingPacket, receipt }) {
   const bindingRoute = bindingPacket.routeDecision;
   const receiptRoute = receipt.routeOutcome;
@@ -77,20 +102,29 @@ function routeEvidenceVerdict({ bindingPacket, receipt }) {
   }
   if (!bindingRoute) return null;
 
-  if (bindingRoute.taskClassification !== receiptRoute.taskClassification
-    || bindingRoute.requestedRoute !== receiptRoute.requestedRoute) {
+  const canonicalBindingRoute = canonicalRouteEvidence(bindingRoute);
+  const canonicalReceiptRoute = canonicalRouteEvidence(receiptRoute);
+  if (!canonicalBindingRoute.valid || !canonicalReceiptRoute.valid) {
     return { outcome: 'block', reason: 'route_transition_mismatch' };
   }
 
-  const samePendingStatus = bindingRoute.resolutionStatus === receiptRoute.resolutionStatus
-    && ['handoff_pending', 'capability_unavailable'].includes(bindingRoute.resolutionStatus)
-    && receiptRoute.resolvedRoute === null;
-  const nativeVerified = bindingRoute.resolutionStatus === 'native_control_requested'
-    && receiptRoute.resolutionStatus === 'native_control_verified'
-    && receiptRoute.resolvedRoute === receiptRoute.requestedRoute;
-  const authorizedDowngrade = bindingRoute.resolutionStatus === 'chief_downgrade'
-    && receiptRoute.resolutionStatus === 'chief_downgrade'
-    && receiptRoute.resolvedRoute === bindingRoute.approvedResolvedRoute;
+  const normalizedBindingRoute = canonicalBindingRoute.value;
+  const normalizedReceiptRoute = canonicalReceiptRoute.value;
+
+  if (normalizedBindingRoute.taskClassification !== normalizedReceiptRoute.taskClassification
+    || normalizedBindingRoute.requestedRoute !== normalizedReceiptRoute.requestedRoute) {
+    return { outcome: 'block', reason: 'route_transition_mismatch' };
+  }
+
+  const samePendingStatus = normalizedBindingRoute.resolutionStatus === normalizedReceiptRoute.resolutionStatus
+    && ['handoff_pending', 'capability_unavailable'].includes(normalizedBindingRoute.resolutionStatus)
+    && normalizedReceiptRoute.resolvedRoute === null;
+  const nativeVerified = normalizedBindingRoute.resolutionStatus === 'native_control_requested'
+    && normalizedReceiptRoute.resolutionStatus === 'native_control_verified'
+    && normalizedReceiptRoute.resolvedRoute === normalizedReceiptRoute.requestedRoute;
+  const authorizedDowngrade = normalizedBindingRoute.resolutionStatus === 'chief_downgrade'
+    && normalizedReceiptRoute.resolutionStatus === 'chief_downgrade'
+    && normalizedReceiptRoute.resolvedRoute === normalizedBindingRoute.approvedResolvedRoute;
 
   if (receipt.receiptType === 'done' && samePendingStatus) {
     return { outcome: 'block', reason: 'route_transition_mismatch' };
@@ -298,7 +332,7 @@ export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...
       && same(authoritativeBinding.detailedPlanEligibility?.eligibilityBlockHash, args.bindingPacket.detailedPlanEligibility?.eligibilityBlockHash)
       && same(authoritativeBinding.upgradeAdmission?.admissionId, args.bindingPacket.upgradeAdmission?.admissionId)
       && same(authoritativeBinding.upgradeAdmission?.admissionBlockHash, args.bindingPacket.upgradeAdmission?.admissionBlockHash)
-      && JSON.stringify(authoritativeBinding.routeDecision ?? null) === JSON.stringify(args.bindingPacket.routeDecision ?? null)
+      && sameCanonicalRouteDecision(authoritativeBinding.routeDecision, args.bindingPacket.routeDecision)
       && JSON.stringify(authoritativeBinding.dispatchRequest ?? null) === JSON.stringify(args.bindingPacket.dispatchRequest ?? null));
     const childDispatchesMatch = isV2Input
       || JSON.stringify(authoritativeBinding.subagentDispatches ?? []) === JSON.stringify(args.bindingPacket.subagentDispatches ?? []);
