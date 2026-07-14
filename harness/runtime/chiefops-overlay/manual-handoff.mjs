@@ -90,10 +90,22 @@ export function buildManualHandoffPrompt({
     `reasoningDemand: ${bindingPacket.reasoningDemand ?? ''}`,
     `costPreference: ${bindingPacket.costPreference ?? ''}`,
     `latencyClass: ${bindingPacket.latencyClass ?? ''}`,
+    `taskClassification: ${bindingPacket.routeDecision?.taskClassification ?? ''}`,
+    `requestedRoute: ${bindingPacket.routeDecision?.requestedRoute ?? ''}`,
+    `routeResolutionStatus: ${bindingPacket.routeDecision?.resolutionStatus ?? ''}`,
+    `approvedResolvedRoute: ${bindingPacket.routeDecision ? bindingPacket.routeDecision.approvedResolvedRoute : ''}`,
+    `downgradeReason: ${bindingPacket.routeDecision?.downgradeReason ?? ''}`,
+    `requestedModel: ${bindingPacket.dispatchRequest?.requestedModel ?? ''}`,
+    `reasoningEffort: ${bindingPacket.dispatchRequest?.reasoningEffort ?? ''}`,
+    `speed: ${bindingPacket.dispatchRequest?.speed ?? ''}`,
+    `availabilityStatus: ${bindingPacket.dispatchRequest?.availabilityStatus ?? ''}`,
     `resolvedModelAtRun: ${modelResolution?.resolvedModelAtRun ?? ''}`,
     `resolvedThinkingAtRun: ${modelResolution?.resolvedThinkingAtRun ?? ''}`,
     `modelResolutionReason: ${modelResolution?.modelResolutionReason ?? ''}`,
-    `applicationStatus: ${modelResolution?.applicationStatus ?? 'unverified'}`,
+    `resolvedModel: ${bindingPacket.dispatchRequest ? 'null' : ''}`,
+    `resolvedReasoningEffort: ${bindingPacket.dispatchRequest ? 'null' : ''}`,
+    `resolvedSpeed: ${bindingPacket.dispatchRequest ? 'null' : ''}`,
+    `applicationStatus: ${modelResolution?.applicationStatus ?? bindingPacket.dispatchRequest?.availabilityStatus ?? 'unverified'}`,
     `nativeThreadControl: ${modelResolution?.nativeThreadControl ?? false}`,
     `permissionEnforcementStatus: ${permissionEnforcementObservation?.status ?? 'unverified'}`,
     `riskClass: ${bindingPacket.riskClass}`,
@@ -140,7 +152,7 @@ function assertV2DeltaHandoffBudget(prompt) {
   }
 }
 
-export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingObservation }) {
+export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingObservation, modelResolution = null }) {
   if (!delta || delta.schemaVersion !== 'chiefops.v2' || delta.kind !== 'execution_delta') {
     throw new Error('v2_delta_handoff_identity_mismatch');
   }
@@ -178,6 +190,18 @@ export function buildV2DeltaHandoffPrompt({ delta, effectiveV0bBinding, bindingO
     `majorPhase: ${delta.majorPhase}`,
     `currentSlice: ${delta.currentSlice}`,
     `expectedCheckInBy: ${effectiveV0bBinding.expectedCheckInBy ?? ''}`,
+    `taskClassification: ${effectiveV0bBinding.routeDecision?.taskClassification ?? ''}`,
+    `requestedRoute: ${effectiveV0bBinding.routeDecision?.requestedRoute ?? ''}`,
+    `routeResolutionStatus: ${effectiveV0bBinding.routeDecision?.resolutionStatus ?? ''}`,
+    `approvedResolvedRoute: ${effectiveV0bBinding.routeDecision ? effectiveV0bBinding.routeDecision.approvedResolvedRoute : ''}`,
+    `requestedModel: ${effectiveV0bBinding.dispatchRequest?.requestedModel ?? ''}`,
+    `reasoningEffort: ${effectiveV0bBinding.dispatchRequest?.reasoningEffort ?? ''}`,
+    `speed: ${effectiveV0bBinding.dispatchRequest?.speed ?? ''}`,
+    `availabilityStatus: ${effectiveV0bBinding.dispatchRequest?.availabilityStatus ?? ''}`,
+    `resolvedModel: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
+    `resolvedReasoningEffort: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
+    `resolvedSpeed: ${effectiveV0bBinding.dispatchRequest ? 'null' : ''}`,
+    `applicationStatus: ${modelResolution?.applicationStatus ?? effectiveV0bBinding.dispatchRequest?.availabilityStatus ?? 'unverified'}`,
     `sourceProgressRef.file: ${effectiveV0bBinding.sourceProgressRef.file}`,
     `sourceProgressRef.blockId: ${effectiveV0bBinding.sourceProgressRef.blockId}`,
     `sourceProgressRef.contentHash: ${effectiveV0bBinding.sourceProgressRef.contentHash}`,

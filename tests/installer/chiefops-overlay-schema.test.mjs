@@ -56,6 +56,143 @@ test('validateBindingPacket accepts the canonical minimum packet', () => {
   assert.equal(validateBindingPacket(baseBinding).bindingId, 'bind_demo_worker_slice_20260709');
 });
 
+test('route and dispatch cohorts are strict while legacy packets remain optional', () => {
+  const routeBinding = validateBindingPacket({
+    ...baseBinding,
+    routeDecision: {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_requested',
+      approvedResolvedRoute: null
+    }
+  });
+  assert.equal(routeBinding.routeDecision.requestedRoute, 'visible_worker');
+  assert.throws(
+    () => validateBindingPacket({
+      ...baseBinding,
+      routeDecision: { requestedRoute: 'visible_worker' }
+    }),
+    /taskClassification/
+  );
+  assert.throws(
+    () => validateBindingPacket({
+      ...baseBinding,
+      routeDecision: {
+        taskClassification: 'tracked',
+        requestedRoute: 'visible_worker',
+        resolutionStatus: 'chief_downgrade',
+        approvedResolvedRoute: 'subagent'
+      }
+    }),
+    /downgradeReason/
+  );
+
+  const dispatchDecision = {
+    decidedBy: baseBinding.chiefThreadId,
+    decidedAt: baseBinding.createdAt,
+    inventory: {
+      sourceRef: 'codex.models_cache',
+      observedAt: baseBinding.createdAt,
+      fingerprint: 'sha256:' + 'a'.repeat(64)
+    },
+    preferredModel: 'balanced-current',
+    preferredThinking: 'medium',
+    applicationStatus: 'manual_pending'
+  };
+  assert.doesNotThrow(() => validateBindingPacket({
+    ...baseBinding,
+    dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+    dispatchDecision,
+    dispatchRequest: {
+      requestedModel: 'balanced-current',
+      reasoningEffort: 'medium',
+      speed: 'standard',
+      availabilityStatus: 'manual_pending'
+    }
+  }));
+  assert.doesNotThrow(() => validateBindingPacket({
+    ...baseBinding,
+    dispatchRequest: {
+      requestedModel: 'gpt-5.6-luna',
+      reasoningEffort: 'xhigh',
+      speed: 'standard',
+      availabilityStatus: 'capability_unavailable'
+    }
+  }));
+  assert.throws(
+    () => validateBindingPacket({
+      ...baseBinding,
+      dispatchRequest: {
+        requestedModel: 'gpt-5.6-luna',
+        reasoningEffort: 'xhigh',
+        speed: 'fast',
+        availabilityStatus: 'capability_unavailable'
+      }
+    }),
+    /speed/
+  );
+});
+
+test('dispatch outcomes keep actual application evidence null and reject legacy claims on unavailable', () => {
+  const receipt = {
+    schemaVersion: 'chiefops.v0b',
+    receiptId: 'receipt_dispatch_pending',
+    receiptType: 'handoff_pending',
+    authorityTaskId: baseBinding.authorityTaskId,
+    workerId: baseBinding.workerId,
+    bindingVersion: 'binding-v1',
+    currentSlice: baseBinding.currentSlice,
+    proofTarget: baseBinding.proofTarget,
+    evidenceSink: baseBinding.evidenceSink,
+    capabilityClass: baseBinding.capabilityClass,
+    riskClass: baseBinding.riskClass,
+    workType: baseBinding.workType,
+    authorityMode: baseBinding.authorityMode,
+    allowedOps: baseBinding.allowedOps,
+    sourceProgressRef: baseBinding.sourceProgressRef,
+    observedAt: baseBinding.observedAt,
+    status: 'pending',
+    summary: 'Dispatch remains pending.',
+    evidenceRefs: [],
+    nextSuggestedAction: 'return to Chief',
+    createdAt: baseBinding.observedAt,
+    resolvedModelAtRun: 'balanced-current',
+    resolvedThinkingAtRun: 'medium',
+    modelResolutionReason: 'trusted_selection',
+    applicationStatus: 'manual_pending',
+    dispatchOutcome: {
+      resolvedModel: null,
+      resolvedReasoningEffort: null,
+      resolvedSpeed: null,
+      applicationStatus: 'manual_pending'
+    }
+  };
+  assert.equal(validateWorkerReceipt(receipt).dispatchOutcome.applicationStatus, 'manual_pending');
+  assert.throws(
+    () => validateWorkerReceipt({ ...receipt, dispatchOutcome: { ...receipt.dispatchOutcome, resolvedSpeed: 'standard' } }),
+    /actual resolved values null/
+  );
+  const unavailable = {
+    ...receipt,
+    receiptId: 'receipt_dispatch_unavailable',
+    dispatchOutcome: {
+      resolvedModel: null,
+      resolvedReasoningEffort: null,
+      resolvedSpeed: null,
+      applicationStatus: 'capability_unavailable'
+    },
+    resolvedModelAtRun: undefined,
+    resolvedThinkingAtRun: undefined,
+    modelResolutionReason: undefined,
+    applicationStatus: undefined
+  };
+  assert.doesNotThrow(() => validateWorkerReceipt(unavailable));
+  assert.throws(
+    () => validateWorkerReceipt({ ...unavailable, resolvedModelAtRun: 'forged-model' }),
+    /capability_unavailable dispatch outcomes must omit/
+  );
+});
+
 test('V2 delta input requires its canonical unique delta binding id', () => {
   const delta = {
     schemaVersion: 'chiefops.v2',

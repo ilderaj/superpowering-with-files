@@ -65,6 +65,77 @@ function sameDispatchDecision(left, right) {
     && ['sourceRef', 'observedAt', 'fingerprint'].every((field) => left.inventory?.[field] === right.inventory?.[field]);
 }
 
+function hasAnyFields(value, fields) {
+  return fields.some((field) => value?.[field] !== undefined);
+}
+
+function routeEvidenceVerdict({ bindingPacket, receipt }) {
+  const bindingRoute = bindingPacket.routeDecision;
+  const receiptRoute = receipt.routeOutcome;
+  if (Boolean(bindingRoute) !== Boolean(receiptRoute)) {
+    return { outcome: 'block', reason: 'route_evidence_unbound' };
+  }
+  if (!bindingRoute) return null;
+
+  if (bindingRoute.taskClassification !== receiptRoute.taskClassification
+    || bindingRoute.requestedRoute !== receiptRoute.requestedRoute) {
+    return { outcome: 'block', reason: 'route_transition_mismatch' };
+  }
+
+  const samePendingStatus = bindingRoute.resolutionStatus === receiptRoute.resolutionStatus
+    && ['handoff_pending', 'capability_unavailable'].includes(bindingRoute.resolutionStatus)
+    && receiptRoute.resolvedRoute === null;
+  const nativeVerified = bindingRoute.resolutionStatus === 'native_control_requested'
+    && receiptRoute.resolutionStatus === 'native_control_verified'
+    && receiptRoute.resolvedRoute === receiptRoute.requestedRoute;
+  const authorizedDowngrade = bindingRoute.resolutionStatus === 'chief_downgrade'
+    && receiptRoute.resolutionStatus === 'chief_downgrade'
+    && receiptRoute.resolvedRoute === bindingRoute.approvedResolvedRoute;
+
+  if (receipt.receiptType === 'done' && samePendingStatus) {
+    return { outcome: 'block', reason: 'route_transition_mismatch' };
+  }
+  if (!samePendingStatus && !nativeVerified && !authorizedDowngrade) {
+    return { outcome: 'block', reason: 'route_transition_mismatch' };
+  }
+  return null;
+}
+
+function dispatchEvidenceVerdict({ bindingPacket, receipt }) {
+  const dispatchRequest = bindingPacket.dispatchRequest;
+  const dispatchOutcome = receipt.dispatchOutcome;
+  if (Boolean(dispatchRequest) !== Boolean(dispatchOutcome)) {
+    return { outcome: 'block', reason: 'dispatch_evidence_unbound' };
+  }
+  if (!dispatchRequest) return null;
+
+  if (dispatchRequest.availabilityStatus !== dispatchOutcome.applicationStatus) {
+    return { outcome: 'block', reason: 'dispatch_resolution_evidence_mismatch' };
+  }
+
+  if (dispatchOutcome.resolvedModel !== null
+    || dispatchOutcome.resolvedReasoningEffort !== null
+    || dispatchOutcome.resolvedSpeed !== null) {
+    return { outcome: 'block', reason: 'dispatch_resolution_evidence_mismatch' };
+  }
+
+  if (dispatchRequest.availabilityStatus === 'manual_pending') {
+    if (!bindingPacket.dispatchIntentVersion
+      || !bindingPacket.dispatchDecision
+      || bindingPacket.dispatchDecision.preferredModel !== dispatchRequest.requestedModel
+      || bindingPacket.dispatchDecision.preferredThinking !== dispatchRequest.reasoningEffort
+      || receipt.applicationStatus !== 'manual_pending') {
+      return { outcome: 'block', reason: 'dispatch_resolution_evidence_mismatch' };
+    }
+  }
+
+  if (dispatchRequest.availabilityStatus === 'capability_unavailable'
+    && hasAnyFields(receipt, ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason', 'applicationStatus'])) {
+    return { outcome: 'block', reason: 'dispatch_resolution_evidence_mismatch' };
+  }
+  return null;
+}
+
 function gateWorkerReceiptCore({
   bindingPacket,
   receipt,
@@ -115,16 +186,25 @@ function gateWorkerReceiptCore({
     'costPreference',
     'latencyClass'
   ].every((field) => bindingPacket[field] !== undefined);
-  if (hasOperatingModelProfile) {
+  const dispatchUnavailable = bindingPacket.dispatchRequest?.availabilityStatus === 'capability_unavailable';
+  const dispatchManualPending = bindingPacket.dispatchRequest?.availabilityStatus === 'manual_pending';
+  if (dispatchUnavailable && hasAnyFields(receipt, ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason', 'applicationStatus'])) {
+    return { outcome: 'block', reason: 'dispatch_resolution_evidence_mismatch' };
+  }
+  if ((hasOperatingModelProfile || dispatchManualPending) && !dispatchUnavailable) {
     const resolutionFields = ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason'];
     if (!isCompleteModelResolution(modelResolution) || resolutionFields.some((field) => !receipt[field])) {
       return { outcome: 'block', reason: 'model_resolution_evidence_mismatch' };
     }
-    const requestedMatches = modelResolution.requestedCapabilityClass === bindingPacket.capabilityClass
-      && modelResolution.requestedReasoningDemand === bindingPacket.reasoningDemand
-      && modelResolution.requestedCostPreference === bindingPacket.costPreference
-      && modelResolution.requestedLatencyClass === bindingPacket.latencyClass
-      && modelResolution.upgradeTrigger === (bindingPacket.upgradeTrigger ?? null);
+    const requestedMatches = hasOperatingModelProfile
+      ? modelResolution.requestedCapabilityClass === bindingPacket.capabilityClass
+        && modelResolution.requestedReasoningDemand === bindingPacket.reasoningDemand
+        && modelResolution.requestedCostPreference === bindingPacket.costPreference
+        && modelResolution.requestedLatencyClass === bindingPacket.latencyClass
+        && modelResolution.upgradeTrigger === (bindingPacket.upgradeTrigger ?? null)
+      : modelResolution.requestedCapabilityClass === bindingPacket.capabilityClass
+        && modelResolution.resolvedModelAtRun === bindingPacket.dispatchRequest.requestedModel
+        && modelResolution.resolvedThinkingAtRun === bindingPacket.dispatchRequest.reasoningEffort;
     const resolvedMatches = receipt.resolvedModelAtRun === modelResolution.resolvedModelAtRun
       && receipt.resolvedThinkingAtRun === modelResolution.resolvedThinkingAtRun
       && receipt.modelResolutionReason === modelResolution.modelResolutionReason;
@@ -211,18 +291,28 @@ export async function gateWorkerReceiptWithAuthority({ root, codexHome, now, ...
     const { readAuthoritativeBinding, verifyTrustedDispatchContext } = await import('./overlay-service.mjs');
     const authoritative = await readAuthoritativeBinding({ root, bindingPacket: args.bindingPacket });
     const authoritativeBinding = authoritative.bindingPacket;
-    const dispatchStateMatches = authoritativeBinding.dispatchIntentVersion === args.bindingPacket.dispatchIntentVersion
+    const isV2Input = args.bindingPacket?.schemaVersion === 'chiefops.v2';
+    const dispatchStateMatches = isV2Input || (authoritativeBinding.dispatchIntentVersion === args.bindingPacket.dispatchIntentVersion
       && sameDispatchDecision(authoritativeBinding.dispatchDecision, args.bindingPacket.dispatchDecision)
       && same(authoritativeBinding.detailedPlanEligibility?.eligibilityId, args.bindingPacket.detailedPlanEligibility?.eligibilityId)
       && same(authoritativeBinding.detailedPlanEligibility?.eligibilityBlockHash, args.bindingPacket.detailedPlanEligibility?.eligibilityBlockHash)
       && same(authoritativeBinding.upgradeAdmission?.admissionId, args.bindingPacket.upgradeAdmission?.admissionId)
-      && same(authoritativeBinding.upgradeAdmission?.admissionBlockHash, args.bindingPacket.upgradeAdmission?.admissionBlockHash);
-    const childDispatchesMatch = JSON.stringify(authoritativeBinding.subagentDispatches ?? []) === JSON.stringify(args.bindingPacket.subagentDispatches ?? []);
+      && same(authoritativeBinding.upgradeAdmission?.admissionBlockHash, args.bindingPacket.upgradeAdmission?.admissionBlockHash)
+      && JSON.stringify(authoritativeBinding.routeDecision ?? null) === JSON.stringify(args.bindingPacket.routeDecision ?? null)
+      && JSON.stringify(authoritativeBinding.dispatchRequest ?? null) === JSON.stringify(args.bindingPacket.dispatchRequest ?? null));
+    const childDispatchesMatch = isV2Input
+      || JSON.stringify(authoritativeBinding.subagentDispatches ?? []) === JSON.stringify(args.bindingPacket.subagentDispatches ?? []);
     if (!dispatchStateMatches || !childDispatchesMatch) {
       return { outcome: 'block', reason: 'trusted_dispatch_context_mismatch' };
     }
+    const routeVerdict = routeEvidenceVerdict({ bindingPacket: authoritativeBinding, receipt: args.receipt });
+    if (routeVerdict) return routeVerdict;
+    const dispatchVerdict = dispatchEvidenceVerdict({ bindingPacket: authoritativeBinding, receipt: args.receipt });
+    if (dispatchVerdict) return dispatchVerdict;
     const verdict = gateWorkerReceiptCore({ ...args, bindingPacket: authoritativeBinding });
-    const requiresAuthorityContext = Boolean(authoritativeBinding.dispatchIntentVersion || authoritativeBinding.subagentDispatches?.length > 0);
+    const requiresAuthorityContext = Boolean(authoritativeBinding.dispatchIntentVersion
+      || authoritativeBinding.dispatchRequest
+      || authoritativeBinding.subagentDispatches?.length > 0);
     if (verdict.outcome !== 'accept' || !requiresAuthorityContext) return verdict;
     if (authoritativeBinding.dispatchIntentVersion) {
       await verifyTrustedDispatchContext({

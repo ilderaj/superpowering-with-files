@@ -160,6 +160,148 @@ test('V2 latest delta resolves to a V0b-effective binding with a raw source-prog
   );
 });
 
+test('V2 stable-prefix to delta ingress preserves route and both dispatch evidence branches', async (t) => {
+  async function runBranch(availabilityStatus) {
+    const root = await mkdtemp(path.join(os.tmpdir(), `chiefops-v2-${availabilityStatus}-`));
+    t.after(() => rm(root, { recursive: true, force: true }));
+    const now = new Date().toISOString();
+    const codexHome = availabilityStatus === 'manual_pending' ? path.join(root, '.codex') : null;
+    let inventory = null;
+    if (codexHome) {
+      await mkdir(codexHome, { recursive: true });
+      await writeFile(path.join(codexHome, 'models_cache.json'), JSON.stringify({
+        models: [{ slug: 'balanced-current', supported_reasoning_levels: [{ effort: 'medium' }] }]
+      }));
+      inventory = await readLiveCodexModelInventory({ codexHome, now });
+    }
+
+    const prefix = v2StablePrefix(root, {
+      routeDecision: {
+        taskClassification: 'tracked',
+        requestedRoute: 'visible_worker',
+        resolutionStatus: 'native_control_requested',
+        approvedResolvedRoute: null
+      },
+      dispatchRequest: {
+        requestedModel: availabilityStatus === 'manual_pending' ? 'balanced-current' : 'gpt-5.6-luna',
+        reasoningEffort: availabilityStatus === 'manual_pending' ? 'medium' : 'xhigh',
+        speed: 'standard',
+        availabilityStatus
+      },
+      ...(availabilityStatus === 'manual_pending'
+        ? {
+            dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+            dispatchDecision: {
+              decidedBy: 'chief-thread',
+              decidedAt: now,
+              inventory,
+              preferredModel: 'balanced-current',
+              preferredThinking: 'medium',
+              applicationStatus: 'manual_pending'
+            }
+          }
+        : {})
+    });
+    const delta = v2Delta(prefix);
+    await task(
+      root,
+      'chiefops-demo',
+      'chiefops-demo',
+      ['# V2', serializeChiefOpsBlock('ChiefOpsV2StablePrefix', prefix), serializeChiefOpsBlock('ChiefOpsV2ExecutionDelta', delta)].join('\n\n')
+    );
+    const deltaFile = path.join(root, `${availabilityStatus}-delta.json`);
+    await writeFile(deltaFile, JSON.stringify(delta, null, 2));
+
+    let modelResolution = null;
+    let modelResolutionFile = null;
+    if (availabilityStatus === 'manual_pending') {
+      modelResolution = {
+        requestedCapabilityClass: prefix.capabilityClass,
+        requestedReasoningDemand: prefix.reasoningDemand,
+        requestedCostPreference: prefix.costPreference,
+        requestedLatencyClass: prefix.latencyClass,
+        upgradeTrigger: prefix.upgradeTrigger,
+        resolvedModelAtRun: 'balanced-current',
+        resolvedThinkingAtRun: 'medium',
+        modelResolutionReason: 'fixture',
+        nativeThreadControl: false,
+        inventorySourceRef: inventory.sourceRef,
+        inventoryObservedAt: inventory.observedAt,
+        inventoryFingerprint: inventory.fingerprint,
+        applicationStatus: 'manual_pending'
+      };
+      modelResolutionFile = path.join(root, 'model-resolution.json');
+      await writeFile(modelResolutionFile, JSON.stringify(modelResolution, null, 2));
+    }
+
+    const handoff = await buildHandoffFromFile({
+      root,
+      file: deltaFile,
+      modelResolutionFile,
+      codexHome,
+      now,
+      permissionEnforcementObservation: {
+        status: 'verified',
+        effectiveClass: 'observe',
+        effectiveOps: ['inspect'],
+        evidenceRef: 'test:v2-dispatch-branch'
+      }
+    });
+    assert.match(handoff, /requestedRoute: visible_worker/);
+    assert.match(handoff, new RegExp(`availabilityStatus: ${availabilityStatus}`));
+    assert.match(handoff, /resolvedSpeed: null/);
+
+    const resolved = await readAuthoritativeBinding({ root, bindingPacket: delta });
+    const receipt = {
+      ...resolved.bindingPacket,
+      receiptId: `receipt_v2_${availabilityStatus}`,
+      receiptType: 'done',
+      threadId: 'thread-1',
+      status: 'done',
+      summary: 'V2 route and dispatch evidence was verified.',
+      evidenceRefs: ['tests/installer/chiefops-overlay-authority.test.mjs'],
+      nextSuggestedAction: 'return to Chief',
+      createdAt: now,
+      routeOutcome: {
+        taskClassification: 'tracked',
+        requestedRoute: 'visible_worker',
+        resolvedRoute: 'visible_worker',
+        resolutionStatus: 'native_control_verified'
+      },
+      dispatchOutcome: {
+        resolvedModel: null,
+        resolvedReasoningEffort: null,
+        resolvedSpeed: null,
+        applicationStatus: availabilityStatus
+      },
+      scopeCheck: { nonGoalsChecked: true, violations: [] }
+    };
+    if (availabilityStatus === 'manual_pending') {
+      Object.assign(receipt, {
+        resolvedModelAtRun: modelResolution.resolvedModelAtRun,
+        resolvedThinkingAtRun: modelResolution.resolvedThinkingAtRun,
+        modelResolutionReason: modelResolution.modelResolutionReason,
+        applicationStatus: 'manual_pending'
+      });
+    }
+    assert.deepEqual(
+      await gateWorkerReceiptWithAuthority({
+        root,
+        codexHome,
+        now,
+        bindingPacket: delta,
+        receipt,
+        approvalSatisfied: true,
+        modelResolution
+      }),
+      { outcome: 'accept', reason: null }
+    );
+  }
+
+  await runBranch('manual_pending');
+  await runBranch('capability_unavailable');
+});
+
 test('V2 authority resolution rejects prefix-only, replayed, duplicate, and deadline-extending input', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-v2-reject-'));
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -221,6 +363,234 @@ test('V2 authority resolution rejects prefix-only, replayed, duplicate, and dead
     () => readAuthoritativeBinding({ root, bindingPacket: extendedDeadline }),
     /binding_mismatch/
   );
+});
+
+test('V0b authority resolution rejects duplicate candidate binding ids before selection', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-v0b-duplicate-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = '2026-07-13T00:15:00.000Z';
+  const binding = {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: 'bind_duplicate',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'duplicate authority proof',
+    proofTarget: 'duplicate binding ids fail closed',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_duplicate',
+      startLine: null,
+      contentHash: 'sha256:duplicate',
+      observedAt: now
+    },
+    observedAt: now
+  };
+  const block = serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding);
+  await task(root, 'chiefops-demo', 'chiefops-demo', `# Progress\n\n${block}\n\n${block}\n`);
+  await assert.rejects(
+    () => readAuthoritativeBinding({ root, bindingPacket: binding }),
+    /duplicate bindingId/
+  );
+});
+
+test('dispatch-only unavailable handoff retains permission assessment without model resolution', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-dispatch-only-unavailable-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = '2026-07-13T00:15:00.000Z';
+  const binding = {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: 'bind_dispatch_only_unavailable',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'dispatch-only unavailable proof',
+    proofTarget: 'permission assessment remains authoritative',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    dispatchRequest: {
+      requestedModel: 'gpt-5.6-luna',
+      reasoningEffort: 'xhigh',
+      speed: 'standard',
+      availabilityStatus: 'capability_unavailable'
+    },
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_dispatch_only_unavailable',
+      startLine: null,
+      contentHash: 'sha256:dispatch-only',
+      observedAt: now
+    },
+    observedAt: now
+  };
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    `# Progress\n\n${serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding)}\n`
+  );
+  const bindingFile = path.join(root, 'binding.json');
+  await writeFile(bindingFile, JSON.stringify(binding, null, 2));
+
+  await assert.rejects(
+    () => buildHandoffFromFile({ root, file: bindingFile }),
+    /permission_enforcement_unverified/,
+    'unavailable dispatch-only handoff requires permission evidence'
+  );
+  await assert.rejects(
+    () => buildHandoffFromFile({
+      root,
+      file: bindingFile,
+      permissionEnforcementObservation: {
+        status: 'verified',
+        effectiveClass: 'workspace',
+        effectiveOps: ['inspect'],
+        evidenceRef: 'test:insufficient-permission-ceiling'
+      }
+    }),
+    /permission_enforcement_unverified/,
+    'unavailable dispatch-only handoff rejects an insufficient permission ceiling'
+  );
+  const handoff = await buildHandoffFromFile({
+    root,
+    file: bindingFile,
+    permissionEnforcementObservation: {
+      status: 'verified',
+      effectiveClass: 'observe',
+      effectiveOps: ['inspect'],
+      evidenceRef: 'test:permission-observation'
+    }
+  });
+  assert.match(handoff, /availabilityStatus: capability_unavailable/);
+  assert.match(handoff, /permissionEnforcementStatus: verified/);
+});
+
+test('dispatch-only manual-pending handoff retains trusted selection and permission assessment', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'chiefops-dispatch-only-manual-pending-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const now = new Date().toISOString();
+  const codexHome = path.join(root, '.codex');
+  await mkdir(codexHome, { recursive: true });
+  await writeFile(path.join(codexHome, 'models_cache.json'), JSON.stringify({
+    models: [{ slug: 'balanced-current', supported_reasoning_levels: [{ effort: 'medium' }] }]
+  }));
+  const inventory = await readLiveCodexModelInventory({ codexHome, now });
+  const binding = {
+    schemaVersion: 'chiefops.v0b',
+    bindingId: 'bind_dispatch_only_manual_pending',
+    action: 'spawn_worker',
+    authorityTaskId: 'chiefops-demo',
+    planningRoot: root,
+    chiefThreadId: 'chief-thread',
+    workerId: 'worker-1',
+    threadId: null,
+    sessionId: null,
+    currentSlice: 'dispatch-only manual pending proof',
+    proofTarget: 'trusted selection and permission assessment remain authoritative',
+    evidenceSink: 'planning/active/chiefops-demo/progress.md',
+    capabilityClass: 'balanced_execution',
+    riskClass: 'medium',
+    workType: 'coding',
+    authorityMode: 'task_authority',
+    allowedOps: ['inspect'],
+    requiresHumanApproval: false,
+    createdAt: now,
+    bindingVersion: 'binding-v1',
+    dispatchRequest: {
+      requestedModel: 'balanced-current',
+      reasoningEffort: 'medium',
+      speed: 'standard',
+      availabilityStatus: 'manual_pending'
+    },
+    dispatchIntentVersion: 'chiefops.dispatch-intent.v1',
+    dispatchDecision: {
+      decidedBy: 'chief-thread',
+      decidedAt: now,
+      inventory,
+      preferredModel: 'balanced-current',
+      preferredThinking: 'medium',
+      applicationStatus: 'manual_pending'
+    },
+    sourceProgressRef: {
+      file: 'planning/active/chiefops-demo/progress.md',
+      blockId: 'bind_dispatch_only_manual_pending',
+      startLine: null,
+      contentHash: 'sha256:dispatch-only-manual-pending',
+      observedAt: now
+    },
+    observedAt: now
+  };
+  const modelResolution = {
+    requestedCapabilityClass: binding.capabilityClass,
+    requestedReasoningDemand: 'standard',
+    requestedCostPreference: 'balanced',
+    requestedLatencyClass: 'standard',
+    upgradeTrigger: null,
+    resolvedModelAtRun: binding.dispatchRequest.requestedModel,
+    resolvedThinkingAtRun: binding.dispatchRequest.reasoningEffort,
+    modelResolutionReason: 'trusted fixture',
+    nativeThreadControl: false,
+    inventorySourceRef: inventory.sourceRef,
+    inventoryObservedAt: inventory.observedAt,
+    inventoryFingerprint: inventory.fingerprint,
+    applicationStatus: 'manual_pending'
+  };
+  await task(
+    root,
+    'chiefops-demo',
+    'chiefops-demo',
+    `# Progress\n\n${serializeChiefOpsBlock('ChiefOpsWorkerBinding', binding)}\n`
+  );
+  const bindingFile = path.join(root, 'binding.json');
+  const modelResolutionFile = path.join(root, 'model-resolution.json');
+  await writeFile(bindingFile, JSON.stringify(binding, null, 2));
+  await writeFile(modelResolutionFile, JSON.stringify(modelResolution, null, 2));
+
+  await assert.rejects(
+    () => buildHandoffFromFile({ root, file: bindingFile, modelResolutionFile, codexHome, now }),
+    /permission_enforcement_unverified/,
+    'manual-pending dispatch-only handoff requires permission evidence'
+  );
+  const handoff = await buildHandoffFromFile({
+    root,
+    file: bindingFile,
+    modelResolutionFile,
+    codexHome,
+    now,
+    permissionEnforcementObservation: {
+      status: 'verified',
+      effectiveClass: 'observe',
+      effectiveOps: ['inspect'],
+      evidenceRef: 'test:permission-observation'
+    }
+  });
+  assert.match(handoff, /availabilityStatus: manual_pending/);
+  assert.match(handoff, /resolvedModelAtRun: balanced-current/);
+  assert.match(handoff, /permissionEnforcementStatus: verified/);
 });
 
 test('V2 resolution permits only a trusted envelope transition and keeps no-envelope transitions at Chief', async (t) => {

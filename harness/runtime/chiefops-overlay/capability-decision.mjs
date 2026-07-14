@@ -1,3 +1,5 @@
+import { ROUTES, TASK_CLASSIFICATIONS } from './schema.mjs';
+
 const APPROVED_RESPAWN_REASONS = new Set([
   'session_unavailable',
   'rebind_impossible',
@@ -20,8 +22,29 @@ export function decideCapabilityAction({
   contextIntegrityFailure = false,
   respawnReason = null,
   sliceStillMatters = true,
-  manualHandoffAllowed = true
+  manualHandoffAllowed = true,
+  taskClassification,
+  requestedRoute
 }) {
+  if ((taskClassification !== undefined && !TASK_CLASSIFICATIONS.includes(taskClassification))
+    || (requestedRoute !== undefined && !ROUTES.includes(requestedRoute))
+    || (requestedRoute !== undefined && taskClassification === undefined)) {
+    return { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false };
+  }
+
+  const route = requestedRoute ?? (['tracked', 'deep_reasoning'].includes(taskClassification) ? 'visible_worker' : null);
+  const withRouteDecision = (decision, resolutionStatus) => route
+    ? {
+        ...decision,
+        routeDecision: {
+          taskClassification,
+          requestedRoute: route,
+          resolutionStatus,
+          approvedResolvedRoute: null
+        }
+      }
+    : decision;
+
   if (!bindingValid) {
     return { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false };
   }
@@ -53,87 +76,87 @@ export function decideCapabilityAction({
   }
 
   if (effectiveAction !== 'respawn_worker' && contextDrift && !rebindAttempted) {
-    return { mode: 'restore_rebind', receiptType: 'binding_mismatch', canProceedAsStarted: false };
+    return withRouteDecision({ mode: 'restore_rebind', receiptType: 'binding_mismatch', canProceedAsStarted: false }, 'capability_unavailable');
   }
 
   if (effectiveAction !== 'respawn_worker' && contextDrift) {
-    return { mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false };
+    return withRouteDecision({ mode: 'blocked', receiptType: 'binding_mismatch', canProceedAsStarted: false }, 'capability_unavailable');
   }
 
   if (effectiveAction === 'respawn_worker') {
     if (capabilities.create) {
-      return {
+      return withRouteDecision({
         mode: 'native_control_requested',
         receiptType: 'binding_verified',
         canProceedAsStarted: false,
         requiresWorkerReceipt: true,
         respawnReason: effectiveRespawnReason
-      };
+      }, 'native_control_requested');
     }
 
     return manualHandoffAllowed
-      ? {
+      ? withRouteDecision({
           mode: 'manual_handoff',
           receiptType: 'handoff_pending',
           canProceedAsStarted: false,
           respawnReason: effectiveRespawnReason
-        }
-      : {
+        }, 'handoff_pending')
+      : withRouteDecision({
           mode: 'unsupported',
           receiptType: 'capability_unavailable',
           canProceedAsStarted: false,
           respawnReason: effectiveRespawnReason
-        };
+        }, 'capability_unavailable');
   }
 
   if (effectiveAction === 'spawn_worker') {
     if (capabilities.create) {
-      return {
+      return withRouteDecision({
         mode: 'native_control_requested',
         receiptType: 'binding_verified',
         canProceedAsStarted: false,
         requiresWorkerReceipt: true
-      };
+      }, 'native_control_requested');
     }
 
     return manualHandoffAllowed
-      ? { mode: 'manual_handoff', receiptType: 'handoff_pending', canProceedAsStarted: false }
-      : { mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false };
+      ? withRouteDecision({ mode: 'manual_handoff', receiptType: 'handoff_pending', canProceedAsStarted: false }, 'handoff_pending')
+      : withRouteDecision({ mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false }, 'capability_unavailable');
   }
 
   if (effectiveAction === 'continue_worker') {
     if (capabilities.continue) {
-      return {
+      return withRouteDecision({
         mode: 'native_control_requested',
         receiptType: 'binding_verified',
         canProceedAsStarted: false,
         requiresWorkerReceipt: true
-      };
+      }, 'native_control_requested');
     }
 
     if (manualHandoffAllowed) {
-      return { mode: 'manual_handoff', receiptType: 'handoff_pending', canProceedAsStarted: false };
+      return withRouteDecision({ mode: 'manual_handoff', receiptType: 'handoff_pending', canProceedAsStarted: false }, 'handoff_pending');
     }
 
     return sliceStillMatters
-      ? { mode: 'respawn', receiptType: 'respawn_recommended', canProceedAsStarted: false }
-      : { mode: 'abandon', receiptType: 'abandoned', canProceedAsStarted: false };
+      ? withRouteDecision({ mode: 'respawn', receiptType: 'respawn_recommended', canProceedAsStarted: false }, 'capability_unavailable')
+      : withRouteDecision({ mode: 'abandon', receiptType: 'abandoned', canProceedAsStarted: false }, 'capability_unavailable');
   }
 
   if (effectiveAction === 'handoff_worker' || effectiveAction === 'send_instruction') {
     if (capabilities.message || capabilities.handoff) {
-      return {
+      return withRouteDecision({
         mode: 'native_control_requested',
         receiptType: 'binding_verified',
         canProceedAsStarted: false,
         requiresWorkerReceipt: true
-      };
+      }, 'native_control_requested');
     }
 
     return manualHandoffAllowed
-      ? { mode: 'manual_handoff', receiptType: 'manual_handoff_required', canProceedAsStarted: false }
-      : { mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false };
+      ? withRouteDecision({ mode: 'manual_handoff', receiptType: 'manual_handoff_required', canProceedAsStarted: false }, 'handoff_pending')
+      : withRouteDecision({ mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false }, 'capability_unavailable');
   }
 
-  return { mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false };
+  return withRouteDecision({ mode: 'unsupported', receiptType: 'capability_unavailable', canProceedAsStarted: false }, 'capability_unavailable');
 }

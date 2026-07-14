@@ -82,8 +82,14 @@ function sameAuthoritativeBinding(left, right) {
   const privateTokenMatches = Boolean(right.bindingToken) && right.bindingToken === left.bindingToken;
   const tokenContradictsTruth = Boolean(right.bindingToken) && right.bindingToken !== left.bindingToken;
 
+  const routeAndDispatchRequestsMatch = JSON.stringify(left.routeDecision ?? null) === JSON.stringify(right.routeDecision ?? null)
+    && JSON.stringify(left.dispatchRequest ?? null) === JSON.stringify(right.dispatchRequest ?? null);
   const subagentDispatchesMatch = JSON.stringify(left.subagentDispatches ?? []) === JSON.stringify(right.subagentDispatches ?? []);
-  return sharedFieldsMatch && subagentDispatchesMatch && !tokenContradictsTruth && (publicVersionMatches || privateTokenMatches);
+  return sharedFieldsMatch
+    && routeAndDispatchRequestsMatch
+    && subagentDispatchesMatch
+    && !tokenContradictsTruth
+    && (publicVersionMatches || privateTokenMatches);
 }
 
 async function readAuthoritativeV0bBinding({ root, bindingPacket }) {
@@ -93,10 +99,14 @@ async function readAuthoritativeV0bBinding({ root, bindingPacket }) {
     .filter((block) => block.type === 'ChiefOpsWorkerBinding')
     .map((block) => validateBindingPacket(block.value));
 
-  const authoritative = bindingBlocks.find((binding) => binding.bindingId === bindingPacket.bindingId);
-  if (!authoritative) {
+  const candidates = bindingBlocks.filter((binding) => binding.bindingId === bindingPacket.bindingId);
+  if (candidates.length === 0) {
     throw new Error('binding packet is not present in authoritative progress truth');
   }
+  if (candidates.length > 1) {
+    throw new Error('binding packet has duplicate bindingId in authoritative progress truth');
+  }
+  const [authoritative] = candidates;
 
   if (!sameAuthoritativeBinding(authoritative, bindingPacket)) {
     throw new Error('binding packet does not match authoritative progress truth');
@@ -803,38 +813,53 @@ export async function buildHandoffFromFile({
   const handoffPacket = isOperatingModelBinding
     ? validateOperatingModelBindingPacket(authoritative.bindingPacket)
     : authoritative.bindingPacket;
+  const hasAuthoritativeDispatchRequest = handoffPacket.dispatchRequest !== undefined;
+  const dispatchUnavailable = handoffPacket.dispatchRequest?.availabilityStatus === 'capability_unavailable';
+  if (dispatchUnavailable && modelResolutionFile) {
+    throw new Error('model_resolution_forbidden');
+  }
 
   let modelResolution = null;
   let assessedPermissionObservation = null;
-  if (isOperatingModelBinding) {
-    if (!modelResolutionFile) {
-      throw new Error('model_resolution_required');
-    }
-    modelResolution = validateModelResolution(await readJsonFile(modelResolutionFile));
-    const profileMatches = modelResolution.requestedCapabilityClass === handoffPacket.capabilityClass
-      && modelResolution.requestedReasoningDemand === handoffPacket.reasoningDemand
-      && modelResolution.requestedCostPreference === handoffPacket.costPreference
-      && modelResolution.requestedLatencyClass === handoffPacket.latencyClass
-      && modelResolution.upgradeTrigger === (handoffPacket.upgradeTrigger ?? null);
-    if (!profileMatches) {
-      throw new Error('model_resolution_profile_mismatch');
-    }
-    if (handoffPacket.dispatchIntentVersion) {
-      await verifyTrustedDispatchContext({
-        root: expectedRoot,
-        bindingPacket: handoffPacket,
-        modelResolution,
-        codexHome,
-        now
-      });
-      if (modelResolution.applicationStatus !== 'manual_pending') {
-        throw new Error('model_application_unverified');
+  if (isOperatingModelBinding || hasAuthoritativeDispatchRequest) {
+    if (dispatchUnavailable) {
+      // Unavailable is the only dispatch branch that does not require a
+      // trusted selection file.
+    } else {
+      if (!modelResolutionFile) {
+        throw new Error('model_resolution_required');
+      }
+      modelResolution = validateModelResolution(await readJsonFile(modelResolutionFile));
+      const profileMatches = isOperatingModelBinding
+        ? modelResolution.requestedCapabilityClass === handoffPacket.capabilityClass
+          && modelResolution.requestedReasoningDemand === handoffPacket.reasoningDemand
+          && modelResolution.requestedCostPreference === handoffPacket.costPreference
+          && modelResolution.requestedLatencyClass === handoffPacket.latencyClass
+          && modelResolution.upgradeTrigger === (handoffPacket.upgradeTrigger ?? null)
+        : modelResolution.requestedCapabilityClass === handoffPacket.capabilityClass
+          && modelResolution.resolvedModelAtRun === handoffPacket.dispatchRequest.requestedModel
+          && modelResolution.resolvedThinkingAtRun === handoffPacket.dispatchRequest.reasoningEffort;
+      if (!profileMatches) {
+        throw new Error('model_resolution_profile_mismatch');
+      }
+      if (handoffPacket.dispatchIntentVersion) {
+        await verifyTrustedDispatchContext({
+          root: expectedRoot,
+          bindingPacket: handoffPacket,
+          modelResolution,
+          codexHome,
+          now
+        });
+        if (modelResolution.applicationStatus !== 'manual_pending') {
+          throw new Error('model_application_unverified');
+        }
       }
     }
 
-    if (permissionEnforcementObservation || !handoffPacket.dispatchIntentVersion) {
+    if (hasAuthoritativeDispatchRequest
+      || (isOperatingModelBinding && (permissionEnforcementObservation || !handoffPacket.dispatchIntentVersion))) {
       const permission = assessPermissionEnforcement({
-        requestedClass: handoffPacket.permissionClass,
+        requestedClass: handoffPacket.permissionClass ?? (hasAuthoritativeDispatchRequest ? 'observe' : undefined),
         allowedOps: handoffPacket.allowedOps,
         observation: permissionEnforcementObservation
       });
@@ -865,7 +890,8 @@ export async function buildHandoffFromFile({
     return buildV2DeltaHandoffPrompt({
       delta: bindingInput,
       effectiveV0bBinding: { ...handoffPacket, planningRoot: expectedRoot },
-      bindingObservation
+      bindingObservation,
+      modelResolution
     });
   }
 

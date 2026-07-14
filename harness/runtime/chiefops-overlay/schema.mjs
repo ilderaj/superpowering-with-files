@@ -29,6 +29,10 @@ export const PERMISSION_CLASSES = ['observe', 'workspace', 'egress_gated', 'rele
 export const DELEGATION_POLICIES = ['prohibited', 'worker_discretion', 'encouraged'];
 export const MAJOR_PHASES = ['discovery', 'design', 'execute', 'verify', 'reconcile'];
 export const RECEIPT_TYPES_REQUIRING_SESSION_HANDLE = ['binding_verified', 'started', 'check_in', 'blocked', 'done', 'new_trio_candidate', 'abandoned'];
+export const TASK_CLASSIFICATIONS = ['quick', 'tracked', 'deep_reasoning'];
+export const ROUTES = ['visible_worker', 'subagent', 'chief_direct'];
+export const ROUTE_DECISION_STATUSES = ['native_control_requested', 'handoff_pending', 'capability_unavailable', 'chief_downgrade'];
+export const ROUTE_OUTCOME_STATUSES = ['native_control_verified', 'handoff_pending', 'capability_unavailable', 'chief_downgrade'];
 
 const isoTimestamp = z.string().datetime();
 const safeV2Identity = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
@@ -55,6 +59,76 @@ export const SourceProgressRefSchema = z.object({
   observedAt: isoTimestamp
 });
 
+export const RouteDecisionSchema = z.object({
+  taskClassification: z.enum(TASK_CLASSIFICATIONS),
+  requestedRoute: z.enum(ROUTES),
+  resolutionStatus: z.enum(ROUTE_DECISION_STATUSES),
+  approvedResolvedRoute: z.enum(ROUTES).nullable(),
+  downgradeReason: z.string().min(1).optional()
+}).strict().superRefine((decision, ctx) => {
+  if (decision.resolutionStatus === 'chief_downgrade') {
+    if (decision.requestedRoute !== 'visible_worker') {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'chief_downgrade requires a visible_worker request.' });
+    }
+    if (!['subagent', 'chief_direct'].includes(decision.approvedResolvedRoute)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'chief_downgrade requires an approved subagent or chief_direct route.' });
+    }
+    if (!decision.downgradeReason) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'chief_downgrade requires a non-empty downgradeReason.' });
+    }
+  } else {
+    if (decision.approvedResolvedRoute !== null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'non-downgrade route decisions require approvedResolvedRoute to be null.' });
+    }
+    if (decision.downgradeReason !== undefined) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'downgradeReason is valid only for chief_downgrade.' });
+    }
+  }
+});
+
+export const RouteOutcomeSchema = z.object({
+  taskClassification: z.enum(TASK_CLASSIFICATIONS),
+  requestedRoute: z.enum(ROUTES),
+  resolvedRoute: z.enum(ROUTES).nullable(),
+  resolutionStatus: z.enum(ROUTE_OUTCOME_STATUSES)
+}).strict().superRefine((outcome, ctx) => {
+  if (outcome.resolutionStatus === 'native_control_verified') {
+    if (outcome.resolvedRoute === null || outcome.resolvedRoute !== outcome.requestedRoute) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'native_control_verified requires resolvedRoute to equal requestedRoute.' });
+    }
+    return;
+  }
+  if (outcome.resolutionStatus === 'chief_downgrade') {
+    if (outcome.requestedRoute !== 'visible_worker' || !['subagent', 'chief_direct'].includes(outcome.resolvedRoute)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'chief_downgrade requires a visible_worker request and a resolved subagent or chief_direct route.' });
+    }
+    return;
+  }
+  if (outcome.resolvedRoute !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'pending or unavailable route outcomes require resolvedRoute to be null.' });
+  }
+});
+
+export const DispatchRequestSchema = z.object({
+  requestedModel: z.string().min(1),
+  reasoningEffort: z.string().min(1),
+  speed: z.literal('standard'),
+  availabilityStatus: z.enum(['manual_pending', 'capability_unavailable'])
+}).strict();
+
+export const DispatchOutcomeSchema = z.object({
+  resolvedModel: z.string().min(1).nullable(),
+  resolvedReasoningEffort: z.string().min(1).nullable(),
+  resolvedSpeed: z.literal('standard').nullable(),
+  applicationStatus: z.enum(['manual_pending', 'capability_unavailable'])
+}).strict().superRefine((outcome, ctx) => {
+  if (outcome.resolvedModel !== null
+    || outcome.resolvedReasoningEffort !== null
+    || outcome.resolvedSpeed !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dispatch outcomes must keep all actual resolved values null until host application is observed.' });
+  }
+});
+
 const BindingPacketObject = z.object({
   schemaVersion: z.literal('chiefops.v0b'),
   bindingId: z.string().min(1),
@@ -77,6 +151,8 @@ const BindingPacketObject = z.object({
   latencyClass: z.enum(LATENCY_CLASSES).optional(),
   permissionClass: z.enum(PERMISSION_CLASSES).optional(),
   delegationPolicy: z.enum(DELEGATION_POLICIES).optional(),
+  routeDecision: RouteDecisionSchema.optional(),
+  dispatchRequest: DispatchRequestSchema.optional(),
   dispatchIntentVersion: z.literal('chiefops.dispatch-intent.v1').optional(),
   dispatchDecision: z.object({
     decidedBy: z.string().min(1),
@@ -172,6 +248,18 @@ function validateBindingPacketInvariants(packet, ctx) {
   if (Boolean(packet.dispatchIntentVersion) !== Boolean(packet.dispatchDecision)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dispatch intent version and decision are required together.' });
   }
+  if (packet.dispatchRequest?.availabilityStatus === 'manual_pending') {
+    if (!packet.dispatchIntentVersion || !packet.dispatchDecision) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'manual_pending dispatch requests require the trusted legacy dispatch selection.' });
+    } else if (packet.dispatchRequest.requestedModel !== packet.dispatchDecision.preferredModel
+      || packet.dispatchRequest.reasoningEffort !== packet.dispatchDecision.preferredThinking) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dispatch request must match the trusted legacy dispatch selection.' });
+    }
+  }
+  if (packet.dispatchRequest?.availabilityStatus === 'capability_unavailable'
+    && (packet.dispatchIntentVersion || packet.dispatchDecision)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'capability_unavailable dispatch requests must omit legacy dispatch selection.' });
+  }
   if (packet.dispatchDecision?.decidedBy !== undefined && packet.dispatchDecision.decidedBy !== packet.chiefThreadId) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'dispatch decision must be authored by the bound Chief thread.' });
   }
@@ -219,6 +307,9 @@ export const V2StablePrefixSchema = BindingPacketObject
   .strict()
   .superRefine((prefix, ctx) => {
     validateBindingPacketInvariants(prefix, ctx);
+    if (prefix.routeDecision?.resolutionStatus === 'chief_downgrade') {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'V2 stable prefixes cannot carry chief_downgrade route decisions.' });
+    }
     if (prefix.bindingId !== prefix.prefixBindingId) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -317,6 +408,8 @@ export const WorkerReceiptSchema = z.object({
   resolvedThinkingAtRun: z.string().min(1).optional(),
   modelResolutionReason: z.string().min(1).optional(),
   applicationStatus: z.enum(['manual_pending', 'unverified']).optional(),
+  routeOutcome: RouteOutcomeSchema.optional(),
+  dispatchOutcome: DispatchOutcomeSchema.optional(),
   subagentReturns: z.array(SubagentReturnSchema).optional(),
   scopeCheck: z.object({
     nonGoalsChecked: z.boolean(),
@@ -347,6 +440,22 @@ export const WorkerReceiptSchema = z.object({
   }
   if (receipt.receiptType === 'done' && receipt.allowedOps.some((op) => ['publish', 'send'].includes(op)) && !receipt.publishRef && !receipt.blockerReason) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'publishRef or blockerReason is required for write/publish/send done receipts.' });
+  }
+  if (receipt.routeOutcome
+    && ['handoff_pending', 'capability_unavailable'].includes(receipt.routeOutcome.resolutionStatus)
+    && receipt.receiptType === 'done') {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'pending or unavailable route outcomes cannot be done receipts.' });
+  }
+  if (receipt.dispatchOutcome?.applicationStatus === 'manual_pending') {
+    const missing = ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason', 'applicationStatus']
+      .filter((field) => receipt[field] === undefined || (field === 'applicationStatus' && receipt[field] !== 'manual_pending'));
+    if (missing.length > 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: `manual_pending dispatch outcomes require legacy selection fields: ${missing.join(', ')}.` });
+    }
+  }
+  if (receipt.dispatchOutcome?.applicationStatus === 'capability_unavailable'
+    && ['resolvedModelAtRun', 'resolvedThinkingAtRun', 'modelResolutionReason', 'applicationStatus'].some((field) => receipt[field] !== undefined)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'capability_unavailable dispatch outcomes must omit legacy selection and application fields.' });
   }
 });
 

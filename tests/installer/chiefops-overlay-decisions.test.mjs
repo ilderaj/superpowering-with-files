@@ -128,6 +128,185 @@ test('decideCapabilityAction does not turn native create capability into started
   );
 });
 
+test('decideCapabilityAction emits binding-owned route evidence only for classified routes', () => {
+  const tracked = decideCapabilityAction({
+    action: 'spawn_worker',
+    capabilities: { create: true },
+    bindingValid: true,
+    materialDrift: false,
+    taskClassification: 'tracked'
+  });
+  assert.deepEqual(tracked.routeDecision, {
+    taskClassification: 'tracked',
+    requestedRoute: 'visible_worker',
+    resolutionStatus: 'native_control_requested',
+    approvedResolvedRoute: null
+  });
+
+  const deep = decideCapabilityAction({
+    action: 'spawn_worker',
+    capabilities: { create: false },
+    bindingValid: true,
+    materialDrift: false,
+    taskClassification: 'deep_reasoning',
+    manualHandoffAllowed: true
+  });
+  assert.equal(deep.routeDecision.requestedRoute, 'visible_worker');
+  assert.equal(deep.routeDecision.resolutionStatus, 'handoff_pending');
+
+  assert.equal(
+    decideCapabilityAction({
+      action: 'spawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      materialDrift: false,
+      taskClassification: 'quick'
+    }).routeDecision,
+    undefined
+  );
+  assert.equal(
+    decideCapabilityAction({
+      action: 'spawn_worker',
+      capabilities: { create: true },
+      bindingValid: true,
+      materialDrift: false
+    }).routeDecision,
+    undefined
+  );
+});
+
+test('authority gate pairs route and dispatch cohorts before normal receipt acceptance', async () => {
+  const receiptFor = (binding, overrides = {}) => ({
+    authorityTaskId: binding.authorityTaskId,
+    workerId: binding.workerId,
+    currentSlice: binding.currentSlice,
+    proofTarget: binding.proofTarget,
+    evidenceSink: binding.evidenceSink,
+    capabilityClass: binding.capabilityClass,
+    riskClass: binding.riskClass,
+    majorPhase: binding.majorPhase,
+    reasoningDemand: binding.reasoningDemand,
+    costPreference: binding.costPreference,
+    latencyClass: binding.latencyClass,
+    permissionClass: binding.permissionClass,
+    delegationPolicy: binding.delegationPolicy,
+    workType: binding.workType,
+    authorityMode: binding.authorityMode,
+    allowedOps: binding.allowedOps,
+    sourceProgressRef: binding.sourceProgressRef,
+    bindingVersion: binding.bindingVersion,
+    receiptId: 'receipt_route_dispatch',
+    receiptType: 'done',
+    status: 'done',
+    summary: 'Bounded proof completed.',
+    evidenceRefs: ['tests/installer/chiefops-overlay-decisions.test.mjs'],
+    nextSuggestedAction: 'return to Chief',
+    scopeCheck: { nonGoalsChecked: true, violations: [] },
+    createdAt: '2026-07-09T05:10:00.000Z',
+    observedAt: '2026-07-09T05:10:00.000Z',
+    ...overrides
+  });
+  const routeBinding = {
+    ...operatingModelBindingPacket,
+    routeDecision: {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_requested',
+      approvedResolvedRoute: null
+    }
+  };
+  const nativeReceipt = receiptFor(routeBinding, {
+    resolvedModelAtRun: operatingModelResolution.resolvedModelAtRun,
+    resolvedThinkingAtRun: operatingModelResolution.resolvedThinkingAtRun,
+    modelResolutionReason: operatingModelResolution.modelResolutionReason,
+    routeOutcome: {
+      taskClassification: 'tracked',
+      requestedRoute: 'visible_worker',
+      resolvedRoute: 'visible_worker',
+      resolutionStatus: 'native_control_verified'
+    }
+  });
+  assert.deepEqual(
+    await gateReceiptWithAuthority({ bindingPacket: routeBinding, receipt: nativeReceipt, approvalSatisfied: true, modelResolution: operatingModelResolution }),
+    { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket: bindingPacket,
+      receipt: receiptFor(bindingPacket, { routeOutcome: nativeReceipt.routeOutcome }),
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'route_evidence_unbound' }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket: routeBinding,
+      receipt: receiptFor(routeBinding, { routeOutcome: undefined }),
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
+    }),
+    { outcome: 'block', reason: 'route_evidence_unbound' }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket: routeBinding,
+      receipt: receiptFor(routeBinding, {
+        routeOutcome: {
+          taskClassification: 'tracked',
+          requestedRoute: 'visible_worker',
+          resolvedRoute: 'subagent',
+          resolutionStatus: 'chief_downgrade'
+        }
+      }),
+      approvalSatisfied: true,
+      modelResolution: operatingModelResolution
+    }),
+    { outcome: 'block', reason: 'route_transition_mismatch' }
+  );
+
+  const unavailableBinding = {
+    ...operatingModelBindingPacket,
+    dispatchRequest: {
+      requestedModel: 'gpt-5.6-luna',
+      reasoningEffort: 'xhigh',
+      speed: 'standard',
+      availabilityStatus: 'capability_unavailable'
+    }
+  };
+  const unavailableReceipt = receiptFor(unavailableBinding, {
+    dispatchOutcome: {
+      resolvedModel: null,
+      resolvedReasoningEffort: null,
+      resolvedSpeed: null,
+      applicationStatus: 'capability_unavailable'
+    }
+  });
+  assert.deepEqual(
+    await gateReceiptWithAuthority({ bindingPacket: unavailableBinding, receipt: unavailableReceipt, approvalSatisfied: true }),
+    { outcome: 'accept', reason: null }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket,
+      receipt: receiptFor(bindingPacket, {
+        dispatchOutcome: unavailableReceipt.dispatchOutcome
+      }),
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'dispatch_evidence_unbound' }
+  );
+  assert.deepEqual(
+    await gateReceiptWithAuthority({
+      bindingPacket: unavailableBinding,
+      receipt: receiptFor(unavailableBinding, {
+        dispatchOutcome: { ...unavailableReceipt.dispatchOutcome, resolvedSpeed: 'standard' }
+      }),
+      approvalSatisfied: true
+    }),
+    { outcome: 'block', reason: 'dispatch_resolution_evidence_mismatch' }
+  );
+});
+
 test('decideCapabilityAction recommends respawn for unavailable continue when slice still matters', () => {
   assert.equal(
     decideCapabilityAction({

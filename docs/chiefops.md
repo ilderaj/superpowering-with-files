@@ -266,6 +266,13 @@ target, evidence sink, and return-to-Chief gate.
 
 Subagent/internal worker wording alone must not be presented as satisfying an explicit visible Codex session worker request.
 
+The runtime keeps route and dispatch evidence as paired optional cohorts. A
+binding `routeDecision` or `dispatchRequest` must have its corresponding receipt
+outcome, and a receipt cannot create missing authority. Requested model,
+reasoning effort, speed, and availability remain binding-owned; unobserved host
+application is recorded with null actual values and `manual_pending` or
+`capability_unavailable`, never as a `fast` claim.
+
 This rule does not add a scheduler, daemon, worker registry, durable session
 database, second board, receipt dialect, lifecycle authority, or automatic
 external-thread write behavior.

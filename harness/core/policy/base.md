@@ -36,6 +36,7 @@ By default:
 - Chief-direct is limited to quick work and narrow gate or reconcile verification.
 - Use one primary visible worker session per tracked task across phases; session context is a cache, not authority.
 - Every major phase boundary returns to Chief. Within an approved phase, the worker may proceed autonomously.
+- Route and dispatch evidence stay as paired optional cohorts: binding intent owns requested route/model/effort/speed and receipt outcomes report only observed values; unpaired evidence fails closed.
 - Chief chat history is not task authority. Restore and update the exact bound trio before deriving an Assignment Packet.
 - Default capacity is two Chief-managed visible executing lanes. Additional visible lanes require explicit human approval.
 - Worker-local subagents are session-internal implementation details, not visible-worker substitutes or lifecycle owners.

@@ -64,6 +64,14 @@ For compatibility: historical `threadId` or `sessionId` values default to explic
 Use Codex thread/session tools when the requested visible route is available; otherwise produce a pending handoff or state the downgrade rather than claiming it was satisfied.
 For a visible-route downgrade, state the downgrade reason, the bounded slice, the proof target and evidence sink, and the return-to-Chief gate.
 
+Route and dispatch evidence are paired optional cohorts. A binding-owned
+`routeDecision` must be echoed by a receipt `routeOutcome`, and a binding-owned
+`dispatchRequest` must be echoed by a receipt `dispatchOutcome`; an XOR pair is
+invalid. The binding owns requested model, reasoning effort, speed, availability,
+and any downgrade authority. Until host application is observed, actual
+resolved model, effort, and speed values remain null with `manual_pending` or
+`capability_unavailable`; `fast` is not a valid speed claim.
+
 ## Assignment Packet Invariant
 
 An Assignment Packet is a derived/ephemeral prompt contract, not a durable
