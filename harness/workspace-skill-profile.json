@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "skillProfile": "standard",
+  "skillProfile": "hybrid-candidate",
   "deploymentProfile": "standard",
   "projectionMode": "portable",
   "targets": [
