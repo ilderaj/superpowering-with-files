@@ -9,7 +9,7 @@ function patchBlock(insertBefore) {
   return [
   `## ${MARKER}`,
   '',
-  '- Before creating a manual worktree, run ./scripts/harness worktree-name.',
+  '- Before creating a manual worktree, run `./scripts/harness worktree-name --task <task-id>` with the current bound task id.',
   '- Use the suggested worktree basename and branch name instead of deriving them from the prompt.',
   '- If the host already manages the worktree (for example, Codex App), treat this helper as a supplementary naming tool rather than a host override.',
   '',

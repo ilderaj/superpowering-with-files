@@ -62,7 +62,7 @@ Only proceed to Step 1b if you have no native worktree tool available.
 
 ## Harness Superpowers using-git-worktrees naming patch
 
-- Before creating a manual worktree, run ./scripts/harness worktree-name.
+- Before creating a manual worktree, run `./scripts/harness worktree-name --task <task-id>` with the current bound task id.
 - Use the suggested worktree basename and branch name instead of deriving them from the prompt.
 - If the host already manages the worktree (for example, Codex App), treat this helper as a supplementary naming tool rather than a host override.
 

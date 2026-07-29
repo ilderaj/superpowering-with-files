@@ -1028,7 +1028,10 @@ test('applySuperpowersUsingGitWorktreesPatch preserves directory-selection fallb
     const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
 
     assert.match(skill, /## Harness Superpowers using-git-worktrees naming patch/);
-    assert.match(skill, /Before creating a manual worktree, run \.\/scripts\/harness worktree-name/);
+    assert.match(
+      skill,
+      /Before creating a manual worktree, run `\.\/scripts\/harness worktree-name --task <task-id>`/
+    );
     assert.match(skill, /#### Directory Selection/);
     assert.match(skill, /#### Create the Worktree/);
   } finally {
@@ -1062,6 +1065,10 @@ test('applySuperpowersExecutingPlansReplanPatch materializes Harness replan guid
     assert.match(skill, /Keep the root goal stable/);
     assert.match(skill, /Sync durable changes back to `planning\/active\/<task-id>\/`/);
     assert.match(skill, /stop and record blockers instead of looping forever/);
+    assert.match(
+      skill,
+      /If `superpowers:subagent-driven-development` is not present in the projected skill set, continue with this `executing-plans` workflow/
+    );
     assert.doesNotMatch(skill, /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/);
     assert.match(
       skill,
@@ -1231,7 +1238,15 @@ test('applySuperpowersVerificationBeforeCompletionPatch materializes declared-pr
     const skill = await readFile(path.join(target, 'SKILL.md'), 'utf8');
 
     assert.match(skill, /## Harness Superpowers verification-before-completion proof patch/);
-    assert.match(skill, /Start from the declared proof stack, not from a convenient command/);
+    assert.match(skill, /Classify the current task or round before selecting verification depth/);
+    assert.match(
+      skill,
+      /For a quick task, run the smallest direct in-session proof that covers the claim; do not require or invent a seven-field proof stack/
+    );
+    assert.match(
+      skill,
+      /For a tracked or deep-reasoning task that declares a proof contract, start from that declared proof stack/
+    );
     assert.match(skill, /Identify the `proof target`, `primary proof`, `backstop proof`, `escalation trigger`, `evidence sink`, `reconcile rule`, and `unacceptable substitute`/);
     assert.match(skill, /Run the declared `primary proof` first/);
     assert.match(skill, /Only use the declared `backstop proof` when the `escalation trigger` is actually met/);

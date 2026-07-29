@@ -56,6 +56,8 @@ After all tasks complete and verified:
 
 ## Harness Superpowers executing-plans replan patch
 
+- Only switch to `superpowers:subagent-driven-development` when that skill is present in the projected skill set and the host supports subagents.
+- If `superpowers:subagent-driven-development` is not present in the projected skill set, continue with this `executing-plans` workflow; host subagent support alone does not make an unprojected skill available.
 - If verification fails, classify it first: `implementation issue`, `plan issue`, `acceptance proof issue`, or `governance proof issue`.
 - An `implementation issue` means the approved plan is still sound but the code or local fix is not there yet; stay in execution and repair the work.
 - Only a `plan issue` may trigger a bounded mini `review -> revise -> verify` loop.
