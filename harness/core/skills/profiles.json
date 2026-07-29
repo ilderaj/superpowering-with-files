@@ -6,6 +6,7 @@
     "standard": "always-on-core",
     "copilot-default": "always-on-core",
     "office": "always-on-core",
+    "second-opinion-advisory": "always-on-core",
     "matt-pilot": "always-on-core",
     "superpowers-pilot": "always-on-core",
     "hybrid-candidate": "high-assurance",
@@ -55,6 +56,10 @@
     "office": [
       "planning-with-files",
       "office-work-quality"
+    ],
+    "second-opinion-advisory": [
+      "planning-with-files",
+      "second-opinion-advisory"
     ],
     "matt-pilot": [
       "risk-assessment-before-destructive-changes",
