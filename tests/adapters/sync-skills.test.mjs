@@ -122,7 +122,14 @@ test('sync projects selected workspace entries and skills', async () => {
       verificationBeforeCompletion,
       /Harness Superpowers verification-before-completion proof patch/
     );
-    assert.match(verificationBeforeCompletion, /Start from the declared proof stack, not from a convenient command/);
+    assert.match(
+      verificationBeforeCompletion,
+      /For a tracked or deep-reasoning task that declares a proof contract, start from that declared proof stack/
+    );
+    assert.match(
+      verificationBeforeCompletion,
+      /For a quick task, run the smallest direct in-session proof/
+    );
     assert.match(verificationBeforeCompletion, /Run the declared `primary proof` first/);
     assert.match(
       verificationBeforeCompletion,
@@ -131,7 +138,10 @@ test('sync projects selected workspace entries and skills', async () => {
 
     const usingGitWorktrees = await readFile(path.join(root, '.agents/skills/using-git-worktrees/SKILL.md'), 'utf8');
     assert.match(usingGitWorktrees, /Harness Superpowers using-git-worktrees naming patch/);
-    assert.match(usingGitWorktrees, /Before creating a manual worktree, run \.\/scripts\/harness worktree-name/);
+    assert.match(
+      usingGitWorktrees,
+      /Before creating a manual worktree, run `\.\/scripts\/harness worktree-name --task <task-id>`/
+    );
     assert.match(usingGitWorktrees, /Use the suggested worktree basename and branch name/);
     assert.match(
       usingGitWorktrees,
@@ -361,6 +371,11 @@ test('sync materializes executing-plans replan guidance for shared and Claude sk
       assert.match(skill, /Keep the root goal stable instead of reopening broad planning or route selection\./, target);
       assert.match(skill, /acceptance proof issue/, target);
       assert.match(skill, /governance proof issue/, target);
+      assert.match(
+        skill,
+        /If `superpowers:subagent-driven-development` is not present in the projected skill set, continue with this `executing-plans` workflow/,
+        target
+      );
       assert.doesNotMatch(
         skill,
         /Do not invoke `finishing-a-development-branch` just because verification feels incomplete/,
@@ -378,6 +393,7 @@ test('sync materializes executing-plans replan guidance for shared and Claude sk
       assert.match(skill, /Harness Superpowers verification-before-completion proof patch/, target);
       assert.match(skill, /declared proof stack/, target);
       assert.match(skill, /declared `unacceptable substitute`/, target);
+      assert.match(skill, /For a quick task, run the smallest direct in-session proof/, target);
     }
 
     const writingPlansTargets = {
@@ -402,7 +418,7 @@ test('sync materializes executing-plans replan guidance for shared and Claude sk
     );
     assert.match(
       await readFile(path.join(root, '.agents/skills/using-git-worktrees/SKILL.md'), 'utf8'),
-      /Harness Superpowers using-git-worktrees naming patch/
+      /Before creating a manual worktree, run `\.\/scripts\/harness worktree-name --task <task-id>`/
     );
     assert.match(
       await readFile(path.join(root, '.agents/skills/finishing-a-development-branch/SKILL.md'), 'utf8'),

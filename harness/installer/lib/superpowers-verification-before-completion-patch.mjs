@@ -7,8 +7,10 @@ const INSERT_BEFORE = '## Common Failures';
 const PATCH_BLOCK = [
   `## ${MARKER}`,
   '',
-  '- Start from the declared proof stack, not from a convenient command.',
-  '- Identify the `proof target`, `primary proof`, `backstop proof`, `escalation trigger`, `evidence sink`, `reconcile rule`, and `unacceptable substitute` before you verify anything.',
+  '- Classify the current task or round before selecting verification depth.',
+  '- For a quick task, run the smallest direct in-session proof that covers the claim; do not require or invent a seven-field proof stack.',
+  '- For a tracked or deep-reasoning task that declares a proof contract, start from that declared proof stack, not from a convenient command.',
+  '- For that declared contract: Identify the `proof target`, `primary proof`, `backstop proof`, `escalation trigger`, `evidence sink`, `reconcile rule`, and `unacceptable substitute` before you verify anything.',
   '- Run the declared `primary proof` first and read the full result against the actual claim.',
   '- Only use the declared `backstop proof` when the `escalation trigger` is actually met.',
   '- Store the result in the declared `evidence sink` and apply the declared `reconcile rule` before claiming success.',

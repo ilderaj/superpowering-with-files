@@ -225,7 +225,7 @@ test('workspace-skills plan reads committed desired state without writing legacy
   try {
     const { stdout } = await harnessCommand(root, 'workspace-skills', 'plan');
     const report = JSON.parse(stdout);
-    assert.equal(report.skillProfile, 'standard');
+    assert.equal(report.skillProfile, 'hybrid-candidate');
     assert.ok(report.skills.length > 0);
     assert.ok(report.skills.every((entry) => entry.kind === 'skill'));
     await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);

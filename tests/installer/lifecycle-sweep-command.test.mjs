@@ -59,7 +59,7 @@ async function writeAnchor(root, taskId, anchor) {
       {
         schemaVersion: 1,
         taskId,
-        observedAt: '2026-07-08T05:21:33.000Z',
+        observedAt: new Date().toISOString(),
         actor: 'codex',
         evidenceRefs: [`planning/active/${taskId}/progress.md#anchor`],
         syncBackRef: `planning/active/${taskId}/progress.md#anchor`,
@@ -186,12 +186,14 @@ test('lifecycle sweep sends conflicting terminal anchors to manual review', asyn
       anchorId: 'pr-10-merged',
       anchorType: 'pr_merged',
       anchorStrength: 'strong',
+      observedAt: '2026-07-08T05:21:33.000Z',
       recommendedStatus: 'closed'
     });
     await writeAnchor(root, 'task-demo', {
       anchorId: 'closure-blocked',
       anchorType: 'autonomous_closure_terminal',
       anchorStrength: 'terminal',
+      observedAt: '2026-07-08T05:21:33.000Z',
       recommendedStatus: 'blocked'
     });
 
@@ -214,6 +216,7 @@ test('lifecycle sweep sends worker identity mismatch to manual review', async ()
       anchorId: 'worker-wrong-task',
       anchorType: 'pr_merged',
       anchorStrength: 'strong',
+      observedAt: '2026-07-08T05:21:33.000Z',
       recommendedStatus: 'closed',
       subject: {
         authorityTaskId: 'different-task',
@@ -241,6 +244,7 @@ test('lifecycle sweep blocks close when execution followups remain open', async 
       anchorId: 'pr-10-merged',
       anchorType: 'pr_merged',
       anchorStrength: 'strong',
+      observedAt: '2026-07-08T05:21:33.000Z',
       recommendedStatus: 'closed'
     });
     const receiptDir = path.join(root, '.harness/execution/receipts/task-demo');
