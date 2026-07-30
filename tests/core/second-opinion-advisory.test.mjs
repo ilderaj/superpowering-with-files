@@ -7,7 +7,7 @@ function projectionKey(projection) {
   return `${projection.parentSkillName}:${projection.skillName}`;
 }
 
-test('second-opinion advisory is an opt-in projection that leaves common profiles unchanged', async () => {
+test('second-opinion advisory joins the hybrid family while default profiles remain unchanged', async () => {
   const profiles = JSON.parse(await readFile('harness/core/skills/profiles.json', 'utf8'));
   const index = JSON.parse(await readFile('harness/core/skills/index.json', 'utf8'));
 
@@ -24,12 +24,12 @@ test('second-opinion advisory is an opt-in projection that leaves common profile
     'copilot-default',
     'office',
     'matt-pilot',
-    'superpowers-pilot',
-    'hybrid-candidate',
-    'high-assurance',
-    'full'
+    'superpowers-pilot'
   ]) {
     assert.ok(!profiles.profiles[profile].includes('second-opinion-advisory'), profile);
+  }
+  for (const profile of ['hybrid-candidate', 'high-assurance', 'full']) {
+    assert.ok(profiles.profiles[profile].includes('second-opinion-advisory'), profile);
   }
 
   assert.deepEqual(index.skills['second-opinion-advisory'], {
@@ -58,6 +58,17 @@ test('second-opinion advisory is an opt-in projection that leaves common profile
     'planning-with-files:planning-with-files',
     'second-opinion-advisory:second-opinion-advisory'
   ]);
+
+  const hybridPlan = await planSkillProjections({
+    rootDir: process.cwd(),
+    homeDir: '/home/user',
+    scope: 'workspace',
+    target: 'codex',
+    skillProfile: 'hybrid-candidate'
+  });
+  assert.ok(
+    hybridPlan.map(projectionKey).includes('second-opinion-advisory:second-opinion-advisory')
+  );
 });
 
 test('second-opinion advisory documents a confirmed advisory-only workflow', async () => {
