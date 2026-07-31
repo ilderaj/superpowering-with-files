@@ -80,6 +80,22 @@ test('second-opinion advisory documents a confirmed advisory-only workflow', asy
   assert.match(skill, /I approve sharing the reviewed, redacted consultation package/);
   assert.match(skill, /## Advisory Handling/);
   assert.match(skill, /planning\/active\/<task-id>\//);
-  assert.match(skill, /does not install, register, invoke, or control any external runtime/i);
+  assert.match(skill, /does not install, register, or bundle a provider SDK/i);
+  assert.match(skill, /must not automatically change Harness state/i);
+});
+
+test('second-opinion advisory makes browser-assisted submission explicit, exact, and fail-closed', async () => {
+  const skill = await readFile('harness/core/skills/second-opinion-advisory/SKILL.md', 'utf8');
+
+  assert.match(skill, /## Operating Modes/);
+  assert.match(skill, /manual.*default/i);
+  assert.match(skill, /browser-assisted/i);
+  assert.match(skill, /in-app Browser/i);
+  assert.match(skill, /SHA-256/i);
+  assert.match(skill, /agent-operated/i);
+  assert.match(skill, /Submit once only; do not fall back or retry\./i);
+  assert.match(skill, /exact model label/i);
+  assert.match(skill, /Do not inspect or record credentials, cookies, local storage, passwords, or session data\./i);
+  assert.match(skill, /must stop without submitting/i);
   assert.match(skill, /must not automatically change Harness state/i);
 });
