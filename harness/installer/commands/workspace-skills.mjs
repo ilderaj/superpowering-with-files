@@ -182,6 +182,17 @@ async function knownWorkspaceCatalog({ rootDir, plan }) {
   return known;
 }
 
+async function manifestOwnedStaleTargets({ rootDir, currentManifest, plan }) {
+  const desiredTargets = new Set(plan.skillWrites.map((projection) => path.resolve(projection.targetPath)));
+  const staleTargets = [];
+  for (const targetPath of ownedTargetSet(currentManifest)) {
+    if (desiredTargets.has(targetPath)) continue;
+    await assertWorkspaceProjectionTarget(rootDir, targetPath);
+    staleTargets.push(targetPath);
+  }
+  return staleTargets.sort();
+}
+
 export async function checkWorkspaceSkills({ rootDir, plan }) {
   const missing = [];
   const contentDrift = [];
@@ -291,10 +302,15 @@ async function eligibleForTakeover(rootDir, targetPath, candidates) {
 }
 
 export async function classifyWorkspaceSkillPlan({ rootDir, plan }) {
+  const currentManifest = await readProjectionManifest(rootDir, {
+    relativePath: WORKSPACE_MANIFEST_RELATIVE_PATH
+  });
+  const manifestStaleTargets = await manifestOwnedStaleTargets({ rootDir, currentManifest, plan });
+  const manifestStaleSet = new Set(manifestStaleTargets);
   const check = await checkWorkspaceSkills({ rootDir, plan });
   const knownCatalog = await knownWorkspaceCatalog({ rootDir, plan });
   const replace = [...check.missing];
-  const prune = [];
+  const prune = [...manifestStaleTargets];
   const refuse = [];
   for (const targetPath of check.extraKnown) {
     if (await eligibleForTakeover(rootDir, targetPath, knownCatalog.get(path.resolve(targetPath)) ?? [])) {
@@ -311,7 +327,7 @@ export async function classifyWorkspaceSkillPlan({ rootDir, plan }) {
   return {
     replace: [...new Set(replace)].sort(),
     prune: [...new Set(prune)].sort(),
-    preserve: [...check.unknownPreserved],
+    preserve: check.unknownPreserved.filter((targetPath) => !manifestStaleSet.has(path.resolve(targetPath))),
     refuse: [...new Set(refuse)].sort()
   };
 }
@@ -326,7 +342,7 @@ export async function applyWorkspaceSkills({ rootDir, plan, takeover = false }) 
   }
   const preflight = await checkWorkspaceSkills({ rootDir, plan });
   const knownCatalog = await knownWorkspaceCatalog({ rootDir, plan });
-  const staleTargets = [];
+  const staleTargets = new Set(await manifestOwnedStaleTargets({ rootDir, currentManifest, plan }));
 
   for (const projection of plan.skillWrites) {
     const targetPath = path.resolve(projection.targetPath);
@@ -343,7 +359,7 @@ export async function applyWorkspaceSkills({ rootDir, plan, takeover = false }) 
   for (const targetPath of preflight.extraKnown) {
     await assertWorkspaceProjectionTarget(rootDir, targetPath);
     if (ownedTargets.has(path.resolve(targetPath))) {
-      staleTargets.push(targetPath);
+      staleTargets.add(path.resolve(targetPath));
       continue;
     }
     if (takeover) {
@@ -354,7 +370,7 @@ export async function applyWorkspaceSkills({ rootDir, plan, takeover = false }) 
       if (!await eligibleForTakeover(rootDir, targetPath, candidates)) {
         throw new Error(`Refusing modified workspace skill takeover: ${targetPath}`);
       }
-      staleTargets.push(targetPath);
+      staleTargets.add(path.resolve(targetPath));
     }
   }
 

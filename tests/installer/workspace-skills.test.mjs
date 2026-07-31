@@ -18,6 +18,7 @@ import {
   removeHarnessFixture
 } from '../helpers/harness-fixture.mjs';
 import {
+  createProjectionManifest,
   readProjectionManifest,
   writeProjectionManifest
 } from '../../harness/installer/lib/projection-manifest.mjs';
@@ -58,6 +59,46 @@ test('workspace commands keep a retired committed profile runnable without rewri
     await workspaceSkills(['check'], { rootDir: root });
     await workspaceSkills(['plan'], { rootDir: root });
     assert.equal(JSON.parse(await readFile(profilePath, 'utf8')).skillProfile, 'second-opinion-advisory');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('workspace sync prunes manifest-owned retired skill projections during profile migration', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const profilePath = workspaceSkillProfilePath(root);
+    const retiredProfile = {
+      ...JSON.parse(await readFile(profilePath, 'utf8')),
+      skillProfile: 'second-opinion-advisory'
+    };
+    const retiredTargets = [
+      path.join(root, '.agents/skills/second-opinion-advisory'),
+      path.join(root, '.claude/skills/second-opinion-advisory')
+    ];
+    await writeFile(profilePath, `${JSON.stringify(retiredProfile, null, 2)}\n`);
+    for (const targetPath of retiredTargets) {
+      await mkdir(targetPath, { recursive: true });
+      await writeFile(path.join(targetPath, 'SKILL.md'), '# Retired\n');
+    }
+    await writeProjectionManifest(
+      root,
+      createProjectionManifest(retiredTargets.map((targetPath) => ({ kind: 'skill', targetPath }))),
+      { relativePath: '.harness/workspace-skill-projections.json' }
+    );
+
+    const plan = await planWorkspaceSkills({ rootDir: root, profile: await readWorkspaceSkillProfile(root) });
+    const actions = await classifyWorkspaceSkillPlan({ rootDir: root, plan });
+    assert.deepEqual(actions.prune, retiredTargets);
+    assert.deepEqual(actions.preserve, []);
+    await applyWorkspaceSkills({ rootDir: root, plan });
+
+    for (const targetPath of retiredTargets) {
+      await assert.rejects(access(targetPath), /ENOENT/);
+    }
+    const manifest = await readProjectionManifest(root, { relativePath: '.harness/workspace-skill-projections.json' });
+    assert.ok(manifest.entries.every((entry) => !retiredTargets.includes(entry.targetPath)));
+    assert.equal((await checkWorkspaceSkills({ rootDir: root, plan })).ok, true);
   } finally {
     await removeHarnessFixture(root);
   }
