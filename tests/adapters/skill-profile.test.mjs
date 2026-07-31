@@ -147,13 +147,8 @@ test('production profiles expose daily Harness governance and keep one coding ow
 
   const highKeys = plans['high-assurance'].map(projectionKey).sort();
   assert.deepEqual(plans.full.map(projectionKey).sort(), highKeys);
-  assert.ok(!hybridKeys.includes('second-opinion-advisory:second-opinion-advisory'));
-  assert.ok(highKeys.includes('second-opinion-advisory:second-opinion-advisory'));
   assert.deepEqual(
-    highKeys.filter((key) => (
-      key !== 'autonomous-release-closure:autonomous-release-closure'
-      && key !== 'second-opinion-advisory:second-opinion-advisory'
-    )),
+    highKeys.filter((key) => key !== 'autonomous-release-closure:autonomous-release-closure'),
     hybridKeys
   );
 });

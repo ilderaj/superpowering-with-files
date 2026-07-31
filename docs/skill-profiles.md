@@ -19,7 +19,6 @@ This page is the canonical operator reference for the relationship between a Har
 | `standard` | default for workspace installs | `always-on-core` | normal coding work with Matt disciplines | no |
 | `copilot-default` | default for workspace installs targeting only Copilot | `always-on-core` | same lightweight coding baseline for Copilot-only installs | no |
 | `office` | explicit | `always-on-core` | document, spreadsheet, presentation, and PDF work | no |
-| `second-opinion-advisory` | explicit opt-in | `always-on-core` | prepare and record a human-approved external second opinion; explicit one-shot InBrowser or Chrome submission is available without a bundled provider runtime | no |
 | `matt-pilot` | experimental | `always-on-core` | matched-task Matt-only coding/workflow arm | no |
 | `superpowers-pilot` | experimental | `always-on-core` | matched-task Superpowers-only coding/workflow arm | yes; no `using-superpowers` |
 | `hybrid-candidate` | experimental | `high-assurance` | production composition candidate with Matt coding disciplines and lifecycle tooling | lifecycle toolbox only |
@@ -38,47 +37,6 @@ An explicit `--profile=<entry-policy-profile>` overrides this mapping. An explic
 | `office-work-quality` | Harness-owned | every profile; routes to host-native Office artifact skills without replacing them |
 | `risk-assessment-before-destructive-changes` | Harness-owned | Standard family, all pilots, hybrid/high/full |
 | `safe-bypass-flow` | Harness-owned | Standard family, all pilots, hybrid/high/full |
-| `second-opinion-advisory` | Harness-owned | dedicated advisory profile and high/full |
-
-### Human-gated second-opinion advisory
-
-`second-opinion-advisory` is a dedicated, non-default profile. It projects only
-`planning-with-files` and the local `second-opinion-advisory` skill for a minimal
-consultation workspace. The skill is intentionally absent from
-`hybrid-candidate`; it remains included in explicit `high-assurance` and `full`
-profiles, where it stays dormant until the user explicitly requests a
-human-approved external second opinion.
-
-The skill has two modes. `manual` is the default: it prepares a reviewable
-preflight record, requires explicit human confirmation before disclosure, and
-leaves submission to the human. `browser-assisted` is available only when the
-user explicitly selects the in-app Browser or Chrome and gives a second,
-one-shot agent-operated confirmation that names that browser and is bound to
-the exact package SHA-256, destination, and displayed model label. It submits
-the exact package once, then stops on any mismatch, authentication challenge,
-unavailable model, timeout, or ambiguous submit state; it never falls back,
-retries, or switches browsers.
-
-Neither mode bundles or installs an Oracle CLI, provider SDK, MCP server,
-browser controller, session store, or external API. Browser-assisted mode uses
-only the explicitly selected host-native in-app Browser or Chrome interaction
-surface, and must not inspect credentials, cookies, local storage, passwords,
-or session data. Chrome uses its dedicated control surface rather than generic
-Computer Use when that surface is available. Returned content remains untrusted
-advisory evidence and cannot trigger automatic implementation or other state
-changes.
-
-Select this profile explicitly when its narrow workflow is needed:
-
-```bash
-./scripts/harness install --scope=workspace --targets=codex --skills-profile=second-opinion-advisory
-```
-
-The explicit dedicated selection changes only the selected installation's skill
-allow-list. The skill's explicit high-assurance membership does not alter
-`hybrid-candidate`, `standard`, `minimal-global`, `office`, the workspace
-default, or the Harness MCP surface.
-
 ### Matt Skills: lightweight coding disciplines
 
 The Matt upstream is nested by category. Harness selects the source-relative leaf and projects the final leaf name; for example, `engineering/tdd` becomes `<skill-root>/tdd`.
