@@ -16,6 +16,7 @@ import {
   DEFAULT_DEPLOYMENT_PROFILE,
   activeSafetyPolicyProfile,
   normalizePolicySelection,
+  normalizeRetiredSkillProfile,
   readState,
   validateDeploymentProfile,
   writeState
@@ -308,7 +309,7 @@ export async function computeAdoptionStatus(rootDir, homeDir = os.homedir()) {
       );
     }
 
-    if (receipt.skillProfile !== state.skillProfile) {
+    if (normalizeRetiredSkillProfile(receipt.skillProfile, receipt.scope) !== state.skillProfile) {
       status = 'state_mismatch';
       reasons.push(
         `Receipt skillProfile ${receipt.skillProfile} does not match current state ${state.skillProfile}.`

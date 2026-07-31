@@ -167,6 +167,37 @@ test('readState treats missing skillProfile as full for v1 compatibility while n
   }
 });
 
+test('readState maps the retired skills profile to the scope baseline', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-state-'));
+  try {
+    const stateFile = path.join(dir, '.harness', 'state.json');
+    await mkdir(path.dirname(stateFile), { recursive: true });
+
+    for (const [scope, expectedSkillProfile] of [
+      ['workspace', 'standard'],
+      ['user-global', 'minimal-global'],
+      ['both', 'minimal-global']
+    ]) {
+      await writeFile(
+        stateFile,
+        JSON.stringify({
+          schemaVersion: 1,
+          scope,
+          projectionMode: 'link',
+          hookMode: 'off',
+          skillProfile: 'second-opinion-advisory',
+          targets: { codex: { enabled: true, paths: ['AGENTS.md'] } },
+          upstream: {}
+        })
+      );
+
+      assert.equal((await readState(dir)).skillProfile, expectedSkillProfile);
+    }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
 test('state schema keeps skillProfile optional and stringly typed', async () => {
   const schema = JSON.parse(await readFile('harness/core/state-schema/state.schema.json', 'utf8'));
   assert.ok(!schema.required.includes('policyProfile'));
