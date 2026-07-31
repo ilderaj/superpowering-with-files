@@ -43,6 +43,26 @@ test('workspace skill profile is committed, portable, and workspace-only', async
   }
 });
 
+test('workspace commands keep a retired committed profile runnable without rewriting it', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const profilePath = workspaceSkillProfilePath(root);
+    const retiredProfile = {
+      ...JSON.parse(await readFile(profilePath, 'utf8')),
+      skillProfile: 'second-opinion-advisory'
+    };
+    await writeFile(profilePath, `${JSON.stringify(retiredProfile, null, 2)}\n`);
+
+    assert.equal((await readWorkspaceSkillProfile(root)).skillProfile, 'standard');
+    await workspaceSkills(['sync'], { rootDir: root });
+    await workspaceSkills(['check'], { rootDir: root });
+    await workspaceSkills(['plan'], { rootDir: root });
+    assert.equal(JSON.parse(await readFile(profilePath, 'utf8')).skillProfile, 'second-opinion-advisory');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('workspace skill plan contains skills only and never resolves personal global paths', async () => {
   const root = await createHarnessFixture();
   try {

@@ -13,6 +13,7 @@ import { digestTarget } from '../lib/backup-archive.mjs';
 import { applySkillPatches } from '../lib/sync-apply.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import { materializeDirectoryProjection } from '../lib/fs-ops.mjs';
+import { normalizeRetiredSkillProfile } from '../lib/state.mjs';
 import {
   createProjectionManifest,
   ownedTargetSet,
@@ -62,7 +63,10 @@ function validateWorkspaceSkillProfile(profile) {
 
 export async function readWorkspaceSkillProfile(rootDir) {
   const profile = JSON.parse(await readFile(workspaceSkillProfilePath(rootDir), 'utf8'));
-  return validateWorkspaceSkillProfile(profile);
+  return validateWorkspaceSkillProfile({
+    ...profile,
+    skillProfile: normalizeRetiredSkillProfile(profile.skillProfile, 'workspace')
+  });
 }
 
 export async function planWorkspaceSkills({ rootDir, profile }) {
