@@ -14,6 +14,7 @@ import { applySkillPatches } from '../lib/sync-apply.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import { materializeDirectoryProjection } from '../lib/fs-ops.mjs';
 import { normalizeRetiredSkillProfile } from '../lib/state.mjs';
+import { isExactRetiredSkillProjection } from '../lib/retired-skill-tombstone.mjs';
 import {
   createProjectionManifest,
   ownedTargetSet,
@@ -24,16 +25,6 @@ import {
 const WORKSPACE_PROFILE_RELATIVE_PATH = 'harness/workspace-skill-profile.json';
 const WORKSPACE_MANIFEST_RELATIVE_PATH = '.harness/workspace-skill-projections.json';
 const SUPPORTED_TARGETS = new Set(['codex', 'claude-code']);
-const RETIRED_WORKSPACE_SKILL_TOMBSTONES = new Map([
-  ['second-opinion-advisory', {
-    requiredMarkers: [
-      'name: second-opinion-advisory',
-      '# Second-Opinion Advisory',
-      '## Outcome Contract',
-      '## Common Mistakes'
-    ]
-  }]
-]);
 const execFileAsync = promisify(execFile);
 
 export function workspaceSkillProfilePath(rootDir) {
@@ -160,25 +151,6 @@ async function containsSymlink(directoryPath) {
   return false;
 }
 
-async function isRetiredWorkspaceProjection(targetPath) {
-  const tombstone = RETIRED_WORKSPACE_SKILL_TOMBSTONES.get(path.basename(targetPath));
-  if (!tombstone) return false;
-
-  const targetStat = await statOrNull(targetPath);
-  if (!targetStat?.isDirectory() || targetStat.isSymbolicLink() || await containsSymlink(targetPath)) {
-    return false;
-  }
-
-  let skillContents;
-  try {
-    skillContents = await readFile(path.join(targetPath, 'SKILL.md'), 'utf8');
-  } catch (error) {
-    if (error?.code === 'ENOENT') return false;
-    throw error;
-  }
-  return tombstone.requiredMarkers.every((marker) => skillContents.includes(marker));
-}
-
 async function renderedProjectionDigest(projection) {
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'harness-workspace-skill-'));
   const targetPath = path.join(temporaryRoot, projection.skillName);
@@ -268,7 +240,7 @@ export async function checkWorkspaceSkills({ rootDir, plan }) {
     for (const entry of entries) {
       const targetPath = path.resolve(root, entry.name);
       if (desiredPaths.has(targetPath)) continue;
-      if (knownCatalog.has(targetPath) || await isRetiredWorkspaceProjection(targetPath)) {
+      if (knownCatalog.has(targetPath) || await isExactRetiredSkillProjection(targetPath)) {
         extraKnown.push(targetPath);
       } else {
         unknownPreserved.push(targetPath);
@@ -342,7 +314,7 @@ export async function classifyWorkspaceSkillPlan({ rootDir, plan }) {
   const prune = [...manifestStaleTargets];
   const refuse = [];
   for (const targetPath of check.extraKnown) {
-    if (await isRetiredWorkspaceProjection(targetPath)) {
+    if (await isExactRetiredSkillProjection(targetPath)) {
       prune.push(targetPath);
       continue;
     }
@@ -395,7 +367,7 @@ export async function applyWorkspaceSkills({ rootDir, plan, takeover = false }) 
       staleTargets.add(path.resolve(targetPath));
       continue;
     }
-    if (await isRetiredWorkspaceProjection(targetPath)) {
+    if (await isExactRetiredSkillProjection(targetPath)) {
       staleTargets.add(path.resolve(targetPath));
       continue;
     }

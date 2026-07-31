@@ -115,7 +115,7 @@ test('workspace sync prunes manifest-owned retired skill projections during prof
   }
 });
 
-test('workspace sync prunes tombstoned retired projections when the legacy manifest is missing', async () => {
+test('workspace sync preserves a non-exact legacy-shaped projection when the manifest is missing', async () => {
   const root = await createHarnessFixture();
   try {
     const profilePath = workspaceSkillProfilePath(root);
@@ -135,12 +135,12 @@ test('workspace sync prunes tombstoned retired projections when the legacy manif
 
     const plan = await planWorkspaceSkills({ rootDir: root, profile: await readWorkspaceSkillProfile(root) });
     const actions = await classifyWorkspaceSkillPlan({ rootDir: root, plan });
-    assert.deepEqual(actions.prune, retiredTargets);
-    assert.deepEqual(actions.preserve, []);
+    assert.deepEqual(actions.prune, []);
+    assert.deepEqual(actions.preserve, retiredTargets);
     await applyWorkspaceSkills({ rootDir: root, plan });
 
     for (const targetPath of retiredTargets) {
-      await assert.rejects(access(targetPath), /ENOENT/);
+      assert.equal(await readFile(path.join(targetPath, 'SKILL.md'), 'utf8'), retiredSecondOpinionSkill);
     }
     assert.equal((await checkWorkspaceSkills({ rootDir: root, plan })).ok, true);
   } finally {
@@ -163,6 +163,27 @@ test('workspace sync preserves a same-named unowned skill that does not match th
     await applyWorkspaceSkills({ rootDir: root, plan });
 
     assert.equal(await readFile(path.join(customTarget, 'SKILL.md'), 'utf8'), customSkill);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('workspace sync preserves a legacy-shaped unowned skill with user modifications', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const customTarget = path.join(root, '.agents/skills/second-opinion-advisory');
+    const userNotes = 'User-owned modifications must survive.\n';
+    await mkdir(customTarget, { recursive: true });
+    await writeFile(path.join(customTarget, 'SKILL.md'), retiredSecondOpinionSkill);
+    await writeFile(path.join(customTarget, 'USER-NOTES.md'), userNotes);
+
+    const plan = await planWorkspaceSkills({ rootDir: root, profile: await readWorkspaceSkillProfile(root) });
+    const actions = await classifyWorkspaceSkillPlan({ rootDir: root, plan });
+    assert.deepEqual(actions.prune, []);
+    assert.deepEqual(actions.preserve, [customTarget]);
+    await applyWorkspaceSkills({ rootDir: root, plan });
+
+    assert.equal(await readFile(path.join(customTarget, 'USER-NOTES.md'), 'utf8'), userNotes);
   } finally {
     await removeHarnessFixture(root);
   }

@@ -47,6 +47,7 @@ import { updateState } from './state.mjs';
 import { removeManagedHookConfig, removeManagedHookSettings } from './hook-config.mjs';
 import { isUserManagedTarget } from './user-managed.mjs';
 import { diffProjectionManifest } from './projection-manifest.mjs';
+import { findExactRetiredSkillProjections } from './retired-skill-tombstone.mjs';
 
 function isWithinDirectory(candidatePath, directoryPath) {
   const relative = path.relative(directoryPath, candidatePath);
@@ -394,7 +395,8 @@ export async function applySyncPlan(plan, options = {}) {
     state,
     currentManifest,
     conflictMode = 'reject',
-    takeover = false
+    takeover = false,
+    findRetiredProjections = findExactRetiredSkillProjections
   } = options;
   const executionPlan = plan.executionPlan ?? plan;
   const backupManager = await createBackupArchiveManager({
@@ -414,6 +416,20 @@ export async function applySyncPlan(plan, options = {}) {
 
   for (const warning of normalization.warnings) {
     console.warn(warning);
+  }
+
+  const retiredProjections = await findRetiredProjections({
+    rootDir,
+    homeDir,
+    scope: state.scope,
+    targets: executionPlan.targets,
+    deploymentProfile: state.deploymentProfile
+  });
+  for (const targetPath of retiredProjections) {
+    if (isUserManagedTarget(targetPath, executionPlan.userManaged)) continue;
+    if (!isManagedSessionBoundary(targetPath, rootDir, homeDir)) continue;
+    await rm(targetPath, { recursive: true, force: true });
+    removedFiles += 1;
   }
 
   for (const entry of diff.stale) {
