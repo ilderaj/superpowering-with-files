@@ -7,7 +7,7 @@ function projectionKey(projection) {
   return `${projection.parentSkillName}:${projection.skillName}`;
 }
 
-test('second-opinion advisory joins the hybrid family while default profiles remain unchanged', async () => {
+test('second-opinion advisory stays outside hybrid while explicit profiles remain unchanged', async () => {
   const profiles = JSON.parse(await readFile('harness/core/skills/profiles.json', 'utf8'));
   const index = JSON.parse(await readFile('harness/core/skills/index.json', 'utf8'));
 
@@ -24,11 +24,12 @@ test('second-opinion advisory joins the hybrid family while default profiles rem
     'copilot-default',
     'office',
     'matt-pilot',
-    'superpowers-pilot'
+    'superpowers-pilot',
+    'hybrid-candidate'
   ]) {
     assert.ok(!profiles.profiles[profile].includes('second-opinion-advisory'), profile);
   }
-  for (const profile of ['hybrid-candidate', 'high-assurance', 'full']) {
+  for (const profile of ['high-assurance', 'full']) {
     assert.ok(profiles.profiles[profile].includes('second-opinion-advisory'), profile);
   }
 
@@ -67,7 +68,7 @@ test('second-opinion advisory joins the hybrid family while default profiles rem
     skillProfile: 'hybrid-candidate'
   });
   assert.ok(
-    hybridPlan.map(projectionKey).includes('second-opinion-advisory:second-opinion-advisory')
+    !hybridPlan.map(projectionKey).includes('second-opinion-advisory:second-opinion-advisory')
   );
 });
 
