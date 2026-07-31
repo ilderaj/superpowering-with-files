@@ -99,3 +99,15 @@ test('second-opinion advisory makes browser-assisted submission explicit, exact,
   assert.match(skill, /must stop without submitting/i);
   assert.match(skill, /must not automatically change Harness state/i);
 });
+
+test('second-opinion advisory permits an explicitly selected Chrome session without fallback', async () => {
+  const skill = await readFile('harness/core/skills/second-opinion-advisory/SKILL.md', 'utf8');
+
+  assert.match(skill, /in-app Browser or Chrome/i);
+  assert.match(skill, /explicitly names one supported browser/i);
+  assert.match(skill, /Chrome may use its existing signed-in browser view/i);
+  assert.match(skill, /use Chrome to submit exactly the reviewed, redacted consultation package/i);
+  assert.match(skill, /Do not use generic Computer Use to control Chrome/i);
+  assert.match(skill, /Do not switch to another browser/i);
+  assert.match(skill, /do(?:es)? not inspect or record credentials, cookies, local storage, passwords, or session data/i);
+});

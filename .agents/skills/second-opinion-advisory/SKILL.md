@@ -1,6 +1,6 @@
 ---
 name: second-opinion-advisory
-description: Use when a user explicitly wants a human-approved external second opinion with a manual default or a one-shot, exact-package in-app Browser submission, while Harness remains advisory-only and free of bundled provider, MCP, or session runtime integration
+description: Use when a user explicitly wants a human-approved external second opinion with a manual default or a one-shot, exact-package in-app Browser or Chrome submission, while Harness remains advisory-only and free of bundled provider, MCP, or session runtime integration
 ---
 
 # Second-Opinion Advisory
@@ -10,7 +10,7 @@ description: Use when a user explicitly wants a human-approved external second o
 - **Outcome:** a human reviews a minimal, redacted consultation package before any external disclosure and preserves the resulting opinion as non-authoritative evidence.
 - **Done when:** the preflight record, applicable exact human confirmation, advisory result, and verification follow-up are recorded under `planning/active/<task-id>/`.
 - **Evidence:** `task_plan.md`, `findings.md`, and `progress.md` name the question, approved scope, excluded material, package SHA-256 when browser-assisted, confirmation, destination, displayed model label when applicable, submission outcome, external reference if one exists, and the verification performed after reviewing the opinion.
-- **Boundary:** this skill does not install, register, or bundle a provider SDK, CLI, MCP server, browser controller, session store, or API client. Only the explicit `browser-assisted` mode may use a host-native in-app Browser; it never inspects credentials, cookies, local storage, passwords, or session data.
+- **Boundary:** this skill does not install, register, or bundle a provider SDK, CLI, MCP server, browser controller, session store, or API client. Only the explicit `browser-assisted` mode may use a selected host-native in-app Browser or Chrome interaction surface; it never inspects credentials, cookies, local storage, passwords, or session data.
 
 ## When to Use
 
@@ -24,18 +24,18 @@ Do not use this skill to obtain routine model output, to bypass an approval gate
 
 ### Manual (default)
 
-Use manual mode unless the user explicitly asks for the in-app Browser to submit the consultation. Do not open, control, or inspect a browser in this mode. After the manual confirmation below, the human submits the reviewed package and returns the advisory result or a safe reference to it.
+Use manual mode unless the user explicitly asks for the in-app Browser or Chrome to submit the consultation. Do not open, control, or inspect a browser in this mode. After the manual confirmation below, the human submits the reviewed package and returns the advisory result or a safe reference to it.
 
 ### Browser-assisted (explicit only)
 
 Use browser-assisted mode only when all of the following are true:
 
-1. The user explicitly names the in-app Browser and asks the agent to submit the consultation.
+1. The user explicitly names one supported browser—the in-app Browser or Chrome—and asks the agent to submit the consultation. A generic request for a browser or Computer Use without a named browser is insufficient.
 2. The active task trio contains the reviewed, redacted package, named external destination, exact requested model label, and a SHA-256 fingerprint of the exact package bytes.
 3. The user gives the agent-operated confirmation in the browser-assisted confirmation section below after reviewing those values.
-4. The host exposes a supported in-app Browser interaction surface. The agent reads and follows its browser-control skill and browser documentation before interacting with the page.
+4. The host exposes the corresponding supported interaction surface. The agent reads and follows the selected browser's control skill and browser documentation before interacting with the page. If the named browser is unavailable, stop instead of substituting another browser.
 
-Browser-assisted mode is one bounded UI action, not a provider integration. It may use the existing signed-in browser view. Do not inspect or record credentials, cookies, local storage, passwords, or session data.
+Browser-assisted mode is one bounded UI action, not a provider integration. The selected browser remains locked for the task: do not switch to another browser. The in-app Browser may use its existing signed-in browser view. Chrome may use its existing signed-in browser view. Do not use generic Computer Use to control Chrome when the dedicated Chrome control surface is available. Do not inspect or record credentials, cookies, local storage, passwords, or session data.
 
 ## Preflight Record
 
@@ -59,15 +59,19 @@ For manual mode, request this exact confirmation:
 
 Record the response verbatim enough to preserve its scope, but do not record secrets or authentication material. This confirmation authorizes a human-operated external step only; it does not authorize browser-assisted submission or broaden the selected package.
 
-For browser-assisted mode, request this exact confirmation after replacing the four bracketed values with the reviewed values:
+For in-app Browser-assisted mode, request this exact confirmation after replacing the four bracketed values with the reviewed values:
 
 > I authorize the agent to use the in-app Browser to submit exactly the reviewed, redacted consultation package with SHA-256 `<package-sha256>` to `<named external destination>` using the displayed model `<exact model label>`. I accept the stated cost, account, browser, session, and retention implications. Submit once only; do not fall back or retry.
 
-Record the response verbatim enough to preserve its scope, the exact values, and the timestamp, but do not record authentication material. This confirmation authorizes one agent-operated submission only. It expires if the package fingerprint, destination, or model label changes.
+For Chrome-assisted mode, request this exact confirmation after replacing the four bracketed values with the reviewed values:
+
+> I authorize the agent to use Chrome to submit exactly the reviewed, redacted consultation package with SHA-256 `<package-sha256>` to `<named external destination>` using the displayed model `<exact model label>`. I accept the stated cost, account, browser, session, and retention implications. Submit once only; do not fall back or retry.
+
+Record the response verbatim enough to preserve its scope, the exact values, the named browser, and the timestamp, but do not record authentication material. This confirmation authorizes one agent-operated submission only. It expires if the package fingerprint, destination, model label, or named browser changes.
 
 ## Browser-Assisted Submission
 
-Before submitting, verify in the visible browser UI that the destination is the named destination and the displayed model label exactly matches the approved model label. Verify that the exact package bytes still match the approved SHA-256. If any required value is absent, differs, cannot be read, or the browser requires authentication, must stop without submitting and record the reason in the task trio.
+Before submitting, verify in the selected browser's visible UI that the destination is the named destination and the displayed model label exactly matches the approved model label. Verify that the exact package bytes still match the approved SHA-256. If any required value is absent, differs, cannot be read, or the selected browser requires authentication, must stop without submitting and record the reason in the task trio. For an authentication challenge, ask the human to sign in in that selected browser and tell the agent when it is ready; do not switch browsers.
 
 Paste only the exact fingerprint-matching package. Submit exactly once. If the submit action, navigation, or result is ambiguous, must stop without submitting again; record an `ambiguous_submit_outcome` and ask the human how to proceed. Do not select a similar model, fall back to another model or destination, upload files, add context, resend after a timeout, or retry after an uncertain outcome.
 
@@ -84,6 +88,7 @@ Record the response's source reference, displayed model label when browser-assis
 - Treating a dry-run or file list as permission to disclose content.
 - Sending broad repository context instead of the reviewed minimal package.
 - Using the manual confirmation to authorize browser-assisted submission.
+- Treating an existing Chrome login as authorization to select Chrome, disclose a package, or switch browsers.
 - Treating a matching destination as permission to choose a different model, resend, or add files.
 - Treating an advisory response as an implementation command or source of truth.
 - Adding provider, MCP, session, or API dependencies to make the workflow convenient.

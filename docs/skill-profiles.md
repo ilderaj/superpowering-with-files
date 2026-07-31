@@ -19,10 +19,10 @@ This page is the canonical operator reference for the relationship between a Har
 | `standard` | default for workspace installs | `always-on-core` | normal coding work with Matt disciplines | no |
 | `copilot-default` | default for workspace installs targeting only Copilot | `always-on-core` | same lightweight coding baseline for Copilot-only installs | no |
 | `office` | explicit | `always-on-core` | document, spreadsheet, presentation, and PDF work | no |
-| `second-opinion-advisory` | explicit opt-in | `always-on-core` | prepare and record a human-approved external second opinion; explicit one-shot InBrowser submission is available without a bundled provider runtime | no |
+| `second-opinion-advisory` | explicit opt-in | `always-on-core` | prepare and record a human-approved external second opinion; explicit one-shot InBrowser or Chrome submission is available without a bundled provider runtime | no |
 | `matt-pilot` | experimental | `always-on-core` | matched-task Matt-only coding/workflow arm | no |
 | `superpowers-pilot` | experimental | `always-on-core` | matched-task Superpowers-only coding/workflow arm | yes; no `using-superpowers` |
-| `hybrid-candidate` | experimental | `high-assurance` | production composition candidate with human-gated second opinions, including explicit one-shot InBrowser submission | lifecycle toolbox only |
+| `hybrid-candidate` | experimental | `high-assurance` | production composition candidate with human-gated second opinions, including explicit one-shot InBrowser or Chrome submission | lifecycle toolbox only |
 | `high-assurance` | explicit | `high-assurance` | hybrid plus release-closure governance | lifecycle toolbox only |
 | `full` | explicit compatibility alias | `high-assurance` | compatibility name for `high-assurance` | selected toolbox only |
 
@@ -51,18 +51,21 @@ requests a human-approved external second opinion.
 The skill has two modes. `manual` is the default: it prepares a reviewable
 preflight record, requires explicit human confirmation before disclosure, and
 leaves submission to the human. `browser-assisted` is available only when the
-user explicitly requests the in-app Browser and gives a second, one-shot
-agent-operated confirmation bound to the exact package SHA-256, destination,
-and displayed model label. It submits the exact package once, then stops on
-any mismatch, authentication challenge, unavailable model, timeout, or
-ambiguous submit state; it never falls back or retries.
+user explicitly selects the in-app Browser or Chrome and gives a second,
+one-shot agent-operated confirmation that names that browser and is bound to
+the exact package SHA-256, destination, and displayed model label. It submits
+the exact package once, then stops on any mismatch, authentication challenge,
+unavailable model, timeout, or ambiguous submit state; it never falls back,
+retries, or switches browsers.
 
 Neither mode bundles or installs an Oracle CLI, provider SDK, MCP server,
 browser controller, session store, or external API. Browser-assisted mode uses
-only a host-native in-app Browser interaction surface and must not inspect
-credentials, cookies, local storage, passwords, or session data. Returned
-content remains untrusted advisory evidence and cannot trigger automatic
-implementation or other state changes.
+only the explicitly selected host-native in-app Browser or Chrome interaction
+surface, and must not inspect credentials, cookies, local storage, passwords,
+or session data. Chrome uses its dedicated control surface rather than generic
+Computer Use when that surface is available. Returned content remains untrusted
+advisory evidence and cannot trigger automatic implementation or other state
+changes.
 
 Select this profile explicitly when its narrow workflow is needed:
 
