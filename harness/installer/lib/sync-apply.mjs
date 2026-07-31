@@ -418,13 +418,21 @@ export async function applySyncPlan(plan, options = {}) {
     console.warn(warning);
   }
 
-  const retiredProjections = await findRetiredProjections({
+  const currentRetiredProjections = await findRetiredProjections({
     rootDir,
     homeDir,
     scope: state.scope,
     targets: executionPlan.targets,
     deploymentProfile: state.deploymentProfile
   });
+  const plannedRetiredProjections = executionPlan.retiredProjections
+    ? new Set(executionPlan.retiredProjections.map((targetPath) => path.resolve(targetPath)))
+    : null;
+  const staleTargets = new Set(diff.stale.map((entry) => path.resolve(entry.targetPath)));
+  const retiredProjections = currentRetiredProjections.filter((targetPath) =>
+    (!plannedRetiredProjections || plannedRetiredProjections.has(path.resolve(targetPath))) &&
+    !staleTargets.has(path.resolve(targetPath))
+  );
   for (const targetPath of retiredProjections) {
     if (isUserManagedTarget(targetPath, executionPlan.userManaged)) continue;
     if (!isManagedSessionBoundary(targetPath, rootDir, homeDir)) continue;

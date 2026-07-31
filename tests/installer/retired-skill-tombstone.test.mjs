@@ -10,16 +10,23 @@ import {
   retiredSkillTombstoneDigests
 } from '../../harness/installer/lib/retired-skill-tombstone.mjs';
 
-const publishedDigest = 'sha256:2d7dafd03cc1410f260ddf33bd6ac05aba01c6e6189ca10fcedfbf45a06f87f8';
+const publishedDigests = [
+  'sha256:1e5b31c0287eda57c11037a2cc7ebd9acec4f72cedff022fbd1921bbede7356c',
+  'sha256:2d7dafd03cc1410f260ddf33bd6ac05aba01c6e6189ca10fcedfbf45a06f87f8',
+  'sha256:d6c16e03ff726810b43dde8d7972d9355af582967111f0781c523c8e2448d9de'
+];
 
 test('retired tombstone accepts only the exact published projection digest', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'retired-skill-tombstone-'));
   const target = path.join(root, 'second-opinion-advisory');
   try {
     await mkdir(target, { recursive: true });
-    assert.equal(retiredSkillTombstoneDigests.get('second-opinion-advisory').has(publishedDigest), true);
+    assert.deepEqual(
+      [...retiredSkillTombstoneDigests.get('second-opinion-advisory')].sort(),
+      publishedDigests
+    );
     assert.equal(
-      await isExactRetiredSkillProjection(target, { digestTarget: async () => publishedDigest }),
+      await isExactRetiredSkillProjection(target, { digestTarget: async () => publishedDigests[0] }),
       true
     );
     assert.equal(

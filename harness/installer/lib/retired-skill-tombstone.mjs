@@ -5,7 +5,9 @@ import { resolveSkillRoots } from './paths.mjs';
 
 const RETIRED_SKILL_TOMBSTONE_DIGESTS = new Map([
   ['second-opinion-advisory', new Set([
-    'sha256:2d7dafd03cc1410f260ddf33bd6ac05aba01c6e6189ca10fcedfbf45a06f87f8'
+    'sha256:1e5b31c0287eda57c11037a2cc7ebd9acec4f72cedff022fbd1921bbede7356c',
+    'sha256:2d7dafd03cc1410f260ddf33bd6ac05aba01c6e6189ca10fcedfbf45a06f87f8',
+    'sha256:d6c16e03ff726810b43dde8d7972d9355af582967111f0781c523c8e2448d9de'
   ])]
 ]);
 
