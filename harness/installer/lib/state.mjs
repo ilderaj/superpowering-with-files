@@ -8,6 +8,9 @@ export const DEFAULT_POLICY_PROFILE = 'always-on-core';
 export const DEFAULT_SKILL_PROFILE = 'standard';
 export const GITHUB_CLOUD_DEPLOYMENT_PROFILE = 'github-cloud';
 const DEPLOYMENT_PROFILES = new Set([DEFAULT_DEPLOYMENT_PROFILE, GITHUB_CLOUD_DEPLOYMENT_PROFILE]);
+const RETIRED_SKILL_PROFILE_REPLACEMENTS = new Map([
+  ['second-opinion-advisory', DEFAULT_SKILL_PROFILE]
+]);
 
 const STATE_KEYS = new Set([
   'schemaVersion',
@@ -184,6 +187,7 @@ function validateStateShape(state) {
 
 function normalizeStateShape(state) {
   const normalizedPolicySelection = normalizePolicySelection(state.policyProfile);
+  const requestedSkillProfile = state.skillProfile ?? 'full';
   return {
     ...state,
     hookMode: state.hookMode ?? 'off',
@@ -193,7 +197,7 @@ function normalizeStateShape(state) {
       state.workspacePolicyOverlay ?? normalizedPolicySelection.workspacePolicyOverlay,
     // Existing v1 state omitted this field while `full` was the default. Keep that
     // persisted-state compatibility while new state starts from `standard`.
-    skillProfile: state.skillProfile ?? 'full'
+    skillProfile: RETIRED_SKILL_PROFILE_REPLACEMENTS.get(requestedSkillProfile) ?? requestedSkillProfile
   };
 }
 
