@@ -47,6 +47,7 @@ import { updateState } from './state.mjs';
 import { removeManagedHookConfig, removeManagedHookSettings } from './hook-config.mjs';
 import { isUserManagedTarget } from './user-managed.mjs';
 import { diffProjectionManifest } from './projection-manifest.mjs';
+import { findExactRetiredSkillProjections } from './retired-skill-tombstone.mjs';
 
 function isWithinDirectory(candidatePath, directoryPath) {
   const relative = path.relative(directoryPath, candidatePath);
@@ -394,7 +395,8 @@ export async function applySyncPlan(plan, options = {}) {
     state,
     currentManifest,
     conflictMode = 'reject',
-    takeover = false
+    takeover = false,
+    findRetiredProjections = findExactRetiredSkillProjections
   } = options;
   const executionPlan = plan.executionPlan ?? plan;
   const backupManager = await createBackupArchiveManager({
@@ -414,6 +416,28 @@ export async function applySyncPlan(plan, options = {}) {
 
   for (const warning of normalization.warnings) {
     console.warn(warning);
+  }
+
+  const currentRetiredProjections = await findRetiredProjections({
+    rootDir,
+    homeDir,
+    scope: state.scope,
+    targets: executionPlan.targets,
+    deploymentProfile: state.deploymentProfile
+  });
+  const plannedRetiredProjections = executionPlan.retiredProjections
+    ? new Set(executionPlan.retiredProjections.map((targetPath) => path.resolve(targetPath)))
+    : null;
+  const staleTargets = new Set(diff.stale.map((entry) => path.resolve(entry.targetPath)));
+  const retiredProjections = currentRetiredProjections.filter((targetPath) =>
+    (!plannedRetiredProjections || plannedRetiredProjections.has(path.resolve(targetPath))) &&
+    !staleTargets.has(path.resolve(targetPath))
+  );
+  for (const targetPath of retiredProjections) {
+    if (isUserManagedTarget(targetPath, executionPlan.userManaged)) continue;
+    if (!isManagedSessionBoundary(targetPath, rootDir, homeDir)) continue;
+    await rm(targetPath, { recursive: true, force: true });
+    removedFiles += 1;
   }
 
   for (const entry of diff.stale) {

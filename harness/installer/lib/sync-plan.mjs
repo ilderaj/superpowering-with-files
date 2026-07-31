@@ -11,6 +11,7 @@ import {
 } from './state.mjs';
 import { isUserManagedTarget, readUserManaged } from './user-managed.mjs';
 import { planHookProjections } from './hook-projection.mjs';
+import { findExactRetiredSkillProjections } from './retired-skill-tombstone.mjs';
 import path from 'node:path';
 
 function hasFlag(args, ...names) {
@@ -51,7 +52,12 @@ function listHookDetails(executionPlan) {
   return [...new Set(executionPlan.hookWrites.map((projection) => projection.parentSkillName).filter(Boolean))];
 }
 
-export async function collectSyncOperations({ rootDir, homeDir, state }) {
+export async function collectSyncOperations({
+  rootDir,
+  homeDir,
+  state,
+  findRetiredProjections = findExactRetiredSkillProjections
+}) {
   const targets = Object.keys(state.targets).filter((target) => state.targets[target].enabled);
   const effectiveEntryProfiles = effectiveEntryPolicyProfiles(state);
   const safetyProfile = activeSafetyPolicyProfile(state);
@@ -138,6 +144,13 @@ export async function collectSyncOperations({ rootDir, homeDir, state }) {
   }
 
   const skillWrites = coalesceSkillProjections(rawSkillWrites);
+  const retiredProjections = (await findRetiredProjections({
+    rootDir,
+    homeDir,
+    scope: state.scope,
+    targets,
+    deploymentProfile: state.deploymentProfile
+  })).filter((targetPath) => !isUserManagedTarget(targetPath, userManaged));
 
   const skillManifestEntries = await Promise.all(
     skillWrites.map(async (projection) => {
@@ -173,8 +186,26 @@ export async function collectSyncOperations({ rootDir, homeDir, state }) {
     skillWrites,
     hookWrites,
     managedWrites,
+    retiredProjections,
     userManaged,
     manifest: createProjectionManifest(manifestEntries)
+  };
+}
+
+export function includeRetiredProjectionDiff(diff, retiredProjections = []) {
+  const staleTargets = new Set(diff.stale.map((entry) => path.resolve(entry.targetPath)));
+  const retiredStale = [...new Set(retiredProjections.map((targetPath) => path.resolve(targetPath)))]
+    .filter((targetPath) => !staleTargets.has(targetPath))
+    .sort((left, right) => left.localeCompare(right))
+    .map((targetPath) => ({
+      kind: 'retired-skill-tombstone',
+      strategy: 'remove',
+      targetPath
+    }));
+
+  return {
+    ...diff,
+    stale: [...diff.stale, ...retiredStale]
   };
 }
 

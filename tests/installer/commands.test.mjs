@@ -4,7 +4,7 @@ import { execFile } from 'node:child_process';
 import { access, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { readState, writeState } from '../../harness/installer/lib/state.mjs';
+import { readState, statePath, writeState } from '../../harness/installer/lib/state.mjs';
 import {
   createHarnessFixture,
   removeHarnessFixture
@@ -27,6 +27,12 @@ function harnessCommandWithEnv(root, env, ...args) {
     cwd: root,
     env: { ...process.env, ...env }
   });
+}
+
+async function writePersistedState(root, state) {
+  const file = statePath(root);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
 }
 
 async function writeTokenAuditFixture(root) {
@@ -655,6 +661,34 @@ test('sync uses the stored entry profile when rendering entries', async () => {
 
     assert.match(entry, /# Safety Policy/);
     assert.match(entry, /Never run agents from HOME/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('sync migrates a persisted retired profile to the standard profile', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await writePersistedState(root, {
+      schemaVersion: 1,
+      scope: 'workspace',
+      projectionMode: 'link',
+      hookMode: 'off',
+      skillProfile: 'second-opinion-advisory',
+      targets: {
+        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
+      },
+      upstream: {}
+    });
+
+    await harnessCommand(root, 'sync');
+
+    const state = await readState(root);
+    const persistedState = JSON.parse(await readFile(statePath(root), 'utf8'));
+
+    assert.equal(state.skillProfile, 'standard');
+    assert.equal(persistedState.skillProfile, 'standard');
+    assert.match(await readFile(path.join(root, 'AGENTS.md'), 'utf8'), /Harness Policy For Codex/);
   } finally {
     await removeHarnessFixture(root);
   }

@@ -420,6 +420,39 @@ test('adoption-status reports in_sync after a successful global adoption', async
   }
 });
 
+test('adoption-status accepts a retired profile recorded before global-state migration', async () => {
+  const root = await createHarnessFixture();
+  const homeDir = path.join(root, 'home');
+  try {
+    await mkdir(homeDir, { recursive: true });
+    await initGitRepo(root);
+    await harnessCommand(root, homeDir, 'adopt-global', '--targets=codex');
+
+    const stateFile = path.join(root, '.harness/state.json');
+    const receiptFile = path.join(root, '.harness/adoption/global.json');
+    const persistedState = JSON.parse(await readFile(stateFile, 'utf8'));
+    const receipt = JSON.parse(await readFile(receiptFile, 'utf8'));
+
+    await writeFile(
+      stateFile,
+      `${JSON.stringify({ ...persistedState, skillProfile: 'second-opinion-advisory' }, null, 2)}\n`
+    );
+    await writeFile(
+      receiptFile,
+      `${JSON.stringify({ ...receipt, skillProfile: 'second-opinion-advisory' }, null, 2)}\n`
+    );
+
+    const { stdout } = await harnessCommand(root, homeDir, 'adoption-status');
+    const status = JSON.parse(stdout);
+
+    assert.equal(status.status, 'in_sync');
+    assert.equal((await readState(root)).skillProfile, 'minimal-global');
+    assert.equal(status.receipt.skillProfile, 'second-opinion-advisory');
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('adoption-status keeps Claude Code runtime evidence as a non-failing reason', async () => {
   const root = await createHarnessFixture();
   const homeDir = path.join(root, 'home');

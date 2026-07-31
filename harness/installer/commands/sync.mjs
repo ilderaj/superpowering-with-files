@@ -10,7 +10,8 @@ import {
 import {
   buildSyncPlan,
   collectSyncOperations,
-  formatDiff
+  formatDiff,
+  includeRetiredProjectionDiff
 } from '../lib/sync-plan.mjs';
 import { applySyncPlan } from '../lib/sync-apply.mjs';
 import { renderSyncReport } from '../lib/sync-report.mjs';
@@ -51,7 +52,10 @@ async function computeBaseSyncPlanReport({
   const effectiveState = state ?? (await readState(rootDir));
   const currentManifest = await readProjectionManifest(rootDir);
   const plan = await planSyncOperations({ rootDir, homeDir: effectiveHomeDir, state: effectiveState });
-  const diff = diffProjectionManifest(currentManifest, plan.manifest);
+  const diff = includeRetiredProjectionDiff(
+    diffProjectionManifest(currentManifest, plan.manifest),
+    plan.retiredProjections
+  );
   return {
     state: effectiveState,
     currentManifest,
@@ -80,8 +84,8 @@ export async function sync(args = [], options = {}) {
   }
 
   const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
-  const homeDir = os.homedir();
-  const state = await readState(rootDir);
+  const homeDir = options.homeDir ?? os.homedir();
+  const state = options.state ?? (await readState(rootDir));
   const conflictMode = readOption(args, 'conflict', 'reject');
   const dryRun = hasFlag(args, '--dry-run');
   const check = hasFlag(args, '--check');
@@ -91,8 +95,16 @@ export async function sync(args = [], options = {}) {
   }
 
   const currentManifest = await readProjectionManifest(rootDir);
-  const plan = await buildSyncPlan(args, { rootDir, homeDir, state });
-  const diff = diffProjectionManifest(currentManifest, plan.desiredManifest);
+  const plan = await buildSyncPlan(args, {
+    rootDir,
+    homeDir,
+    state,
+    findRetiredProjections: options.findRetiredProjections
+  });
+  const diff = includeRetiredProjectionDiff(
+    diffProjectionManifest(currentManifest, plan.desiredManifest),
+    plan.executionPlan.retiredProjections
+  );
   const summary = formatDiff(diff);
 
   if (dryRun || check) {
@@ -121,7 +133,8 @@ export async function sync(args = [], options = {}) {
     state,
     currentManifest,
     conflictMode,
-    takeover
+    takeover,
+    findRetiredProjections: options.findRetiredProjections
   });
   console.log(
     `Synced ${plan.executionPlan.targets.length} target(s): ${plan.executionPlan.targets.join(', ')} (create=${summary.create}, update=${summary.update}, stale=${summary.stale})`

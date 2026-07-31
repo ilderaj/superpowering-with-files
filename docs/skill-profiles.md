@@ -19,10 +19,9 @@ This page is the canonical operator reference for the relationship between a Har
 | `standard` | default for workspace installs | `always-on-core` | normal coding work with Matt disciplines | no |
 | `copilot-default` | default for workspace installs targeting only Copilot | `always-on-core` | same lightweight coding baseline for Copilot-only installs | no |
 | `office` | explicit | `always-on-core` | document, spreadsheet, presentation, and PDF work | no |
-| `second-opinion-advisory` | explicit opt-in | `always-on-core` | prepare and record a human-approved external second opinion without a bundled provider runtime | no |
 | `matt-pilot` | experimental | `always-on-core` | matched-task Matt-only coding/workflow arm | no |
 | `superpowers-pilot` | experimental | `always-on-core` | matched-task Superpowers-only coding/workflow arm | yes; no `using-superpowers` |
-| `hybrid-candidate` | experimental | `high-assurance` | production composition candidate with human-gated second opinions | lifecycle toolbox only |
+| `hybrid-candidate` | experimental | `high-assurance` | production composition candidate with Matt coding disciplines and lifecycle tooling | lifecycle toolbox only |
 | `high-assurance` | explicit | `high-assurance` | hybrid plus release-closure governance | lifecycle toolbox only |
 | `full` | explicit compatibility alias | `high-assurance` | compatibility name for `high-assurance` | selected toolbox only |
 
@@ -38,33 +37,6 @@ An explicit `--profile=<entry-policy-profile>` overrides this mapping. An explic
 | `office-work-quality` | Harness-owned | every profile; routes to host-native Office artifact skills without replacing them |
 | `risk-assessment-before-destructive-changes` | Harness-owned | Standard family, all pilots, hybrid/high/full |
 | `safe-bypass-flow` | Harness-owned | Standard family, all pilots, hybrid/high/full |
-| `second-opinion-advisory` | Harness-owned | dedicated advisory profile and hybrid/high/full |
-
-### Human-gated second-opinion advisory
-
-`second-opinion-advisory` is a dedicated, non-default profile. It projects only
-`planning-with-files` and the local `second-opinion-advisory` skill for a minimal
-consultation workspace. The same skill is also included in `hybrid-candidate`,
-`high-assurance`, and `full`, where it remains dormant until the user explicitly
-requests a human-approved external second opinion.
-
-The skill prepares a reviewable preflight record, requires explicit human
-confirmation before any disclosure, and treats any returned opinion as advisory
-evidence. It does not bundle, install, register, invoke, or control an Oracle
-CLI, provider SDK, MCP server, browser, session store, or external API. A
-separately installed external tool remains outside Harness and must be operated
-by a human after the required confirmation.
-
-Select this profile explicitly when its narrow workflow is needed:
-
-```bash
-./scripts/harness install --scope=workspace --targets=codex --skills-profile=second-opinion-advisory
-```
-
-The explicit dedicated selection changes only the selected installation's skill
-allow-list. Adding the skill to the hybrid family does not alter `standard`,
-`minimal-global`, `office`, the workspace default, or the Harness MCP surface.
-
 ### Matt Skills: lightweight coding disciplines
 
 The Matt upstream is nested by category. Harness selects the source-relative leaf and projects the final leaf name; for example, `engineering/tdd` becomes `<skill-root>/tdd`.

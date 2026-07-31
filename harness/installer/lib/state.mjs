@@ -8,6 +8,7 @@ export const DEFAULT_POLICY_PROFILE = 'always-on-core';
 export const DEFAULT_SKILL_PROFILE = 'standard';
 export const GITHUB_CLOUD_DEPLOYMENT_PROFILE = 'github-cloud';
 const DEPLOYMENT_PROFILES = new Set([DEFAULT_DEPLOYMENT_PROFILE, GITHUB_CLOUD_DEPLOYMENT_PROFILE]);
+const RETIRED_SKILL_PROFILE = 'second-opinion-advisory';
 
 const STATE_KEYS = new Set([
   'schemaVersion',
@@ -87,6 +88,14 @@ export function activeSafetyPolicyProfile(state) {
   }
 
   return isSafetyPolicyProfile(state.policyProfile) ? state.policyProfile : null;
+}
+
+export function normalizeRetiredSkillProfile(skillProfile, scope) {
+  if (skillProfile !== RETIRED_SKILL_PROFILE) {
+    return skillProfile;
+  }
+
+  return scope === 'user-global' || scope === 'both' ? 'minimal-global' : DEFAULT_SKILL_PROFILE;
 }
 
 function isPlainObject(value) {
@@ -184,6 +193,7 @@ function validateStateShape(state) {
 
 function normalizeStateShape(state) {
   const normalizedPolicySelection = normalizePolicySelection(state.policyProfile);
+  const requestedSkillProfile = state.skillProfile ?? 'full';
   return {
     ...state,
     hookMode: state.hookMode ?? 'off',
@@ -193,7 +203,7 @@ function normalizeStateShape(state) {
       state.workspacePolicyOverlay ?? normalizedPolicySelection.workspacePolicyOverlay,
     // Existing v1 state omitted this field while `full` was the default. Keep that
     // persisted-state compatibility while new state starts from `standard`.
-    skillProfile: state.skillProfile ?? 'full'
+    skillProfile: normalizeRetiredSkillProfile(requestedSkillProfile, state.scope)
   };
 }
 
