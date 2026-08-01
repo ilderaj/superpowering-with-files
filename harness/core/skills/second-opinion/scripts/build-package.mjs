@@ -21,6 +21,8 @@ function usage() {
     '  --source-pointer <path=pointer>  Repeatable package source binding.',
     '  --excluded <value>        Repeatable excluded-context disclosure.',
     '  --redaction <value>       Repeatable redaction disclosure.',
+    '  --verify-package <dir>    Verify an approved package before upload.',
+    '  --expected-package-hash <hash>  Approved package hash for verification.',
     '  --help                    Show this message.'
   ].join('\n');
 }
@@ -42,9 +44,17 @@ export function parseArgs(argv) {
     attachments: [],
     excluded: [],
     redactions: [],
-    sourcePointers: []
+    sourcePointers: [],
+    verifyPackage: null,
+    expectedPackageHash: null
   };
-  const singularOptions = new Set(['--prompt', '--mode', '--output']);
+  const singularOptions = new Set([
+    '--prompt',
+    '--mode',
+    '--output',
+    '--verify-package',
+    '--expected-package-hash'
+  ]);
 
   for (let index = 0; index < argv.length; index += 1) {
     const option = argv[index];
@@ -55,7 +65,10 @@ export function parseArgs(argv) {
       throw argumentError(`Unexpected argument: ${option}`);
     }
 
-    const key = option.slice(2);
+    const key = {
+      '--verify-package': 'verifyPackage',
+      '--expected-package-hash': 'expectedPackageHash'
+    }[option] ?? option.slice(2);
     const value = requiredValue(argv, index, option);
     index += 1;
     if (singularOptions.has(option)) {
@@ -82,6 +95,17 @@ export function parseArgs(argv) {
       continue;
     }
     throw argumentError(`Unknown option: ${option}`);
+  }
+
+  if (options.verifyPackage || options.expectedPackageHash) {
+    if (!options.verifyPackage || !options.expectedPackageHash) {
+      throw argumentError('--verify-package and --expected-package-hash must be provided together.');
+    }
+    if (options.prompt || options.mode || options.output || options.attachments.length > 0
+      || options.sourcePointers.length > 0 || options.excluded.length > 0 || options.redactions.length > 0) {
+      throw argumentError('Verification mode cannot be combined with package build options.');
+    }
+    return options;
   }
 
   for (const option of ['prompt', 'mode', 'output']) {
@@ -148,6 +172,13 @@ function parseSourcePointerBinding(value) {
   return { path: packagePath, pointer };
 }
 
+function validatePackageHash(value) {
+  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(value)) {
+    throw argumentError('Expected package hash must use the form sha256:<64 lowercase hex characters>.');
+  }
+  return value;
+}
+
 function normalizeSourcePointerBinding(value) {
   if (typeof value === 'string') {
     return parseSourcePointerBinding(value);
@@ -187,6 +218,111 @@ async function assertOutputDirectoryIsUnused(outputDir) {
     throw error;
   }
   throw new Error(`Output directory already exists: ${outputDir}`);
+}
+
+function resolvePackageFile(packageDir, packagePath) {
+  if (!isSafePackageRelativePath(packagePath)) {
+    throw new Error(`Package file path must be a safe package-relative path: ${packagePath}`);
+  }
+  const root = path.resolve(packageDir);
+  const resolvedPath = path.resolve(root, ...packagePath.split('/'));
+  const relativePath = path.relative(root, resolvedPath);
+  if (relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
+    throw new Error(`Package file path escapes the package directory: ${packagePath}`);
+  }
+  return resolvedPath;
+}
+
+async function readPackageFile(packageDir, packagePath) {
+  const resolvedPath = resolvePackageFile(packageDir, packagePath);
+  let stat;
+  try {
+    stat = await lstat(resolvedPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error(`Package file not found: ${packagePath}`);
+    }
+    throw error;
+  }
+  if (!stat.isFile() || stat.isSymbolicLink()) {
+    throw new Error(`Package file must be a regular file: ${packagePath}`);
+  }
+  return readFile(resolvedPath);
+}
+
+function assertManifestArray(manifest, field) {
+  if (!Array.isArray(manifest[field])) {
+    throw new Error(`Package manifest field must be an array: ${field}`);
+  }
+}
+
+export async function verifyPackage({ packageDir, expectedPackageHash }) {
+  const expectedHash = validatePackageHash(expectedPackageHash);
+  const manifestBytes = await readPackageFile(packageDir, 'manifest.json');
+  let manifest;
+  try {
+    manifest = JSON.parse(ensureUtf8(manifestBytes, 'Package manifest'));
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error(`Package manifest is not valid JSON: ${error.message}`);
+    }
+    throw error;
+  }
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    throw new Error('Package manifest must be a JSON object.');
+  }
+  if (manifest.packageHash !== expectedHash) {
+    throw new Error('Package manifest hash does not match the approved package hash.');
+  }
+  assertManifestArray(manifest, 'included');
+  assertManifestArray(manifest, 'files');
+  assertManifestArray(manifest, 'attachments');
+  if (!manifest.prompt || manifest.prompt.path !== 'request.md') {
+    throw new Error('Package manifest must identify request.md as the prompt.');
+  }
+
+  const filePaths = manifest.files.map((file) => file?.path);
+  if (filePaths.some((filePath) => typeof filePath !== 'string')
+    || new Set(filePaths).size !== filePaths.length
+    || JSON.stringify(filePaths) !== JSON.stringify(manifest.included)) {
+    throw new Error('Package manifest included paths do not match its file records.');
+  }
+  const promptRecords = manifest.files.filter((file) => file?.role === 'prompt');
+  if (promptRecords.length !== 1 || promptRecords[0].path !== 'request.md') {
+    throw new Error('Package manifest must contain exactly one request.md prompt record.');
+  }
+
+  const verifiedFiles = [];
+  for (const file of manifest.files) {
+    if (!file || typeof file.path !== 'string' || typeof file.role !== 'string') {
+      throw new Error('Package manifest contains an invalid file record.');
+    }
+    const bytes = await readPackageFile(packageDir, file.path);
+    if (file.sizeBytes !== bytes.byteLength || file.sha256 !== digest(bytes)) {
+      throw new Error(`Package file integrity mismatch: ${file.path}`);
+    }
+    verifiedFiles.push({ ...file, bytes });
+  }
+
+  const attachmentRecords = verifiedFiles
+    .filter((file) => file.role === 'attachment')
+    .map((file) => ({
+      path: file.path,
+      bytes: file.bytes
+    }));
+  const attachmentPaths = manifest.attachments.map((attachment) => attachment?.path);
+  if (JSON.stringify(attachmentPaths) !== JSON.stringify(attachmentRecords.map((file) => file.path))) {
+    throw new Error('Package manifest attachment records do not match its file records.');
+  }
+
+  const manifestWithoutHash = { ...manifest };
+  delete manifestWithoutHash.packageHash;
+  const promptBytes = verifiedFiles.find((file) => file.path === 'request.md').bytes;
+  const recomputedHash = packageDigest(manifestWithoutHash, promptBytes, attachmentRecords);
+  if (recomputedHash !== expectedHash) {
+    throw new Error('Package manifest or content changed after approval; package hash mismatch.');
+  }
+  return recomputedHash;
 }
 
 function ensureUtf8(bytes, label) {
@@ -327,6 +463,14 @@ async function main(argv) {
   const options = parseArgs(argv);
   if (options.help) {
     process.stdout.write(`${usage()}\n`);
+    return;
+  }
+  if (options.verifyPackage) {
+    const packageHash = await verifyPackage({
+      packageDir: options.verifyPackage,
+      expectedPackageHash: options.expectedPackageHash
+    });
+    process.stdout.write(`${packageHash}\n`);
     return;
   }
   const manifest = await buildPackage({

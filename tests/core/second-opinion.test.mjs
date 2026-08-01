@@ -65,6 +65,8 @@ test('second-opinion skill is explicit-only and documents fail-closed advisory b
   assert.match(skill, /ambiguous|partial submit/i);
   assert.match(skill, /list.*read|read.*list/i);
   assert.match(skill, /untrusted advisory evidence/i);
+  assert.match(skill, /HARNESS_AGENT_SKILL_ROOT/);
+  assert.match(skill, /SECOND_OPINION_SKILL_ROOT\/scripts\/build-package\.mjs/);
   assert.match(interfaceYaml, /default_prompt:.*\$second-opinion/);
   assert.match(interfaceYaml, /policy:\n\s+allow_implicit_invocation: false/);
 });
@@ -123,6 +125,46 @@ test('second-opinion package builder creates a deterministic manifest and attach
     assert.match(manifestOne.packageHash, /^sha256:[0-9a-f]{64}$/);
     assert.equal(await readFile(path.join(outputTwo, 'request.md'), 'utf8'), request.toString('utf8'));
     assert.deepEqual(await readFile(path.join(outputTwo, 'attachments/context.txt')), attachment);
+    const verification = await runBuilder([
+      '--verify-package', outputOne,
+      '--expected-package-hash', manifestOne.packageHash
+    ]);
+    assert.equal(verification.stdout.trim(), manifestOne.packageHash);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('second-opinion package builder rejects package changes after approval', async () => {
+  const fixture = await createBuilderFixture();
+  try {
+    const output = path.join(fixture.root, 'approved-package');
+    await runBuilder([
+      '--prompt', fixture.promptPath,
+      '--mode', 'review-existing',
+      '--output', output,
+      '--attachment', fixture.attachmentPath,
+      '--source-pointer', 'request.md=fixture:reviewed-prompt',
+      '--source-pointer', 'attachments/context.txt=fixture:context'
+    ]);
+    const manifestPath = path.join(output, 'manifest.json');
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    const verifyArgs = [
+      '--verify-package', output,
+      '--expected-package-hash', manifest.packageHash
+    ];
+    const originalRequest = await readFile(path.join(output, 'request.md'));
+    await writeFile(path.join(output, 'request.md'), 'changed after approval\n', 'utf8');
+    await assert.rejects(runBuilder(verifyArgs), /integrity mismatch|package hash mismatch/i);
+    await writeFile(path.join(output, 'request.md'), originalRequest);
+
+    const originalManifest = await readFile(manifestPath);
+    await writeFile(manifestPath, `${JSON.stringify({ ...manifest, redactions: ['changed after approval'] }, null, 2)}\n`, 'utf8');
+    await assert.rejects(runBuilder(verifyArgs), /package hash mismatch/i);
+    await writeFile(manifestPath, originalManifest);
+
+    const verified = await runBuilder(verifyArgs);
+    assert.equal(verified.stdout.trim(), manifest.packageHash);
   } finally {
     await fixture.cleanup();
   }
