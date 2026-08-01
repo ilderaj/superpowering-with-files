@@ -21,6 +21,14 @@ The manifest records:
 - `packageHash`: a `sha256:<hex>` digest over the canonical manifest without `packageHash`
   plus the exact prompt and attachment bytes in stable path order.
 
+Each `sourcePointers` entry has the form `{ "path": "<package-relative-path>", "pointer": "<non-empty-pointer>" }`.
+The CLI accepts repeatable `--source-pointer <package-path>=<pointer>` bindings. Every path in
+`included` must have at least one binding, including `request.md` and every attachment; unknown
+package paths, missing coverage, empty pointers, and a package with no pointers are rejected.
+Bindings are canonicalized in `included` path order and then pointer order before manifest and
+package-hash generation. Package paths cannot be absolute, traversal-based, or contain Windows
+path separators.
+
 The output path, timestamps, source absolute paths, and machine-specific values are never
 included in the manifest or package hash. Identical inputs and disclosure metadata therefore
 produce identical packages in different directories. A package hash proves deterministic
@@ -29,4 +37,6 @@ occurred.
 
 The builder rejects an unsupported mode, missing or non-regular prompt/attachment, invalid
 UTF-8 prompt, empty prompt, a prompt over 18,000 characters, duplicate attachment sources,
-duplicate attachment basenames, unknown arguments, and an already existing output directory.
+duplicate attachment basenames, malformed or unsafe source-pointer bindings, unknown package
+paths, missing source-pointer coverage, empty pointers, no source pointers, unknown arguments,
+and an already existing output directory.

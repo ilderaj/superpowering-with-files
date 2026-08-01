@@ -78,7 +78,8 @@ test('second-opinion package builder creates a deterministic manifest and attach
       '--mode', 'review-existing',
       '--output', outputOne,
       '--attachment', fixture.attachmentPath,
-      '--source-pointer', 'fixture:reviewed-prompt',
+      '--source-pointer', 'request.md=fixture:reviewed-prompt',
+      '--source-pointer', 'attachments/context.txt=fixture:context',
       '--excluded', 'unselected fixture context',
       '--redaction', 'synthetic secrets omitted'
     ]);
@@ -87,7 +88,8 @@ test('second-opinion package builder creates a deterministic manifest and attach
       '--mode', 'review-existing',
       '--output', outputTwo,
       '--attachment', fixture.attachmentPath,
-      '--source-pointer', 'fixture:reviewed-prompt',
+      '--source-pointer', 'attachments/context.txt=fixture:context',
+      '--source-pointer', 'request.md=fixture:reviewed-prompt',
       '--excluded', 'unselected fixture context',
       '--redaction', 'synthetic secrets omitted'
     ]);
@@ -106,7 +108,8 @@ test('second-opinion package builder creates a deterministic manifest and attach
     assert.deepEqual(manifestOne.excluded, ['unselected fixture context']);
     assert.deepEqual(manifestOne.redactions, ['synthetic secrets omitted']);
     assert.deepEqual(manifestOne.sourcePointers, [
-      { path: 'request.md', pointer: 'fixture:reviewed-prompt' }
+      { path: 'request.md', pointer: 'fixture:reviewed-prompt' },
+      { path: 'attachments/context.txt', pointer: 'fixture:context' }
     ]);
     assert.deepEqual(manifestOne.attachments, [{
       path: 'attachments/context.txt',
@@ -120,6 +123,53 @@ test('second-opinion package builder creates a deterministic manifest and attach
     assert.match(manifestOne.packageHash, /^sha256:[0-9a-f]{64}$/);
     assert.equal(await readFile(path.join(outputTwo, 'request.md'), 'utf8'), request.toString('utf8'));
     assert.deepEqual(await readFile(path.join(outputTwo, 'attachments/context.txt')), attachment);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('second-opinion package builder requires source pointer coverage for every included file', async () => {
+  const fixture = await createBuilderFixture();
+  try {
+    const runFailureCase = async (outputName, extraArgs, expectedError) => {
+      await assert.rejects(
+        runBuilder([
+          '--prompt', fixture.promptPath,
+          '--mode', 'review-existing',
+          '--output', path.join(fixture.root, outputName),
+          '--attachment', fixture.attachmentPath,
+          ...extraArgs
+        ]),
+        (error) => {
+          assert.match(error.message, expectedError);
+          return true;
+        }
+      );
+    };
+
+    await runFailureCase('no-pointers', [], /source pointer/i);
+    await runFailureCase(
+      'missing-attachment-pointer',
+      ['--source-pointer', 'request.md=fixture:reviewed-prompt'],
+      /Missing source pointer coverage.*attachments\/context\.txt/i
+    );
+    await runFailureCase(
+      'unknown-package-path',
+      [
+        '--source-pointer', 'request.md=fixture:reviewed-prompt',
+        '--source-pointer', 'attachments/context.txt=fixture:context',
+        '--source-pointer', 'unknown.txt=fixture:unknown'
+      ],
+      /Unknown package path/i
+    );
+    await runFailureCase(
+      'empty-pointer',
+      [
+        '--source-pointer', 'request.md=',
+        '--source-pointer', 'attachments/context.txt=fixture:context'
+      ],
+      /non-empty source pointer|pointer.*empty/i
+    );
   } finally {
     await fixture.cleanup();
   }
@@ -160,7 +210,12 @@ test('second-opinion package builder rejects unsafe modes, overflow, duplicate o
     );
     await mkdir(output);
     await assert.rejects(
-      runBuilder(['--prompt', fixture.promptPath, '--mode', 'explore-from-context', '--output', output]),
+      runBuilder([
+        '--prompt', fixture.promptPath,
+        '--mode', 'explore-from-context',
+        '--output', output,
+        '--source-pointer', 'request.md=fixture:reviewed-prompt'
+      ]),
       /Output directory already exists/
     );
   } finally {

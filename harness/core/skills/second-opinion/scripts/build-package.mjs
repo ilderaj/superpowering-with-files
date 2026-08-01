@@ -18,7 +18,7 @@ function usage() {
     '',
     'Options:',
     '  --attachment <file>       Repeatable attachment source.',
-    '  --source-pointer <value>  Repeatable prompt source pointer.',
+    '  --source-pointer <path=pointer>  Repeatable package source binding.',
     '  --excluded <value>        Repeatable excluded-context disclosure.',
     '  --redaction <value>       Repeatable redaction disclosure.',
     '  --help                    Show this message.'
@@ -120,6 +120,48 @@ function characterCount(text) {
   return Array.from(text).length;
 }
 
+function isSafePackageRelativePath(packagePath) {
+  return packagePath.length > 0
+    && !packagePath.startsWith('/')
+    && !packagePath.includes('\\')
+    && packagePath !== '.'
+    && !packagePath.split('/').includes('..')
+    && path.posix.normalize(packagePath) === packagePath;
+}
+
+function parseSourcePointerBinding(value) {
+  if (typeof value !== 'string') {
+    throw argumentError('Source pointer must be a string in the form <package-path>=<pointer>.');
+  }
+  const separator = value.indexOf('=');
+  if (separator <= 0 || separator === value.length - 1) {
+    throw argumentError('Source pointer must use <package-path>=<pointer> with non-empty package path and pointer.');
+  }
+  const packagePath = value.slice(0, separator);
+  const pointer = value.slice(separator + 1);
+  if (!isSafePackageRelativePath(packagePath)) {
+    throw argumentError(`Source pointer package path must be a safe package-relative path: ${packagePath}`);
+  }
+  if (pointer.trim() === '') {
+    throw argumentError(`Source pointer must be non-empty for package path: ${packagePath}`);
+  }
+  return { path: packagePath, pointer };
+}
+
+function normalizeSourcePointerBinding(value) {
+  if (typeof value === 'string') {
+    return parseSourcePointerBinding(value);
+  }
+  if (value && typeof value.path === 'string' && typeof value.pointer === 'string') {
+    return parseSourcePointerBinding(`${value.path}=${value.pointer}`);
+  }
+  throw argumentError('Source pointer must be a string in the form <package-path>=<pointer>.');
+}
+
+function compareCodePoints(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function canonicalJson(value) {
   return JSON.stringify(value);
 }
@@ -205,9 +247,6 @@ export async function buildPackage({
   }
   attachmentRecords.sort((left, right) => left.filename < right.filename ? -1 : left.filename > right.filename ? 1 : 0);
 
-  const outputDir = path.resolve(output);
-  await assertOutputDirectoryIsUnused(outputDir);
-
   const files = [
     {
       path: 'request.md',
@@ -223,6 +262,31 @@ export async function buildPackage({
     }))
   ];
   const included = files.map((file) => file.path);
+  const includedPaths = new Set(included);
+  const sourcePointerBindings = sourcePointers.map(normalizeSourcePointerBinding);
+  if (sourcePointerBindings.length === 0) {
+    throw argumentError('At least one source pointer is required; provide --source-pointer <package-path>=<pointer> for every included package file.');
+  }
+  for (const binding of sourcePointerBindings) {
+    if (!includedPaths.has(binding.path)) {
+      throw argumentError(`Unknown package path in source pointer: ${binding.path}`);
+    }
+  }
+  const coveredPaths = new Set(sourcePointerBindings.map((binding) => binding.path));
+  for (const includedPath of included) {
+    if (!coveredPaths.has(includedPath)) {
+      throw argumentError(`Missing source pointer coverage for included package path: ${includedPath}`);
+    }
+  }
+  const includedOrder = new Map(included.map((filePath, index) => [filePath, index]));
+  const canonicalSourcePointers = [...sourcePointerBindings].sort((left, right) => {
+    const pathOrder = includedOrder.get(left.path) - includedOrder.get(right.path);
+    return pathOrder === 0 ? compareCodePoints(left.pointer, right.pointer) : pathOrder;
+  });
+
+  const outputDir = path.resolve(output);
+  await assertOutputDirectoryIsUnused(outputDir);
+
   const manifestWithoutHash = {
     schemaVersion: 1,
     packageType: 'second-opinion-request',
@@ -238,7 +302,7 @@ export async function buildPackage({
     included,
     excluded: [...excluded],
     redactions: [...redactions],
-    sourcePointers: sourcePointers.map((pointer) => ({ path: 'request.md', pointer })),
+    sourcePointers: canonicalSourcePointers,
     attachments: attachmentRecords.map((attachment) => ({
       path: attachment.path,
       filename: attachment.filename,

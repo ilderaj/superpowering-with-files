@@ -47,7 +47,7 @@ Record the mode in the package manifest and in the confirmation summary. If the 
 2. Compress context by removing repetition and irrelevant history, not by silently dropping decision-critical evidence. Keep a source pointer for every material claim or excerpt (file path, section, line range, or artifact identifier).
 3. Keep the reviewed primary prompt at or below 18,000 characters. Count before packaging and fail closed when it is over the limit; never silently truncate or claim semantic losslessness.
 4. Put overflow material into a small, explicitly listed set of attachments. The package builder copies attachments by stable basename, records their byte size and SHA-256, and rejects missing or duplicate inputs.
-5. Write a disclosure record containing `included`, `excluded`, `redactions`, and `sourcePointers`. Disclose sensitive, private, credential-like, or user-owned material before it leaves the local environment. Redact it or stop.
+5. Write a disclosure record containing `included`, `excluded`, `redactions`, and `sourcePointers`. Bind every included package-relative path, including `request.md` and every attachment, to at least one non-empty source pointer. Disclose sensitive, private, credential-like, or user-owned material before it leaves the local environment. Redact it or stop.
 
 Use the standard-library builder at `scripts/build-package.mjs` with an already reviewed prompt file:
 
@@ -56,10 +56,12 @@ node scripts/build-package.mjs \
   --prompt /path/to/reviewed-prompt.md \
   --mode review-existing \
   --output /path/to/new-package \
-  --attachment /path/to/context.txt
+  --attachment /path/to/context.txt \
+  --source-pointer request.md=local:reviewed-prompt \
+  --source-pointer attachments/context.txt=local:context
 ```
 
-The output is deterministic `request.md`, `manifest.json`, and `attachments/*`. The builder proves packaging integrity; it does not perform semantic compression or decide what is safe to disclose.
+Use `--source-pointer <package-path>=<pointer>` once or more for each included package-relative path. The builder rejects missing coverage, unknown package paths, empty pointers, and a package with no pointers. The output is deterministic `request.md`, `manifest.json`, and `attachments/*`. The builder proves packaging integrity; it does not perform semantic compression or decide what is safe to disclose.
 
 ## Human confirmation before external submission
 
