@@ -286,6 +286,19 @@
         "codex": "materialize",
         "claude-code": "materialize"
       }
+    },
+    "second-opinion": {
+      "source": "local",
+      "baselinePath": "harness/core/skills/second-opinion",
+      "layout": "single",
+      "targetName": "second-opinion",
+      "projection": {
+        "default": "materialize",
+        "copilot": "materialize",
+        "cursor": "materialize",
+        "codex": "materialize",
+        "claude-code": "materialize"
+      }
     }
   }
 }

@@ -16,6 +16,7 @@ This page is the canonical operator reference for the relationship between a Har
 | Skill profile | Default selection | Entry-policy profile | Intended use | Superpowers projected? |
 | --- | --- | --- | --- | --- |
 | `minimal-global` | default for user-global and `both` scope | `always-on-core` | lean cross-repository baseline | no |
+| `second-opinion-global` | explicit opt-in only | `always-on-core` | minimal global baseline plus the explicit-only `second-opinion` bridge | no |
 | `standard` | default for workspace installs | `always-on-core` | normal coding work with Matt disciplines | no |
 | `copilot-default` | default for workspace installs targeting only Copilot | `always-on-core` | same lightweight coding baseline for Copilot-only installs | no |
 | `office` | explicit | `always-on-core` | document, spreadsheet, presentation, and PDF work | no |
@@ -27,6 +28,12 @@ This page is the canonical operator reference for the relationship between a Har
 
 An explicit `--profile=<entry-policy-profile>` overrides this mapping. An explicit `--skills-profile=<skill-profile>` still controls the projected skill allow-list.
 
+`second-opinion-global` is a dedicated user-global opt-in profile. It is not the default and is
+not included in `standard`, `hybrid-candidate`, or any other existing profile. The projected
+`second-opinion` skill still requires an explicit `$second-opinion` invocation; profile presence
+does not authorize implicit context export or Web submission. The retired
+`second-opinion-advisory` profile is not restored.
+
 ## Skill Allow-Lists
 
 ### Common foundations
@@ -37,6 +44,17 @@ An explicit `--profile=<entry-policy-profile>` overrides this mapping. An explic
 | `office-work-quality` | Harness-owned | every profile; routes to host-native Office artifact skills without replacing them |
 | `risk-assessment-before-destructive-changes` | Harness-owned | Standard family, all pilots, hybrid/high/full |
 | `safe-bypass-flow` | Harness-owned | Standard family, all pilots, hybrid/high/full |
+
+### Explicit second-opinion bridge
+
+| Projected skill | Source | Included by |
+| --- | --- | --- |
+| `second-opinion` | Harness-owned | `second-opinion-global` only; explicit `$second-opinion` invocation remains required |
+
+The bridge packages a reviewed prompt and attachments, records hashes and disclosure metadata,
+and stops at package-bound human confirmation before any external Web action. It does not
+provide a Plugin, MCP, API, or automatic ChatGPT transfer path.
+
 ### Matt Skills: lightweight coding disciplines
 
 The Matt upstream is nested by category. Harness selects the source-relative leaf and projects the final leaf name; for example, `engineering/tdd` becomes `<skill-root>/tdd`.
