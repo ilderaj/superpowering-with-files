@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile as execFileCallback } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -102,6 +102,14 @@ test('second-opinion package builder creates a deterministic manifest and attach
     const request = await readFile(path.join(outputOne, 'request.md'));
     const attachment = await readFile(path.join(outputOne, 'attachments/context.txt'));
 
+    if (process.platform !== 'win32') {
+      assert.equal((await stat(outputOne)).mode & 0o777, 0o700);
+      assert.equal((await stat(path.join(outputOne, 'attachments'))).mode & 0o777, 0o700);
+      assert.equal((await stat(path.join(outputOne, 'request.md'))).mode & 0o777, 0o600);
+      assert.equal((await stat(path.join(outputOne, 'attachments/context.txt'))).mode & 0o777, 0o600);
+      assert.equal((await stat(path.join(outputOne, 'manifest.json'))).mode & 0o777, 0o600);
+    }
+
     assert.deepEqual(manifestOne, manifestTwo);
     assert.equal(manifestOne.schemaVersion, 1);
     assert.equal(manifestOne.mode, 'review-existing');
@@ -166,6 +174,9 @@ test('second-opinion package builder rejects package changes after approval', as
 
     const verified = await runBuilder(verifyArgs);
     assert.equal(verified.stdout.trim(), manifest.packageHash);
+
+    await writeFile(path.join(output, 'unlisted-secret.txt'), 'must not cross the approved package boundary\n', 'utf8');
+    await assert.rejects(runBuilder(verifyArgs), /undeclared file|unexpected package entry/i);
   } finally {
     await fixture.cleanup();
   }

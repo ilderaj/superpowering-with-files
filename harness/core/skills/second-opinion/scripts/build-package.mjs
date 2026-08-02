@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
 import { createHash } from 'node:crypto';
-import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const MAX_PROMPT_CHARS = 18_000;
 export const SUPPORTED_MODES = new Set(['review-existing', 'explore-from-context']);
+const PRIVATE_DIRECTORY_MODE = 0o700;
+const PRIVATE_FILE_MODE = 0o600;
 
 function usage() {
   return [
@@ -213,12 +215,51 @@ function packageDigest(manifestWithoutHash, promptBytes, attachments) {
 async function reserveOutputDirectory(outputDir) {
   try {
     await mkdir(path.dirname(outputDir), { recursive: true });
-    await mkdir(outputDir);
+    await mkdir(outputDir, { mode: PRIVATE_DIRECTORY_MODE });
   } catch (error) {
     if (error?.code === 'EEXIST') {
       throw new Error(`Output directory already exists: ${outputDir}`);
     }
     throw error;
+  }
+}
+
+async function listPackageEntries(packageDir) {
+  const root = path.resolve(packageDir);
+  const rootStat = await lstat(root);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink()) {
+    throw new Error(`Package directory must be a real directory: ${packageDir}`);
+  }
+
+  const entries = [];
+  async function visit(directory, relativeDirectory = '') {
+    const childEntries = await readdir(directory, { withFileTypes: true });
+    for (const entry of childEntries) {
+      const relativePath = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name;
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isFile()) {
+        entries.push(relativePath);
+      } else if (entry.isDirectory()) {
+        entries.push(`${relativePath}/`);
+        await visit(fullPath, relativePath);
+      } else {
+        throw new Error(`Package contains an unsupported entry: ${relativePath}`);
+      }
+    }
+  }
+
+  await visit(root);
+  return entries.sort(compareCodePoints);
+}
+
+async function assertExactPackageContents(packageDir, contentPaths) {
+  const expected = ['attachments/', 'manifest.json', ...contentPaths].sort(compareCodePoints);
+  if (new Set(expected).size !== expected.length) {
+    throw new Error('Package manifest declares a reserved or duplicate file path.');
+  }
+  const actual = await listPackageEntries(packageDir);
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error('Package contains an undeclared file or is missing an expected file.');
   }
 }
 
@@ -316,6 +357,7 @@ export async function verifyPackage({ packageDir, expectedPackageHash }) {
   if (JSON.stringify(attachmentPaths) !== JSON.stringify(attachmentRecords.map((file) => file.path))) {
     throw new Error('Package manifest attachment records do not match its file records.');
   }
+  await assertExactPackageContents(packageDir, filePaths);
 
   const manifestWithoutHash = { ...manifest };
   delete manifestWithoutHash.packageHash;
@@ -453,12 +495,12 @@ export async function buildPackage({
   const packageHash = packageDigest(manifestWithoutHash, promptFile.bytes, attachmentRecords);
   const manifest = { ...manifestWithoutHash, packageHash };
 
-  await mkdir(path.join(outputDir, 'attachments'));
-  await writeFile(path.join(outputDir, 'request.md'), promptFile.bytes);
+  await mkdir(path.join(outputDir, 'attachments'), { mode: PRIVATE_DIRECTORY_MODE });
+  await writeFile(path.join(outputDir, 'request.md'), promptFile.bytes, { mode: PRIVATE_FILE_MODE, flag: 'wx' });
   for (const attachment of attachmentRecords) {
-    await writeFile(path.join(outputDir, attachment.path), attachment.bytes);
+    await writeFile(path.join(outputDir, attachment.path), attachment.bytes, { mode: PRIVATE_FILE_MODE, flag: 'wx' });
   }
-  await writeFile(path.join(outputDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  await writeFile(path.join(outputDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: PRIVATE_FILE_MODE, flag: 'wx' });
   return manifest;
 }
 
