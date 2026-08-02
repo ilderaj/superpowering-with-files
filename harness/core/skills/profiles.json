@@ -3,6 +3,7 @@
   "defaultProfile": "standard",
   "policyProfileBySkillProfile": {
     "minimal-global": "always-on-core",
+    "second-opinion-global": "always-on-core",
     "standard": "always-on-core",
     "copilot-default": "always-on-core",
     "office": "always-on-core",
@@ -19,6 +20,14 @@
       "mattpocock-skills:engineering/tdd",
       "mattpocock-skills:engineering/diagnosing-bugs",
       "mattpocock-skills:engineering/code-review"
+    ],
+    "second-opinion-global": [
+      "planning-with-files",
+      "office-work-quality",
+      "mattpocock-skills:engineering/tdd",
+      "mattpocock-skills:engineering/diagnosing-bugs",
+      "mattpocock-skills:engineering/code-review",
+      "second-opinion"
     ],
     "standard": [
       "risk-assessment-before-destructive-changes",

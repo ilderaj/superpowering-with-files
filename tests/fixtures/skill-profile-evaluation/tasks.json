@@ -14,6 +14,34 @@
     "falseSkillInvocation",
     "extraAuthorityFiles"
   ],
+  "decisionComparison": {
+    "baseline": "standard",
+    "comparison": "hybrid-candidate",
+    "assuranceCondition": "risk-triggered-assurance",
+    "baseReference": "same-base-sha",
+    "requiredRealTaskClasses": [
+      "cross-session-tracked-task",
+      "high-risk-migration-release"
+    ],
+    "metrics": [
+      "success",
+      "evidenceCompleteness",
+      "reworkOrEscalation",
+      "tokens",
+      "latency",
+      "trustworthyCost",
+      "subagentCount",
+      "humanConfirmationCount",
+      "scopeDrift",
+      "falseSkillInvocation",
+      "extraAuthorityFiles"
+    ],
+    "conditions": {
+      "noDefaultChange": true,
+      "productionSelectionRequiresHumanGate": true,
+      "noLifecycleSkillExpansionWithoutMatchedEvidence": true
+    }
+  },
   "taskClasses": [
     {
       "id": "small-bug-fix",

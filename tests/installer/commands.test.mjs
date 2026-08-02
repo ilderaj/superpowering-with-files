@@ -226,14 +226,29 @@ test('workspace-skills --help prints read-only action usage', async () => {
   }
 });
 
-test('workspace-skills plan reads committed desired state without writing legacy control-plane files', async () => {
+test('workspace-skills plan reads the committed standard profile without writing legacy control-plane files', async () => {
   const root = await createHarnessFixture();
   try {
     const { stdout } = await harnessCommand(root, 'workspace-skills', 'plan');
     const report = JSON.parse(stdout);
-    assert.equal(report.skillProfile, 'hybrid-candidate');
+    assert.equal(report.skillProfile, 'standard');
     assert.ok(report.skills.length > 0);
     assert.ok(report.skills.every((entry) => entry.kind === 'skill'));
+    for (const target of [
+      { name: 'codex', skillRoot: path.join('.agents', 'skills') },
+      { name: 'claude-code', skillRoot: path.join('.claude', 'skills') }
+    ]) {
+      const keys = report.skills
+        .filter((entry) => entry.targetPath.includes(target.skillRoot))
+        .map((entry) => `${entry.parentSkillName}:${entry.skillName}`);
+      assert.ok(keys.length > 0, `${target.name} plan has skills`);
+      assert.ok(!keys.some((key) => key.startsWith('superpowers:')), `${target.name} excludes Superpowers`);
+      for (const key of [
+        'planning-with-files:planning-with-files',
+        'chiefops:chiefops',
+        'mattpocock-skills:tdd'
+      ]) assert.ok(keys.includes(key), `${target.name} retains ${key}`);
+    }
     await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
     await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
   } finally {

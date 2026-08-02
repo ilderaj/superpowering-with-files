@@ -42,7 +42,7 @@ test('workspace skill profile is committed, portable, and workspace-only', async
 
     assert.equal(workspaceSkillProfilePath(root), path.join(root, 'harness/workspace-skill-profile.json'));
     assert.equal(profile.schemaVersion, 1);
-    assert.equal(profile.skillProfile, 'hybrid-candidate');
+    assert.equal(profile.skillProfile, 'standard');
     assert.equal(profile.deploymentProfile, 'standard');
     assert.equal(profile.projectionMode, 'portable');
     assert.deepEqual(profile.targets, ['codex', 'claude-code']);

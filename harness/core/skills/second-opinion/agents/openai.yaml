@@ -1,0 +1,6 @@
+interface:
+  display_name: "Second Opinion"
+  short_description: "Package context for an explicit second-opinion review"
+  default_prompt: "Use $second-opinion to prepare and review an explicit second-opinion package."
+policy:
+  allow_implicit_invocation: false

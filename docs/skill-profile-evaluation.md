@@ -1,6 +1,18 @@
 # Skill Profile Evaluation
 
-`matt-pilot`, `superpowers-pilot`, and `hybrid-candidate` are matched-task evaluation arms. They are not three permanent workflow authorities. The production prior is Standard Matt coding plus Harness governance, with non-overlapping Superpowers lifecycle skills added only by the hybrid/high-assurance path.
+`matt-pilot`, `superpowers-pilot`, and `hybrid-candidate` are historical matched-task evaluation arms. They remain available for diagnosis and are not three permanent workflow authorities. The production prior is Standard Matt coding plus Harness governance, with non-overlapping Superpowers lifecycle skills added only by the hybrid/high-assurance path.
+
+The current decision comparison is `standard` as the baseline versus the retained `hybrid-candidate` under a named `risk-triggered assurance` condition. This comparison does not create a production profile or change the default selection.
+
+## Decision Comparison
+
+Compare `standard` and `hybrid-candidate` from the same base SHA with the same Assignment Packet and acceptance rubric. The `risk-triggered assurance` condition is satisfied only when the evidence includes real cross-session tracked work and a high-risk migration or release-closure task. These are required decision gates, not optional examples.
+
+The comparison records the common metrics in `tests/fixtures/skill-profile-evaluation/tasks.json`, including task success, evidence completeness, rework or escalation, tokens, latency, trustworthy cost when available, scope drift, false skill invocation, and extra authority files. A matched result may inform a reviewed recommendation, but it is not runtime or Host enforcement and it does not perform automatic profile routing.
+
+`standard` remains the baseline and `hybrid-candidate` remains a retained compatibility candidate until the evidence gate is accepted. No default or workspace-profile change follows from a fixture or test result. Production selection requires a separate human gate.
+
+This gate covers lifecycle-skill expansion, not merely profile selection: no Superpowers lifecycle-skill expansion may be proposed or accepted without the matched decision evidence and a reviewed human gate. It is an auditable review/test contract, not runtime or Host enforcement.
 
 ## Trial Design
 
