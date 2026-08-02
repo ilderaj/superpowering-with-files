@@ -185,6 +185,7 @@ test('pilot profiles isolate Matt and Superpowers coding contracts', async () =>
 
 test('matched-task profile evaluation fixture covers six classes and required metrics', async () => {
   const fixture = JSON.parse(await readFile('tests/fixtures/skill-profile-evaluation/tasks.json', 'utf8'));
+  const evaluationDoc = await readFile('docs/skill-profile-evaluation.md', 'utf8');
   assert.equal(fixture.schemaVersion, 1);
   assert.deepEqual(fixture.profiles, ['matt-pilot', 'superpowers-pilot', 'hybrid-candidate']);
   assert.equal(fixture.taskClasses.length, 6);
@@ -194,6 +195,27 @@ test('matched-task profile evaluation fixture covers six classes and required me
     'trustworthyCost', 'subagentCount', 'humanConfirmationCount', 'scopeDrift',
     'falseSkillInvocation', 'extraAuthorityFiles'
   ]) assert.ok(fixture.metrics.includes(metric), metric);
+  assert.equal(fixture.decisionComparison.baseline, 'standard');
+  assert.equal(fixture.decisionComparison.comparison, 'hybrid-candidate');
+  assert.equal(fixture.decisionComparison.assuranceCondition, 'risk-triggered-assurance');
+  assert.equal(fixture.decisionComparison.baseReference, 'same-base-sha');
+  assert.deepEqual(fixture.decisionComparison.metrics, fixture.metrics);
+  assert.ok(fixture.decisionComparison.requiredRealTaskClasses.includes('cross-session-tracked-task'));
+  assert.ok(fixture.decisionComparison.requiredRealTaskClasses.includes('high-risk-migration-release'));
+  for (const taskClass of fixture.decisionComparison.requiredRealTaskClasses) {
+    assert.ok(fixture.taskClasses.some((entry) => entry.id === taskClass), taskClass);
+  }
+  assert.equal(fixture.decisionComparison.conditions.noDefaultChange, true);
+  assert.equal(fixture.decisionComparison.conditions.productionSelectionRequiresHumanGate, true);
+  assert.equal(fixture.decisionComparison.conditions.noLifecycleSkillExpansionWithoutMatchedEvidence, true);
+  assert.match(evaluationDoc, /## Decision Comparison/);
+  assert.match(evaluationDoc, /`standard` as the baseline versus the retained `hybrid-candidate`/);
+  assert.match(evaluationDoc, /risk-triggered assurance/);
+  assert.match(evaluationDoc, /not runtime or Host enforcement/);
+  assert.match(evaluationDoc, /Production selection requires a separate human gate/);
+  assert.ok(evaluationDoc.includes(
+    'This gate covers lifecycle-skill expansion, not merely profile selection: no Superpowers lifecycle-skill expansion may be proposed or accepted without the matched decision evidence and a reviewed human gate. It is an auditable review/test contract, not runtime or Host enforcement.'
+  ));
   for (const taskClass of fixture.taskClasses) {
     assert.equal(taskClass.baseReference, 'same-base-sha');
     assert.equal(typeof taskClass.assignmentPacket, 'string');
