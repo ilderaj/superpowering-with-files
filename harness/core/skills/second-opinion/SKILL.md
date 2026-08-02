@@ -1,6 +1,7 @@
 ---
 name: second-opinion
 description: Use only when the user explicitly invokes $second-opinion to prepare a bounded, auditable second-opinion package for an existing conclusion or a context-first exploration. Never invoke this skill implicitly or treat the external answer as authoritative.
+disable-model-invocation: true
 ---
 
 # Second Opinion
@@ -49,10 +50,33 @@ Record the mode in the package manifest and in the confirmation summary. If the 
 4. Put overflow material into a small, explicitly listed set of attachments. The package builder copies attachments by stable basename, records their byte size and SHA-256, and rejects missing or duplicate inputs.
 5. Write a disclosure record containing `included`, `excluded`, `redactions`, and `sourcePointers`. Bind every included package-relative path, including `request.md` and every attachment, to at least one non-empty source pointer. Disclose sensitive, private, credential-like, or user-owned material before it leaves the local environment. Redact it or stop.
 
-Use the standard-library builder at `scripts/build-package.mjs` with an already reviewed prompt file:
+Resolve the builder from the projected skill directory, not from the caller's current working
+directory. On Harness projections, use the following root resolution before invoking the builder:
+
+```bash
+SECOND_OPINION_SKILL_ROOT=""
+for candidate in \
+  "${HARNESS_AGENT_SKILL_ROOT:-}" \
+  "${GITHUB_COPILOT_SKILL_ROOT:-}" \
+  ".agents/skills/second-opinion" \
+  ".claude/skills/second-opinion" \
+  "${HOME:+$HOME/.agents/skills/second-opinion}" \
+  "${HOME:+$HOME/.claude/skills/second-opinion}"; do
+  if [ -n "$candidate" ] && [ -f "$candidate/scripts/build-package.mjs" ]; then
+    SECOND_OPINION_SKILL_ROOT="$candidate"
+    break
+  fi
+done
+if [ ! -f "$SECOND_OPINION_SKILL_ROOT/scripts/build-package.mjs" ]; then
+  # Stop and report the missing projected skill builder; do not run an unprojected source fallback.
+  exit 1
+fi
+```
+
+Use the standard-library builder at `$SECOND_OPINION_SKILL_ROOT/scripts/build-package.mjs` with an already reviewed prompt file:
 
 ```text
-node scripts/build-package.mjs \
+node "$SECOND_OPINION_SKILL_ROOT/scripts/build-package.mjs" \
   --prompt /path/to/reviewed-prompt.md \
   --mode review-existing \
   --output /path/to/new-package \
@@ -75,6 +99,16 @@ Before any Web upload or prompt submission, show the user a package-bound confir
 - the fact that the external answer is advisory and may be retained by the destination account.
 
 Do not reuse a previous approval for a changed package, destination, model, fallback, or attachment set. Without confirmation for the exact package, stop before opening an upload or submitting text.
+
+Immediately before opening the upload control or submitting the prompt, re-validate the approved package directory against the confirmation receipt:
+
+```text
+node "$SECOND_OPINION_SKILL_ROOT/scripts/build-package.mjs" \
+  --verify-package /path/to/approved-package \
+  --expected-package-hash sha256:<approved-package-hash>
+```
+
+Require a successful result that exactly matches the approved hash. If the manifest, `request.md`, any attachment, or any integrity receipt has changed, stop and obtain a new package-bound confirmation; never upload the changed bytes under the old approval.
 
 ## Browser submission contract
 

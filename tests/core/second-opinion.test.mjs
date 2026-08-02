@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile as execFileCallback } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -65,8 +65,13 @@ test('second-opinion skill is explicit-only and documents fail-closed advisory b
   assert.match(skill, /ambiguous|partial submit/i);
   assert.match(skill, /list.*read|read.*list/i);
   assert.match(skill, /untrusted advisory evidence/i);
+  assert.match(skill, /HARNESS_AGENT_SKILL_ROOT/);
+  assert.match(skill, /SECOND_OPINION_SKILL_ROOT\/scripts\/build-package\.mjs/);
+  assert.match(skill, /\.agents\/skills\/second-opinion/);
+  assert.match(skill, /\.claude\/skills\/second-opinion/);
   assert.match(interfaceYaml, /default_prompt:.*\$second-opinion/);
   assert.match(interfaceYaml, /policy:\n\s+allow_implicit_invocation: false/);
+  assert.match(skill, /^disable-model-invocation:\s*true$/m);
 });
 test('second-opinion package builder creates a deterministic manifest and attachment hashes', async () => {
   const fixture = await createBuilderFixture();
@@ -99,6 +104,14 @@ test('second-opinion package builder creates a deterministic manifest and attach
     const request = await readFile(path.join(outputOne, 'request.md'));
     const attachment = await readFile(path.join(outputOne, 'attachments/context.txt'));
 
+    if (process.platform !== 'win32') {
+      assert.equal((await stat(outputOne)).mode & 0o777, 0o700);
+      assert.equal((await stat(path.join(outputOne, 'attachments'))).mode & 0o777, 0o700);
+      assert.equal((await stat(path.join(outputOne, 'request.md'))).mode & 0o777, 0o600);
+      assert.equal((await stat(path.join(outputOne, 'attachments/context.txt'))).mode & 0o777, 0o600);
+      assert.equal((await stat(path.join(outputOne, 'manifest.json'))).mode & 0o777, 0o600);
+    }
+
     assert.deepEqual(manifestOne, manifestTwo);
     assert.equal(manifestOne.schemaVersion, 1);
     assert.equal(manifestOne.mode, 'review-existing');
@@ -123,6 +136,49 @@ test('second-opinion package builder creates a deterministic manifest and attach
     assert.match(manifestOne.packageHash, /^sha256:[0-9a-f]{64}$/);
     assert.equal(await readFile(path.join(outputTwo, 'request.md'), 'utf8'), request.toString('utf8'));
     assert.deepEqual(await readFile(path.join(outputTwo, 'attachments/context.txt')), attachment);
+    const verification = await runBuilder([
+      '--verify-package', outputOne,
+      '--expected-package-hash', manifestOne.packageHash
+    ]);
+    assert.equal(verification.stdout.trim(), manifestOne.packageHash);
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('second-opinion package builder rejects package changes after approval', async () => {
+  const fixture = await createBuilderFixture();
+  try {
+    const output = path.join(fixture.root, 'approved-package');
+    await runBuilder([
+      '--prompt', fixture.promptPath,
+      '--mode', 'review-existing',
+      '--output', output,
+      '--attachment', fixture.attachmentPath,
+      '--source-pointer', 'request.md=fixture:reviewed-prompt',
+      '--source-pointer', 'attachments/context.txt=fixture:context'
+    ]);
+    const manifestPath = path.join(output, 'manifest.json');
+    const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+    const verifyArgs = [
+      '--verify-package', output,
+      '--expected-package-hash', manifest.packageHash
+    ];
+    const originalRequest = await readFile(path.join(output, 'request.md'));
+    await writeFile(path.join(output, 'request.md'), 'changed after approval\n', 'utf8');
+    await assert.rejects(runBuilder(verifyArgs), /integrity mismatch|package hash mismatch/i);
+    await writeFile(path.join(output, 'request.md'), originalRequest);
+
+    const originalManifest = await readFile(manifestPath);
+    await writeFile(manifestPath, `${JSON.stringify({ ...manifest, redactions: ['changed after approval'] }, null, 2)}\n`, 'utf8');
+    await assert.rejects(runBuilder(verifyArgs), /package hash mismatch/i);
+    await writeFile(manifestPath, originalManifest);
+
+    const verified = await runBuilder(verifyArgs);
+    assert.equal(verified.stdout.trim(), manifest.packageHash);
+
+    await writeFile(path.join(output, 'unlisted-secret.txt'), 'must not cross the approved package boundary\n', 'utf8');
+    await assert.rejects(runBuilder(verifyArgs), /undeclared file|unexpected package entry/i);
   } finally {
     await fixture.cleanup();
   }
@@ -218,6 +274,60 @@ test('second-opinion package builder rejects unsafe modes, overflow, duplicate o
       ]),
       /Output directory already exists/
     );
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('second-opinion package builder rejects case-folded attachment collisions and atomically claims its output directory', async () => {
+  const fixture = await createBuilderFixture();
+  try {
+    const firstDirectory = path.join(fixture.root, 'first');
+    const secondDirectory = path.join(fixture.root, 'second');
+    const firstAttachment = path.join(firstDirectory, 'Context.txt');
+    const secondAttachment = path.join(secondDirectory, 'context.txt');
+    await mkdir(firstDirectory);
+    await mkdir(secondDirectory);
+    await writeFile(firstAttachment, 'first attachment\n', 'utf8');
+    await writeFile(secondAttachment, 'second attachment\n', 'utf8');
+
+    await assert.rejects(
+      runBuilder([
+        '--prompt', fixture.promptPath,
+        '--mode', 'review-existing',
+        '--output', path.join(fixture.root, 'case-folded-collision'),
+        '--attachment', firstAttachment,
+        '--attachment', secondAttachment,
+        '--source-pointer', 'request.md=fixture:reviewed-prompt',
+        '--source-pointer', 'attachments/Context.txt=fixture:first',
+        '--source-pointer', 'attachments/context.txt=fixture:second'
+      ]),
+      /Duplicate attachment filename: context\.txt/i
+    );
+
+    const output = path.join(fixture.root, 'atomic-output');
+    const args = [
+      '--prompt', fixture.promptPath,
+      '--mode', 'review-existing',
+      '--output', output,
+      '--attachment', fixture.attachmentPath,
+      '--source-pointer', 'request.md=fixture:reviewed-prompt',
+      '--source-pointer', 'attachments/context.txt=fixture:context'
+    ];
+    const attempts = await Promise.allSettled(Array.from({ length: 8 }, () => runBuilder(args)));
+    const succeeded = attempts.filter((attempt) => attempt.status === 'fulfilled');
+    const failed = attempts.filter((attempt) => attempt.status === 'rejected');
+    assert.equal(succeeded.length, 1);
+    assert.equal(failed.length, 7);
+    for (const failure of failed) {
+      assert.match(failure.reason.message, /Output directory already exists/);
+    }
+    const manifest = JSON.parse(await readFile(path.join(output, 'manifest.json'), 'utf8'));
+    const verification = await runBuilder([
+      '--verify-package', output,
+      '--expected-package-hash', manifest.packageHash
+    ]);
+    assert.equal(verification.stdout.trim(), manifest.packageHash);
   } finally {
     await fixture.cleanup();
   }

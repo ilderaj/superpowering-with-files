@@ -35,6 +35,17 @@ produce identical packages in different directories. A package hash proves deter
 packaging and byte integrity; it does not prove semantic losslessness or that any Web action
 occurred.
 
+Before an approved package is uploaded, re-validate its current bytes and manifest with:
+
+```text
+node "$SECOND_OPINION_SKILL_ROOT/scripts/build-package.mjs" \
+  --verify-package /path/to/package \
+  --expected-package-hash sha256:<approved-hash>
+```
+
+Verification fails when the manifest, `request.md`, an attachment, or any recorded integrity
+value differs from the approved package. A successful command prints the matching package hash.
+
 The builder rejects an unsupported mode, missing or non-regular prompt/attachment, invalid
 UTF-8 prompt, empty prompt, a prompt over 18,000 characters, duplicate attachment sources,
 duplicate attachment basenames, malformed or unsafe source-pointer bindings, unknown package
