@@ -67,6 +67,8 @@ test('second-opinion skill is explicit-only and documents fail-closed advisory b
   assert.match(skill, /untrusted advisory evidence/i);
   assert.match(skill, /HARNESS_AGENT_SKILL_ROOT/);
   assert.match(skill, /SECOND_OPINION_SKILL_ROOT\/scripts\/build-package\.mjs/);
+  assert.match(skill, /\.agents\/skills\/second-opinion/);
+  assert.match(skill, /\.claude\/skills\/second-opinion/);
   assert.match(interfaceYaml, /default_prompt:.*\$second-opinion/);
   assert.match(interfaceYaml, /policy:\n\s+allow_implicit_invocation: false/);
   assert.match(skill, /^disable-model-invocation:\s*true$/m);

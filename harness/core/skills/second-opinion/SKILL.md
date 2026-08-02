@@ -54,12 +54,21 @@ Resolve the builder from the projected skill directory, not from the caller's cu
 directory. On Harness projections, use the following root resolution before invoking the builder:
 
 ```bash
-SECOND_OPINION_SKILL_ROOT="${HARNESS_AGENT_SKILL_ROOT:-${GITHUB_COPILOT_SKILL_ROOT:-.agents/skills/second-opinion}}"
-if [ ! -f "$SECOND_OPINION_SKILL_ROOT/scripts/build-package.mjs" ] && [ -n "${HOME:-}" ]; then
-  SECOND_OPINION_SKILL_ROOT="$HOME/.agents/skills/second-opinion"
-fi
+SECOND_OPINION_SKILL_ROOT=""
+for candidate in \
+  "${HARNESS_AGENT_SKILL_ROOT:-}" \
+  "${GITHUB_COPILOT_SKILL_ROOT:-}" \
+  ".agents/skills/second-opinion" \
+  ".claude/skills/second-opinion" \
+  "${HOME:+$HOME/.agents/skills/second-opinion}" \
+  "${HOME:+$HOME/.claude/skills/second-opinion}"; do
+  if [ -n "$candidate" ] && [ -f "$candidate/scripts/build-package.mjs" ]; then
+    SECOND_OPINION_SKILL_ROOT="$candidate"
+    break
+  fi
+done
 if [ ! -f "$SECOND_OPINION_SKILL_ROOT/scripts/build-package.mjs" ]; then
-  # Stop and report the missing projected skill builder; do not run a repository-relative fallback.
+  # Stop and report the missing projected skill builder; do not run an unprojected source fallback.
   exit 1
 fi
 ```
