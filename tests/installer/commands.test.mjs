@@ -168,8 +168,35 @@ test('harness --help prints top-level usage', async () => {
       /worktree-name  Suggest a canonical worktree label and branch name for the active task/
     );
     assert.match(stdout, /token-audit  Print a weekly cross-session token audit/);
+    assert.match(stdout, /trio     Read or plan the next Trio action without writing/);
     assert.match(stdout, /codex-model-default  Inspect, assess, or migrate the Codex model default/);
     assert.match(stdout, /verify   Print or write verification reports/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness public dispatcher exposes Trio quick routing without creating planning state', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const { stdout } = await harnessCommand(
+      root,
+      'trio',
+      'next',
+      '--root',
+      root,
+      '--class',
+      'quick',
+      '--dry-run'
+    );
+    const report = JSON.parse(stdout);
+
+    assert.equal(report.command, 'next');
+    assert.equal(report.action, 'execute-inline');
+    assert.equal(report.readOnly, true);
+    assert.equal(report.createTrio, false);
+    assert.deepEqual(report.writes, []);
+    await assert.rejects(access(path.join(root, 'planning')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }

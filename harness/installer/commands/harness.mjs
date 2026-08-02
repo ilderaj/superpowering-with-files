@@ -25,6 +25,7 @@ import { tokenAudit } from './token-audit.mjs';
 import { codexModelDefault } from './codex-model-default.mjs';
 import { upstreamLockCommand } from './upstream-lock.mjs';
 import { workspaceSkills } from './workspace-skills.mjs';
+import { trioCommand } from './trio.mjs';
 
 async function chiefopsCommand(args) {
   const chiefops = await import('./chiefops.mjs');
@@ -58,7 +59,8 @@ const commands = {
   'workspace-link': workspaceLink,
   'token-audit': tokenAudit,
   'codex-model-default': codexModelDefault,
-  'workspace-skills': workspaceSkills
+  'workspace-skills': workspaceSkills,
+  trio: trioCommand
 };
 
 function usage() {
@@ -89,6 +91,7 @@ function usage() {
     '  adoption-status  Report user-global adoption drift and health',
     '  workspace-link  Link the current leaf workspace back to an authority root',
     '  workspace-skills  Plan, sync, check, or set the repository skill profile',
+    '  trio     Read or plan the next Trio action without writing',
     '  token-audit  Print a weekly cross-session token audit',
     '  codex-model-default  Inspect, assess, or migrate the Codex model default',
     '  worktree-name  Suggest a canonical worktree label and branch name for the active task',
