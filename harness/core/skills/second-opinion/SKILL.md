@@ -1,6 +1,7 @@
 ---
 name: second-opinion
 description: Use only when the user explicitly invokes $second-opinion to prepare a bounded, auditable second-opinion package for an existing conclusion or a context-first exploration. Never invoke this skill implicitly or treat the external answer as authoritative.
+disable-model-invocation: true
 ---
 
 # Second Opinion

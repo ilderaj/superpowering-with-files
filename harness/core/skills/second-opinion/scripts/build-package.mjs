@@ -210,14 +210,16 @@ function packageDigest(manifestWithoutHash, promptBytes, attachments) {
   return `sha256:${hash.digest('hex')}`;
 }
 
-async function assertOutputDirectoryIsUnused(outputDir) {
+async function reserveOutputDirectory(outputDir) {
   try {
-    await lstat(outputDir);
+    await mkdir(path.dirname(outputDir), { recursive: true });
+    await mkdir(outputDir);
   } catch (error) {
-    if (error?.code === 'ENOENT') return;
+    if (error?.code === 'EEXIST') {
+      throw new Error(`Output directory already exists: ${outputDir}`);
+    }
     throw error;
   }
-  throw new Error(`Output directory already exists: ${outputDir}`);
 }
 
 function resolvePackageFile(packageDir, packagePath) {
@@ -369,10 +371,11 @@ export async function buildPackage({
     if (!filename || filename === '.' || filename === '..') {
       throw new Error(`Attachment must have a safe filename: ${attachment}`);
     }
-    if (seenFilenames.has(filename)) {
+    const filenameKey = filename.normalize('NFC').toLocaleLowerCase('en-US');
+    if (seenFilenames.has(filenameKey)) {
       throw new Error(`Duplicate attachment filename: ${filename}`);
     }
-    seenFilenames.add(filename);
+    seenFilenames.add(filenameKey);
     const file = await readRegularFile(attachment, 'Attachment');
     attachmentRecords.push({
       bytes: file.bytes,
@@ -421,7 +424,7 @@ export async function buildPackage({
   });
 
   const outputDir = path.resolve(output);
-  await assertOutputDirectoryIsUnused(outputDir);
+  await reserveOutputDirectory(outputDir);
 
   const manifestWithoutHash = {
     schemaVersion: 1,
@@ -450,7 +453,7 @@ export async function buildPackage({
   const packageHash = packageDigest(manifestWithoutHash, promptFile.bytes, attachmentRecords);
   const manifest = { ...manifestWithoutHash, packageHash };
 
-  await mkdir(path.join(outputDir, 'attachments'), { recursive: true });
+  await mkdir(path.join(outputDir, 'attachments'));
   await writeFile(path.join(outputDir, 'request.md'), promptFile.bytes);
   for (const attachment of attachmentRecords) {
     await writeFile(path.join(outputDir, attachment.path), attachment.bytes);

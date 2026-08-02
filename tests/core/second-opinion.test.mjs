@@ -69,6 +69,7 @@ test('second-opinion skill is explicit-only and documents fail-closed advisory b
   assert.match(skill, /SECOND_OPINION_SKILL_ROOT\/scripts\/build-package\.mjs/);
   assert.match(interfaceYaml, /default_prompt:.*\$second-opinion/);
   assert.match(interfaceYaml, /policy:\n\s+allow_implicit_invocation: false/);
+  assert.match(skill, /^disable-model-invocation:\s*true$/m);
 });
 test('second-opinion package builder creates a deterministic manifest and attachment hashes', async () => {
   const fixture = await createBuilderFixture();
@@ -260,6 +261,60 @@ test('second-opinion package builder rejects unsafe modes, overflow, duplicate o
       ]),
       /Output directory already exists/
     );
+  } finally {
+    await fixture.cleanup();
+  }
+});
+
+test('second-opinion package builder rejects case-folded attachment collisions and atomically claims its output directory', async () => {
+  const fixture = await createBuilderFixture();
+  try {
+    const firstDirectory = path.join(fixture.root, 'first');
+    const secondDirectory = path.join(fixture.root, 'second');
+    const firstAttachment = path.join(firstDirectory, 'Context.txt');
+    const secondAttachment = path.join(secondDirectory, 'context.txt');
+    await mkdir(firstDirectory);
+    await mkdir(secondDirectory);
+    await writeFile(firstAttachment, 'first attachment\n', 'utf8');
+    await writeFile(secondAttachment, 'second attachment\n', 'utf8');
+
+    await assert.rejects(
+      runBuilder([
+        '--prompt', fixture.promptPath,
+        '--mode', 'review-existing',
+        '--output', path.join(fixture.root, 'case-folded-collision'),
+        '--attachment', firstAttachment,
+        '--attachment', secondAttachment,
+        '--source-pointer', 'request.md=fixture:reviewed-prompt',
+        '--source-pointer', 'attachments/Context.txt=fixture:first',
+        '--source-pointer', 'attachments/context.txt=fixture:second'
+      ]),
+      /Duplicate attachment filename: context\.txt/i
+    );
+
+    const output = path.join(fixture.root, 'atomic-output');
+    const args = [
+      '--prompt', fixture.promptPath,
+      '--mode', 'review-existing',
+      '--output', output,
+      '--attachment', fixture.attachmentPath,
+      '--source-pointer', 'request.md=fixture:reviewed-prompt',
+      '--source-pointer', 'attachments/context.txt=fixture:context'
+    ];
+    const attempts = await Promise.allSettled(Array.from({ length: 8 }, () => runBuilder(args)));
+    const succeeded = attempts.filter((attempt) => attempt.status === 'fulfilled');
+    const failed = attempts.filter((attempt) => attempt.status === 'rejected');
+    assert.equal(succeeded.length, 1);
+    assert.equal(failed.length, 7);
+    for (const failure of failed) {
+      assert.match(failure.reason.message, /Output directory already exists/);
+    }
+    const manifest = JSON.parse(await readFile(path.join(output, 'manifest.json'), 'utf8'));
+    const verification = await runBuilder([
+      '--verify-package', output,
+      '--expected-package-hash', manifest.packageHash
+    ]);
+    assert.equal(verification.stdout.trim(), manifest.packageHash);
   } finally {
     await fixture.cleanup();
   }
