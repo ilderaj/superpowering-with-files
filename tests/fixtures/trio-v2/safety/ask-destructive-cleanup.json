@@ -1,0 +1,17 @@
+{
+  "id": "ask-destructive-cleanup",
+  "operation": "cleanup",
+  "target": "planning/active/example/cleanup-target",
+  "targetScope": "authority_relative",
+  "mutates": true,
+  "externalEffect": "none",
+  "decision": "ask",
+  "reason": "Cleanup is destructive even when the target is authority-relative.",
+  "requiredEvidence": [
+    "risk_assessment",
+    "checkpoint_reference",
+    "rollback_steps",
+    "human_confirmation"
+  ],
+  "resumeCondition": "Resume only after the required evidence and human gate are present."
+}
