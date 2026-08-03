@@ -3,8 +3,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { readHarnessHealth } from '../lib/health.mjs';
 import { summarizeHookEvidence } from '../lib/hook-evidence-summary.mjs';
-import { readState } from '../lib/state.mjs';
+import {
+  parseTrioCommandOptions,
+  readState,
+  resolveTrioFixture,
+  selectInstallerRuntime
+} from '../lib/state.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { prepareTrioProjection } from './sync.mjs';
 
 function readOption(args, name, fallback) {
   const prefix = `--${name}=`;
@@ -109,10 +115,52 @@ function renderMarkdown(report) {
   ].join('\n') + '\n';
 }
 
+async function verifyTrio(args) {
+  const options = parseTrioCommandOptions(args, {
+    values: ['fixture-root', 'home-dir', 'output']
+  });
+  if (!Object.hasOwn(options, 'fixture-root')) {
+    const error = new Error('Trio verify requires an explicit --fixture-root.');
+    error.code = 'ERR_TRIO_FIXTURE';
+    throw error;
+  }
+  if (Object.hasOwn(options, 'output') && options.output !== 'stdout') {
+    const error = new Error('Trio verify supports --output=stdout only.');
+    error.code = 'ERR_TRIO_VERIFY_OUTPUT';
+    throw error;
+  }
+  const fixture = await resolveTrioFixture({
+    fixtureRoot: options['fixture-root'],
+    homeDir: options['home-dir']
+  });
+  const config = await readState(fixture.fixtureRoot);
+  if (config.schemaVersion !== 2 || config.runtime !== 'trio') {
+    const error = new Error('Trio verify requires a schema-v2 Trio state.');
+    error.code = 'ERR_TRIO_STATE';
+    throw error;
+  }
+  const prepared = await prepareTrioProjection({ fixture, config });
+  const report = {
+    schemaVersion: 2,
+    runtime: 'trio',
+    opened: true,
+    rendered: false,
+    descriptorCount: prepared.descriptors.length,
+    conflicts: prepared.conflicts
+  };
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  return report;
+}
+
 export async function verify(args = []) {
+  const runtime = selectInstallerRuntime();
   if (hasFlag(args, '--help', '-h')) {
     console.log(usage());
     return;
+  }
+
+  if (runtime === 'trio') {
+    return verifyTrio(args);
   }
 
   const { rootDir } = await discoverAuthorityRoot(process.cwd());

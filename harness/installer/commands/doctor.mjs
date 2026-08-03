@@ -2,7 +2,14 @@ import os from 'node:os';
 import { readFile } from 'node:fs/promises';
 import { readHarnessHealth } from '../lib/health.mjs';
 import { listHookEvidenceRows } from '../lib/hook-evidence-summary.mjs';
+import {
+  parseTrioCommandOptions,
+  readState,
+  resolveTrioFixture,
+  selectInstallerRuntime
+} from '../lib/state.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { prepareTrioProjection } from './sync.mjs';
 
 const HOME_PATH_PATTERNS = [
   /(?:^|[^A-Za-z0-9])\/Users\/[^/\n\r]+\/(?:[^ \n\r\t"'`<>]|$)/,
@@ -102,7 +109,43 @@ function renderedScopeOverlapWarnings(health) {
   );
 }
 
+async function doctorTrio(args) {
+  const options = parseTrioCommandOptions(args, {
+    values: ['fixture-root', 'home-dir'],
+    flags: ['check-only']
+  });
+  if (!Object.hasOwn(options, 'fixture-root')) {
+    const error = new Error('Trio doctor requires an explicit --fixture-root.');
+    error.code = 'ERR_TRIO_FIXTURE';
+    throw error;
+  }
+  const fixture = await resolveTrioFixture({
+    fixtureRoot: options['fixture-root'],
+    homeDir: options['home-dir']
+  });
+  const config = await readState(fixture.fixtureRoot);
+  if (config.schemaVersion !== 2 || config.runtime !== 'trio') {
+    const error = new Error('Trio doctor requires a schema-v2 Trio state.');
+    error.code = 'ERR_TRIO_STATE';
+    throw error;
+  }
+  const prepared = await prepareTrioProjection({ fixture, config });
+  const report = {
+    schemaVersion: 2,
+    runtime: 'trio',
+    readable: true,
+    descriptorCount: prepared.descriptors.length,
+    conflicts: prepared.conflicts,
+    mode: options['check-only'] ? 'check-only' : 'doctor'
+  };
+  console.log(JSON.stringify(report, null, 2));
+  return report;
+}
+
 export async function doctor(args = []) {
+  if (selectInstallerRuntime() === 'trio') {
+    return doctorTrio(args);
+  }
   const checkOnly = args.includes('--check-only');
   const { rootDir } = await discoverAuthorityRoot(process.cwd());
   const health = await readHarnessHealth(rootDir, os.homedir());

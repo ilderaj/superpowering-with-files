@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseV2Config } from '../../harness/trio/config.mjs';
 import { projectConfig } from '../../harness/trio/projection.mjs';
+import { readState, writeState } from '../../harness/installer/lib/state.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const APPROVED_TARGET_CONTRACT = Object.freeze({
@@ -724,5 +726,22 @@ test('entry policy validator rejects weakened authority, capability, inventory, 
     const mutation = entryPolicy.replace(from, to);
     assert.notEqual(mutation, entryPolicy);
     assert.throws(() => assertEntryPolicyContract(mutation), /authority|capability|durable|fifth|permission/i);
+  }
+});
+
+test('state bridge dual-reads strict V2 without creating a projection manifest', async () => {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), 'trio-v2-state-'));
+  try {
+    const config = validConfig();
+    await writeState(rootDir, config);
+    const stored = await readState(rootDir);
+    assert.deepEqual(stored, config);
+    assert.deepEqual(
+      Object.keys(JSON.parse(await readFile(path.join(rootDir, '.harness', 'state.json'), 'utf8'))),
+      ['schemaVersion', 'runtime', 'scope', 'targets', 'ownership', 'recovery']
+    );
+    await assert.rejects(readFile(path.join(rootDir, '.harness', 'projections.json')), /ENOENT/);
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
   }
 });

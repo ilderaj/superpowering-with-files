@@ -1,4 +1,7 @@
+import { createHash } from 'node:crypto';
+import { lstat, readFile, realpath } from 'node:fs/promises';
 import os from 'node:os';
+import path from 'node:path';
 import { loadPlatforms, normalizeScope, normalizeTargets } from '../lib/metadata.mjs';
 import { loadPolicyProfiles } from '../lib/policy-render.mjs';
 import { resolveTargetPaths } from '../lib/paths.mjs';
@@ -12,10 +15,218 @@ import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
 import {
   DEFAULT_DEPLOYMENT_PROFILE,
   normalizePolicySelection,
+  parseTrioCommandOptions,
+  resolveTrioFixture,
+  selectInstallerRuntime,
   validateDeploymentProfile,
   writeState
 } from '../lib/state.mjs';
-import { sync } from './sync.mjs';
+import { migrateV1ToV2, parseV2Config } from '../../trio/config.mjs';
+import { applyTrioProjection, sync } from './sync.mjs';
+
+function trioInstallError(message, code = 'ERR_TRIO_INSTALL') {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function sha256(bytes) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function isWithin(rootDir, candidate) {
+  const relative = path.relative(rootDir, candidate);
+  return relative.length > 0 && !relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative);
+}
+
+function parseTrioInstallOptions(args) {
+  const options = parseTrioCommandOptions(args, {
+    values: ['fixture-root', 'home-dir', 'recovery'],
+    flags: ['upgrade']
+  });
+  if (!Object.hasOwn(options, 'fixture-root')) {
+    throw trioInstallError('Trio --fixture-root is required and must be absolute.', 'ERR_TRIO_FIXTURE');
+  }
+  if (Object.hasOwn(options, 'recovery') && !options.upgrade) {
+    throw trioInstallError('Trio --recovery is only valid for --upgrade.', 'ERR_TRIO_FIXTURE');
+  }
+  return options;
+}
+
+async function readContainedRegularFile(fixture, requestedPath, label) {
+  if (typeof requestedPath !== 'string' || !path.isAbsolute(requestedPath)) {
+    throw trioInstallError(`${label} must be an absolute path.`, 'ERR_TRIO_FIXTURE');
+  }
+  const absolute = path.resolve(requestedPath);
+  let info;
+  try {
+    info = await lstat(absolute);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw trioInstallError(`${label} is required and must exist.`, 'ERR_TRIO_FIXTURE');
+    }
+    throw error;
+  }
+  if (info.isSymbolicLink() || !info.isFile()) {
+    throw trioInstallError(`${label} must be a real regular file.`, 'ERR_TRIO_FIXTURE');
+  }
+  const resolved = await realpath(absolute);
+  if (!isWithin(fixture.fixtureRoot, resolved)) {
+    throw trioInstallError(`${label} resolves outside --fixture-root.`, 'ERR_TRIO_FIXTURE');
+  }
+  let current = fixture.fixtureRoot;
+  for (const segment of path.relative(fixture.fixtureRoot, resolved).split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    const currentInfo = await lstat(current);
+    if (currentInfo.isSymbolicLink()) {
+      throw trioInstallError(`${label} cannot traverse a symbolic link.`, 'ERR_TRIO_FIXTURE');
+    }
+  }
+  return { path: resolved, bytes: await readFile(resolved) };
+}
+
+function parseExactRecovery(bytes) {
+  let value;
+  try {
+    value = JSON.parse(bytes.toString('utf8'));
+  } catch (error) {
+    throw trioInstallError(`Trio recovery JSON is invalid: ${error.message}.`, 'ERR_TRIO_FIXTURE');
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw trioInstallError('Trio recovery must be a JSON record.', 'ERR_TRIO_FIXTURE');
+  }
+  const expected = ['checkpointRef', 'rollbackRef'];
+  if (Object.keys(value).length !== expected.length || expected.some((key) => !Object.hasOwn(value, key))) {
+    throw trioInstallError('Trio recovery must contain exactly checkpointRef and rollbackRef.', 'ERR_TRIO_FIXTURE');
+  }
+  for (const key of expected) {
+    if (value[key] !== null && (typeof value[key] !== 'string' || value[key].trim() === '')) {
+      throw trioInstallError(`Trio recovery ${key} must be null or non-empty text.`, 'ERR_TRIO_FIXTURE');
+    }
+  }
+  return value;
+}
+
+function rebaseFixturePath(value, fixture) {
+  if (typeof value !== 'string' || (value !== '/fixture' && !value.startsWith('/fixture/'))) {
+    throw trioInstallError(`Trio V1 fixture evidence must be rooted at literal /fixture: ${String(value)}.`, 'ERR_TRIO_FIXTURE');
+  }
+  return `${fixture.fixtureRoot}${value.slice('/fixture'.length)}`;
+}
+
+function rebaseMigratedConfig(config, fixture) {
+  const rebased = {
+    ...config,
+    targets: config.targets.map((target) => ({
+      ...target,
+      paths: target.paths.map((entry) => rebaseFixturePath(entry, fixture))
+    })),
+    ownership: {
+      ...config.ownership,
+      entries: config.ownership.entries.map((entry) => ({
+        ...entry,
+        path: rebaseFixturePath(entry.path, fixture)
+      }))
+    }
+  };
+  return parseV2Config(rebased);
+}
+
+async function readV1UpgradeInput(fixture, recoveryPath) {
+  const [stateFile, manifestFile, recoveryFile] = await Promise.all([
+    readContainedRegularFile(fixture, fixture.stateFile, 'Trio V1 state'),
+    readContainedRegularFile(fixture, path.join(fixture.fixtureRoot, '.harness', 'projections.json'), 'Trio V1 projections'),
+    readContainedRegularFile(fixture, recoveryPath, 'Trio --recovery')
+  ]);
+  let persistedState;
+  let manifest;
+  try {
+    persistedState = JSON.parse(stateFile.bytes.toString('utf8'));
+    manifest = JSON.parse(manifestFile.bytes.toString('utf8'));
+  } catch (error) {
+    throw trioInstallError(`Trio V1 input JSON is invalid: ${error.message}.`, 'ERR_TRIO_FIXTURE');
+  }
+  const recoveryReferences = parseExactRecovery(recoveryFile.bytes);
+  const manifestText = manifestFile.bytes.toString('utf8');
+  const config = rebaseMigratedConfig(migrateV1ToV2({
+    persistedState,
+    projectionManifestJson: manifestText,
+    projectionManifestRef: `sha256:${sha256(manifestFile.bytes)}`,
+    recoveryReferences
+  }), fixture);
+  const legacyStatusByPath = new Map();
+  const legacyOwnershipByPath = new Map();
+  const targetById = new Map(config.targets.map((target) => [target.id, target]));
+  for (const entry of config.ownership.entries) {
+    const target = targetById.get(entry.targetId);
+    if (target?.hostKind === 'codex' && target.mode === 'managed') {
+      legacyOwnershipByPath.set(entry.path, entry.identity);
+    }
+  }
+  const migratedTargetIds = new Set(config.targets.map((target) => target.id));
+  if (Array.isArray(manifest?.entries)) {
+    for (const entry of manifest.entries) {
+      if (
+        !entry ||
+        typeof entry !== 'object' ||
+        !Object.hasOwn(entry, 'target') ||
+        !Object.hasOwn(entry, 'targetPath') ||
+        !migratedTargetIds.has(entry.target)
+      ) continue;
+      if (!['entry', 'skill'].includes(entry.kind) || !['unmanaged', 'user-managed'].includes(entry.legacyStatus)) continue;
+      legacyStatusByPath.set(rebaseFixturePath(entry.targetPath, fixture), entry.legacyStatus);
+    }
+  }
+  return { config, legacyStatusByPath, legacyOwnershipByPath };
+}
+
+function freshTrioConfig(fixture) {
+  return parseV2Config({
+    schemaVersion: 2,
+    runtime: 'trio',
+    scope: { kind: 'workspace' },
+    targets: [{
+      id: 'codex',
+      enabled: true,
+      paths: [path.join(fixture.fixtureRoot, 'workspace', 'AGENTS.md')],
+      hostKind: 'codex',
+      mode: 'managed'
+    }],
+    ownership: { source: 'fresh-install', manifestRef: null, entries: [] },
+    recovery: { checkpointRef: null, rollbackRef: null }
+  });
+}
+
+async function installTrio(args) {
+  const options = parseTrioInstallOptions(args);
+  const fixture = await resolveTrioFixture({
+    fixtureRoot: options['fixture-root'],
+    homeDir: options['home-dir']
+  });
+  if (options.upgrade && !Object.hasOwn(options, 'recovery')) {
+    throw trioInstallError('Trio V1 upgrade requires an explicit --recovery.', 'ERR_TRIO_FIXTURE');
+  }
+  const upgrade = options.upgrade
+    ? await readV1UpgradeInput(fixture, options.recovery)
+    : {
+      config: freshTrioConfig(fixture),
+      legacyStatusByPath: new Map(),
+      legacyOwnershipByPath: new Map()
+    };
+  const result = await applyTrioProjection({
+    fixture,
+    config: upgrade.config,
+    legacyStatusByPath: upgrade.legacyStatusByPath,
+    legacyOwnershipByPath: upgrade.legacyOwnershipByPath
+  });
+  console.log(JSON.stringify({
+    runtime: 'trio',
+    mode: options.upgrade ? 'upgrade' : 'fresh',
+    writes: result.writes,
+    conflicts: result.conflicts
+  }, null, 2));
+  return result;
+}
 
 function readOption(args, name, fallback) {
   const prefix = `--${name}=`;
@@ -40,9 +251,14 @@ function usage() {
 }
 
 export async function install(args = [], options = {}) {
+  const runtime = selectInstallerRuntime();
   if (args.includes('--help') || args.includes('-h')) {
     console.log(usage());
     return;
+  }
+
+  if (runtime === 'trio') {
+    return installTrio(args);
   }
 
   const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
