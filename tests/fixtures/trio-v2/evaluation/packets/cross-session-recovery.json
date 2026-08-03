@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-cross-session-recovery",
+  "goal": "Recover a tracked task from only its Trio authority files.",
+  "constraints": ["Use a clean temporary copy.", "Treat missing side material as non-authoritative."],
+  "successCriteria": ["Explicit and unique reads agree.", "The next decision remains read-only and stable."],
+  "nonGoals": ["No cache or session registry.", "No lifecycle shortcut."],
+  "returnContract": ["Return the exact fixture tree and recovery proof."]
+}

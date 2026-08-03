@@ -1,0 +1,1425 @@
+{
+  "schemaVersion": 1,
+  "notice": "Deterministic shadow evidence; not a matched Host/model/billing benchmark.",
+  "generatedAt": "2026-08-03T15:21:45.755Z",
+  "proofsExecuted": true,
+  "scenarioIds": [
+    "quick-bug",
+    "tracked-feature",
+    "complex-debug",
+    "broad-refactor",
+    "cross-session-recovery",
+    "two-worker",
+    "plan-mismatch",
+    "luna-to-terra",
+    "host-unavailable",
+    "source-backed-document",
+    "formula-spreadsheet",
+    "high-risk-cleanup"
+  ],
+  "scenarios": [
+    {
+      "id": "quick-bug",
+      "capability": "dev",
+      "packetPath": "packets/quick-bug.json",
+      "packetSha256": "f080a05dead419e53e6665cfbbb6a939e2c503985da6426f6f3a4c3392f13092",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/routing.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 130,
+          "stdoutHash": "9025eb4262a68b37a0582f2baf7071e1b58939b4acc9e2872623a8950084ecc9",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/quick-bug.json",
+          "sha256": "f080a05dead419e53e6665cfbbb6a939e2c503985da6426f6f3a4c3392f13092",
+          "bytes": 440,
+          "approximateTokens": 110,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/quick-bug.json",
+              "sha256": "f080a05dead419e53e6665cfbbb6a939e2c503985da6426f6f3a4c3392f13092",
+              "bytes": 440,
+              "approximateTokens": 110,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18271,
+          "approximateTokens": 4568
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/quick-bug.json",
+              "sha256": "f080a05dead419e53e6665cfbbb6a939e2c503985da6426f6f3a4c3392f13092",
+              "bytes": 440,
+              "approximateTokens": 110,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8039,
+          "approximateTokens": 2010
+        },
+        "reduction": 0.5599824868651488
+      }
+    },
+    {
+      "id": "tracked-feature",
+      "capability": "dev",
+      "packetPath": "packets/tracked-feature.json",
+      "packetSha256": "768f9e2feb0e1993096b8579825e74e02cc9c2f68fbcf7297d6e9c0f47d60891",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/store.test.mjs",
+            "tests/trio/lifecycle.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 13226,
+          "stdoutHash": "bd7e710779b9496e21f44828f14c1b1bf44ba9d566b1186ca12c8a2a7e06336c",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/tracked-feature.json",
+          "sha256": "768f9e2feb0e1993096b8579825e74e02cc9c2f68fbcf7297d6e9c0f47d60891",
+          "bytes": 453,
+          "approximateTokens": 114,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/tracked-feature.json",
+              "sha256": "768f9e2feb0e1993096b8579825e74e02cc9c2f68fbcf7297d6e9c0f47d60891",
+              "bytes": 453,
+              "approximateTokens": 114,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18284,
+          "approximateTokens": 4571
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/tracked-feature.json",
+              "sha256": "768f9e2feb0e1993096b8579825e74e02cc9c2f68fbcf7297d6e9c0f47d60891",
+              "bytes": 453,
+              "approximateTokens": 114,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8052,
+          "approximateTokens": 2013
+        },
+        "reduction": 0.5596149639028659
+      }
+    },
+    {
+      "id": "complex-debug",
+      "capability": "dev",
+      "packetPath": "packets/complex-debug.json",
+      "packetSha256": "66b0a19bb0aa8d91db0c161fe48063c50bb669e5e0b529d9a233efe17a2a72de",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/dev-capability.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 143,
+          "stdoutHash": "99d86068bfed88e383f598b8f30c96836cb2870dd0d7aa08e0456db9ff19f5ed",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/complex-debug.json",
+          "sha256": "66b0a19bb0aa8d91db0c161fe48063c50bb669e5e0b529d9a233efe17a2a72de",
+          "bytes": 495,
+          "approximateTokens": 124,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/complex-debug.json",
+              "sha256": "66b0a19bb0aa8d91db0c161fe48063c50bb669e5e0b529d9a233efe17a2a72de",
+              "bytes": 495,
+              "approximateTokens": 124,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18326,
+          "approximateTokens": 4582
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/complex-debug.json",
+              "sha256": "66b0a19bb0aa8d91db0c161fe48063c50bb669e5e0b529d9a233efe17a2a72de",
+              "bytes": 495,
+              "approximateTokens": 124,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8094,
+          "approximateTokens": 2024
+        },
+        "reduction": 0.558271497162811
+      }
+    },
+    {
+      "id": "broad-refactor",
+      "capability": "dev",
+      "packetPath": "packets/broad-refactor.json",
+      "packetSha256": "5b610e23fdfc804611d2d77272e3f1cca015768a19e480dcb35c98a0a8906027",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/dev-capability.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 124,
+          "stdoutHash": "08d2f562080b1dc810aeb686d68406504ece1c46e02f628f69d2ee96a152eff9",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        },
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "tests/trio/import-boundaries.test.mjs",
+            "--milestone",
+            "final"
+          ],
+          "exit": 0,
+          "durationMs": 54,
+          "stdoutHash": "d97366f1754f9f60375887392ff2ad2a41b176d19d8bfafe943d764de25d15cd",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/broad-refactor.json",
+          "sha256": "5b610e23fdfc804611d2d77272e3f1cca015768a19e480dcb35c98a0a8906027",
+          "bytes": 521,
+          "approximateTokens": 131,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/broad-refactor.json",
+              "sha256": "5b610e23fdfc804611d2d77272e3f1cca015768a19e480dcb35c98a0a8906027",
+              "bytes": 521,
+              "approximateTokens": 131,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18352,
+          "approximateTokens": 4588
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/broad-refactor.json",
+              "sha256": "5b610e23fdfc804611d2d77272e3f1cca015768a19e480dcb35c98a0a8906027",
+              "bytes": 521,
+              "approximateTokens": 131,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8120,
+          "approximateTokens": 2030
+        },
+        "reduction": 0.557541412380122
+      }
+    },
+    {
+      "id": "cross-session-recovery",
+      "capability": "dev",
+      "packetPath": "packets/cross-session-recovery.json",
+      "packetSha256": "4d1de006af14f8a5eaded38859768ac2201bfa1f396dff6371722fe6e98c2499",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/recovery.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 177,
+          "stdoutHash": "eeee36ed459fd73fced8dea8a7fc3f3383a4f0e780f375ad73e4b66ead0fbaa3",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/cross-session-recovery.json",
+          "sha256": "4d1de006af14f8a5eaded38859768ac2201bfa1f396dff6371722fe6e98c2499",
+          "bytes": 483,
+          "approximateTokens": 121,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/cross-session-recovery.json",
+              "sha256": "4d1de006af14f8a5eaded38859768ac2201bfa1f396dff6371722fe6e98c2499",
+              "bytes": 483,
+              "approximateTokens": 121,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18314,
+          "approximateTokens": 4579
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/cross-session-recovery.json",
+              "sha256": "4d1de006af14f8a5eaded38859768ac2201bfa1f396dff6371722fe6e98c2499",
+              "bytes": 483,
+              "approximateTokens": 121,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8082,
+          "approximateTokens": 2021
+        },
+        "reduction": 0.5586372570430225
+      }
+    },
+    {
+      "id": "two-worker",
+      "capability": "dev",
+      "packetPath": "packets/two-worker.json",
+      "packetSha256": "ce8adc8ac079c20b35a3386526891a583f680dfa3a6dbce5cb3b4b8b40b7f387",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/permission-routing.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 122,
+          "stdoutHash": "aed9a72238fa9dd8f80528eb9ad9a61c1f029b68aca108c8ee0fdc3fdd58a9d9",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/two-worker.json",
+          "sha256": "ce8adc8ac079c20b35a3386526891a583f680dfa3a6dbce5cb3b4b8b40b7f387",
+          "bytes": 481,
+          "approximateTokens": 121,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/two-worker.json",
+              "sha256": "ce8adc8ac079c20b35a3386526891a583f680dfa3a6dbce5cb3b4b8b40b7f387",
+              "bytes": 481,
+              "approximateTokens": 121,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18312,
+          "approximateTokens": 4578
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/two-worker.json",
+              "sha256": "ce8adc8ac079c20b35a3386526891a583f680dfa3a6dbce5cb3b4b8b40b7f387",
+              "bytes": 481,
+              "approximateTokens": 121,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8080,
+          "approximateTokens": 2020
+        },
+        "reduction": 0.5587592835299258
+      }
+    },
+    {
+      "id": "plan-mismatch",
+      "capability": "dev",
+      "packetPath": "packets/plan-mismatch.json",
+      "packetSha256": "18a716fd9376af434b6b42c3d23589178dfa058b17e80d75d58ed5610140c8b1",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/dev-capability.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 131,
+          "stdoutHash": "509a7cc33900de175c52c34a2f2c47d2268c44d9adee35d8376630c8c49fd261",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/plan-mismatch.json",
+          "sha256": "18a716fd9376af434b6b42c3d23589178dfa058b17e80d75d58ed5610140c8b1",
+          "bytes": 517,
+          "approximateTokens": 130,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/plan-mismatch.json",
+              "sha256": "18a716fd9376af434b6b42c3d23589178dfa058b17e80d75d58ed5610140c8b1",
+              "bytes": 517,
+              "approximateTokens": 130,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18348,
+          "approximateTokens": 4587
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/plan-mismatch.json",
+              "sha256": "18a716fd9376af434b6b42c3d23589178dfa058b17e80d75d58ed5610140c8b1",
+              "bytes": 517,
+              "approximateTokens": 130,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8116,
+          "approximateTokens": 2029
+        },
+        "reduction": 0.5576629605406583
+      }
+    },
+    {
+      "id": "luna-to-terra",
+      "capability": "dev",
+      "packetPath": "packets/luna-to-terra.json",
+      "packetSha256": "f8f832c4181c8c2f69538a2dff10a4dd9a6fd1851dff59e7f73c132843482439",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/routing.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 141,
+          "stdoutHash": "e4b4564ef88acec5975e1ca9bb6b5acb61963075b62eb9ad39c6cbb471626f12",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/luna-to-terra.json",
+          "sha256": "f8f832c4181c8c2f69538a2dff10a4dd9a6fd1851dff59e7f73c132843482439",
+          "bytes": 489,
+          "approximateTokens": 123,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/luna-to-terra.json",
+              "sha256": "f8f832c4181c8c2f69538a2dff10a4dd9a6fd1851dff59e7f73c132843482439",
+              "bytes": 489,
+              "approximateTokens": 123,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18320,
+          "approximateTokens": 4580
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/luna-to-terra.json",
+              "sha256": "f8f832c4181c8c2f69538a2dff10a4dd9a6fd1851dff59e7f73c132843482439",
+              "bytes": 489,
+              "approximateTokens": 123,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8088,
+          "approximateTokens": 2022
+        },
+        "reduction": 0.5585152838427948
+      }
+    },
+    {
+      "id": "host-unavailable",
+      "capability": "dev",
+      "packetPath": "packets/host-unavailable.json",
+      "packetSha256": "25a886003221cde71e9b410aeeb8fced468d792ab52ab106541ed90ccbe61999",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/host-routing.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 123,
+          "stdoutHash": "dca9f60293bee0e4ca9097d853d46ccd2f564e4c1b8c44ef1b03ffd40edc39d4",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/host-unavailable.json",
+          "sha256": "25a886003221cde71e9b410aeeb8fced468d792ab52ab106541ed90ccbe61999",
+          "bytes": 465,
+          "approximateTokens": 117,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/host-unavailable.json",
+              "sha256": "25a886003221cde71e9b410aeeb8fced468d792ab52ab106541ed90ccbe61999",
+              "bytes": 465,
+              "approximateTokens": 117,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18296,
+          "approximateTokens": 4574
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/host-unavailable.json",
+              "sha256": "25a886003221cde71e9b410aeeb8fced468d792ab52ab106541ed90ccbe61999",
+              "bytes": 465,
+              "approximateTokens": 117,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/dev/SKILL.md",
+              "sha256": "3f493ded5325149acdb2470d09f51c1438023fd95201e31376615a548f3ad994",
+              "bytes": 3944,
+              "approximateTokens": 986,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 8064,
+          "approximateTokens": 2016
+        },
+        "reduction": 0.5592479230432882
+      }
+    },
+    {
+      "id": "source-backed-document",
+      "capability": "office",
+      "packetPath": "packets/source-backed-document.json",
+      "packetSha256": "47cb640a22ae05e36317316ea73fbea0586ab33b40d60dc6e961943af0519117",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/office-capability.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 11533,
+          "stdoutHash": "4eb019d475e91aa8ea61a297135d9ba9c5eee7ea697eaf531cb41e714ff89530",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/source-backed-document.json",
+          "sha256": "47cb640a22ae05e36317316ea73fbea0586ab33b40d60dc6e961943af0519117",
+          "bytes": 485,
+          "approximateTokens": 122,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/source-backed-document.json",
+              "sha256": "47cb640a22ae05e36317316ea73fbea0586ab33b40d60dc6e961943af0519117",
+              "bytes": 485,
+              "approximateTokens": 122,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18316,
+          "approximateTokens": 4579
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/source-backed-document.json",
+              "sha256": "47cb640a22ae05e36317316ea73fbea0586ab33b40d60dc6e961943af0519117",
+              "bytes": 485,
+              "approximateTokens": 122,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/office/SKILL.md",
+              "sha256": "646c9d13a1a400755d143f7c20c1d1294b82d220cef6b0cf1499937ce5ae089b",
+              "bytes": 3788,
+              "approximateTokens": 947,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 7928,
+          "approximateTokens": 1982
+        },
+        "reduction": 0.5671544005241319
+      }
+    },
+    {
+      "id": "formula-spreadsheet",
+      "capability": "office",
+      "packetPath": "packets/formula-spreadsheet.json",
+      "packetSha256": "11911925947c167034bfcb2173a8001b95697b1c435e5932477bf58a32c49a96",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/office-capability.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 10448,
+          "stdoutHash": "3c8bb29a981937dc7dc0550ab9935ef81b595f89bd8a61c2fd9ad520cae1978d",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/formula-spreadsheet.json",
+          "sha256": "11911925947c167034bfcb2173a8001b95697b1c435e5932477bf58a32c49a96",
+          "bytes": 511,
+          "approximateTokens": 128,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/formula-spreadsheet.json",
+              "sha256": "11911925947c167034bfcb2173a8001b95697b1c435e5932477bf58a32c49a96",
+              "bytes": 511,
+              "approximateTokens": 128,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18342,
+          "approximateTokens": 4586
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/formula-spreadsheet.json",
+              "sha256": "11911925947c167034bfcb2173a8001b95697b1c435e5932477bf58a32c49a96",
+              "bytes": 511,
+              "approximateTokens": 128,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/office/SKILL.md",
+              "sha256": "646c9d13a1a400755d143f7c20c1d1294b82d220cef6b0cf1499937ce5ae089b",
+              "bytes": 3788,
+              "approximateTokens": 947,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 7954,
+          "approximateTokens": 1989
+        },
+        "reduction": 0.5662887047535979
+      }
+    },
+    {
+      "id": "high-risk-cleanup",
+      "capability": "safety",
+      "packetPath": "packets/high-risk-cleanup.json",
+      "packetSha256": "1d7f111cb36bfb88bd05d271a727f16370d26fca66b983da96882e5ff709a9ff",
+      "commands": [
+        {
+          "argv": [
+            "/opt/homebrew/Cellar/node/25.8.1/bin/node",
+            "--test",
+            "tests/trio/safety-capability.test.mjs"
+          ],
+          "exit": 0,
+          "durationMs": 134,
+          "stdoutHash": "0fcdc8c67deced9be7ff5950ab8cf6e680548fdfab4bf8b0d74d9eb96ad08b67",
+          "stderrHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "contractPass": true,
+          "evidenceComplete": true
+        }
+      ],
+      "contractPass": true,
+      "evidenceComplete": true,
+      "sourceDrift": false,
+      "measurementKind": "deterministic_shadow_replay",
+      "notAHostTaskRun": true,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "mainTokens": null,
+      "workerTokens": null,
+      "freshTokenProxy": null,
+      "trustworthyCost": null,
+      "humanIntervention": null,
+      "scopeDrift": null,
+      "limitations": [
+        "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+        "Actual model and effort are unknown without authenticated Host evidence.",
+        "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+        "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement."
+      ],
+      "context": {
+        "formula": "ceil(UTF-8 bytes / 4)",
+        "packet": {
+          "path": "packets/high-risk-cleanup.json",
+          "sha256": "1d7f111cb36bfb88bd05d271a727f16370d26fca66b983da96882e5ff709a9ff",
+          "bytes": 542,
+          "approximateTokens": 136,
+          "formula": "ceil(UTF-8 bytes / 4)"
+        },
+        "legacy": {
+          "sources": [
+            {
+              "path": "packets/high-risk-cleanup.json",
+              "sha256": "1d7f111cb36bfb88bd05d271a727f16370d26fca66b983da96882e5ff709a9ff",
+              "bytes": 542,
+              "approximateTokens": 136,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "AGENTS.md",
+              "sha256": "0a1e737ffdc9358af9ac396b2a8f1fe04395dcd116d392a1d0180bdb148e3f88",
+              "bytes": 17831,
+              "approximateTokens": 4458,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 18373,
+          "approximateTokens": 4594
+        },
+        "trio": {
+          "sources": [
+            {
+              "path": "packets/high-risk-cleanup.json",
+              "sha256": "1d7f111cb36bfb88bd05d271a727f16370d26fca66b983da96882e5ff709a9ff",
+              "bytes": 542,
+              "approximateTokens": 136,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/templates/entry-policy.md",
+              "sha256": "0a5890cb09b15aedec91df1c3435b3c4b0443d5bcd01f73a539b566ca70a2d88",
+              "bytes": 1367,
+              "approximateTokens": 342,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/skill/SKILL.md",
+              "sha256": "d5d7c67e8dfe3124bc2ec9a753e187b278e14711e484a0703d3e14f82dd82514",
+              "bytes": 2288,
+              "approximateTokens": 572,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            },
+            {
+              "path": "harness/trio/capabilities/safety/SKILL.md",
+              "sha256": "d027686cbdfbfbd2b361fd81acc99c5696635bd4ba79e5d20925e259fcb1d0a5",
+              "bytes": 3270,
+              "approximateTokens": 818,
+              "formula": "ceil(UTF-8 bytes / 4)"
+            }
+          ],
+          "bytes": 7467,
+          "approximateTokens": 1867
+        },
+        "reduction": 0.5936003482803657
+      }
+    }
+  ],
+  "summary": {
+    "scenarioCount": 12,
+    "acceptedCount": 12,
+    "medianContextTokenReduction": 0.559003603286607,
+    "threshold": 0.25,
+    "formula": "ceil(UTF-8 bytes / 4)"
+  },
+  "shadowVerdict": "pass",
+  "costProxyVerdict": "pass",
+  "orchestrationProxyVerdict": "pass",
+  "orchestrationProxy": {
+    "verdict": "pass",
+    "status": "observed",
+    "freshShare": 0.10538280066991734,
+    "chiefFresh": 8232765,
+    "delegateFresh": 69889708,
+    "selection": {
+      "taskId": "trio-v2-refactor-20260802",
+      "chiefSessionId": "019fc2b5-d7e5-74a3-8983-f18f119b2e43",
+      "exactTaskSessionIds": [
+        "019fc2b5-d7e5-74a3-8983-f18f119b2e43",
+        "019fc2bb-b852-79a0-b8e5-6d2623a5f4d7",
+        "019fc2c3-0efe-7a03-8ec5-884d274a4b20",
+        "019fc2d2-c6f6-7e72-b5dd-1bd7f4b29411",
+        "019fc2ed-ce75-7051-9100-83f42d04405e",
+        "019fc2ff-4306-7f81-9e24-a26c5e9cb9cc",
+        "019fc32e-8050-7d73-a009-36165754792a",
+        "019fc33d-e4bb-7893-b074-02de87136876",
+        "019fc35f-cd75-7e21-805e-80c5efe1ae56",
+        "019fc379-915a-7421-9021-8f0ea636288b",
+        "019fc379-d273-7ca3-80d6-3c6eb524c6e8",
+        "019fc3aa-6b81-7020-9e73-8f7e7359719f",
+        "019fc425-3fa3-7fe1-a9b1-73f92ce66350",
+        "019fc54e-dfa3-7b13-9b30-97648b8ca65d",
+        "019fc56d-24fa-7842-b504-af4b90310cd2",
+        "019fc56d-4f1b-7af0-9787-2156581cba20",
+        "019fc59e-ba7d-7cd3-8bc1-b1e5854c7d14",
+        "019fc5ce-d715-7db2-9a26-8a107afbd131",
+        "019fc650-3fba-72a2-8395-99991d4c379e",
+        "019fc663-3856-75b2-9904-5372915e50f0",
+        "019fc691-fa1f-7c91-82d6-31aa72746ddf",
+        "019fc692-6fdc-70e2-b724-28cb35c25206",
+        "019fc7f0-9b1e-7fc1-a5f7-7e6451adb1fb",
+        "019fc7f0-b64a-7d62-9953-5fbd6f5a9c93",
+        "019fc822-096b-7c31-a507-15606a279240",
+        "019fc822-342f-7292-a603-83d87122269d",
+        "019fc82a-419d-76c3-b144-457a313aafed"
+      ],
+      "selectedSessionIds": [
+        "019fc2b5-d7e5-74a3-8983-f18f119b2e43",
+        "019fc2bb-b852-79a0-b8e5-6d2623a5f4d7",
+        "019fc2c3-0efe-7a03-8ec5-884d274a4b20",
+        "019fc2d2-c6f6-7e72-b5dd-1bd7f4b29411",
+        "019fc2ed-ce75-7051-9100-83f42d04405e",
+        "019fc2ff-4306-7f81-9e24-a26c5e9cb9cc",
+        "019fc32e-8050-7d73-a009-36165754792a",
+        "019fc33d-e4bb-7893-b074-02de87136876",
+        "019fc35f-cd75-7e21-805e-80c5efe1ae56",
+        "019fc379-915a-7421-9021-8f0ea636288b",
+        "019fc379-d273-7ca3-80d6-3c6eb524c6e8",
+        "019fc3aa-6b81-7020-9e73-8f7e7359719f",
+        "019fc425-3fa3-7fe1-a9b1-73f92ce66350",
+        "019fc54e-dfa3-7b13-9b30-97648b8ca65d",
+        "019fc56d-24fa-7842-b504-af4b90310cd2",
+        "019fc56d-4f1b-7af0-9787-2156581cba20",
+        "019fc59e-ba7d-7cd3-8bc1-b1e5854c7d14",
+        "019fc5ce-d715-7db2-9a26-8a107afbd131",
+        "019fc650-3fba-72a2-8395-99991d4c379e",
+        "019fc663-3856-75b2-9904-5372915e50f0",
+        "019fc691-fa1f-7c91-82d6-31aa72746ddf",
+        "019fc692-6fdc-70e2-b724-28cb35c25206",
+        "019fc7f0-9b1e-7fc1-a5f7-7e6451adb1fb",
+        "019fc7f0-b64a-7d62-9953-5fbd6f5a9c93",
+        "019fc822-096b-7c31-a507-15606a279240",
+        "019fc822-342f-7292-a603-83d87122269d",
+        "019fc82a-419d-76c3-b144-457a313aafed",
+        "019fc2c3-0b93-7640-89db-4332ad20d4ec"
+      ],
+      "delegateSessionIds": [
+        "019fc2bb-b852-79a0-b8e5-6d2623a5f4d7",
+        "019fc2c3-0efe-7a03-8ec5-884d274a4b20",
+        "019fc2d2-c6f6-7e72-b5dd-1bd7f4b29411",
+        "019fc2ed-ce75-7051-9100-83f42d04405e",
+        "019fc2ff-4306-7f81-9e24-a26c5e9cb9cc",
+        "019fc32e-8050-7d73-a009-36165754792a",
+        "019fc33d-e4bb-7893-b074-02de87136876",
+        "019fc35f-cd75-7e21-805e-80c5efe1ae56",
+        "019fc379-915a-7421-9021-8f0ea636288b",
+        "019fc379-d273-7ca3-80d6-3c6eb524c6e8",
+        "019fc3aa-6b81-7020-9e73-8f7e7359719f",
+        "019fc425-3fa3-7fe1-a9b1-73f92ce66350",
+        "019fc54e-dfa3-7b13-9b30-97648b8ca65d",
+        "019fc56d-24fa-7842-b504-af4b90310cd2",
+        "019fc56d-4f1b-7af0-9787-2156581cba20",
+        "019fc59e-ba7d-7cd3-8bc1-b1e5854c7d14",
+        "019fc5ce-d715-7db2-9a26-8a107afbd131",
+        "019fc650-3fba-72a2-8395-99991d4c379e",
+        "019fc663-3856-75b2-9904-5372915e50f0",
+        "019fc691-fa1f-7c91-82d6-31aa72746ddf",
+        "019fc692-6fdc-70e2-b724-28cb35c25206",
+        "019fc7f0-9b1e-7fc1-a5f7-7e6451adb1fb",
+        "019fc7f0-b64a-7d62-9953-5fbd6f5a9c93",
+        "019fc822-096b-7c31-a507-15606a279240",
+        "019fc822-342f-7292-a603-83d87122269d",
+        "019fc82a-419d-76c3-b144-457a313aafed",
+        "019fc2c3-0b93-7640-89db-4332ad20d4ec"
+      ],
+      "selectedSessionCount": 28,
+      "selectedTaskIds": [
+        "trio-v2-refactor-20260802",
+        "<task-id>"
+      ]
+    },
+    "limitations": [
+      "Selection: exact task-ID matches are automatically selected; generic or misattributed delegates require explicit include IDs.",
+      "Task attribution: exact task ID matching is heuristic, and explicit generic includes are manual exceptions rather than billing or model proof.",
+      "Session cumulative: values are cumulative for the selected window and can grow after this snapshot.",
+      "Billing: freshProxy is not billing, price, model-quality, or authenticated actual-model evidence."
+    ]
+  },
+  "cutoverVerdict": "pending_full_preconditions",
+  "limitations": [
+    "This is deterministic shadow evidence, not a matched Host/model/billing benchmark.",
+    "Actual model and effort are unknown without authenticated Host evidence.",
+    "Per-scenario tokens, billing, human intervention, and scope drift are not measured by this replay.",
+    "The context proxy measures instruction bytes only and is not an agent-quality or billing measurement.",
+    "Cutover remains pending until Chief verifies the complete precondition matrix."
+  ]
+}

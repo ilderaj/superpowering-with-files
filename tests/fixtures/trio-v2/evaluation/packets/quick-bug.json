@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-quick-bug",
+  "goal": "Fix one deterministic defect with the smallest direct change.",
+  "constraints": ["Use the current repository baseline.", "Keep the work lightweight."],
+  "successCriteria": ["The quick route is selected.", "No durable Trio files are created."],
+  "nonGoals": ["No worker fan-out.", "No durable lifecycle transition."],
+  "returnContract": ["Return changed paths and focused proof evidence."]
+}

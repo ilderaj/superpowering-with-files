@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-tracked-feature",
+  "goal": "Add a durable feature through the exact Trio lifecycle.",
+  "constraints": ["Restore the bound planning trio first.", "Use the smallest verifiable slice."],
+  "successCriteria": ["The tracked route is selected.", "Store and lifecycle proof remains green."],
+  "nonGoals": ["No second authority.", "No default runtime switch."],
+  "returnContract": ["Return lifecycle evidence and unresolved risks."]
+}
