@@ -23,6 +23,42 @@ const BINDING_FILES = Object.freeze([
 ]);
 const SHA256_PATTERN = /^[a-f0-9]{64}$/iu;
 
+export const HOST_OPERATIONS = Object.freeze([
+  'spawn',
+  'continue',
+  'status',
+  'interrupt',
+  'collect'
+]);
+export const HOST_ROUTE_KINDS = Object.freeze([
+  'visible_worker',
+  'native_subagent',
+  'manual_pending'
+]);
+export const ROUTE_EVIDENCE_FIELDS = Object.freeze([
+  'routeKind',
+  'requestedModel',
+  'requestedEffort',
+  'actualModel',
+  'actualEffort',
+  'workerId',
+  'capabilityEvidence',
+  'permissionEnvelope',
+  'pathEnvelope',
+  'fallbackReason',
+  'status'
+]);
+
+const HOST_WORKER_STATUSES = new Set([
+  'planned',
+  'observed',
+  'idle',
+  'executing',
+  'candidate_done',
+  'stopped',
+  'blocked'
+]);
+
 function hasTrackedSignal(input) {
   return [
     input.multiplePhases,
@@ -226,5 +262,564 @@ export function calculateNextAction(input = {}) {
     readOnly: true,
     createTrio: true,
     writes: []
+  };
+}
+
+function objectRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function assertHostOperation(operation) {
+  if (!HOST_OPERATIONS.includes(operation)) {
+    throw new Error(`Unsupported Host operation: ${String(operation)}`);
+  }
+  return operation;
+}
+
+function normalizeSet(values, label) {
+  if (values === undefined) return [];
+  if (!Array.isArray(values)) {
+    throw new Error(`${label} must be an array.`);
+  }
+  const normalized = values.map((value) => {
+    if (typeof value !== 'string' || value.length === 0 || value !== value.trim()) {
+      throw new Error(`${label} contains an invalid entry.`);
+    }
+    if (/[\u0000-\u001f\u007f]/.test(value)) {
+      throw new Error(`${label} contains a control character.`);
+    }
+    return value;
+  });
+  return [...new Set(normalized)].sort();
+}
+
+function normalizeRelativePath(value, label = 'path') {
+  if (typeof value !== 'string' || value.length === 0 || value !== value.trim()) {
+    throw new Error(`${label} must be a non-empty relative path.`);
+  }
+  if (/[\u0000-\u001f\u007f]/.test(value)
+    || path.isAbsolute(value)
+    || /^[A-Za-z]:[\\/]/.test(value)
+    || /^[\\/]/.test(value)) {
+    throw new Error(`${label} must be authority-relative.`);
+  }
+  const segments = value.split(/[\\/]/);
+  if (segments.some((segment) => segment.length === 0 || segment === '.' || segment === '..')) {
+    throw new Error(`${label} contains an unsafe segment.`);
+  }
+  return segments.join('/');
+}
+
+function normalizePathSet(values, label) {
+  if (values === undefined) return [];
+  if (!Array.isArray(values)) {
+    throw new Error(`${label} must be an array.`);
+  }
+  return [...new Set(values.map((value) => normalizeRelativePath(value, label)))].sort();
+}
+
+function normalizeEnvelope(input, label = 'envelope') {
+  const source = objectRecord(input);
+  const permissionSource = objectRecord(source.permissionEnvelope);
+  const pathSource = objectRecord(source.pathEnvelope);
+  const permissions = source.permissions ?? permissionSource.permissions;
+  const operations = source.operations ?? permissionSource.operations;
+  const externalEffects = source.externalEffects ?? permissionSource.externalEffects;
+  const mutablePaths = source.mutablePaths
+    ?? pathSource.mutablePaths;
+  return {
+    permissions: normalizeSet(permissions, `${label}.permissions`),
+    mutablePaths: normalizePathSet(mutablePaths, `${label}.mutablePaths`),
+    operations: normalizeSet(operations, `${label}.operations`),
+    externalEffects: normalizeSet(externalEffects, `${label}.externalEffects`)
+  };
+}
+
+function publicPermissionEnvelope(envelope) {
+  return {
+    permissions: [...envelope.permissions],
+    operations: [...envelope.operations],
+    externalEffects: [...envelope.externalEffects]
+  };
+}
+
+function publicPathEnvelope(envelope) {
+  return { mutablePaths: [...envelope.mutablePaths] };
+}
+
+function pathIsWithin(child, parent) {
+  return child === parent || child.startsWith(`${parent}/`);
+}
+
+export function pathsConflict(left, right) {
+  const normalizedLeft = normalizeRelativePath(left, 'left path');
+  const normalizedRight = normalizeRelativePath(right, 'right path');
+  return normalizedLeft === normalizedRight
+    || normalizedLeft.startsWith(`${normalizedRight}/`)
+    || normalizedRight.startsWith(`${normalizedLeft}/`);
+}
+
+export function hasMutablePathConflict(leftPaths = [], rightPaths = []) {
+  const left = normalizePathSet(leftPaths, 'left paths');
+  const right = normalizePathSet(rightPaths, 'right paths');
+  return left.some((leftPath) => right.some((rightPath) => pathsConflict(leftPath, rightPath)));
+}
+
+function setIsSubset(child, parent) {
+  return child.every((value) => parent.includes(value));
+}
+
+function pathSetIsSubset(child, parent) {
+  return child.every((childPath) => parent.some((parentPath) => pathIsWithin(childPath, parentPath)));
+}
+
+function setsEqual(left, right) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function envelopeIsSubset(child, parent) {
+  return setIsSubset(child.permissions, parent.permissions)
+    && pathSetIsSubset(child.mutablePaths, parent.mutablePaths)
+    && setIsSubset(child.operations, parent.operations)
+    && setIsSubset(child.externalEffects, parent.externalEffects);
+}
+
+function envelopeIsProperSubset(child, parent) {
+  return !setsEqual(child.permissions, parent.permissions)
+    || !setsEqual(child.mutablePaths, parent.mutablePaths)
+    || !setsEqual(child.operations, parent.operations)
+    || !setsEqual(child.externalEffects, parent.externalEffects);
+}
+
+export function isEnvelopeSubset(childInput, parentInput) {
+  const child = normalizeEnvelope(childInput, 'child envelope');
+  const parent = normalizeEnvelope(parentInput, 'parent envelope');
+  return envelopeIsSubset(child, parent);
+}
+
+function normalizeObservationRecord(input) {
+  const source = objectRecord(input);
+  const capabilities = objectRecord(source.capabilities);
+  const visibleWorker = objectRecord(
+    source.visibleWorker
+      ?? capabilities.visible_worker
+  );
+  const nativeSubagent = objectRecord(
+    source.nativeSubagent
+      ?? capabilities.native_subagent
+  );
+  return {
+    authenticated: source.authenticated === true,
+    evidenceRef: normalizedString(source.evidenceRef),
+    actualModel: source.actualModel,
+    actualEffort: source.actualEffort,
+    visibleWorker,
+    nativeSubagent,
+    workerId: normalizedString(source.workerId),
+    status: normalizedString(source.status ?? source.workerStatus),
+    lanes: source.lanes ?? source.laneObservations ?? []
+  };
+}
+
+function authenticatedActual(observation) {
+  if (observation.authenticated !== true || !observation.evidenceRef) {
+    return { actualModel: 'unknown', actualEffort: 'unknown' };
+  }
+  return {
+    actualModel: normalizedString(observation.actualModel) ?? 'unknown',
+    actualEffort: normalizedString(observation.actualEffort) ?? 'unknown'
+  };
+}
+
+function unknownActual() {
+  return { actualModel: 'unknown', actualEffort: 'unknown' };
+}
+
+function operationSupport(capability, operation) {
+  const source = objectRecord(capability);
+  const operations = source.operations;
+  if (operations && typeof operations === 'object' && !Array.isArray(operations)) {
+    if (Object.hasOwn(operations, operation)) {
+      return operations[operation] === true ? 'supported'
+        : operations[operation] === false ? 'unsupported' : 'unknown';
+    }
+    return source.operationsComplete === true
+      ? 'unsupported'
+      : 'unknown';
+  }
+  if (source.supported === false) return 'unsupported';
+  return 'unknown';
+}
+
+function capabilityEvidence(capability, operation, kind, observation) {
+  const source = objectRecord(capability);
+  return {
+    kind,
+    authenticated: observation.authenticated,
+    evidenceRef: observation.evidenceRef ?? null,
+    visible: kind === 'native_subagent' ? false : source.visible === true,
+    operation,
+    operationSupport: operationSupport(source, operation),
+    requestedModelEffortControls: source.requestedModelEffortControls === true,
+    permissionBinding: source.permissionBinding === true,
+    pathBinding: source.pathBinding === true,
+    nativeCollaboration: source.nativeCollaboration === true || source.supported === true
+  };
+}
+
+function matchesChiefRelease(source, workerId, mutablePaths) {
+  const release = objectRecord(source.chiefRelease);
+  if (release.authenticated !== true
+    || release.disposition !== 'release'
+    || !workerId
+    || normalizedString(release.workerId) !== workerId
+    || !normalizedString(release.evidenceRef)) {
+    return false;
+  }
+  const releasedPaths = normalizePathSet(release.mutablePaths, 'chiefRelease.mutablePaths');
+  return setsEqual(releasedPaths, mutablePaths);
+}
+
+function normalizeLanes(input, observation) {
+  const rawLanes = input.lanes ?? observation.lanes;
+  if (rawLanes === undefined) return [];
+  if (!Array.isArray(rawLanes)) throw new Error('lane observations must be an array.');
+  return rawLanes.map((lane, index) => {
+    const source = objectRecord(lane);
+    const routeKind = normalizedString(source.routeKind);
+    if (!routeKind || !HOST_ROUTE_KINDS.includes(routeKind)) {
+      throw new Error(`Host lane route kind is invalid: ${String(source.routeKind)}`);
+    }
+    const status = normalizedString(source.status);
+    if (!status || !HOST_WORKER_STATUSES.has(status)) {
+      throw new Error(`Host lane status is invalid: ${String(source.status)}`);
+    }
+    const lanePathEnvelope = normalizeEnvelope(source.pathEnvelope ?? source, `lane ${index}`);
+    const workerId = normalizedString(source.workerId);
+    return {
+      routeKind,
+      workerId,
+      status,
+      released: matchesChiefRelease(source, workerId, lanePathEnvelope.mutablePaths),
+      mutablePaths: lanePathEnvelope.mutablePaths
+    };
+  });
+}
+
+function laneIsReserved(lane) {
+  return lane.mutablePaths.length > 0 && lane.released !== true;
+}
+
+function laneConflicts(lanes, candidatePaths, workerId, operation) {
+  return lanes.some((lane) => {
+    if (!laneIsReserved(lane) || (operation !== 'spawn' && workerId && lane.workerId === workerId)) return false;
+    return hasMutablePathConflict(candidatePaths, lane.mutablePaths);
+  });
+}
+
+function executingVisibleLaneCount(lanes, workerId, operation) {
+  return lanes.filter((lane) => laneIsReserved(lane)
+    && lane.status === 'executing'
+    && lane.routeKind === 'visible_worker'
+    && !(operation !== 'spawn' && workerId && lane.workerId === workerId)).length;
+}
+
+function validateObservedStatus(status) {
+  if (status === 'accepted' || status === 'chief_accepted') {
+    throw new Error('Host worker observation cannot claim Chief acceptance.');
+  }
+  if (status !== null && !HOST_WORKER_STATUSES.has(status)) {
+    throw new Error(`Unknown Host worker status: ${status}`);
+  }
+}
+
+function visibleSafety({ operation, capability, observation, requestedWorkerId, parentEnvelope, lanes }) {
+  const support = operationSupport(capability, operation);
+  if (observation.authenticated !== true || !observation.evidenceRef) {
+    return { safe: false, reason: 'visible_observation_unknown', support };
+  }
+  if (capability.visible !== true) {
+    return { safe: false, reason: capability.visible === false ? 'visible_unsupported' : 'visible_unknown', support };
+  }
+  if (support !== 'supported') {
+    return { safe: false, reason: `visible_operation_${support}`, support };
+  }
+  if (capability.requestedModelEffortControls !== true) {
+    return { safe: false, reason: 'visible_model_controls_unbound', support };
+  }
+  if (capability.permissionBinding !== true || !parentEnvelope.operations.includes(operation)) {
+    return { safe: false, reason: 'visible_permission_unbound', support };
+  }
+  if (capability.pathBinding !== true) {
+    return { safe: false, reason: 'visible_path_unbound', support };
+  }
+  const workerId = observation.workerId;
+  if (operation !== 'spawn'
+    && (!requestedWorkerId || !workerId || requestedWorkerId !== workerId)) {
+    return { safe: false, reason: 'visible_target_unbound', support };
+  }
+  if (laneConflicts(lanes, parentEnvelope.mutablePaths, workerId, operation)) {
+    return { safe: false, reason: 'mutable_path_conflict', support };
+  }
+  if (operation === 'spawn'
+    && parentEnvelope.mutablePaths.length > 0
+    && executingVisibleLaneCount(lanes, workerId, operation) >= 2) {
+    return { safe: false, reason: 'visible_lane_capacity', support };
+  }
+  return { safe: true, reason: null, support };
+}
+
+function nativeSafety({ operation, capability, observation, parentEnvelope, childEnvelope, requestedEffort, lanes }) {
+  const support = operationSupport(capability, operation);
+  if (operation !== 'spawn') {
+    return { safe: false, reason: 'native_target_unbound', support };
+  }
+  if (observation.authenticated !== true || !observation.evidenceRef) {
+    return { safe: false, reason: 'native_observation_unknown', support };
+  }
+  if (capability.supported !== true && capability.nativeCollaboration !== true) {
+    return { safe: false, reason: capability.supported === false ? 'native_unsupported' : 'native_unknown', support };
+  }
+  if (capability.visible === true) {
+    return { safe: false, reason: 'native_visible_identity_conflict', support };
+  }
+  if (support !== 'supported') {
+    return { safe: false, reason: `native_operation_${support}`, support };
+  }
+  if (requestedEffort.toLowerCase() === 'ultra') {
+    return { safe: false, reason: 'native_ultra_forbidden', support };
+  }
+  if (!childEnvelope || !childEnvelope.operations.includes(operation)) {
+    return { safe: false, reason: 'child_operation_unbound', support };
+  }
+  if (!envelopeIsSubset(childEnvelope, parentEnvelope)) {
+    return { safe: false, reason: 'child_envelope_widened', support };
+  }
+  if (!envelopeIsProperSubset(childEnvelope, parentEnvelope)) {
+    return { safe: false, reason: 'child_envelope_not_narrower', support };
+  }
+  if (laneConflicts(lanes, childEnvelope.mutablePaths, null, operation)) {
+    return { safe: false, reason: 'mutable_path_conflict', support };
+  }
+  return { safe: true, reason: null, support };
+}
+
+function routeStatus(observation, routeKind, operation) {
+  if (routeKind === 'manual_pending') return 'manual_pending';
+  if (routeKind === 'visible_worker' && operation !== 'spawn') {
+    return observation.status ?? 'observed';
+  }
+  return 'planned';
+}
+
+function buildRouteEvidence({
+  routeKind,
+  requestedModel,
+  requestedEffort,
+  actual,
+  workerId,
+  capability,
+  permissionEnvelope,
+  pathEnvelope,
+  fallbackReason,
+  status
+}) {
+  return Object.fromEntries([
+    ['routeKind', routeKind],
+    ['requestedModel', requestedModel],
+    ['requestedEffort', requestedEffort],
+    ['actualModel', actual.actualModel],
+    ['actualEffort', actual.actualEffort],
+    ['workerId', workerId],
+    ['capabilityEvidence', capability],
+    ['permissionEnvelope', publicPermissionEnvelope(permissionEnvelope)],
+    ['pathEnvelope', publicPathEnvelope(pathEnvelope)],
+    ['fallbackReason', fallbackReason],
+    ['status', status]
+  ]);
+}
+
+function buildOperationDescriptor({ operation, routeKind, childEnvelope, assignmentPacket, blocker, resumeCondition }) {
+  const descriptor = {
+    kind: 'host_operation',
+    operation,
+    routeKind,
+    executed: false,
+    writes: []
+  };
+  if (routeKind === 'native_subagent') descriptor.childEnvelope = {
+    permissions: [...childEnvelope.permissions],
+    mutablePaths: [...childEnvelope.mutablePaths],
+    operations: [...childEnvelope.operations],
+    externalEffects: [...childEnvelope.externalEffects]
+  };
+  if (routeKind === 'manual_pending') {
+    descriptor.kind = 'manual_pending';
+    descriptor.assignmentPacket = assignmentPacket;
+    descriptor.blocker = blocker;
+    descriptor.resumeCondition = resumeCondition;
+  }
+  return descriptor;
+}
+
+function buildManualPacket(input) {
+  const packetInput = input.assignmentPacket ?? input.packet;
+  if (!packetInput) throw new Error('manual_pending requires an Assignment Packet.');
+  return buildAssignmentPacket(packetInput);
+}
+
+function manualCapabilityEvidence({ operation, observation, visibleCapability, nativeCapability, visibleResult, nativeResult }) {
+  const visibleSource = objectRecord(visibleCapability);
+  const nativeSource = objectRecord(nativeCapability);
+  return {
+    kind: 'manual_pending',
+    authenticated: observation.authenticated,
+    evidenceRef: observation.evidenceRef ?? null,
+    visible: visibleSource.visible === true,
+    operation,
+    visibleOperationSupport: visibleResult.support,
+    requestedModelEffortControls: visibleSource.requestedModelEffortControls === true,
+    permissionBinding: visibleSource.permissionBinding === true,
+    pathBinding: visibleSource.pathBinding === true,
+    nativeCollaboration: nativeSource.nativeCollaboration === true || nativeSource.supported === true,
+    nativeOperationSupport: nativeResult.support
+  };
+}
+
+export function resolveHostOperation(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('Host operation input must be an object.');
+  }
+  const operation = assertHostOperation(input.operation);
+  const modelResolution = resolveModelEffort({
+    ...input,
+    evidence: { authenticated: false },
+    isChild: false
+  });
+  const observation = normalizeObservationRecord(input.observation ?? input.hostObservation);
+  validateObservedStatus(observation.status);
+  const requestedWorkerId = normalizedString(input.requestedWorkerId);
+  const parentEnvelope = normalizeEnvelope(
+    input.parentEnvelope ?? {
+      permissionEnvelope: input.permissionEnvelope,
+      pathEnvelope: input.pathEnvelope
+    },
+    'parent envelope'
+  );
+  const childEnvelope = input.childEnvelope === undefined
+    ? null
+    : normalizeEnvelope(input.childEnvelope, 'child envelope');
+  const lanes = normalizeLanes(input, observation);
+  const visibleCapability = observation.visibleWorker;
+  const nativeCapability = observation.nativeSubagent;
+  const visibleResult = visibleSafety({
+    operation,
+    capability: visibleCapability,
+    observation,
+    requestedWorkerId,
+    parentEnvelope,
+    lanes
+  });
+  const visibleEvidence = capabilityEvidence(
+    visibleCapability,
+    operation,
+    'visible_worker',
+    observation
+  );
+  if (visibleResult.safe) {
+    const routeEvidence = buildRouteEvidence({
+      routeKind: 'visible_worker',
+      requestedModel: modelResolution.requestedModel,
+      requestedEffort: modelResolution.requestedEffort,
+      actual: operation === 'spawn' ? unknownActual() : authenticatedActual(observation),
+      workerId: operation === 'spawn' ? null : observation.workerId,
+      capability: visibleEvidence,
+      permissionEnvelope: parentEnvelope,
+      pathEnvelope: parentEnvelope,
+      fallbackReason: null,
+      status: routeStatus(observation, 'visible_worker', operation)
+    });
+    return {
+      operation,
+      routeEvidence,
+      descriptor: buildOperationDescriptor({
+        operation,
+        routeKind: 'visible_worker',
+        childEnvelope: null
+      })
+    };
+  }
+
+  const nativeResult = nativeSafety({
+    operation,
+    capability: nativeCapability,
+    observation,
+    parentEnvelope,
+    childEnvelope,
+    requestedEffort: modelResolution.requestedEffort,
+    lanes
+  });
+  const nativeEvidence = capabilityEvidence(
+    nativeCapability,
+    operation,
+    'native_subagent',
+    observation
+  );
+  if (nativeResult.safe) {
+    const routeEvidence = buildRouteEvidence({
+      routeKind: 'native_subagent',
+      requestedModel: modelResolution.requestedModel,
+      requestedEffort: modelResolution.requestedEffort,
+      actual: unknownActual(),
+      workerId: null,
+      capability: nativeEvidence,
+      permissionEnvelope: childEnvelope,
+      pathEnvelope: childEnvelope,
+      fallbackReason: visibleResult.reason,
+      status: routeStatus(observation, 'native_subagent', operation)
+    });
+    return {
+      operation,
+      routeEvidence,
+      descriptor: buildOperationDescriptor({
+        operation,
+        routeKind: 'native_subagent',
+        childEnvelope
+      })
+    };
+  }
+
+  const assignmentPacket = buildManualPacket(input);
+  const fallbackReason = `${visibleResult.reason};${nativeResult.reason}`;
+  const routeEvidence = buildRouteEvidence({
+    routeKind: 'manual_pending',
+    requestedModel: modelResolution.requestedModel,
+    requestedEffort: modelResolution.requestedEffort,
+    actual: unknownActual(),
+    workerId: null,
+    capability: manualCapabilityEvidence({
+      operation,
+      observation,
+      visibleCapability,
+      nativeCapability,
+      visibleResult,
+      nativeResult
+    }),
+    permissionEnvelope: parentEnvelope,
+    pathEnvelope: parentEnvelope,
+    fallbackReason,
+    status: 'manual_pending'
+  });
+  return {
+    operation,
+    routeEvidence,
+    descriptor: buildOperationDescriptor({
+      operation,
+      routeKind: 'manual_pending',
+      childEnvelope: null,
+      assignmentPacket,
+      blocker: fallbackReason,
+      resumeCondition: `Obtain authenticated Host support for ${operation} with a bound permission and path envelope.`
+    })
   };
 }
