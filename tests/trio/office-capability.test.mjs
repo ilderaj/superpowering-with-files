@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { access, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, symlink, writeFile } from "node:fs/promises";
+import { accessSync, constants as fsConstants } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
@@ -18,12 +19,33 @@ const expectedArtifacts = [
   "presentation-status.pptx",
   "spreadsheet-budget.xlsx",
 ];
+
+function resolveExecutable(name, fallbackCandidates = []) {
+  const pathCandidates = (process.env.PATH ?? "")
+    .split(path.delimiter)
+    .filter(Boolean)
+    .map((directory) => path.resolve(directory, name));
+  for (const candidate of new Set([...pathCandidates, ...fallbackCandidates])) {
+    try {
+      accessSync(candidate, fsConstants.X_OK);
+      return path.resolve(candidate);
+    } catch (error) {
+      if (error?.code !== "ENOENT" && error?.code !== "EACCES") throw error;
+    }
+  }
+  throw new Error(`required Office tool is unavailable: ${name}`);
+}
+
+const sofficePath = resolveExecutable("soffice");
+const runtimeDependenciesRoot = path.resolve(path.dirname(sofficePath), "../..");
 const requiredTools = {
-  unzip: "/usr/bin/unzip",
-  soffice: "/Users/jared/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/soffice",
-  pdfinfo: "/Users/jared/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/pdfinfo",
-  pdftoppm: "/Users/jared/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override/pdftoppm",
-  pdftotext: "/Users/jared/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/poppler/poppler/bin/pdftotext",
+  unzip: resolveExecutable("unzip", ["/usr/bin/unzip"]),
+  soffice: sofficePath,
+  pdfinfo: resolveExecutable("pdfinfo"),
+  pdftoppm: resolveExecutable("pdftoppm"),
+  pdftotext: resolveExecutable("pdftotext", [
+    path.join(runtimeDependenciesRoot, "native/poppler/poppler/bin/pdftotext"),
+  ]),
 };
 
 function parseHeader(markdown) {
