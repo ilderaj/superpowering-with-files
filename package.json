@@ -8,24 +8,17 @@
   ],
   "scripts": {
     "test": "node --test",
-    "test:mcp": "node --test --test-concurrency=1 tests/mcp/*.test.mjs",
     "test:core": "node --test tests/core/*.test.mjs",
-    "verify:core": "node --test tests/core/*.test.mjs tests/runtime/*.test.mjs tests/installer/*.test.mjs tests/adapters/*.test.mjs tests/automation/*.test.mjs && node --test --test-concurrency=1 tests/mcp/*.test.mjs && node --test tests/plugin-kit/*.test.mjs",
+    "verify:core": "node --test tests/core/*.test.mjs tests/runtime/*.test.mjs tests/installer/*.test.mjs tests/adapters/*.test.mjs tests/automation/*.test.mjs && node --test tests/plugin-kit/*.test.mjs",
     "verify:trio": "node --test tests/trio/authority-parity.test.mjs tests/trio/command-read.test.mjs tests/trio/dev-capability.test.mjs tests/trio/host-routing.test.mjs tests/trio/install-upgrade.test.mjs tests/trio/lifecycle.test.mjs tests/trio/office-capability.test.mjs tests/trio/permission-routing.test.mjs tests/trio/projection.test.mjs tests/trio/read.test.mjs tests/trio/recovery.test.mjs tests/trio/routing.test.mjs tests/trio/safety-capability.test.mjs tests/trio/store.test.mjs && node tests/trio/import-boundaries.test.mjs --milestone final",
     "verify:upstream-refresh": "node scripts/ci/verify-upstream-refresh.mjs",
     "preverify:homepage": "node scripts/ensure-homepage-deps.mjs",
     "verify:homepage": "npm run typecheck --prefix homepage && npm test --prefix homepage && npm run build --prefix homepage",
     "verify:all": "npm run verify:trio && npm run verify:core && npm run verify:homepage",
     "verify": "npm run verify:core",
-    "mcp:stdio": "node harness/mcp/stdio.mjs",
     "plugin:build": "node packages/plugin-kit/src/build-all.mjs",
     "plugin:verify": "node --test tests/plugin-kit/*.test.mjs",
     "plugin:smoke": "node packages/plugin-kit/src/smoke.mjs",
     "release:pack": "node packages/plugin-kit/src/build-all.mjs --release"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "ws": "^8.20.0",
-    "zod": "^3.25.76"
   }
 }

@@ -8,17 +8,14 @@ export const platformContracts = {
     manifestPath: '.codex-plugin/plugin.json',
     requiredFiles: [
       '.codex-plugin/plugin.json',
-      '.mcp.json',
       'skills/harness/SKILL.md',
       'hooks/hooks.json',
-      'mcp/harness-runtime.mjs',
       'README.md'
     ],
     loadsRootInstructionFile: true,
     capabilities: {
       skills: true,
       hooks: true,
-      mcpStdio: true,
       cloudMcpToolsOnly: false
     }
   },
@@ -29,17 +26,14 @@ export const platformContracts = {
     manifestPath: '.claude-plugin/plugin.json',
     requiredFiles: [
       '.claude-plugin/plugin.json',
-      '.mcp.json',
       'skills/harness/SKILL.md',
       'hooks/hooks.json',
-      'mcp/harness-runtime.mjs',
       'README.md'
     ],
     loadsRootInstructionFile: false,
     capabilities: {
       skills: true,
       hooks: true,
-      mcpStdio: true,
       cloudMcpToolsOnly: false
     }
   },
@@ -50,18 +44,15 @@ export const platformContracts = {
     manifestPath: 'plugin.json',
     requiredFiles: [
       'plugin.json',
-      '.mcp.json',
       'skills/harness/SKILL.md',
       'rules/harness.mdc',
       'hooks/hooks.json',
-      'mcp/harness-runtime.mjs',
       'README.md'
     ],
     loadsRootInstructionFile: true,
     capabilities: {
       skills: true,
       hooks: true,
-      mcpStdio: true,
       cloudMcpToolsOnly: false
     }
   },
@@ -72,10 +63,8 @@ export const platformContracts = {
     manifestPath: 'plugin.json',
     requiredFiles: [
       'plugin.json',
-      '.mcp.json',
       'skills/harness/SKILL.md',
       'hooks/hooks.json',
-      'mcp/harness-runtime.mjs',
       'instructions/harness.instructions.md',
       'README.md'
     ],
@@ -83,8 +72,7 @@ export const platformContracts = {
     capabilities: {
       skills: true,
       hooks: true,
-      mcpStdio: true,
-      cloudMcpToolsOnly: true
+      cloudMcpToolsOnly: false
     }
   }
 };

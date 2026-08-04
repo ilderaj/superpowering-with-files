@@ -15,13 +15,10 @@ export async function buildPlugin({ target, version, outDir, rootDir = process.c
   await rm(pluginRoot, { recursive: true, force: true });
   await mkdir(pluginRoot, { recursive: true });
   await writePlatformManifest({ pluginRoot, contract, config, version });
-  await writeMcpConfig({ pluginRoot, target, config });
   await writeHarnessSkill({ pluginRoot, target, config });
-  await writeMcpWrapper(pluginRoot);
   await writeHookConfig({ pluginRoot, rootDir, target });
   await writePlatformExtras(pluginRoot, target);
   await writeReadme({ pluginRoot, contract, config });
-  await copyRuntime({ rootDir, pluginRoot });
 
   return {
     target,
@@ -39,9 +36,8 @@ async function writePlatformManifest({ pluginRoot, contract, config, version }) 
       name: 'Superpowering With Files'
     },
     license: 'MIT',
-    keywords: ['harness', 'planning', 'mcp', contract.id],
-    skills: './skills/',
-    mcpServers: './.mcp.json'
+    keywords: ['harness', 'planning', contract.id],
+    skills: './skills/'
   };
 
   if (contract.id !== 'claude-code') {
@@ -69,24 +65,6 @@ async function writePlatformManifest({ pluginRoot, contract, config, version }) 
   );
 }
 
-async function writeMcpConfig({ pluginRoot, target, config }) {
-  await writeFile(
-    path.join(pluginRoot, '.mcp.json'),
-    `${JSON.stringify(
-      {
-        mcpServers: {
-          [config.components.mcp.serverName]: {
-            command: 'node',
-            args: ['./mcp/harness-runtime.mjs']
-          }
-        }
-      },
-      null,
-      2
-    )}\n`
-  );
-}
-
 async function writeHarnessSkill({ pluginRoot, target, config }) {
   await mkdir(path.join(pluginRoot, 'skills/harness'), { recursive: true });
   await writeFile(
@@ -94,45 +72,16 @@ async function writeHarnessSkill({ pluginRoot, target, config }) {
     [
       '---',
       'name: harness',
-      `description: Use the Harness Runtime plugin for ${config.displayName} governance, tracked planning, hooks, and MCP tools.`,
+      `description: Use the Harness plugin for ${config.displayName} governance, tracked planning, and hooks.`,
       '---',
       '',
-      '# Harness Runtime',
+      '# Harness',
       '',
-      'Use this plugin as the runtime entrypoint for Harness-managed planning, governance, hooks, and MCP tools.',
+      'Use this plugin for Harness-managed planning, governance, and hooks.',
       '',
       'The plugin package is generated from repository source files and intentionally excludes live task state.',
       '',
       `Target platform: ${target}`
-    ].join('\n')
-  );
-}
-
-async function writeMcpWrapper(pluginRoot) {
-  await mkdir(path.join(pluginRoot, 'mcp'), { recursive: true });
-  await writeFile(
-    path.join(pluginRoot, 'mcp/harness-runtime.mjs'),
-    [
-      '#!/usr/bin/env node',
-      "import { spawnSync } from 'node:child_process';",
-      "import path from 'node:path';",
-      "import { fileURLToPath } from 'node:url';",
-      '',
-      'const pluginRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");',
-      'const runtimeRoot = path.join(pluginRoot, "runtime");',
-      'const serverPath = path.join(pluginRoot, "runtime/harness/mcp/stdio.mjs");',
-      'const result = spawnSync(process.execPath, [serverPath, ...process.argv.slice(2)], {',
-      '  cwd: process.cwd(),',
-      '  env: {',
-      '    ...process.env,',
-      '    HARNESS_SOURCE_ROOT: runtimeRoot',
-      '  },',
-      "  stdio: 'inherit'",
-      '});',
-      '',
-      'if (result.error) throw result.error;',
-      'process.exit(result.status ?? 1);',
-      ''
     ].join('\n')
   );
 }
@@ -156,7 +105,7 @@ async function writePlatformExtras(pluginRoot, target) {
     await mkdir(path.join(pluginRoot, 'rules'), { recursive: true });
     await writeFile(
       path.join(pluginRoot, 'rules/harness.mdc'),
-      '# Harness Runtime\n\nUse Harness tracked planning files for durable task state.\n'
+      '# Harness\n\nUse Harness tracked planning files for durable task state.\n'
     );
   }
 
@@ -164,7 +113,7 @@ async function writePlatformExtras(pluginRoot, target) {
     await mkdir(path.join(pluginRoot, 'instructions'), { recursive: true });
     await writeFile(
       path.join(pluginRoot, 'instructions/harness.instructions.md'),
-      '# Harness Runtime\n\nUse Harness tracked planning files for durable task state.\n'
+      '# Harness\n\nUse Harness tracked planning files for durable task state.\n'
     );
   }
 }
@@ -177,22 +126,11 @@ async function writeReadme({ pluginRoot, contract, config }) {
       '',
       config.description,
       '',
-      `This package targets ${contract.displayName} and bundles Harness runtime files, a Harness skill, hooks, and an MCP stdio wrapper.`,
+      `This package targets ${contract.displayName} and bundles a Harness skill and hooks.`,
       '',
       'Install this packed plugin with the corresponding IDE plugin installer.'
     ].join('\n')
   );
-}
-
-async function copyRuntime({ rootDir, pluginRoot }) {
-  const runtimeRoot = path.join(pluginRoot, 'runtime');
-  await mkdir(runtimeRoot, { recursive: true });
-  await cp(path.join(rootDir, 'harness'), path.join(runtimeRoot, 'harness'), {
-    recursive: true,
-    filter: (source) => !source.includes(`${path.sep}planning${path.sep}active`)
-  });
-  await cp(path.join(rootDir, 'scripts'), path.join(runtimeRoot, 'scripts'), { recursive: true });
-  await cp(path.join(rootDir, 'node_modules'), path.join(runtimeRoot, 'node_modules'), { recursive: true });
 }
 
 function planningHookTemplateFile(target) {

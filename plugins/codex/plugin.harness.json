@@ -3,17 +3,13 @@
   "name": "harness-codex-plugin",
   "displayName": "Harness for Codex",
   "version": "1.0.9",
-  "description": "Runtime governance, planning skills, hooks, and MCP tools for Codex.",
+  "description": "Planning skills and hooks for Codex.",
   "components": {
     "skills": {
       "profile": "minimal-global"
     },
     "hooks": {
       "enabled": true
-    },
-    "mcp": {
-      "serverName": "harness-runtime",
-      "transport": "stdio"
     }
   }
 }

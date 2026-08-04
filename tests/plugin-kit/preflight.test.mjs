@@ -28,13 +28,13 @@ test('validateBuiltPlugin reports missing required files', async () => {
   assert.ok(result.errors.some((error) => error.includes('skills/harness/SKILL.md')));
 });
 
-test('validateBuiltPlugin rejects runtime planning state', async () => {
-  const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-preflight-state-'));
+test('validateBuiltPlugin rejects an entire runtime directory', async () => {
+  const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-preflight-runtime-'));
   const build = await buildPlugin({ target: 'codex', version: '1.0.9', outDir: path.join(workDir, 'plugins') });
-  await mkdir(path.join(build.pluginRoot, 'runtime/planning'), { recursive: true });
-  await writeFile(path.join(build.pluginRoot, 'runtime/planning/active'), 'bad state\n');
+  await mkdir(path.join(build.pluginRoot, 'runtime'), { recursive: true });
+  await writeFile(path.join(build.pluginRoot, 'runtime/forbidden.mjs'), 'bad runtime\n');
 
   const result = await validateBuiltPlugin({ target: 'codex', pluginRoot: build.pluginRoot });
   assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => error.includes('runtime/planning/active')));
+  assert.ok(result.errors.some((error) => error.includes('runtime/')));
 });

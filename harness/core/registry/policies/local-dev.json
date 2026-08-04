@@ -4,6 +4,6 @@
   "payload": {
     "supportedTargets": ["codex", "copilot", "cursor", "claude-code"],
     "allowedProfiles": ["local", "codespaces", "copilot-cloud", "remote-agent"],
-    "verificationGates": ["npm run verify", "npm run test:mcp", "./scripts/harness doctor --check-only"]
+    "verificationGates": ["npm run verify", "./scripts/harness doctor --check-only"]
   }
 }

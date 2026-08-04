@@ -11,12 +11,12 @@ test('plugin source configs exist for every supported target', async () => {
     const config = JSON.parse(await readFile(`plugins/${target}/plugin.harness.json`, 'utf8'));
     assert.equal(config.target, target);
     assert.equal(config.version, '1.0.9');
-    assert.equal(config.components.mcp.serverName, 'harness-runtime');
     assert.equal(config.components.skills.profile, 'minimal-global');
+    assert.equal(config.components.mcp, undefined);
   }
 });
 
-test('buildPlugin creates self-contained plugin roots without runtime planning state', async () => {
+test('buildPlugin creates skills-and-hooks-only plugin roots', async () => {
   const outDir = path.join(await fsMkdtemp('harness-build-plugin-'), 'plugins');
 
   for (const target of supportedPluginTargets) {
@@ -31,8 +31,6 @@ test('buildPlugin creates self-contained plugin roots without runtime planning s
       await access(path.join(build.pluginRoot, requiredFile));
     }
 
-    const mcpConfig = JSON.parse(await readFile(path.join(build.pluginRoot, '.mcp.json'), 'utf8'));
-    assert.equal(mcpConfig.mcpServers['harness-runtime'].command, 'node');
     const hookConfig = JSON.parse(await readFile(path.join(build.pluginRoot, 'hooks/hooks.json'), 'utf8'));
     const hookConfigText = JSON.stringify(hookConfig);
     assert.ok(Object.values(hookConfig.hooks).some((entries) => Array.isArray(entries) && entries.length > 0));
@@ -40,14 +38,16 @@ test('buildPlugin creates self-contained plugin roots without runtime planning s
     assert.doesNotMatch(hookConfigText, /\.(codex|claude|cursor|github)\/hooks\/task-scoped-hook\.sh/);
     assert.doesNotMatch(hookConfigText, /\$HOME\/\.\/hooks\/task-scoped-hook\.sh/);
 
-    await access(path.join(build.pluginRoot, 'runtime/harness/mcp/stdio.mjs'));
-    await access(path.join(build.pluginRoot, 'runtime/scripts/harness'));
-
     const harnessSkill = await readFile(path.join(build.pluginRoot, 'skills/harness/SKILL.md'), 'utf8');
-    assert.match(harnessSkill, /Harness Runtime/);
+    assert.match(harnessSkill, /# Harness\n/);
     assert.doesNotMatch(harnessSkill, /planning\/active/);
 
-    await assert.rejects(access(path.join(build.pluginRoot, 'runtime/planning/active')), /ENOENT/);
+    for (const forbiddenPath of ['.mcp.json', 'mcp', 'runtime', 'node_modules']) {
+      await assert.rejects(access(path.join(build.pluginRoot, forbiddenPath)), /ENOENT/);
+    }
+
+    const manifest = JSON.parse(await readFile(path.join(build.pluginRoot, contract.manifestPath), 'utf8'));
+    assert.equal(manifest.mcpServers, undefined);
   }
 });
 
@@ -59,7 +59,7 @@ test('Codex plugin manifest follows the supported manifest shape', async () => {
   assert.equal(manifest.name, 'harness-codex-plugin');
   assert.equal(manifest.version, '1.0.9');
   assert.equal(manifest.skills, './skills/');
-  assert.equal(manifest.mcpServers, './.mcp.json');
+  assert.equal(manifest.mcpServers, undefined);
   assert.equal(manifest.hooks, './hooks/hooks.json');
   assert.equal(manifest.interface.displayName, 'Harness for Codex');
   assert.ok(Array.isArray(manifest.interface.defaultPrompt));
