@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { access, readdir, readFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { access, lstat, readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
@@ -58,11 +59,12 @@ const expectedFixtureTupleFields = Object.freeze([
   'externalEffect',
   'decision'
 ]);
-const expectedCapabilityNames = Object.freeze(['SKILL.md']);
+const expectedCapabilityNames = Object.freeze(['SKILL.md', 'bin']);
 const expectedFixtureNames = Object.freeze(Object.keys(expectedFixtureDefinitions));
 
 const expectedOutputs = Object.freeze([
   'harness/trio/capabilities/safety/SKILL.md',
+  'harness/trio/capabilities/safety/bin/checkpoint',
   'tests/trio/safety-capability.test.mjs',
   ...expectedFixtureNames.map((name) => `tests/fixtures/trio-v2/safety/${name}`)
 ]);
@@ -440,7 +442,7 @@ function readOnlySemanticMutation(markdown, before, after) {
   assert.throws(() => assertSafetySkillContract(mutated));
 }
 
-test('safety capability exposes exactly the six approved read-only outputs', async () => {
+test('safety capability exposes exactly the seven approved read-only outputs', async () => {
   for (const relativePath of expectedOutputs) {
     await access(path.join(repositoryRoot, relativePath));
   }
@@ -451,7 +453,15 @@ test('safety capability exposes exactly the six approved read-only outputs', asy
     expectedCapabilityNames,
     'Safety capability directory'
   );
-  assert.ok(capabilityEntries.every((entry) => entry.isFile()), 'Safety capability inventory must contain files only.');
+  const skillEntry = capabilityEntries.find((entry) => entry.name === 'SKILL.md');
+  const binEntry = capabilityEntries.find((entry) => entry.name === 'bin');
+  assert.ok(skillEntry?.isFile(), 'Safety capability SKILL.md must be a file.');
+  assert.ok(binEntry?.isDirectory(), 'Safety capability bin must be a directory.');
+
+  const checkpointPath = path.join(capabilityDirectory, 'bin', 'checkpoint');
+  const checkpointStats = await lstat(checkpointPath);
+  assert.ok(checkpointStats.isFile(), 'Safety capability checkpoint must be a regular file.');
+  await access(checkpointPath, constants.X_OK);
 
   const fixtureEntries = await readdir(fixtureDirectory, { withFileTypes: true });
   assertExactInventory(
