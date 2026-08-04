@@ -237,18 +237,14 @@ test('harness public dispatcher rejects the retired command', async () => {
   }
 });
 
-test('harness public dispatcher exposes codex-model-default inspect assess and migrate', async () => {
-  const root = await createHarnessFixture({ linkNodeModules: true });
-  const codexHome = path.join(root, '.codex-model-default');
+test('harness public dispatcher rejects retired codex-model-default', async () => {
+  const root = await createHarnessFixture();
   try {
-    await mkdir(codexHome, { recursive: true });
-    await writeFile(path.join(codexHome, 'config.toml'), 'model = "model-a"\nmodel_reasoning_effort = "high"\n');
-    const inspect = await harnessCommand(root, 'codex-model-default', 'inspect', '--codex-home', codexHome);
-    assert.equal(JSON.parse(inspect.stdout).model, 'model-a');
-    const assess = await harnessCommand(root, 'codex-model-default', 'assess', '--codex-home', codexHome, '--expected-model', 'model-a', '--expected-reasoning', 'high');
-    assert.equal(JSON.parse(assess.stdout).status, 'match');
-    const migrate = await harnessCommand(root, 'codex-model-default', 'migrate', '--codex-home', codexHome, '--expected-model', 'model-a', '--expected-reasoning', 'high', '--model', 'model-b', '--reasoning', 'high');
-    assert.equal(JSON.parse(migrate.stdout).after.model, 'model-b');
+    await assert.rejects(harnessCommand(root, 'codex-model-default'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /Unknown command: codex-model-default/);
+      return true;
+    });
   } finally {
     await removeHarnessFixture(root);
   }

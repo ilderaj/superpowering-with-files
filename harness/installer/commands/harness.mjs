@@ -17,7 +17,6 @@ import { activeSummary } from './active-summary.mjs';
 import { lifecycleSweep } from './lifecycle-sweep.mjs';
 import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
-import { codexModelDefault } from './codex-model-default.mjs';
 import { upstreamLockCommand } from './upstream-lock.mjs';
 import { trioCommand } from './trio.mjs';
 
@@ -41,7 +40,6 @@ const commands = {
   'worktree-preflight': worktreePreflight,
   'workspace-link': workspaceLink,
   'token-audit': tokenAudit,
-  'codex-model-default': codexModelDefault,
   trio: trioCommand
 };
 
