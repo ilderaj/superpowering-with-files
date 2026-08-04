@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import {
@@ -35,17 +35,26 @@ function deepRichRoutingDecision() {
   ];
 }
 
-test('superpowers session-start payload stays compact', async () => {
-  const { stdout } = await execFileAsync('bash', [
+test('superpowers session-start injection assets are physically retired', async () => {
+  const retiredPaths = [
+    'harness/core/hooks/superpowers/claude-hooks.json',
+    'harness/core/hooks/superpowers/codex-hooks.json',
+    'harness/core/hooks/superpowers/copilot-hooks.json',
+    'harness/core/hooks/superpowers/cursor-hooks.json',
+    'harness/core/hooks/superpowers/scripts/run-hook.cmd',
     'harness/core/hooks/superpowers/scripts/session-start'
-  ]);
+  ];
+  const presentRetiredPaths = [];
+  for (const relativePath of retiredPaths) {
+    try {
+      await access(path.join(process.cwd(), relativePath));
+      presentRetiredPaths.push(relativePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
 
-  const payload = JSON.parse(stdout);
-  const additionalContext = payload.hookSpecificOutput.additionalContext;
-
-  assert.ok(additionalContext.length < 4000);
-  assert.doesNotMatch(additionalContext, /description: Use when starting any conversation/);
-  assert.doesNotMatch(additionalContext, /using-superpowers\/SKILL\.md/);
+  assert.deepEqual(presentRetiredPaths, []);
 });
 
 test('planning hot context payload stays within the configured hook budget', async () => {
@@ -297,26 +306,5 @@ for (const target of ['codex', 'cursor', 'claude-code']) {
     } finally {
       await rm(fixtureRoot, { recursive: true, force: true });
     }
-  });
-}
-
-for (const target of ['codex', 'copilot', 'cursor', 'claude-code']) {
-  test(`superpowers ${target} session-start payload stays compact`, async () => {
-    // codex and copilot omit explicit target args because they default to codex behavior.
-    // cursor and claude-code pass the target explicitly to select their respective payload formats.
-    const args = target === 'codex' || target === 'copilot' ? [] : [target];
-    const { stdout } = await execFileAsync('bash', [
-      'harness/core/hooks/superpowers/scripts/session-start',
-      ...args
-    ]);
-    const payload = JSON.parse(stdout);
-    const additionalContext =
-      target === 'cursor'
-        ? payload.additional_context
-        : payload.hookSpecificOutput.additionalContext;
-
-    assert.ok(additionalContext.length < 4000);
-    assert.doesNotMatch(additionalContext, /using-superpowers\/SKILL\.md/);
-    assert.doesNotMatch(additionalContext, /description: Use when starting any conversation/);
   });
 }
