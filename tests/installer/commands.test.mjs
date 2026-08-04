@@ -300,6 +300,32 @@ test('harness public dispatcher rejects retired legacy commands', async () => {
   }
 });
 
+test('workspace-skills source control plane is physically retired', async () => {
+  const retiredPaths = [
+    'harness/installer/commands/workspace-skills.mjs',
+    'harness/workspace-skill-profile.json',
+    'tests/installer/workspace-skills.test.mjs'
+  ];
+  const presentRetiredPaths = [];
+  for (const relativePath of retiredPaths) {
+    try {
+      await access(path.join(process.cwd(), relativePath));
+      presentRetiredPaths.push(relativePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+  const verifierSource = await readFile(path.join(process.cwd(), 'scripts/ci/verify-upstream-refresh.mjs'), 'utf8');
+
+  assert.deepEqual(
+    {
+      presentRetiredPaths,
+      verifierSelectsRetiredTest: verifierSource.includes('tests/installer/workspace-skills.test.mjs')
+    },
+    { presentRetiredPaths: [], verifierSelectsRetiredTest: false }
+  );
+});
+
 test('verify --help prints usage without writing reports', async () => {
   const root = await createHarnessFixture();
   try {
