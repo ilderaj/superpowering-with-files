@@ -36,8 +36,5 @@ jobs:
       - name: Install homepage dependencies
         run: npm ci --prefix homepage
 
-      - name: Check repository skill projections
-        run: ./scripts/harness workspace-skills check
-
       - name: Run repository verification
         run: npm run verify:all

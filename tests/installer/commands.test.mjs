@@ -276,42 +276,16 @@ test('install --help prints usage without writing state', async () => {
   }
 });
 
-test('unadvertised legacy workspace-skills handler remains callable', async () => {
+test('harness public dispatcher rejects retired legacy commands', async () => {
   const root = await createHarnessFixture();
   try {
-    const { stdout } = await harnessCommand(root, 'workspace-skills', '--help');
-    assert.match(stdout, /workspace-skills (plan|sync|check|set)/);
-    await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
-    await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('workspace-skills plan reads the committed standard profile without writing legacy control-plane files', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const { stdout } = await harnessCommand(root, 'workspace-skills', 'plan');
-    const report = JSON.parse(stdout);
-    assert.equal(report.skillProfile, 'standard');
-    assert.ok(report.skills.length > 0);
-    assert.ok(report.skills.every((entry) => entry.kind === 'skill'));
-    for (const target of [
-      { name: 'codex', skillRoot: path.join('.agents', 'skills') },
-      { name: 'claude-code', skillRoot: path.join('.claude', 'skills') }
-    ]) {
-      const keys = report.skills
-        .filter((entry) => entry.targetPath.includes(target.skillRoot))
-        .map((entry) => `${entry.parentSkillName}:${entry.skillName}`);
-      assert.ok(keys.length > 0, `${target.name} plan has skills`);
-      assert.ok(!keys.some((key) => key.startsWith('superpowers:')), `${target.name} excludes Superpowers`);
-      for (const key of [
-        'planning-with-files:planning-with-files',
-        'mattpocock-skills:tdd'
-      ]) assert.ok(keys.includes(key), `${target.name} retains ${key}`);
+    for (const command of ['mcp-approve', 'status', 'workspace-skills']) {
+      await assert.rejects(harnessCommand(root, command), (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, new RegExp(`Unknown command: ${command}`));
+        return true;
+      });
     }
-    await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
-    await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }

@@ -149,10 +149,7 @@ export function buildRefreshExecutionCommandChain({ sourceFilter } = {}) {
     { file: './scripts/harness', args: ['fetch', ...sourceArgs, '--no-state'] },
     { file: './scripts/harness', args: ['update', ...sourceArgs, '--no-state'] },
     { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
-    { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] },
-    { file: './scripts/harness', args: ['workspace-skills', 'plan'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'sync', '--takeover'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'check'] }
+    { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] }
   ];
 }
 

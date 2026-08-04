@@ -22,7 +22,6 @@ import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
 import { codexModelDefault } from './codex-model-default.mjs';
 import { upstreamLockCommand } from './upstream-lock.mjs';
-import { workspaceSkills } from './workspace-skills.mjs';
 import { trioCommand } from './trio.mjs';
 
 const commands = {
@@ -49,7 +48,6 @@ const commands = {
   'workspace-link': workspaceLink,
   'token-audit': tokenAudit,
   'codex-model-default': codexModelDefault,
-  'workspace-skills': workspaceSkills,
   trio: trioCommand
 };
 
