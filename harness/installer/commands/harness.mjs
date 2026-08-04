@@ -9,7 +9,6 @@ import { worktreePreflight } from './worktree-preflight.mjs';
 import { checkpointCommand } from './checkpoint.mjs';
 import { checkpointPushCommand } from './checkpoint-push.mjs';
 import { cloudBootstrap } from './cloud-bootstrap.mjs';
-import { linkPersonal } from './link-personal.mjs';
 import { summary } from './summary.mjs';
 import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
@@ -35,7 +34,6 @@ const commands = {
   'lifecycle-sweep': lifecycleSweep,
   record,
   'cloud-bootstrap': cloudBootstrap,
-  'link-personal': linkPersonal,
   'worktree-name': worktreeName,
   'worktree-preflight': worktreePreflight,
   'workspace-link': workspaceLink,

@@ -250,6 +250,19 @@ test('harness public dispatcher rejects retired codex-model-default', async () =
   }
 });
 
+test('harness public dispatcher rejects retired link-personal', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(harnessCommand(root, 'link-personal'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /Unknown command: link-personal/);
+      return true;
+    });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('sync --help prints usage without executing sync', async () => {
   const root = await createHarnessFixture();
   try {
