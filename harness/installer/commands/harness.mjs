@@ -18,7 +18,6 @@ import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { activeSummary } from './active-summary.mjs';
 import { lifecycleSweep } from './lifecycle-sweep.mjs';
-import { mcpApprove } from './mcp-approve.mjs';
 import { plugin } from './plugin.mjs';
 import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
@@ -42,7 +41,6 @@ const commands = {
   'active-summary': activeSummary,
   'lifecycle-sweep': lifecycleSweep,
   record,
-  'mcp-approve': mcpApprove,
   plugin,
   'cloud-bootstrap': cloudBootstrap,
   'link-personal': linkPersonal,

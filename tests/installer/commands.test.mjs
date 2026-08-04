@@ -222,6 +222,19 @@ test('harness public dispatcher exposes Trio quick routing without creating plan
   }
 });
 
+test('harness public dispatcher rejects the retired command', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(harnessCommand(root, 'mcp-approve'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, new RegExp(`Unknown command: ${'mcp' + '-approve'}`));
+      return true;
+    });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('harness public dispatcher exposes codex-model-default inspect assess and migrate', async () => {
   const root = await createHarnessFixture({ linkNodeModules: true });
   const codexHome = path.join(root, '.codex-model-default');
