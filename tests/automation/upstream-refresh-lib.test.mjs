@@ -134,10 +134,10 @@ test('runRefreshCommandChain inserts beforeExecution between prepare and executi
   ]);
 });
 
-test('upstream refresh report includes changed files, affected projections, resync need, and risk', async () => {
+test('upstream refresh report keeps refresh-sensitive checks independent from the retired projection engine', async () => {
   const { buildUpdateCompatibilityReport } = await loadUpstreamRefreshModule();
   const result = buildUpdateCompatibilityReport({
-    changedFiles: ['harness/installer/lib/hook-projection.mjs'],
+    changedFiles: ['docs/maintenance.md'],
     affectedProjections: ['codex'],
     requiresResync: true,
     riskLevel: 'medium',
@@ -149,7 +149,7 @@ test('upstream refresh report includes changed files, affected projections, resy
   assert.equal(typeof result.requiresResync, 'boolean');
   assert.equal(typeof result.riskLevel, 'string');
   assert.equal(Array.isArray(result.focusedChecks), true);
-  assert.match(result.focusedChecks.join(' '), /skill-projection|sync-hooks|policy-render/i);
+  assert.match(result.focusedChecks.join(' '), /upstream-commands/i);
 });
 
 test('verify:upstream-refresh runner preserves child test output streaming', async () => {
@@ -157,9 +157,8 @@ test('verify:upstream-refresh runner preserves child test output streaming', asy
 
   assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*stdio:\s*'inherit'/);
   assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*maxBuffer:\s*1024 \* 1024 \* 8/);
-  assert.match(script, /tests\/adapters\/sync-skills\.test\.mjs/);
-  assert.match(script, /tests\/adapters\/sync-hooks\.test\.mjs/);
-  assert.match(script, /tests\/installer\/policy-render\.test\.mjs/);
+  assert.match(script, /tests\/installer\/upstream-commands\.test\.mjs/);
+  assert.doesNotMatch(script, /skill-projection|sync-skills|sync-hooks|matt-skill-patches|policy-render/);
 });
 
 test('runCommand executes command file and args without a shell', async () => {

@@ -4,30 +4,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { atomicWriteText } from '../../trio/core/store.mjs';
 import { validateV2Config } from '../../trio/config.mjs';
-import { isSafetyPolicyProfile } from './safety-projection.mjs';
-
-export const DEFAULT_DEPLOYMENT_PROFILE = 'standard';
-export const DEFAULT_POLICY_PROFILE = 'always-on-core';
-export const DEFAULT_SKILL_PROFILE = 'standard';
-export const GITHUB_CLOUD_DEPLOYMENT_PROFILE = 'github-cloud';
-const DEPLOYMENT_PROFILES = new Set([DEFAULT_DEPLOYMENT_PROFILE, GITHUB_CLOUD_DEPLOYMENT_PROFILE]);
-const RETIRED_SKILL_PROFILE = 'second-opinion-advisory';
-
-const STATE_KEYS = new Set([
-  'schemaVersion',
-  'scope',
-  'projectionMode',
-  'hookMode',
-  'deploymentProfile',
-  'policyProfile',
-  'workspacePolicyOverlay',
-  'skillProfile',
-  'targets',
-  'upstream',
-  'lastSync',
-  'lastFetch',
-  'lastUpdate'
-]);
 
 const TARGET_KEYS = new Set(['codex', 'copilot', 'cursor', 'claude-code']);
 
@@ -387,12 +363,6 @@ export function defaultState() {
   return {
     schemaVersion: 1,
     scope: 'workspace',
-    projectionMode: 'link',
-    hookMode: 'off',
-    deploymentProfile: DEFAULT_DEPLOYMENT_PROFILE,
-    policyProfile: DEFAULT_POLICY_PROFILE,
-    workspacePolicyOverlay: null,
-    skillProfile: DEFAULT_SKILL_PROFILE,
     targets: {},
     upstream: {}
   };
@@ -623,60 +593,9 @@ export async function probeInstallerState(rootDir) {
     return Object.freeze({ kind: 'v2', state: validateV2Config(parsed), evidence });
   }
 
-  const state = normalizeStateShape(parsed);
+  const state = parsed;
   validateStateShape(state);
   return Object.freeze({ kind: 'v1', state, evidence });
-}
-
-export function validateDeploymentProfile(deploymentProfile) {
-  if (!DEPLOYMENT_PROFILES.has(deploymentProfile)) {
-    throw new TypeError(
-      `Harness state deploymentProfile must be one of: ${[...DEPLOYMENT_PROFILES].join(', ')}.`
-    );
-  }
-}
-
-export function normalizePolicySelection(policyProfile) {
-  if (isSafetyPolicyProfile(policyProfile)) {
-    return {
-      policyProfile: DEFAULT_POLICY_PROFILE,
-      workspacePolicyOverlay: policyProfile
-    };
-  }
-
-  return {
-    policyProfile: policyProfile ?? DEFAULT_POLICY_PROFILE,
-    workspacePolicyOverlay: null
-  };
-}
-
-export function effectiveEntryPolicyProfiles(state) {
-  if (!state.workspacePolicyOverlay) {
-    return state.policyProfile;
-  }
-
-  const overlayProfile = {
-    safety: 'safety-overlay',
-    'cloud-safe': 'cloud-safe-overlay'
-  }[state.workspacePolicyOverlay] ?? state.workspacePolicyOverlay;
-
-  return [state.policyProfile, overlayProfile];
-}
-
-export function activeSafetyPolicyProfile(state) {
-  if (state.workspacePolicyOverlay && isSafetyPolicyProfile(state.workspacePolicyOverlay)) {
-    return state.workspacePolicyOverlay;
-  }
-
-  return isSafetyPolicyProfile(state.policyProfile) ? state.policyProfile : null;
-}
-
-export function normalizeRetiredSkillProfile(skillProfile, scope) {
-  if (skillProfile !== RETIRED_SKILL_PROFILE) {
-    return skillProfile;
-  }
-
-  return scope === 'user-global' || scope === 'both' ? 'minimal-global' : DEFAULT_SKILL_PROFILE;
 }
 
 function isPlainObject(value) {
@@ -688,49 +607,12 @@ function validateStateShape(state) {
     throw new TypeError('Harness state must be a JSON object.');
   }
 
-  for (const key of Object.keys(state)) {
-    if (!STATE_KEYS.has(key)) {
-      throw new TypeError(`Harness state contains unsupported field: ${key}`);
-    }
-  }
-
   if (state.schemaVersion !== 1) {
     throw new TypeError('Harness state schemaVersion must be 1.');
   }
 
   if (!['workspace', 'user-global', 'both'].includes(state.scope)) {
     throw new TypeError('Harness state scope must be workspace, user-global, or both.');
-  }
-
-  if (!['link', 'portable'].includes(state.projectionMode)) {
-    throw new TypeError('Harness state projectionMode must be link or portable.');
-  }
-
-  if (!['off', 'on'].includes(state.hookMode)) {
-    throw new TypeError('Harness state hookMode must be off or on.');
-  }
-
-  if ('deploymentProfile' in state) {
-    if (typeof state.deploymentProfile !== 'string') {
-      throw new TypeError('Harness state deploymentProfile must be a string.');
-    }
-    validateDeploymentProfile(state.deploymentProfile);
-  }
-
-  if ('policyProfile' in state && typeof state.policyProfile !== 'string') {
-    throw new TypeError('Harness state policyProfile must be a string.');
-  }
-
-  if (
-    'workspacePolicyOverlay' in state &&
-    state.workspacePolicyOverlay !== null &&
-    typeof state.workspacePolicyOverlay !== 'string'
-  ) {
-    throw new TypeError('Harness state workspacePolicyOverlay must be a string or null.');
-  }
-
-  if ('skillProfile' in state && typeof state.skillProfile !== 'string') {
-    throw new TypeError('Harness state skillProfile must be a string.');
   }
 
   if (!isPlainObject(state.targets)) {
@@ -772,32 +654,15 @@ function validateStateShape(state) {
   }
 }
 
-function normalizeStateShape(state) {
-  const normalizedPolicySelection = normalizePolicySelection(state.policyProfile);
-  const requestedSkillProfile = state.skillProfile ?? 'full';
-  return {
-    ...state,
-    hookMode: state.hookMode ?? 'off',
-    deploymentProfile: state.deploymentProfile ?? DEFAULT_DEPLOYMENT_PROFILE,
-    policyProfile: normalizedPolicySelection.policyProfile,
-    workspacePolicyOverlay:
-      state.workspacePolicyOverlay ?? normalizedPolicySelection.workspacePolicyOverlay,
-    // Existing v1 state omitted this field while `full` was the default. Keep that
-    // persisted-state compatibility while new state starts from `standard`.
-    skillProfile: normalizeRetiredSkillProfile(requestedSkillProfile, state.scope)
-  };
-}
-
 export async function readState(rootDir) {
   const probe = await probeInstallerState(rootDir);
   return probe.kind === 'absent' ? defaultState() : probe.state;
 }
 
 export async function writeState(rootDir, state) {
-  const normalizedState = state && typeof state === 'object' && Object.hasOwn(state, 'schemaVersion') && state.schemaVersion === 2
-    ? validateV2Config(state)
-    : normalizeStateShape(state);
-  if (normalizedState.schemaVersion === 1) validateStateShape(normalizedState);
+  const isV2State = state && typeof state === 'object' && Object.hasOwn(state, 'schemaVersion') && state.schemaVersion === 2;
+  const normalizedState = isV2State ? validateV2Config(state) : state;
+  if (!isV2State) validateStateShape(normalizedState);
 
   const stateFile = statePath(rootDir);
   const stateDir = path.dirname(stateFile);

@@ -2,12 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile as execFileCallback } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { access, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { materializeDirectoryProjection } from '../../harness/installer/lib/fs-ops.mjs';
-import { planSkillProjections } from '../../harness/installer/lib/skill-projection.mjs';
 
 const execFile = promisify(execFileCallback);
 const builderPath = path.resolve('harness/core/skills/second-opinion/scripts/build-package.mjs');
@@ -330,36 +328,5 @@ test('second-opinion package builder rejects case-folded attachment collisions a
     assert.equal(verification.stdout.trim(), manifest.packageHash);
   } finally {
     await fixture.cleanup();
-  }
-});
-
-test('second-opinion-global is opt-in and materializes the explicit skill metadata', async () => {
-  const homeDir = await mkdtemp(path.join(os.tmpdir(), 'second-opinion-home-'));
-  try {
-    const profilePlan = await planSkillProjections({
-      rootDir: process.cwd(),
-      homeDir,
-      scope: 'user-global',
-      target: 'codex',
-      skillProfile: 'second-opinion-global'
-    });
-    const skillProjection = profilePlan.find((projection) => projection.skillName === 'second-opinion');
-    assert.ok(skillProjection);
-    assert.equal(skillProjection.strategy, 'materialize');
-    assert.ok(profilePlan.some((projection) => projection.skillName === 'planning-with-files'));
-    assert.ok(profilePlan.some((projection) => projection.skillName === 'tdd'));
-    assert.ok(!profilePlan.some((projection) => projection.skillName === 'goal-writer'));
-
-    await materializeDirectoryProjection({
-      sourcePath: skillProjection.sourcePath,
-      targetPath: skillProjection.targetPath,
-      ownedTargets: new Set(),
-      conflictMode: 'reject'
-    });
-    const materializedMetadata = path.join(skillProjection.targetPath, 'agents/openai.yaml');
-    await access(materializedMetadata);
-    assert.match(await readFile(materializedMetadata, 'utf8'), /allow_implicit_invocation: false/);
-  } finally {
-    await rm(homeDir, { recursive: true, force: true });
   }
 });

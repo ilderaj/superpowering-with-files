@@ -46,8 +46,8 @@ const transientRuntimeArtifactPrefixes = [
   '.wrangler/'
 ];
 
-const focusedProjectionChecks = [
-  'node --test tests/adapters/skill-projection.test.mjs tests/adapters/sync-skills.test.mjs tests/adapters/sync-hooks.test.mjs tests/installer/policy-render.test.mjs'
+const focusedRefreshChecks = [
+  'node --test tests/installer/upstream-commands.test.mjs'
 ];
 
 function isIgnoredRuntimeArtifact(filePath) {
@@ -60,10 +60,8 @@ function isIgnoredGeneratedCacheFile(filePath) {
     || filePath.endsWith('.pyc');
 }
 
-function touchesProjectionOrPolicySurface(filePath) {
-  return filePath.includes('hook-projection')
-    || filePath.includes('skill-projection')
-    || filePath.includes('/skills/')
+function touchesRefreshSensitiveSurface(filePath) {
+  return filePath.includes('/skills/')
     || filePath.endsWith('AGENTS.md')
     || filePath.endsWith('docs/workflows.md')
     || filePath.endsWith('docs/maintenance.md')
@@ -100,7 +98,7 @@ function inferRiskLevel(changedFiles = [], failureKind = '') {
     return 'high';
   }
 
-  if (changedFiles.some((filePath) => touchesProjectionOrPolicySurface(filePath))) {
+  if (changedFiles.some((filePath) => touchesRefreshSensitiveSurface(filePath))) {
     return 'medium';
   }
 
@@ -116,8 +114,8 @@ export function buildUpdateCompatibilityReport({
 } = {}) {
   const normalizedChangedFiles = changedFiles.map((filePath) => normalizeChangePath(filePath));
   const normalizedAffectedProjections = [...new Set(affectedProjections)];
-  const focusedChecks = normalizedChangedFiles.some((filePath) => touchesProjectionOrPolicySurface(filePath))
-    ? focusedProjectionChecks
+  const focusedChecks = normalizedChangedFiles.some((filePath) => touchesRefreshSensitiveSurface(filePath))
+    ? focusedRefreshChecks
     : [];
 
   return {
