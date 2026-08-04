@@ -35,6 +35,13 @@ const RUNTIME_TARGET_CONTRACT = JSON.parse(await readFile(
   path.join(REPO_ROOT, 'harness/trio/runtime-targets.json'),
   'utf8'
 ));
+const MATERIALIZED_TRIO_OUTPUTS = Object.freeze([
+  ['harness/trio/templates/entry-policy.md', 'AGENTS.md'],
+  ['harness/trio/skill/SKILL.md', '.agents/skills/trio/SKILL.md'],
+  ['harness/trio/capabilities/dev/SKILL.md', '.agents/skills/trio/dev/SKILL.md'],
+  ['harness/trio/capabilities/office/SKILL.md', '.agents/skills/trio/office/SKILL.md'],
+  ['harness/trio/capabilities/safety/SKILL.md', '.agents/skills/trio/safety/SKILL.md']
+]);
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -680,6 +687,24 @@ test('static target contract and entry policy expose the approved V2 surfaces', 
 
   assert.deepEqual(RUNTIME_TARGET_CONTRACT, APPROVED_TARGET_CONTRACT);
   assertEntryPolicyContract(entryPolicy);
+});
+
+test('materialized Trio entry and capability outputs match their authoritative source bytes', async () => {
+  const mismatches = [];
+  for (const [sourcePath, outputPath] of MATERIALIZED_TRIO_OUTPUTS) {
+    try {
+      const [source, output] = await Promise.all([
+        readFile(path.join(REPO_ROOT, sourcePath)),
+        readFile(path.join(REPO_ROOT, outputPath))
+      ]);
+      if (!output.equals(source)) {
+        mismatches.push(`${outputPath} must exactly match ${sourcePath}`);
+      }
+    } catch (error) {
+      mismatches.push(`${outputPath}: ${error.code ?? error.message}`);
+    }
+  }
+  assert.deepEqual(mismatches, []);
 });
 
 test('entry policy validator rejects route-before-effort inversion', async () => {

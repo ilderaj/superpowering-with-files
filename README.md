@@ -222,7 +222,15 @@ npm run release:pack
 
 ## Status And Boundaries
 
-- Supported installer-managed targets today: Codex, GitHub Copilot, Cursor, Claude Code
+### Trio V2 Cutover
+
+Codex is the only managed Trio target. Generic targets remain manual.
+
+The public Harness command list advertises seven Trio cutover commands: `install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, and `token-audit`. Existing V1 compatibility handlers remain callable through the dispatcher but are intentionally not advertised by the short V2 command list; this cutover does not claim that legacy handlers were removed.
+
+Trio projection does not provide cross-authority-root serialization, does not provide multi-file atomic visibility, does not provide crash, SIGKILL, or power-loss atomicity, and does not provide automatic residue cleanup. Use the recorded ownership and recovery evidence before any separate cleanup decision.
+
+- Legacy V1 installer-managed targets: Codex, GitHub Copilot, Cursor, Claude Code
 - Gemini CLI is not currently a supported installer target
 - `safety` is opt-in, not the default baseline
 - `cloud-dev` is a remote staging lane, not a replacement for local verification

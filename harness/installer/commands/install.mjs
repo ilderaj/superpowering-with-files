@@ -12,11 +12,15 @@ import {
 } from '../lib/skill-projection.mjs';
 import { isSafetyPolicyProfile } from '../lib/safety-projection.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { withTrioPublicationLock } from '../../trio/core/store.mjs';
 import {
+  assertProductionRuntimeSelector,
   DEFAULT_DEPLOYMENT_PROFILE,
   normalizePolicySelection,
   parseTrioCommandOptions,
+  probeInstallerState,
   resolveTrioFixture,
+  resolveTrioProductionEnvironment,
   selectInstallerRuntime,
   validateDeploymentProfile,
   writeState
@@ -53,7 +57,8 @@ function parseTrioInstallOptions(args) {
   return options;
 }
 
-async function readContainedRegularFile(fixture, requestedPath, label) {
+async function readContainedRegularFile(environment, requestedPath, label) {
+  const boundaryRoot = environment.fixtureRoot ?? environment.authorityRoot;
   if (typeof requestedPath !== 'string' || !path.isAbsolute(requestedPath)) {
     throw trioInstallError(`${label} must be an absolute path.`, 'ERR_TRIO_FIXTURE');
   }
@@ -70,12 +75,18 @@ async function readContainedRegularFile(fixture, requestedPath, label) {
   if (info.isSymbolicLink() || !info.isFile()) {
     throw trioInstallError(`${label} must be a real regular file.`, 'ERR_TRIO_FIXTURE');
   }
+  if (info.nlink > 1) {
+    throw trioInstallError(
+      `${label} must not be hard linked.`,
+      environment.kind === 'production' ? 'ERR_TRIO_PHYSICAL_GATE' : 'ERR_TRIO_FIXTURE'
+    );
+  }
   const resolved = await realpath(absolute);
-  if (!isWithin(fixture.fixtureRoot, resolved)) {
+  if (!isWithin(boundaryRoot, resolved)) {
     throw trioInstallError(`${label} resolves outside --fixture-root.`, 'ERR_TRIO_FIXTURE');
   }
-  let current = fixture.fixtureRoot;
-  for (const segment of path.relative(fixture.fixtureRoot, resolved).split(path.sep).filter(Boolean)) {
+  let current = boundaryRoot;
+  for (const segment of path.relative(boundaryRoot, resolved).split(path.sep).filter(Boolean)) {
     current = path.join(current, segment);
     const currentInfo = await lstat(current);
     if (currentInfo.isSymbolicLink()) {
@@ -132,6 +143,39 @@ function rebaseMigratedConfig(config, fixture) {
   return parseV2Config(rebased);
 }
 
+function rebaseProductionPath(value, environment) {
+  if (typeof value !== 'string' || !path.isAbsolute(value)) return value;
+  for (const scope of ['workspace', 'user-global']) {
+    const requestedRoot = environment.requestedScopeRoots?.[scope];
+    const physicalRoot = environment.scopeRoots?.[scope];
+    if (
+      typeof requestedRoot === 'string' &&
+      typeof physicalRoot === 'string' &&
+      (value === requestedRoot || isWithin(requestedRoot, value))
+    ) {
+      return path.join(physicalRoot, path.relative(requestedRoot, value));
+    }
+  }
+  return value;
+}
+
+function rebaseProductionMigratedConfig(config, environment) {
+  return parseV2Config({
+    ...config,
+    targets: config.targets.map((target) => ({
+      ...target,
+      paths: target.paths.map((entry) => rebaseProductionPath(entry, environment))
+    })),
+    ownership: {
+      ...config.ownership,
+      entries: config.ownership.entries.map((entry) => ({
+        ...entry,
+        path: rebaseProductionPath(entry.path, environment)
+      }))
+    }
+  });
+}
+
 async function readV1UpgradeInput(fixture, recoveryPath) {
   const [stateFile, manifestFile, recoveryFile] = await Promise.all([
     readContainedRegularFile(fixture, fixture.stateFile, 'Trio V1 state'),
@@ -180,6 +224,53 @@ async function readV1UpgradeInput(fixture, recoveryPath) {
   return { config, legacyStatusByPath, legacyOwnershipByPath };
 }
 
+async function readProductionV1UpgradeInput(environment, recoveryPath) {
+  const [stateFile, manifestFile, recoveryFile] = await Promise.all([
+    readContainedRegularFile(environment, environment.stateFile, 'Trio V1 state'),
+    readContainedRegularFile(environment, path.join(environment.authorityRoot, '.harness', 'projections.json'), 'Trio V1 projections'),
+    readContainedRegularFile(environment, recoveryPath, 'Trio --recovery')
+  ]);
+  let persistedState;
+  let manifest;
+  try {
+    persistedState = JSON.parse(stateFile.bytes.toString('utf8'));
+    manifest = JSON.parse(manifestFile.bytes.toString('utf8'));
+  } catch (error) {
+    throw trioInstallError(`Trio V1 input JSON is invalid: ${error.message}.`, 'ERR_TRIO_INSTALL');
+  }
+  const recoveryReferences = parseExactRecovery(recoveryFile.bytes);
+  const config = rebaseProductionMigratedConfig(migrateV1ToV2({
+    persistedState,
+    projectionManifestJson: manifestFile.bytes.toString('utf8'),
+    projectionManifestRef: `sha256:${sha256(manifestFile.bytes)}`,
+    recoveryReferences
+  }), environment);
+  const legacyStatusByPath = new Map();
+  const legacyOwnershipByPath = new Map();
+  const targetById = new Map(config.targets.map((target) => [target.id, target]));
+  for (const entry of config.ownership.entries) {
+    const target = targetById.get(entry.targetId);
+    if (target?.hostKind === 'codex' && target.mode === 'managed') {
+      legacyOwnershipByPath.set(entry.path, entry.identity);
+    }
+  }
+  const migratedTargetIds = new Set(config.targets.map((target) => target.id));
+  if (Array.isArray(manifest?.entries)) {
+    for (const entry of manifest.entries) {
+      if (
+        !entry ||
+        typeof entry !== 'object' ||
+        !Object.hasOwn(entry, 'target') ||
+        !Object.hasOwn(entry, 'targetPath') ||
+        !migratedTargetIds.has(entry.target)
+      ) continue;
+      if (!['entry', 'skill'].includes(entry.kind) || !['unmanaged', 'user-managed'].includes(entry.legacyStatus)) continue;
+      legacyStatusByPath.set(rebaseProductionPath(entry.targetPath, environment), entry.legacyStatus);
+    }
+  }
+  return { config, legacyStatusByPath, legacyOwnershipByPath };
+}
+
 function freshTrioConfig(fixture) {
   return parseV2Config({
     schemaVersion: 2,
@@ -197,6 +288,23 @@ function freshTrioConfig(fixture) {
   });
 }
 
+function freshProductionTrioConfig(environment) {
+  return parseV2Config({
+    schemaVersion: 2,
+    runtime: 'trio',
+    scope: { kind: 'workspace' },
+    targets: [{
+      id: 'codex',
+      enabled: true,
+      paths: [path.join(environment.authorityRoot, 'AGENTS.md')],
+      hostKind: 'codex',
+      mode: 'managed'
+    }],
+    ownership: { source: 'fresh-install', manifestRef: null, entries: [] },
+    recovery: { checkpointRef: null, rollbackRef: null }
+  });
+}
+
 async function installTrio(args) {
   const options = parseTrioInstallOptions(args);
   const fixture = await resolveTrioFixture({
@@ -206,26 +314,79 @@ async function installTrio(args) {
   if (options.upgrade && !Object.hasOwn(options, 'recovery')) {
     throw trioInstallError('Trio V1 upgrade requires an explicit --recovery.', 'ERR_TRIO_FIXTURE');
   }
-  const upgrade = options.upgrade
-    ? await readV1UpgradeInput(fixture, options.recovery)
-    : {
-      config: freshTrioConfig(fixture),
-      legacyStatusByPath: new Map(),
-      legacyOwnershipByPath: new Map()
-    };
-  const result = await applyTrioProjection({
-    fixture,
-    config: upgrade.config,
-    legacyStatusByPath: upgrade.legacyStatusByPath,
-    legacyOwnershipByPath: upgrade.legacyOwnershipByPath
+  return withTrioPublicationLock(fixture.authorityRoot, async () => {
+    const probe = await probeInstallerState(fixture.fixtureRoot);
+    if (probe.kind === 'v1' && !options.upgrade) {
+      throw trioInstallError(
+        'Persisted schema-v1 fixture state requires --upgrade with an explicit recovery input.',
+        'ERR_TRIO_UPGRADE_REQUIRED'
+      );
+    }
+    if (options.upgrade && probe.kind !== 'v1') {
+      throw trioInstallError('Trio --upgrade is only available for a persisted schema-v1 fixture state.', 'ERR_TRIO_UPGRADE_REQUIRED');
+    }
+    const upgrade = probe.kind === 'v1'
+      ? await readV1UpgradeInput(fixture, options.recovery)
+      : {
+        config: probe.kind === 'v2' ? probe.state : freshTrioConfig(fixture),
+        legacyStatusByPath: new Map(),
+        legacyOwnershipByPath: new Map()
+      };
+    const mode = probe.kind === 'v1' ? 'upgrade' : probe.kind === 'v2' ? 'reinstall' : 'fresh';
+    const result = await applyTrioProjection({
+      fixture,
+      config: upgrade.config,
+      legacyStatusByPath: upgrade.legacyStatusByPath,
+      legacyOwnershipByPath: upgrade.legacyOwnershipByPath,
+      statePrecondition: probe.evidence
+    });
+    const outcome = Object.freeze({ ...result, mode });
+    console.log(JSON.stringify({
+      runtime: 'trio',
+      mode,
+      writes: result.writes,
+      conflicts: result.conflicts
+    }, null, 2));
+    return outcome;
   });
-  console.log(JSON.stringify({
-    runtime: 'trio',
-    mode: options.upgrade ? 'upgrade' : 'fresh',
-    writes: result.writes,
-    conflicts: result.conflicts
-  }, null, 2));
-  return result;
+}
+
+function hasFixtureRootArgument(args) {
+  return args.some((argument) => argument === '--fixture-root' || (
+    typeof argument === 'string' && argument.startsWith('--fixture-root=')
+  ));
+}
+
+function fixtureRuntimeRequired() {
+  if (selectInstallerRuntime() !== 'trio') {
+    throw trioInstallError(
+      'Trio --fixture-root requires SWF_RUNTIME=trio.',
+      'ERR_TRIO_RUNTIME_SELECTOR'
+    );
+  }
+}
+
+function requestsProductionUpgrade(args) {
+  return args.some((argument) => typeof argument === 'string' && (
+    argument === '--upgrade' ||
+    argument.startsWith('--upgrade=') ||
+    argument === '--recovery' ||
+    argument.startsWith('--recovery=')
+  ));
+}
+
+function parseProductionInstallOptions(args) {
+  const options = parseTrioCommandOptions(args, {
+    values: ['recovery'],
+    flags: ['upgrade']
+  });
+  if (Object.hasOwn(options, 'recovery') && !options.upgrade) {
+    throw trioInstallError('Trio --recovery is only valid for --upgrade.');
+  }
+  if (options.upgrade && !Object.hasOwn(options, 'recovery')) {
+    throw trioInstallError('Trio V1 upgrade requires an explicit --recovery.');
+  }
+  return options;
 }
 
 function readOption(args, name, fallback) {
@@ -250,18 +411,7 @@ function usage() {
   ].join('\n');
 }
 
-export async function install(args = [], options = {}) {
-  const runtime = selectInstallerRuntime();
-  if (args.includes('--help') || args.includes('-h')) {
-    console.log(usage());
-    return;
-  }
-
-  if (runtime === 'trio') {
-    return installTrio(args);
-  }
-
-  const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
+async function installLegacy(args, options, rootDir) {
   const metadata = await loadPlatforms(rootDir);
   const policyProfiles = await loadPolicyProfiles(rootDir);
   const skillProfiles = await loadSkillProfiles(rootDir);
@@ -349,4 +499,62 @@ export async function install(args = [], options = {}) {
   await writeState(rootDir, state);
   await sync(mode === 'force' ? ['--takeover'] : [], { rootDir });
   console.log(`Installed Harness state for ${targets.join(', ')} using ${scope} scope.`);
+}
+
+export async function install(args = [], options = {}) {
+  if (hasFixtureRootArgument(args)) {
+    fixtureRuntimeRequired();
+    if (args.includes('--help') || args.includes('-h')) {
+      console.log(usage());
+      return;
+    }
+    return installTrio(args);
+  }
+
+  assertProductionRuntimeSelector();
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(usage());
+    return;
+  }
+
+  const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
+  return withTrioPublicationLock(rootDir, async () => {
+    const probe = await probeInstallerState(rootDir);
+    if (probe.kind === 'v1' && !requestsProductionUpgrade(args)) {
+      return installLegacy(args, options, rootDir);
+    }
+
+    const installOptions = parseProductionInstallOptions(args);
+    if (probe.kind !== 'v1' && (installOptions.upgrade || Object.hasOwn(installOptions, 'recovery'))) {
+      throw trioInstallError('Trio --upgrade is only available for a persisted schema-v1 state.');
+    }
+
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir,
+      homeDir: options.homeDir
+    });
+    const upgrade = probe.kind === 'v1'
+      ? await readProductionV1UpgradeInput(environment, installOptions.recovery)
+      : {
+        config: probe.kind === 'v2' ? probe.state : freshProductionTrioConfig(environment),
+        legacyStatusByPath: new Map(),
+        legacyOwnershipByPath: new Map()
+      };
+    const mode = probe.kind === 'v1' ? 'upgrade' : probe.kind === 'v2' ? 'reinstall' : 'fresh';
+    const result = await applyTrioProjection({
+      environment,
+      config: upgrade.config,
+      legacyStatusByPath: upgrade.legacyStatusByPath,
+      legacyOwnershipByPath: upgrade.legacyOwnershipByPath,
+      statePrecondition: probe.evidence
+    });
+    const outcome = Object.freeze({ ...result, mode });
+    console.log(JSON.stringify({
+      runtime: 'trio',
+      mode,
+      writes: result.writes,
+      conflicts: result.conflicts
+    }, null, 2));
+    return outcome;
+  });
 }

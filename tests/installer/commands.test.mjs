@@ -35,6 +35,19 @@ async function writePersistedState(root, state) {
   await writeFile(file, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
 }
 
+async function createLegacyV1HarnessFixture(options) {
+  const root = await createHarnessFixture(options);
+  await writeState(root, {
+    schemaVersion: 1,
+    scope: 'workspace',
+    projectionMode: 'link',
+    hookMode: 'off',
+    targets: {},
+    upstream: {}
+  });
+  return root;
+}
+
 async function writeTokenAuditFixture(root) {
   const sessionsRoot = path.join(root, 'tmp', 'token-audit-sessions');
   await mkdir(path.join(sessionsRoot, '2026/06/10'), { recursive: true });
@@ -158,19 +171,24 @@ test('harness --help prints top-level usage', async () => {
   try {
     const { stdout } = await harnessCommand(root, '--help');
     assert.match(stdout, /Usage: \.\/scripts\/harness <command>/);
-    assert.match(stdout, /checkpoint  Create a safety checkpoint/);
-    assert.match(
-      stdout,
-      /checkpoint-push  Verify, record review evidence, commit, and push a recovery branch/
-    );
-    assert.match(
-      stdout,
-      /worktree-name  Suggest a canonical worktree label and branch name for the active task/
-    );
-    assert.match(stdout, /token-audit  Print a weekly cross-session token audit/);
-    assert.match(stdout, /trio     Read or plan the next Trio action without writing/);
-    assert.match(stdout, /codex-model-default  Inspect, assess, or migrate the Codex model default/);
-    assert.match(stdout, /verify   Print or write verification reports/);
+    const commandBlock = stdout.split('Commands:\n')[1];
+    assert.ok(commandBlock, 'help must include a Commands section');
+    const commandLines = commandBlock
+      .trimEnd()
+      .split('\n')
+      .filter(Boolean);
+    assert.equal(commandLines.length, 7);
+    const commandNames = commandLines.map((line) => line.trim().split(/\s+/)[0]);
+    assert.deepEqual(commandNames, [
+      'install',
+      'sync',
+      'doctor',
+      'trio',
+      'verify',
+      'checkpoint',
+      'token-audit'
+    ]);
+    assert.doesNotMatch(commandBlock, /workspace-skills|checkpoint-push|status/);
   } finally {
     await removeHarnessFixture(root);
   }
@@ -241,7 +259,7 @@ test('install --help prints usage without writing state', async () => {
   }
 });
 
-test('workspace-skills --help prints read-only action usage', async () => {
+test('unadvertised legacy workspace-skills handler remains callable', async () => {
   const root = await createHarnessFixture();
   try {
     const { stdout } = await harnessCommand(root, 'workspace-skills', '--help');
@@ -404,8 +422,8 @@ test('doctor resolves authority root when run from a nested leaf directory', asy
   }
 });
 
-test('install writes workspace state to the authority root when run from a nested leaf directory', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install writes workspace state to the authority root when run from a nested leaf directory', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     const leafDir = path.join(root, 'packages/demo');
     await mkdir(leafDir, { recursive: true });
@@ -486,8 +504,8 @@ test('adopt-global --help describes explicit skills profile precedence', async (
   }
 });
 
-test('install stores the selected entry and skills profiles in state', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install stores the selected entry and skills profiles in state', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await harnessCommand(
       root,
@@ -510,8 +528,8 @@ test('install stores the selected entry and skills profiles in state', async () 
   }
 });
 
-test('install normalizes a direct safety overlay to the guarded workspace state', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install normalizes a direct safety overlay to the guarded workspace state', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await harnessCommand(
       root,
@@ -530,8 +548,8 @@ test('install normalizes a direct safety overlay to the guarded workspace state'
   }
 });
 
-test('install defaults Copilot-only installs to copilot-default skills profile', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install defaults Copilot-only installs to copilot-default skills profile', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await harnessCommand(root, 'install', '--scope=workspace', '--targets=copilot');
 
@@ -543,8 +561,8 @@ test('install defaults Copilot-only installs to copilot-default skills profile',
   }
 });
 
-test('install defaults workspace coding installs to Matt-backed standard skills and compact policy', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install defaults workspace coding installs to Matt-backed standard skills and compact policy', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await harnessCommand(root, 'install', '--scope=workspace', '--targets=codex');
 
@@ -556,8 +574,8 @@ test('install defaults workspace coding installs to Matt-backed standard skills 
   }
 });
 
-test('install defaults user-global installs to minimal-global skills profile', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install defaults user-global installs to minimal-global skills profile', async () => {
+  const root = await createLegacyV1HarnessFixture();
   const homeDir = path.join(root, 'home');
   try {
     await mkdir(homeDir, { recursive: true });
@@ -571,8 +589,8 @@ test('install defaults user-global installs to minimal-global skills profile', a
   }
 });
 
-test('install defaults both-scope installs to minimal-global skills profile', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install defaults both-scope installs to minimal-global skills profile', async () => {
+  const root = await createLegacyV1HarnessFixture();
   const homeDir = path.join(root, 'home');
   try {
     await mkdir(homeDir, { recursive: true });
@@ -586,8 +604,8 @@ test('install defaults both-scope installs to minimal-global skills profile', as
   }
 });
 
-test('install lets an explicit Copilot skills profile override win over the default', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install lets an explicit Copilot skills profile override win over the default', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await harnessCommand(
       root,
@@ -605,8 +623,8 @@ test('install lets an explicit Copilot skills profile override win over the defa
   }
 });
 
-test('install derives high-assurance entry policy from an explicit high-assurance skills profile', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install derives high-assurance entry policy from an explicit high-assurance skills profile', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await harnessCommand(
       root,
@@ -624,8 +642,8 @@ test('install derives high-assurance entry policy from an explicit high-assuranc
   }
 });
 
-test('install rejects an unknown skills profile', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install rejects an unknown skills profile', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await assert.rejects(
       harnessCommand(root, 'install', '--scope=workspace', '--targets=codex', '--skills-profile=unknown'),
@@ -636,8 +654,8 @@ test('install rejects an unknown skills profile', async () => {
   }
 });
 
-test('install rejects safety profiles outside workspace scope', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install rejects safety profiles outside workspace scope', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await assert.rejects(
       harnessCommand(root, 'install', '--scope=user-global', '--targets=all', '--profile=safety'),
@@ -660,8 +678,8 @@ test('install rejects safety profiles outside workspace scope', async () => {
   }
 });
 
-test('install --mode=force takes over existing workspace projections in a clean checkout', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install --mode=force takes over existing workspace projections in a clean checkout', async () => {
+  const root = await createLegacyV1HarnessFixture();
   try {
     await mkdir(path.join(root, '.agents/skills/planning-with-files'), { recursive: true });
     await writeFile(path.join(root, 'AGENTS.md'), 'legacy entry\n');

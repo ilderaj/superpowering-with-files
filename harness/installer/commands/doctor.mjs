@@ -3,13 +3,16 @@ import { readFile } from 'node:fs/promises';
 import { readHarnessHealth } from '../lib/health.mjs';
 import { listHookEvidenceRows } from '../lib/hook-evidence-summary.mjs';
 import {
+  assertProductionRuntimeSelector,
   parseTrioCommandOptions,
+  probeInstallerState,
   readState,
   resolveTrioFixture,
+  resolveTrioProductionEnvironment,
   selectInstallerRuntime
 } from '../lib/state.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
-import { prepareTrioProjection } from './sync.mjs';
+import { assertTrioProjectionInSync, prepareTrioProjection } from './sync.mjs';
 
 const HOME_PATH_PATTERNS = [
   /(?:^|[^A-Za-z0-9])\/Users\/[^/\n\r]+\/(?:[^ \n\r\t"'`<>]|$)/,
@@ -109,6 +112,45 @@ function renderedScopeOverlapWarnings(health) {
   );
 }
 
+function usage() {
+  return [
+    'Usage: ./scripts/harness doctor [--check-only]',
+    '',
+    'Options:',
+    '  --check-only  Check the current installation without mutation',
+    '  --help, -h    Show this help message'
+  ].join('\n');
+}
+
+function hasFixtureRootArgument(args) {
+  return args.some((argument) => argument === '--fixture-root' || (
+    typeof argument === 'string' && argument.startsWith('--fixture-root=')
+  ));
+}
+
+function fixtureRuntimeRequired() {
+  if (selectInstallerRuntime() !== 'trio') {
+    const error = new Error('Trio --fixture-root requires SWF_RUNTIME=trio.');
+    error.code = 'ERR_TRIO_RUNTIME_SELECTOR';
+    throw error;
+  }
+}
+
+async function doctorTrioEnvironment({ environment, config, checkOnly }) {
+  const prepared = await prepareTrioProjection({ environment, config });
+  await assertTrioProjectionInSync(prepared, environment);
+  const report = {
+    schemaVersion: 2,
+    runtime: 'trio',
+    readable: true,
+    descriptorCount: prepared.descriptors.length,
+    conflicts: prepared.conflicts,
+    mode: checkOnly ? 'check-only' : 'doctor'
+  };
+  console.log(JSON.stringify(report, null, 2));
+  return report;
+}
+
 async function doctorTrio(args) {
   const options = parseTrioCommandOptions(args, {
     values: ['fixture-root', 'home-dir'],
@@ -129,26 +171,16 @@ async function doctorTrio(args) {
     error.code = 'ERR_TRIO_STATE';
     throw error;
   }
-  const prepared = await prepareTrioProjection({ fixture, config });
-  const report = {
-    schemaVersion: 2,
-    runtime: 'trio',
-    readable: true,
-    descriptorCount: prepared.descriptors.length,
-    conflicts: prepared.conflicts,
-    mode: options['check-only'] ? 'check-only' : 'doctor'
-  };
-  console.log(JSON.stringify(report, null, 2));
-  return report;
+  return doctorTrioEnvironment({
+    environment: fixture,
+    config,
+    checkOnly: options['check-only']
+  });
 }
 
-export async function doctor(args = []) {
-  if (selectInstallerRuntime() === 'trio') {
-    return doctorTrio(args);
-  }
+async function doctorLegacy(args, options, rootDir) {
   const checkOnly = args.includes('--check-only');
-  const { rootDir } = await discoverAuthorityRoot(process.cwd());
-  const health = await readHarnessHealth(rootDir, os.homedir());
+  const health = await readHarnessHealth(rootDir, options.homeDir ?? os.homedir());
   const problems = [];
   const warnings = [...health.warnings];
 
@@ -199,6 +231,43 @@ export async function doctor(args = []) {
   console.log(renderHookEvidenceSection(health));
   console.log(renderBudgetLedgerSection(health));
   console.log(checkOnly ? 'Harness check passed.' : 'Harness installation is healthy.');
+}
+
+export async function doctor(args = [], options = {}) {
+  if (hasFixtureRootArgument(args)) {
+    fixtureRuntimeRequired();
+    if (args.includes('--help') || args.includes('-h')) {
+      console.log(usage());
+      return;
+    }
+    return doctorTrio(args);
+  }
+
+  assertProductionRuntimeSelector();
+  if (args.includes('--help') || args.includes('-h')) {
+    console.log(usage());
+    return;
+  }
+
+  const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
+  const probe = await probeInstallerState(rootDir);
+  if (probe.kind === 'absent') {
+    const error = new Error('Trio doctor requires an installed schema-v2 state.');
+    error.code = 'ERR_TRIO_STATE';
+    throw error;
+  }
+  if (probe.kind === 'v2') {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir,
+      homeDir: options.homeDir
+    });
+    return doctorTrioEnvironment({
+      environment,
+      config: probe.state,
+      checkOnly: args.includes('--check-only')
+    });
+  }
+  return doctorLegacy(args, options, rootDir);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

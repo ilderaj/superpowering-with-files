@@ -83,6 +83,7 @@ function requireChief(actor) {
 
 function assertExpectedSha256(expectedSha256) {
   if (expectedSha256 !== undefined
+    && expectedSha256 !== null
     && (typeof expectedSha256 !== 'string' || !SHA256_PATTERN.test(expectedSha256))) {
     throw storeError('expectedSha256 must be a 64-character hexadecimal hash.', 'ERR_TRIO_INVALID_SHA256');
   }
@@ -322,17 +323,57 @@ async function acquireTransientLock(lockKey) {
   }
 }
 
+function operationReleaseFailure(operationError, releaseError) {
+  const objectLike = (typeof operationError === 'object' && operationError !== null)
+    || typeof operationError === 'function';
+  if (objectLike) {
+    try {
+      operationError.releaseError = releaseError;
+      if (operationError.releaseError === releaseError) return operationError;
+    } catch {
+      // Fall through when the original failure cannot carry release evidence.
+    }
+  }
+
+  const failure = new AggregateError(
+    [operationError, releaseError],
+    'Trio operation and mutation lock release both failed.'
+  );
+  failure.name = 'TrioOperationReleaseError';
+  failure.code = 'ERR_TRIO_OPERATION_RELEASE';
+  failure.cause = operationError;
+  failure.operationError = operationError;
+  failure.releaseError = releaseError;
+  return failure;
+}
+
 async function withTransientLock(lockKey, operation) {
   const lock = await acquireTransientLock(lockKey);
+  let result;
+  let operationError;
+  let operationFailed = false;
   try {
-    return await operation();
-  } finally {
-    await lock.release();
+    result = await operation();
+  } catch (error) {
+    operationFailed = true;
+    operationError = error;
   }
+  try {
+    await lock.release();
+  } catch (releaseError) {
+    if (operationFailed) throw operationReleaseFailure(operationError, releaseError);
+    throw releaseError;
+  }
+  if (operationFailed) throw operationError;
+  return result;
 }
 
 function taskLockKey(authorityRoot, taskId) {
   return `task\u0000${authorityRoot}\u0000${taskId}`;
+}
+
+function publicationLockKey(authorityRoot) {
+  return `publication\u0000${authorityRoot}`;
 }
 
 function withTaskLock(authorityRoot, taskId, operation) {
@@ -356,6 +397,16 @@ export async function acquireTrioTaskLock(rootDir, taskId) {
   assertValidTaskId(taskId);
   const authorityRoot = await authorityRootFor(rootDir);
   return acquireTransientLock(taskLockKey(authorityRoot, taskId));
+}
+
+export async function acquireTrioPublicationLock(rootDir) {
+  const authorityRoot = await authorityRootFor(rootDir);
+  return acquireTransientLock(publicationLockKey(authorityRoot));
+}
+
+export async function withTrioPublicationLock(rootDir, operation) {
+  const authorityRoot = await authorityRootFor(rootDir);
+  return withTransientLock(publicationLockKey(authorityRoot), operation);
 }
 
 async function readTemplate(fileName) {
@@ -530,13 +581,18 @@ function timestampFor(events, suppliedTimestamp) {
   return new Date(Math.max(Date.now(), lastMilliseconds + 1)).toISOString();
 }
 
-async function readAtomicTargetBytes(targetPath) {
-  const stat = await safeLstat(targetPath, 'atomic write target');
+async function inspectAtomicTarget(targetPath) {
+  let stat;
+  try {
+    stat = await lstat(targetPath, { bigint: true });
+  } catch (error) {
+    if (isMissingPathError(error)) return { bytes: null, identity: null };
+    throw storeError(`Unable to inspect atomic write target: ${targetPath}.`, 'ERR_TRIO_IO', error);
+  }
   if (stat?.isSymbolicLink()) throw storeError(`Atomic write target cannot be a symlink: ${targetPath}.`, 'ERR_TRIO_SYMLINK');
   if (stat && !stat.isFile()) throw storeError(`Atomic write target must be a regular file: ${targetPath}.`, 'ERR_TRIO_CORRUPT');
-  if (!stat) return null;
   try {
-    return await readFile(targetPath);
+    return { bytes: await readFile(targetPath), identity: atomicIdentity(stat) };
   } catch (error) {
     throw storeError(`Unable to read atomic write target: ${targetPath}.`, 'ERR_TRIO_IO', error);
   }
@@ -544,25 +600,207 @@ async function readAtomicTargetBytes(targetPath) {
 
 function assertAtomicExpectedSha256(expectedSha256, currentBytes) {
   if (expectedSha256 === undefined) return;
+  if (expectedSha256 === null) {
+    if (currentBytes !== null) {
+      throw storeError('Atomic create requires an absent target.', 'ERR_TRIO_CREATE_CONFLICT');
+    }
+    return;
+  }
   const observed = currentBytes === null ? null : sha256(currentBytes);
   if (observed !== expectedSha256.toLowerCase()) {
     throw storeError(`Atomic write expected SHA-256 ${expectedSha256}, observed ${observed ?? 'missing'}.`, 'ERR_TRIO_SHA256_DRIFT');
   }
 }
 
+function atomicIdentity(stat) {
+  return Object.freeze({ dev: stat.dev, ino: stat.ino, nlink: stat.nlink });
+}
+
+function normalizeAtomicIdentity(value, label) {
+  if (value === undefined) return undefined;
+  const expectedKeys = new Set(['dev', 'ino', 'nlink']);
+  const keys = value && typeof value === 'object' ? Reflect.ownKeys(value) : [];
+  if (!value || typeof value !== 'object'
+    || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
+    || keys.length !== expectedKeys.size
+    || keys.some((key) => typeof key !== 'string' || !expectedKeys.has(key))
+    || !Object.hasOwn(value, 'dev')
+    || !Object.hasOwn(value, 'ino')
+    || !Object.hasOwn(value, 'nlink')
+    || typeof Object.getOwnPropertyDescriptor(value, 'dev')?.value !== 'bigint'
+    || typeof Object.getOwnPropertyDescriptor(value, 'ino')?.value !== 'bigint'
+    || typeof Object.getOwnPropertyDescriptor(value, 'nlink')?.value !== 'bigint') {
+    throw storeError(`${label} must contain bigint dev, ino, and nlink values.`, 'ERR_TRIO_INVALID_IDENTITY');
+  }
+  return Object.freeze({ dev: value.dev, ino: value.ino, nlink: value.nlink });
+}
+
+function sameAtomicIdentity(expected, actual) {
+  return actual !== null
+    && expected.dev === actual.dev
+    && expected.ino === actual.ino
+    && expected.nlink === actual.nlink;
+}
+
+function sameAtomicParentIdentity(expected, actual) {
+  return actual !== null
+    && expected.dev === actual.dev
+    && expected.ino === actual.ino;
+}
+
+async function inspectAtomicParent(parentPath) {
+  let stat;
+  try {
+    stat = await lstat(parentPath, { bigint: true });
+  } catch (error) {
+    if (isMissingPathError(error)) {
+      throw storeError(`Atomic write parent must be a real directory: ${parentPath}.`, 'ERR_TRIO_PATH_BOUNDARY', error);
+    }
+    throw storeError(`Unable to inspect atomic write parent: ${parentPath}.`, 'ERR_TRIO_IO', error);
+  }
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    throw storeError(`Atomic write parent must be a real directory: ${parentPath}.`, 'ERR_TRIO_PATH_BOUNDARY');
+  }
+  return atomicIdentity(stat);
+}
+
+async function assertAtomicParentIdentity(parentPath, expectedIdentity) {
+  const observed = await inspectAtomicParent(parentPath);
+  if (!sameAtomicParentIdentity(expectedIdentity, observed)) {
+    throw storeError(`Atomic write parent identity drifted: ${parentPath}.`, 'ERR_TRIO_PARENT_IDENTITY');
+  }
+  return observed;
+}
+
+function atomicPublicationReceipt(targetPath, expectedSha256, identity) {
+  return Object.freeze({ path: targetPath, sha256: expectedSha256, ...identity });
+}
+
+function atomicLinkPublicationIdentity(temporaryIdentity) {
+  return Object.freeze({
+    dev: temporaryIdentity.dev,
+    ino: temporaryIdentity.ino,
+    nlink: temporaryIdentity.nlink + 1n
+  });
+}
+
+function assertAtomicTemporaryContents(temporary, expectedSha256, temporaryPath) {
+  if (!temporary.identity || temporary.bytes === null || sha256(temporary.bytes) !== expectedSha256) {
+    throw storeError(`Atomic write temporary bytes drifted: ${temporaryPath}.`, 'ERR_TRIO_ATOMIC_WRITE');
+  }
+}
+
+function ownsAtomicPublication({ mode, temporaryIdentity, observed, expectedSha256 }) {
+  if (!observed.identity || observed.bytes === null || sha256(observed.bytes) !== expectedSha256) return false;
+  const expectedIdentity = mode === 'link'
+    ? atomicLinkPublicationIdentity(temporaryIdentity)
+    : temporaryIdentity;
+  return sameAtomicIdentity(expectedIdentity, observed.identity);
+}
+
+async function observeOwnedAtomicPublication({ mode, targetPath, temporaryIdentity, expectedSha256 }) {
+  try {
+    const observed = await inspectAtomicTarget(targetPath);
+    if (!ownsAtomicPublication({ mode, temporaryIdentity, observed, expectedSha256 })) {
+      return { publication: null, observationError: null };
+    }
+    return {
+      publication: atomicPublicationReceipt(targetPath, expectedSha256, observed.identity),
+      observationError: null
+    };
+  } catch (error) {
+    return { publication: null, observationError: error };
+  }
+}
+
+function ambiguousAtomicPublicationError(targetPath, cause, observationError = null) {
+  const error = storeError(`Atomic publication outcome cannot be proven: ${targetPath}.`, 'ERR_TRIO_PUBLICATION_AMBIGUOUS', cause);
+  if (observationError) error.observationError = observationError;
+  return error;
+}
+
+async function cleanupOwnedAtomicTemporary({
+  parentPath,
+  expectedParentIdentity,
+  temporaryPath,
+  temporaryIdentity,
+  expectedSha256,
+  linked = false
+}) {
+  if (!temporaryIdentity) return false;
+  await assertAtomicParentIdentity(parentPath, expectedParentIdentity);
+  const observed = await inspectAtomicTarget(temporaryPath);
+  if (!observed.identity) return false;
+  const expectedIdentity = linked
+    ? atomicLinkPublicationIdentity(temporaryIdentity)
+    : temporaryIdentity;
+  if (!sameAtomicIdentity(expectedIdentity, observed.identity)
+    || observed.bytes === null
+    || sha256(observed.bytes) !== expectedSha256) {
+    throw storeError(`Atomic write temporary ownership drifted: ${temporaryPath}.`, 'ERR_TRIO_ATOMIC_CLEANUP');
+  }
+  try {
+    await unlink(temporaryPath);
+  } catch (error) {
+    if (isMissingPathError(error)) return false;
+    throw storeError(`Unable to clean atomic write temporary file: ${temporaryPath}.`, 'ERR_TRIO_ATOMIC_CLEANUP', error);
+  }
+  return true;
+}
+
+function isAtomicLinkPublication(publication, temporaryIdentity) {
+  return Boolean(publication && temporaryIdentity
+    && publication.dev === temporaryIdentity.dev
+    && publication.ino === temporaryIdentity.ino
+    && publication.nlink === temporaryIdentity.nlink + 1n);
+}
+
+async function settleAtomicLinkPublicationReceipt({ targetPath, temporaryIdentity, expectedSha256 }) {
+  const settled = await inspectAtomicTarget(targetPath);
+  if (!settled.identity || settled.bytes === null || sha256(settled.bytes) !== expectedSha256
+    || settled.identity.dev !== temporaryIdentity.dev
+    || settled.identity.ino !== temporaryIdentity.ino
+    || settled.identity.nlink !== temporaryIdentity.nlink) {
+    throw storeError(`Atomic create publication is missing after temporary settlement: ${targetPath}.`, 'ERR_TRIO_ATOMIC_WRITE');
+  }
+  return atomicPublicationReceipt(targetPath, expectedSha256, settled.identity);
+}
+
+function surfaceAtomicFailure(error, targetPath, publication) {
+  const surfaced = isTrioError(error) || error?.name === 'AbortError'
+    ? error
+    : storeError(`Atomic write failed for ${targetPath}.`, 'ERR_TRIO_ATOMIC_WRITE', error);
+  if (publication) surfaced.publication = publication;
+  return surfaced;
+}
+
 async function atomicWriteTextLocked(target, contents, options) {
   assertNotAborted(options.signal);
   const parent = path.dirname(target);
-  const parentStat = await safeLstat(parent, 'atomic write parent');
-  if (!parentStat || parentStat.isSymbolicLink() || !parentStat.isDirectory()) {
-    throw storeError(`Atomic write parent must be a real directory: ${parent}.`, 'ERR_TRIO_PATH_BOUNDARY');
+  const parentIdentity = await inspectAtomicParent(parent);
+  const expectedParentIdentity = options.expectedParentIdentity ?? parentIdentity;
+  if (!sameAtomicParentIdentity(expectedParentIdentity, parentIdentity)) {
+    throw storeError(`Atomic write parent identity drifted: ${parent}.`, 'ERR_TRIO_PARENT_IDENTITY');
   }
 
-  assertAtomicExpectedSha256(options.expectedSha256, await readAtomicTargetBytes(target));
+  const initialTarget = await inspectAtomicTarget(target);
+  assertAtomicExpectedSha256(options.expectedSha256, initialTarget.bytes);
+  const expectedTargetIdentity = options.expectedTargetIdentity ?? initialTarget.identity;
+  if (expectedTargetIdentity !== null && !sameAtomicIdentity(expectedTargetIdentity, initialTarget.identity)) {
+    throw storeError(`Atomic write target identity drifted: ${target}.`, 'ERR_TRIO_TARGET_IDENTITY');
+  }
   const temporaryPath = path.join(parent, `.${path.basename(target)}.${randomUUID()}.tmp`);
-  let renamed = false;
+  const desiredBytes = Buffer.from(contents, 'utf8');
+  const desiredSha256 = sha256(desiredBytes);
+  let temporaryExists = false;
+  let temporaryIdentity = null;
+  let publication;
+  let skipTemporaryCleanup = false;
+  let result;
+  let failure;
   try {
     const handle = await open(temporaryPath, 'wx', 0o600);
+    temporaryExists = true;
     try {
       await handle.writeFile(contents, 'utf8');
       await handle.sync();
@@ -571,26 +809,126 @@ async function atomicWriteTextLocked(target, contents, options) {
     }
 
     assertNotAborted(options.signal);
-    assertAtomicExpectedSha256(options.expectedSha256, await readAtomicTargetBytes(target));
+    await assertAtomicParentIdentity(parent, expectedParentIdentity);
+    const temporary = await inspectAtomicTarget(temporaryPath);
+    assertAtomicTemporaryContents(temporary, desiredSha256, temporaryPath);
+    temporaryIdentity = temporary.identity;
     assertNotAborted(options.signal);
-    await rename(temporaryPath, target);
-    renamed = true;
-    await fsyncDirectory(parent, 'atomic write parent directory');
-    return { path: target, sha256: sha256(Buffer.from(contents, 'utf8')) };
-  } catch (error) {
-    if (isTrioError(error) || error?.name === 'AbortError') throw error;
-    throw storeError(`Atomic write failed for ${target}.`, 'ERR_TRIO_ATOMIC_WRITE', error);
-  } finally {
-    if (!renamed) {
+    await assertAtomicParentIdentity(parent, expectedParentIdentity);
+    const finalTarget = await inspectAtomicTarget(target);
+    assertAtomicExpectedSha256(options.expectedSha256, finalTarget.bytes);
+    if (expectedTargetIdentity !== null && !sameAtomicIdentity(expectedTargetIdentity, finalTarget.identity)) {
+      throw storeError(`Atomic write target identity drifted: ${target}.`, 'ERR_TRIO_TARGET_IDENTITY');
+    }
+    assertNotAborted(options.signal);
+    await assertAtomicParentIdentity(parent, expectedParentIdentity);
+    if (options.expectedSha256 === null) {
       try {
-        await unlink(temporaryPath);
+        await link(temporaryPath, target);
       } catch (error) {
-        if (!isMissingPathError(error)) {
-          throw storeError(`Unable to clean atomic write temporary file: ${temporaryPath}.`, 'ERR_TRIO_ATOMIC_CLEANUP', error);
+        if (error?.code === 'EEXIST') {
+          throw storeError(`Atomic create target already exists: ${target}.`, 'ERR_TRIO_CREATE_CONFLICT', error);
         }
+        const observed = await observeOwnedAtomicPublication({
+          mode: 'link',
+          targetPath: target,
+          temporaryIdentity,
+          expectedSha256: desiredSha256
+        });
+        if (!observed.publication) {
+          skipTemporaryCleanup = true;
+          throw ambiguousAtomicPublicationError(target, error, observed.observationError);
+        }
+        publication = observed.publication;
+        temporaryExists = true;
+        throw error;
       }
+      publication = atomicPublicationReceipt(target, desiredSha256, atomicLinkPublicationIdentity(temporaryIdentity));
+      const linkedTarget = await inspectAtomicTarget(target);
+      if (!ownsAtomicPublication({
+        mode: 'link',
+        temporaryIdentity,
+        observed: linkedTarget,
+        expectedSha256: desiredSha256
+      })) {
+        throw storeError(`Atomic create publication drifted: ${target}.`, 'ERR_TRIO_ATOMIC_WRITE');
+      }
+      await cleanupOwnedAtomicTemporary({
+        parentPath: parent,
+        expectedParentIdentity,
+        temporaryPath,
+        temporaryIdentity,
+        expectedSha256: desiredSha256,
+        linked: true
+      });
+      temporaryExists = false;
+      publication = await settleAtomicLinkPublicationReceipt({
+        targetPath: target,
+        temporaryIdentity,
+        expectedSha256: desiredSha256
+      });
+    } else {
+      try {
+        await rename(temporaryPath, target);
+      } catch (error) {
+        const observed = await observeOwnedAtomicPublication({
+          mode: 'rename',
+          targetPath: target,
+          temporaryIdentity,
+          expectedSha256: desiredSha256
+        });
+        if (!observed.publication) {
+          skipTemporaryCleanup = true;
+          throw ambiguousAtomicPublicationError(target, error, observed.observationError);
+        }
+        publication = observed.publication;
+        temporaryExists = false;
+        throw error;
+      }
+      temporaryExists = false;
+      publication = atomicPublicationReceipt(target, desiredSha256, temporaryIdentity);
+    }
+    await fsyncDirectory(parent, 'atomic write parent directory');
+    result = publication;
+  } catch (error) {
+    failure = surfaceAtomicFailure(error, target, publication);
+  }
+
+  let cleanupFailure;
+  if (temporaryExists && !skipTemporaryCleanup) {
+    try {
+      await cleanupOwnedAtomicTemporary({
+        parentPath: parent,
+        expectedParentIdentity,
+        temporaryPath,
+        temporaryIdentity,
+        expectedSha256: desiredSha256,
+        linked: isAtomicLinkPublication(publication, temporaryIdentity)
+      });
+      temporaryExists = false;
+      if (isAtomicLinkPublication(publication, temporaryIdentity)) {
+        publication = await settleAtomicLinkPublicationReceipt({
+          targetPath: target,
+          temporaryIdentity,
+          expectedSha256: desiredSha256
+        });
+      }
+    } catch (error) {
+      cleanupFailure = isTrioError(error)
+        ? error
+        : storeError(`Unable to clean atomic write temporary file: ${temporaryPath}.`, 'ERR_TRIO_ATOMIC_CLEANUP', error);
     }
   }
+  if (failure) {
+    if (cleanupFailure) failure.cleanupError = cleanupFailure;
+    if (publication) failure.publication = publication;
+    throw failure;
+  }
+  if (cleanupFailure) {
+    if (publication) cleanupFailure.publication = publication;
+    throw cleanupFailure;
+  }
+  return result;
 }
 
 export async function atomicWriteText(targetPath, contents, options = {}) {
@@ -598,7 +936,12 @@ export async function atomicWriteText(targetPath, contents, options = {}) {
   assertExpectedSha256(options.expectedSha256);
   assertNotAborted(options.signal);
   const target = path.resolve(targetPath);
-  return withTransientLock(`target\u0000${target}`, () => atomicWriteTextLocked(target, contents, options));
+  const normalizedOptions = {
+    ...options,
+    expectedTargetIdentity: normalizeAtomicIdentity(options.expectedTargetIdentity, 'expectedTargetIdentity'),
+    expectedParentIdentity: normalizeAtomicIdentity(options.expectedParentIdentity, 'expectedParentIdentity')
+  };
+  return withTransientLock(`target\u0000${target}`, () => atomicWriteTextLocked(target, contents, normalizedOptions));
 }
 
 async function validateStagingTrio(taskDir) {

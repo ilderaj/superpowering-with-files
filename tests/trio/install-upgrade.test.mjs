@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   access,
@@ -28,7 +29,7 @@ import { install } from '../../harness/installer/commands/install.mjs';
 import { sync } from '../../harness/installer/commands/sync.mjs';
 import { doctor } from '../../harness/installer/commands/doctor.mjs';
 import { verify } from '../../harness/installer/commands/verify.mjs';
-import { resolveTrioFixture } from '../../harness/installer/lib/state.mjs';
+import { resolveTrioFixture, resolveTrioProductionEnvironment } from '../../harness/installer/lib/state.mjs';
 import { atomicWriteText } from '../../harness/trio/core/store.mjs';
 import { applyTrioProjection, prepareTrioProjection } from '../../harness/installer/commands/sync.mjs';
 
@@ -50,6 +51,13 @@ const EXPECTED_FILES = [
   'upgrade-v1-unmanaged/recovery.json',
   'upgrade-v1-unmanaged/legacy-task/task_plan.md'
 ];
+const TRIO_MANAGED_SOURCE_PATHS = Object.freeze([
+  'harness/trio/templates/entry-policy.md',
+  'harness/trio/skill/SKILL.md',
+  'harness/trio/capabilities/dev/SKILL.md',
+  'harness/trio/capabilities/office/SKILL.md',
+  'harness/trio/capabilities/safety/SKILL.md'
+]);
 
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
@@ -80,6 +88,23 @@ async function assertExactSettledOwnership(state, destinations) {
   assert.deepEqual(actual.sort(compare), expected.sort(compare));
 }
 
+async function assertExactTrioMaterialization(destinations) {
+  assert.equal(destinations.length, TRIO_MANAGED_SOURCE_PATHS.length);
+  for (const [index, destination] of destinations.entries()) {
+    assert.deepEqual(
+      await readFile(destination),
+      await readFile(path.join(REPO_ROOT, TRIO_MANAGED_SOURCE_PATHS[index])),
+      destination
+    );
+  }
+}
+
+async function assertAbsentTrioMaterialization(destinations) {
+  for (const destination of destinations) {
+    await assert.rejects(access(destination), /ENOENT/, destination);
+  }
+}
+
 async function captureRegularFile(targetPath) {
   const info = await lstat(targetPath, { bigint: true });
   assert.equal(info.isSymbolicLink(), false, `${targetPath} must not be a symlink.`);
@@ -90,6 +115,187 @@ async function captureRegularFile(targetPath) {
     nlink: info.nlink,
     bytes: await readFile(targetPath)
   });
+}
+
+async function captureDirectoryIdentity(targetPath) {
+  const info = await lstat(targetPath, { bigint: true });
+  assert.equal(info.isSymbolicLink(), false, `${targetPath} must not be a symlink.`);
+  assert.equal(info.isDirectory(), true, `${targetPath} must be a directory.`);
+  return Object.freeze({ dev: info.dev, ino: info.ino, nlink: info.nlink });
+}
+
+function runProcess(command, args, environmentOverrides = {}) {
+  return new Promise((resolve, reject) => {
+    const environment = { ...process.env, ...environmentOverrides };
+    delete environment.NODE_TEST_CONTEXT;
+    const child = spawn(command, args, {
+      cwd: REPO_ROOT,
+      env: environment,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    let stdout = '';
+    let stderr = '';
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+    child.once('error', reject);
+    child.once('close', (code, signal) => resolve({ code, signal, stdout, stderr }));
+  });
+}
+
+function runNode(args, environmentOverrides = {}) {
+  return runProcess(process.execPath, args, environmentOverrides);
+}
+
+async function harnessSourceSnapshot() {
+  const status = await runProcess('git', ['status', '--porcelain=v1', '--untracked-files=all', '--', 'harness']);
+  assert.equal(status.code, 0, status.stderr);
+  const sourceRoot = path.join(REPO_ROOT, 'harness');
+  const files = await fileTree(sourceRoot);
+  return Object.freeze({
+    status: status.stdout,
+    files: Object.freeze(await Promise.all(files.map(async (relative) => Object.freeze([
+      relative,
+      sha256(await readFile(path.join(sourceRoot, relative)))
+    ]))))
+  });
+}
+
+async function abandonPublicationLock(rootDir) {
+  const storeUrl = new URL('../../harness/trio/core/store.mjs', import.meta.url).href;
+  const result = await runNode([
+    '--input-type=module',
+    '--eval',
+    [
+      `import { acquireTrioPublicationLock } from ${JSON.stringify(storeUrl)};`,
+      `const lock = await acquireTrioPublicationLock(${JSON.stringify(rootDir)});`,
+      'process.stdout.write(JSON.stringify({ path: lock.path }));'
+    ].join('\n')
+  ]);
+  assert.equal(result.code, 0, result.stderr);
+  const lock = JSON.parse(result.stdout);
+  assert.equal(typeof lock.path, 'string');
+  assert.equal(path.dirname(lock.path), os.tmpdir());
+  assert.equal(path.basename(lock.path).startsWith('swf-trio-v2-lock-'), true);
+  return lock;
+}
+
+function productionStateRaceProbeSource({ installUrl, stateUrl, storeUrl }) {
+  return `
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import * as realState from ${JSON.stringify(stateUrl)};
+import * as realStore from ${JSON.stringify(storeUrl)};
+import { lstat, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
+const INSTALL_URL = ${JSON.stringify(installUrl)};
+const STATE_URL = ${JSON.stringify(stateUrl)};
+const STORE_URL = ${JSON.stringify(storeUrl)};
+const PROBE_SENTINEL = 'SWF_TRIO_FAULT_PROBE:state-race';
+const V1_STATE = {
+  schemaVersion: 1,
+  scope: 'workspace',
+  projectionMode: 'link',
+  hookMode: 'off',
+  deploymentProfile: 'standard',
+  policyProfile: 'always-on-core',
+  workspacePolicyOverlay: null,
+  skillProfile: 'standard',
+  targets: {},
+  upstream: {}
+};
+const identity = async (targetPath) => {
+  const info = await lstat(targetPath, { bigint: true });
+  return { dev: info.dev, ino: info.ino, nlink: info.nlink };
+};
+const files = async (root) => {
+  const result = [];
+  const visit = async (current) => {
+    for (const entry of await readdir(current, { withFileTypes: true })) {
+      const target = path.join(current, entry.name);
+      if (entry.isDirectory()) await visit(target);
+      else result.push(path.relative(root, target).split(path.sep).join('/'));
+    }
+  };
+  await visit(root);
+  return result.sort();
+};
+
+test('production install retains foreign V1 state that appears after an absent lock-held probe', async (t) => {
+  assert.equal(process.env.SWF_TRIO_FAULT_PROBE, 'state-race');
+  process.stdout.write(\`${'${PROBE_SENTINEL}'}\\n\`);
+  delete process.env.SWF_RUNTIME;
+  const sandbox = await mkdtemp(path.join(os.tmpdir(), 'trio-v2-production-state-race-'));
+  const rootDir = path.join(sandbox, 'authority');
+  const homeDir = path.join(sandbox, 'home');
+  await Promise.all([mkdir(rootDir), mkdir(homeDir)]);
+  const statePath = path.join(rootDir, '.harness', 'state.json');
+  const foreignBytes = Buffer.from(JSON.stringify(V1_STATE, null, 2) + '\\n');
+  let injected = false;
+  let foreignIdentity;
+  let managedPublications = 0;
+  try {
+    await t.mock.module(STATE_URL, {
+      namedExports: {
+        ...realState,
+        probeInstallerState: async (requestedRoot) => {
+          const probe = await realState.probeInstallerState(requestedRoot);
+          if (!injected && path.resolve(requestedRoot) === rootDir && probe.kind === 'absent') {
+            injected = true;
+            await mkdir(path.dirname(statePath));
+            await writeFile(statePath, foreignBytes);
+            foreignIdentity = await identity(statePath);
+          }
+          return probe;
+        }
+      }
+    });
+    await t.mock.module(STORE_URL, {
+      namedExports: {
+        ...realStore,
+        atomicWriteText: async (...args) => {
+          managedPublications += 1;
+          return realStore.atomicWriteText(...args);
+        }
+      }
+    });
+    const { install } = await import(INSTALL_URL);
+    await assert.rejects(
+      () => install([], { rootDir, homeDir }),
+      (error) => error?.code === 'ERR_TRIO_STATE_DRIFT'
+    );
+    assert.equal(injected, true);
+    assert.equal(managedPublications, 0, 'foreign state must fail before any managed publication');
+    assert.deepEqual(await readFile(statePath), foreignBytes);
+    assert.deepEqual(await identity(statePath), foreignIdentity);
+    assert.deepEqual(await files(rootDir), ['.harness/state.json']);
+    assert.deepEqual(await files(homeDir), []);
+  } finally {
+    await rm(sandbox, { recursive: true, force: true });
+  }
+});
+`;
+}
+
+async function runInstallFaultProbe(label, source) {
+  const root = await mkdtemp(path.join(os.tmpdir(), `trio-v2-install-${label}-`));
+  const probePath = path.join(root, `${label}.test.mjs`);
+  try {
+    await writeFile(probePath, source, 'utf8');
+    return await runNode(
+      ['--experimental-test-module-mocks', '--test', probePath],
+      { SWF_TRIO_FAULT_PROBE: label }
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 }
 
 function assertSameRegularFile(actual, expected) {
@@ -207,6 +413,97 @@ async function stageV1Fixture(fixtureName) {
   return tempRoot;
 }
 
+async function createProductionRoots(label) {
+  const sandbox = await mkdtemp(path.join(os.tmpdir(), `trio-v2-production-${label}-`));
+  const rootDir = path.join(sandbox, 'authority');
+  const homeDir = path.join(sandbox, 'home');
+  await Promise.all([
+    mkdir(rootDir, { recursive: true }),
+    mkdir(homeDir, { recursive: true })
+  ]);
+  return Object.freeze({ sandbox, rootDir, homeDir });
+}
+
+function productionTrioConfig(environment, scopeKind, { includeCodex = true } = {}) {
+  const paths = scopeKind === 'both'
+    ? [
+      path.join(environment.authorityRoot, 'AGENTS.md'),
+      path.join(environment.homeDir, '.codex', 'AGENTS.md')
+    ]
+    : [path.join(environment.authorityRoot, 'AGENTS.md')];
+  return parseV2Config({
+    schemaVersion: 2,
+    runtime: 'trio',
+    scope: { kind: scopeKind },
+    targets: includeCodex ? [{
+      id: 'codex',
+      enabled: true,
+      paths,
+      hostKind: 'codex',
+      mode: 'managed'
+    }] : [],
+    ownership: { source: 'test-runtime', manifestRef: null, entries: [] },
+    recovery: { checkpointRef: null, rollbackRef: null }
+  });
+}
+
+async function assertProductionDiagnosticFailure({ label, expectedCode, mutate, assertAfter }) {
+  const roots = await createProductionRoots(`diagnostic-${label}`);
+  try {
+    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
+    await install([], options);
+    const rootReal = await realpath(roots.rootDir);
+    const statePath = path.join(rootReal, '.harness', 'state.json');
+    const entryPath = path.join(rootReal, 'AGENTS.md');
+    await mutate({ roots, options, rootReal, statePath, entryPath });
+    const stateAfterMutation = await readFile(statePath);
+    for (const invoke of [
+      () => doctor(['--check-only'], options),
+      () => verify(['--output=stdout'], options)
+    ]) {
+      let caught;
+      const output = await captureCommandOutput(async () => {
+        try {
+          await invoke();
+        } catch (error) {
+          caught = error;
+        }
+      });
+      assert.equal(caught?.code, expectedCode, label);
+      assert.equal(output, '', label);
+    }
+    assert.deepEqual(await readFile(statePath), stateAfterMutation, label);
+    await assertAfter({ roots, rootReal, statePath, entryPath });
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+}
+
+async function stageProductionV1Fixture(fixtureName = 'upgrade-v1-standard') {
+  const roots = await createProductionRoots(fixtureName);
+  const sourceRoot = path.join(FIXTURE_ROOT, fixtureName);
+  const state = JSON.parse(await readFile(path.join(sourceRoot, 'state.json'), 'utf8'));
+  const manifest = JSON.parse(await readFile(path.join(sourceRoot, 'projection-manifest.json'), 'utf8'));
+  const rebase = (value) => value.startsWith('/fixture/home')
+    ? `${roots.homeDir}${value.slice('/fixture/home'.length)}`
+    : value;
+
+  for (const target of Object.values(state.targets)) {
+    target.paths = target.paths.map(rebase);
+  }
+  for (const entry of manifest.entries) {
+    entry.targetPath = rebase(entry.targetPath);
+  }
+
+  await mkdir(path.join(roots.rootDir, '.harness'), { recursive: true });
+  await Promise.all([
+    writeFile(path.join(roots.rootDir, '.harness', 'state.json'), `${JSON.stringify(state, null, 2)}\n`),
+    writeFile(path.join(roots.rootDir, '.harness', 'projections.json'), `${JSON.stringify(manifest, null, 2)}\n`),
+    cp(path.join(sourceRoot, 'recovery.json'), path.join(roots.rootDir, 'recovery.json'))
+  ]);
+  return roots;
+}
+
 async function rebaseStandardCommandConfig(fixtureRoot) {
   const rootReal = await realpath(fixtureRoot);
   const stateBytes = await readFile(path.join(rootReal, '.harness', 'state.json'));
@@ -319,20 +616,673 @@ async function withRuntimeSelector(selector, callback) {
   }
 }
 
-test('Trio install requires an explicit contained fixture root before legacy dependencies', async () => {
+async function withTemporaryLegacyEnvironment(homeDir, callback) {
+  const previousHome = Object.getOwnPropertyDescriptor(process.env, 'HOME');
+  const previousSourceRoot = Object.getOwnPropertyDescriptor(process.env, 'HARNESS_SOURCE_ROOT');
+  process.env.HOME = homeDir;
+  process.env.HARNESS_SOURCE_ROOT = REPO_ROOT;
+  try {
+    return await callback();
+  } finally {
+    if (previousHome) Object.defineProperty(process.env, 'HOME', previousHome);
+    else delete process.env.HOME;
+    if (previousSourceRoot) Object.defineProperty(process.env, 'HARNESS_SOURCE_ROOT', previousSourceRoot);
+    else delete process.env.HARNESS_SOURCE_ROOT;
+  }
+}
+
+test('production selectors require an explicit fixture bridge before any legacy dependency', async () => {
   const before = await fixtureSnapshot();
   const tempRoot = await copyFixtureRoot('fresh-empty');
   try {
     await withRuntimeSelector('trio', async () => {
       await assert.rejects(
         install([], { rootDir: path.join(tempRoot, 'fresh-empty') }),
-        /fixture-root.*absolute/i
+        (error) => error?.code === 'ERR_TRIO_RUNTIME_SELECTOR'
       );
     });
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
   assert.deepEqual(await fixtureSnapshot(), before);
+});
+
+test('production no-state defaults to Trio and uses one scope-aware environment for lifecycle commands', async () => {
+  const roots = await createProductionRoots('fresh');
+  try {
+    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
+    await install([], options);
+
+    const rootReal = await realpath(roots.rootDir);
+    const stateFile = path.join(rootReal, '.harness', 'state.json');
+    const state = JSON.parse(await readFile(stateFile, 'utf8'));
+    const destinations = codexDestinations(rootReal, 'workspace');
+    assert.equal(state.schemaVersion, 2);
+    assert.equal(state.runtime, 'trio');
+    assert.equal(state.scope.kind, 'workspace');
+    await assertExactSettledOwnership(state, destinations);
+    await assert.rejects(access(path.join(rootReal, '.harness', 'projections.json')), /ENOENT/);
+
+    const dryRun = await sync(['--dry-run'], options);
+    assert.equal(dryRun.runtime, 'trio');
+    assert.equal(dryRun.mode, 'dry-run');
+    await sync(['--check'], options);
+    const apply = await sync([], options);
+    assert.equal(apply.runtime, 'trio');
+    assert.equal(apply.mode, 'apply');
+
+    const doctorReport = await doctor(['--check-only'], options);
+    assert.equal(doctorReport.runtime, 'trio');
+    const verifyReport = await verify(['--output=stdout'], options);
+    assert.equal(verifyReport.runtime, 'trio');
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('Trio projection passes externally captured target and parent conditions to every publication', async () => {
+  const before = await fixtureSnapshot();
+  const fixtureRoot = await stageV1Fixture('upgrade-v1-standard');
+  try {
+    const fixture = await resolveTrioFixture({ fixtureRoot });
+    const config = await rebaseStandardCommandConfig(fixtureRoot);
+    const destinations = codexDestinations(path.join(fixture.fixtureRoot, 'home'));
+    await mkdir(path.dirname(destinations[0]), { recursive: true });
+    await writeFile(destinations[0], 'legacy managed destination\n');
+    await Promise.all(destinations.slice(1).map((destination) => mkdir(path.dirname(destination), { recursive: true })));
+
+    const beforeByPath = new Map();
+    for (const targetPath of [...destinations, fixture.stateFile]) {
+      let target = null;
+      try {
+        target = await captureRegularFile(targetPath);
+      } catch (error) {
+        assert.equal(error?.code, 'ENOENT');
+      }
+      beforeByPath.set(targetPath, Object.freeze({
+        target,
+        parent: await captureDirectoryIdentity(path.dirname(targetPath))
+      }));
+    }
+
+    const observed = [];
+    const writeText = async (targetPath, contents, options) => {
+      const captured = { targetPath, options: { expectedSha256: options.expectedSha256 } };
+      if (Object.hasOwn(options, 'expectedTargetIdentity')) {
+        captured.options.expectedTargetIdentity = { ...options.expectedTargetIdentity };
+      }
+      if (Object.hasOwn(options, 'expectedParentIdentity')) {
+        captured.options.expectedParentIdentity = { ...options.expectedParentIdentity };
+      }
+      observed.push(captured);
+      return atomicWriteText(targetPath, contents, options);
+    };
+
+    await applyTrioProjection({
+      fixture,
+      config,
+      legacyOwnershipByPath: legacyOwnershipForConfig(config),
+      writeText
+    });
+
+    assert.deepEqual(
+      observed.map((entry) => entry.targetPath).sort(),
+      [...beforeByPath.keys()].sort()
+    );
+    for (const { targetPath, options } of observed) {
+      const prior = beforeByPath.get(targetPath);
+      assert.equal(Object.hasOwn(options, 'expectedSha256'), true, targetPath);
+      assert.deepEqual(options.expectedParentIdentity, prior.parent, targetPath);
+      if (prior.target) {
+        assert.equal(options.expectedSha256, sha256(prior.target.bytes), targetPath);
+        assert.deepEqual(options.expectedTargetIdentity, {
+          dev: prior.target.dev,
+          ino: prior.target.ino,
+          nlink: prior.target.nlink
+        }, targetPath);
+      } else {
+        assert.equal(options.expectedSha256, null, targetPath);
+        assert.equal(Object.hasOwn(options, 'expectedTargetIdentity'), false, targetPath);
+      }
+    }
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+  assert.deepEqual(await fixtureSnapshot(), before);
+});
+
+test('concurrent production installs serialize and re-probe state inside the authority publication lock', async () => {
+  const roots = await createProductionRoots('concurrent-install');
+  try {
+    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
+    const results = await Promise.allSettled([install([], options), install([], options)]);
+    assert.deepEqual(results.map((result) => result.status), ['fulfilled', 'fulfilled']);
+    const modes = results.map((result) => result.value.mode).sort();
+    assert.deepEqual(modes, ['fresh', 'reinstall']);
+
+    const rootReal = await realpath(roots.rootDir);
+    const state = JSON.parse(await readFile(path.join(rootReal, '.harness', 'state.json'), 'utf8'));
+    await assertExactSettledOwnership(state, codexDestinations(rootReal, 'workspace'));
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('a residual publication lock makes actual production install time out before any state or target mutation', async () => {
+  const roots = await createProductionRoots('residual-install-lock');
+  let lockPath;
+  try {
+    const before = {
+      authority: await fileTree(roots.rootDir),
+      home: await fileTree(roots.homeDir)
+    };
+    lockPath = (await abandonPublicationLock(roots.rootDir)).path;
+    await assert.rejects(
+      () => install([], { rootDir: roots.rootDir, homeDir: roots.homeDir }),
+      (error) => error?.code === 'ERR_TRIO_LOCK_TIMEOUT'
+    );
+    assert.deepEqual(await fileTree(roots.rootDir), before.authority);
+    assert.deepEqual(await fileTree(roots.homeDir), before.home);
+  } finally {
+    if (lockPath) await rm(lockPath, { recursive: true, force: true });
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('a persisted V1 fixture requires explicit upgrade and never falls through to fresh Trio overwrite', async () => {
+  const before = await fixtureSnapshot();
+  const fixtureRoot = await stageV1Fixture('upgrade-v1-standard');
+  try {
+    const statePath = path.join(fixtureRoot, '.harness', 'state.json');
+    const manifestPath = path.join(fixtureRoot, '.harness', 'projections.json');
+    const beforeState = await captureRegularFile(statePath);
+    const beforeManifest = await captureRegularFile(manifestPath);
+    await withRuntimeSelector('trio', async () => {
+      await assert.rejects(
+        () => install(['--fixture-root', fixtureRoot]),
+        (error) => error?.code === 'ERR_TRIO_UPGRADE_REQUIRED'
+      );
+    });
+    assertSameRegularFile(await captureRegularFile(statePath), beforeState);
+    assertSameRegularFile(await captureRegularFile(manifestPath), beforeManifest);
+    await assert.rejects(access(path.join(fixtureRoot, 'workspace', 'AGENTS.md')), /ENOENT/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+  assert.deepEqual(await fixtureSnapshot(), before);
+});
+
+test('production V2 reinstall preserves recovery and ownership while refusing user-owned drift', async () => {
+  const roots = await createProductionRoots('v2-reinstall');
+  try {
+    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
+    await install([], options);
+    const statePath = path.join(roots.rootDir, '.harness', 'state.json');
+    const configured = JSON.parse(await readFile(statePath, 'utf8'));
+    configured.recovery = {
+      checkpointRef: 'checkpoint-v2-reinstall',
+      rollbackRef: 'rollback-v2-reinstall'
+    };
+    await atomicWriteText(statePath, `${JSON.stringify(configured, null, 2)}\n`);
+
+    const outcome = await install([], options);
+    assert.equal(outcome.mode, 'reinstall');
+    const settled = JSON.parse(await readFile(statePath, 'utf8'));
+    assert.deepEqual(settled.recovery, configured.recovery);
+    await assertExactSettledOwnership(settled, codexDestinations(await realpath(roots.rootDir), 'workspace'));
+
+    const entryPath = path.join(await realpath(roots.rootDir), 'AGENTS.md');
+    await writeFile(entryPath, 'user-owned drift\n');
+    const stateBeforeDrift = await readFile(statePath);
+    await assert.rejects(
+      () => install([], options),
+      (error) => error?.code === 'ERR_TRIO_CONFLICT'
+    );
+    assert.equal(await readFile(entryPath, 'utf8'), 'user-owned drift\n');
+    assert.deepEqual(await readFile(statePath), stateBeforeDrift);
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('production projection settles dynamic zero, five, and ten managed surface cardinalities', async () => {
+  const cases = [
+    { label: 'zero', scopeKind: 'workspace', includeCodex: false, count: 0 },
+    { label: 'five', scopeKind: 'workspace', includeCodex: true, count: 5 },
+    { label: 'ten', scopeKind: 'both', includeCodex: true, count: 10 }
+  ];
+  for (const item of cases) {
+    const roots = await createProductionRoots(`cardinality-${item.label}`);
+    try {
+      const environment = await resolveTrioProductionEnvironment({
+        rootDir: roots.rootDir,
+        homeDir: roots.homeDir
+      });
+      const result = await applyTrioProjection({
+        environment,
+        config: productionTrioConfig(environment, item.scopeKind, { includeCodex: item.includeCodex })
+      });
+      assert.equal(result.writes.length, item.count, item.label);
+      const persisted = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+      assert.equal(persisted.ownership.entries.length, item.count, item.label);
+      const workspaceDestinations = codexDestinations(environment.authorityRoot, 'workspace');
+      const homeDestinations = codexDestinations(environment.homeDir, 'user-global');
+      if (item.count === 0) {
+        await assertAbsentTrioMaterialization([...workspaceDestinations, ...homeDestinations]);
+        await assertExactSettledOwnership(persisted, []);
+      } else if (item.count === 5) {
+        await assertExactTrioMaterialization(workspaceDestinations);
+        await assertAbsentTrioMaterialization(homeDestinations);
+        await assertExactSettledOwnership(persisted, workspaceDestinations);
+      } else {
+        const destinations = [...workspaceDestinations, ...homeDestinations];
+        await assertExactTrioMaterialization(workspaceDestinations);
+        await assertExactTrioMaterialization(homeDestinations);
+        await assertExactSettledOwnership(persisted, destinations);
+      }
+    } finally {
+      await rm(roots.sandbox, { recursive: true, force: true });
+    }
+  }
+});
+
+test('normal-root persisted V1 routes ordinary lifecycle commands through legacy without Trio mutation', async () => {
+  const roots = await stageProductionV1Fixture();
+  try {
+    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
+    const rootReal = await realpath(roots.rootDir);
+    const homeReal = await realpath(roots.homeDir);
+    const stateFile = path.join(rootReal, '.harness', 'state.json');
+    const manifestFile = path.join(rootReal, '.harness', 'projections.json');
+    const harnessBefore = await harnessSourceSnapshot();
+    try {
+      await symlink(path.join(REPO_ROOT, 'harness'), path.join(rootReal, 'harness'), 'dir');
+      const runLegacy = (invoke) => withTemporaryLegacyEnvironment(homeReal, () => captureCommandOutput(invoke));
+
+      const installOutput = await runLegacy(() => install([
+        '--scope=user-global',
+        '--targets=cursor',
+        '--hooks=off'
+      ], options));
+      assert.match(installOutput, /Installed Harness state for cursor using user-global scope\./);
+      assert.match(installOutput, /Synced 1 target\(s\): cursor/);
+
+      const syncOutput = await runLegacy(() => sync([], options));
+      assert.match(syncOutput, /Synced 1 target\(s\): cursor/);
+
+      const doctorOutput = await runLegacy(() => doctor(['--check-only'], options));
+      assert.match(doctorOutput, /Harness check passed\./);
+
+      const verifyOutput = await runLegacy(() => verify(['--output=stdout'], options));
+      assert.match(verifyOutput, /# Harness Verification/);
+
+      const state = JSON.parse(await readFile(stateFile, 'utf8'));
+      const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
+      assert.equal(state.schemaVersion, 1);
+      assert.equal(Object.hasOwn(state, 'runtime'), false);
+      assert.equal(manifest.schemaVersion, 1);
+      await assertAbsentTrioMaterialization([
+        ...codexDestinations(rootReal, 'workspace'),
+        ...codexDestinations(homeReal, 'user-global')
+      ]);
+    } finally {
+      assert.deepEqual(
+        await harnessSourceSnapshot(),
+        harnessBefore,
+        'legacy lifecycle must not mutate the repository harness source tree'
+      );
+    }
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('production doctor and verify fail closed on a missing managed projection', async () => {
+  await assertProductionDiagnosticFailure({
+    label: 'missing',
+    expectedCode: 'ERR_TRIO_CHECK',
+    mutate: async ({ entryPath }) => {
+      await rm(entryPath);
+    },
+    assertAfter: async ({ entryPath }) => {
+      await assert.rejects(access(entryPath), /ENOENT/);
+    }
+  });
+});
+
+test('production doctor and verify fail closed on user content drift', async () => {
+  await assertProductionDiagnosticFailure({
+    label: 'content-drift',
+    expectedCode: 'ERR_TRIO_CHECK',
+    mutate: async ({ entryPath }) => {
+      await writeFile(entryPath, 'user content drift\n');
+    },
+    assertAfter: async ({ entryPath }) => {
+      assert.equal(await readFile(entryPath, 'utf8'), 'user content drift\n');
+    }
+  });
+});
+
+test('production doctor and verify fail closed on ownership evidence drift', async () => {
+  await assertProductionDiagnosticFailure({
+    label: 'ownership-drift',
+    expectedCode: 'ERR_TRIO_CHECK',
+    mutate: async ({ statePath }) => {
+      const state = JSON.parse(await readFile(statePath, 'utf8'));
+      state.ownership.entries[0].identity = contentIdentity(Buffer.from('untrusted ownership evidence\n'));
+      await atomicWriteText(statePath, `${JSON.stringify(state, null, 2)}\n`);
+    },
+    assertAfter: async ({ entryPath }) => {
+      assert.match(await readFile(entryPath, 'utf8'), /Trio V2 Entry Policy/);
+    }
+  });
+});
+
+test('production doctor and verify preserve physical-gate failure for a symlinked projection', async () => {
+  await assertProductionDiagnosticFailure({
+    label: 'physical-gate',
+    expectedCode: 'ERR_TRIO_PHYSICAL_GATE',
+    mutate: async ({ roots, entryPath }) => {
+      const outside = path.join(roots.sandbox, 'outside-entry.md');
+      await writeFile(outside, 'outside physical sentinel\n');
+      await rm(entryPath);
+      await symlink(outside, entryPath);
+    },
+    assertAfter: async ({ roots, entryPath }) => {
+      assert.equal(await readFile(path.join(roots.sandbox, 'outside-entry.md'), 'utf8'), 'outside physical sentinel\n');
+      assert.equal((await lstat(entryPath)).isSymbolicLink(), true);
+    }
+  });
+});
+
+test('Trio apply preserves a foreign create after an absent precondition and reports incomplete rollback honestly', async () => {
+  const before = await fixtureSnapshot();
+  const fixtureRoot = await stageV1Fixture('upgrade-v1-standard');
+  try {
+    const fixture = await resolveTrioFixture({ fixtureRoot });
+    const config = await rebaseStandardCommandConfig(fixtureRoot);
+    const destinations = codexDestinations(path.join(fixture.fixtureRoot, 'home'));
+    const entryPath = destinations[0];
+    const foreignBytes = Buffer.from('foreign create after absent probe\n');
+    const originalState = await readFile(fixture.stateFile);
+    let foreign;
+    let injected = false;
+    const writeText = async (targetPath, contents, options) => {
+      if (!injected && targetPath === entryPath) {
+        injected = true;
+        await writeFile(targetPath, foreignBytes);
+        foreign = await captureRegularFile(targetPath);
+      }
+      return atomicWriteText(targetPath, contents, options);
+    };
+
+    await assert.rejects(
+      applyTrioProjection({
+        fixture,
+        config,
+        legacyOwnershipByPath: legacyOwnershipForConfig(config),
+        writeText
+      }),
+      (error) => error?.code === 'ERR_TRIO_ROLLBACK' && error?.cause?.code === 'ERR_TRIO_CREATE_CONFLICT'
+    );
+
+    assert.equal(injected, true);
+    assertSameRegularFile(await captureRegularFile(entryPath), foreign);
+    assert.deepEqual(await readFile(entryPath), foreignBytes);
+    assert.deepEqual(await readFile(fixture.stateFile), originalState);
+    for (const destination of destinations.slice(1)) {
+      await assert.rejects(access(destination), /ENOENT/);
+    }
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+  assert.deepEqual(await fixtureSnapshot(), before);
+});
+
+test('production install retains foreign V1 state injected immediately after its lock-held absent probe', async () => {
+  const result = await runInstallFaultProbe('state-race', productionStateRaceProbeSource({
+    installUrl: new URL('../../harness/installer/commands/install.mjs', import.meta.url).href,
+    stateUrl: new URL('../../harness/installer/lib/state.mjs', import.meta.url).href,
+    storeUrl: new URL('../../harness/trio/core/store.mjs', import.meta.url).href
+  }));
+  assert.match(result.stdout, /SWF_TRIO_FAULT_PROBE:state-race/);
+  assert.equal(result.code, 0, `${result.stdout}\n${result.stderr}`);
+});
+
+test('Trio apply consumes a thrown Core publication receipt and compensates its proven identity', async () => {
+  const before = await fixtureSnapshot();
+  const fixtureRoot = await stageV1Fixture('upgrade-v1-standard');
+  try {
+    const fixture = await resolveTrioFixture({ fixtureRoot });
+    const config = await rebaseStandardCommandConfig(fixtureRoot);
+    const destinations = codexDestinations(path.join(fixture.fixtureRoot, 'home'));
+    const entryPath = destinations[0];
+    const originalEntry = Buffer.from('original entry before published receipt\n');
+    const originalState = await readFile(fixture.stateFile);
+    await mkdir(path.dirname(entryPath), { recursive: true });
+    await writeFile(entryPath, originalEntry);
+    let injected = false;
+    let receipt;
+    const writeText = async (targetPath, contents, options) => {
+      const publication = await atomicWriteText(targetPath, contents, options);
+      if (!injected && targetPath === entryPath) {
+        injected = true;
+        receipt = publication;
+        const error = new Error('injected failure after real Core publication');
+        error.code = 'ERR_TEST_THROWN_PUBLICATION_RECEIPT';
+        error.publication = publication;
+        throw error;
+      }
+      return publication;
+    };
+
+    await assert.rejects(
+      applyTrioProjection({
+        fixture,
+        config,
+        legacyOwnershipByPath: legacyOwnershipForConfig(config),
+        writeText
+      }),
+      (error) => error?.code === 'ERR_TEST_THROWN_PUBLICATION_RECEIPT'
+    );
+
+    assert.equal(injected, true);
+    assert.deepEqual(receipt?.path, entryPath);
+    assert.deepEqual(await readFile(entryPath), originalEntry);
+    assert.deepEqual(await readFile(fixture.stateFile), originalState);
+    for (const destination of destinations.slice(1)) {
+      await assert.rejects(access(destination), /ENOENT/);
+    }
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+  assert.deepEqual(await fixtureSnapshot(), before);
+});
+
+test('Trio compensation preserves a stable parent replacement encountered after a proven publication', async () => {
+  const before = await fixtureSnapshot();
+  const fixtureRoot = await stageV1Fixture('upgrade-v1-standard');
+  const outsideRoot = await mkdtemp(path.join(os.tmpdir(), 'trio-v2-post-publication-parent-outside-'));
+  try {
+    const fixture = await resolveTrioFixture({ fixtureRoot });
+    const config = await rebaseStandardCommandConfig(fixtureRoot);
+    const destinations = codexDestinations(path.join(fixture.fixtureRoot, 'home'));
+    const entryPath = destinations[0];
+    const parent = path.dirname(entryPath);
+    const displacedParent = `${parent}-published`;
+    const displacedEntry = path.join(displacedParent, path.basename(entryPath));
+    const replacementBytes = Buffer.from('foreign replacement after publication\n');
+    const outsideSentinel = path.join(outsideRoot, 'sentinel.txt');
+    const originalState = await readFile(fixture.stateFile);
+    await mkdir(parent, { recursive: true });
+    await Promise.all([
+      writeFile(entryPath, 'entry before publication\n'),
+      writeFile(outsideSentinel, 'outside post-publication sentinel\n')
+    ]);
+    let replacement;
+    let published;
+    let replaced = false;
+    await assert.rejects(
+      applyTrioProjection({
+        fixture,
+        config,
+        legacyOwnershipByPath: legacyOwnershipForConfig(config),
+        beforeWrite: async ({ targetPath }) => {
+          if (replaced || targetPath === entryPath) return;
+          replaced = true;
+          await rename(parent, displacedParent);
+          published = await captureRegularFile(displacedEntry);
+          await mkdir(parent);
+          await writeFile(entryPath, replacementBytes);
+          replacement = await captureRegularFile(entryPath);
+          const error = new Error('injected later failure after stable parent replacement');
+          error.code = 'ERR_TEST_POST_PUBLICATION_PARENT_REPLACEMENT';
+          throw error;
+        }
+      }),
+      (error) => {
+        assert.equal(error?.code, 'ERR_TRIO_ROLLBACK');
+        assert.equal(error?.cause?.code, 'ERR_TEST_POST_PUBLICATION_PARENT_REPLACEMENT');
+        assert.ok(error.errors?.some((entry) => entry?.code === 'ERR_TRIO_ROLLBACK'));
+        return true;
+      }
+    );
+
+    assert.equal(replaced, true);
+    assertSameRegularFile(await captureRegularFile(displacedEntry), published);
+    assertSameRegularFile(await captureRegularFile(entryPath), replacement);
+    assert.deepEqual(await readFile(entryPath), replacementBytes);
+    assert.equal(await readFile(outsideSentinel, 'utf8'), 'outside post-publication sentinel\n');
+    assert.deepEqual(await readFile(fixture.stateFile), originalState);
+    for (const destination of destinations.slice(1)) {
+      await assert.rejects(access(destination), /ENOENT/);
+    }
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+    await rm(outsideRoot, { recursive: true, force: true });
+  }
+  assert.deepEqual(await fixtureSnapshot(), before);
+});
+
+test('Trio apply preserves a stable real parent replacement with zero later target or state mutation', async () => {
+  const before = await fixtureSnapshot();
+  const fixtureRoot = await stageV1Fixture('upgrade-v1-standard');
+  const outsideRoot = await mkdtemp(path.join(os.tmpdir(), 'trio-v2-stable-parent-outside-'));
+  try {
+    const fixture = await resolveTrioFixture({ fixtureRoot });
+    const config = await rebaseStandardCommandConfig(fixtureRoot);
+    const destinations = codexDestinations(path.join(fixture.fixtureRoot, 'home'));
+    const entryPath = destinations[0];
+    const parent = path.dirname(entryPath);
+    const displacedParent = `${parent}-displaced`;
+    const displacedEntry = path.join(displacedParent, path.basename(entryPath));
+    const oldBytes = Buffer.from('old stable parent entry\n');
+    const replacementBytes = Buffer.from('replacement stable parent entry\n');
+    const outsideSentinel = path.join(outsideRoot, 'sentinel.txt');
+    const originalState = await readFile(fixture.stateFile);
+    await mkdir(parent, { recursive: true });
+    await Promise.all([
+      writeFile(entryPath, oldBytes),
+      writeFile(outsideSentinel, 'outside sentinel bytes\n')
+    ]);
+    const originalEntry = await captureRegularFile(entryPath);
+    let replacementEntry;
+    let injected = false;
+    const writeText = async (targetPath, contents, options) => {
+      if (!injected && targetPath === entryPath) {
+        injected = true;
+        await rename(parent, displacedParent);
+        await mkdir(parent);
+        await writeFile(entryPath, replacementBytes);
+        replacementEntry = await captureRegularFile(entryPath);
+      }
+      return atomicWriteText(targetPath, contents, options);
+    };
+
+    await assert.rejects(
+      applyTrioProjection({
+        fixture,
+        config,
+        legacyOwnershipByPath: legacyOwnershipForConfig(config),
+        writeText
+      }),
+      (error) => error?.code === 'ERR_TRIO_ROLLBACK' && error?.cause?.code === 'ERR_TRIO_PARENT_IDENTITY'
+    );
+
+    assert.equal(injected, true);
+    assertSameRegularFile(await captureRegularFile(displacedEntry), originalEntry);
+    assertSameRegularFile(await captureRegularFile(entryPath), replacementEntry);
+    assert.deepEqual(await readFile(entryPath), replacementBytes);
+    assert.equal(await readFile(outsideSentinel, 'utf8'), 'outside sentinel bytes\n');
+    assert.deepEqual(await readFile(fixture.stateFile), originalState);
+    for (const destination of destinations.slice(1)) {
+      await assert.rejects(access(destination), /ENOENT/);
+    }
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+    await rm(outsideRoot, { recursive: true, force: true });
+  }
+  assert.deepEqual(await fixtureSnapshot(), before);
+});
+
+test('production V1 stays legacy until explicit checkpointed upgrade, then uses the V2 lifecycle', async () => {
+  const roots = await stageProductionV1Fixture();
+  try {
+    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
+    const stateFile = path.join(roots.rootDir, '.harness', 'state.json');
+    const originalState = await readFile(stateFile);
+    const originalManifest = await readFile(path.join(roots.rootDir, '.harness', 'projections.json'));
+    const codexEntry = path.join(roots.homeDir, '.codex', 'AGENTS.md');
+    await mkdir(path.dirname(codexEntry), { recursive: true });
+    await writeFile(codexEntry, 'legacy managed destination\n');
+
+    await assert.rejects(install([], options));
+    assert.deepEqual(await readFile(stateFile), originalState);
+
+    await install(['--upgrade', '--recovery', path.join(roots.rootDir, 'recovery.json')], options);
+    const state = JSON.parse(await readFile(stateFile, 'utf8'));
+    const destinations = codexDestinations(await realpath(roots.homeDir));
+    assert.equal(state.schemaVersion, 2);
+    assert.equal(state.runtime, 'trio');
+    await assertExactSettledOwnership(state, destinations);
+    assert.deepEqual(await readFile(path.join(roots.rootDir, '.harness', 'projections.json')), originalManifest);
+
+    const dryRun = await sync(['--dry-run'], options);
+    assert.equal(dryRun.runtime, 'trio');
+    await sync(['--check'], options);
+    const apply = await sync([], options);
+    assert.equal(apply.mode, 'apply');
+    assert.equal((await doctor(['--check-only'], options)).runtime, 'trio');
+    assert.equal((await verify(['--output=stdout'], options)).runtime, 'trio');
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('production V1 upgrade rejects a hard-linked recovery before state or destination writes', async () => {
+  const roots = await stageProductionV1Fixture();
+  try {
+    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
+    const stateFile = path.join(roots.rootDir, '.harness', 'state.json');
+    const recoveryPath = path.join(roots.rootDir, 'recovery.json');
+    const outsideRecovery = path.join(roots.sandbox, 'outside-recovery.json');
+    const stateBefore = await readFile(stateFile);
+    const recoveryBytes = await readFile(recoveryPath);
+    await writeFile(outsideRecovery, recoveryBytes);
+    await rm(recoveryPath);
+    await link(outsideRecovery, recoveryPath);
+
+    await assert.rejects(
+      install(['--upgrade', '--recovery', recoveryPath], options),
+      (error) => error?.code === 'ERR_TRIO_PHYSICAL_GATE'
+    );
+    assert.deepEqual(await readFile(stateFile), stateBefore);
+    assert.equal(await readFile(outsideRecovery, 'utf8'), recoveryBytes.toString('utf8'));
+    assert.equal((await lstat(recoveryPath)).nlink, 2);
+    await assert.rejects(access(path.join(roots.homeDir, '.agents')), /ENOENT/);
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
 });
 
 test('Trio V1 standard upgrade applies only managed Codex surfaces and keeps generic targets manual', async () => {
@@ -479,7 +1429,9 @@ test('Trio public sync rejects check modes before report output or writes', asyn
         });
         return { code: caught?.code ?? null, message: caught?.message ?? null, output };
       });
-      assert.deepEqual(await runLegacyCheck('legacy'), await runLegacyCheck(undefined));
+      const pollutedCheck = await runLegacyCheck('legacy');
+      assert.equal(pollutedCheck.code, 'ERR_TRIO_RUNTIME_SELECTOR');
+      assert.equal(pollutedCheck.output, '');
 
       for (const [targetPath, snapshot] of before) {
         assertSameRegularFile(await captureRegularFile(targetPath), snapshot);
@@ -678,7 +1630,7 @@ test('Trio rollback preserves an ambiguous post-publish target and restores prio
     let postPublish;
     let injected = false;
     const injectedWriteText = async (targetPath, contents, options) => {
-      await atomicWriteText(targetPath, contents, options);
+      const publication = await atomicWriteText(targetPath, contents, options);
       if (!injected && targetPath === trioSkill) {
         injected = true;
         postPublish = await captureRegularFile(targetPath);
@@ -686,6 +1638,7 @@ test('Trio rollback preserves an ambiguous post-publish target and restores prio
         error.code = 'ERR_TEST_POST_TARGET_PUBLISH';
         throw error;
       }
+      return publication;
     };
 
     await assert.rejects(
@@ -728,7 +1681,7 @@ test('Trio rollback preserves an ambiguous post-publish state and restores targe
     let postPublish;
     let injected = false;
     const injectedWriteText = async (targetPath, contents, options) => {
-      await atomicWriteText(targetPath, contents, options);
+      const publication = await atomicWriteText(targetPath, contents, options);
       if (!injected && targetPath === fixture.stateFile) {
         injected = true;
         postPublish = await captureRegularFile(targetPath);
@@ -736,6 +1689,7 @@ test('Trio rollback preserves an ambiguous post-publish state and restores targe
         error.code = 'ERR_TEST_POST_STATE_PUBLISH';
         throw error;
       }
+      return publication;
     };
 
     await assert.rejects(
@@ -856,16 +1810,28 @@ test('unknown Trio selectors reject help before emitting command usage', async (
   });
 });
 
-test('default and legacy selector retain existing help output bytes', async () => {
+test('production selector pollution rejects help before output', async () => {
   const commands = [
     () => install(['--help']),
     () => sync(['--help']),
+    () => doctor(['--help']),
     () => verify(['--help'])
   ];
-  for (const invoke of commands) {
-    const defaultOutput = await withRuntimeSelector(undefined, async () => captureCommandOutput(invoke));
-    const legacyOutput = await withRuntimeSelector('legacy', async () => captureCommandOutput(invoke));
-    assert.equal(legacyOutput, defaultOutput);
+  for (const selector of ['legacy', 'trio', '']) {
+    await withRuntimeSelector(selector, async () => {
+      for (const invoke of commands) {
+        let error;
+        const output = await captureCommandOutput(async () => {
+          try {
+            await invoke();
+          } catch (caught) {
+            error = caught;
+          }
+        });
+        assert.equal(error?.code, 'ERR_TRIO_RUNTIME_SELECTOR');
+        assert.equal(output, '');
+      }
+    });
   }
 });
 

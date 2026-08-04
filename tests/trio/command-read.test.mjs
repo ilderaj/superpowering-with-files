@@ -156,3 +156,16 @@ test('trioCommand fails closed for multiple or corrupt tasks and invalid explici
     await rm(corruptRoot, { recursive: true, force: true });
   }
 });
+
+test('verify all runs the final Trio inventory before legacy backstops', async () => {
+  const packageJson = JSON.parse(await readFile(path.join(process.cwd(), 'package.json'), 'utf8'));
+
+  assert.equal(
+    packageJson.scripts['verify:all'],
+    'npm run verify:trio && npm run verify:core && npm run verify:homepage'
+  );
+  assert.match(
+    packageJson.scripts['verify:trio'],
+    /node tests\/trio\/import-boundaries\.test\.mjs --milestone final$/
+  );
+});

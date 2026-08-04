@@ -4,13 +4,16 @@ import path from 'node:path';
 import { readHarnessHealth } from '../lib/health.mjs';
 import { summarizeHookEvidence } from '../lib/hook-evidence-summary.mjs';
 import {
+  assertProductionRuntimeSelector,
   parseTrioCommandOptions,
+  probeInstallerState,
   readState,
   resolveTrioFixture,
+  resolveTrioProductionEnvironment,
   selectInstallerRuntime
 } from '../lib/state.mjs';
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
-import { prepareTrioProjection } from './sync.mjs';
+import { assertTrioProjectionInSync, prepareTrioProjection } from './sync.mjs';
 
 function readOption(args, name, fallback) {
   const prefix = `--${name}=`;
@@ -115,6 +118,35 @@ function renderMarkdown(report) {
   ].join('\n') + '\n';
 }
 
+function hasFixtureRootArgument(args) {
+  return args.some((argument) => argument === '--fixture-root' || (
+    typeof argument === 'string' && argument.startsWith('--fixture-root=')
+  ));
+}
+
+function fixtureRuntimeRequired() {
+  if (selectInstallerRuntime() !== 'trio') {
+    const error = new Error('Trio --fixture-root requires SWF_RUNTIME=trio.');
+    error.code = 'ERR_TRIO_RUNTIME_SELECTOR';
+    throw error;
+  }
+}
+
+async function verifyTrioEnvironment({ environment, config }) {
+  const prepared = await prepareTrioProjection({ environment, config });
+  await assertTrioProjectionInSync(prepared, environment);
+  const report = {
+    schemaVersion: 2,
+    runtime: 'trio',
+    opened: true,
+    rendered: false,
+    descriptorCount: prepared.descriptors.length,
+    conflicts: prepared.conflicts
+  };
+  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
+  return report;
+}
+
 async function verifyTrio(args) {
   const options = parseTrioCommandOptions(args, {
     values: ['fixture-root', 'home-dir', 'output']
@@ -139,33 +171,21 @@ async function verifyTrio(args) {
     error.code = 'ERR_TRIO_STATE';
     throw error;
   }
-  const prepared = await prepareTrioProjection({ fixture, config });
-  const report = {
-    schemaVersion: 2,
-    runtime: 'trio',
-    opened: true,
-    rendered: false,
-    descriptorCount: prepared.descriptors.length,
-    conflicts: prepared.conflicts
-  };
-  process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
-  return report;
+  return verifyTrioEnvironment({ environment: fixture, config });
 }
 
-export async function verify(args = []) {
-  const runtime = selectInstallerRuntime();
-  if (hasFlag(args, '--help', '-h')) {
-    console.log(usage());
-    return;
+function parseProductionVerifyOptions(args) {
+  const options = parseTrioCommandOptions(args, { values: ['output'] });
+  if (Object.hasOwn(options, 'output') && options.output !== 'stdout') {
+    const error = new Error('Trio verify supports --output=stdout only.');
+    error.code = 'ERR_TRIO_VERIFY_OUTPUT';
+    throw error;
   }
+  return options;
+}
 
-  if (runtime === 'trio') {
-    return verifyTrio(args);
-  }
-
-  const { rootDir } = await discoverAuthorityRoot(process.cwd());
-  const state = await readState(rootDir);
-  const health = await readHarnessHealth(rootDir, os.homedir());
+async function verifyLegacy(args, options, rootDir, state) {
+  const health = await readHarnessHealth(rootDir, options.homeDir ?? os.homedir());
   const report = {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
@@ -201,4 +221,38 @@ export async function verify(args = []) {
   if (health.problems.length > 0) {
     process.exitCode = 1;
   }
+}
+
+export async function verify(args = [], options = {}) {
+  if (hasFixtureRootArgument(args)) {
+    fixtureRuntimeRequired();
+    if (hasFlag(args, '--help', '-h')) {
+      console.log(usage());
+      return;
+    }
+    return verifyTrio(args);
+  }
+
+  assertProductionRuntimeSelector();
+  if (hasFlag(args, '--help', '-h')) {
+    console.log(usage());
+    return;
+  }
+
+  const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
+  const probe = await probeInstallerState(rootDir);
+  if (probe.kind === 'absent') {
+    const error = new Error('Trio verify requires an installed schema-v2 state.');
+    error.code = 'ERR_TRIO_STATE';
+    throw error;
+  }
+  if (probe.kind === 'v2') {
+    parseProductionVerifyOptions(args);
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir,
+      homeDir: options.homeDir
+    });
+    return verifyTrioEnvironment({ environment, config: probe.state });
+  }
+  return verifyLegacy(args, options, rootDir, probe.state);
 }

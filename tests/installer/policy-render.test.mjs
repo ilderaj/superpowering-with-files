@@ -64,12 +64,11 @@ test('high-assurance policy documents soft model tiering while lightweight entri
 });
 
 test('codex policy makes model and effort changes evidence-led', async () => {
-  const [rendered, cursorRendered, claudeRendered, copilotRendered, trackedEntry, maintenance] = await Promise.all([
+  const [rendered, cursorRendered, claudeRendered, copilotRendered, maintenance] = await Promise.all([
     renderEntry(process.cwd(), 'codex', 'high-assurance'),
     renderEntry(process.cwd(), 'cursor', 'always-on-core'),
     renderEntry(process.cwd(), 'claude-code', 'always-on-core'),
     renderEntry(process.cwd(), 'copilot', 'always-on-core'),
-    readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8'),
     readFile(path.join(process.cwd(), 'docs/maintenance.md'), 'utf8')
   ]);
 
@@ -85,7 +84,6 @@ test('codex policy makes model and effort changes evidence-led', async () => {
   assert.doesNotMatch(rendered, /Fix root causes, not symptoms/i);
   assert.equal((rendered.match(/already-authorized scope/gi) ?? []).length, 1);
   assert.equal((rendered.match(/Explicit human gates remain mandatory/gi) ?? []).length, 1);
-  assert.match(trackedEntry, /Hybrid Workflow Policy/);
   assert.match(maintenance, /token-audit.*not.*bill/is);
   assert.match(maintenance, /gpt-5\.6-terra\/high.*incumbent benchmark/is);
 
@@ -111,9 +109,8 @@ test('tracked and deep work get a phase-boundary session-reset guard without cha
 
 test('high-assurance policy renders the approved chief and visible worker operating model', async () => {
   const codexRendered = await renderEntry(process.cwd(), 'codex', 'high-assurance');
-  const trackedEntry = await readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8');
 
-  for (const text of [codexRendered, trackedEntry]) {
+  for (const text of [codexRendered]) {
     assert.match(text, /Tracked production work defaults to a visible session worker/);
     assert.match(text, /Chief chat history is not task authority/);
     assert.match(text, /one primary visible worker session per tracked task/i);
@@ -127,12 +124,9 @@ test('high-assurance policy renders the approved chief and visible worker operat
 });
 
 test('task completion stays autonomous inside scope while preserving explicit human gates', async () => {
-  const [basePolicy, agentsDoc] = await Promise.all([
-    readFile(path.join(process.cwd(), 'harness/core/policy/base.md'), 'utf8'),
-    readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8')
-  ]);
+  const basePolicy = await readFile(path.join(process.cwd(), 'harness/core/policy/base.md'), 'utf8');
 
-  for (const text of [basePolicy, agentsDoc]) {
+  for (const text of [basePolicy]) {
     assert.match(text, /already-authorized scope.*do not seek extra confirmation/is);
     assert.match(text, /more than two visible lanes/i);
     assert.match(text, /release.*merge.*publish.*send.*deploy/is);
@@ -336,16 +330,15 @@ test('project docs keep shared defaults while documenting the optional Copilot g
 });
 
 test('shared policy and docs keep planning authority rooted in planning active with optional reconciliation lifecycle artifact', async () => {
-  const [basePolicy, agentsDoc, claudeDoc, readme, reconciliationDoc, workflowsDoc] = await Promise.all([
+  const [basePolicy, claudeDoc, readme, reconciliationDoc, workflowsDoc] = await Promise.all([
     readFile(path.join(process.cwd(), 'harness/core/policy/base.md'), 'utf8'),
-    readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8'),
     readFile(path.join(process.cwd(), 'CLAUDE.md'), 'utf8'),
     readFile(path.join(process.cwd(), 'README.md'), 'utf8'),
     readFile(path.join(process.cwd(), 'docs/reconciliation.md'), 'utf8'),
     readFile(path.join(process.cwd(), 'docs/workflows.md'), 'utf8')
   ]);
 
-  for (const doc of [basePolicy, agentsDoc, claudeDoc]) {
+  for (const doc of [basePolicy, claudeDoc]) {
     assert.match(doc, /Persistent task state must live only under `planning\/active\/<task-id>\/`/);
     assert.match(doc, /required core planning trio: `task_plan\.md`, `findings\.md`, `progress\.md`/);
     assert.match(doc, /optional lifecycle artifact: `reconciliation\.md`/);
@@ -353,13 +346,43 @@ test('shared policy and docs keep planning authority rooted in planning active w
     assert.doesNotMatch(doc, /active task's three markdown files updated/);
   }
 
-  assert.match(
-    agentsDoc,
-    /If `reconciliation\.md` exists and the current round depends on lifecycle evidence, read that optional lifecycle artifact too/
-  );
   assert.match(readme, /`reconciliation\.md` is an optional lifecycle artifact inside that same canonical task directory/);
   assert.match(reconciliationDoc, /`planning\/active\/<task-id>\/` remains the authoritative task-memory root/);
   assert.match(workflowsDoc, /optional lifecycle artifact/);
+});
+
+test('root AGENTS is the materialized Trio entry policy rather than a Hybrid policy', async () => {
+  const [source, agentsDoc] = await Promise.all([
+    readFile(path.join(process.cwd(), 'harness/trio/templates/entry-policy.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'AGENTS.md'), 'utf8')
+  ]);
+
+  assert.equal(agentsDoc, source);
+  assert.match(agentsDoc, /# Trio V2 Entry Policy/);
+  assert.match(agentsDoc, /Route first, then choose effort or execution topology\./);
+  assert.match(agentsDoc, /The Trio planning files are the sole durable task authority/);
+  assert.match(agentsDoc, /Each task selects exactly one capability family/);
+  assert.match(agentsDoc, /Routing never grants permission/);
+  assert.doesNotMatch(agentsDoc, /Hybrid Workflow Policy/);
+});
+
+test('Trio v2 cutover docs keep managed and atomicity boundaries truthful', async () => {
+  const [readme, cutover] = await Promise.all([
+    readFile(path.join(process.cwd(), 'README.md'), 'utf8'),
+    readFile(path.join(process.cwd(), 'docs/trio-v2/cutover.md'), 'utf8')
+  ]);
+
+  for (const document of [readme, cutover]) {
+    assert.match(document, /Codex is the only managed Trio target\./);
+    assert.match(document, /Generic targets remain manual\./);
+    assert.match(document, /does not provide cross-authority-root serialization/);
+    assert.match(document, /does not provide multi-file atomic visibility/);
+    assert.match(document, /does not provide crash, SIGKILL, or power-loss atomicity/);
+    assert.match(document, /does not provide automatic residue cleanup/);
+  }
+
+  assert.match(readme, /Legacy V1 installer-managed targets: Codex, GitHub Copilot, Cursor, Claude Code/);
+  assert.doesNotMatch(readme, /^- Supported installer-managed targets today:/m);
 });
 
 

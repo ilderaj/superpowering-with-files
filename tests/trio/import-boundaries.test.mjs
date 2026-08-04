@@ -134,11 +134,156 @@ async function discoveredInventory() {
   return paths.sort();
 }
 
+function moduleSyntaxMask(source) {
+  const masked = [...source];
+  const blank = (index) => {
+    if (masked[index] !== '\n') masked[index] = ' ';
+  };
+
+  function maskQuotedString(index, quote) {
+    blank(index);
+    for (index += 1; index < source.length; index += 1) {
+      if (source[index] === '\\') {
+        blank(index);
+        if (index + 1 < source.length) blank(index + 1);
+        index += 1;
+        continue;
+      }
+      blank(index);
+      if (source[index] === quote) return index + 1;
+    }
+    throw new Error('Unterminated string literal in module source.');
+  }
+
+  function maskLineComment(index) {
+    blank(index);
+    blank(index + 1);
+    for (index += 2; index < source.length && source[index] !== '\n'; index += 1) blank(index);
+    return index;
+  }
+
+  function maskBlockComment(index) {
+    blank(index);
+    blank(index + 1);
+    for (index += 2; index < source.length; index += 1) {
+      if (source[index] === '*' && source[index + 1] === '/') {
+        blank(index);
+        blank(index + 1);
+        return index + 2;
+      }
+      blank(index);
+    }
+    throw new Error('Unterminated block comment in module source.');
+  }
+
+  function maskTemplateExpression(index) {
+    let depth = 1;
+    for (; index < source.length; index += 1) {
+      if (source[index] === '/' && source[index + 1] === '/') {
+        index = maskLineComment(index) - 1;
+        continue;
+      }
+      if (source[index] === '/' && source[index + 1] === '*') {
+        index = maskBlockComment(index) - 1;
+        continue;
+      }
+      if (source[index] === '\'' || source[index] === '"') {
+        index = maskQuotedString(index, source[index]) - 1;
+        continue;
+      }
+      if (source[index] === '`') {
+        index = maskTemplate(index) - 1;
+        continue;
+      }
+      if (source[index] === '{') {
+        depth += 1;
+      } else if (source[index] === '}') {
+        depth -= 1;
+        if (depth === 0) return index + 1;
+      }
+    }
+    throw new Error('Unterminated template expression in module source.');
+  }
+
+  function maskTemplate(index) {
+    blank(index);
+    for (index += 1; index < source.length; index += 1) {
+      if (source[index] === '\\') {
+        blank(index);
+        if (index + 1 < source.length) blank(index + 1);
+        index += 1;
+        continue;
+      }
+      if (source[index] === '`') {
+        blank(index);
+        return index + 1;
+      }
+      if (source[index] === '$' && source[index + 1] === '{') {
+        blank(index);
+        blank(index + 1);
+        index = maskTemplateExpression(index + 2) - 1;
+        continue;
+      }
+      blank(index);
+    }
+    throw new Error('Unterminated template literal in module source.');
+  }
+
+  for (let index = 0; index < source.length; index += 1) {
+    if (source[index] === '/' && source[index + 1] === '/') {
+      index = maskLineComment(index) - 1;
+      continue;
+    }
+    if (source[index] === '/' && source[index + 1] === '*') {
+      index = maskBlockComment(index) - 1;
+      continue;
+    }
+    if (source[index] === '\'' || source[index] === '"') {
+      index = maskQuotedString(index, source[index]) - 1;
+      continue;
+    }
+    if (source[index] === '`') index = maskTemplate(index) - 1;
+  }
+
+  return masked.join('');
+}
+
 function importSpecifiers(source) {
-  const specifiers = [];
-  const pattern = /\b(?:import|export)\s+(?:[^'";]+?\s+from\s+)?['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g;
-  for (const match of source.matchAll(pattern)) specifiers.push(match[1] ?? match[2]);
-  return specifiers;
+  const syntaxMask = moduleSyntaxMask(source);
+  const records = [];
+  const staticOrReexport = /\b(?:import|export)\s+(?:[^'";]+?\s+from\s+)?(['"])([^'"]+)\1/g;
+  for (const match of source.matchAll(staticOrReexport)) {
+    if (syntaxMask.slice(match.index, match.index + match[0].search(/\s/u)).startsWith('import')
+      || syntaxMask.slice(match.index, match.index + match[0].search(/\s/u)).startsWith('export')) {
+      records.push({ start: match.index, specifier: match[2] });
+    }
+  }
+
+  const literalDynamic = /\bimport\s*\(\s*(['"])([^'"]+)\1\s*\)/g;
+  for (const match of source.matchAll(literalDynamic)) {
+    if (syntaxMask.slice(match.index, match.index + 'import'.length) === 'import') {
+      records.push({ start: match.index, specifier: match[2] });
+    }
+  }
+
+  const resolvedStarts = new Set(records.map((record) => record.start));
+  for (const match of syntaxMask.matchAll(/\b(import|export)\b/g)) {
+    const keyword = match[1];
+    const afterKeyword = syntaxMask.slice(match.index + keyword.length).trimStart();
+    if (keyword === 'import' && afterKeyword.startsWith('.')) continue;
+    if (resolvedStarts.has(match.index)) continue;
+
+    if (keyword === 'import') {
+      const kind = afterKeyword.startsWith('(') ? 'dynamic import' : 'import';
+      throw new Error(`Unsupported ${kind} syntax at source offset ${match.index}.`);
+    }
+
+    if (afterKeyword.startsWith('*') || /^\{[^}]*\}\s+from\b/u.test(afterKeyword)) {
+      throw new Error(`Unsupported re-export syntax at source offset ${match.index}.`);
+    }
+  }
+
+  return records.sort((left, right) => left.start - right.start).map((record) => record.specifier);
 }
 
 function resolveRelativeImport(filePath, specifier) {
@@ -153,28 +298,28 @@ function allowedRelativeImports(filePath) {
   return new Set(FINAL_DIRECTION_MATRIX[filePath] ?? []);
 }
 
+function assertAllowedImport(filePath, specifier) {
+  if (specifier.startsWith('node:')) return;
+  const resolved = resolveRelativeImport(filePath, specifier);
+  assert.equal(
+    resolved.startsWith('../') || path.isAbsolute(resolved),
+    false,
+    `${filePath} escapes the authority root through ${specifier}`
+  );
+  assert.ok(
+    FINAL_INVENTORY.includes(resolved),
+    `${filePath} imports unlisted runtime file ${resolved}`
+  );
+  assert.ok(
+    allowedRelativeImports(filePath).has(resolved),
+    `${filePath} has an import outside its Wave 1 direction: ${resolved}`
+  );
+}
+
 async function assertImportBoundaries(inventory) {
-  const forbidden = /planning-task|root-policy|chiefops|receipt|anchor|profile|companion|reconciliation|mcp|upstream/iu;
   for (const filePath of inventory) {
     const source = await readFile(path.join(AUTHORITY_ROOT, filePath), 'utf8');
-    assert.doesNotMatch(source, forbidden, `${filePath} imports a forbidden legacy control plane`);
-    for (const specifier of importSpecifiers(source)) {
-      if (specifier.startsWith('node:')) continue;
-      const resolved = resolveRelativeImport(filePath, specifier);
-      assert.equal(
-        resolved.startsWith('../') || path.isAbsolute(resolved),
-        false,
-        `${filePath} escapes the authority root through ${specifier}`
-      );
-      assert.ok(
-        FINAL_INVENTORY.includes(resolved),
-        `${filePath} imports unlisted runtime file ${resolved}`
-      );
-      assert.ok(
-        allowedRelativeImports(filePath).has(resolved),
-        `${filePath} has an import outside its Wave 1 direction: ${resolved}`
-      );
-    }
+    for (const specifier of importSpecifiers(source)) assertAllowedImport(filePath, specifier);
   }
 }
 
@@ -190,6 +335,36 @@ async function run() {
   ]) {
     assert.throws(() => parseMilestoneArgs(invalid), /milestone/i);
   }
+
+  assert.deepEqual(
+    importSpecifiers([
+      "const receipt = 'transient';",
+      "const note = 'import(targetPath)';",
+      'const template = `export { readTrioTask } from legacyControlPlane;`;',
+      '// import(targetPath)',
+      '/* export { readTrioTask } from legacyControlPlane; */',
+      "import { readTrioTask } from './read.mjs';",
+      "export { readTrioTask } from './read.mjs';",
+      "await import('./read.mjs');"
+    ].join('\n')),
+    ['./read.mjs', './read.mjs', './read.mjs']
+  );
+  assert.throws(
+    () => importSpecifiers('await import(targetPath);'),
+    /unsupported dynamic import syntax/i
+  );
+  assert.throws(
+    () => importSpecifiers('const note = `${import(targetPath)}`;'),
+    /unsupported dynamic import syntax/i
+  );
+  assert.throws(
+    () => importSpecifiers('export { readTrioTask } from legacyControlPlane;'),
+    /unsupported re-export syntax/i
+  );
+  assert.throws(
+    () => assertAllowedImport('harness/trio/core/store.mjs', '../legacy/receipt.mjs'),
+    /unlisted runtime file/i
+  );
 
   const milestone = parseMilestoneArgs(process.argv.slice(2));
   const actual = await discoveredInventory();

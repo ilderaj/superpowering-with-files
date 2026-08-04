@@ -1,4 +1,5 @@
-import { mkdir, lstat, readFile, realpath, stat } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { lstat, mkdir, open, readFile, realpath, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { atomicWriteText } from '../../trio/core/store.mjs';
@@ -142,9 +143,57 @@ export async function resolveTrioFixture({ fixtureRoot: requestedRoot, homeDir: 
   }
 
   return Object.freeze({
+    kind: 'fixture',
     fixtureRoot: rootReal,
+    authorityRoot: rootReal,
     homeDir: path.resolve(homeDir),
-    stateFile: path.join(rootReal, '.harness', 'state.json')
+    stateFile: path.join(rootReal, '.harness', 'state.json'),
+    scopeRoots: Object.freeze({
+      workspace: rootReal,
+      'user-global': rootReal
+    })
+  });
+}
+
+async function resolveExistingRealDirectory(value, label) {
+  if (typeof value !== 'string' || value.length === 0 || !path.isAbsolute(value)) {
+    throw trioError(`${label} must be an absolute path.`, 'ERR_TRIO_PHYSICAL_GATE');
+  }
+  const absolute = path.resolve(value);
+  const info = await optionalLstat(absolute, label);
+  if (!info || info.isSymbolicLink() || !info.isDirectory()) {
+    throw trioError(`${label} must name an existing real directory.`, 'ERR_TRIO_PHYSICAL_GATE');
+  }
+  return realpath(absolute);
+}
+
+/**
+ * Resolve the normal workspace environment used by production Trio commands.
+ * This intentionally does not accept or inspect SWF_RUNTIME.
+ */
+export async function resolveTrioProductionEnvironment({ rootDir, homeDir = os.homedir() } = {}) {
+  const requestedAuthorityRoot = path.resolve(rootDir);
+  const requestedHome = path.resolve(homeDir);
+  const [authorityRoot, resolvedHome] = await Promise.all([
+    resolveExistingRealDirectory(requestedAuthorityRoot, 'Trio authority root'),
+    resolveExistingRealDirectory(requestedHome, 'Trio home directory')
+  ]);
+  if (authorityRoot === resolvedHome) {
+    throw trioError('Trio workspace and user-global roots must not be physical aliases.', 'ERR_TRIO_PHYSICAL_GATE');
+  }
+  return Object.freeze({
+    kind: 'production',
+    authorityRoot,
+    homeDir: resolvedHome,
+    stateFile: path.join(authorityRoot, '.harness', 'state.json'),
+    scopeRoots: Object.freeze({
+      workspace: authorityRoot,
+      'user-global': resolvedHome
+    }),
+    requestedScopeRoots: Object.freeze({
+      workspace: requestedAuthorityRoot,
+      'user-global': requestedHome
+    })
   });
 }
 
@@ -155,6 +204,17 @@ export function selectInstallerRuntime(selector = process.env.SWF_RUNTIME) {
   if (selector === undefined || selector === '' || selector === 'legacy') return 'legacy';
   if (selector === 'trio') return 'trio';
   throw trioError(`Unsupported SWF_RUNTIME selector: ${selector}.`, 'ERR_TRIO_RUNTIME_SELECTOR');
+}
+
+/**
+ * Production runtime selection is disk-state driven. An ambient selector can
+ * only be used by the explicit fixture/shadow bridge and must never switch a
+ * normal workspace command.
+ */
+export function assertProductionRuntimeSelector() {
+  if (Object.hasOwn(process.env, 'SWF_RUNTIME')) {
+    throw trioError('SWF_RUNTIME is only supported with an explicit Trio --fixture-root.', 'ERR_TRIO_RUNTIME_SELECTOR');
+  }
 }
 
 /**
@@ -196,21 +256,49 @@ export function parseTrioCommandOptions(args, { values = [], flags = [] } = {}) 
 /**
  * Preflight all managed destinations and the state file as a single physical fixture transaction.
  */
-export async function preflightTrioFixturePaths({ fixtureRoot, descriptors, stateFile }) {
+function rootForScope(scopeRoots, scope, label) {
+  if (!scopeRoots || typeof scopeRoots !== 'object') {
+    throw trioError('Trio physical gate requires scope roots.', 'ERR_TRIO_PHYSICAL_GATE');
+  }
+  if (!['workspace', 'user-global'].includes(scope)) {
+    throw trioError(`${label} has an unsupported scope: ${String(scope)}.`, 'ERR_TRIO_PHYSICAL_GATE');
+  }
+  const root = scopeRoots[scope];
+  if (typeof root !== 'string' || !path.isAbsolute(root)) {
+    throw trioError(`${label} has no physical root for scope ${scope}.`, 'ERR_TRIO_PHYSICAL_GATE');
+  }
+  return path.resolve(root);
+}
+
+async function canonicalScopeRoots(scopeRoots) {
+  const result = new Map();
+  for (const scope of ['workspace', 'user-global']) {
+    const root = rootForScope(scopeRoots, scope, 'Trio scope');
+    const info = await optionalLstat(root, `${scope} root`);
+    if (!info || info.isSymbolicLink() || !info.isDirectory()) {
+      throw trioError(`${scope} root must be an existing real directory.`, 'ERR_TRIO_PHYSICAL_GATE');
+    }
+    result.set(scope, await realpath(root));
+  }
+  return result;
+}
+
+export async function preflightTrioFixturePaths({ fixtureRoot, scopeRoots, descriptors, stateFile }) {
   if (!Array.isArray(descriptors)) {
     throw trioError('Trio descriptors must be an array.', 'ERR_TRIO_PHYSICAL_GATE');
   }
-  const rootInfo = await optionalLstat(fixtureRoot, 'fixture root');
-  if (!rootInfo || rootInfo.isSymbolicLink() || !rootInfo.isDirectory()) {
-    throw trioError('Fixture root must be an existing real directory.', 'ERR_TRIO_PHYSICAL_GATE');
-  }
-  const rootReal = await realpath(fixtureRoot);
+  const effectiveScopeRoots = scopeRoots ?? {
+    workspace: fixtureRoot,
+    'user-global': fixtureRoot
+  };
+  const roots = await canonicalScopeRoots(effectiveScopeRoots);
   const targets = [
     ...descriptors.map((descriptor, index) => ({
       label: `descriptor[${index}]`,
-      path: descriptor?.destination
+      path: descriptor?.destination,
+      scope: descriptor?.scope
     })),
-    { label: 'state', path: stateFile }
+    { label: 'state', path: stateFile, scope: 'workspace' }
   ];
   const byPath = new Map();
   const byIdentity = new Map();
@@ -218,9 +306,13 @@ export async function preflightTrioFixturePaths({ fixtureRoot, descriptors, stat
   const inspected = [];
 
   for (const target of targets) {
+    const rootReal = roots.get(target.scope);
+    if (!rootReal) {
+      throw trioError(`${target.label} has no physical scope root.`, 'ERR_TRIO_PHYSICAL_GATE');
+    }
     const absolute = assertAbsolutePath(target.path, `${target.label} path`);
     if (!pathIsWithinOrEqual(rootReal, absolute)) {
-      throw trioError(`${target.label} escapes the fixture root.`, 'ERR_TRIO_PHYSICAL_GATE');
+      throw trioError(`${target.label} escapes its ${target.scope} root.`, 'ERR_TRIO_PHYSICAL_GATE');
     }
     if (byPath.has(absolute)) {
       throw trioError(`${target.label} aliases ${byPath.get(absolute)}.`, 'ERR_TRIO_PHYSICAL_GATE');
@@ -308,6 +400,232 @@ export function defaultState() {
 
 export function statePath(rootDir) {
   return path.join(rootDir, '.harness', 'state.json');
+}
+
+function hashStateBytes(bytes) {
+  return createHash('sha256').update(bytes).digest('hex');
+}
+
+function stateEvidenceError(message) {
+  return trioError(message, 'ERR_TRIO_STATE_DRIFT');
+}
+
+async function canonicalStateRoot(rootDir) {
+  const requested = path.resolve(rootDir);
+  try {
+    return await realpath(requested);
+  } catch (error) {
+    throw stateEvidenceError(`Trio authority root is unavailable while probing state: ${requested}.`);
+  }
+}
+
+function stateIdentityFromStat(info, label, { directory = false } = {}) {
+  if (!info || info.isSymbolicLink() || (directory ? !info.isDirectory() : !info.isFile())) {
+    throw stateEvidenceError(`${label} must remain a real ${directory ? 'directory' : 'regular file'}.`);
+  }
+  if (!directory && info.nlink !== 1n) {
+    throw stateEvidenceError(`${label} must not be hard linked.`);
+  }
+  return Object.freeze({ dev: info.dev, ino: info.ino, nlink: info.nlink });
+}
+
+function sameStateIdentity(left, right) {
+  return Boolean(left && right)
+    && left.dev === right.dev
+    && left.ino === right.ino
+    && left.nlink === right.nlink;
+}
+
+async function nearestStateDirectoryEvidence(rootDir, targetPath) {
+  const authorityPath = path.resolve(rootDir);
+  let authority;
+  try {
+    authority = await lstat(authorityPath, { bigint: true });
+  } catch (error) {
+    throw stateEvidenceError(`Trio authority root is unavailable while probing state: ${authorityPath}.`);
+  }
+  const authorityIdentity = stateIdentityFromStat(authority, 'Trio authority root', { directory: true });
+  const stateDirectory = path.dirname(targetPath);
+  try {
+    const parent = await lstat(stateDirectory, { bigint: true });
+    return Object.freeze({
+      path: stateDirectory,
+      identity: stateIdentityFromStat(parent, 'Trio state parent', { directory: true })
+    });
+  } catch (error) {
+    if (isMissingPathError(error)) {
+      return Object.freeze({ path: authorityPath, identity: authorityIdentity });
+    }
+    throw stateEvidenceError(`Trio state parent is unavailable while probing state: ${stateDirectory}.`);
+  }
+}
+
+async function captureInstallerStateEvidence(rootDir) {
+  const targetPath = statePath(rootDir);
+  let handle;
+  try {
+    handle = await open(targetPath, 'r');
+  } catch (error) {
+    if (!isMissingPathError(error)) throw error;
+    const nearest = await nearestStateDirectoryEvidence(rootDir, targetPath);
+    return Object.freeze({
+      path: targetPath,
+      exists: false,
+      bytes: null,
+      sha256: null,
+      identity: null,
+      nearest
+    });
+  }
+
+  try {
+    const initial = stateIdentityFromStat(
+      await handle.stat({ bigint: true }),
+      'Trio persisted state'
+    );
+    const bytes = await handle.readFile();
+    const settled = stateIdentityFromStat(
+      await handle.stat({ bigint: true }),
+      'Trio persisted state'
+    );
+    if (!sameStateIdentity(initial, settled)) {
+      throw stateEvidenceError(`Trio persisted state changed while it was being read: ${targetPath}.`);
+    }
+    let pathIdentity;
+    try {
+      pathIdentity = stateIdentityFromStat(
+        await lstat(targetPath, { bigint: true }),
+        'Trio persisted state'
+      );
+    } catch (error) {
+      throw stateEvidenceError(`Trio persisted state changed while it was being bound: ${targetPath}.`);
+    }
+    if (!sameStateIdentity(initial, pathIdentity)) {
+      throw stateEvidenceError(`Trio persisted state path changed while it was being read: ${targetPath}.`);
+    }
+    return Object.freeze({
+      path: targetPath,
+      exists: true,
+      bytes,
+      sha256: hashStateBytes(bytes),
+      identity: initial,
+      nearest: await nearestStateDirectoryEvidence(rootDir, targetPath)
+    });
+  } finally {
+    await handle.close();
+  }
+}
+
+function normalizeStateEvidenceIdentity(value, label, { allowNull = false } = {}) {
+  if (value === null && allowNull) return null;
+  const expectedKeys = new Set(['dev', 'ino', 'nlink']);
+  const keys = value && typeof value === 'object' ? Reflect.ownKeys(value) : [];
+  if (!value || typeof value !== 'object'
+    || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
+    || keys.length !== expectedKeys.size
+    || keys.some((key) => typeof key !== 'string' || !expectedKeys.has(key))
+    || typeof Object.getOwnPropertyDescriptor(value, 'dev')?.value !== 'bigint'
+    || typeof Object.getOwnPropertyDescriptor(value, 'ino')?.value !== 'bigint'
+    || typeof Object.getOwnPropertyDescriptor(value, 'nlink')?.value !== 'bigint') {
+    throw stateEvidenceError(`${label} must contain bigint dev, ino, and nlink values.`);
+  }
+  return Object.freeze({ dev: value.dev, ino: value.ino, nlink: value.nlink });
+}
+
+function normalizeInstallerStateEvidence(rootDir, value) {
+  const expectedKeys = new Set(['path', 'exists', 'bytes', 'sha256', 'identity', 'nearest']);
+  const keys = value && typeof value === 'object' ? Reflect.ownKeys(value) : [];
+  if (!value || typeof value !== 'object'
+    || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)
+    || keys.length !== expectedKeys.size
+    || keys.some((key) => typeof key !== 'string' || !expectedKeys.has(key))) {
+    throw stateEvidenceError('Trio state probe evidence has an invalid shape.');
+  }
+  const expectedPath = statePath(rootDir);
+  if (Object.getOwnPropertyDescriptor(value, 'path')?.value !== expectedPath
+    || typeof Object.getOwnPropertyDescriptor(value, 'exists')?.value !== 'boolean') {
+    throw stateEvidenceError('Trio state probe evidence does not match the requested state path.');
+  }
+  const exists = value.exists;
+  const bytes = Object.getOwnPropertyDescriptor(value, 'bytes')?.value;
+  const sha256 = Object.getOwnPropertyDescriptor(value, 'sha256')?.value;
+  const identity = normalizeStateEvidenceIdentity(
+    Object.getOwnPropertyDescriptor(value, 'identity')?.value,
+    'Trio state probe target identity',
+    { allowNull: !exists }
+  );
+  const nearestValue = Object.getOwnPropertyDescriptor(value, 'nearest')?.value;
+  const nearestKeys = new Set(['path', 'identity']);
+  const nearestOwnKeys = nearestValue && typeof nearestValue === 'object' ? Reflect.ownKeys(nearestValue) : [];
+  if (!nearestValue || typeof nearestValue !== 'object'
+    || (Object.getPrototypeOf(nearestValue) !== Object.prototype && Object.getPrototypeOf(nearestValue) !== null)
+    || nearestOwnKeys.length !== nearestKeys.size
+    || nearestOwnKeys.some((key) => typeof key !== 'string' || !nearestKeys.has(key))
+    || typeof Object.getOwnPropertyDescriptor(nearestValue, 'path')?.value !== 'string') {
+    throw stateEvidenceError('Trio state probe nearest-directory evidence has an invalid shape.');
+  }
+  const nearest = Object.freeze({
+    path: nearestValue.path,
+    identity: normalizeStateEvidenceIdentity(
+      Object.getOwnPropertyDescriptor(nearestValue, 'identity')?.value,
+      'Trio state probe nearest-directory identity'
+    )
+  });
+  if (exists) {
+    if (!Buffer.isBuffer(bytes) || typeof sha256 !== 'string' || sha256 !== hashStateBytes(bytes) || !identity) {
+      throw stateEvidenceError('Trio existing-state probe evidence is invalid.');
+    }
+  } else if (bytes !== null || sha256 !== null || identity !== null) {
+    throw stateEvidenceError('Trio absent-state probe evidence is invalid.');
+  }
+  return Object.freeze({ path: expectedPath, exists, bytes, sha256, identity, nearest });
+}
+
+function sameInstallerStateEvidence(expected, observed) {
+  return expected.path === observed.path
+    && expected.exists === observed.exists
+    && expected.sha256 === observed.sha256
+    && (expected.exists ? sameStateIdentity(expected.identity, observed.identity) : expected.identity === null && observed.identity === null)
+    && expected.nearest.path === observed.nearest.path
+    && sameStateIdentity(expected.nearest.identity, observed.nearest.identity);
+}
+
+export async function assertInstallerStateEvidence(rootDir, evidence) {
+  const stateRoot = await canonicalStateRoot(rootDir);
+  const expected = normalizeInstallerStateEvidence(stateRoot, evidence);
+  const observed = await captureInstallerStateEvidence(stateRoot);
+  if (!sameInstallerStateEvidence(expected, observed)) {
+    throw stateEvidenceError(`Persisted Trio state changed after it was routed: ${statePath(stateRoot)}.`);
+  }
+  return expected;
+}
+
+/**
+ * Read the persisted runtime state without collapsing an absent state file into
+ * the legacy default. Production command routing relies on this distinction:
+ * an absent state is a fresh Trio install opportunity, while a persisted V1
+ * state remains on the compatibility path until an explicit upgrade.
+ */
+export async function probeInstallerState(rootDir) {
+  const stateRoot = await canonicalStateRoot(rootDir);
+  const evidence = await captureInstallerStateEvidence(stateRoot);
+  if (!evidence.exists) {
+    return Object.freeze({ kind: 'absent', state: null, evidence });
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(evidence.bytes.toString('utf8'));
+  } catch (error) {
+    throw error;
+  }
+
+  if (parsed && typeof parsed === 'object' && Object.hasOwn(parsed, 'schemaVersion') && parsed.schemaVersion === 2) {
+    return Object.freeze({ kind: 'v2', state: validateV2Config(parsed), evidence });
+  }
+
+  const state = normalizeStateShape(parsed);
+  validateStateShape(state);
+  return Object.freeze({ kind: 'v1', state, evidence });
 }
 
 export function validateDeploymentProfile(deploymentProfile) {
@@ -471,18 +789,8 @@ function normalizeStateShape(state) {
 }
 
 export async function readState(rootDir) {
-  try {
-    const parsed = JSON.parse(await readFile(statePath(rootDir), 'utf8'));
-    if (parsed && typeof parsed === 'object' && Object.hasOwn(parsed, 'schemaVersion') && parsed.schemaVersion === 2) {
-      return validateV2Config(parsed);
-    }
-    const state = normalizeStateShape(parsed);
-    validateStateShape(state);
-    return state;
-  } catch (error) {
-    if (error && error.code === 'ENOENT') return defaultState();
-    throw error;
-  }
+  const probe = await probeInstallerState(rootDir);
+  return probe.kind === 'absent' ? defaultState() : probe.state;
 }
 
 export async function writeState(rootDir, state) {
