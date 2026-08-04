@@ -1,5 +1,5 @@
 import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
-import { renderTokenAuditMarkdown, runTokenAudit } from '../../runtime/token-audit-service.mjs';
+import { renderTokenAuditMarkdown, runTokenAudit } from '../lib/token-audit.mjs';
 
 function hasFlag(args, ...names) {
   return names.some((name) => args.includes(name));

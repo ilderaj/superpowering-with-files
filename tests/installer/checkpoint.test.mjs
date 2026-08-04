@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 import {
   createHarnessFixture,
@@ -124,6 +125,21 @@ test('harness checkpoint resolves the authority root when run from a nested leaf
     const outDir = stdout.trim();
     assert.match(outDir, /\.harness\/checkpoints\/leaf-fixture$/);
     await access(path.join(outDir, 'manifest.json'));
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness checkpoint remains runnable after the retired source-root helper is absent', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await rm(path.join(root, 'harness/runtime/source-root.mjs'));
+
+    const { checkpointCommand } = await import(
+      pathToFileURL(path.join(root, 'harness/installer/commands/checkpoint.mjs')).href
+    );
+
+    await assert.doesNotReject(() => checkpointCommand(['--help'], { rootDir: root }));
   } finally {
     await removeHarnessFixture(root);
   }

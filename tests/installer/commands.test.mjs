@@ -1339,6 +1339,10 @@ test('doctor prints safety checks for safety profile installs', async () => {
     });
 
     await harnessCommand(root, 'sync');
+    const checkpointPath = path.join(root, '.agent-config/bin/checkpoint');
+    await access(checkpointPath);
+    const { stdout: checkpointStdout } = await execFileAsync(checkpointPath, ['--help'], { cwd: root });
+    assert.match(checkpointStdout, /Usage: checkpoint <path>/);
     const { stdout } = await harnessCommand(root, 'doctor', '--check-only');
 
     assert.match(stdout, /Safety checks:/);

@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { runTokenAudit } from '../harness/runtime/token-audit-service.mjs';
+import { runTokenAudit } from '../harness/installer/lib/token-audit.mjs';
 
 const execFile = promisify(execFileCallback);
 const SCRIPT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');

@@ -71,7 +71,7 @@ export function planSafetyProjections({ rootDir, homeDir, scope, policyProfile }
       strategy: 'materialize',
       scope: scopeName,
       executable: true,
-      sourcePath: resolveHarnessSourcePath(rootDir, 'harness/core/safety/bin/checkpoint'),
+      sourcePath: resolveHarnessSourcePath(rootDir, 'harness/trio/capabilities/safety/bin/checkpoint'),
       targetPath: path.join(root, 'bin/checkpoint')
     });
 
