@@ -292,7 +292,6 @@ test('workspace-skills plan reads the committed standard profile without writing
       assert.ok(!keys.some((key) => key.startsWith('superpowers:')), `${target.name} excludes Superpowers`);
       for (const key of [
         'planning-with-files:planning-with-files',
-        'chiefops:chiefops',
         'mattpocock-skills:tdd'
       ]) assert.ok(keys.includes(key), `${target.name} retains ${key}`);
     }

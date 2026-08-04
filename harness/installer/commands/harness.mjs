@@ -27,11 +27,6 @@ import { upstreamLockCommand } from './upstream-lock.mjs';
 import { workspaceSkills } from './workspace-skills.mjs';
 import { trioCommand } from './trio.mjs';
 
-async function chiefopsCommand(args) {
-  const chiefops = await import('./chiefops.mjs');
-  return chiefops.chiefopsCommand(args);
-}
-
 const commands = {
   install,
   doctor,
@@ -44,7 +39,6 @@ const commands = {
   checkpoint: checkpointCommand,
   'checkpoint-push': checkpointPushCommand,
   summary,
-  chiefops: chiefopsCommand,
   'active-summary': activeSummary,
   'lifecycle-sweep': lifecycleSweep,
   record,

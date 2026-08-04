@@ -151,10 +151,6 @@ Use unit proof for invariants, BDD for user-visible behavior, review proof for s
 
 Quick tasks stay lightweight with direct in-session proof; tracked/deep tasks declare the contract only when needed.
 
-## ChiefOps Governance Mode
-
-`ChiefOps` is optional tracked-task governance: use planning state plus receipts to frame one bounded next slice, not a new lane or memory system.
-
 ## When Superpowers Is Allowed
 
 Use superpowers only when:

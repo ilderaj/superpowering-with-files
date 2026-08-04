@@ -56,7 +56,6 @@ test('minimal-global only projects the allow-listed subset for user-global Codex
   assert.ok(plan.some((projection) => projection.skillName === 'planning-with-files'));
   assert.ok(!keys.includes('overengineering-review:overengineering-review'));
   assert.ok(!keys.includes('simplification-ledger:simplification-ledger'));
-  assert.ok(!keys.includes('chiefops:chiefops'));
 });
 
 test('full remains a high-assurance compatibility alias while default is lightweight standard', async () => {
@@ -94,7 +93,6 @@ test('full remains a high-assurance compatibility alias while default is lightwe
   assert.ok(fullKeys.includes('autonomous-release-closure:autonomous-release-closure'));
   assert.ok(fullKeys.includes('overengineering-review:overengineering-review'));
   assert.ok(fullKeys.includes('simplification-ledger:simplification-ledger'));
-  assert.ok(fullKeys.includes('chiefops:chiefops'));
   assert.ok(fullKeys.includes('planning-with-files:planning-with-files'));
   assert.ok(!fullKeys.includes('superpowers:using-superpowers'));
   assert.ok(fullKeys.includes('superpowers:writing-plans'));
@@ -130,7 +128,7 @@ test('production profiles expose daily Harness governance and keep one coding ow
   ));
 
   const standardKeys = plans.standard.map(projectionKey).sort();
-  for (const skill of ['goal-writer', 'goal2plan', 'chiefops', 'overengineering-review', 'simplification-ledger']) {
+  for (const skill of ['goal-writer', 'goal2plan', 'overengineering-review', 'simplification-ledger']) {
     assert.ok(standardKeys.includes(`${skill}:${skill}`), skill);
   }
 

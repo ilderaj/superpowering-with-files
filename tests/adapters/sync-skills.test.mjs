@@ -295,19 +295,6 @@ test('sync projects selected workspace entries and skills', async () => {
     );
     assert.match(simplificationLedgerOutput, /upgrade trigger: no-trigger/);
 
-    const chiefops = await readFile(path.join(root, '.agents/skills/chiefops/SKILL.md'), 'utf8');
-    assert.match(chiefops, /name: chiefops/);
-    assert.match(chiefops, /planning\/active\/<task-id>\//);
-    assert.match(chiefops, /\.harness\/execution\/receipts\/<taskId>\/\*\.json/);
-    assert.match(chiefops, /does not create durable state, replace task memory, or act as a runner/i);
-
-    const chiefopsTemplate = await readFile(path.join(root, '.agents/skills/chiefops/template.md'), 'utf8');
-    assert.match(chiefopsTemplate, /ChiefOps Readout/);
-    assert.match(chiefopsTemplate, /Forbidden moves:/);
-
-    const chiefopsRubric = await readFile(path.join(root, '.agents/skills/chiefops/rubric.md'), 'utf8');
-    assert.match(chiefopsRubric, /only durable task memory/);
-    assert.match(chiefopsRubric, /one bounded next slice/);
   } finally {
     await removeHarnessFixture(root);
   }

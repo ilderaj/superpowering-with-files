@@ -1,7 +1,6 @@
 import * as z from 'zod/v3';
 import { getHarnessStatus } from '../../runtime/status-service.mjs';
 import { runHarnessDoctor } from '../../runtime/doctor-service.mjs';
-import { buildChiefOpsBoardText, getChiefOpsBoard } from '../../runtime/chiefops-service.mjs';
 import { getActiveTaskSummary, getTaskSummary } from '../../runtime/summary-service.mjs';
 import { getSyncDryRun } from '../../runtime/sync-plan-service.mjs';
 import { runHarnessVerify } from '../../runtime/verify-service.mjs';
@@ -63,19 +62,6 @@ export function registerReadOnlyTools(server) {
     async ({ root, taskId }) => {
       const result = await getTaskSummary({ root, taskId });
       return textResult(`Task summary for ${taskId}`, result);
-    }
-  );
-
-  server.registerTool(
-    'harness_chiefops_board',
-    {
-      description: 'Read the derived ChiefOps board for a specific active task.',
-      inputSchema: z.object({ root: z.string().optional(), taskId: z.string() }).strict(),
-      annotations: { readOnlyHint: true, idempotentHint: true }
-    },
-    async ({ root, taskId }) => {
-      const result = await getChiefOpsBoard({ root, taskId });
-      return textResult(buildChiefOpsBoardText(result), result);
     }
   );
 
