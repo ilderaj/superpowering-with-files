@@ -196,6 +196,29 @@ test('harness --help prints top-level usage', async () => {
   }
 });
 
+test('lifecycle-sweep control plane is physically retired', async () => {
+  const retiredPaths = [
+    'harness/installer/commands/lifecycle-sweep.mjs',
+    'harness/runtime/lifecycle-sweep-service.mjs',
+    'harness/runtime/lifecycle-anchor-receipt.mjs'
+  ];
+  const presentRetiredPaths = [];
+  for (const relativePath of retiredPaths) {
+    try {
+      await access(path.join(process.cwd(), relativePath));
+      presentRetiredPaths.push(relativePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+
+  await assert.rejects(
+    harnessCommand(process.cwd(), 'lifecycle-sweep'),
+    (error) => error?.code === 1 && /Unknown command: lifecycle-sweep/.test(`${error.stderr}\n${error.stdout}`)
+  );
+  assert.deepEqual(presentRetiredPaths, []);
+});
+
 test('harness public dispatcher exposes Trio quick routing without creating planning state', async () => {
   const root = await createHarnessFixture();
   try {
