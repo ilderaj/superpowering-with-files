@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { access, readFile } from 'node:fs/promises';
+import path from 'node:path';
 
 import { buildSyncPlan } from '../../harness/installer/lib/sync-plan.mjs';
-import { renderSyncReport } from '../../harness/installer/lib/sync-report.mjs';
 
 test('buildSyncPlan returns a stable plan object with operations and report payload', async () => {
   const plan = await buildSyncPlan(['--dry-run'], {
@@ -20,23 +21,26 @@ test('buildSyncPlan returns a stable plan object with operations and report payl
   assert.equal(plan.report.mode, 'dry-run');
 });
 
-test('renderSyncReport preserves legacy sync report keys and adds detail buckets', () => {
-  const report = renderSyncReport(
-    {
-      state: { scope: 'workspace' },
-      currentManifest: { entries: [] },
-      plan: { targets: ['codex'] },
-      diff: { create: [], update: [], stale: [], unchanged: [] },
-      summary: { create: 0, update: 0, stale: 0, unchanged: 0 }
-    },
-    {
-      mode: 'dry-run',
-      warnings: ['hook payload budget exceeded for planning-with-files on codex'],
-      details: { projections: ['codex'], hooks: ['planning-with-files'] }
-    }
-  );
+test('public commands retain no unreachable V1 implementation or legacy sync report dependency', async () => {
+  const forbiddenByCommand = {
+    'install.mjs': 'installLegacy',
+    'sync.mjs': 'syncLegacy',
+    'doctor.mjs': 'doctorLegacy',
+    'verify.mjs': 'verifyLegacy'
+  };
 
-  assert.equal(report.summary.create, 0);
-  assert.equal(Array.isArray(report.warnings), true);
-  assert.equal(report.details.mode, 'dry-run');
+  for (const [file, identifier] of Object.entries(forbiddenByCommand)) {
+    const source = await readFile(path.join(process.cwd(), 'harness/installer/commands', file), 'utf8');
+    assert.doesNotMatch(source, new RegExp(`\\b${identifier}\\b`));
+  }
+
+  const syncSource = await readFile(
+    path.join(process.cwd(), 'harness/installer/commands/sync.mjs'),
+    'utf8'
+  );
+  assert.doesNotMatch(syncSource, /sync-report\.mjs/);
+  await assert.rejects(
+    access(path.join(process.cwd(), 'harness/installer/lib/sync-report.mjs')),
+    /ENOENT/
+  );
 });
