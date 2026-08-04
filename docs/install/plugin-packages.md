@@ -186,7 +186,6 @@ shasum -a 256 "$HOME/Downloads/harness-cursor-plugin-${VERSION}.tgz"
 
 ## Related Docs
 
-- [Harness Plugin Migration](plugin-migration.md)
 - [Harness Plugin Release Artifacts](../release-plugin-artifacts.md)
 - [Codex installation](codex.md)
 - [Claude Code installation](claude-code.md)

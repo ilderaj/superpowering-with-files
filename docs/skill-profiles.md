@@ -8,7 +8,7 @@ This page is the canonical operator reference for the relationship between a Har
 - Codex, GitHub Copilot, and Cursor use `.agents/skills/<skill-name>` for workspace scope and `~/.agents/skills/<skill-name>` for user-global scope.
 - Claude Code uses `.claude/skills/<skill-name>` for workspace scope and `~/.claude/skills/<skill-name>` for user-global scope.
 - A profile selects an allow-list; it does not change the durable task authority. For tracked work, `planning/active/<task-id>/` remains the only task-memory root.
-- Personal/global: `sync --dry-run` shows paths from `.harness/state.json`; select with `install --skills-profile=<name>` or `adopt-global --skills-profile=<name>`.
+- Personal/global: `sync --dry-run` shows paths from `.harness/state.json`; select with `install --skills-profile=<name>`.
 - This repository: `workspace-skills plan|sync|check|set` reads `harness/workspace-skill-profile.json` and owns only `.agents/skills`, `.claude/skills`, and `.harness/workspace-skill-projections.json`. It never rewrites personal-global state, entries, hooks, safety settings, or backups.
 
 ## Profile Map
@@ -134,7 +134,7 @@ The isolated `superpowers-pilot` adds Superpowers TDD, debugging, review, and SD
 ./scripts/harness workspace-skills check
 ```
 
-Do not pass a skill profile directly to `sync`: it uses the persisted Harness state. Re-run `install` or `adopt-global` with the desired profile first, preferably in a disposable fixture/home when validating user-global adoption.
+Do not pass a skill profile directly to `sync`: it uses the persisted Harness state. Re-run `install` with the desired profile first, preferably in a disposable fixture/home when validating user-global adoption.
 
 `workspace-skills set` is intentionally different: it updates the committed repository desired profile only. Review that diff before sync. `--takeover` is required for a first managed adoption and refuses modified, ambiguous, untracked, partial, or symlinked known skill directories. Unknown skill directories are preserved. To roll back a profile change, restore the desired profile and runtime workspace manifest from the prior revision and sync; to remove the control plane itself, restore the captured tracked skill-root receipt and delete only the runtime workspace manifest.
 

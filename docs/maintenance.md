@@ -407,14 +407,11 @@ export HOME=/path/to/disposable-home
 ./scripts/harness install --scope=user-global --targets=all --hooks=on
 ./scripts/harness sync --conflict=backup
 ./scripts/harness doctor --check-only
-./scripts/harness adoption-status
 ```
 
 When you run `sync --conflict=backup`, Harness archives the displaced content into `~/.harness/backups/` and records it in `~/.harness/backup-index.json`. If legacy `.harness-backup-*` siblings are still present from an older takeover, the next successful `sync` imports them into that archive store and removes the live duplicates before projecting the new baseline.
 
-Use `sync --dry-run` before the actual sync only as a preview; it is not a substitute for verification because it does not write projection files. Manual inspection should cover the user-global entry files for Codex, GitHub Copilot, and Claude Code, plus Cursor's workspace rule output when `scope=both` is used. Cursor does not currently have a rendered user-global entry. The expected result is thin always-on entry content, no full deep-task policy dump, and no broad skill projection when `minimal-global` is selected. For a shorter adoption-oriented checklist, use the [Adoption Starter Kit](install/adoption-starter-kit.md).
-
-When using the adoption starter kit, verify rollback, doctor, sync dry-run, verify, and smoke-check steps before treating the profile as reusable team guidance.
+Use `sync --dry-run` before the actual sync only as a preview; it is not a substitute for verification because it does not write projection files. Manual inspection should cover the user-global entry files for Codex, GitHub Copilot, and Claude Code, plus Cursor's workspace rule output when `scope=both` is used. Cursor does not currently have a rendered user-global entry. The expected result is thin always-on entry content, no full deep-task policy dump, and no broad skill projection when `minimal-global` is selected.
 
 `minimal-global` is the recommended default. Move to a heavier profile only when the task explicitly needs broader projected context and the operator accepts the extra payload/runtime cost.
 

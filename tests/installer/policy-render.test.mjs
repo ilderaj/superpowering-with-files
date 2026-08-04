@@ -176,17 +176,15 @@ test('high-assurance guidance keeps quick rounds lightweight while documenting t
 });
 
 test('lightweight-default docs keep minimal-global as the explicit default posture', async () => {
-  const [readme, maintenance, adoptionKit] = await Promise.all([
+  const [readme, maintenance] = await Promise.all([
     readFile(path.join(process.cwd(), 'README.md'), 'utf8'),
-    readFile(path.join(process.cwd(), 'docs/maintenance.md'), 'utf8'),
-    readFile(path.join(process.cwd(), 'docs/install/adoption-starter-kit.md'), 'utf8')
+    readFile(path.join(process.cwd(), 'docs/maintenance.md'), 'utf8')
   ]);
 
   const sharedSentence =
     '`minimal-global` is the recommended default. Move to a heavier profile only when the task explicitly needs broader projected context and the operator accepts the extra payload/runtime cost.';
 
   assert.match(maintenance, new RegExp(sharedSentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-  assert.match(adoptionKit, new RegExp(sharedSentence.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(readme, /always receives full deep-task context/i);
 });
 

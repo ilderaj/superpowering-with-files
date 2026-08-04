@@ -91,13 +91,6 @@ Proof choice follows failure risk, not habit. Green unit or BDD results are not 
 ./scripts/harness doctor
 ```
 
-### User-global bootstrap or refresh
-
-```bash
-./scripts/harness adopt-global
-./scripts/harness adoption-status
-```
-
 Notes:
 
 - workspace installs default to the lightweight Matt-backed `standard` profile; user-global and `--scope=both` installs stay on lean `minimal-global`
@@ -184,8 +177,6 @@ See [Architecture](docs/architecture.md) for the detailed layer and source-of-tr
 ./scripts/harness chiefops board --task <task-id> --json
 ./scripts/harness worktree-preflight --task <task-id>
 ./scripts/harness worktree-name --task <task-id> --namespace <prefix>
-./scripts/harness adopt-global
-./scripts/harness adoption-status
 ./scripts/harness fetch
 ./scripts/harness update
 npm run release:pack
@@ -196,7 +187,6 @@ npm run release:pack
 ### Start here
 
 - [Workflows](docs/workflows.md) for the lane map
-- [Adoption starter kit](docs/install/adoption-starter-kit.md) for safe rollout choices
 - [Platform support](docs/install/platform-support.md) for target coverage and caveats
 
 ### Operate and maintain

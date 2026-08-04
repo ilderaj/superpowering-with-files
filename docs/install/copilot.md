@@ -70,15 +70,13 @@ For the `cloud-dev` lane, keep the Copilot install workspace-only:
 ./scripts/harness doctor --check-only
 ```
 
-Do not use `adopt-global`, `--scope=user-global`, or `--scope=both` for the `cloud-dev` lane.
+Do not use `--scope=user-global` or `--scope=both` for the `cloud-dev` lane.
 
 When you create a manual branch or worktree for Copilot-driven work, resolve the name from the repo-owned helper instead of a prompt summary:
 
 ```bash
 ./scripts/harness worktree-name --task <task-id> --namespace copilot
 ```
-
-`adopt-global` includes Copilot in the default user-global Harness baseline.
 
 If you want to bootstrap or refresh Copilot user-global state explicitly, use:
 

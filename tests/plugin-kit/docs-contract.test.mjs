@@ -2,13 +2,32 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-test('plugin migration docs cover global adoption cutover and rollback', async () => {
-  const docs = await readFile('docs/install/plugin-migration.md', 'utf8');
-  assert.match(docs, /Shadow Install/);
-  assert.match(docs, /Dual Run/);
-  assert.match(docs, /Cutover/);
-  assert.match(docs, /Rollback/);
-  assert.match(docs, /harness plugin migrate --target=codex --dry-run/);
+test('operating docs retire legacy adoption and plugin routes', async () => {
+  for (const retiredDoc of [
+    'docs/install/adoption-starter-kit.md',
+    'docs/install/plugin-migration.md'
+  ]) {
+    await assert.rejects(readFile(retiredDoc, 'utf8'), { code: 'ENOENT' });
+  }
+
+  const docs = await Promise.all([
+    'README.md',
+    'docs/maintenance.md',
+    'docs/workflows.md',
+    'docs/skill-profiles.md',
+    'docs/install/platform-support.md',
+    'docs/install/copilot.md',
+    'docs/install/plugin-packages.md',
+    'tests/evals/repo-workflow-acceptance-matrix.md',
+    'tests/evals/repo-workflow-replays/acceptance-scenarios.md'
+  ].map((file) => readFile(file, 'utf8')));
+
+  for (const doc of docs) {
+    assert.doesNotMatch(
+      doc,
+      /\bharness plugin (?:doctor|migrate)\b|\badopt-global\b|\badoption-status\b|(?:adoption-starter-kit|plugin-migration)\.md/
+    );
+  }
 });
 
 test('release artifact docs list all packed plugin assets and verification gates', async () => {

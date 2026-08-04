@@ -11,7 +11,7 @@ The replay currently has eleven lanes:
 - `degraded`:
   - warning-bearing and expected-failure scenarios that prove user-visible guardrails still fire correctly
 - `lifecycle`:
-  - reconciliation-open and adoption-drift scenarios that prove status surfaces still describe unhealthy state accurately
+  - reconciliation-open scenarios that prove status surfaces still describe unhealthy state accurately
 - `trust-boundary`:
   - target expansion plus authority-root and install guardrails that should fail loudly instead of mutating the wrong scope
 - `mixed-scope`:
@@ -71,69 +71,37 @@ The replay currently has eleven lanes:
 - Claim:
   - the task lifecycle summary still reports the active task correctly from a nested leaf directory.
 
-### 6. Adopt Global And Adoption Status
-- Surface:
-  - `./scripts/harness adopt-global --targets=codex`
-  - `./scripts/harness adoption-status`
-- Claim:
-  - a clean user-global bootstrap stays in sync and reports user-global status correctly.
-
 ### Degraded Lane
 
-### 7. Verify Overlap Warning
+### 6. Verify Overlap Warning
 - Surface:
   - `./scripts/harness verify`
 - Claim:
   - a both-scope Copilot install still surfaces overlap guidance and ledger detail instead of silently looking healthy.
 
-### 8. Doctor Personal-Path Problem
+### 7. Doctor Personal-Path Problem
 - Surface:
   - `./scripts/harness doctor --check-only`
 - Claim:
   - projected entry content containing a personal path still fails loudly on the user-visible doctor surface.
 
-### 9. Adopt Global Rejects Workspace State
-- Surface:
-  - `./scripts/harness adopt-global`
-- Claim:
-  - user-global bootstrap still refuses to mutate an existing workspace/both install state.
-
 ### Lifecycle Lane
 
-### 10. Active Summary Reconciliation Open
+### 8. Active Summary Reconciliation Open
 - Surface:
   - `./scripts/harness active-summary --json`
 - Claim:
   - a closed archive-eligible task with an open reconciliation signal still stays non-ready and emits a lifecycle anomaly.
 
-### 11. Adoption Status State Mismatch
-- Surface:
-  - `./scripts/harness adoption-status`
-- Claim:
-  - user-global adoption drift still reports `state_mismatch` when install state no longer matches the adoption receipt.
-
-### 12. Adoption Status Copilot Overlap
-- Surface:
-  - `./scripts/harness adoption-status`
-- Claim:
-  - a user-global Copilot adoption that drifts into both scope still reports overlap-driven `needs_apply` guidance.
-
 ### Trust-Boundary Lane
 
-### 13. Adoption Status Claude Code Runtime Reason
-- Surface:
-  - `./scripts/harness adopt-global --targets=claude-code --hooks=on`
-  - `./scripts/harness adoption-status`
-- Claim:
-  - a Claude Code user-global adoption stays `in_sync` while still surfacing the non-failing runtime-evidence caveat.
-
-### 14. Install Rejects User-Global Safety Profile
+### 9. Install Rejects User-Global Safety Profile
 - Surface:
   - `./scripts/harness install --scope=user-global --profile=safety`
 - Claim:
   - workspace-only safety profiles still fail loudly instead of mutating a user-global install.
 
-### 15. Workspace-Link Rejects External Authority Root
+### 10. Workspace-Link Rejects External Authority Root
 - Surface:
   - `./scripts/harness workspace-link --root=<external-root>`
 - Claim:
@@ -141,7 +109,7 @@ The replay currently has eleven lanes:
 
 ### Mixed-Scope Lane
 
-### 16. Workspace Install Cursor From Leaf
+### 11. Workspace Install Cursor From Leaf
 - Surface:
   - `./scripts/harness install --scope=workspace --targets=cursor`
   - `./scripts/harness sync`
@@ -149,14 +117,14 @@ The replay currently has eleven lanes:
 - Claim:
   - a nested leaf workspace can install Cursor, project the native `.cursor/rules/harness.mdc` rule, and still verify cleanly.
 
-### 17. Verify Copilot Overlap After Real Both-Scope Install
+### 12. Verify Copilot Overlap After Real Both-Scope Install
 - Surface:
   - `./scripts/harness install --scope=both --targets=copilot --hooks=on`
   - `./scripts/harness verify`
 - Claim:
   - a real both-scope Copilot install still surfaces overlap guidance on the user-visible verification report instead of relying on seeded state only.
 
-### 18. Install Both-Scope Codex Defaults Minimal-Global
+### 13. Install Both-Scope Codex Defaults Minimal-Global
 - Surface:
   - `./scripts/harness install --scope=both --targets=codex`
   - `./scripts/harness verify`
@@ -165,21 +133,21 @@ The replay currently has eleven lanes:
 
 ### Additional-Targets Lane
 
-### 19. Workspace Install Copilot Default Profile
+### 14. Workspace Install Copilot Default Profile
 - Surface:
   - `./scripts/harness install --scope=workspace --targets=copilot`
   - `./scripts/harness verify`
 - Claim:
   - a Copilot-only workspace install keeps the target-specific `copilot-default` skills profile while still producing a coherent verification report.
 
-### 20. Workspace Install Claude Code With Hooks
+### 15. Workspace Install Claude Code With Hooks
 - Surface:
   - `./scripts/harness install --scope=workspace --targets=claude-code --hooks=on`
   - `./scripts/harness verify`
 - Claim:
   - a Claude Code workspace install can enable hooks, project `CLAUDE.md`, and still verify coherently on the user-visible surface.
 
-### 21. Install Both-Scope All Targets
+### 16. Install Both-Scope All Targets
 - Surface:
   - `./scripts/harness install --scope=both --targets=all`
   - `./scripts/harness verify --output=<dir>`
@@ -188,19 +156,19 @@ The replay currently has eleven lanes:
 
 ### Sync-Preview Lane
 
-### 22. Sync Dry Run Both-Scope All Targets From State
+### 17. Sync Dry Run Both-Scope All Targets From State
 - Surface:
   - `./scripts/harness sync --dry-run`
 - Claim:
   - a both-scope all-target preview exposes the multi-target projection plan while leaving projections and sync state untouched.
 
-### 23. Sync Dry Run Both-Scope Copilot Hooks From State
+### 18. Sync Dry Run Both-Scope Copilot Hooks From State
 - Surface:
   - `./scripts/harness sync --dry-run`
 - Claim:
   - a both-scope Copilot preview exposes hook-config and hook-script work for both scopes without writing any projection state.
 
-### 24. Sync Dry Run Workspace Claude Hooks From State
+### 19. Sync Dry Run Workspace Claude Hooks From State
 - Surface:
   - `./scripts/harness sync --dry-run`
 - Claim:
@@ -208,19 +176,19 @@ The replay currently has eleven lanes:
 
 ### Reporting Lane
 
-### 25. Sync Check Out Of Sync From Leaf
+### 20. Sync Check Out Of Sync From Leaf
 - Surface:
   - `./scripts/harness sync --check`
 - Claim:
   - a nested leaf workspace still fails loudly when projections drift, while keeping entries and projection manifests untouched.
 
-### 26. Summary Task Route Line With Multiple Active Tasks
+### 21. Summary Task Route Line With Multiple Active Tasks
 - Surface:
   - `./scripts/harness summary --task <task-id>`
 - Claim:
   - an explicitly requested task still renders the compact route line even when other active tasks exist.
 
-### 27. Token Audit Weekly Summary
+### 22. Token Audit Weekly Summary
 - Surface:
   - `./scripts/harness token-audit --sessions-root=<path> --date-from=<iso> --date-to=<iso>`
 - Claim:
@@ -228,19 +196,19 @@ The replay currently has eleven lanes:
 
 ### Execution-Lifecycle Lane
 
-### 28. Active Summary Blocked Execution Open Followup
+### 23. Active Summary Blocked Execution Open Followup
 - Surface:
   - `./scripts/harness active-summary --json`
 - Claim:
   - blocked execution receipts and their open followups stay visible as first-class governance anomalies on the live summary surface.
 
-### 29. Active Summary Failed Execution Unit
+### 24. Active Summary Failed Execution Unit
 - Surface:
   - `./scripts/harness active-summary --json`
 - Claim:
   - failed execution units stay distinguishable from blocked ones instead of collapsing into generic warnings.
 
-### 30. Active Summary Resolved Followup Closure
+### 25. Active Summary Resolved Followup Closure
 - Surface:
   - `./scripts/harness active-summary --json`
 - Claim:
@@ -248,19 +216,19 @@ The replay currently has eleven lanes:
 
 ### Companion-Reconciliation Lane
 
-### 31. Active Summary Archive-Ready Companion Blocker
+### 26. Active Summary Archive-Ready Companion Blocker
 - Surface:
   - `./scripts/harness active-summary --json`
 - Claim:
   - a supposedly archive-ready task still stays blocked when its companion lifecycle metadata drifts out of sync.
 
-### 32. Active Summary Active Companion Drift Warning
+### 27. Active Summary Active Companion Drift Warning
 - Surface:
   - `./scripts/harness active-summary --json`
 - Claim:
   - active tasks surface companion drift as a warning before archive readiness is even in play.
 
-### 33. Active Summary Placeholder Reconciliation Open
+### 28. Active Summary Placeholder Reconciliation Open
 - Surface:
   - `./scripts/harness active-summary --json`
 - Claim:
@@ -268,21 +236,21 @@ The replay currently has eleven lanes:
 
 ### Workspace-Link Lane
 
-### 34. Workspace-Link Restores Parent Status Across Git Boundary
+### 29. Workspace-Link Restores Parent Status Across Git Boundary
 - Surface:
   - `./scripts/harness workspace-link --root=<authority-root>`
   - `./scripts/harness status`
 - Claim:
   - a nested leaf workspace with its own git boundary can recover the parent authority-root status surface after an explicit workspace-link.
 
-### 35. Workspace-Link Rewrites Bogus Override And Restores Summary
+### 30. Workspace-Link Rewrites Bogus Override And Restores Summary
 - Surface:
   - `./scripts/harness workspace-link --root=<authority-root>`
   - `./scripts/harness summary`
 - Claim:
   - a bogus leaf override can be rewritten deterministically, after which the leaf regains access to parent planning summaries.
 
-### 36. Workspace-Link Routes Install And Sync Back To Parent Authority Root
+### 31. Workspace-Link Routes Install And Sync Back To Parent Authority Root
 - Surface:
   - `./scripts/harness workspace-link --root=<authority-root>`
   - `./scripts/harness install --scope=workspace --targets=cursor`
