@@ -225,11 +225,13 @@ test('harness public dispatcher exposes Trio quick routing without creating plan
 test('harness public dispatcher rejects the retired command', async () => {
   const root = await createHarnessFixture();
   try {
-    await assert.rejects(harnessCommand(root, 'mcp-approve'), (error) => {
-      assert.equal(error.code, 1);
-      assert.match(error.stderr, new RegExp(`Unknown command: ${'mcp' + '-approve'}`));
-      return true;
-    });
+    for (const command of ['mcp-approve', 'status']) {
+      await assert.rejects(harnessCommand(root, command), (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, new RegExp(`Unknown command: ${command}`));
+        return true;
+      });
+    }
   } finally {
     await removeHarnessFixture(root);
   }
@@ -380,32 +382,6 @@ test('token-audit rejects invalid explicit audit windows', async () => {
       ),
       /Invalid audit window/
     );
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('status resolves authority root when run from a nested leaf directory', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const leafDir = path.join(root, 'packages/demo');
-    await mkdir(leafDir, { recursive: true });
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await writeFile(path.join(root, 'AGENTS.md'), 'Harness Policy For Codex\n', 'utf8');
-    const { stdout } = await harnessCommand(root, 'status', { cwd: leafDir });
-    const report = JSON.parse(stdout);
-
-    assert.equal(await realpath(report.targets.codex.entries[0].path), await realpath(path.join(root, 'AGENTS.md')));
   } finally {
     await removeHarnessFixture(root);
   }

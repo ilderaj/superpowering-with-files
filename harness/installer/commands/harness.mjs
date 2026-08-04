@@ -2,7 +2,6 @@
 import { install } from './install.mjs';
 import { doctor } from './doctor.mjs';
 import { sync } from './sync.mjs';
-import { status } from './status.mjs';
 import { fetchCommand } from './fetch.mjs';
 import { updateCommand } from './update.mjs';
 import { verify } from './verify.mjs';
@@ -30,7 +29,6 @@ const commands = {
   install,
   doctor,
   sync,
-  status,
   fetch: fetchCommand,
   'upstream-lock': upstreamLockCommand,
   update: updateCommand,
