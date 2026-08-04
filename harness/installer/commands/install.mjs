@@ -366,13 +366,31 @@ function fixtureRuntimeRequired() {
   }
 }
 
-function requestsProductionUpgrade(args) {
-  return args.some((argument) => typeof argument === 'string' && (
-    argument === '--upgrade' ||
-    argument.startsWith('--upgrade=') ||
-    argument === '--recovery' ||
-    argument.startsWith('--recovery=')
-  ));
+function requiresExplicitProductionUpgrade(args) {
+  if (!Array.isArray(args)) return true;
+  let upgradeCount = 0;
+  let recoveryCount = 0;
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index];
+    if (argument === '--upgrade') {
+      upgradeCount += 1;
+      continue;
+    }
+    if (argument === '--recovery') {
+      const value = args[index + 1];
+      if (typeof value !== 'string' || !value || value.startsWith('--')) return true;
+      recoveryCount += 1;
+      index += 1;
+      continue;
+    }
+    if (typeof argument === 'string' && argument.startsWith('--recovery=')) {
+      if (!argument.slice('--recovery='.length)) return true;
+      recoveryCount += 1;
+      continue;
+    }
+    return true;
+  }
+  return upgradeCount !== 1 || recoveryCount !== 1;
 }
 
 function parseProductionInstallOptions(args) {
@@ -518,10 +536,20 @@ export async function install(args = [], options = {}) {
   }
 
   const rootDir = options.rootDir ?? (await discoverAuthorityRoot(process.cwd())).rootDir;
+  const initialProbe = await probeInstallerState(rootDir);
+  if (initialProbe.kind === 'v1' && requiresExplicitProductionUpgrade(args)) {
+    throw trioInstallError(
+      'Persisted schema-v1 state requires exactly --upgrade and one non-empty --recovery value.',
+      'ERR_TRIO_UPGRADE_REQUIRED'
+    );
+  }
   return withTrioPublicationLock(rootDir, async () => {
     const probe = await probeInstallerState(rootDir);
-    if (probe.kind === 'v1' && !requestsProductionUpgrade(args)) {
-      return installLegacy(args, options, rootDir);
+    if (initialProbe.kind === 'v1' && probe.kind !== 'v1') {
+      throw trioInstallError('Persisted schema-v1 state changed before upgrade could begin.', 'ERR_TRIO_UPGRADE_REQUIRED');
+    }
+    if (initialProbe.kind !== 'v1' && probe.kind === 'v1') {
+      throw trioInstallError('Persisted schema-v1 state appeared before install could begin.', 'ERR_TRIO_UPGRADE_REQUIRED');
     }
 
     const installOptions = parseProductionInstallOptions(args);

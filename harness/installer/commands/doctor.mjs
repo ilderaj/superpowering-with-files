@@ -267,7 +267,9 @@ export async function doctor(args = [], options = {}) {
       checkOnly: args.includes('--check-only')
     });
   }
-  return doctorLegacy(args, options, rootDir);
+  const error = new Error('Persisted schema-v1 state requires install --upgrade with recovery evidence.');
+  error.code = 'ERR_TRIO_UPGRADE_REQUIRED';
+  throw error;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

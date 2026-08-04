@@ -269,7 +269,7 @@ test('production install retains foreign V1 state that appears after an absent l
     const { install } = await import(INSTALL_URL);
     await assert.rejects(
       () => install([], { rootDir, homeDir }),
-      (error) => error?.code === 'ERR_TRIO_STATE_DRIFT'
+      (error) => error?.code === 'ERR_TRIO_UPGRADE_REQUIRED'
     );
     assert.equal(injected, true);
     assert.equal(managedPublications, 0, 'foreign state must fail before any managed publication');
@@ -883,57 +883,6 @@ test('production projection settles dynamic zero, five, and ten managed surface 
     } finally {
       await rm(roots.sandbox, { recursive: true, force: true });
     }
-  }
-});
-
-test('normal-root persisted V1 routes ordinary lifecycle commands through legacy without Trio mutation', async () => {
-  const roots = await stageProductionV1Fixture();
-  try {
-    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
-    const rootReal = await realpath(roots.rootDir);
-    const homeReal = await realpath(roots.homeDir);
-    const stateFile = path.join(rootReal, '.harness', 'state.json');
-    const manifestFile = path.join(rootReal, '.harness', 'projections.json');
-    const harnessBefore = await harnessSourceSnapshot();
-    try {
-      await symlink(path.join(REPO_ROOT, 'harness'), path.join(rootReal, 'harness'), 'dir');
-      const runLegacy = (invoke) => withTemporaryLegacyEnvironment(homeReal, () => captureCommandOutput(invoke));
-
-      const installOutput = await runLegacy(() => install([
-        '--scope=user-global',
-        '--targets=cursor',
-        '--hooks=off'
-      ], options));
-      assert.match(installOutput, /Installed Harness state for cursor using user-global scope\./);
-      assert.match(installOutput, /Synced 1 target\(s\): cursor/);
-
-      const syncOutput = await runLegacy(() => sync([], options));
-      assert.match(syncOutput, /Synced 1 target\(s\): cursor/);
-
-      const doctorOutput = await runLegacy(() => doctor(['--check-only'], options));
-      assert.match(doctorOutput, /Harness check passed\./);
-
-      const verifyOutput = await runLegacy(() => verify(['--output=stdout'], options));
-      assert.match(verifyOutput, /# Harness Verification/);
-
-      const state = JSON.parse(await readFile(stateFile, 'utf8'));
-      const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
-      assert.equal(state.schemaVersion, 1);
-      assert.equal(Object.hasOwn(state, 'runtime'), false);
-      assert.equal(manifest.schemaVersion, 1);
-      await assertAbsentTrioMaterialization([
-        ...codexDestinations(rootReal, 'workspace'),
-        ...codexDestinations(homeReal, 'user-global')
-      ]);
-    } finally {
-      assert.deepEqual(
-        await harnessSourceSnapshot(),
-        harnessBefore,
-        'legacy lifecycle must not mutate the repository harness source tree'
-      );
-    }
-  } finally {
-    await rm(roots.sandbox, { recursive: true, force: true });
   }
 });
 

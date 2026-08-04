@@ -5,7 +5,6 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { writeState } from '../../harness/installer/lib/state.mjs';
 import {
   createHarnessFixture,
   removeHarnessFixture
@@ -53,7 +52,7 @@ async function createPersonalRepo() {
   return repo;
 }
 
-test('link-personal applies mappings and sync skips user-managed targets', async () => {
+test('link-personal applies mappings and records user-managed targets', async () => {
   const root = await createHarnessFixture();
   const repo = await createPersonalRepo();
   const home = await mkdtemp(path.join(os.tmpdir(), 'harness-personal-home-'));
@@ -68,24 +67,6 @@ test('link-personal applies mappings and sync skips user-managed targets', async
     );
     assert.ok(userManaged.paths.includes(targetPath));
 
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'user-global',
-      projectionMode: 'link',
-      hookMode: 'off',
-      policyProfile: 'always-on-core',
-      skillProfile: 'full',
-      targets: {
-        copilot: {
-          enabled: true,
-          paths: [path.join(home, '.copilot/instructions/harness.instructions.md')]
-        }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, home, 'sync');
-    assert.equal(await readFile(targetPath, 'utf8'), 'personal copilot instructions\n');
   } finally {
     await removeHarnessFixture(root);
     await rm(repo, { recursive: true, force: true });

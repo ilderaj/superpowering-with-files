@@ -976,5 +976,5 @@ export async function sync(args = [], options = {}) {
     });
     return syncProduction(args, environment, probe.state);
   }
-  return syncLegacy(args, options, rootDir, probe.state);
+  throw trioBridgeError('Persisted schema-v1 state requires install --upgrade with recovery evidence.', 'ERR_TRIO_UPGRADE_REQUIRED');
 }

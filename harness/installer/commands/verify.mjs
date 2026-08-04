@@ -254,5 +254,7 @@ export async function verify(args = [], options = {}) {
     });
     return verifyTrioEnvironment({ environment, config: probe.state });
   }
-  return verifyLegacy(args, options, rootDir, probe.state);
+  const error = new Error('Persisted schema-v1 state requires install --upgrade with recovery evidence.');
+  error.code = 'ERR_TRIO_UPGRADE_REQUIRED';
+  throw error;
 }
