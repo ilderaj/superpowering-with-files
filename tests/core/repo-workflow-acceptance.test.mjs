@@ -7,8 +7,8 @@ test('repo workflow acceptance replay covers the main user-visible workflow fami
   const report = await runRepoWorkflowAcceptanceReplay();
 
   assert.deepEqual(report.summary, {
-    scenarioCount: 6,
-    passed: 6,
+    scenarioCount: 5,
+    passed: 5,
     failed: 0
   });
 
@@ -18,8 +18,7 @@ test('repo workflow acceptance replay covers the main user-visible workflow fami
     'sync-dry-run',
     'verify-report',
     'doctor-check-only',
-    'active-summary-json',
-    'adopt-global-status'
+    'active-summary-json'
   ]);
 
   assert.equal(
@@ -37,24 +36,21 @@ test('repo workflow acceptance replay covers the main user-visible workflow fami
   assert.equal(scenarioMap.get('doctor-check-only').stdout.includes('Harness check passed.'), true);
   assert.equal(scenarioMap.get('active-summary-json').report.tasks.length, 1);
   assert.equal(scenarioMap.get('active-summary-json').report.tasks[0].task_id, 'workflow-task');
-  assert.equal(scenarioMap.get('adopt-global-status').status.status, 'in_sync');
-  assert.equal(scenarioMap.get('adopt-global-status').status.scope, 'user-global');
 });
 
 test('repo workflow acceptance replay also covers degraded and expected-failure workflow variants', async () => {
   const report = await runRepoWorkflowAcceptanceReplay({ variant: 'degraded' });
 
   assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
+    scenarioCount: 2,
+    passed: 2,
     failed: 0
   });
 
   const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
   assert.deepEqual([...scenarioMap.keys()], [
     'verify-copilot-overlap-warning',
-    'doctor-personal-path-problem',
-    'adopt-global-rejects-workspace-state'
+    'doctor-personal-path-problem'
   ]);
 
   assert.equal(
@@ -70,27 +66,20 @@ test('repo workflow acceptance replay also covers degraded and expected-failure 
     scenarioMap.get('doctor-personal-path-problem').error.message.includes('personal path found in'),
     true
   );
-  assert.equal(scenarioMap.get('adopt-global-rejects-workspace-state').expectedFailure, true);
-  assert.equal(
-    scenarioMap.get('adopt-global-rejects-workspace-state').error.message.includes('user-global-only'),
-    true
-  );
 });
 
 test('repo workflow acceptance replay also covers lifecycle drift and reconciliation-open variants', async () => {
   const report = await runRepoWorkflowAcceptanceReplay({ variant: 'lifecycle' });
 
   assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
+    scenarioCount: 1,
+    passed: 1,
     failed: 0
   });
 
   const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
   assert.deepEqual([...scenarioMap.keys()], [
-    'active-summary-reconciliation-open',
-    'adoption-status-state-mismatch',
-    'adoption-status-copilot-overlap'
+    'active-summary-reconciliation-open'
   ]);
 
   assert.equal(scenarioMap.get('active-summary-reconciliation-open').report.counts.byReconciliationStatus.open, 1);
@@ -102,50 +91,22 @@ test('repo workflow acceptance replay also covers lifecycle drift and reconcilia
     true
   );
 
-  assert.equal(scenarioMap.get('adoption-status-state-mismatch').status.status, 'state_mismatch');
-  assert.equal(
-    scenarioMap
-      .get('adoption-status-state-mismatch')
-      .status.reasons.some((reason) => /policyProfile/i.test(reason)),
-    true
-  );
-  assert.equal(
-    scenarioMap.get('adoption-status-state-mismatch').status.reasons.length >= 1,
-    true
-  );
-
-  assert.equal(scenarioMap.get('adoption-status-copilot-overlap').status.status, 'needs_apply');
-  assert.equal(
-    scenarioMap
-      .get('adoption-status-copilot-overlap')
-      .status.reasons.some((reason) => /workspace copilot projection overlaps user-global/i.test(reason)),
-    true
-  );
 });
 
 test('repo workflow acceptance replay also covers additional targets and trust-boundary guardrails', async () => {
   const report = await runRepoWorkflowAcceptanceReplay({ variant: 'trust-boundary' });
 
   assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
+    scenarioCount: 2,
+    passed: 2,
     failed: 0
   });
 
   const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
   assert.deepEqual([...scenarioMap.keys()], [
-    'adoption-status-claude-code-runtime-reason',
     'install-rejects-user-global-safety-profile',
     'workspace-link-rejects-external-authority-root'
   ]);
-
-  assert.equal(scenarioMap.get('adoption-status-claude-code-runtime-reason').status.status, 'in_sync');
-  assert.equal(
-    scenarioMap
-      .get('adoption-status-claude-code-runtime-reason')
-      .status.reasons.some((reason) => /Claude Code runtime hook invocation is not measured/i.test(reason)),
-    true
-  );
 
   assert.equal(scenarioMap.get('install-rejects-user-global-safety-profile').expectedFailure, true);
   assert.equal(

@@ -344,88 +344,11 @@ async function buildLifecycleScenarios(root, homeDir, leafDir) {
     )
   );
 
-  scenarios.push(
-    await executeScenario(
-      'adoption-status-state-mismatch',
-      'Adoption status surfaces user-global drift when install state mutates after adoption',
-      async () => {
-        await seedUserGlobalState(root, homeDir, 'codex');
-        await harnessCommand(root, homeDir, 'adopt-global', '--targets=codex', { cwd: leafDir });
-
-        const state = await readState(root);
-        await writeState(root, {
-          ...state,
-          policyProfile: 'tracked-task-extended',
-          workspacePolicyOverlay: null,
-          skillProfile: 'full'
-        });
-
-        const result = await harnessCommand(root, homeDir, 'adoption-status', { cwd: leafDir });
-        return {
-          stdout: result.stdout,
-          stderr: result.stderr,
-          status: JSON.parse(result.stdout)
-        };
-      }
-    )
-  );
-
-  scenarios.push(
-    await executeScenario(
-      'adoption-status-copilot-overlap',
-      'Adoption status reports workspace Copilot overlap after a user-global adoption drifts into both scope',
-      async () => {
-        await seedUserGlobalState(root, homeDir, 'copilot');
-        await harnessCommand(root, homeDir, 'adopt-global', '--targets=copilot', { cwd: leafDir });
-
-        const state = await readState(root);
-        await writeState(root, {
-          ...state,
-          scope: 'both',
-          targets: {
-            copilot: {
-              enabled: true,
-              paths: collectAdoptionStatePaths(root, homeDir, 'copilot')
-            }
-          }
-        });
-
-        await harnessCommand(root, homeDir, 'sync', { cwd: leafDir });
-        const result = await harnessCommand(root, homeDir, 'adoption-status', { cwd: leafDir });
-        return {
-          stdout: result.stdout,
-          stderr: result.stderr,
-          status: JSON.parse(result.stdout)
-        };
-      }
-    )
-  );
-
   return scenarios;
 }
 
 async function buildTrustBoundaryScenarios(root, homeDir, leafDir) {
   const scenarios = [];
-
-  scenarios.push(
-    await executeScenario(
-      'adoption-status-claude-code-runtime-reason',
-      'Adoption status keeps Claude Code runtime evidence as a non-failing in-sync reason',
-      async () => {
-        await seedCompactTask(root);
-        await harnessCommand(root, homeDir, 'adopt-global', '--targets=claude-code', '--hooks=on', {
-          cwd: leafDir
-        });
-
-        const result = await harnessCommand(root, homeDir, 'adoption-status', { cwd: leafDir });
-        return {
-          stdout: result.stdout,
-          stderr: result.stderr,
-          status: JSON.parse(result.stdout)
-        };
-      }
-    )
-  );
 
   scenarios.push(
     await executeExpectedFailureScenario(
@@ -1573,33 +1496,6 @@ async function buildHappyPathScenarios(root, homeDir, leafDir) {
     )
   );
 
-  scenarios.push(
-    await executeScenario(
-      'adopt-global-status',
-      'Adopt-global bootstraps a user-global target and adoption-status reports in_sync',
-      async () => {
-        await writeState(root, {
-          schemaVersion: 1,
-          scope: 'user-global',
-          projectionMode: 'link',
-          hookMode: 'off',
-          policyProfile: 'always-on-core',
-          skillProfile: 'full',
-          targets: {},
-          upstream: {}
-        });
-
-        await harnessCommand(root, homeDir, 'adopt-global', '--targets=codex', { cwd: leafDir });
-        const statusResult = await harnessCommand(root, homeDir, 'adoption-status', { cwd: leafDir });
-        return {
-          stdout: statusResult.stdout,
-          stderr: statusResult.stderr,
-          status: JSON.parse(statusResult.stdout)
-        };
-      }
-    )
-  );
-
   return scenarios;
 }
 
@@ -1661,32 +1557,6 @@ async function buildDegradedScenarios(root, homeDir, leafDir) {
           flag: 'a'
         });
         await harnessCommand(root, homeDir, 'doctor', '--check-only', { cwd: leafDir });
-      }
-    )
-  );
-
-  scenarios.push(
-    await executeExpectedFailureScenario(
-      'adopt-global-rejects-workspace-state',
-      'Adopt-global rejects an existing workspace/both install state to avoid workspace mutation',
-      async () => {
-        await writeState(root, {
-          schemaVersion: 1,
-          scope: 'both',
-          projectionMode: 'link',
-          hookMode: 'off',
-          policyProfile: 'always-on-core',
-          skillProfile: 'full',
-          targets: {
-            codex: {
-              enabled: true,
-              paths: [path.join(root, 'AGENTS.md'), path.join(homeDir, '.codex/AGENTS.md')]
-            }
-          },
-          upstream: {}
-        });
-
-        await harnessCommand(root, homeDir, 'adopt-global', { cwd: leafDir });
       }
     )
   );

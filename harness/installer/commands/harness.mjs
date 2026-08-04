@@ -6,8 +6,6 @@ import { fetchCommand } from './fetch.mjs';
 import { updateCommand } from './update.mjs';
 import { verify } from './verify.mjs';
 import { worktreePreflight } from './worktree-preflight.mjs';
-import { adoptGlobal } from './adopt-global.mjs';
-import { adoptionStatus } from './adoption-status.mjs';
 import { checkpointCommand } from './checkpoint.mjs';
 import { checkpointPushCommand } from './checkpoint-push.mjs';
 import { cloudBootstrap } from './cloud-bootstrap.mjs';
@@ -17,7 +15,6 @@ import { record } from './record.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { activeSummary } from './active-summary.mjs';
 import { lifecycleSweep } from './lifecycle-sweep.mjs';
-import { plugin } from './plugin.mjs';
 import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
 import { codexModelDefault } from './codex-model-default.mjs';
@@ -38,13 +35,10 @@ const commands = {
   'active-summary': activeSummary,
   'lifecycle-sweep': lifecycleSweep,
   record,
-  plugin,
   'cloud-bootstrap': cloudBootstrap,
   'link-personal': linkPersonal,
   'worktree-name': worktreeName,
   'worktree-preflight': worktreePreflight,
-  'adopt-global': adoptGlobal,
-  'adoption-status': adoptionStatus,
   'workspace-link': workspaceLink,
   'token-audit': tokenAudit,
   'codex-model-default': codexModelDefault,

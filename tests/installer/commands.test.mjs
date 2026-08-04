@@ -419,13 +419,17 @@ test('persisted V1 install rejects malformed upgrade arguments before publicatio
 
 
 
-test('adopt-global --help describes explicit skills profile precedence', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const { stdout } = await harnessCommand(root, 'adopt-global', '--help');
-    assert.match(stdout, /Usage: \.\/scripts\/harness adopt-global/);
-    assert.match(stdout, /--skills-profile=<name>\s+Override the skills profile; explicit values always win\./);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
+for (const command of ['plugin', 'adopt-global', 'adoption-status']) {
+  test(`harness public dispatcher rejects retired ${command}`, async () => {
+    const root = await createHarnessFixture();
+    try {
+      await assert.rejects(harnessCommand(root, command), (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, new RegExp(`Unknown command: ${command}`));
+        return true;
+      });
+    } finally {
+      await removeHarnessFixture(root);
+    }
+  });
+}
