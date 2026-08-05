@@ -204,6 +204,13 @@ test("office capability skill is discoverable", async () => {
   assertOfficeSkillContract(await readFile(officeSkillPath, "utf8"));
 });
 
+test("legacy office-work-quality owner is physically retired", async () => {
+  await assert.rejects(
+    access(path.join(repoRoot, "harness/core/skills/office-work-quality/SKILL.md")),
+    { code: "ENOENT" },
+  );
+});
+
 test("office contract rejects weakened source and delivery policy", async () => {
   const skill = await readFile(officeSkillPath, "utf8");
   const mutations = [
