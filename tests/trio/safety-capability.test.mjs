@@ -470,6 +470,11 @@ test('safety capability exposes exactly the seven approved read-only outputs', a
     'Safety fixture directory'
   );
   assert.ok(fixtureEntries.every((entry) => entry.isFile()), 'Safety fixture inventory must contain files only.');
+
+  await assert.rejects(
+    access(path.join(repositoryRoot, 'harness/core/hooks/safety')),
+    { code: 'ENOENT' }
+  );
 });
 
 test('safety skill is a section-scoped pure Markdown contract', async () => {
