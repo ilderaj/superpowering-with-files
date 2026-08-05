@@ -130,11 +130,11 @@ function taskFiles(title, status, archiveEligible = 'no') {
   };
 }
 
-test('harness --help lists the active-summary command', async () => {
+test('harness --help does not list the hidden active-summary command', async () => {
   const root = await createFixture('active-summary-help');
   try {
     const { stdout } = await harnessCommand(root, '--help');
-    assert.match(stdout, /active-summary\s+Print lifecycle summary for all tasks under planning\/active/);
+    assert.doesNotMatch(stdout, /^\s*active-summary\b/m);
   } finally {
     await removeFixture(root);
   }

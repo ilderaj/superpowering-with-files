@@ -73,11 +73,11 @@ function activeTaskFiles(title, status = 'active', statusLine = `Status: ${statu
   };
 }
 
-test('harness --help lists the summary command', async () => {
+test('harness --help does not list the hidden summary command', async () => {
   const root = await createFixture('summary-help');
   try {
     const { stdout } = await harnessCommand(root, '--help');
-    assert.match(stdout, /summary\s+Print structured session summary for the active task/);
+    assert.doesNotMatch(stdout, /^\s*summary\b/m);
   } finally {
     await removeFixture(root);
   }

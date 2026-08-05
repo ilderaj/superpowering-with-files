@@ -64,11 +64,11 @@ function activeTaskFiles(title, status = 'active') {
   };
 }
 
-test('harness --help lists the record command', async () => {
+test('harness --help does not list the hidden record command', async () => {
   const root = await createFixture('record-help');
   try {
     const { stdout } = await harnessCommand(root, '--help');
-    assert.match(stdout, /record\s+Append a timestamped record block to task_plan, findings, progress, or reconciliation/);
+    assert.doesNotMatch(stdout, /^\s*record\b/m);
   } finally {
     await removeFixture(root);
   }
