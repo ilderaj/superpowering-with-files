@@ -12,7 +12,6 @@ import { cloudBootstrap } from './cloud-bootstrap.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
-import { upstreamLockCommand } from './upstream-lock.mjs';
 import { trioCommand } from './trio.mjs';
 
 const commands = {
@@ -20,7 +19,6 @@ const commands = {
   doctor,
   sync,
   fetch: fetchCommand,
-  'upstream-lock': upstreamLockCommand,
   update: updateCommand,
   verify,
   checkpoint: checkpointCommand,

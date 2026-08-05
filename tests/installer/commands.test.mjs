@@ -330,6 +330,19 @@ test('harness public dispatcher rejects retired legacy commands', async () => {
   }
 });
 
+test('harness public dispatcher rejects retired upstream-lock before source resolution', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(harnessCommand(root, 'upstream-lock', '--source=missing'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /Unknown command: upstream-lock/);
+      return true;
+    });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('workspace-skills source control plane is physically retired', async () => {
   const retiredPaths = [
     'harness/installer/commands/workspace-skills.mjs',

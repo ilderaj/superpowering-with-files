@@ -149,3 +149,37 @@ test('loadResolvedSourceForFetch reads the authoritative source lock entry', asy
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('loadResolvedSourceForFetch does not direct callers to the retired upstream-lock command', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-missing-source-lock-'));
+  try {
+    await mkdir(path.join(root, 'harness/upstream'), { recursive: true });
+    await writeFile(
+      path.join(root, 'harness/upstream/sources.json'),
+      JSON.stringify({
+        schemaVersion: 2,
+        sources: {
+          superpowers: {
+            type: 'git',
+            url: 'https://example.invalid/superpowers.git',
+            github: { owner: 'fixture', repo: 'superpowers' },
+            path: 'harness/upstream/superpowers',
+            resolution: {
+              strategy: 'latest-release',
+              allowPrerelease: false,
+              fallbacks: []
+            }
+          }
+        }
+      })
+    );
+
+    await assert.rejects(loadResolvedSourceForFetch(root, 'superpowers'), (error) => {
+      assert.match(error.message, /Missing resolved source lock for superpowers\./);
+      assert.doesNotMatch(error.message, /upstream-lock/);
+      return true;
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
