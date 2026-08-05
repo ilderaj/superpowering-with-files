@@ -3,600 +3,168 @@ import assert from 'node:assert/strict';
 
 import { runRepoWorkflowAcceptanceReplay } from '../evals/repo-workflow-replays/lib/run-repo-workflow-acceptance.mjs';
 
-test('repo workflow acceptance replay covers the main user-visible workflow families on a fresh fixture', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay();
-
+function successfulScenarios(report, scenarioCount = 1) {
   assert.deepEqual(report.summary, {
-    scenarioCount: 5,
-    passed: 5,
+    scenarioCount,
+    passed: scenarioCount,
     failed: 0
   });
+  return report.scenarios;
+}
 
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'workspace-install-from-leaf',
-    'sync-dry-run',
-    'verify-report',
-    'doctor-check-only',
-    'active-summary-json'
-  ]);
+test('repo workflow acceptance replay creates fresh V2 workspace Codex state from a nested leaf', async () => {
+  const [scenario] = successfulScenarios(await runRepoWorkflowAcceptanceReplay());
 
-  assert.equal(
-    scenarioMap.get('workspace-install-from-leaf').stdout.includes(
-      'Installed Harness state for codex using workspace scope.'
-    ),
-    true
-  );
-  assert.equal(scenarioMap.get('sync-dry-run').stdout.includes('"mode": "dry-run"'), true);
-  assert.equal(
-    scenarioMap.get('verify-report').verificationReport.markdown.includes('# Harness Verification Report'),
-    true
-  );
-  assert.equal(scenarioMap.get('verify-report').verificationReport.healthProblems, 0);
-  assert.equal(scenarioMap.get('doctor-check-only').stdout.includes('Harness check passed.'), true);
-  assert.equal(scenarioMap.get('active-summary-json').report.tasks.length, 1);
-  assert.equal(scenarioMap.get('active-summary-json').report.tasks[0].task_id, 'workflow-task');
+  assert.equal(scenario.id, 'fresh-v2-install-from-leaf');
+  assert.equal(scenario.state.schemaVersion, 2);
+  assert.equal(scenario.state.runtime, 'trio');
+  assert.equal(scenario.state.scope, 'workspace');
+  assert.deepEqual(scenario.state.targets, ['codex']);
+  assert.equal(scenario.state.entryPath.endsWith('AGENTS.md'), true);
+  assert.equal(scenario.filesystem.rootEntryExists, true);
+  assert.equal(scenario.filesystem.leafEntryExists, false);
 });
 
-test('repo workflow acceptance replay also covers degraded and expected-failure workflow variants', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'degraded' });
-
-  assert.deepEqual(report.summary, {
-    scenarioCount: 2,
-    passed: 2,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'verify-copilot-overlap-warning',
-    'doctor-personal-path-problem'
-  ]);
-
-  assert.equal(
-    scenarioMap.get('verify-copilot-overlap-warning').stdout.includes('Scope overlap verdict: warning'),
-    true
+test('repo workflow acceptance replay keeps a fresh V2 reinstall in the single Codex workspace shape', async () => {
+  const [scenario] = successfulScenarios(
+    await runRepoWorkflowAcceptanceReplay({ variant: 'fresh-reinstall' })
   );
-  assert.equal(
-    scenarioMap.get('verify-copilot-overlap-warning').stdout.includes('Recommended action: choose one canonical scope for Copilot'),
-    true
-  );
-  assert.equal(scenarioMap.get('doctor-personal-path-problem').expectedFailure, true);
-  assert.equal(
-    scenarioMap.get('doctor-personal-path-problem').error.message.includes('personal path found in'),
-    true
-  );
+
+  assert.equal(scenario.id, 'fresh-v2-reinstall-preserves-single-codex-shape');
+  assert.equal(scenario.install.mode, 'reinstall');
+  assert.equal(scenario.state.schemaVersion, 2);
+  assert.deepEqual(scenario.state.targets, ['codex']);
 });
 
-test('repo workflow acceptance replay also covers lifecycle drift and reconciliation-open variants', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'lifecycle' });
-
-  assert.deepEqual(report.summary, {
-    scenarioCount: 1,
-    passed: 1,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'active-summary-reconciliation-open'
-  ]);
-
-  assert.equal(scenarioMap.get('active-summary-reconciliation-open').report.counts.byReconciliationStatus.open, 1);
-  assert.equal(scenarioMap.get('active-summary-reconciliation-open').report.tasks[0].reconciliationStatus, 'open');
-  assert.equal(
-    scenarioMap
-      .get('active-summary-reconciliation-open')
-      .report.anomalies.some((anomaly) => anomaly.kind === 'reconciliation_open'),
-    true
+test('repo workflow acceptance replay keeps sync dry-run byte-stable after fresh V2 install', async () => {
+  const [scenario] = successfulScenarios(
+    await runRepoWorkflowAcceptanceReplay({ variant: 'sync-dry-run' })
   );
 
+  assert.equal(scenario.id, 'fresh-v2-sync-dry-run-no-write');
+  assert.equal(scenario.dryRun.schemaVersion, 2);
+  assert.equal(scenario.dryRun.runtime, 'trio');
+  assert.equal(scenario.dryRun.mode, 'dry-run');
+  assert.equal(scenario.noWrite, true);
 });
 
-test('repo workflow acceptance replay also covers additional targets and trust-boundary guardrails', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'trust-boundary' });
+test('repo workflow acceptance replay verifies a fresh V2 install from a nested leaf', async () => {
+  const [scenario] = successfulScenarios(await runRepoWorkflowAcceptanceReplay({ variant: 'verify' }));
 
-  assert.deepEqual(report.summary, {
-    scenarioCount: 2,
-    passed: 2,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'install-rejects-user-global-safety-profile',
-    'workspace-link-rejects-external-authority-root'
-  ]);
-
-  assert.equal(scenarioMap.get('install-rejects-user-global-safety-profile').expectedFailure, true);
-  assert.equal(
-    scenarioMap
-      .get('install-rejects-user-global-safety-profile')
-      .error.message.includes('Safety profiles are workspace-only'),
-    true
-  );
-
-  assert.equal(scenarioMap.get('workspace-link-rejects-external-authority-root').expectedFailure, true);
-  assert.equal(
-    scenarioMap
-      .get('workspace-link-rejects-external-authority-root')
-      .error.message.includes('ancestor authority root'),
-    true
-  );
+  assert.equal(scenario.id, 'fresh-v2-verify');
+  assert.equal(scenario.report.schemaVersion, 2);
+  assert.equal(scenario.report.runtime, 'trio');
+  assert.equal(scenario.report.opened, true);
+  assert.equal(scenario.report.rendered, false);
+  assert.equal(scenario.report.descriptorCount > 0, true);
+  assert.deepEqual(scenario.report.conflicts, []);
+  assert.equal(scenario.noWrite, true);
 });
 
-test('repo workflow acceptance replay also covers additional target combinations and real mixed-scope installs', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'mixed-scope' });
-
-  assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'workspace-install-cursor-from-leaf',
-    'verify-copilot-overlap-after-real-both-install',
-    'install-both-codex-defaults-minimal-global'
-  ]);
-
-  assert.equal(scenarioMap.get('workspace-install-cursor-from-leaf').state.scope, 'workspace');
-  assert.deepEqual(scenarioMap.get('workspace-install-cursor-from-leaf').state.targets, ['cursor']);
-  assert.equal(
-    scenarioMap
-      .get('workspace-install-cursor-from-leaf')
-      .state.cursorRulePath.endsWith('.cursor/rules/harness.mdc'),
-    true
-  );
-  assert.equal(
-    scenarioMap.get('workspace-install-cursor-from-leaf').verificationReport.markdown.includes('Targets: cursor'),
-    true
+test('repo workflow acceptance replay accepts verify stdout without creating a report directory', async () => {
+  const [scenario] = successfulScenarios(
+    await runRepoWorkflowAcceptanceReplay({ variant: 'verify-stdout' })
   );
 
-  assert.equal(
-    scenarioMap
-      .get('verify-copilot-overlap-after-real-both-install')
-      .verificationReport.markdown.includes('Scope overlap verdict: warning'),
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('verify-copilot-overlap-after-real-both-install')
-      .verificationReport.markdown.includes('copilot -> workspace + user-global'),
-    true
-  );
-
-  assert.equal(scenarioMap.get('install-both-codex-defaults-minimal-global').state.scope, 'both');
-  assert.equal(
-    scenarioMap.get('install-both-codex-defaults-minimal-global').state.skillProfile,
-    'minimal-global'
-  );
-  assert.equal(
-    scenarioMap.get('install-both-codex-defaults-minimal-global').verificationReport.markdown.includes('Scope: both'),
-    true
-  );
-  assert.equal(
-    scenarioMap.get('install-both-codex-defaults-minimal-global').verificationReport.markdown.includes('Targets: codex'),
-    true
-  );
+  assert.equal(scenario.id, 'fresh-v2-verify-stdout');
+  assert.equal(scenario.report.runtime, 'trio');
+  assert.equal(scenario.report.opened, true);
+  assert.equal(scenario.noWrite, true);
 });
 
-test('repo workflow acceptance replay also covers additional target-specific install defaults and all-target replay', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'additional-targets' });
+test('repo workflow acceptance replay runs doctor check-only on a healthy fresh V2 install', async () => {
+  const [scenario] = successfulScenarios(await runRepoWorkflowAcceptanceReplay({ variant: 'doctor' }));
 
-  assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'workspace-install-copilot-default-profile',
-    'workspace-install-claude-code-with-hooks',
-    'install-both-all-targets'
-  ]);
-
-  assert.equal(scenarioMap.get('workspace-install-copilot-default-profile').state.scope, 'workspace');
-  assert.equal(
-    scenarioMap.get('workspace-install-copilot-default-profile').state.skillProfile,
-    'copilot-default'
-  );
-  assert.deepEqual(
-    scenarioMap.get('workspace-install-copilot-default-profile').state.targets,
-    ['copilot']
-  );
-  assert.equal(
-    scenarioMap
-      .get('workspace-install-copilot-default-profile')
-      .verificationReport.markdown.includes('Targets: copilot'),
-    true
-  );
-
-  assert.equal(scenarioMap.get('workspace-install-claude-code-with-hooks').state.scope, 'workspace');
-  assert.equal(scenarioMap.get('workspace-install-claude-code-with-hooks').state.hookMode, 'on');
-  assert.deepEqual(
-    scenarioMap.get('workspace-install-claude-code-with-hooks').state.targets,
-    ['claude-code']
-  );
-  assert.equal(
-    scenarioMap
-      .get('workspace-install-claude-code-with-hooks')
-      .state.entryPath.endsWith('CLAUDE.md'),
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('workspace-install-claude-code-with-hooks')
-      .verificationReport.markdown.includes('Targets: claude-code'),
-    true
-  );
-
-  assert.equal(scenarioMap.get('install-both-all-targets').state.scope, 'both');
-  assert.equal(scenarioMap.get('install-both-all-targets').state.skillProfile, 'minimal-global');
-  assert.deepEqual(scenarioMap.get('install-both-all-targets').state.targets.sort(), [
-    'claude-code',
-    'codex',
-    'copilot',
-    'cursor'
-  ]);
-  assert.deepEqual(scenarioMap.get('install-both-all-targets').verificationReport.selectedTargets.sort(), [
-    'claude-code',
-    'codex',
-    'copilot',
-    'cursor'
-  ]);
-  assert.equal(
-    scenarioMap.get('install-both-all-targets').verificationReport.markdown.includes('Scope: both'),
-    true
-  );
+  assert.equal(scenario.id, 'fresh-v2-doctor-check-only');
+  assert.equal(scenario.report.schemaVersion, 2);
+  assert.equal(scenario.report.runtime, 'trio');
+  assert.equal(scenario.report.readable, true);
+  assert.equal(scenario.report.descriptorCount > 0, true);
+  assert.deepEqual(scenario.report.conflicts, []);
+  assert.equal(scenario.report.mode, 'check-only');
+  assert.equal(scenario.noWrite, true);
 });
 
-test('repo workflow acceptance replay also covers cross-target sync dry-run previews before any projection is written', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'sync-preview' });
-
-  assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'sync-dry-run-both-all-targets-from-state',
-    'sync-dry-run-both-copilot-hooks-from-state',
-    'sync-dry-run-workspace-claude-hooks-from-state'
-  ]);
-
-  assert.deepEqual(scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunReport.targets.sort(), [
-    'claude-code',
-    'codex',
-    'copilot',
-    'cursor'
-  ]);
-  assert.equal(
-    scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunState.lastSyncBefore,
-    null
-  );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunState.lastSyncAfter,
-    null
-  );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunReport.summary.create > 0,
-    true
-  );
-  assert.deepEqual(
-    scenarioMap.get('sync-dry-run-both-all-targets-from-state').dryRunReport.createKinds.sort(),
-    ['entry', 'skill']
-  );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-both-all-targets-from-state').filesystem.copilotEntryExists,
-    false
-  );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-both-all-targets-from-state').filesystem.projectionsManifestExists,
-    false
+test('repo workflow acceptance replay rejects persisted V1 state on every V2 command without writes', async () => {
+  const scenarios = successfulScenarios(
+    await runRepoWorkflowAcceptanceReplay({ variant: 'v1-rejection' }),
+    4
   );
 
   assert.deepEqual(
-    scenarioMap.get('sync-dry-run-both-copilot-hooks-from-state').dryRunReport.targets,
-    ['copilot']
+    scenarios.map((scenario) => scenario.id),
+    [
+      'v1-install-requires-upgrade-recovery',
+      'v1-sync-requires-upgrade-recovery',
+      'v1-verify-requires-upgrade-recovery',
+      'v1-doctor-requires-upgrade-recovery'
+    ]
   );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-both-copilot-hooks-from-state').dryRunState.lastSyncAfter,
-    null
-  );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-both-copilot-hooks-from-state').dryRunReport.summary.create > 0,
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('sync-dry-run-both-copilot-hooks-from-state')
-      .dryRunReport.createKinds.includes('hook-config'),
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('sync-dry-run-both-copilot-hooks-from-state')
-      .dryRunReport.createKinds.includes('hook-script'),
-    true
-  );
-  assert.deepEqual(
-    scenarioMap.get('sync-dry-run-both-copilot-hooks-from-state').dryRunReport.hookConfigFormats,
-    ['hooks']
-  );
-  assert.equal(
-    scenarioMap
-      .get('sync-dry-run-both-copilot-hooks-from-state')
-      .dryRunReport.hookConfigTargets.some((target) => target.endsWith('.github/hooks/planning-with-files.json')),
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('sync-dry-run-both-copilot-hooks-from-state')
-      .dryRunReport.hookConfigTargets.some((target) => target.endsWith('.copilot/hooks/planning-with-files.json')),
-    true
-  );
-
-  assert.deepEqual(
-    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').dryRunReport.targets,
-    ['claude-code']
-  );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').dryRunState.lastSyncAfter,
-    null
-  );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').dryRunReport.summary.create > 0,
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('sync-dry-run-workspace-claude-hooks-from-state')
-      .dryRunReport.createKinds.includes('hook-config'),
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('sync-dry-run-workspace-claude-hooks-from-state')
-      .dryRunReport.createKinds.includes('hook-script'),
-    true
-  );
-  assert.deepEqual(
-    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').dryRunReport.hookConfigFormats,
-    ['settings']
-  );
-  assert.equal(
-    scenarioMap
-      .get('sync-dry-run-workspace-claude-hooks-from-state')
-      .dryRunReport.hookConfigTargets.some((target) => target.endsWith('.claude/settings.json')),
-    true
-  );
-  assert.equal(
-    scenarioMap.get('sync-dry-run-workspace-claude-hooks-from-state').filesystem.claudeEntryExists,
-    false
-  );
-});
-
-test('repo workflow acceptance replay also covers reporting surfaces and read-only audit commands', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'reporting' });
-
-  assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'sync-check-out-of-sync-from-leaf',
-    'summary-task-route-line-with-multiple-active-tasks',
-    'token-audit-weekly-summary'
-  ]);
-
-  assert.equal(scenarioMap.get('sync-check-out-of-sync-from-leaf').expectedFailure, true);
-  assert.equal(
-    scenarioMap
-      .get('sync-check-out-of-sync-from-leaf')
-      .error.message.includes('Harness sync check failed: projections are out of sync'),
-    true
-  );
-  assert.equal(scenarioMap.get('sync-check-out-of-sync-from-leaf').filesystem.entryExists, false);
-  assert.equal(
-    scenarioMap.get('sync-check-out-of-sync-from-leaf').filesystem.projectionsManifestExists,
-    false
-  );
-
-  assert.equal(
-    scenarioMap
-      .get('summary-task-route-line-with-multiple-active-tasks')
-      .stdout.includes('Task: Demo Task (demo-task)'),
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('summary-task-route-line-with-multiple-active-tasks')
-      .stdout.includes('Route: tracked-lean - durable task without deep reasoning'),
-    true
-  );
-
-  assert.equal(scenarioMap.get('token-audit-weekly-summary').stdout.includes('# Weekly token audit'), true);
-  assert.equal(scenarioMap.get('token-audit-weekly-summary').stdout.includes('Total tokens: 400'), true);
-  assert.equal(
-    scenarioMap.get('token-audit-weekly-summary').stdout.includes('goal-round-start-protocol (heuristic)'),
-    true
-  );
-  assert.equal(
-    scenarioMap
-      .get('token-audit-weekly-summary')
-      .stdout.includes('SuperpoweringWithFiles (/workspace/SuperpoweringWithFiles)'),
-    true
-  );
-});
-
-test('repo workflow acceptance replay also covers execution-receipt lifecycle governance on active-summary surfaces', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'execution-lifecycle' });
-
-  assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'active-summary-blocked-execution-open-followup',
-    'active-summary-failed-execution-unit',
-    'active-summary-resolved-followup-closure'
-  ]);
-
-  const blockedReport = scenarioMap.get('active-summary-blocked-execution-open-followup').report;
-  const blockedTask = blockedReport.tasks.find((task) => task.task_id === 'task-execution-blocked');
-  assert.equal(blockedTask.executionSignals.receiptCount, 1);
-  assert.equal(blockedTask.executionSignals.blockedUnits, 1);
-  assert.equal(blockedTask.executionSignals.openFollowups, 1);
-  assert.equal(
-    blockedReport.anomalies.some(
-      (anomaly) =>
-        anomaly.taskId === 'task-execution-blocked' && anomaly.kind === 'execution_receipt_blocked'
-    ),
-    true
-  );
-  assert.equal(
-    blockedReport.anomalies.some(
-      (anomaly) =>
-        anomaly.taskId === 'task-execution-blocked' && anomaly.kind === 'execution_followup_open'
-    ),
-    true
-  );
-
-  const failedReport = scenarioMap.get('active-summary-failed-execution-unit').report;
-  const failedTask = failedReport.tasks.find((task) => task.task_id === 'task-execution-failed');
-  assert.equal(failedTask.executionSignals.receiptCount, 1);
-  assert.equal(failedTask.executionSignals.failedUnits, 1);
-  assert.equal(
-    failedReport.anomalies.some(
-      (anomaly) =>
-        anomaly.taskId === 'task-execution-failed' && anomaly.kind === 'execution_receipt_failed'
-    ),
-    true
-  );
-
-  const resolvedReport = scenarioMap.get('active-summary-resolved-followup-closure').report;
-  const resolvedTask = resolvedReport.tasks.find((task) => task.task_id === 'task-followup-resolved');
-  assert.equal(resolvedTask.executionSignals.openFollowups, 0);
-  assert.equal(resolvedTask.executionSignals.resolvedFollowups, 1);
-  assert.equal(resolvedTask.executionSignals.waivedFollowups, 0);
-  assert.equal(
-    resolvedReport.anomalies.some(
-      (anomaly) =>
-        anomaly.taskId === 'task-followup-resolved' && anomaly.kind === 'execution_followup_open'
-    ),
-    false
-  );
-});
-
-test('repo workflow acceptance replay also covers companion drift and placeholder reconciliation governance on active-summary surfaces', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'companion-reconciliation' });
-
-  assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
-    failed: 0
-  });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'active-summary-archive-ready-companion-blocker',
-    'active-summary-active-companion-drift-warning',
-    'active-summary-placeholder-reconciliation-open'
-  ]);
-
-  const blockedReport = scenarioMap.get('active-summary-archive-ready-companion-blocker').report;
-  const readyTask = blockedReport.tasks.find((task) => task.task_id === 'task-ready');
-  const blockedTask = blockedReport.tasks.find((task) => task.task_id === 'task-blocked');
-  assert.equal(readyTask.archive_ready, true);
-  assert.equal(blockedTask.archive_ready, false);
-  assert.equal(blockedTask.companion.ok, false);
-  assert.equal(
-    blockedTask.companion.reasons.some((reason) => /Lifecycle state 'active' does not match expected 'closed'/.test(reason)),
-    true
-  );
-
-  const driftReport = scenarioMap.get('active-summary-active-companion-drift-warning').report;
-  const driftTask = driftReport.tasks.find((task) => task.task_id === 'task-active-drift');
-  assert.equal(driftTask.archive_ready, false);
-  assert.equal(driftTask.companion.has_companion, true);
-  assert.equal(driftTask.companion.ok, false);
-  assert.equal(
-    driftReport.anomalies.some(
-      (anomaly) => anomaly.taskId === 'task-active-drift' && anomaly.kind === 'companion_sync_warning'
-    ),
-    true
-  );
-
-  const placeholderReport = scenarioMap.get('active-summary-placeholder-reconciliation-open').report;
-  const placeholderTasks = ['blank-artifact', 'template-artifact', 'placeholder-progress']
-    .map((taskId) => placeholderReport.tasks.find((entry) => entry.task_id === taskId));
-  assert.equal(
-    placeholderTasks.filter((task) => task.reconciliationStatus === 'open').length,
-    3
-  );
-  for (const taskId of ['blank-artifact', 'template-artifact', 'placeholder-progress']) {
-    const task = placeholderReport.tasks.find((entry) => entry.task_id === taskId);
-    assert.equal(task.reconciliationStatus, 'open');
-    assert.equal(task.reconciliationReady, false);
-    assert.equal(
-      placeholderReport.anomalies.some(
-        (anomaly) => anomaly.taskId === taskId && anomaly.kind === 'reconciliation_open'
-      ),
-      true
-    );
+  for (const scenario of scenarios) {
+    assert.equal(scenario.expectedFailure, true);
+    assert.equal(scenario.errorMatches, true);
+    assert.equal(scenario.noWrite, true);
   }
 });
 
-test('repo workflow acceptance replay also covers workspace-link recovery for nested git leaf workspaces', async () => {
-  const report = await runRepoWorkflowAcceptanceReplay({ variant: 'workspace-link' });
+test('repo workflow acceptance replay rejects every removed V1 install option before writes', async () => {
+  const scenarios = successfulScenarios(
+    await runRepoWorkflowAcceptanceReplay({ variant: 'removed-options' }),
+    4
+  );
 
-  assert.deepEqual(report.summary, {
-    scenarioCount: 3,
-    passed: 3,
-    failed: 0
+  assert.deepEqual(
+    scenarios.map((scenario) => scenario.id),
+    [
+      'install-rejects-scope-workspace',
+      'install-rejects-targets-codex',
+      'install-rejects-profile-safety',
+      'install-rejects-hooks-on'
+    ]
+  );
+  for (const scenario of scenarios) {
+    assert.equal(scenario.expectedFailure, true);
+    assert.equal(scenario.errorMatches, true);
+    assert.equal(scenario.noWrite, true);
+  }
+});
+
+test('repo workflow acceptance replay makes drifted V2 sync check fail without repairing the entry', async () => {
+  const [scenario] = successfulScenarios(
+    await runRepoWorkflowAcceptanceReplay({ variant: 'drift-check' })
+  );
+
+  assert.equal(scenario.id, 'fresh-v2-sync-check-drift-no-write');
+  assert.equal(scenario.expectedFailure, true);
+  assert.equal(scenario.errorMatches, true);
+  assert.equal(scenario.noWrite, true);
+});
+
+test('repo workflow acceptance replay rejects incompatible V2 sync flags without writes', async () => {
+  const [scenario] = successfulScenarios(
+    await runRepoWorkflowAcceptanceReplay({ variant: 'incompatible-sync' })
+  );
+
+  assert.equal(scenario.id, 'fresh-v2-sync-rejects-dry-run-check-combination-no-write');
+  assert.equal(scenario.expectedFailure, true);
+  assert.equal(scenario.errorMatches, true);
+  assert.equal(scenario.noWrite, true);
+});
+
+test('repo workflow acceptance replay routes linked nested-leaf V2 operations only to the parent authority root', async () => {
+  const [scenario] = successfulScenarios(
+    await runRepoWorkflowAcceptanceReplay({ variant: 'workspace-link' })
+  );
+
+  assert.equal(scenario.id, 'workspace-link-routes-v2-install-sync-and-verify-to-parent');
+  assert.equal(scenario.sync.mode, 'dry-run');
+  assert.equal(scenario.report.runtime, 'trio');
+  assert.deepEqual(scenario.state.targets, ['codex']);
+  assert.deepEqual(scenario.filesystem, {
+    rootStateExists: true,
+    rootEntryExists: true,
+    leafStateExists: false,
+    leafEntryExists: false,
+    leafAuthorityLinkExists: true
   });
-
-  const scenarioMap = new Map(report.scenarios.map((scenario) => [scenario.id, scenario]));
-  assert.deepEqual([...scenarioMap.keys()], [
-    'workspace-link-restores-parent-status-across-git-boundary',
-    'workspace-link-rewrites-bogus-override-and-restores-summary',
-    'workspace-link-routes-install-and-sync-back-to-parent-authority-root'
-  ]);
-
-  const statusReplay = scenarioMap.get('workspace-link-restores-parent-status-across-git-boundary');
-  assert.equal(statusReplay.authority.beforeSource, 'git-top-level');
-  assert.equal(statusReplay.authority.afterSource, 'override-file');
-  assert.equal(statusReplay.status.beforeFailed, true);
-  assert.equal(
-    statusReplay.status.beforeFailureMessage.includes('platforms.json'),
-    true
-  );
-  assert.equal(statusReplay.status.afterCodexEntryCount >= 1, true);
-  assert.equal(statusReplay.status.afterCodexEntryPath.endsWith('AGENTS.md'), true);
-
-  const summaryReplay = scenarioMap.get('workspace-link-rewrites-bogus-override-and-restores-summary');
-  assert.equal(summaryReplay.authority.source, 'override-file');
-  assert.equal(summaryReplay.summary.includes('Task: Workflow Task (workflow-task)'), true);
-
-  const installReplay = scenarioMap.get(
-    'workspace-link-routes-install-and-sync-back-to-parent-authority-root'
-  );
-  assert.equal(installReplay.authority.source, 'override-file');
-  assert.equal(installReplay.state.scope, 'workspace');
-  assert.deepEqual(installReplay.state.targets, ['cursor']);
-  assert.equal(installReplay.state.leafStateExists, false);
-  assert.equal(installReplay.state.cursorRuleRootExists, true);
-  assert.equal(installReplay.state.cursorRuleLeafExists, false);
-  assert.equal(installReplay.verificationReport.markdown.includes('Targets: cursor'), true);
 });
