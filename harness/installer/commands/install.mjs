@@ -398,12 +398,9 @@ function usage() {
     'Usage: ./scripts/harness install [options]',
     '',
     'Options:',
-    '  --scope=workspace|user-global|both',
-    '  --targets=all|codex,copilot,cursor,claude-code',
-    '  --skills-profile=<name>',
-    '  --projection=link|portable',
-    '  --mode=ensure|force',
-    '  --help, -h'
+    '  --upgrade                 Upgrade persisted schema-v1 state to Trio v2',
+    '  --recovery <path>         Required recovery input for --upgrade',
+    '  --help, -h                Show this help message'
   ].join('\n');
 }
 

@@ -336,8 +336,15 @@ test('install --help prints usage without writing state', async () => {
   try {
     const { stdout } = await harnessCommand(root, 'install', '--help');
     assert.match(stdout, /Usage: .* install/);
+    assert.match(stdout, /--upgrade/);
+    assert.match(stdout, /--recovery <path>/);
     assert.doesNotMatch(stdout, /--profile/);
     assert.doesNotMatch(stdout, /--hooks/);
+    assert.doesNotMatch(stdout, /--scope/);
+    assert.doesNotMatch(stdout, /--targets/);
+    assert.doesNotMatch(stdout, /--skills-profile/);
+    assert.doesNotMatch(stdout, /--projection/);
+    assert.doesNotMatch(stdout, /--mode/);
     await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
