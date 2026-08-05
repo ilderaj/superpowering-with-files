@@ -87,7 +87,14 @@ const retiredEnginePaths = [
   'tests/installer/runtime-hook-evidence.test.mjs',
   'tests/installer/sync-boundary.test.mjs',
   'tests/installer/sync-retired-skill-cleanup.test.mjs',
-  'tests/core/skill-index.test.mjs'
+  'tests/core/skill-index.test.mjs',
+  'tests/safety/projection.test.mjs',
+  'harness/core/safety/cloud-protected-paths.txt',
+  'harness/core/safety/dangerous-patterns.txt',
+  'harness/core/safety/protected-paths.txt',
+  'harness/core/safety/safe-commands.txt',
+  'harness/core/templates/safety/vscode-settings.safety.jsonc',
+  'docs/safety/architecture.md'
 ];
 
 test('defaultState creates only the narrow v1 compatibility envelope', () => {
