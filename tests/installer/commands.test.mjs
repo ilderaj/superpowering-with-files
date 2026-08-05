@@ -311,7 +311,14 @@ test('install --help prints usage without writing state', async () => {
 test('harness public dispatcher rejects retired legacy commands', async () => {
   const root = await createHarnessFixture();
   try {
-    for (const command of ['mcp-approve', 'status', 'workspace-skills']) {
+    for (const command of [
+      'mcp-approve',
+      'status',
+      'workspace-skills',
+      'summary',
+      'active-summary',
+      'record'
+    ]) {
       await assert.rejects(harnessCommand(root, command), (error) => {
         assert.equal(error.code, 1);
         assert.match(error.stderr, new RegExp(`Unknown command: ${command}`));
