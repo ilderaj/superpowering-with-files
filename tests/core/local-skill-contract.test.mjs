@@ -5,6 +5,9 @@ import path from 'node:path';
 
 const skillsRoot = path.join(process.cwd(), 'harness/core/skills');
 const requiredSections = ['Outcome Contract', 'When to Use', 'Common Mistakes'];
+const retiredLocalSkillPaths = [
+  'harness/core/skills/risk-assessment-before-destructive-changes/SKILL.md'
+];
 
 async function localSkillFiles() {
   const entries = await readdir(skillsRoot, { withFileTypes: true });
@@ -39,6 +42,12 @@ function extractSectionBody(text, title) {
   const body = nextHeadingOffset === -1 ? remainder : remainder.slice(0, nextHeadingOffset);
   return { index, body: body.trim() };
 }
+
+test('risk assessment local skill is physically retired', async () => {
+  for (const relativePath of retiredLocalSkillPaths) {
+    await assert.rejects(access(path.join(process.cwd(), relativePath)), { code: 'ENOENT' });
+  }
+});
 
 test('Harness-owned local skills use Waza-style outcome contracts without adding always-on prompt text', async () => {
   const files = await localSkillFiles();
