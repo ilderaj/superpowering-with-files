@@ -219,6 +219,27 @@ test('lifecycle-sweep control plane is physically retired', async () => {
   assert.deepEqual(presentRetiredPaths, []);
 });
 
+test('worktree-name command is physically retired and worktree creation uses preflight output', async () => {
+  const commandPath = path.join(process.cwd(), 'harness/installer/commands/worktree-name.mjs');
+  await assert.rejects(access(commandPath), { code: 'ENOENT' });
+  await assert.rejects(
+    harnessCommand(process.cwd(), 'worktree-name'),
+    (error) => error?.code === 1 && /Unknown command: worktree-name/.test(`${error.stderr}\n${error.stdout}`)
+  );
+
+  const manual = await readFile(path.join(process.cwd(), 'docs/safety/vibe-coding-safety-manual.md'), 'utf8');
+  assert.doesNotMatch(manual, /\.\/scripts\/harness worktree-name/);
+  assert.match(
+    manual,
+    /Before every worktree creation, run `\.\/scripts\/harness worktree-preflight --task <task-id> --safety` first/
+  );
+  assert.match(
+    manual,
+    /Use only that command's actual `Suggested worktree label`, `Suggested branch name`, and `Recommended base`/
+  );
+  assert.doesNotMatch(manual, /--namespace|agent-prefix/);
+});
+
 test('harness public dispatcher exposes Trio quick routing without creating planning state', async () => {
   const root = await createHarnessFixture();
   try {

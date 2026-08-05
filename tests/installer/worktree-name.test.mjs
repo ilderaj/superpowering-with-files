@@ -16,20 +16,6 @@ function git(cwd, ...args) {
   return execFileAsync('git', args, { cwd });
 }
 
-function harness(root, ...args) {
-  const maybeOptions = args.at(-1);
-  const options =
-    maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
-
-  return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
-    cwd: options.cwd ?? root,
-    env: {
-      ...process.env,
-      ...(options.env ?? {})
-    }
-  });
-}
-
 async function initRepo(root, initialBranch = 'dev') {
   await git(root, 'init', `--initial-branch=${initialBranch}`);
   await git(root, 'config', 'user.name', 'Harness Test');
@@ -196,56 +182,6 @@ test('resolveWorktreeNaming applies namespace only to the branch name', async ()
     assert.equal(result.worktreeBasename, '202604281159-codex-app-compatibility-design-001');
     assert.equal(result.canonicalLabel, '202604281159-codex-app-compatibility-design-001');
     assert.equal(result.branchName, 'copilot/202604281159-codex-app-compatibility-design-001');
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('worktree-name command prints the naming contract as JSON', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await initRepo(root);
-    const { stdout } = await harness(
-      root,
-      'worktree-name',
-      '--task',
-      'codex-app-compatibility-design',
-      '--namespace',
-      'copilot',
-      '--json',
-      { env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' } }
-    );
-
-    assert.deepEqual(JSON.parse(stdout), {
-      taskId: 'codex-app-compatibility-design',
-      taskSlug: 'codex-app-compatibility-design',
-      timestamp: '202604281159',
-      sequence: '001',
-      canonicalLabel: '202604281159-codex-app-compatibility-design-001',
-      branchName: 'copilot/202604281159-codex-app-compatibility-design-001',
-      worktreeBasename: '202604281159-codex-app-compatibility-design-001'
-    });
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('worktree-name command resolves authority root when run from a nested leaf directory', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await initRepo(root);
-    await writeActiveTask(root, 'leaf-authority-task');
-    const leafDir = path.join(root, 'packages/demo');
-    await mkdir(leafDir, { recursive: true });
-
-    const { stdout } = await harness(root, 'worktree-name', '--json', {
-      cwd: leafDir,
-      env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' }
-    });
-    const output = JSON.parse(stdout);
-
-    assert.equal(output.taskId, 'leaf-authority-task');
-    assert.equal(output.canonicalLabel, '202604281159-leaf-authority-task-001');
   } finally {
     await removeHarnessFixture(root);
   }
