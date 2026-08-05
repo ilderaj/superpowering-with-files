@@ -118,6 +118,10 @@ const retiredPwfHookPaths = [
   'docs/compatibility/hooks.md'
 ];
 
+const retiredHookEvidenceSummaryPaths = [
+  'harness/installer/lib/hook-evidence-summary.mjs'
+];
+
 test('defaultState creates only the narrow v1 compatibility envelope', () => {
   assert.deepEqual(defaultState(), {
     schemaVersion: 1,
@@ -220,6 +224,12 @@ test('C3 physically retires the profile projection engine and its CI boundary', 
 
 test('PWF hook source, helper, bridge, and dedicated test paths are physically retired', async () => {
   for (const retiredPath of retiredPwfHookPaths) {
+    await assert.rejects(access(retiredPath), { code: 'ENOENT' });
+  }
+});
+
+test('hook evidence summary helper is physically retired', async () => {
+  for (const retiredPath of retiredHookEvidenceSummaryPaths) {
     await assert.rejects(access(retiredPath), { code: 'ENOENT' });
   }
 });
