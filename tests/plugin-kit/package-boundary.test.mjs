@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 
 test('root package is a private workspace orchestrator at release version', async () => {
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
@@ -25,11 +25,14 @@ test('root package is a private workspace orchestrator at release version', asyn
   assert.equal(lock.packages['packages/harness-runtime'], undefined);
 });
 
-test('local development policy gates retain only the supported verification commands', async () => {
-  const policy = JSON.parse(await readFile('harness/core/registry/policies/local-dev.json', 'utf8'));
-
-  assert.deepEqual(policy.payload.verificationGates, [
-    'npm run verify',
-    './scripts/harness doctor --check-only'
-  ]);
+test('retired local development profiles and policy are physically absent', async () => {
+  for (const retiredPath of [
+    'harness/core/mcp/profiles/codespaces.json',
+    'harness/core/mcp/profiles/copilot-cloud.json',
+    'harness/core/mcp/profiles/local.json',
+    'harness/core/mcp/profiles/remote-agent.json',
+    'harness/core/registry/policies/local-dev.json'
+  ]) {
+    await assert.rejects(access(retiredPath), { code: 'ENOENT' });
+  }
 });

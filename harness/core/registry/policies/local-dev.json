@@ -1,9 +1,0 @@
-{
-  "version": "1.0.0",
-  "channel": "local-dev",
-  "payload": {
-    "supportedTargets": ["codex", "copilot", "cursor", "claude-code"],
-    "allowedProfiles": ["local", "codespaces", "copilot-cloud", "remote-agent"],
-    "verificationGates": ["npm run verify", "./scripts/harness doctor --check-only"]
-  }
-}
