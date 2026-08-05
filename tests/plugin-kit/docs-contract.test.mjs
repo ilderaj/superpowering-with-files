@@ -2,6 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
+function assertNoLegacyOperatorClaims(doc, { name }) {
+  assert.doesNotMatch(doc, /\[ChiefOps\]\(chiefops\.md\)|harness_chiefops_board/, `${name} must not advertise ChiefOps controls`);
+  assert.doesNotMatch(doc, /\[MCP Read-Only Compatibility\]\(mcp-read-only-compatibility\.md\)|MCP read-only compatibility/i, `${name} must not advertise the retired MCP tier`);
+  assert.doesNotMatch(doc, /\.\/scripts\/harness\s+(?:chiefops|status|active-summary|summary|record|lifecycle-sweep)\b/, `${name} must not advertise retired command wrappers`);
+  assert.doesNotMatch(doc, /execution receipts?|companion[- ]plan|reconciliation\.md|lifecycle anchors?/i, `${name} must not make legacy lifecycle state current`);
+  assert.doesNotMatch(doc, /workspace-skills|--skills-profile|\bminimal-global\b|\bhigh-assurance\b/i, `${name} must not make the retired profile plane current`);
+}
+
 test('public installation docs retain only the Codex page', async () => {
   for (const retiredDoc of [
     'docs/install/claude-code.md',
@@ -63,4 +71,33 @@ test('maintenance docs name only the current upstream source config and lock', a
   assert.match(maintenance, /harness\/upstream\/sources\.json/);
   assert.match(maintenance, /harness\/upstream\/\.source-lock\.json/);
   assert.doesNotMatch(maintenance, /harness\/upstream\/\.source-heads\.json/);
+});
+
+test('operator docs describe the Trio and omit retired control surfaces', async () => {
+  for (const retiredDoc of [
+    'docs/chiefops.md',
+    'docs/chiefops-v0b.md',
+    'docs/mcp-read-only-compatibility.md'
+  ]) {
+    await assert.rejects(readFile(retiredDoc, 'utf8'), { code: 'ENOENT' });
+  }
+
+  const [workflows, maintenance] = await Promise.all([
+    readFile('docs/workflows.md', 'utf8'),
+    readFile('docs/maintenance.md', 'utf8')
+  ]);
+
+  for (const file of ['task_plan.md', 'findings.md', 'progress.md']) {
+    assert.match(workflows, new RegExp(`planning/active/<task-id>/${file}`));
+  }
+  assert.match(workflows, /Select one capability pack: `dev`, `office`, or `safety`\./);
+  assert.match(workflows, /The Host owns worker and subtask lifecycle, permissions, continuation, and external or human gates\./);
+  assert.match(workflows, /manual fallback/i);
+  assert.match(workflows, /Worker completion is only a candidate pending Chief acceptance and Trio writeback\./);
+  assert.match(workflows, /Requested model and effort are intent\. Without authenticated Host evidence, actual remains `unknown`\./);
+  assert.match(workflows, /^## Optional Contracts$/m);
+  assert.match(maintenance, /\[Workflows\]\(workflows\.md#optional-contracts\)/);
+
+  assertNoLegacyOperatorClaims(workflows, { name: 'workflows' });
+  assertNoLegacyOperatorClaims(maintenance, { name: 'maintenance' });
 });
