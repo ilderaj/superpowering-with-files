@@ -1,4 +1,4 @@
-export const supportedPluginTargets = ['codex', 'claude-code', 'cursor', 'copilot'];
+export const supportedPluginTargets = ['codex'];
 
 export const platformContracts = {
   codex: {
@@ -8,71 +8,15 @@ export const platformContracts = {
     manifestPath: '.codex-plugin/plugin.json',
     requiredFiles: [
       '.codex-plugin/plugin.json',
-      'skills/harness/SKILL.md',
-      'hooks/hooks.json',
+      'skills/trio/SKILL.md',
+      'skills/trio/dev/SKILL.md',
+      'skills/trio/office/SKILL.md',
+      'skills/trio/safety/SKILL.md',
       'README.md'
     ],
     loadsRootInstructionFile: true,
     capabilities: {
-      skills: true,
-      hooks: true,
-      cloudMcpToolsOnly: false
-    }
-  },
-  'claude-code': {
-    id: 'claude-code',
-    displayName: 'Claude Code',
-    packageName: 'harness-claude-code-plugin',
-    manifestPath: '.claude-plugin/plugin.json',
-    requiredFiles: [
-      '.claude-plugin/plugin.json',
-      'skills/harness/SKILL.md',
-      'hooks/hooks.json',
-      'README.md'
-    ],
-    loadsRootInstructionFile: false,
-    capabilities: {
-      skills: true,
-      hooks: true,
-      cloudMcpToolsOnly: false
-    }
-  },
-  cursor: {
-    id: 'cursor',
-    displayName: 'Cursor',
-    packageName: 'harness-cursor-plugin',
-    manifestPath: 'plugin.json',
-    requiredFiles: [
-      'plugin.json',
-      'skills/harness/SKILL.md',
-      'rules/harness.mdc',
-      'hooks/hooks.json',
-      'README.md'
-    ],
-    loadsRootInstructionFile: true,
-    capabilities: {
-      skills: true,
-      hooks: true,
-      cloudMcpToolsOnly: false
-    }
-  },
-  copilot: {
-    id: 'copilot',
-    displayName: 'GitHub Copilot',
-    packageName: 'harness-copilot-plugin',
-    manifestPath: 'plugin.json',
-    requiredFiles: [
-      'plugin.json',
-      'skills/harness/SKILL.md',
-      'hooks/hooks.json',
-      'instructions/harness.instructions.md',
-      'README.md'
-    ],
-    loadsRootInstructionFile: true,
-    capabilities: {
-      skills: true,
-      hooks: true,
-      cloudMcpToolsOnly: false
+      skills: true
     }
   }
 };

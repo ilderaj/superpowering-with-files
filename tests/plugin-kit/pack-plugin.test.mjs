@@ -28,7 +28,12 @@ test('packPlugin creates a versioned plugin tarball with plugin root contents', 
 
   const { stdout } = await execFileAsync('tar', ['-tzf', artifact.path]);
   assert.match(stdout, /\.codex-plugin\/plugin\.json/);
-  assert.match(stdout, /skills\/harness\/SKILL\.md/);
+  assert.match(stdout, /skills\/trio\/SKILL\.md/);
+  assert.match(stdout, /skills\/trio\/dev\/SKILL\.md/);
+  assert.match(stdout, /skills\/trio\/office\/SKILL\.md/);
+  assert.match(stdout, /skills\/trio\/safety\/SKILL\.md/);
+  assert.doesNotMatch(stdout, /skills\/harness\/SKILL\.md/);
+  assert.doesNotMatch(stdout, /(?:^|\/)hooks\//);
   assert.doesNotMatch(stdout, /(?:^|\/)\.mcp\.json$/m);
   assert.doesNotMatch(stdout, /(?:^|\/)mcp\//);
   assert.doesNotMatch(stdout, /(?:^|\/)runtime\//);
@@ -46,19 +51,18 @@ test('buildAll creates release artifacts, manifest, checksums, and notes', async
   const names = (await readdir(release.releaseOut)).sort();
   assert.deepEqual(names, [
     'SHA256SUMS',
-    'harness-claude-code-plugin-1.0.9.tgz',
     'harness-codex-plugin-1.0.9.tgz',
-    'harness-copilot-plugin-1.0.9.tgz',
-    'harness-cursor-plugin-1.0.9.tgz',
     'manifest.json',
     'release-notes.md'
   ]);
 
   const manifest = JSON.parse(await readFile(path.join(release.releaseOut, 'manifest.json'), 'utf8'));
   assert.equal(manifest.version, '1.0.9');
-  assert.equal(manifest.artifacts.length, 4);
+  assert.equal(manifest.artifacts.length, 1);
+  assert.equal(manifest.artifacts[0].target, 'codex');
 
   const sums = await readFile(path.join(release.releaseOut, 'SHA256SUMS'), 'utf8');
   assert.doesNotMatch(sums, /harness-runtime-1\.0\.9\.tgz/);
-  assert.match(sums, /harness-copilot-plugin-1\.0\.9\.tgz/);
+  assert.match(sums, /harness-codex-plugin-1\.0\.9\.tgz/);
+  assert.doesNotMatch(sums, /harness-(?:claude-code|cursor|copilot)-plugin-1\.0\.9\.tgz/);
 });

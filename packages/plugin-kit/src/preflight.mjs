@@ -14,7 +14,7 @@ export async function validateBuiltPlugin({ target, pluginRoot }) {
 
   await validateJsonFile(path.join(pluginRoot, contract.manifestPath), contract.manifestPath, errors);
 
-  for (const forbiddenPath of ['.mcp.json', 'mcp', 'runtime', 'node_modules']) {
+  for (const forbiddenPath of ['skills/harness', 'hooks', '.mcp.json', 'mcp', 'runtime', 'node_modules']) {
     if (await pathExists(path.join(pluginRoot, forbiddenPath))) {
       errors.push(`Plugin artifact must not include forbidden path: ${forbiddenPath}/`);
     }

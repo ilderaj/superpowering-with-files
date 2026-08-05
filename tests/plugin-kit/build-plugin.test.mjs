@@ -1,53 +1,48 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { buildPlugin } from '../../packages/plugin-kit/src/build-plugin.mjs';
 import { platformContracts, supportedPluginTargets } from '../../packages/plugin-kit/src/platform-contracts.mjs';
 
-test('plugin source configs exist for every supported target', async () => {
+test('plugin source config exists only for the Codex target', async () => {
+  assert.deepEqual(supportedPluginTargets, ['codex']);
+
   for (const target of supportedPluginTargets) {
     const config = JSON.parse(await readFile(`plugins/${target}/plugin.harness.json`, 'utf8'));
     assert.equal(config.target, target);
     assert.equal(config.version, '1.0.9');
-    assert.equal(config.components.skills.profile, 'minimal-global');
-    assert.equal(config.components.mcp, undefined);
+    assert.equal(config.components, undefined);
   }
 });
 
-test('buildPlugin creates skills-and-hooks-only plugin roots', async () => {
+test('buildPlugin creates a Codex root with exactly the four Trio skills', async () => {
   const outDir = path.join(await fsMkdtemp('harness-build-plugin-'), 'plugins');
+  const build = await buildPlugin({ target: 'codex', version: '1.0.9', outDir });
+  const contract = platformContracts.codex;
 
-  for (const target of supportedPluginTargets) {
-    const build = await buildPlugin({ target, version: '1.0.9', outDir });
-    const contract = platformContracts[target];
+  assert.equal(build.target, 'codex');
+  assert.equal(build.version, '1.0.9');
+  assert.equal(build.pluginRoot, path.join(outDir, contract.packageName));
 
-    assert.equal(build.target, target);
-    assert.equal(build.version, '1.0.9');
-    assert.equal(build.pluginRoot, path.join(outDir, contract.packageName));
+  for (const requiredFile of contract.requiredFiles) {
+    await access(path.join(build.pluginRoot, requiredFile));
+  }
 
-    for (const requiredFile of contract.requiredFiles) {
-      await access(path.join(build.pluginRoot, requiredFile));
-    }
+  assert.deepEqual((await readdir(path.join(build.pluginRoot, 'skills/trio'))).sort(), [
+    'SKILL.md',
+    'dev',
+    'office',
+    'safety'
+  ]);
+  await assertFileMatches(build.pluginRoot, 'skills/trio/SKILL.md', /name: trio/);
+  await assertFileMatches(build.pluginRoot, 'skills/trio/dev/SKILL.md', /name: dev/);
+  await assertFileMatches(build.pluginRoot, 'skills/trio/office/SKILL.md', /name: office/);
+  await assertFileMatches(build.pluginRoot, 'skills/trio/safety/SKILL.md', /name: safety/);
 
-    const hookConfig = JSON.parse(await readFile(path.join(build.pluginRoot, 'hooks/hooks.json'), 'utf8'));
-    const hookConfigText = JSON.stringify(hookConfig);
-    assert.ok(Object.values(hookConfig.hooks).some((entries) => Array.isArray(entries) && entries.length > 0));
-    assert.match(hookConfigText, /\.\/hooks\/task-scoped-hook\.sh/);
-    assert.doesNotMatch(hookConfigText, /\.(codex|claude|cursor|github)\/hooks\/task-scoped-hook\.sh/);
-    assert.doesNotMatch(hookConfigText, /\$HOME\/\.\/hooks\/task-scoped-hook\.sh/);
-
-    const harnessSkill = await readFile(path.join(build.pluginRoot, 'skills/harness/SKILL.md'), 'utf8');
-    assert.match(harnessSkill, /# Harness\n/);
-    assert.doesNotMatch(harnessSkill, /planning\/active/);
-
-    for (const forbiddenPath of ['.mcp.json', 'mcp', 'runtime', 'node_modules']) {
-      await assert.rejects(access(path.join(build.pluginRoot, forbiddenPath)), /ENOENT/);
-    }
-
-    const manifest = JSON.parse(await readFile(path.join(build.pluginRoot, contract.manifestPath), 'utf8'));
-    assert.equal(manifest.mcpServers, undefined);
+  for (const forbiddenPath of ['skills/harness', 'hooks', '.mcp.json', 'mcp', 'runtime', 'node_modules']) {
+    await assert.rejects(access(path.join(build.pluginRoot, forbiddenPath)), /ENOENT/);
   }
 });
 
@@ -60,22 +55,27 @@ test('Codex plugin manifest follows the supported manifest shape', async () => {
   assert.equal(manifest.version, '1.0.9');
   assert.equal(manifest.skills, './skills/');
   assert.equal(manifest.mcpServers, undefined);
-  assert.equal(manifest.hooks, './hooks/hooks.json');
+  assert.equal(manifest.hooks, undefined);
   assert.equal(manifest.interface.displayName, 'Harness for Codex');
-  assert.ok(Array.isArray(manifest.interface.defaultPrompt));
-  assert.ok(manifest.interface.defaultPrompt.length > 0);
+  assert.deepEqual(manifest.interface.capabilities, ['Skills']);
+  assert.doesNotMatch(JSON.stringify(manifest.interface.defaultPrompt), /doctor|record progress/i);
   assert.equal(manifest.components, undefined);
 });
 
-test('Claude Code plugin manifest avoids ignored Codex interface metadata', async () => {
-  const outDir = path.join(await fsMkdtemp('harness-claude-manifest-'), 'plugins');
-  const build = await buildPlugin({ target: 'claude-code', version: '1.0.9', outDir });
-  const manifest = JSON.parse(await readFile(path.join(build.pluginRoot, '.claude-plugin/plugin.json'), 'utf8'));
+test('buildPlugin rejects every non-Codex target', async () => {
+  const outDir = path.join(await fsMkdtemp('harness-non-codex-'), 'plugins');
 
-  assert.equal(manifest.name, 'harness-claude-code-plugin');
-  assert.equal(manifest.version, '1.0.9');
-  assert.equal(manifest.interface, undefined);
+  for (const target of ['claude-code', 'cursor', 'copilot']) {
+    await assert.rejects(
+      buildPlugin({ target, version: '1.0.9', outDir }),
+      new RegExp(`Unsupported plugin target: ${target}`)
+    );
+  }
 });
+
+async function assertFileMatches(root, relativePath, expression) {
+  assert.match(await readFile(path.join(root, relativePath), 'utf8'), expression);
+}
 
 async function fsMkdtemp(prefix) {
   const { mkdtemp } = await import('node:fs/promises');

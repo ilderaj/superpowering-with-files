@@ -3,13 +3,5 @@
   "name": "harness-codex-plugin",
   "displayName": "Harness for Codex",
   "version": "1.0.9",
-  "description": "Planning skills and hooks for Codex.",
-  "components": {
-    "skills": {
-      "profile": "minimal-global"
-    },
-    "hooks": {
-      "enabled": true
-    }
-  }
+  "description": "Trio skills for Codex."
 }

@@ -71,14 +71,11 @@ function renderReleaseNotes(version) {
   return [
     `# Superpowering With Files ${version}`,
     '',
-    'Harness plugin release with skills and hooks artifacts for Codex, Claude Code, Cursor, and GitHub Copilot.',
+    'Trio skills plugin release for Codex.',
     '',
     'Artifacts:',
     '',
     `- harness-codex-plugin-${version}.tgz`,
-    `- harness-claude-code-plugin-${version}.tgz`,
-    `- harness-cursor-plugin-${version}.tgz`,
-    `- harness-copilot-plugin-${version}.tgz`,
     '',
     'Use `SHA256SUMS` and `manifest.json` to verify downloaded assets.'
   ].join('\n');
