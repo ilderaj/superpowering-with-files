@@ -97,6 +97,27 @@ const retiredEnginePaths = [
   'docs/safety/architecture.md'
 ];
 
+const retiredPwfHookPaths = [
+  'harness/core/hooks/planning-with-files/claude-hooks.json',
+  'harness/core/hooks/planning-with-files/codex-hooks.json',
+  'harness/core/hooks/planning-with-files/copilot-hooks.json',
+  'harness/core/hooks/planning-with-files/cursor-hooks.json',
+  'harness/core/hooks/planning-with-files/scripts/planning-brief-context.mjs',
+  'harness/core/hooks/planning-with-files/scripts/planning-hot-context.mjs',
+  'harness/core/hooks/planning-with-files/scripts/render-brief-context.mjs',
+  'harness/core/hooks/planning-with-files/scripts/render-hot-context.mjs',
+  'harness/core/hooks/planning-with-files/scripts/render-routing-decision.mjs',
+  'harness/core/hooks/planning-with-files/scripts/render-session-summary.mjs',
+  'harness/core/hooks/planning-with-files/scripts/session-summary.mjs',
+  'harness/core/hooks/planning-with-files/scripts/task-scoped-hook.sh',
+  'harness/core/hooks/runtime-hook-evidence.sh',
+  'harness/installer/lib/session-summary.mjs',
+  'tests/hooks/session-summary.test.mjs',
+  'tests/hooks/task-scoped-hook.test.mjs',
+  'tests/installer/goal-4-completion.test.mjs',
+  'docs/compatibility/hooks.md'
+];
+
 test('defaultState creates only the narrow v1 compatibility envelope', () => {
   assert.deepEqual(defaultState(), {
     schemaVersion: 1,
@@ -195,4 +216,10 @@ test('C3 physically retires the profile projection engine and its CI boundary', 
   const retiredCiReference = /harness\/installer\/lib\/(?:safety|skill)-projection\.mjs|tests\/(?:adapters\/(?:skill-projection|sync-skills|sync-hooks)|installer\/(?:matt-skill-patches|policy-render))\.test\.mjs/;
   assert.doesNotMatch(upstreamRefreshVerifier, retiredCiReference);
   assert.doesNotMatch(upstreamRefreshLib, retiredCiReference);
+});
+
+test('PWF hook source, helper, bridge, and dedicated test paths are physically retired', async () => {
+  for (const retiredPath of retiredPwfHookPaths) {
+    await assert.rejects(access(retiredPath), { code: 'ENOENT' });
+  }
 });

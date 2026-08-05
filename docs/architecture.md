@@ -44,44 +44,10 @@ Projection operations:
 - `render`: generate entry files from templates.
 - `link`: link compatible skills or directories.
 - `materialize`: copy files when a platform needs a real local copy or patched content.
-- `hook-config`: merge verified Harness-managed hook entries into a target adapter-specific config file.
-- `hook-script`: copy hook helper scripts into the target hook script root.
 
 `sync` records Harness-owned paths in `.harness/projections.json`. A later sync may replace paths recorded in that manifest and garbage-collect stale Harness-managed projections that are no longer part of the desired set. If a target path exists but is not owned by Harness, sync refuses to overwrite it unless `--conflict=backup` is used.
 
-Hook projection is disabled by default. `install --hooks=on` records `hookMode: "on"` in `.harness/state.json`; later `sync` reads that state and plans hook projections from `harness/core/skills/index.json`.
-
-Hook support is adapter-based:
-
-| Hook source | Codex | GitHub Copilot | Cursor | Claude Code |
-| --- | --- | --- | --- | --- |
-| `planning-with-files` task-scoped hook | Supported via verified-event allowlist when hooks are enabled in the installed Codex build; retains `SessionStart` and `UserPromptSubmit`, omits planning `Stop` | Supported | Supported | Supported |
-
-Supported means Harness has an adapter whose path/schema contract is backed by official platform documentation. Harness then narrows projection to the event-level contracts it has actually verified for that adapter. Superpowers is an explicit skill route; Harness does not install a Superpowers session-start hook. Codex still needs hooks enabled in the installed build; VS Code hooks are preview functionality and may be disabled by org policy; Cursor's Claude-compatible path requires the Third-party skills feature.
-
-Hook facts must be backed by official platform documentation before Harness treats them as verified contracts:
-
-| Target | Official doc-backed facts | Harness-owned or provisional facts |
-| --- | --- | --- |
-| Codex | `.codex/hooks.json`, `~/.codex/hooks.json`, `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `Stop`, hooks-enabled build | Script filenames under `.codex/hooks/*` are Harness-owned adapter choices, and Harness currently retains only the verified Codex planning subset: `SessionStart` plus `UserPromptSubmit` (planning `Stop` omitted). Runtime evidence is measured from `.harness/runtime-hooks/codex.jsonl` when live hook invocations are observed. |
-| GitHub Copilot / VS Code | `.github/hooks/*.json`, `~/.copilot/hooks`, PascalCase hook events, Claude hook config compatibility, Copilot CLI lowerCamelCase compatibility | Harness chooses concrete hook filenames and keeps native Copilot hook files as the primary projection path. |
-| Claude Code | `.claude/settings.json`, `.claude/settings.local.json`, `~/.claude/settings.json`, `SessionStart` and `UserPromptSubmit` stdout context injection | Harness chooses script filenames under `.claude/hooks/*`. |
-| Cursor | `.cursor/hooks.json`, `~/.cursor/hooks.json`, native agent hook events including `sessionStart`, `sessionEnd`, `preToolUse`, `postToolUse`, `stop`, plus official third-party Claude hook compatibility | Harness chooses concrete script filenames under `.cursor/hooks/*` and keeps the native Cursor format as the default adapter. |
-
-Hook config/settings JSON files are merged rather than blindly overwritten. Harness marks each managed hook entry with a `Harness-managed ... hook` description, removes the previous managed entry for that same skill, and preserves unrelated user hook entries. The target-specific hook container must be mergeable; Claude Code settings JSON can preserve non-hook fields while Harness updates only the `hooks` field. If an existing hook config or settings JSON is malformed, `sync` refuses to modify it unless `--conflict=backup` is used.
-
-Hook roots are platform metadata, not command-local constants:
-
-| Target | Workspace hook root | User-global hook root |
-| --- | --- | --- |
-| Codex | `.codex` | `~/.codex` |
-| GitHub Copilot | `.github/hooks` | `~/.copilot/hooks` |
-| Cursor | `.cursor` | `~/.cursor` |
-| Claude Code | `.claude` | `~/.claude` |
-
-Claude Code stores hook configuration in `.claude/settings.json` and `~/.claude/settings.json`; helper scripts live under `.claude/hooks/*` and `~/.claude/hooks/*`.
-
-The planning-with-files hook helper reads only task-scoped active plans under `planning/active/<task-id>/`. It does not read or create project-root planning files, and it does not archive tasks. `session-start` writes a per-task `.session-start` sidecar, and stop-style hooks emit a structured session summary built from `planning/active/<task-id>/{task_plan.md,progress.md,findings.md}` plus that sidecar. When more than one active task exists, Harness records a warning that planning hot context measurement was skipped instead of pretending the measurement is meaningful. `./scripts/harness summary` reproduces the same summary when hooks are unavailable or disabled.
+This repository does not project planning hooks or scripts. Host hook configuration remains Host-owned and non-authoritative. It never replaces the Trio planning files or main-session round start.
 
 Skill roots are platform metadata, not command-local constants:
 

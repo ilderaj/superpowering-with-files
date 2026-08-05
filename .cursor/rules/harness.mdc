@@ -95,7 +95,7 @@ Before each substantive goal round, continuation tick, or phase boundary:
 
 For tracked and deep-reasoning work, major phase boundaries, completion of a reviewed plan, or unusually long continuation history are good cues to prefer a fresh thread and restore from `planning/active/<task-id>/` instead of stretching one continuation indefinitely. This is soft guidance for hygiene, not a hard stop.
 
-This protocol is repository-owned guidance, not a separate runner. Hooks may inject reminders or compact context, but they do not replace round-start restore, reclassification, routing, or sync-back discipline.
+This protocol is repository-owned guidance, not a separate runner. This repository does not inject hook context. Host hooks are non-authoritative and never replace the Trio round start in the main session.
 
 ### Mode-Aware Verification Contract
 
@@ -225,4 +225,3 @@ Skip command wrappers for trivial commands or tiny targeted reads where compress
 Cursor should receive both rules and skills projections when possible.
 
 Render Cursor-compatible `.mdc` rules from core policy and expose supported skills through Cursor-readable skill directories. Keep both projections derived from the same core source.
-

@@ -102,3 +102,26 @@ test('operator docs describe the Trio and omit retired control surfaces', async 
   assertNoLegacyOperatorClaims(workflows, { name: 'workflows' });
   assertNoLegacyOperatorClaims(maintenance, { name: 'maintenance' });
 });
+
+test('PWF hook-plane docs are retired and Host hooks remain non-authoritative', async () => {
+  await assert.rejects(readFile('docs/compatibility/hooks.md', 'utf8'), { code: 'ENOENT' });
+
+  const [architecture, claude, cursor, matrix] = await Promise.all([
+    readFile('docs/architecture.md', 'utf8'),
+    readFile('CLAUDE.md', 'utf8'),
+    readFile('.cursor/rules/harness.mdc', 'utf8'),
+    readFile('tests/evals/repo-workflow-acceptance-matrix.md', 'utf8')
+  ]);
+
+  assert.doesNotMatch(architecture, /hook-config|hook-script|task-scoped planning hook output|planning-with-files.*hook/i);
+  assert.match(architecture, /This repository does not project planning hooks or scripts\./);
+  assert.match(architecture, /Host hook configuration remains Host-owned and non-authoritative\./);
+  assert.doesNotMatch(claude, /Do not install or mutate hooks unless the user explicitly selects hook installation\./);
+  assert.match(claude, /This repository does not project or inject planning context through hooks\./);
+  assert.match(claude, /Host hook configuration is Host-owned and non-authoritative\./);
+  assert.doesNotMatch(cursor, /Hooks may inject reminders or compact context/);
+  assert.match(cursor, /This repository does not inject hook context\./);
+  assert.match(cursor, /Host hooks are non-authoritative and never replace the Trio round start in the main session\./);
+  assert.doesNotMatch(matrix, /task-scoped planning hook output|tests\/hooks\/task-scoped-hook\.test\.mjs/);
+  assert.match(matrix, /native Trio planning files and main-session round start/);
+});
