@@ -86,16 +86,12 @@ export function deriveDecisionPlaneRoute({ classification, signals = {}, recorde
   if (signals.complexDebugging) {
     deepSignalReasons.push('complex debugging');
   }
-  if (signals.executionReceiptHeavyFlow) {
-    deepSignalReasons.push('receipt-heavy execution flow');
-  }
-
   if (deepSignalReasons.length > 0) {
     return {
       selectedRoute: 'deep-rich',
       routeReason: 'task requires deep reasoning or equivalent rich execution support',
       promotionTrigger: deepSignalReasons.join('; '),
-      routeEvidenceSurface: 'planning + summary + active-summary'
+      routeEvidenceSurface: 'planning trio + Host decision'
     };
   }
 
@@ -123,7 +119,7 @@ export function deriveDecisionPlaneRoute({ classification, signals = {}, recorde
     selectedRoute: 'tracked-lean',
     routeReason: 'task requires durable planning and recovery without deep-task escalation',
     promotionTrigger: 'none',
-    routeEvidenceSurface: 'planning + summary'
+    routeEvidenceSurface: 'planning trio'
   };
 }
 

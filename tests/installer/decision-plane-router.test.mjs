@@ -14,14 +14,14 @@ test('parseRoutingDecision reads the tracked-task routing record', () => {
 - Selected Route: tracked-lean
 - Route Reason: task requires durable planning but not deep reasoning
 - Promotion Trigger: none
-- Route Evidence Surface: planning + summary
+- Route Evidence Surface: planning trio
 `;
 
   const route = parseRoutingDecision(markdown);
   assert.equal(route.selectedRoute, 'tracked-lean');
   assert.equal(route.routeReason, 'task requires durable planning but not deep reasoning');
   assert.equal(route.promotionTrigger, 'none');
-  assert.equal(route.routeEvidenceSurface, 'planning + summary');
+  assert.equal(route.routeEvidenceSurface, 'planning trio');
 });
 
 test('validateRoutingDecision rejects unknown routes', () => {
@@ -40,7 +40,7 @@ test('validateRoutingDecision allows a tracked route without a promotion trigger
   const result = validateRoutingDecision({
     selectedRoute: 'tracked-lean',
     routeReason: 'durable planning is required',
-    routeEvidenceSurface: 'planning + summary'
+    routeEvidenceSurface: 'planning trio'
   });
 
   assert.deepEqual(result, { ok: true, reasons: [] });
@@ -53,12 +53,25 @@ test('deriveDecisionPlaneRoute promotes tracked work into tracked-lean by defaul
       hasPlanning: true,
       explicitDeepReasoning: false,
       architectureUnclear: false,
-      complexDebugging: false
+      complexDebugging: false,
+      executionReceiptHeavyFlow: true
     }
   });
 
-  assert.equal(result.selectedRoute, 'tracked-lean');
+  assert.deepEqual(
+    {
+      selectedRoute: result.selectedRoute,
+      routeEvidenceSurface: result.routeEvidenceSurface
+    },
+    {
+      selectedRoute: 'tracked-lean',
+      routeEvidenceSurface: 'planning trio'
+    }
+  );
   assert.match(result.routeReason, /durable planning/i);
+
+  const deepResult = deriveDecisionPlaneRoute({ classification: 'deep' });
+  assert.equal(deepResult.routeEvidenceSurface, 'planning trio + Host decision');
 });
 
 test('deriveDecisionPlaneRoute promotes deep work into deep-rich', () => {
@@ -86,7 +99,7 @@ test('deriveDecisionPlaneRoute promotes a recorded tracked route when deep signa
       selectedRoute: 'tracked-lean',
       routeReason: 'task has durable planning already',
       promotionTrigger: 'none',
-      routeEvidenceSurface: 'planning + summary'
+      routeEvidenceSurface: 'planning trio'
     }
   });
 
@@ -100,7 +113,7 @@ test('deriveDecisionPlaneRoute preserves an already recorded route when no promo
     recordedRoute: {
       selectedRoute: 'tracked-lean',
       routeReason: 'task has durable planning already',
-      routeEvidenceSurface: 'planning + summary'
+      routeEvidenceSurface: 'planning trio'
     }
   });
 
