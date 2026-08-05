@@ -8,7 +8,6 @@ import { verify } from './verify.mjs';
 import { worktreePreflight } from './worktree-preflight.mjs';
 import { checkpointCommand } from './checkpoint.mjs';
 import { checkpointPushCommand } from './checkpoint-push.mjs';
-import { cloudBootstrap } from './cloud-bootstrap.mjs';
 import { worktreeName } from './worktree-name.mjs';
 import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
@@ -23,7 +22,6 @@ const commands = {
   verify,
   checkpoint: checkpointCommand,
   'checkpoint-push': checkpointPushCommand,
-  'cloud-bootstrap': cloudBootstrap,
   'worktree-name': worktreeName,
   'worktree-preflight': worktreePreflight,
   'workspace-link': workspaceLink,

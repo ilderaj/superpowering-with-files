@@ -401,10 +401,8 @@ function usage() {
     '  --scope=workspace|user-global|both',
     '  --targets=all|codex,copilot,cursor,claude-code',
     '  --skills-profile=<name>',
-    '  --profile=<entry-policy-profile>',
     '  --projection=link|portable',
     '  --mode=ensure|force',
-    '  --hooks=off|on',
     '  --help, -h'
   ].join('\n');
 }

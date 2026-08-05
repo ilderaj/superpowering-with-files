@@ -286,6 +286,19 @@ test('harness public dispatcher rejects retired link-personal', async () => {
   }
 });
 
+test('harness public dispatcher rejects retired cloud-bootstrap', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(harnessCommand(root, 'cloud-bootstrap'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /Unknown command: cloud-bootstrap/);
+      return true;
+    });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
 test('sync --help prints usage without executing sync', async () => {
   const root = await createHarnessFixture();
   try {
@@ -302,6 +315,8 @@ test('install --help prints usage without writing state', async () => {
   try {
     const { stdout } = await harnessCommand(root, 'install', '--help');
     assert.match(stdout, /Usage: .* install/);
+    assert.doesNotMatch(stdout, /--profile/);
+    assert.doesNotMatch(stdout, /--hooks/);
     await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
