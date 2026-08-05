@@ -943,11 +943,11 @@ test('filterEligibleChanges ignores runtime node_modules artifacts before enforc
     { path: 'node_modules/.bin/harness', tracked: false },
     { path: 'node_modules/.cache/wrangler/wrangler-account.json', tracked: false },
     { path: 'node_modules/@superpowering-with-files/harness-runtime', tracked: false },
-    { path: 'harness/upstream/.source-heads.json', tracked: true }
+    { path: 'harness/upstream/.source-lock.json', tracked: true }
   ]);
 
   assert.deepEqual(filtered, {
-    eligibleFiles: ['harness/upstream/.source-heads.json'],
+    eligibleFiles: ['harness/upstream/.source-lock.json'],
     excludedFiles: []
   });
 });

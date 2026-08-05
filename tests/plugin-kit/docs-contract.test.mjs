@@ -56,3 +56,11 @@ test('README names the Trio as the sole durable authority and only seven public 
   assert.doesNotMatch(readme, /`(?:status|update|fetch|active-summary|summary|record|worktree-preflight|worktree-name)`/);
   assert.doesNotMatch(readme, /(?:profile|hooks|MCP)\s+(?:is|are|stays|remains|supports|projects)/i);
 });
+
+test('maintenance docs name only the current upstream source config and lock', async () => {
+  const maintenance = await readFile('docs/maintenance.md', 'utf8');
+
+  assert.match(maintenance, /harness\/upstream\/sources\.json/);
+  assert.match(maintenance, /harness\/upstream\/\.source-lock\.json/);
+  assert.doesNotMatch(maintenance, /harness\/upstream\/\.source-heads\.json/);
+});

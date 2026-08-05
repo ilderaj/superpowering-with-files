@@ -279,7 +279,7 @@ git merge --ff-only origin/dev
 
 Upstream updates are staged before they are applied:
 
-`harness/upstream/sources.json` declares the desired source strategies. `harness/upstream/.source-lock.json` is the authoritative resolved source lock that CI and installer fetch consume. `harness/upstream/.source-heads.json` is legacy migration input only and must not be treated as the steady-state lock file.
+`harness/upstream/sources.json` declares the desired source strategies. `harness/upstream/.source-lock.json` is the authoritative resolved source lock that CI and installer fetch consume.
 
 Manual `workflow_dispatch` controls for upstream refresh are run-scoped:
 

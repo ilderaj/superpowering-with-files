@@ -36,9 +36,10 @@ test('loadUpstreamSourceConfig normalizes schema v2 sources', async () => {
   assert.deepEqual(config.sources['planning-with-files'].resolution.fallbacks, []);
 });
 
-test('loadSourceLock falls back to legacy source-head records when no authoritative lock exists', async () => {
-  const { loadSourceLock, legacySourceHeadsPath } = await loadUpstreamConfigModule();
+test('loadSourceLock ignores legacy source-head records when no authoritative lock exists', async () => {
+  const { loadSourceLock } = await loadUpstreamConfigModule();
   const tempRoot = await mkdtemp(path.join(tmpdir(), 'upstream-config-legacy-'));
+  const legacySourceHeadsPath = 'harness/upstream/.source-heads.json';
 
   await mkdir(path.join(tempRoot, path.dirname(legacySourceHeadsPath)), { recursive: true });
   await writeFile(
@@ -59,10 +60,11 @@ test('loadSourceLock falls back to legacy source-head records when no authoritat
 
   const lock = await loadSourceLock({ rootDir: tempRoot });
 
-  assert.equal(lock.sources.superpowers.strategy, 'branch-head');
-  assert.equal(lock.sources.superpowers.resolved.kind, 'branch-head');
-  assert.equal(lock.sources.superpowers.resolved.ref, 'HEAD');
-  assert.equal(lock.sources.superpowers.resolved.commitSha, '896224c4b1879920ab573417e68fd51d2ccc9072');
+  assert.deepEqual(lock, {
+    schemaVersion: 2,
+    refreshedAt: null,
+    sources: {}
+  });
 });
 
 test('writeSourceLock persists the lock document to the default path', async () => {
