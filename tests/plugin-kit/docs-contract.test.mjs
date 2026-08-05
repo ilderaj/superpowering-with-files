@@ -77,7 +77,8 @@ test('operator docs describe the Trio and omit retired control surfaces', async 
   for (const retiredDoc of [
     'docs/chiefops.md',
     'docs/chiefops-v0b.md',
-    'docs/mcp-read-only-compatibility.md'
+    'docs/mcp-read-only-compatibility.md',
+    'docs/chief-worker-workflows.md'
   ]) {
     await assert.rejects(readFile(retiredDoc, 'utf8'), { code: 'ENOENT' });
   }
