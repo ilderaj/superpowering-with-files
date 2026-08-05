@@ -44,6 +44,38 @@ test('profile documentation plane is retired and architecture states the Trio bo
   assert.match(architecture, /Host hook configuration remains Host-owned and non-authoritative\./);
 });
 
+test('non-Codex repository projections are retired and current documents retain the K3 boundary', async () => {
+  for (const retiredPath of [
+    'CLAUDE.md',
+    '.claude/launch.json',
+    '.cursor/rules/harness.mdc',
+    '.github/copilot-instructions.md'
+  ]) {
+    await assert.rejects(readFile(retiredPath, 'utf8'), { code: 'ENOENT' });
+  }
+
+  const documents = await Promise.all([
+    readFile('tests/evals/repo-workflow-replays/acceptance-scenarios.md', 'utf8'),
+    readFile('tests/evals/repo-workflow-acceptance-matrix.md', 'utf8'),
+    readFile('docs/cloud-dev-harness.md', 'utf8'),
+    readFile('docs/cloud-dev-parity.md', 'utf8')
+  ]);
+
+  for (const document of documents) {
+    const nonK3Document = document.replaceAll(
+      'Copilot cloud dispatch is a separate external-behavior K3 DAG, not a repository host projection.',
+      ''
+    );
+
+    assert.doesNotMatch(document, /Cursor|Claude Code|--targets=all|--hooks/i);
+    assert.doesNotMatch(nonK3Document, /Copilot(?:-only)? (?:install|overlap|default|preview|workspace|both-scope|target-specific|instructions|projection)/i);
+    assert.doesNotMatch(nonK3Document, /GitHub Copilot\s*\|\s*Yes\s*\|\s*Yes/i);
+    assert.match(document, /Codex is the only managed local target\./);
+    assert.match(document, /Other environments use a generic\/manual fallback\./);
+    assert.match(document, /Copilot cloud dispatch is a separate external-behavior K3 DAG, not a repository host projection\./);
+  }
+});
+
 test('release and installation docs describe one Codex Trio plugin artifact', async () => {
   const [releaseArtifacts, pluginPackages, platformSupport, codex] = await Promise.all([
     readFile('docs/release-plugin-artifacts.md', 'utf8'),
@@ -130,22 +162,14 @@ test('operator docs describe the Trio and omit retired control surfaces', async 
 test('PWF hook-plane docs are retired and Host hooks remain non-authoritative', async () => {
   await assert.rejects(readFile('docs/compatibility/hooks.md', 'utf8'), { code: 'ENOENT' });
 
-  const [architecture, claude, cursor, matrix] = await Promise.all([
+  const [architecture, matrix] = await Promise.all([
     readFile('docs/architecture.md', 'utf8'),
-    readFile('CLAUDE.md', 'utf8'),
-    readFile('.cursor/rules/harness.mdc', 'utf8'),
     readFile('tests/evals/repo-workflow-acceptance-matrix.md', 'utf8')
   ]);
 
   assert.doesNotMatch(architecture, /hook-config|hook-script|task-scoped planning hook output|planning-with-files.*hook/i);
   assert.match(architecture, /This repository does not project planning hooks or scripts\./);
   assert.match(architecture, /Host hook configuration remains Host-owned and non-authoritative\./);
-  assert.doesNotMatch(claude, /Do not install or mutate hooks unless the user explicitly selects hook installation\./);
-  assert.match(claude, /This repository does not project or inject planning context through hooks\./);
-  assert.match(claude, /Host hook configuration is Host-owned and non-authoritative\./);
-  assert.doesNotMatch(cursor, /Hooks may inject reminders or compact context/);
-  assert.match(cursor, /This repository does not inject hook context\./);
-  assert.match(cursor, /Host hooks are non-authoritative and never replace the Trio round start in the main session\./);
   assert.doesNotMatch(matrix, /task-scoped planning hook output|tests\/hooks\/task-scoped-hook\.test\.mjs/);
   assert.match(matrix, /native Trio planning files and main-session round start/);
 });

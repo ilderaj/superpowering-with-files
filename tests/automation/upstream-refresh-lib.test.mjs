@@ -903,7 +903,6 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
       if (captureCount === 1) {
         return [
           { path: 'AGENTS.md', tracked: true },
-          { path: '.github/copilot-instructions.md', tracked: true },
           { path: 'harness/upstream/superpowers/SKILL.md', tracked: true }
         ];
       }
@@ -928,7 +927,7 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
     'runRefresh',
     'writeSourceLock',
     'captureChanges:1',
-    'restore:AGENTS.md:tracked,.github/copilot-instructions.md:tracked',
+    'restore:AGENTS.md:tracked',
     'captureChanges:2',
     'writeResult'
   ]);
@@ -1225,7 +1224,7 @@ test('filterEligibleChanges includes tracked and untracked repo-owned upstream f
   ]);
 });
 
-test('filterEligibleChanges includes hidden projection roots and excludes repo-local entry files', async () => {
+test('source refresh retains only Codex projections and the AGENTS.md entry', async () => {
   const { filterEligibleChanges, listRepoLocalEntryFileChanges } = await loadUpstreamRefreshModule();
 
   const changes = [
@@ -1238,29 +1237,44 @@ test('filterEligibleChanges includes hidden projection roots and excludes repo-l
     { path: '.cursor/rules/harness.mdc', status: 'M', tracked: true },
     { path: '.github/copilot-instructions.md', status: 'M', tracked: true },
     { path: '.github/instructions/harness.instructions.md', status: 'M', tracked: true },
-    { path: '.github/prompts/review.prompt.md', status: 'M', tracked: true }
+    { path: '.github/prompts/review.prompt.md', status: 'M', tracked: true },
+    { path: 'harness/upstream/superpowers/SKILL.md', status: 'M', tracked: true }
   ];
   const result = filterEligibleChanges(changes);
 
   assert.deepEqual(result.eligibleFiles, [
     'docs/maintenance.md',
     '.agents/skills/planning-with-files/SKILL.md',
-    '.claude/skills/superpowers/SKILL.md',
     '.codex/skills/planning-with-files/SKILL.md',
-    '.cursor/rules/harness.mdc',
-    '.github/instructions/harness.instructions.md',
-    '.github/prompts/review.prompt.md'
+    'harness/upstream/superpowers/SKILL.md'
   ]);
   assert.deepEqual(result.excludedFiles, [
     'AGENTS.md',
     'CLAUDE.md',
-    '.github/copilot-instructions.md'
+    '.claude/skills/superpowers/SKILL.md',
+    '.cursor/rules/harness.mdc',
+    '.github/copilot-instructions.md',
+    '.github/instructions/harness.instructions.md',
+    '.github/prompts/review.prompt.md'
   ]);
   assert.deepEqual(listRepoLocalEntryFileChanges(changes), [
-    { path: 'AGENTS.md', status: 'M', tracked: true },
-    { path: 'CLAUDE.md', status: 'M', tracked: true },
-    { path: '.github/copilot-instructions.md', status: 'M', tracked: true }
+    { path: 'AGENTS.md', status: 'M', tracked: true }
   ]);
+});
+
+test('source refresh infers only Codex for retained repository projections', async () => {
+  const { createRefreshResult } = await loadUpstreamRefreshModule();
+
+  const result = createRefreshResult({
+    status: 'success',
+    eligibleFiles: [
+      '.agents/skills/trio/SKILL.md',
+      '.codex/AGENTS.md',
+      'harness/upstream/superpowers/SKILL.md'
+    ]
+  });
+
+  assert.deepEqual(result.compatibilityReport.affectedProjections, ['codex']);
 });
 
 test('filterEligibleChanges excludes harness runtime state and unrelated workspace files', async () => {

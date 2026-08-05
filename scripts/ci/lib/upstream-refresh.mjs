@@ -23,11 +23,7 @@ const runtimeOnlyFiles = new Set([
 
 const repoOwnedProjectionPathPrefixes = [
   '.agents/',
-  '.claude/',
   '.codex/',
-  '.cursor/',
-  '.github/instructions/',
-  '.github/prompts/',
   'harness/upstream/'
 ];
 
@@ -36,9 +32,7 @@ const repoOwnedProjectionFiles = new Set([
 ]);
 
 const repoLocalEntryFiles = new Set([
-  'AGENTS.md',
-  'CLAUDE.md',
-  '.github/copilot-instructions.md'
+  'AGENTS.md'
 ]);
 
 const transientRuntimeArtifactPrefixes = [
@@ -73,13 +67,7 @@ function inferAffectedProjections(changedFiles = []) {
 
   for (const filePath of changedFiles) {
     if (filePath.startsWith('.codex/')) affected.add('codex');
-    if (filePath.startsWith('.claude/')) affected.add('claude-code');
-    if (filePath.startsWith('.cursor/')) affected.add('cursor');
-    if (filePath.startsWith('.agents/')) {
-      affected.add('codex');
-      affected.add('copilot');
-      affected.add('cursor');
-    }
+    if (filePath.startsWith('.agents/')) affected.add('codex');
     if (
       filePath.startsWith('harness/installer/') ||
       filePath.startsWith('harness/core/policy/') ||
