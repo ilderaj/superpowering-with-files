@@ -122,6 +122,13 @@ const retiredHookEvidenceSummaryPaths = [
   'harness/installer/lib/hook-evidence-summary.mjs'
 ];
 
+const retiredContextBudgetPaths = [
+  'harness/core/context-budgets.json',
+  'harness/installer/lib/context-budget.mjs',
+  'tests/installer/context-budget.test.mjs',
+  'tests/installer/copilot-usage-budget.test.mjs'
+];
+
 test('defaultState creates only the narrow v1 compatibility envelope', () => {
   assert.deepEqual(defaultState(), {
     schemaVersion: 1,
@@ -230,6 +237,12 @@ test('PWF hook source, helper, bridge, and dedicated test paths are physically r
 
 test('hook evidence summary helper is physically retired', async () => {
   for (const retiredPath of retiredHookEvidenceSummaryPaths) {
+    await assert.rejects(access(retiredPath), { code: 'ENOENT' });
+  }
+});
+
+test('context budget config, helper, and dedicated tests are physically retired', async () => {
+  for (const retiredPath of retiredContextBudgetPaths) {
     await assert.rejects(access(retiredPath), { code: 'ENOENT' });
   }
 });
