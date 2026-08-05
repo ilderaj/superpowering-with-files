@@ -20,6 +20,30 @@ test('public installation docs retain only the Codex page', async () => {
   }
 });
 
+test('profile documentation plane is retired and architecture states the Trio boundary', async () => {
+  for (const retiredPath of [
+    'docs/skill-profiles.md',
+    'docs/skill-profile-evaluation.md',
+    'tests/fixtures/skill-profile-evaluation/tasks.json'
+  ]) {
+    await assert.rejects(readFile(retiredPath, 'utf8'), { code: 'ENOENT' });
+  }
+
+  const architecture = await readFile('docs/architecture.md', 'utf8');
+
+  assert.doesNotMatch(architecture, /workspace-skills|--skills-profile|\bminimal-global\b|\bhigh-assurance\b/i);
+  assert.doesNotMatch(architecture, /GitHub Copilot|Cursor|Claude Code/i);
+  for (const file of ['task_plan.md', 'findings.md', 'progress.md']) {
+    assert.match(architecture, new RegExp(`planning/active/<task-id>/${file}`));
+  }
+  assert.match(architecture, /Route work first, then select one capability family: `dev`, `office`, or `safety`\./);
+  assert.match(architecture, /Codex is the only managed native target\./);
+  assert.match(architecture, /generic\/manual fallback/i);
+  assert.match(architecture, /The Host owns worker and subtask lifecycle, permissions, continuation, and external or human gates\./);
+  assert.match(architecture, /This repository does not project planning hooks or scripts\./);
+  assert.match(architecture, /Host hook configuration remains Host-owned and non-authoritative\./);
+});
+
 test('release and installation docs describe one Codex Trio plugin artifact', async () => {
   const [releaseArtifacts, pluginPackages, platformSupport, codex] = await Promise.all([
     readFile('docs/release-plugin-artifacts.md', 'utf8'),
