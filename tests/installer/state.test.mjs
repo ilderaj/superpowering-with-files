@@ -94,7 +94,9 @@ const retiredEnginePaths = [
   'harness/core/safety/protected-paths.txt',
   'harness/core/safety/safe-commands.txt',
   'harness/core/templates/safety/vscode-settings.safety.jsonc',
-  'docs/safety/architecture.md'
+  'docs/safety/architecture.md',
+  'harness/core/skills/patches/planning-with-files-companion-plan.patch.md',
+  'harness/core/skills/patches/copilot-planning-with-files.patch.md'
 ];
 
 const retiredPwfHookPaths = [

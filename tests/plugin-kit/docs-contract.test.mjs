@@ -49,7 +49,8 @@ test('non-Codex repository projections are retired and current documents retain 
     'CLAUDE.md',
     '.claude/launch.json',
     '.cursor/rules/harness.mdc',
-    '.github/copilot-instructions.md'
+    '.github/copilot-instructions.md',
+    'docs/compatibility/copilot-planning-with-files.md'
   ]) {
     await assert.rejects(readFile(retiredPath, 'utf8'), { code: 'ENOENT' });
   }
