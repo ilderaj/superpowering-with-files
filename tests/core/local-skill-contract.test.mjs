@@ -7,7 +7,8 @@ const skillsRoot = path.join(process.cwd(), 'harness/core/skills');
 const requiredSections = ['Outcome Contract', 'When to Use', 'Common Mistakes'];
 const retiredLocalSkillPaths = [
   'harness/core/skills/risk-assessment-before-destructive-changes/SKILL.md',
-  'harness/core/skills/safe-bypass-flow/SKILL.md'
+  'harness/core/skills/safe-bypass-flow/SKILL.md',
+  'harness/core/skills/second-opinion/SKILL.md'
 ];
 
 async function localSkillFiles() {
