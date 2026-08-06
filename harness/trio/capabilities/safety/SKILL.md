@@ -45,7 +45,7 @@ A checkpoint is recovery evidence only; it is never approval, permission, a rece
 
 Checkpoint and rollback references describe how to recover or stop safely. They do not authorize a destructive operation, change task lifecycle, or report completion.
 
-Do not absorb safe-bypass-flow remote push, merge, or cleanup automation. External and lifecycle actions remain Host-owned and human-gated.
+Do not absorb legacy remote push, merge, or cleanup automation. External and lifecycle actions remain Host-owned and human-gated.
 
 ## Non-Goals
 

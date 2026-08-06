@@ -273,7 +273,7 @@ function assertSafetySkillContract(markdown) {
   const authority = sectionBody(body, 'Authority and Recovery').toLowerCase();
   assert.match(authority, /the trio is the sole durable task authority/u);
   assert.match(authority, /checkpoint is recovery evidence only; it is never approval, permission, a receipt, or a second authority/u);
-  assert.match(authority, /do not absorb safe-bypass-flow remote push, merge, or cleanup automation/u);
+  assert.match(authority, /do not absorb legacy remote push, merge, or cleanup automation/u);
 
   const nonGoals = sectionBody(body, 'Non-Goals').toLowerCase();
   for (const forbiddenSurface of [

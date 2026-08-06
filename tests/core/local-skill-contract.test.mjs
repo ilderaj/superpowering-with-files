@@ -6,7 +6,8 @@ import path from 'node:path';
 const skillsRoot = path.join(process.cwd(), 'harness/core/skills');
 const requiredSections = ['Outcome Contract', 'When to Use', 'Common Mistakes'];
 const retiredLocalSkillPaths = [
-  'harness/core/skills/risk-assessment-before-destructive-changes/SKILL.md'
+  'harness/core/skills/risk-assessment-before-destructive-changes/SKILL.md',
+  'harness/core/skills/safe-bypass-flow/SKILL.md'
 ];
 
 async function localSkillFiles() {
@@ -68,12 +69,6 @@ test('Harness-owned local skills use Waza-style outcome contracts without adding
         return [title, section];
       })
     );
-
-    if (path.basename(path.dirname(file)) === 'safe-bypass-flow') {
-      const outcome = sections.get('Outcome Contract');
-      assert.match(outcome.body, /\bdedicated worktree\b/i, file);
-      assert.doesNotMatch(outcome.body, /\bworktree or branch\b/i, file);
-    }
 
     assert.doesNotMatch(text, /TBD|TODO|implement later/i, file);
   }
