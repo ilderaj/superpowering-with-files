@@ -94,6 +94,24 @@ function assertDevSkillContract(markdown) {
   assert.match(verification, /read command exits, test counts, and failure details[\s\S]*preserve the evidence before making a claim/);
   assert.match(verification, /a worker report, previous run, partial run, or adjacent green test is not proof/);
   assert.match(verification, /without authenticated host evidence, actual model and effort remain unknown/);
+  const planning = sectionBody(body, 'Planning Contract').toLowerCase();
+  for (const field of [
+    'objective',
+    'exact affected surfaces',
+    'verified baseline',
+    'required behavior',
+    'non-goals',
+    'dependencies',
+    'red proof',
+    'smallest green',
+    'verification command',
+    'backstop verification',
+    'evidence sink',
+    'stop or block conditions',
+    'expected return contract'
+  ]) {
+    assert.ok(planning.includes(field), `Missing execution-handoff field: ${field}`);
+  }
 
   const normalized = body.toLowerCase();
   for (const phrase of [
@@ -126,6 +144,7 @@ function assertEntrySkillContract(markdown) {
     'Route First',
     'Task Classes',
     'Capability Selection',
+    'Plan and Execute Boundary',
     'Authority and Host Boundary',
     'Human Gates'
   ]) {
@@ -158,6 +177,15 @@ function assertEntrySkillContract(markdown) {
   assert.match(authorityBoundary, /without authenticated host evidence, actual remains unknown/);
   assert.match(authorityBoundary, /worker done is only a candidate/);
   assert.match(authorityBoundary, /chief performs acceptance and trio writeback/);
+  const planExecute = sectionBody(body, 'Plan and Execute Boundary').toLowerCase();
+  assert.match(planExecute, /chief: intake, route, planning, authority, assignment, gates, review, and acceptance/);
+  assert.match(planExecute, /execution worker: production changes and primary verification/);
+  assert.match(planExecute, /worker result is a candidate only/);
+  assert.match(planExecute, /chief acceptance is required before durable completion/);
+  assert.match(planExecute, /primary execution requires a visible worker/);
+  assert.match(planExecute, /chief never performs production mutations inline/);
+  assert.match(planExecute, /never substitutes a native subagent/);
+  assert.match(planExecute, /manual_pending.{0,4}or.{0,4}blocked/);
 
   const normalized = body.toLowerCase();
   for (const phrase of [
@@ -175,6 +203,8 @@ function assertEntrySkillContract(markdown) {
     'actual remains unknown',
     'worker done is only a candidate',
     'chief performs acceptance',
+    'plan and execute boundary',
+    'visible worker',
     'destructive',
     'external',
     'credential',
@@ -350,6 +380,28 @@ test('Trio entry validator rejects a second durable task authority', async () =>
   );
 
   assert.throws(() => assertEntrySkillContract(mutated));
+});
+
+test('Trio entry validator rejects Chief inline production mutation for delegated tasks', async () => {
+  const markdown = await readFile(entrySkillPath, 'utf8');
+  const mutated = replaceExactlyOnce(
+    markdown,
+    'When primary execution requires a visible worker, the Chief never performs production mutations inline and never substitutes a native subagent for that execution worker.',
+    'When primary execution requires a visible worker, the Chief may perform production mutations inline or substitute a native subagent for that execution worker.'
+  );
+
+  assert.throws(() => assertEntrySkillContract(mutated));
+});
+
+test('dev validator rejects an execution handoff that is not decision-complete', async () => {
+  const markdown = await readFile(devSkillPath, 'utf8');
+  const mutated = replaceExactlyOnce(
+    markdown,
+    'Every execution handoff must be decision-complete for the executor: objective, exact affected surfaces when known, verified baseline, required behavior, non-goals, dependencies and order, RED proof, smallest GREEN implementation, verification command, backstop verification, evidence sink, stop or block conditions, and expected return contract.',
+    'Every execution handoff may omit the objective, verified baseline, required behavior, RED proof, or evidence sink when the executor is expected to decide them.'
+  );
+
+  assert.throws(() => assertDevSkillContract(mutated));
 });
 
 test('skill header parser rejects duplicate keys', async () => {

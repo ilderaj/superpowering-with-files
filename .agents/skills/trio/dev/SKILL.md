@@ -17,6 +17,8 @@ Use the highest feasible public seam. Keep the rule red before green: write one 
 
 Plan the smallest independently verifiable slice with exact files, dependencies, non-goals, proof command, evidence sink, stop conditions, and return contract. Every step must have a concrete outcome; use no placeholders. Keep durable task state in the Trio and do not create another authority or task-state surface.
 
+Every execution handoff must be decision-complete for the executor: objective, exact affected surfaces when known, verified baseline, required behavior, non-goals, dependencies and order, RED proof, smallest GREEN implementation, verification command, backstop verification, evidence sink, stop or block conditions, and expected return contract.
+
 Quick work stays lightweight and does not acquire mandatory fan-out, worktree, design, or review ceremony. Tracked work restores or creates only the three planning files under the bound active task. Deep reasoning is a current-round decision for material uncertainty or high-risk judgment; it is not a durable task type and does not create another authority.
 
 ## Debugging Contract

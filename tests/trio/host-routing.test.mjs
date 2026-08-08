@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import * as routing from '../../harness/trio/core/routing.mjs';
-import { resolveCodexHostOperation } from '../../harness/trio/hosts/codex.mjs';
+import {
+  SWF_EXECUTOR_ROLE,
+  renderSwfExecutorAgentEntry,
+  renderSwfExecutorRoleFile,
+  resolveCodexHostOperation
+} from '../../harness/trio/hosts/codex.mjs';
 import { resolveGenericHostOperation } from '../../harness/trio/hosts/generic.mjs';
 
 const ROUTE_EVIDENCE_FIELDS = [
@@ -538,4 +543,234 @@ test('Host operation descriptors support spawn, continue, status, interrupt, and
     assert.equal(result.descriptor.executed, false);
     assert.deepEqual(result.descriptor.writes, []);
   }
+});
+
+test('strict primary execution selects a visible worker when one is available', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        requestedModel: 'gpt-5.6-luna',
+        requestedEffort: 'max',
+        primaryExecution: 'visible_worker_required'
+      }
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'strict-visible-available-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: true,
+        permissionBinding: true,
+        pathBinding: true
+      }
+    },
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/app'] }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(result.routeEvidence.status, 'planned');
+  assert.equal(result.routeEvidence.fallbackReason, null);
+  assert.equal(result.descriptor.executed, false);
+});
+
+test('strict primary execution never falls back to a native subagent', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        requestedModel: 'gpt-5.6-luna',
+        requestedEffort: 'max',
+        primaryExecution: 'visible_worker_required'
+      }
+    },
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/app'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'strict-no-native-fallback-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: false,
+        permissionBinding: true,
+        pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.status, 'manual_pending');
+  assert.equal(result.routeEvidence.actualModel, 'unknown');
+  assert.equal(result.routeEvidence.actualEffort, 'unknown');
+  assert.match(result.routeEvidence.fallbackReason, /visible_worker_required/);
+  assert.doesNotMatch(result.routeEvidence.fallbackReason, /native_subagent/);
+  assert.equal(result.descriptor.executed, false);
+  assert.deepEqual(result.descriptor.writes, []);
+  assert.equal(
+    result.descriptor.assignmentPacket.capability.primaryExecution,
+    'visible_worker_required'
+  );
+});
+
+test('strict primary execution fails closed when no visible worker capability is observed', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        requestedModel: 'gpt-5.6-luna',
+        requestedEffort: 'max',
+        primaryExecution: 'visible_worker_required'
+      }
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'strict-missing-visible-1',
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    },
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src'] }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.status, 'manual_pending');
+  assert.match(result.routeEvidence.fallbackReason, /visible_worker_required/);
+  assert.match(result.routeEvidence.fallbackReason, /visible_unknown|visible_unsupported/);
+});
+
+test('non-strict primary execution keeps the visible to native to manual chain unchanged', () => {
+  const base = {
+    operation: 'spawn',
+    assignmentPacket: createAssignmentPacket(),
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/app'],
+      operations: ['spawn'],
+      externalEffects: []
+    }
+  };
+  const observation = {
+    authenticated: true,
+    evidenceRef: 'legacy-chain-unchanged-1',
+    visibleWorker: {
+      visible: true,
+      operations: { spawn: true },
+      requestedModelEffortControls: false,
+      permissionBinding: true,
+      pathBinding: true
+    },
+    nativeSubagent: {
+      supported: true,
+      visible: false,
+      operations: { spawn: true }
+    }
+  };
+
+  const native = resolveGenericHostOperation({ ...base, observation });
+  assert.equal(native.routeEvidence.routeKind, 'native_subagent');
+  assert.match(native.routeEvidence.fallbackReason, /visible_model_controls_unbound/);
+
+  const manual = resolveGenericHostOperation({
+    ...base,
+    observation: {
+      ...observation,
+      nativeSubagent: { supported: false, visible: false, operations: { spawn: false } }
+    }
+  });
+  assert.equal(manual.routeEvidence.routeKind, 'manual_pending');
+});
+
+test('assignment packets carry topology intent inside capability without a new top-level field', () => {
+  assert.deepEqual(routing.ASSIGNMENT_PACKET_FIELDS, [
+    'authority',
+    'currentSlice',
+    'nonGoals',
+    'proof',
+    'capability',
+    'allowedOperations',
+    'deadline',
+    'expectedReturn'
+  ]);
+  const packet = routing.buildAssignmentPacket({
+    ...createAssignmentPacket(),
+    capability: {
+      requestedModel: 'gpt-5.6-luna',
+      requestedEffort: 'max',
+      primaryExecution: 'visible_worker_required'
+    }
+  });
+  assert.deepEqual(Object.keys(packet), routing.ASSIGNMENT_PACKET_FIELDS);
+  assert.equal(packet.capability.primaryExecution, 'visible_worker_required');
+});
+
+test('swf_executor role pins DeepSeek Flash with xhigh effort and no fallback model', () => {
+  assert.equal(SWF_EXECUTOR_ROLE.name, 'swf_executor');
+  assert.equal(SWF_EXECUTOR_ROLE.model, 'opencode-go/deepseek-v4-flash');
+  assert.equal(SWF_EXECUTOR_ROLE.modelReasoningEffort, 'xhigh');
+  assert.equal(SWF_EXECUTOR_ROLE.fallbackModel, null);
+
+  const entry = renderSwfExecutorAgentEntry('/tmp/host/agents/swf_executor.toml');
+  assert.match(entry, /\[agents\.swf_executor\]/);
+  assert.match(entry, /description\s*=\s*"/);
+  assert.match(entry, /config_file\s*=\s*"\/tmp\/host\/agents\/swf_executor\.toml"/);
+
+  const roleFile = renderSwfExecutorRoleFile();
+  assert.match(roleFile, /name\s*=\s*"swf_executor"/);
+  assert.match(roleFile, /model\s*=\s*"opencode-go\/deepseek-v4-flash"/);
+  assert.match(roleFile, /model_reasoning_effort\s*=\s*"xhigh"/);
+  assert.match(roleFile, /developer_instructions\s*=\s*"/);
+  assert.doesNotMatch(`${entry}\n${roleFile}`, /fallback/i);
+
+  assert.throws(
+    () => renderSwfExecutorAgentEntry(''),
+    /requires a role config file path/i
+  );
+});
+
+test('swf_executor instructions forbid redesign, require blocked on missing decisions, and reuse the role for nesting', () => {
+  const instructions = SWF_EXECUTOR_ROLE.instructions;
+  assert.match(instructions, /execute an already accepted SWF plan/i);
+  assert.match(instructions, /do not redesign/i);
+  assert.match(instructions, /blocked/i);
+  assert.match(instructions, /material decision/i);
+  assert.match(instructions, /swf_executor/i);
+  assert.match(instructions, /unavailable/i);
 });
