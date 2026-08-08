@@ -30,6 +30,11 @@ export const HOST_OPERATIONS = Object.freeze([
   'interrupt',
   'collect'
 ]);
+export const PRIMARY_EXECUTION_KINDS = Object.freeze([
+  'default',
+  'visible_worker_required'
+]);
+export const PRIMARY_EXECUTION_REQUIRED = 'visible_worker_required';
 export const HOST_ROUTE_KINDS = Object.freeze([
   'visible_worker',
   'native_subagent',
@@ -668,6 +673,15 @@ function buildManualPacket(input) {
   return buildAssignmentPacket(packetInput);
 }
 
+function primaryExecutionKind(input) {
+  const capability = objectRecord(input.assignmentPacket?.capability);
+  const value = capability.primaryExecution ?? 'default';
+  if (!PRIMARY_EXECUTION_KINDS.includes(value)) {
+    throw new Error(`Unknown primaryExecution kind: ${String(value)}`);
+  }
+  return value;
+}
+
 function manualCapabilityEvidence({ operation, observation, visibleCapability, nativeCapability, visibleResult, nativeResult }) {
   const visibleSource = objectRecord(visibleCapability);
   const nativeSource = objectRecord(nativeCapability);
@@ -691,6 +705,7 @@ export function resolveHostOperation(input = {}) {
     throw new Error('Host operation input must be an object.');
   }
   const operation = assertHostOperation(input.operation);
+  const primaryExecution = primaryExecutionKind(input);
   const modelResolution = resolveModelEffort({
     ...input,
     evidence: { authenticated: false },
@@ -746,6 +761,51 @@ export function resolveHostOperation(input = {}) {
         operation,
         routeKind: 'visible_worker',
         childEnvelope: null
+      })
+    };
+  }
+
+  if (primaryExecution === PRIMARY_EXECUTION_REQUIRED) {
+    const nativeResult = nativeSafety({
+      operation,
+      capability: nativeCapability,
+      observation,
+      parentEnvelope,
+      childEnvelope,
+      requestedEffort: modelResolution.requestedEffort,
+      lanes
+    });
+    const assignmentPacket = buildManualPacket(input);
+    const fallbackReason = `visible_worker_required_unavailable:${visibleResult.reason}`;
+    const routeEvidence = buildRouteEvidence({
+      routeKind: 'manual_pending',
+      requestedModel: modelResolution.requestedModel,
+      requestedEffort: modelResolution.requestedEffort,
+      actual: unknownActual(),
+      workerId: null,
+      capability: manualCapabilityEvidence({
+        operation,
+        observation,
+        visibleCapability,
+        nativeCapability,
+        visibleResult,
+        nativeResult
+      }),
+      permissionEnvelope: parentEnvelope,
+      pathEnvelope: parentEnvelope,
+      fallbackReason,
+      status: 'manual_pending'
+    });
+    return {
+      operation,
+      routeEvidence,
+      descriptor: buildOperationDescriptor({
+        operation,
+        routeKind: 'manual_pending',
+        childEnvelope: null,
+        assignmentPacket,
+        blocker: fallbackReason,
+        resumeCondition: `Provide an authenticated Host visible worker with bound model, effort, permission, and path controls, or release the ${PRIMARY_EXECUTION_REQUIRED} topology.`
       })
     };
   }

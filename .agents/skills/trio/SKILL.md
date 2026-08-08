@@ -29,6 +29,12 @@ Deep is a current-round reasoning decision for material uncertainty, unclear arc
 
 After routing, choose exactly one capability family: `dev`, `office`, or `safety`. The selected capability may define quality behavior within its own boundary, but it may not take ownership of task state, Host lifecycle, or external gates.
 
+## Plan and Execute Boundary
+
+Delegated execution separates planning from production mutation. Chief: intake, route, planning, authority, assignment, gates, review, and acceptance. Execution worker: production changes and primary verification. The worker result is a candidate only; Chief acceptance is required before durable completion.
+
+When primary execution requires a visible worker, the Chief never performs production mutations inline and never substitutes a native subagent for that execution worker. If a compliant visible worker is unavailable, the Host returns `manual_pending` or `blocked`; it never falls back to Chief inline execution. Native subagents remain allowed only as worker-local bounded delegation. Requested model and effort are intent; actual model and effort remain unknown without authenticated Host evidence.
+
 ## Authority and Host Boundary
 
 The Trio remains the sole durable task authority. The Host owns worker and subtask lifecycle, requested and actual model evidence, permissions, continuation, and external or human gates. Host-native goal and continuation are the long-task runtime; this entry policy is not a scheduler, daemon, poller, or runner.

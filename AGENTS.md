@@ -17,6 +17,12 @@ The Trio planning files are the sole durable task authority: `task_plan.md`, `fi
 
 Each task selects exactly one capability family: `dev`, `office`, or `safety`. Deep is a current-round reasoning decision for material uncertainty; it is not a durable task type and creates no authority.
 
+## Plan and Execute Boundary
+
+Delegated execution separates planning from production mutation. Chief: intake, route, planning, authority, assignment, gates, review, and acceptance. Execution worker: production changes and primary verification. The worker result is a candidate only; Chief acceptance is required before durable completion.
+
+When primary execution requires a visible worker, the Chief never performs production mutations inline and never substitutes a native subagent for that execution worker. If a compliant visible worker is unavailable, the Host returns `manual_pending` or `blocked`; it never falls back to Chief inline execution. Native subagents remain allowed only as worker-local bounded delegation.
+
 ## Projected Inventory
 
 The projected inventory is exactly this entry policy plus `trio/SKILL.md`, `trio/dev/SKILL.md`, `trio/office/SKILL.md`, and `trio/safety/SKILL.md`. The entry policy is routing policy, not a fifth capability pack.
