@@ -337,6 +337,27 @@ test("office verifier rejects an output parent symlink without changing the copi
   }
 });
 
+test("office verifier accepts a symlinked executable tool", async () => {
+  const toolRoot = await mkdtemp(path.join(os.tmpdir(), "swf-trio-office-symlink-tools-"));
+  const symlinkedPdftotext = path.join(toolRoot, "pdftotext");
+  const outputPath = path.join(toolRoot, "evidence.json");
+  try {
+    await symlink(requiredTools.pdftotext, symlinkedPdftotext);
+    const result = runVerifier([
+      "--fixture-root", fixtureRoot,
+      "--unzip", requiredTools.unzip,
+      "--soffice", requiredTools.soffice,
+      "--pdfinfo", requiredTools.pdfinfo,
+      "--pdftoppm", requiredTools.pdftoppm,
+      "--pdftotext", symlinkedPdftotext,
+      "--output", outputPath,
+    ]);
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  } finally {
+    await rm(toolRoot, { recursive: true, force: true });
+  }
+});
+
 test("office verifier rejects an existing output symlink without changing its target", async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "swf-trio-office-output-link-"));
   const copiedRoot = path.join(tempRoot, "office");

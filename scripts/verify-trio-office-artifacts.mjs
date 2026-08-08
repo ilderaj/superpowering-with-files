@@ -83,7 +83,13 @@ async function assertExecutable(file, label) {
   } catch (error) {
     fail(`${label} is not executable: ${file} (${error.code ?? error.message})`);
   }
-  if (!info.isFile()) fail(`${label} is not a regular file: ${file}`);
+  if (info.isSymbolicLink()) {
+    const resolved = await realpath(file).catch((error) => fail(`${label} symlink target is unavailable: ${error.code ?? error.message}`));
+    const target = await lstat(resolved).catch((error) => fail(`${label} symlink target is unavailable: ${error.code ?? error.message}`));
+    if (!target.isFile()) fail(`${label} symlink target is not a regular file: ${resolved}`);
+  } else if (!info.isFile()) {
+    fail(`${label} is not a regular file: ${file}`);
+  }
 }
 
 async function validateRoot(rootInput) {
