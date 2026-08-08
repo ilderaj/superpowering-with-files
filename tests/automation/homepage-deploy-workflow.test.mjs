@@ -104,7 +104,7 @@ test('homepage deploy workflow builds, tests, and deploys the homepage Worker', 
   assert.match(smokeBlock, /^\s{12}status=\$\(curl -sS -o \/tmp\/homepage-smoke\.html -w "%\{http_code\}" -L --max-redirs 5 --connect-timeout 20 "\$url"\)\s*$/m);
   assert.match(
     smokeBlock,
-    /^\s{12}if \[ "\$status" = "200" \] && grep -q "<title>Superpowering with Files \| Governance harness for coding agents<\/title>" \/tmp\/homepage-smoke\.html; then\s*$/m
+    /^\s{12}if \[ "\$status" = "200" \] && grep -q "<title>Superpowering with Files \| Trio v2 for Codex<\/title>" \/tmp\/homepage-smoke\.html; then\s*$/m
   );
   assert.match(smokeBlock, /^\s{14}exit 0\s*$/m);
   assert.match(smokeBlock, /^\s{12}if \[ "\$attempt" -lt 5 \]; then\s*$/m);
