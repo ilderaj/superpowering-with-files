@@ -174,8 +174,6 @@ test('fetchCommand stages git planning-with-files candidate without touching cor
     await writeState(root, {
       schemaVersion: 1,
       scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
       targets: {},
       upstream: {
         'planning-with-files': {
@@ -267,8 +265,6 @@ test('fetchCommand clones the locked tag commit instead of raw HEAD', async () =
     await writeState(root, {
       schemaVersion: 1,
       scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
       targets: {},
       upstream: {}
     });
@@ -302,8 +298,6 @@ test('fetchCommand accepts legacy schemaVersion 1 sources metadata when lock is 
     await writeState(root, {
       schemaVersion: 1,
       scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
       targets: {},
       upstream: {}
     });
@@ -334,8 +328,6 @@ test('fetchCommand resolves the authority root from a nested leaf directory', as
     await writeState(root, {
       schemaVersion: 1,
       scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
       targets: {},
       upstream: {}
     });

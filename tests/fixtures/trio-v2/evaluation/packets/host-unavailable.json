@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-host-unavailable",
+  "goal": "Fail closed to a bounded manual handoff when Host controls are unavailable.",
+  "constraints": ["Do not synthesize a worker identity.", "Preserve a bounded resume condition."],
+  "successCriteria": ["The manual route is selected.", "No execution or acceptance claim is emitted."],
+  "nonGoals": ["No private Host API.", "No state write."],
+  "returnContract": ["Return the blocker and exact resume condition."]
+}

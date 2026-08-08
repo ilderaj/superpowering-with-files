@@ -5,6 +5,11 @@ import path from 'node:path';
 
 const skillsRoot = path.join(process.cwd(), 'harness/core/skills');
 const requiredSections = ['Outcome Contract', 'When to Use', 'Common Mistakes'];
+const retiredLocalSkillPaths = [
+  'harness/core/skills/risk-assessment-before-destructive-changes/SKILL.md',
+  'harness/core/skills/safe-bypass-flow/SKILL.md',
+  'harness/core/skills/second-opinion/SKILL.md'
+];
 
 async function localSkillFiles() {
   const entries = await readdir(skillsRoot, { withFileTypes: true });
@@ -40,6 +45,12 @@ function extractSectionBody(text, title) {
   return { index, body: body.trim() };
 }
 
+test('risk assessment local skill is physically retired', async () => {
+  for (const relativePath of retiredLocalSkillPaths) {
+    await assert.rejects(access(path.join(process.cwd(), relativePath)), { code: 'ENOENT' });
+  }
+});
+
 test('Harness-owned local skills use Waza-style outcome contracts without adding always-on prompt text', async () => {
   const files = await localSkillFiles();
   assert.ok(files.length > 0, 'expected local Harness skills');
@@ -59,12 +70,6 @@ test('Harness-owned local skills use Waza-style outcome contracts without adding
         return [title, section];
       })
     );
-
-    if (path.basename(path.dirname(file)) === 'safe-bypass-flow') {
-      const outcome = sections.get('Outcome Contract');
-      assert.match(outcome.body, /\bdedicated worktree\b/i, file);
-      assert.doesNotMatch(outcome.body, /\bworktree or branch\b/i, file);
-    }
 
     assert.doesNotMatch(text, /TBD|TODO|implement later/i, file);
   }

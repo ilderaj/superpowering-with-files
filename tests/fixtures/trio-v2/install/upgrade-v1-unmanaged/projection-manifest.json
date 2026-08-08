@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "kind": "entry",
+      "target": "codex",
+      "strategy": "render",
+      "sourcePath": "harness/core/templates/AGENTS.md.hbs",
+      "targetPath": "/fixture/home/.codex/AGENTS.md",
+      "legacyStatus": "user-managed"
+    },
+    {
+      "kind": "skill",
+      "target": "codex",
+      "strategy": "materialize",
+      "sourcePath": "harness/trio/skill/SKILL.md",
+      "targetPath": "/fixture/home/.agents/skills/trio/SKILL.md",
+      "sourceDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    {
+      "kind": "hook-config",
+      "target": "codex",
+      "strategy": "merge",
+      "sourcePath": "harness/core/hooks/codex.json",
+      "targetPath": "/fixture/home/.codex/settings.json"
+    }
+  ]
+}

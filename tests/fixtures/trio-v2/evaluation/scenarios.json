@@ -1,0 +1,16 @@
+{
+  "scenarios": [
+    {"id": "quick-bug", "capability": "dev", "packet": "packets/quick-bug.json"},
+    {"id": "tracked-feature", "capability": "dev", "packet": "packets/tracked-feature.json"},
+    {"id": "complex-debug", "capability": "dev", "packet": "packets/complex-debug.json"},
+    {"id": "broad-refactor", "capability": "dev", "packet": "packets/broad-refactor.json"},
+    {"id": "cross-session-recovery", "capability": "dev", "packet": "packets/cross-session-recovery.json"},
+    {"id": "two-worker", "capability": "dev", "packet": "packets/two-worker.json"},
+    {"id": "plan-mismatch", "capability": "dev", "packet": "packets/plan-mismatch.json"},
+    {"id": "luna-to-terra", "capability": "dev", "packet": "packets/luna-to-terra.json"},
+    {"id": "host-unavailable", "capability": "dev", "packet": "packets/host-unavailable.json"},
+    {"id": "source-backed-document", "capability": "office", "packet": "packets/source-backed-document.json"},
+    {"id": "formula-spreadsheet", "capability": "office", "packet": "packets/formula-spreadsheet.json"},
+    {"id": "high-risk-cleanup", "capability": "safety", "packet": "packets/high-risk-cleanup.json"}
+  ]
+}

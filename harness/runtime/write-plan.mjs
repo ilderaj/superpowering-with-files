@@ -1,5 +1,3 @@
-import crypto from 'node:crypto';
-
 function sortValue(value) {
   if (Array.isArray(value)) {
     return value.map((entry) => sortValue(entry));
@@ -18,24 +16,4 @@ function sortValue(value) {
 
 export function stableJson(value) {
   return JSON.stringify(sortValue(value));
-}
-
-export function computePlanHash(plan) {
-  return crypto.createHash('sha256').update(stableJson(plan)).digest('hex');
-}
-
-export function buildWritePlan({ operation, rootDir, payload, preview }) {
-  const plan = {
-    schemaVersion: 1,
-    planId: crypto.randomUUID(),
-    operation,
-    rootDir,
-    payload,
-    preview
-  };
-
-  return {
-    ...plan,
-    planHash: computePlanHash(plan)
-  };
 }

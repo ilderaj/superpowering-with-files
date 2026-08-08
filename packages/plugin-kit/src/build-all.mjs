@@ -1,9 +1,9 @@
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildArtifactManifest } from './artifact-manifest.mjs';
 import { buildPlugin } from './build-plugin.mjs';
-import { packDirectory, packPlugin } from './pack-plugin.mjs';
+import { packPlugin } from './pack-plugin.mjs';
 import { sha256File } from './sha256.mjs';
 import { supportedPluginTargets } from './platform-contracts.mjs';
 
@@ -23,16 +23,6 @@ export async function buildAll({
   await mkdir(buildOut, { recursive: true });
 
   const artifacts = [];
-  const runtimeRoot = await stageRuntimePackage({ rootDir, version: resolvedVersion, buildOut });
-  artifacts.push(
-    await packDirectory({
-      sourceRoot: runtimeRoot,
-      name: `harness-runtime-${resolvedVersion}.tgz`,
-      target: 'runtime',
-      type: 'runtime',
-      outDir: releaseOut
-    })
-  );
 
   for (const target of supportedPluginTargets) {
     const build = await buildPlugin({ target, version: resolvedVersion, outDir: path.join(buildOut, 'plugins'), rootDir });
@@ -69,25 +59,6 @@ function defaultBuildDir({ outDir, releaseOut, version }) {
   return path.resolve('dist/build', version);
 }
 
-async function stageRuntimePackage({ rootDir, version, buildOut }) {
-  const runtimeRoot = path.join(buildOut, 'harness-runtime');
-  await mkdir(runtimeRoot, { recursive: true });
-
-  const runtimePackage = JSON.parse(
-    await readFile(path.join(rootDir, 'packages/harness-runtime/package.json'), 'utf8')
-  );
-  runtimePackage.version = version;
-  await writeFile(path.join(runtimeRoot, 'package.json'), `${JSON.stringify(runtimePackage, null, 2)}\n`);
-  await cp(path.join(rootDir, 'packages/harness-runtime/bin'), path.join(runtimeRoot, 'bin'), { recursive: true });
-  await cp(path.join(rootDir, 'packages/harness-runtime/src'), path.join(runtimeRoot, 'src'), { recursive: true });
-  await cp(path.join(rootDir, 'packages/harness-runtime/README.md'), path.join(runtimeRoot, 'README.md'));
-  await cp(path.join(rootDir, 'harness'), path.join(runtimeRoot, 'harness'), { recursive: true });
-  await cp(path.join(rootDir, 'scripts'), path.join(runtimeRoot, 'scripts'), { recursive: true });
-  await cp(path.join(rootDir, 'node_modules'), path.join(runtimeRoot, 'node_modules'), { recursive: true });
-
-  return runtimeRoot;
-}
-
 async function renderSha256Sums(artifacts) {
   const lines = [];
   for (const artifact of [...artifacts].sort((left, right) => left.name.localeCompare(right.name))) {
@@ -100,15 +71,11 @@ function renderReleaseNotes(version) {
   return [
     `# Superpowering With Files ${version}`,
     '',
-    'Runtime harness plugin release with packed artifacts for Codex, Claude Code, Cursor, and GitHub Copilot.',
+    'Trio skills plugin release for Codex.',
     '',
     'Artifacts:',
     '',
-    `- harness-runtime-${version}.tgz`,
     `- harness-codex-plugin-${version}.tgz`,
-    `- harness-claude-code-plugin-${version}.tgz`,
-    `- harness-cursor-plugin-${version}.tgz`,
-    `- harness-copilot-plugin-${version}.tgz`,
     '',
     'Use `SHA256SUMS` and `manifest.json` to verify downloaded assets.'
   ].join('\n');

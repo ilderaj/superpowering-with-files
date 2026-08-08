@@ -1,0 +1,32 @@
+{
+  "codex": {
+    "kind": "codex",
+    "management": "managed",
+    "targetScoped": false,
+    "layouts": {
+      "workspace": {
+        "entryPath": "AGENTS.md",
+        "skillRoot": ".agents/skills"
+      },
+      "user-global": {
+        "entryPath": ".codex/AGENTS.md",
+        "skillRoot": ".agents/skills"
+      }
+    }
+  },
+  "generic": {
+    "kind": "generic",
+    "management": "manual",
+    "targetScoped": true,
+    "layouts": {
+      "workspace": {
+        "entryPath": "entry-policy.md",
+        "skillRoot": "skills"
+      },
+      "user-global": {
+        "entryPath": "entry-policy.md",
+        "skillRoot": "skills"
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-plan-mismatch",
+  "goal": "Handle a bounded plan mismatch without weakening the development contract.",
+  "constraints": ["Verify the finding against repository reality.", "Stop when the approved slice no longer fits."],
+  "successCriteria": ["One bounded replan is explicit.", "The final proof and return contract remain concrete."],
+  "nonGoals": ["No silent scope expansion.", "No new authority artifact."],
+  "returnContract": ["Return the mismatch, decision, proof, and stop condition."]
+}

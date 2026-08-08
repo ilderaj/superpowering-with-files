@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "scope": "user-global",
+  "projectionMode": "portable",
+  "hookMode": "off",
+  "deploymentProfile": "standard",
+  "policyProfile": "always-on-core",
+  "skillProfile": "standard",
+  "targets": {
+    "codex": {
+      "enabled": true,
+      "paths": [
+        "/fixture/home/.codex/AGENTS.md"
+      ]
+    }
+  },
+  "upstream": {},
+  "lastSync": "2026-08-03T00:00:00.000Z",
+  "lastFetch": "2026-08-02T00:00:00.000Z",
+  "lastUpdate": "2026-08-02T00:00:00.000Z"
+}

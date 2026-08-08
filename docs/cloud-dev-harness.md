@@ -190,17 +190,17 @@ For the shared matrix, contract fields, and evidence labels that govern promotio
 
 ## Agent Support Boundary
 
-The cloud-dev lane implemented in this repository is Copilot-first.
+Codex is the only managed local target.
 
-| Agent | Can use Harness instructions locally? | Can use this GitHub cloud-dev automation directly? | Notes |
-| --- | --- | --- | --- |
-| GitHub Copilot | Yes | Yes | The workflow writes an `@copilot` handoff and the `github-cloud` deployment profile is Copilot-specific. |
-| Codex | Yes | No | Codex can consume `AGENTS.md` and shared `.agents/skills` in a normal repo checkout, but this GitHub issue triage does not dispatch Codex. |
-| Claude Code | Yes | No | Claude Code can consume `CLAUDE.md` and `.claude/skills` in a normal checkout, but this GitHub issue triage does not dispatch Claude. |
+Other environments use a generic/manual fallback.
 
-The broader Harness runtime and MCP facade are intentionally agent-neutral, so other agents can use Harness capabilities when they run in an environment that exposes those entry files or MCP tools. That is separate from this cloud-dev lane. Today, the GitHub issue-to-cloud-agent path is wired for Copilot only.
+Copilot cloud dispatch is a separate external-behavior K3 DAG, not a repository host projection.
 
-To make Codex or Claude first-class cloud-dev agents, add a separate trigger and handoff path for each platform, then verify its branch controls, credentials, tool surface, and PR behavior independently.
+| Surface | Current status | Boundary |
+| --- | --- | --- |
+| Codex | Managed local target | A normal checkout uses `AGENTS.md` and `.agents/skills`; this cloud-dev workflow does not dispatch Codex. |
+| Other environments | Generic/manual fallback | Provide a bounded manual handoff instead of a repository-managed host projection. |
+| GitHub cloud dispatch | Retained K3 external behavior | The existing workflow may post an `@copilot` handoff, but it is not evidence of a local repository projection. |
 
 ## Recovery
 

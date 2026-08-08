@@ -2,63 +2,29 @@
 import { install } from './install.mjs';
 import { doctor } from './doctor.mjs';
 import { sync } from './sync.mjs';
-import { status } from './status.mjs';
 import { fetchCommand } from './fetch.mjs';
 import { updateCommand } from './update.mjs';
 import { verify } from './verify.mjs';
 import { worktreePreflight } from './worktree-preflight.mjs';
-import { adoptGlobal } from './adopt-global.mjs';
-import { adoptionStatus } from './adoption-status.mjs';
 import { checkpointCommand } from './checkpoint.mjs';
 import { checkpointPushCommand } from './checkpoint-push.mjs';
-import { cloudBootstrap } from './cloud-bootstrap.mjs';
-import { linkPersonal } from './link-personal.mjs';
-import { summary } from './summary.mjs';
-import { record } from './record.mjs';
-import { worktreeName } from './worktree-name.mjs';
-import { activeSummary } from './active-summary.mjs';
-import { lifecycleSweep } from './lifecycle-sweep.mjs';
-import { mcpApprove } from './mcp-approve.mjs';
-import { plugin } from './plugin.mjs';
 import { workspaceLink } from './workspace-link.mjs';
 import { tokenAudit } from './token-audit.mjs';
-import { codexModelDefault } from './codex-model-default.mjs';
-import { upstreamLockCommand } from './upstream-lock.mjs';
-import { workspaceSkills } from './workspace-skills.mjs';
-
-async function chiefopsCommand(args) {
-  const chiefops = await import('./chiefops.mjs');
-  return chiefops.chiefopsCommand(args);
-}
+import { trioCommand } from './trio.mjs';
 
 const commands = {
   install,
   doctor,
   sync,
-  status,
   fetch: fetchCommand,
-  'upstream-lock': upstreamLockCommand,
   update: updateCommand,
   verify,
   checkpoint: checkpointCommand,
   'checkpoint-push': checkpointPushCommand,
-  summary,
-  chiefops: chiefopsCommand,
-  'active-summary': activeSummary,
-  'lifecycle-sweep': lifecycleSweep,
-  record,
-  'mcp-approve': mcpApprove,
-  plugin,
-  'cloud-bootstrap': cloudBootstrap,
-  'link-personal': linkPersonal,
-  'worktree-name': worktreeName,
   'worktree-preflight': worktreePreflight,
-  'adopt-global': adoptGlobal,
-  'adoption-status': adoptionStatus,
   'workspace-link': workspaceLink,
   'token-audit': tokenAudit,
-  'codex-model-default': codexModelDefault,
-  'workspace-skills': workspaceSkills
+  trio: trioCommand
 };
 
 function usage() {
@@ -67,32 +33,12 @@ function usage() {
     '',
     'Commands:',
     '  install  Configure Harness projections',
-    '  doctor   Check Harness installation health',
     '  sync     Reproject core into installed targets',
-    '  status   Show local Harness state',
-    '  fetch    Fetch upstream candidates',
-    '  upstream-lock  Resolve and record authoritative upstream source locks',
-    '  update   Apply fetched upstream candidates',
+    '  doctor   Check Harness installation health',
+    '  trio     Read or plan the next Trio action without writing',
     '  verify   Print or write verification reports',
-    '  summary  Print structured session summary for the active task',
-    '  chiefops  Read the derived ChiefOps board for an active tracked task',
-    '  active-summary  Print lifecycle summary for all tasks under planning/active',
-    '  lifecycle-sweep  Recommend conservative lifecycle status changes from anchor receipts',
-    '  record   Append a timestamped record block to task_plan, findings, progress, or reconciliation',
-    '  mcp-approve  Sign a write plan out-of-band for MCP apply operations',
-    '  plugin  Inspect and plan plugin adoption',
     '  checkpoint  Create a safety checkpoint',
-    '  checkpoint-push  Verify, record review evidence, commit, and push a recovery branch',
-    '  cloud-bootstrap  Generate safety bootstrap files for cloud workspaces',
-    '  link-personal    Link personal user-managed config into the global install',
-    '  adopt-global     Apply the current repo baseline to the user-global install',
-    '  adoption-status  Report user-global adoption drift and health',
-    '  workspace-link  Link the current leaf workspace back to an authority root',
-    '  workspace-skills  Plan, sync, check, or set the repository skill profile',
-    '  token-audit  Print a weekly cross-session token audit',
-    '  codex-model-default  Inspect, assess, or migrate the Codex model default',
-    '  worktree-name  Suggest a canonical worktree label and branch name for the active task',
-    '  worktree-preflight  Recommend an explicit base before creating a Git worktree'
+    '  token-audit  Print a weekly cross-session token audit'
   ].join('\n');
 }
 

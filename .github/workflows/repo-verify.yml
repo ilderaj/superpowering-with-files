@@ -36,8 +36,10 @@ jobs:
       - name: Install homepage dependencies
         run: npm ci --prefix homepage
 
-      - name: Check repository skill projections
-        run: ./scripts/harness workspace-skills check
+      - name: Install Office verification tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libreoffice poppler-utils
 
       - name: Run repository verification
         run: npm run verify:all

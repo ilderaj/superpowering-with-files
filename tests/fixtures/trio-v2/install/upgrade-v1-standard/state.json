@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "scope": "user-global",
+  "projectionMode": "link",
+  "hookMode": "on",
+  "deploymentProfile": "standard",
+  "policyProfile": "always-on-core",
+  "workspacePolicyOverlay": null,
+  "skillProfile": "standard",
+  "targets": {
+    "codex": {
+      "enabled": true,
+      "paths": [
+        "/fixture/home/.codex/AGENTS.md"
+      ]
+    },
+    "cursor": {
+      "enabled": true,
+      "paths": [
+        "/fixture/home/.cursor/instructions/trio.md"
+      ]
+    }
+  },
+  "upstream": {
+    "legacy-source": {
+      "candidatePath": ".harness/upstream-candidates/legacy-source",
+      "lastFetch": "2026-08-02T00:00:00.000Z"
+    }
+  },
+  "lastSync": "2026-08-03T00:00:00.000Z",
+  "lastFetch": "2026-08-02T00:00:00.000Z",
+  "lastUpdate": "2026-08-02T00:00:00.000Z"
+}
