@@ -23,11 +23,7 @@ const runtimeOnlyFiles = new Set([
 
 const repoOwnedProjectionPathPrefixes = [
   '.agents/',
-  '.claude/',
   '.codex/',
-  '.cursor/',
-  '.github/instructions/',
-  '.github/prompts/',
   'harness/upstream/'
 ];
 
@@ -36,9 +32,7 @@ const repoOwnedProjectionFiles = new Set([
 ]);
 
 const repoLocalEntryFiles = new Set([
-  'AGENTS.md',
-  'CLAUDE.md',
-  '.github/copilot-instructions.md'
+  'AGENTS.md'
 ]);
 
 const transientRuntimeArtifactPrefixes = [
@@ -46,8 +40,8 @@ const transientRuntimeArtifactPrefixes = [
   '.wrangler/'
 ];
 
-const focusedProjectionChecks = [
-  'node --test tests/adapters/skill-projection.test.mjs tests/adapters/sync-skills.test.mjs tests/adapters/sync-hooks.test.mjs tests/installer/policy-render.test.mjs'
+const focusedRefreshChecks = [
+  'node --test tests/installer/upstream-commands.test.mjs'
 ];
 
 function isIgnoredRuntimeArtifact(filePath) {
@@ -60,10 +54,8 @@ function isIgnoredGeneratedCacheFile(filePath) {
     || filePath.endsWith('.pyc');
 }
 
-function touchesProjectionOrPolicySurface(filePath) {
-  return filePath.includes('hook-projection')
-    || filePath.includes('skill-projection')
-    || filePath.includes('/skills/')
+function touchesRefreshSensitiveSurface(filePath) {
+  return filePath.includes('/skills/')
     || filePath.endsWith('AGENTS.md')
     || filePath.endsWith('docs/workflows.md')
     || filePath.endsWith('docs/maintenance.md')
@@ -75,13 +67,7 @@ function inferAffectedProjections(changedFiles = []) {
 
   for (const filePath of changedFiles) {
     if (filePath.startsWith('.codex/')) affected.add('codex');
-    if (filePath.startsWith('.claude/')) affected.add('claude-code');
-    if (filePath.startsWith('.cursor/')) affected.add('cursor');
-    if (filePath.startsWith('.agents/')) {
-      affected.add('codex');
-      affected.add('copilot');
-      affected.add('cursor');
-    }
+    if (filePath.startsWith('.agents/')) affected.add('codex');
     if (
       filePath.startsWith('harness/installer/') ||
       filePath.startsWith('harness/core/policy/') ||
@@ -100,7 +86,7 @@ function inferRiskLevel(changedFiles = [], failureKind = '') {
     return 'high';
   }
 
-  if (changedFiles.some((filePath) => touchesProjectionOrPolicySurface(filePath))) {
+  if (changedFiles.some((filePath) => touchesRefreshSensitiveSurface(filePath))) {
     return 'medium';
   }
 
@@ -116,8 +102,8 @@ export function buildUpdateCompatibilityReport({
 } = {}) {
   const normalizedChangedFiles = changedFiles.map((filePath) => normalizeChangePath(filePath));
   const normalizedAffectedProjections = [...new Set(affectedProjections)];
-  const focusedChecks = normalizedChangedFiles.some((filePath) => touchesProjectionOrPolicySurface(filePath))
-    ? focusedProjectionChecks
+  const focusedChecks = normalizedChangedFiles.some((filePath) => touchesRefreshSensitiveSurface(filePath))
+    ? focusedRefreshChecks
     : [];
 
   return {
@@ -149,10 +135,7 @@ export function buildRefreshExecutionCommandChain({ sourceFilter } = {}) {
     { file: './scripts/harness', args: ['fetch', ...sourceArgs, '--no-state'] },
     { file: './scripts/harness', args: ['update', ...sourceArgs, '--no-state'] },
     { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
-    { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] },
-    { file: './scripts/harness', args: ['workspace-skills', 'plan'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'sync', '--takeover'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'check'] }
+    { file: './scripts/harness', args: ['worktree-preflight', '--task', refreshTaskId] }
   ];
 }
 

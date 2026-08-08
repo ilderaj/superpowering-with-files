@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-luna-to-terra",
+  "goal": "Escalate requested execution policy after repeated bounded failures.",
+  "constraints": ["Keep requested and actual evidence separate.", "Do not infer a Host runtime fact."],
+  "successCriteria": ["The escalation trigger is explicit.", "Actual model and effort remain unknown."],
+  "nonGoals": ["No child Ultra request.", "No automatic dispatch."],
+  "returnContract": ["Return requested policy, authenticated evidence, and limitation."]
+}

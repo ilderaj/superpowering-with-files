@@ -11,10 +11,7 @@ const expectedRefreshCommands = [
   { file: './scripts/harness', args: ['fetch', '--no-state'] },
   { file: './scripts/harness', args: ['update', '--no-state'] },
   { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
-  { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
-  { file: './scripts/harness', args: ['workspace-skills', 'plan'] },
-  { file: './scripts/harness', args: ['workspace-skills', 'sync', '--takeover'] },
-  { file: './scripts/harness', args: ['workspace-skills', 'check'] }
+  { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] }
 ];
 
 const expectedPrepareCommands = [
@@ -30,10 +27,7 @@ const expectedExecutionCommands = [
   { file: './scripts/harness', args: ['fetch', '--no-state'] },
   { file: './scripts/harness', args: ['update', '--no-state'] },
   { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
-  { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
-  { file: './scripts/harness', args: ['workspace-skills', 'plan'] },
-  { file: './scripts/harness', args: ['workspace-skills', 'sync', '--takeover'] },
-  { file: './scripts/harness', args: ['workspace-skills', 'check'] }
+  { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] }
 ];
 
 const expectedHumanReadableRefreshCommandChain = [
@@ -42,10 +36,7 @@ const expectedHumanReadableRefreshCommandChain = [
   './scripts/harness fetch --no-state',
   './scripts/harness update --no-state',
   'npm run verify:upstream-refresh',
-  './scripts/harness worktree-preflight --task github-actions-upstream-automation-analysis',
-  './scripts/harness workspace-skills plan',
-  './scripts/harness workspace-skills sync --takeover',
-  './scripts/harness workspace-skills check'
+  './scripts/harness worktree-preflight --task github-actions-upstream-automation-analysis'
 ];
 
 const verifyUpstreamRefreshScriptPath = path.join(process.cwd(), 'scripts/ci/verify-upstream-refresh.mjs');
@@ -96,10 +87,7 @@ test('buildRefreshCommandChain narrows fetch and update to the selected source f
     { file: './scripts/harness', args: ['fetch', '--source=planning-with-files', '--no-state'] },
     { file: './scripts/harness', args: ['update', '--source=planning-with-files', '--no-state'] },
     { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
-    { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'plan'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'sync', '--takeover'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'check'] }
+    { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] }
   ]);
 });
 
@@ -111,10 +99,7 @@ test('buildRefreshCommandChain omits the origin/dev checkout during workflow-ref
     { file: './scripts/harness', args: ['fetch', '--no-state'] },
     { file: './scripts/harness', args: ['update', '--no-state'] },
     { file: 'npm', args: ['run', 'verify:upstream-refresh'] },
-    { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'plan'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'sync', '--takeover'] },
-    { file: './scripts/harness', args: ['workspace-skills', 'check'] }
+    { file: './scripts/harness', args: ['worktree-preflight', '--task', 'github-actions-upstream-automation-analysis'] }
   ]);
 });
 
@@ -145,17 +130,14 @@ test('runRefreshCommandChain inserts beforeExecution between prepare and executi
     './scripts/harness fetch --no-state',
     './scripts/harness update --no-state',
     'npm run verify:upstream-refresh',
-    './scripts/harness worktree-preflight --task github-actions-upstream-automation-analysis',
-    './scripts/harness workspace-skills plan',
-    './scripts/harness workspace-skills sync --takeover',
-    './scripts/harness workspace-skills check'
+    './scripts/harness worktree-preflight --task github-actions-upstream-automation-analysis'
   ]);
 });
 
-test('upstream refresh report includes changed files, affected projections, resync need, and risk', async () => {
+test('upstream refresh report keeps refresh-sensitive checks independent from the retired projection engine', async () => {
   const { buildUpdateCompatibilityReport } = await loadUpstreamRefreshModule();
   const result = buildUpdateCompatibilityReport({
-    changedFiles: ['harness/installer/lib/hook-projection.mjs'],
+    changedFiles: ['docs/maintenance.md'],
     affectedProjections: ['codex'],
     requiresResync: true,
     riskLevel: 'medium',
@@ -167,7 +149,7 @@ test('upstream refresh report includes changed files, affected projections, resy
   assert.equal(typeof result.requiresResync, 'boolean');
   assert.equal(typeof result.riskLevel, 'string');
   assert.equal(Array.isArray(result.focusedChecks), true);
-  assert.match(result.focusedChecks.join(' '), /skill-projection|sync-hooks|policy-render/i);
+  assert.match(result.focusedChecks.join(' '), /upstream-commands/i);
 });
 
 test('verify:upstream-refresh runner preserves child test output streaming', async () => {
@@ -175,9 +157,8 @@ test('verify:upstream-refresh runner preserves child test output streaming', asy
 
   assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*stdio:\s*'inherit'/);
   assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*maxBuffer:\s*1024 \* 1024 \* 8/);
-  assert.match(script, /tests\/adapters\/sync-skills\.test\.mjs/);
-  assert.match(script, /tests\/adapters\/sync-hooks\.test\.mjs/);
-  assert.match(script, /tests\/installer\/policy-render\.test\.mjs/);
+  assert.match(script, /tests\/installer\/upstream-commands\.test\.mjs/);
+  assert.doesNotMatch(script, /skill-projection|sync-skills|sync-hooks|matt-skill-patches|policy-render/);
 });
 
 test('runCommand executes command file and args without a shell', async () => {
@@ -922,7 +903,6 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
       if (captureCount === 1) {
         return [
           { path: 'AGENTS.md', tracked: true },
-          { path: '.github/copilot-instructions.md', tracked: true },
           { path: 'harness/upstream/superpowers/SKILL.md', tracked: true }
         ];
       }
@@ -947,7 +927,7 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
     'runRefresh',
     'writeSourceLock',
     'captureChanges:1',
-    'restore:AGENTS.md:tracked,.github/copilot-instructions.md:tracked',
+    'restore:AGENTS.md:tracked',
     'captureChanges:2',
     'writeResult'
   ]);
@@ -962,11 +942,11 @@ test('filterEligibleChanges ignores runtime node_modules artifacts before enforc
     { path: 'node_modules/.bin/harness', tracked: false },
     { path: 'node_modules/.cache/wrangler/wrangler-account.json', tracked: false },
     { path: 'node_modules/@superpowering-with-files/harness-runtime', tracked: false },
-    { path: 'harness/upstream/.source-heads.json', tracked: true }
+    { path: 'harness/upstream/.source-lock.json', tracked: true }
   ]);
 
   assert.deepEqual(filtered, {
-    eligibleFiles: ['harness/upstream/.source-heads.json'],
+    eligibleFiles: ['harness/upstream/.source-lock.json'],
     excludedFiles: []
   });
 });
@@ -1122,7 +1102,7 @@ test('runUpstreamRefresh keeps the original failure when changed-file capture fa
       loadBaseHealth: async () => healthyBaseHealthStub(),
       runRefresh: async ({ beforeExecution }) => {
         await beforeExecution?.();
-        throw new Error('Command failed (1): ./scripts/harness workspace-skills check');
+        throw new Error('Command failed (1): ./scripts/harness worktree-preflight --task github-actions-upstream-automation-analysis');
       },
       captureChanges: async () => {
         throw new Error('git diff unavailable');
@@ -1131,13 +1111,13 @@ test('runUpstreamRefresh keeps the original failure when changed-file capture fa
         writtenResults.push(refreshResult);
       }
     }),
-    /workspace-skills check/
+    /worktree-preflight --task github-actions-upstream-automation-analysis/
   );
 
   assert.equal(writtenResults.length, 1);
   assert.equal(writtenResults[0].status, 'failure');
   assert.deepEqual(writtenResults[0].eligibleFiles, []);
-  assert.match(writtenResults[0].blockedReason, /workspace-skills check/);
+  assert.match(writtenResults[0].blockedReason, /worktree-preflight --task github-actions-upstream-automation-analysis/);
   assert.match(writtenResults[0].blockedReason, /Unable to capture changed files after failure: git diff unavailable/);
   assert.equal(writtenResults[0].failureKind, 'runtime_failure');
 });
@@ -1244,7 +1224,7 @@ test('filterEligibleChanges includes tracked and untracked repo-owned upstream f
   ]);
 });
 
-test('filterEligibleChanges includes hidden projection roots and excludes repo-local entry files', async () => {
+test('source refresh retains only Codex projections and the AGENTS.md entry', async () => {
   const { filterEligibleChanges, listRepoLocalEntryFileChanges } = await loadUpstreamRefreshModule();
 
   const changes = [
@@ -1257,29 +1237,44 @@ test('filterEligibleChanges includes hidden projection roots and excludes repo-l
     { path: '.cursor/rules/harness.mdc', status: 'M', tracked: true },
     { path: '.github/copilot-instructions.md', status: 'M', tracked: true },
     { path: '.github/instructions/harness.instructions.md', status: 'M', tracked: true },
-    { path: '.github/prompts/review.prompt.md', status: 'M', tracked: true }
+    { path: '.github/prompts/review.prompt.md', status: 'M', tracked: true },
+    { path: 'harness/upstream/superpowers/SKILL.md', status: 'M', tracked: true }
   ];
   const result = filterEligibleChanges(changes);
 
   assert.deepEqual(result.eligibleFiles, [
     'docs/maintenance.md',
     '.agents/skills/planning-with-files/SKILL.md',
-    '.claude/skills/superpowers/SKILL.md',
     '.codex/skills/planning-with-files/SKILL.md',
-    '.cursor/rules/harness.mdc',
-    '.github/instructions/harness.instructions.md',
-    '.github/prompts/review.prompt.md'
+    'harness/upstream/superpowers/SKILL.md'
   ]);
   assert.deepEqual(result.excludedFiles, [
     'AGENTS.md',
     'CLAUDE.md',
-    '.github/copilot-instructions.md'
+    '.claude/skills/superpowers/SKILL.md',
+    '.cursor/rules/harness.mdc',
+    '.github/copilot-instructions.md',
+    '.github/instructions/harness.instructions.md',
+    '.github/prompts/review.prompt.md'
   ]);
   assert.deepEqual(listRepoLocalEntryFileChanges(changes), [
-    { path: 'AGENTS.md', status: 'M', tracked: true },
-    { path: 'CLAUDE.md', status: 'M', tracked: true },
-    { path: '.github/copilot-instructions.md', status: 'M', tracked: true }
+    { path: 'AGENTS.md', status: 'M', tracked: true }
   ]);
+});
+
+test('source refresh infers only Codex for retained repository projections', async () => {
+  const { createRefreshResult } = await loadUpstreamRefreshModule();
+
+  const result = createRefreshResult({
+    status: 'success',
+    eligibleFiles: [
+      '.agents/skills/trio/SKILL.md',
+      '.codex/AGENTS.md',
+      'harness/upstream/superpowers/SKILL.md'
+    ]
+  });
+
+  assert.deepEqual(result.compatibilityReport.affectedProjections, ['codex']);
 });
 
 test('filterEligibleChanges excludes harness runtime state and unrelated workspace files', async () => {

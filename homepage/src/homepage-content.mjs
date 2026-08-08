@@ -2,7 +2,7 @@ export const homepageSectionOrder = ['hero', 'problem', 'system', 'workflow', 's
 
 const githubUrl = 'https://github.com/ilderaj/superpowering-with-files';
 const workflowUrl = `${githubUrl}/blob/main/docs/workflows.md`;
-const quickStartUrl = `${githubUrl}/blob/main/README.md#quick-start`;
+const readmeUrl = `${githubUrl}/blob/main/README.md`;
 
 export const homepageContent = {
   topbar: {
@@ -26,150 +26,148 @@ export const homepageContent = {
   },
   hero: {
     headingId: 'hero-title',
-    eyebrow: 'Governance harness for coding-agent workflows',
-    headline: 'Keep every coding agent on the same rails.',
+    eyebrow: 'Trio v2 for Codex',
+    headline: 'Plan in one session. Execute with proof.',
     lede:
-      'One shared workflow policy becomes native entry files, projected skills, durable task state, and optional deeper reasoning across Codex, GitHub Copilot, Cursor, and Claude Code.',
+      'Codex is the managed native host. Other hosts use a generic/manual fallback; the Trio keeps three durable task files and selects one pack for each task.',
     actions: [
       { label: 'View source', href: githubUrl, variant: 'primary', external: true },
       { label: 'Read workflow', href: workflowUrl, variant: 'secondary', external: true }
     ],
     proofPoints: [
-      { value: '4', label: 'agent surfaces share one workflow contract' },
-      { value: '3', label: 'task files keep tracked work durable' },
-      { value: '1', label: 'shared policy renders native entry files' },
-      { value: '0', label: 'always-on superpowers by default' }
+      { value: '1', label: 'managed native host: Codex' },
+      { value: '3', label: 'only durable task files' },
+      { value: '3', label: 'selected packs: dev, office, safety' },
+      { value: '0', label: 'second runners' }
     ],
     terminal: {
       title: './scripts/harness',
       lines: [
-        { tone: 'cmd', prefix: '$', text: './scripts/harness install --scope=workspace --targets=all --projection=link' },
-        { tone: 'dim', text: 'rendering native entry files from one policy...' },
-        { tone: 'hot', text: 'AGENTS.md for Codex' },
-        { tone: 'hot', text: 'copilot-instructions.md for GitHub Copilot' },
-        { tone: 'hot', text: '.cursor/rules/harness.mdc for Cursor' },
-        { tone: 'hot', text: 'CLAUDE.md for Claude Code' },
+        { tone: 'cmd', prefix: '$', text: './scripts/harness trio' },
+        { tone: 'dim', text: 'Host owns lifecycle, permissions, and continuation.' },
+        { tone: 'hot', text: 'task_plan.md · findings.md · progress.md' },
+        { tone: 'hot', text: 'one selected pack: dev / office / safety' },
         { tone: 'break' },
-        { tone: 'cmd', prefix: '$', text: './scripts/harness doctor --check-only' },
-        { tone: 'dim', text: 'policy synced · planning durable · deep reasoning optional' }
+        { tone: 'cmd', prefix: '$', text: './scripts/harness verify' },
+        { tone: 'dim', text: 'Requested model and effort are intent; actual is unknown without Host evidence.' }
       ]
     },
     route: {
-      title: 'Routed by complexity',
-      badge: 'not always-on',
+      title: 'Routed by task',
+      badge: 'deep is current-round',
       steps: [
         {
           number: '1',
-          title: 'Render one policy',
-          body: 'Every supported agent gets the native files it expects without hand-maintained drift.'
+          title: 'Choose the route',
+          body: 'Quick and tracked classify durable work. Deep is a current-round reasoning choice, not a task type.'
         },
         {
           number: '2',
-          title: 'Keep tracked work on disk',
-          body: 'Task state lives in planning files that survive interruptions, review loops, and handoff.'
+          title: 'Select one pack',
+          body: 'Each task selects one pack: dev, office, or safety.'
         },
         {
           number: '3',
-          title: 'Escalate only when earned',
-          body: 'Quick work stays light. Deep reasoning appears only when the task really needs it.'
+          title: 'Keep Host control',
+          body: 'Worker results are candidates until the main session or Chief accepts them.'
         }
       ]
     }
   },
   problem: {
     id: 'problem',
-    kicker: 'Why governance',
-    title: 'Strong agents still drift when each tool carries its own memory.',
+    kicker: 'Why Trio v2',
+    title: 'Avoid a second control plane.',
     body:
-      'Without one control layer, rules fork, task state disappears, and finish quality drifts with the toolchain.',
-    quoteTitle: 'The failure mode is invisible state.',
+      'Durable task state and long-task runtime should stay small, visible, and native to the Host.',
+    quoteTitle: 'The durable state is only three files.',
     quoteBody:
-      'Policies fork across tools, tracked work falls back into chat, and expensive reasoning gets used where a lighter path would have been enough.',
+      'The Trio keeps task_plan.md, findings.md, and progress.md together while the Host keeps its own controls.',
     pains: [
       {
         icon: '01',
-        title: 'Policy forks',
-        body: 'Codex, Copilot, Cursor, and Claude Code drift unless one source renders their native entry files.'
+        title: 'Host boundaries blur',
+        body: 'Codex stays managed and native; every other host is an honest generic/manual fallback.'
       },
       {
         icon: '02',
-        title: 'Plans disappear',
-        body: 'Multi-step work needs durable task files, not a fragile trail spread across chat history.'
+        title: 'State spreads',
+        body: 'Tracked work needs one small authority, not task facts scattered across chats and side systems.'
       },
       {
         icon: '03',
-        title: 'Reasoning gets overused',
-        body: 'If complexity is not routed deliberately, quick work pays for depth it did not need.'
+        title: 'Reasoning becomes a label',
+        body: 'Quick and tracked route the work; deep is a current-round decision when uncertainty earns it.'
       },
       {
         icon: '04',
-        title: 'Finishes get risky',
-        body: 'Verification, reconcile, and release state can drift apart unless the workflow makes them inspectable.'
+        title: 'Worker status overclaims',
+        body: 'A worker result is evidence for acceptance, never automatic completion.'
       }
     ]
   },
   system: {
     id: 'system',
-    kicker: 'How it works',
-    title: 'Shared policy stays in files. Deeper reasoning stays optional.',
+    kicker: 'How Trio v2 works',
+    title: 'Keep the authority small and the runtime native.',
     body:
-      'The harness keeps policy always-on, planning durable, and deeper reasoning conditional, so simple work stays simple and complex work stays legible.',
+      'The Trio is the durable authority. Native Goal and continuation run long work with no second runner.',
     modules: [
       {
-        label: 'Policy',
-        title: 'One source of truth',
-        body: 'Shared rules, templates, and platform overrides render into the native files each agent already expects.'
+        label: 'Host',
+        title: 'Codex stays native',
+        body: 'The Host owns lifecycle, permissions, continuation, and authenticated actual model evidence.'
       },
       {
-        label: 'Planning',
-        title: 'Durable task state',
-        body: 'Tracked work stays in task_plan.md, findings.md, and progress.md instead of fading with the conversation.'
+        label: 'Trio',
+        title: 'Three files, one authority',
+        body: 'Tracked work lives only in task_plan.md, findings.md, and progress.md.'
       },
       {
-        label: 'Reasoning',
-        title: 'Optional depth',
-        body: 'Superpowers only step in for deep-reasoning rounds, then sync decisions back to the task files.'
+        label: 'Packs',
+        title: 'Choose one capability',
+        body: 'Each task selects exactly one pack: dev, office, or safety.'
       },
       {
-        label: 'Finish',
-        title: 'Visible closeout',
-        body: 'Verify, reconcile, and archive happen as explicit workflow steps rather than hidden last-mile rituals.'
+        label: 'Runtime',
+        title: 'Continue natively',
+        body: 'Native Goal and continuation recover long work without adding a second runner.'
       }
     ],
-    lanes: ['quick', 'tracked', 'deep-reasoning', 'reconcile']
+    lanes: ['quick', 'tracked', 'deep']
   },
   workflow: {
     id: 'workflow',
-    kicker: 'Repo proof',
-    title: 'Inspect the workflow from intake to finish.',
+    kicker: 'Public boundaries',
+    title: 'Inspect the Trio and Host boundaries.',
     tracks: [
       {
-        title: 'What remains on disk.',
+        title: 'What stays durable.',
         body:
-          'Tracked work leaves readable artifacts that can be reopened, reviewed, and reconciled instead of disappearing into ephemeral chat state.',
+          'Only the Trio remains on disk as task authority; its contents are readable, reviewable, and ready to resume.',
         rows: [
           [
-            { title: 'Core state', body: 'task_plan.md, findings.md, and progress.md under planning/active/<task-id>/' },
-            { title: 'Lifecycle proof', body: 'reconciliation.md appears when the task needs explicit lifecycle evidence' }
+            { title: 'Core state', body: 'Only task_plan.md, findings.md, and progress.md live under planning/active/<task-id>/.' },
+            { title: 'Selected pack', body: 'Each task uses one selected pack: dev, office, or safety.' }
           ],
           [
-            { title: 'Resume path', body: 'Companion plans point back to active planning files instead of becoming a second memory system' },
-            { title: 'Review surface', body: 'Intent, diffs, tests, and follow-up ownership can be inspected together before finish' }
+            { title: 'Route', body: 'Quick and tracked are routes; deep is a current-round reasoning choice.' },
+            { title: 'Acceptance', body: 'Worker results remain candidates until the main session or Chief accepts them.' }
           ]
         ]
       },
       {
-        title: 'What teams can verify.',
+        title: 'What stays native.',
         body:
-          'The repo exposes commands and workflow lanes that make adoption, verification, and governance claims checkable.',
+          'The Host keeps control of lifecycle, permissions, continuation, and authenticated evidence instead of handing those roles to another runtime.',
         rows: [
           [
-            { title: 'Workflow lanes', body: 'plan, review, verify, reconcile, finish, release, and archive remain explicit' },
-            { title: 'Supported targets', body: 'Codex, GitHub Copilot, Cursor, and Claude Code share the same governance model' }
+            { title: 'Model evidence', body: 'Requested model and effort are intent; actual is unknown without Host evidence.' },
+            { title: 'Long tasks', body: 'Native Goal and continuation run long work with no second runner.' }
           ],
           [
-            { title: 'Checks', body: './scripts/harness doctor --check-only, sync --dry-run, and npm run verify:all' },
-            { title: 'Proof path', body: 'Source, workflow docs, and CLI steps stay visible before anyone commits to installation' }
+            { title: 'Managed native host', body: 'Codex is the managed native host; other hosts remain generic/manual fallback.' },
+            { title: 'Proof path', body: 'Source and workflow docs stay visible before anyone chooses an installation command.' }
           ]
         ]
       }
@@ -178,27 +176,30 @@ export const homepageContent = {
   start: {
     id: 'start',
     kicker: 'Start here',
-    title: 'Read the repo first. Use the CLI when the workflow fits.',
+    title: 'Start with Codex and the Trio.',
     body:
-      'Source and workflow docs should make the promise clear before any install step. When it fits, the CLI path below is the shortest safe start.',
-    quickStartTitle: 'CLI path',
-    quickStartBody: 'These commands mirror the documented quick start and keep the workflow observable from install to verification.',
+      'Read the source and workflow docs first, then use the small public command surface when it fits your task.',
+    quickStartTitle: 'Public commands',
+    quickStartBody: 'The command names stay explicit so each step remains easy to inspect before use.',
     commands: [
-      './scripts/harness install --scope=workspace --targets=all --projection=link',
+      './scripts/harness install',
       './scripts/harness sync',
       './scripts/harness doctor',
-      'npm run verify:all'
+      './scripts/harness trio',
+      './scripts/harness verify',
+      './scripts/harness checkpoint',
+      './scripts/harness token-audit'
     ],
     cta: {
-      title: 'Use the CLI once the repo proof is enough.',
-      body: 'Read the source, inspect the workflow, then adopt the harness without adding a hidden control plane on top of your editor.',
-      action: { label: 'Start with the CLI', href: quickStartUrl, external: true },
+      title: 'Read the README once the repo proof is enough.',
+      body: 'Read the source, inspect the workflow, then use the Trio without adding a hidden control plane above the Host.',
+      action: { label: 'Read the README', href: readmeUrl, external: true },
       secondaryAction: { label: 'Open GitHub and star the repo', href: githubUrl, external: true }
     }
   },
   footer: {
-    left: 'Governed workflow harness for local coding agents.',
-    right: 'Warm editorial homepage · repo-native proof',
+    left: 'Trio v2 workflow for Codex.',
+    right: 'Native Host control · repo-native proof',
     github: {
       label: 'View source',
       href: githubUrl

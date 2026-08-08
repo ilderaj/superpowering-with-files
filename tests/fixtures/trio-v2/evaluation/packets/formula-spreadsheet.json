@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-formula-spreadsheet",
+  "goal": "Verify a typed spreadsheet input, auditable formula, and cached value.",
+  "constraints": ["Use the office quality contract.", "Inspect formula and displayed value independently."],
+  "successCriteria": ["The formula/cache proof executes.", "The sheet remains readable and free of formula errors."],
+  "nonGoals": ["No connector write.", "No fabricated calculation evidence."],
+  "returnContract": ["Return formula, render, and accessibility evidence."]
+}

@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-source-backed-document",
+  "goal": "Produce a source-backed document with native open and render evidence.",
+  "constraints": ["Trace source markers.", "Inspect searchable content and accessibility."],
+  "successCriteria": ["The document proof exercises source, open, render, and accessibility checks."],
+  "nonGoals": ["No external send.", "No generation-only completion claim."],
+  "returnContract": ["Return artifact evidence and concrete visual findings."]
+}

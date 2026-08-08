@@ -79,7 +79,7 @@ test('repo verify workflow keeps read-only permissions and the expected verifica
   const setupNodeBlock = extractStepBlock(workflow, 'Set up Node.js');
   const rootInstallBlock = extractStepBlock(workflow, 'Install root dependencies');
   const homepageInstallBlock = extractStepBlock(workflow, 'Install homepage dependencies');
-  const skillCheckBlock = extractStepBlock(workflow, 'Check repository skill projections');
+  const officeToolsBlock = extractStepBlock(workflow, 'Install Office verification tools');
   const verifyBlock = extractStepBlock(workflow, 'Run repository verification');
 
   assert.match(permissionsBlock, /^\s+contents:\s*read\s*$/m);
@@ -94,7 +94,9 @@ test('repo verify workflow keeps read-only permissions and the expected verifica
   assert.match(setupNodeBlock, /^\s{12}homepage\/package-lock\.json\s*$/m);
   assert.match(rootInstallBlock, /^\s{8}run:\s*npm ci\s*$/m);
   assert.match(homepageInstallBlock, /^\s{8}run:\s*npm ci --prefix homepage\s*$/m);
-  assert.match(skillCheckBlock, /^\s{8}run:\s*\.\/scripts\/harness workspace-skills check\s*$/m);
+  assert.match(officeToolsBlock, /libreoffice/);
+  assert.match(officeToolsBlock, /poppler-utils/);
+  assert.doesNotMatch(jobBlock, /workspace-skills|Check repository skill projections/);
   assert.match(verifyBlock, /^\s{8}run:\s*npm run verify:all\s*$/m);
 });
 
@@ -106,7 +108,7 @@ test('repo verify workflow keeps the expected step order', async () => {
     'Set up Node.js',
     'Install root dependencies',
     'Install homepage dependencies',
-    'Check repository skill projections',
+    'Install Office verification tools',
     'Run repository verification'
   ]);
 });

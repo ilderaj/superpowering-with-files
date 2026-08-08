@@ -7,9 +7,22 @@ const compactHtml = html.replace(/\s+/g, ' ');
 
 const expectedUrl = 'https://ilderaj.github.io/superpowering-with-files/';
 const expectedImage = 'https://ilderaj.github.io/superpowering-with-files/og-image.png';
-const expectedTitle = 'Superpowering with Files | Governance harness for coding agents';
+const expectedTitle = 'Superpowering with Files | Trio v2 for Codex';
 const expectedDescription =
-  'A governance harness for local coding-agent workflows with shared policy, durable planning files, and optional deeper reasoning.';
+  'Trio v2 for Codex: managed native host, planning trio, dev/office/safety, manual fallback, native Goal/continuation, and no second runner.';
+const expectedKeywords = [
+  'Codex',
+  'Trio v2',
+  'managed native host',
+  'planning trio',
+  'dev',
+  'office',
+  'safety',
+  'manual fallback',
+  'native Goal',
+  'continuation',
+  'no second runner'
+];
 
 test('defines search-ready title, description, canonical, robots, and theme color', () => {
   assert.match(compactHtml, new RegExp(`<title>${expectedTitle}<\\/title>`));
@@ -58,4 +71,26 @@ test('points social sharing metadata at a published image asset and favicon file
   assert.equal(existsSync(faviconStackedFilesCompactPath), true);
   assert.equal(existsSync(faviconStackedFilesFoldedPath), true);
   assert.equal(existsSync(faviconStackedFilesLayeredPath), true);
+});
+
+test('keeps V2 host, planning, fallback, and runtime facts aligned across metadata and JSON-LD', () => {
+  const keywords = expectedKeywords.join(', ');
+  const jsonLdMatch = html.match(/<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/);
+
+  assert.ok(jsonLdMatch, 'Missing JSON-LD script');
+  assert.match(compactHtml, new RegExp(`<meta name="keywords" content="${keywords}" \\/>`));
+
+  const jsonLd = JSON.parse(jsonLdMatch[1]);
+  assert.equal(jsonLd.name, 'Superpowering with Files');
+  assert.equal(jsonLd.description, expectedDescription);
+  assert.deepEqual(jsonLd.keywords, expectedKeywords);
+
+  for (const requiredFact of ['managed native host', 'planning trio', 'manual fallback']) {
+    assert.match(expectedDescription, new RegExp(requiredFact, 'i'));
+    assert.ok(expectedKeywords.includes(requiredFact), `Missing required keyword: ${requiredFact}`);
+  }
+
+  for (const retiredClaim of ['Cursor', 'GitHub Copilot', 'Claude Code', 'governance', 'multi-host']) {
+    assert.doesNotMatch(html, new RegExp(retiredClaim, 'i'));
+  }
 });

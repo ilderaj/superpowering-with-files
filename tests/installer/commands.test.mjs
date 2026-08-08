@@ -5,6 +5,8 @@ import { access, mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { readState, statePath, writeState } from '../../harness/installer/lib/state.mjs';
+import { install } from '../../harness/installer/commands/install.mjs';
+import { acquireTrioPublicationLock } from '../../harness/trio/core/store.mjs';
 import {
   createHarnessFixture,
   removeHarnessFixture
@@ -33,6 +35,19 @@ async function writePersistedState(root, state) {
   const file = statePath(root);
   await mkdir(path.dirname(file), { recursive: true });
   await writeFile(file, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+}
+
+async function createLegacyV1HarnessFixture(options) {
+  const root = await createHarnessFixture(options);
+  await writeState(root, {
+    schemaVersion: 1,
+    scope: 'workspace',
+    projectionMode: 'link',
+    hookMode: 'off',
+    targets: {},
+    upstream: {}
+  });
+  return root;
 }
 
 async function writeTokenAuditFixture(root) {
@@ -158,35 +173,148 @@ test('harness --help prints top-level usage', async () => {
   try {
     const { stdout } = await harnessCommand(root, '--help');
     assert.match(stdout, /Usage: \.\/scripts\/harness <command>/);
-    assert.match(stdout, /checkpoint  Create a safety checkpoint/);
-    assert.match(
-      stdout,
-      /checkpoint-push  Verify, record review evidence, commit, and push a recovery branch/
-    );
-    assert.match(
-      stdout,
-      /worktree-name  Suggest a canonical worktree label and branch name for the active task/
-    );
-    assert.match(stdout, /token-audit  Print a weekly cross-session token audit/);
-    assert.match(stdout, /codex-model-default  Inspect, assess, or migrate the Codex model default/);
-    assert.match(stdout, /verify   Print or write verification reports/);
+    const commandBlock = stdout.split('Commands:\n')[1];
+    assert.ok(commandBlock, 'help must include a Commands section');
+    const commandLines = commandBlock
+      .trimEnd()
+      .split('\n')
+      .filter(Boolean);
+    assert.equal(commandLines.length, 7);
+    const commandNames = commandLines.map((line) => line.trim().split(/\s+/)[0]);
+    assert.deepEqual(commandNames, [
+      'install',
+      'sync',
+      'doctor',
+      'trio',
+      'verify',
+      'checkpoint',
+      'token-audit'
+    ]);
+    assert.doesNotMatch(commandBlock, /workspace-skills|checkpoint-push|status/);
   } finally {
     await removeHarnessFixture(root);
   }
 });
 
-test('harness public dispatcher exposes codex-model-default inspect assess and migrate', async () => {
-  const root = await createHarnessFixture({ linkNodeModules: true });
-  const codexHome = path.join(root, '.codex-model-default');
+test('lifecycle-sweep control plane is physically retired', async () => {
+  const retiredPaths = [
+    'harness/installer/commands/lifecycle-sweep.mjs',
+    'harness/runtime/lifecycle-sweep-service.mjs',
+    'harness/runtime/lifecycle-anchor-receipt.mjs'
+  ];
+  const presentRetiredPaths = [];
+  for (const relativePath of retiredPaths) {
+    try {
+      await access(path.join(process.cwd(), relativePath));
+      presentRetiredPaths.push(relativePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+
+  await assert.rejects(
+    harnessCommand(process.cwd(), 'lifecycle-sweep'),
+    (error) => error?.code === 1 && /Unknown command: lifecycle-sweep/.test(`${error.stderr}\n${error.stdout}`)
+  );
+  assert.deepEqual(presentRetiredPaths, []);
+});
+
+test('worktree-name command is physically retired and worktree creation uses preflight output', async () => {
+  const commandPath = path.join(process.cwd(), 'harness/installer/commands/worktree-name.mjs');
+  await assert.rejects(access(commandPath), { code: 'ENOENT' });
+  await assert.rejects(
+    harnessCommand(process.cwd(), 'worktree-name'),
+    (error) => error?.code === 1 && /Unknown command: worktree-name/.test(`${error.stderr}\n${error.stdout}`)
+  );
+
+  const manual = await readFile(path.join(process.cwd(), 'docs/safety/vibe-coding-safety-manual.md'), 'utf8');
+  assert.doesNotMatch(manual, /\.\/scripts\/harness worktree-name/);
+  assert.match(
+    manual,
+    /Before every worktree creation, run `\.\/scripts\/harness worktree-preflight --task <task-id> --safety` first/
+  );
+  assert.match(
+    manual,
+    /Use only that command's actual `Suggested worktree label`, `Suggested branch name`, and `Recommended base`/
+  );
+  assert.doesNotMatch(manual, /--namespace|agent-prefix/);
+});
+
+test('harness public dispatcher exposes Trio quick routing without creating planning state', async () => {
+  const root = await createHarnessFixture();
   try {
-    await mkdir(codexHome, { recursive: true });
-    await writeFile(path.join(codexHome, 'config.toml'), 'model = "model-a"\nmodel_reasoning_effort = "high"\n');
-    const inspect = await harnessCommand(root, 'codex-model-default', 'inspect', '--codex-home', codexHome);
-    assert.equal(JSON.parse(inspect.stdout).model, 'model-a');
-    const assess = await harnessCommand(root, 'codex-model-default', 'assess', '--codex-home', codexHome, '--expected-model', 'model-a', '--expected-reasoning', 'high');
-    assert.equal(JSON.parse(assess.stdout).status, 'match');
-    const migrate = await harnessCommand(root, 'codex-model-default', 'migrate', '--codex-home', codexHome, '--expected-model', 'model-a', '--expected-reasoning', 'high', '--model', 'model-b', '--reasoning', 'high');
-    assert.equal(JSON.parse(migrate.stdout).after.model, 'model-b');
+    const { stdout } = await harnessCommand(
+      root,
+      'trio',
+      'next',
+      '--root',
+      root,
+      '--class',
+      'quick',
+      '--dry-run'
+    );
+    const report = JSON.parse(stdout);
+
+    assert.equal(report.command, 'next');
+    assert.equal(report.action, 'execute-inline');
+    assert.equal(report.readOnly, true);
+    assert.equal(report.createTrio, false);
+    assert.deepEqual(report.writes, []);
+    await assert.rejects(access(path.join(root, 'planning')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness public dispatcher rejects the retired command', async () => {
+  const root = await createHarnessFixture();
+  try {
+    for (const command of ['mcp-approve', 'status']) {
+      await assert.rejects(harnessCommand(root, command), (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, new RegExp(`Unknown command: ${command}`));
+        return true;
+      });
+    }
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness public dispatcher rejects retired codex-model-default', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(harnessCommand(root, 'codex-model-default'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /Unknown command: codex-model-default/);
+      return true;
+    });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness public dispatcher rejects retired link-personal', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(harnessCommand(root, 'link-personal'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /Unknown command: link-personal/);
+      return true;
+    });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('harness public dispatcher rejects retired cloud-bootstrap', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(harnessCommand(root, 'cloud-bootstrap'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /Unknown command: cloud-bootstrap/);
+      return true;
+    });
   } finally {
     await removeHarnessFixture(root);
   }
@@ -208,52 +336,80 @@ test('install --help prints usage without writing state', async () => {
   try {
     const { stdout } = await harnessCommand(root, 'install', '--help');
     assert.match(stdout, /Usage: .* install/);
+    assert.match(stdout, /--upgrade/);
+    assert.match(stdout, /--recovery <path>/);
+    assert.doesNotMatch(stdout, /--profile/);
+    assert.doesNotMatch(stdout, /--hooks/);
+    assert.doesNotMatch(stdout, /--scope/);
+    assert.doesNotMatch(stdout, /--targets/);
+    assert.doesNotMatch(stdout, /--skills-profile/);
+    assert.doesNotMatch(stdout, /--projection/);
+    assert.doesNotMatch(stdout, /--mode/);
     await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }
 });
 
-test('workspace-skills --help prints read-only action usage', async () => {
+test('harness public dispatcher rejects retired legacy commands', async () => {
   const root = await createHarnessFixture();
   try {
-    const { stdout } = await harnessCommand(root, 'workspace-skills', '--help');
-    assert.match(stdout, /workspace-skills (plan|sync|check|set)/);
-    await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
-    await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('workspace-skills plan reads the committed standard profile without writing legacy control-plane files', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const { stdout } = await harnessCommand(root, 'workspace-skills', 'plan');
-    const report = JSON.parse(stdout);
-    assert.equal(report.skillProfile, 'standard');
-    assert.ok(report.skills.length > 0);
-    assert.ok(report.skills.every((entry) => entry.kind === 'skill'));
-    for (const target of [
-      { name: 'codex', skillRoot: path.join('.agents', 'skills') },
-      { name: 'claude-code', skillRoot: path.join('.claude', 'skills') }
+    for (const command of [
+      'mcp-approve',
+      'status',
+      'workspace-skills',
+      'summary',
+      'active-summary',
+      'record'
     ]) {
-      const keys = report.skills
-        .filter((entry) => entry.targetPath.includes(target.skillRoot))
-        .map((entry) => `${entry.parentSkillName}:${entry.skillName}`);
-      assert.ok(keys.length > 0, `${target.name} plan has skills`);
-      assert.ok(!keys.some((key) => key.startsWith('superpowers:')), `${target.name} excludes Superpowers`);
-      for (const key of [
-        'planning-with-files:planning-with-files',
-        'chiefops:chiefops',
-        'mattpocock-skills:tdd'
-      ]) assert.ok(keys.includes(key), `${target.name} retains ${key}`);
+      await assert.rejects(harnessCommand(root, command), (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, new RegExp(`Unknown command: ${command}`));
+        return true;
+      });
     }
-    await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
-    await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
   } finally {
     await removeHarnessFixture(root);
   }
+});
+
+test('harness public dispatcher rejects retired upstream-lock before source resolution', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await assert.rejects(harnessCommand(root, 'upstream-lock', '--source=missing'), (error) => {
+      assert.equal(error.code, 1);
+      assert.match(error.stderr, /Unknown command: upstream-lock/);
+      return true;
+    });
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('workspace-skills source control plane is physically retired', async () => {
+  const retiredPaths = [
+    'harness/installer/commands/workspace-skills.mjs',
+    'harness/workspace-skill-profile.json',
+    'tests/installer/workspace-skills.test.mjs'
+  ];
+  const presentRetiredPaths = [];
+  for (const relativePath of retiredPaths) {
+    try {
+      await access(path.join(process.cwd(), relativePath));
+      presentRetiredPaths.push(relativePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+  const verifierSource = await readFile(path.join(process.cwd(), 'scripts/ci/verify-upstream-refresh.mjs'), 'utf8');
+
+  assert.deepEqual(
+    {
+      presentRetiredPaths,
+      verifierSelectsRetiredTest: verifierSource.includes('tests/installer/workspace-skills.test.mjs')
+    },
+    { presentRetiredPaths: [], verifierSelectsRetiredTest: false }
+  );
 });
 
 test('verify --help prints usage without writing reports', async () => {
@@ -326,1107 +482,75 @@ test('token-audit rejects invalid explicit audit windows', async () => {
   }
 });
 
-test('status resolves authority root when run from a nested leaf directory', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const leafDir = path.join(root, 'packages/demo');
-    await mkdir(leafDir, { recursive: true });
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    const { stdout } = await harnessCommand(root, 'status', { cwd: leafDir });
-    const report = JSON.parse(stdout);
-
-    assert.equal(await realpath(report.targets.codex.entries[0].path), await realpath(path.join(root, 'AGENTS.md')));
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('doctor resolves authority root when run from a nested leaf directory', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const leafDir = path.join(root, 'packages/demo');
-    await mkdir(leafDir, { recursive: true });
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'on',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    const { stdout } = await harnessCommand(root, 'doctor', '--check-only', { cwd: leafDir });
-
-    assert.match(stdout, /Harness check passed\./);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install writes workspace state to the authority root when run from a nested leaf directory', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const leafDir = path.join(root, 'packages/demo');
-    await mkdir(leafDir, { recursive: true });
-
-    await harnessCommand(root, 'install', '--scope=workspace', '--targets=codex', { cwd: leafDir });
-
-    const state = await readState(root);
-    assert.equal(state.scope, 'workspace');
-    assert.equal(state.targets.codex.enabled, true);
-    await assert.rejects(access(path.join(leafDir, '.harness/state.json')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('sync writes projections only at the authority root when run from a nested leaf directory', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const leafDir = path.join(root, 'packages/demo');
-    await mkdir(leafDir, { recursive: true });
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync', { cwd: leafDir });
-
-    assert.match(await readFile(path.join(root, 'AGENTS.md'), 'utf8'), /Harness Policy For Codex/);
-    await assert.rejects(access(path.join(leafDir, 'AGENTS.md')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('verify writes reports under the authority root when run from a nested leaf directory', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const leafDir = path.join(root, 'packages/demo');
-    await mkdir(leafDir, { recursive: true });
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    await harnessCommand(root, 'verify', '--output=.harness/verification-from-leaf', { cwd: leafDir });
-
-    const report = JSON.parse(
-      await readFile(path.join(root, '.harness/verification-from-leaf/latest.json'), 'utf8')
-    );
-    assert.equal(report.checks.scope, 'workspace');
-    await assert.rejects(access(path.join(leafDir, '.harness/verification-from-leaf/latest.json')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('adopt-global --help describes explicit skills profile precedence', async () => {
-  const root = await createHarnessFixture();
-  try {
-    const { stdout } = await harnessCommand(root, 'adopt-global', '--help');
-    assert.match(stdout, /Usage: \.\/scripts\/harness adopt-global/);
-    assert.match(stdout, /--skills-profile=<name>\s+Override the skills profile; explicit values always win\./);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install stores the selected entry and skills profiles in state', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await harnessCommand(
-      root,
-      'install',
-      '--scope=workspace',
-      '--targets=codex',
-      '--profile=safety',
-      '--skills-profile=minimal-global'
-    );
-
-    const state = await readState(root);
-    assert.equal(state.policyProfile, 'always-on-core');
-    assert.equal(state.workspacePolicyOverlay, 'safety');
-    assert.equal(state.deploymentProfile, 'standard');
-    assert.equal(state.skillProfile, 'minimal-global');
-    assert.equal(state.scope, 'workspace');
-    assert.equal(state.targets.codex.enabled, true);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install normalizes a direct safety overlay to the guarded workspace state', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await harnessCommand(
-      root,
-      'install',
-      '--scope=workspace',
-      '--targets=codex',
-      '--profile=safety-overlay'
-    );
-
-    const state = await readState(root);
-    assert.equal(state.policyProfile, 'always-on-core');
-    assert.equal(state.workspacePolicyOverlay, 'safety-overlay');
-    assert.equal(state.hookMode, 'on');
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install defaults Copilot-only installs to copilot-default skills profile', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await harnessCommand(root, 'install', '--scope=workspace', '--targets=copilot');
-
-    const state = await readState(root);
-    assert.equal(state.skillProfile, 'copilot-default');
-    assert.equal(state.targets.copilot.enabled, true);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install defaults workspace coding installs to Matt-backed standard skills and compact policy', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await harnessCommand(root, 'install', '--scope=workspace', '--targets=codex');
-
-    const state = await readState(root);
-    assert.equal(state.skillProfile, 'standard');
-    assert.equal(state.policyProfile, 'always-on-core');
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install defaults user-global installs to minimal-global skills profile', async () => {
-  const root = await createHarnessFixture();
-  const homeDir = path.join(root, 'home');
-  try {
-    await mkdir(homeDir, { recursive: true });
-    await harnessCommandWithEnv(root, { HOME: homeDir }, 'install', '--scope=user-global', '--targets=all');
-
-    const state = await readState(root);
-    assert.equal(state.skillProfile, 'minimal-global');
-    assert.equal(state.scope, 'user-global');
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install defaults both-scope installs to minimal-global skills profile', async () => {
-  const root = await createHarnessFixture();
-  const homeDir = path.join(root, 'home');
-  try {
-    await mkdir(homeDir, { recursive: true });
-    await harnessCommandWithEnv(root, { HOME: homeDir }, 'install', '--scope=both', '--targets=codex');
-
-    const state = await readState(root);
-    assert.equal(state.skillProfile, 'minimal-global');
-    assert.equal(state.scope, 'both');
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install lets an explicit Copilot skills profile override win over the default', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await harnessCommand(
-      root,
-      'install',
-      '--scope=workspace',
-      '--targets=copilot',
-      '--skills-profile=minimal-global'
-    );
-
-    const state = await readState(root);
-    assert.equal(state.skillProfile, 'minimal-global');
-    assert.equal(state.targets.copilot.enabled, true);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install derives high-assurance entry policy from an explicit high-assurance skills profile', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await harnessCommand(
-      root,
-      'install',
-      '--scope=workspace',
-      '--targets=codex',
-      '--skills-profile=high-assurance'
-    );
-
-    const state = await readState(root);
-    assert.equal(state.skillProfile, 'high-assurance');
-    assert.equal(state.policyProfile, 'high-assurance');
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install rejects an unknown skills profile', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await assert.rejects(
-      harnessCommand(root, 'install', '--scope=workspace', '--targets=codex', '--skills-profile=unknown'),
-      /Invalid skills profile/
-    );
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install rejects safety profiles outside workspace scope', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await assert.rejects(
-      harnessCommand(root, 'install', '--scope=user-global', '--targets=all', '--profile=safety'),
-      /Safety profiles are workspace-only/
-    );
-    await assert.rejects(
-      harnessCommand(root, 'install', '--scope=both', '--targets=all', '--profile=cloud-safe'),
-      /Safety profiles are workspace-only/
-    );
-    await assert.rejects(
-      harnessCommand(root, 'install', '--scope=user-global', '--targets=all', '--profile=safety-overlay'),
-      /Safety profiles are workspace-only/
-    );
-    await assert.rejects(
-      harnessCommand(root, 'install', '--scope=both', '--targets=all', '--profile=cloud-safe-overlay'),
-      /Safety profiles are workspace-only/
-    );
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('install --mode=force takes over existing workspace projections in a clean checkout', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await mkdir(path.join(root, '.agents/skills/planning-with-files'), { recursive: true });
-    await writeFile(path.join(root, 'AGENTS.md'), 'legacy entry\n');
-    await writeFile(
-      path.join(root, '.agents/skills/planning-with-files/LEGACY.md'),
-      'legacy skill directory\n'
-    );
-
-    await harnessCommand(root, 'install', '--scope=workspace', '--targets=codex', '--mode=force');
-
-    assert.match(await readFile(path.join(root, 'AGENTS.md'), 'utf8'), /Harness Policy For Codex/);
-    assert.match(
-      await readFile(path.join(root, '.agents/skills/planning-with-files/SKILL.md'), 'utf8'),
-      /Planning with Files/
-    );
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('sync uses the stored entry profile when rendering entries', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      policyProfile: 'safety',
-      skillProfile: 'full',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    const entry = await readFile(path.join(root, 'AGENTS.md'), 'utf8');
-
-    assert.match(entry, /# Safety Policy/);
-    assert.match(entry, /Never run agents from HOME/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('sync migrates a persisted retired profile to the standard profile', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writePersistedState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      skillProfile: 'second-opinion-advisory',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-
-    const state = await readState(root);
-    const persistedState = JSON.parse(await readFile(statePath(root), 'utf8'));
-
-    assert.equal(state.skillProfile, 'standard');
-    assert.equal(persistedState.skillProfile, 'standard');
-    assert.match(await readFile(path.join(root, 'AGENTS.md'), 'utf8'), /Harness Policy For Codex/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('sync keeps always-on-core state while rendering a thinner Copilot entry', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      policyProfile: 'always-on-core',
-      skillProfile: 'full',
-      targets: {
-        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    const entry = await readFile(path.join(root, '.github/copilot-instructions.md'), 'utf8');
-    const state = await readState(root);
-
-    assert.equal(state.policyProfile, 'always-on-core');
-    assert.match(entry, /Task Classification/);
-    assert.doesNotMatch(entry, /When Superpowers Is Allowed/);
-    assert.doesNotMatch(entry, /When Superpowers Is Not Allowed/);
-    assert.doesNotMatch(entry, /Tool Preferences/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('sync --dry-run prints diff without writing files or state', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    const { stdout } = await harnessCommand(root, 'sync', '--dry-run');
-    const report = JSON.parse(stdout);
-    const state = await readState(root);
-
-    assert.equal(report.mode, 'dry-run');
-    assert.equal(typeof report.summary, 'object');
-    assert.equal(typeof report.diff, 'object');
-    assert.deepEqual(report.warnings, []);
-    assert.deepEqual(report.details, {
-      mode: 'dry-run',
-      projections: ['codex'],
-      hooks: []
-    });
-    assert.equal(state.lastSync, undefined);
-    await assert.rejects(access(path.join(root, 'AGENTS.md')), /ENOENT/);
-    await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('sync --check exits non-zero when projections are out of sync and does not write files', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    const command = harnessCommand(root, 'sync', '--check');
-    await assert.rejects(command, /Harness sync check failed: projections are out of sync/);
-    await assert.rejects(access(path.join(root, 'AGENTS.md')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('sync --dry-run and --check surface materialized skill source drift after an initial sync', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-
-    const skillSourcePath = path.join(root, 'harness/upstream/planning-with-files/SKILL.md');
-    const originalSkillSource = await readFile(skillSourcePath, 'utf8');
-    await writeFile(skillSourcePath, `${originalSkillSource}\n<!-- source drift fixture -->\n`);
-
-    const { stdout } = await harnessCommand(root, 'sync', '--dry-run');
-    const report = JSON.parse(stdout);
-    const targetPath = path.join(await realpath(root), '.agents/skills/planning-with-files');
-
-    assert.equal(report.mode, 'dry-run');
-    assert.equal(report.summary.update > 0, true);
-    assert.equal(
-      report.diff.update.some(
-        (entry) => entry.after?.kind === 'skill' && entry.after?.targetPath === targetPath
-      ),
-      true
-    );
-
-    await assert.rejects(
-      harnessCommand(root, 'sync', '--check'),
-      /Harness sync check failed: projections are out of sync/
-    );
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('verify prints to stdout by default without writing reports', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {},
-      upstream: {}
-    });
-
-    const { stdout } = await harnessCommand(root, 'verify');
-    assert.match(stdout, /# Harness Verification Report/);
-    assert.match(stdout, /Context entry verdict:/);
-    assert.match(stdout, /Hook payload verdict:/);
-    assert.match(stdout, /Planning hot context verdict:/);
-    assert.match(stdout, /Skill profile verdict:/);
-    await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('verify renders overlap and per-target hook ledger rows when Copilot is enabled', async () => {
-  const root = await createHarnessFixture();
-  const home = path.join(root, 'home');
-  try {
-    await mkdir(home, { recursive: true });
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'both',
-      projectionMode: 'link',
-      hookMode: 'on',
-      targets: {
-        copilot: {
-          enabled: true,
-          paths: [
-            path.join(root, '.github/copilot-instructions.md'),
-            path.join(home, '.copilot/instructions/harness.instructions.md')
-          ]
-        }
-      },
-      upstream: {}
-    });
-
-    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
-    await writeFile(
-      path.join(root, 'planning/active/compact-task/task_plan.md'),
-      [
-        '# Compact Task',
-        '',
-        '## Goal',
-        '- Keep Copilot verification ledger output visible.',
-        '',
-        '## Current State',
-        'Status: active',
-        'Archive Eligible: no'
-      ].join('\n')
-    );
-    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
-    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
-
-    await harnessCommandWithEnv(root, { HOME: home }, 'sync');
-    const { stdout } = await harnessCommandWithEnv(root, { HOME: home }, 'verify');
-
-    assert.match(stdout, /Hook payload verdict:/);
-    assert.match(stdout, /Hook payload target: copilot/);
-    assert.match(stdout, /Hook payload detail:/);
-    assert.match(stdout, /copilot \/ planning-hot \/ (?:ok|problem) \/ \d+ tokens/);
-    assert.match(stdout, /Budget ledger:/);
-    assert.match(stdout, /copilot policy: thin-entry-overlap-guard/);
-    assert.match(stdout, /copilot session: entry=\d+, skillDiscovery=\d+, skillBody=\d+, skillSource=\d+, planning=\d+ tokens/);
-    assert.match(stdout, /copilot turn: hooks=\d+, planning=\d+ tokens/);
-    assert.match(stdout, /Scope overlap verdict: warning/);
-    assert.match(stdout, /Scope overlap detail: copilot -> workspace \+ user-global/);
-    assert.match(stdout, /Recommended action: choose one canonical scope for Copilot/i);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('verify --output writes report files only to the requested directory', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {},
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'verify', '--output=.harness/custom-verification');
-
-    const markdown = await readFile(path.join(root, '.harness/custom-verification/latest.md'), 'utf8');
-    const report = JSON.parse(
-      await readFile(path.join(root, '.harness/custom-verification/latest.json'), 'utf8')
-    );
-
-    assert.match(markdown, /Context entry verdict:/);
-    assert.match(markdown, /Hook payload verdict:/);
-    assert.match(markdown, /Budget ledger:/);
-    assert.match(markdown, /Planning hot context verdict:/);
-    assert.match(markdown, /Skill profile verdict:/);
-    assert.equal(report.health.context.summary.entries.verdict, 'ok');
-    assert.equal(report.health.context.summary.hooks.verdict, 'ok');
-    assert.equal(report.health.context.summary.planning.verdict, 'ok');
-    assert.equal(report.health.context.summary.skillProfiles.verdict, 'ok');
-    assert.ok(report.health.context.ledger);
-    assert.equal(report.health.context.entries.length, 0);
-    assert.ok(Array.isArray(report.health.context.warnings));
-    await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('verify writes stable Claude Code hook evidence summary into the JSON report', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'on',
-      targets: {
-        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
-      },
-      upstream: {}
-    });
-
-    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
-    await writeFile(
-      path.join(root, 'planning/active/compact-task/task_plan.md'),
-      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
-    );
-    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
-    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
-
-    await harnessCommand(root, 'sync');
-    await harnessCommand(root, 'verify', '--output=.harness/claude-verification');
-
-    const report = JSON.parse(
-      await readFile(path.join(root, '.harness/claude-verification/latest.json'), 'utf8')
-    );
-
-    assert.equal(
-      report.verification.hookEvidence['claude-code']['planning-with-files'].config,
-      'settings-hook-present'
-    );
-    assert.equal(
-      report.verification.hookEvidence['claude-code']['planning-with-files'].payload,
-      'local-payload-verified'
-    );
-    assert.equal(
-      report.verification.hookEvidence['claude-code']['planning-with-files'].runtime,
-      'not-measured'
-    );
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('verify writes Codex runtime evidence into the JSON report when a matching trace exists', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'on',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
-    await writeFile(
-      path.join(root, 'planning/active/compact-task/task_plan.md'),
-      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
-    );
-    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
-    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
-
-    await mkdir(path.join(root, '.harness/runtime-hooks'), { recursive: true });
-    await writeFile(
-      path.join(root, '.harness/runtime-hooks/codex.jsonl'),
-      `${JSON.stringify({
-        schemaVersion: 1,
-        source: 'harness-runtime-hook',
-        target: 'codex',
-        parentSkillName: 'planning-with-files',
-        eventName: 'UserPromptSubmit',
-        observedAt: '2026-05-28T03:03:03.000Z',
-        projectRoot: root,
-        cwd: root,
-        scriptName: 'task-scoped-hook.sh',
-        scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh')
-      })}\n`
-    );
-
-    await harnessCommand(root, 'sync');
-    await harnessCommand(root, 'verify', '--output=.harness/codex-verification');
-
-    const report = JSON.parse(
-      await readFile(path.join(root, '.harness/codex-verification/latest.json'), 'utf8')
-    );
-
-    assert.equal(
-      report.verification.hookEvidence['codex']['planning-with-files'].runtime,
-      'runtime-invocation-verified'
-    );
-    assert.equal(
-      report.verification.hookEvidence['codex']['planning-with-files'].payload,
-      'local-payload-verified'
-    );
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('verify exits non-zero for malformed context budgets but still writes a report', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    await writeFile(path.join(root, 'harness/core/context-budgets.json'), '{\n');
-    let error;
+test('persisted V1 public commands require upgrade and leave the authority root unchanged', async () => {
+  const commands = [
+    ['install'],
+    ['sync'],
+    ['doctor', '--check-only'],
+    ['verify', '--output=.harness/v1-report']
+  ];
+
+  for (const args of commands) {
+    const root = await createLegacyV1HarnessFixture();
     try {
-      await harnessCommand(root, 'verify', '--output=.harness/broken-verification');
-      assert.fail('verify should exit non-zero when health.problems is not empty');
-    } catch (caught) {
-      error = caught;
+      const before = await readFile(statePath(root), 'utf8');
+      await assert.rejects(
+        harnessCommand(root, ...args),
+        (error) => error?.code === 1 && /requires install --upgrade|requires exactly --upgrade/.test(`${error.stderr}\n${error.stdout}`)
+      );
+      assert.equal(await readFile(statePath(root), 'utf8'), before);
+      await assert.rejects(access(path.join(root, '.harness/v1-report/latest.json')), /ENOENT/);
+    } finally {
+      await removeHarnessFixture(root);
     }
-
-    const report = JSON.parse(
-      await readFile(path.join(root, '.harness/broken-verification/latest.json'), 'utf8')
-    );
-    const markdown = await readFile(path.join(root, '.harness/broken-verification/latest.md'), 'utf8');
-
-    assert.equal(error.code, 1);
-    assert.match(markdown, /Context entries:/);
-    assert.ok(
-      report.health.problems.some((problem) => problem.includes('context-budgets.json is malformed JSON'))
-    );
-    assert.equal(report.health.context.summary.entries.verdict, 'unknown');
-  } finally {
-    await removeHarnessFixture(root);
   }
 });
 
-test('verify exits non-zero for invalid context budget shape but still writes a report', async () => {
-  const root = await createHarnessFixture();
+test('persisted V1 install rejects malformed upgrade arguments before publication locking', async () => {
+  const malformed = [
+    [], ['--upgrade'], ['--upgrade', '--upgrade'], ['--upgrade=value'], ['--recovery', 'receipt'],
+    ['--upgrade', '--recovery'], ['--upgrade', '--recovery='], ['--upgrade', '--recovery', 'receipt', '--recovery', 'again'],
+    ['--upgrade', '--recovery', '--value'], ['--upgrade', '--recovery', 'receipt', '--extra'],
+    ['--upgrade', '--upgrade', '--recovery', 'receipt']
+  ];
+  const root = await createLegacyV1HarnessFixture();
   try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    await writeFile(
-      path.join(root, 'harness/core/context-budgets.json'),
-      `${JSON.stringify(
-        {
-          schemaVersion: 1,
-          budgets: {
-            entry: {
-              warn: { chars: 1, lines: 1, tokens: 1 }
-            },
-            hookPayload: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            },
-            planningHotContext: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            },
-            skillProfile: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            }
-          }
-        },
-        null,
-        2
-      )}\n`
-    );
-
-    let error;
+    const held = await acquireTrioPublicationLock(root);
     try {
-      await harnessCommand(root, 'verify', '--output=.harness/invalid-shape-verification');
-      assert.fail('verify should exit non-zero when health.problems is not empty');
-    } catch (caught) {
-      error = caught;
+      for (const args of malformed) {
+        await assert.rejects(() => install(args, { rootDir: root }), (error) => error?.code === 'ERR_TRIO_UPGRADE_REQUIRED');
+      }
+      await assert.rejects(
+        () => install(['--upgrade', '--recovery', 'receipt'], { rootDir: root }),
+        (error) => error?.code === 'ERR_TRIO_LOCK_TIMEOUT'
+      );
+      await assert.rejects(
+        () => install(['--recovery=receipt', '--upgrade'], { rootDir: root }),
+        (error) => error?.code === 'ERR_TRIO_LOCK_TIMEOUT'
+      );
+    } finally {
+      await held.release();
     }
-
-    const report = JSON.parse(
-      await readFile(path.join(root, '.harness/invalid-shape-verification/latest.json'), 'utf8')
-    );
-
-    assert.equal(error.code, 1);
-    assert.ok(
-      report.health.problems.some((problem) => problem.includes('context-budgets.json is invalid'))
-    );
-    assert.equal(report.health.context.summary.entries.verdict, 'unknown');
   } finally {
     await removeHarnessFixture(root);
   }
 });
 
-test('doctor prints a budget problem only once', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
 
-    await harnessCommand(root, 'sync');
-    await writeFile(
-      path.join(root, 'harness/core/context-budgets.json'),
-      `${JSON.stringify(
-        {
-          schemaVersion: 1,
-          budgets: {
-            entry: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            },
-            hookPayload: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            },
-            planningHotContext: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            },
-            skillProfile: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            }
-          }
-        },
-        null,
-        2
-      )}\n`
-    );
 
-    let error;
+
+
+for (const command of ['plugin', 'adopt-global', 'adoption-status']) {
+  test(`harness public dispatcher rejects retired ${command}`, async () => {
+    const root = await createHarnessFixture();
     try {
-      await harnessCommand(root, 'doctor', '--check-only');
-      assert.fail('doctor should exit non-zero when a budget problem is present');
-    } catch (caught) {
-      error = caught;
+      await assert.rejects(harnessCommand(root, command), (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, new RegExp(`Unknown command: ${command}`));
+        return true;
+      });
+    } finally {
+      await removeHarnessFixture(root);
     }
-
-    assert.match(error.stderr, /context entry codex .*problem:/);
-    assert.equal((error.stderr.match(/context entry codex .*problem:/g) ?? []).length, 1);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('doctor prints context warnings without failing the installation', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'off',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    await writeFile(
-      path.join(root, 'harness/core/context-budgets.json'),
-      `${JSON.stringify(
-        {
-          schemaVersion: 1,
-          budgets: {
-            entry: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 100000, lines: 100000, tokens: 100000 }
-            },
-            hookPayload: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            },
-            planningHotContext: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            },
-            skillProfile: {
-              warn: { chars: 1, lines: 1, tokens: 1 },
-              problem: { chars: 2, lines: 2, tokens: 2 }
-            }
-          }
-        },
-        null,
-        2
-      )}\n`
-    );
-
-    const { stdout, stderr } = await harnessCommand(root, 'doctor', '--check-only');
-    assert.match(stderr, /context entry codex/i);
-    assert.match(stdout, /Harness check passed\./);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('doctor prints safety checks for safety profile installs', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'on',
-      policyProfile: 'safety',
-      targets: {
-        codex: { enabled: true, paths: [path.join(root, 'AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await harnessCommand(root, 'sync');
-    const { stdout } = await harnessCommand(root, 'doctor', '--check-only');
-
-    assert.match(stdout, /Safety checks:/);
-    assert.match(stdout, /checkpointExecutable: ok/);
-    assert.match(stdout, /riskAssessmentTemplatePatched: ok/);
-    assert.match(stdout, /Harness check passed\./);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('doctor prints Claude Code hook evidence levels without claiming runtime invocation', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      hookMode: 'on',
-      targets: {
-        'claude-code': { enabled: true, paths: [path.join(root, 'CLAUDE.md')] }
-      },
-      upstream: {}
-    });
-
-    await mkdir(path.join(root, 'planning/active/compact-task'), { recursive: true });
-    await writeFile(
-      path.join(root, 'planning/active/compact-task/task_plan.md'),
-      '# Compact Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n'
-    );
-    await writeFile(path.join(root, 'planning/active/compact-task/findings.md'), '# Findings\n');
-    await writeFile(path.join(root, 'planning/active/compact-task/progress.md'), '# Progress\n');
-
-    await harnessCommand(root, 'sync');
-    const { stdout } = await harnessCommand(root, 'doctor', '--check-only');
-
-    assert.match(stdout, /Hook evidence:/);
-    assert.match(stdout, /claude-code \/ planning-with-files/);
-    assert.match(stdout, /payload=local-payload-verified/);
-    assert.match(stdout, /runtime=not-measured/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
-test('doctor prints Codex hook evidence runtime and advisory warnings when runtime evidence is present', async () => {
-  const root = await createHarnessFixture();
-  const homeDir = path.join(root, 'home');
-  const previousHome = process.env.HOME;
-  try {
-    await mkdir(homeDir, { recursive: true });
-    process.env.HOME = homeDir;
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'user-global',
-      projectionMode: 'link',
-      hookMode: 'on',
-      skillProfile: 'full',
-      targets: {
-        codex: { enabled: true, paths: [path.join(homeDir, '.codex/AGENTS.md')] }
-      },
-      upstream: {}
-    });
-
-    await mkdir(path.join(root, '.harness/runtime-hooks'), { recursive: true });
-    await writeFile(
-      path.join(root, '.harness/runtime-hooks/codex.jsonl'),
-      `${JSON.stringify({
-        schemaVersion: 1,
-        source: 'harness-runtime-hook',
-        target: 'codex',
-        parentSkillName: 'planning-with-files',
-        eventName: 'UserPromptSubmit',
-        observedAt: '2026-05-28T03:03:03.000Z',
-        projectRoot: root,
-        cwd: root,
-        scriptName: 'task-scoped-hook.sh',
-        scriptPath: path.join(root, '.codex/hooks/task-scoped-hook.sh')
-      })}\n`
-    );
-
-    await harnessCommandWithEnv(root, { HOME: homeDir }, 'sync');
-    const { stdout, stderr } = await harnessCommandWithEnv(root, { HOME: homeDir }, 'doctor', '--check-only');
-
-    assert.match(stdout, /Hook evidence:/);
-    assert.match(stdout, /codex \/ planning-with-files/);
-    assert.match(stdout, /runtime=runtime-invocation-verified/);
-    assert.match(
-      stderr,
-      /minimal-global stays the recommended default; choose a heavier profile only when the task explicitly needs broader projected context/
-    );
-  } finally {
-    if (previousHome === undefined) {
-      delete process.env.HOME;
-    } else {
-      process.env.HOME = previousHome;
-    }
-    await removeHarnessFixture(root);
-  }
-});
-
-test('doctor prints overlap governance guidance without failing a recoverable Copilot overlap', async () => {
-  const root = await createHarnessFixture();
-  const home = path.join(root, 'home');
-  try {
-    await mkdir(home, { recursive: true });
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'both',
-      projectionMode: 'link',
-      hookMode: 'on',
-      targets: {
-        copilot: {
-          enabled: true,
-          paths: [
-            path.join(root, '.github/copilot-instructions.md'),
-            path.join(home, '.copilot/instructions/harness.instructions.md')
-          ]
-        }
-      },
-      upstream: {}
-    });
-
-    await harnessCommandWithEnv(root, { HOME: home }, 'sync');
-    const { stdout, stderr } = await harnessCommandWithEnv(root, { HOME: home }, 'doctor', '--check-only');
-    const overlapMatches = `${stdout}\n${stderr}`.match(/choose one canonical scope for Copilot/gi) ?? [];
-
-    assert.match(stdout, /Scope overlap verdict: warning/);
-    assert.match(stdout, /Scope overlap detail: copilot -> workspace \+ user-global/);
-    assert.match(stdout, /Recommended action: choose one canonical scope for Copilot/i);
-    assert.equal(overlapMatches.length, 1);
-    assert.match(stdout, /Harness check passed\./);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
+  });
+}

@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-complex-debug",
+  "goal": "Diagnose a non-obvious defect from a reproducible public seam.",
+  "constraints": ["Minimize the reproduction.", "Trace the value backward before changing the source."],
+  "successCriteria": ["One falsifiable hypothesis is tested.", "A regression proof covers the root cause."],
+  "nonGoals": ["No speculative redesign.", "No bulk horizontal implementation."],
+  "returnContract": ["Return reproduction, root cause, proof, and residual risk."]
+}

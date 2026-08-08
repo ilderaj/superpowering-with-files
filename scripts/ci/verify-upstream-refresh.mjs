@@ -13,14 +13,7 @@ const groups = [
     'tests/automation/repo-verify-workflow.test.mjs'
   ],
   [
-    'tests/adapters/planning-record-time.test.mjs',
-    'tests/adapters/skill-projection.test.mjs',
-    'tests/adapters/sync-skills.test.mjs',
-    'tests/adapters/sync-hooks.test.mjs',
-    'tests/installer/workspace-skills.test.mjs',
-    'tests/installer/matt-skill-patches.test.mjs',
-    'tests/installer/upstream-commands.test.mjs',
-    'tests/installer/policy-render.test.mjs'
+    'tests/installer/upstream-commands.test.mjs'
   ],
   [
     'tests/core/simplification-ledger-search.test.mjs'

@@ -1,6 +1,0 @@
-{
-  "id": "stdlib-replacement",
-  "title": "Replace custom parsing with the standard library",
-  "requiredTag": "stdlib",
-  "expectedLinesSaved": 14
-}

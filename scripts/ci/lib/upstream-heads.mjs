@@ -13,7 +13,6 @@ import { resolveSourceTarget } from './upstream-resolver.mjs';
 const execFileAsync = promisify(execFile);
 
 export const defaultSourcesPath = defaultSourceConfigPath;
-export const defaultSourceHeadsPath = 'harness/upstream/.source-heads.json';
 export const defaultResolvedLockPath = defaultSourceLockPath;
 
 async function gitLsRemote(url, refs = []) {

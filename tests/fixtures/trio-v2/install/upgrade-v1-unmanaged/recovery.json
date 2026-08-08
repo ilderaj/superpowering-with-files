@@ -1,0 +1,4 @@
+{
+  "checkpointRef": "checkpoint-unmanaged-v1",
+  "rollbackRef": "rollback-unmanaged-v1"
+}

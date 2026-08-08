@@ -1,0 +1,4 @@
+{
+  "checkpointRef": "checkpoint-standard-v1",
+  "rollbackRef": "rollback-standard-v1"
+}

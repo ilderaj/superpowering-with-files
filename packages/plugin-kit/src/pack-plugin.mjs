@@ -21,15 +21,3 @@ export async function packPlugin({ pluginRoot, target, version, outDir }) {
     type: 'plugin'
   };
 }
-
-export async function packDirectory({ sourceRoot, name, target = 'runtime', type = 'runtime', outDir }) {
-  await mkdir(outDir, { recursive: true });
-  const artifactPath = path.join(outDir, name);
-  await execFileAsync('tar', ['-czf', artifactPath, '-C', sourceRoot, '.']);
-  return {
-    name,
-    path: artifactPath,
-    target,
-    type
-  };
-}

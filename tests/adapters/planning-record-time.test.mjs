@@ -4,12 +4,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { sync } from '../../harness/installer/commands/sync.mjs';
-import { writeState } from '../../harness/installer/lib/state.mjs';
 import {
   createHarnessFixture,
-  removeHarnessFixture,
-  withCwd
+  removeHarnessFixture
 } from '../helpers/harness-fixture.mjs';
 
 const execFileAsync = promisify(execFile);
@@ -85,34 +82,6 @@ test('planning_record.py renders canonical progress and findings headings', asyn
   assert.match(taskPlanHeading.trim(), new RegExp(`^## Plan Record: ${utc8TimestampPattern.source}$`));
 });
 
-test('sync materializes planning-with-files progress template with timestamp guidance', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      targets: {
-        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
-      },
-      upstream: {}
-    });
-
-    await withCwd(root, () => sync([]));
-
-    const progressTemplate = await readFile(
-      path.join(root, '.agents/skills/planning-with-files/templates/progress.md'),
-      'utf8'
-    );
-
-    assert.match(progressTemplate, /## Session: \[TIMESTAMP\]/);
-    assert.match(progressTemplate, /YYYY-MM-DD HH:mm:ss UTC\+8/);
-    assert.match(progressTemplate, /top-to-bottom chronological/);
-  } finally {
-    await removeHarnessFixture(root);
-  }
-});
-
 test('planning-with-files source and overlay keep chronology guidance aligned', async () => {
   const upstreamSkill = await readFile(
     path.join(process.cwd(), 'harness/upstream/planning-with-files/SKILL.md'),
@@ -139,39 +108,5 @@ test('planning-with-files source and overlay keep chronology guidance aligned', 
 
   for (const progressTemplate of [upstreamProgressTemplate, overlayProgressTemplate]) {
     assert.match(progressTemplate, /top-to-bottom chronological/);
-  }
-});
-
-test('sync materializes planning-with-files skill with mandatory dated record guidance', async () => {
-  const root = await createHarnessFixture();
-  try {
-    await writeState(root, {
-      schemaVersion: 1,
-      scope: 'workspace',
-      projectionMode: 'link',
-      targets: {
-        copilot: { enabled: true, paths: [path.join(root, '.github/copilot-instructions.md')] }
-      },
-      upstream: {}
-    });
-
-    await withCwd(root, () => sync([]));
-
-    const skill = await readFile(
-      path.join(root, '.agents/skills/planning-with-files/SKILL.md'),
-      'utf8'
-    );
-
-    assert.match(skill, /Manual timestamp guard/);
-    assert.match(skill, /YYYY-MM-DD HH:mm:ss UTC\+8/);
-    assert.match(skill, /\.\/scripts\/harness record --file progress/);
-    assert.match(skill, /\.\/scripts\/harness record --file findings/);
-    assert.match(skill, /\.\/scripts\/harness record --file task_plan/);
-    assert.match(skill, /date '\+%Y-%m-%d %H:%M:%S UTC%z'/);
-    assert.match(skill, /Never hand-write a timestamp that is later than the real current tool-derived\s+time/);
-    assert.match(skill, /top-to-bottom chronological/);
-    assert.match(skill, /Append new dated blocks\s+at the end/);
-  } finally {
-    await removeHarnessFixture(root);
   }
 });

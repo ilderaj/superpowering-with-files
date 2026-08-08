@@ -1,10 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import { promisify } from 'node:util';
 
 const root = process.cwd();
+const execFileAsync = promisify(execFile);
 const ignoredDirs = new Set([
   '.git',
   '.harness',
@@ -47,6 +50,46 @@ async function collectFiles(dir) {
   return files;
 }
 
+async function selectTrackedTextFiles(repoRoot, indexListing) {
+  const files = [];
+  for (const relativePath of indexListing.toString('utf8').split('\0').filter(Boolean)) {
+    if (relativePath.split(/[\\/]/).some((segment) => ignoredDirs.has(segment))) continue;
+    if (!scannedExtensions.has(path.extname(relativePath))) continue;
+    const file = path.resolve(repoRoot, relativePath);
+    const relative = path.relative(repoRoot, file);
+    if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      throw new Error(`Git index path escapes repository root: ${relativePath}`);
+    }
+    try {
+      if ((await stat(file)).isFile()) files.push(file);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+  return files;
+}
+
+async function collectTrackedTextFiles(repoRoot) {
+  const { stdout } = await execFileAsync('git', ['ls-files', '-z'], {
+    cwd: repoRoot,
+    encoding: 'buffer'
+  });
+  return selectTrackedTextFiles(repoRoot, stdout);
+}
+
+async function findForbiddenPathOffenders(repoRoot, files) {
+  const offenders = [];
+  for (const file of files) {
+    const bytes = await readFile(file);
+    for (const token of forbidden) {
+      if (bytes.includes(Buffer.from(token))) {
+        offenders.push(`${path.relative(repoRoot, file)} contains ${token}`);
+      }
+    }
+  }
+  return offenders;
+}
+
 test('collectFiles ignores local worktree directories', async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'no-personal-paths-'));
   try {
@@ -69,32 +112,21 @@ test('collectFiles ignores local worktree directories', async () => {
   }
 });
 
-test('committed template files do not contain author-specific absolute paths', async () => {
-  const files = await collectFiles(root);
-  const offenders = [];
+test('committed-file scope ignores an untracked ordinary file while retaining a listed tracked path', async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'no-personal-paths-scope-'));
+  try {
+    await writeFile(path.join(tempRoot, 'reported-tracked.md'), `${forbidden[0]}must-be-detected\n`);
+    await writeFile(path.join(tempRoot, 'untracked-ordinary.md'), `${forbidden[0]}must-be-ignored\n`);
 
-  for (const file of files) {
-    let info;
-    try {
-      info = await stat(file);
-    } catch (error) {
-      if (error && error.code === 'ENOENT') continue;
-      throw error;
-    }
-    if (!info.isFile()) continue;
-    let text;
-    try {
-      text = await readFile(file, 'utf8');
-    } catch (error) {
-      if (error && error.code === 'ENOENT') continue;
-      throw error;
-    }
-    for (const token of forbidden) {
-      if (text.includes(token)) {
-        offenders.push(`${path.relative(root, file)} contains ${token}`);
-      }
-    }
+    const files = await selectTrackedTextFiles(tempRoot, Buffer.from('reported-tracked.md\0'));
+    const offenders = await findForbiddenPathOffenders(tempRoot, files);
+
+    assert.deepEqual(offenders, [`reported-tracked.md contains ${forbidden[0]}`]);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
   }
+});
 
-  assert.deepEqual(offenders, []);
+test('committed template files do not contain author-specific absolute paths', async () => {
+  assert.deepEqual(await findForbiddenPathOffenders(root, await collectTrackedTextFiles(root)), []);
 });

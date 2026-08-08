@@ -3,7 +3,9 @@ import path from 'node:path';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { renderTokenAuditMarkdown, runTokenAudit } from '../../harness/runtime/token-audit-service.mjs';
+import { pathToFileURL } from 'node:url';
+import { renderTokenAuditMarkdown, runTokenAudit } from '../../harness/installer/lib/token-audit.mjs';
+import { createHarnessFixture, removeHarnessFixture } from '../helpers/harness-fixture.mjs';
 
 async function writeRollout(root, relativePath, records) {
   const target = path.join(root, relativePath);
@@ -81,6 +83,27 @@ function taskTouch({ timestamp, taskId }) {
     }
   };
 }
+
+test('token-audit command and Trio evaluator remain runnable after the retired runtime helper is absent', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await rm(path.join(root, 'harness/runtime/token-audit-service.mjs'), { force: true });
+
+    const { tokenAudit } = await import(
+      pathToFileURL(path.join(root, 'harness/installer/commands/token-audit.mjs')).href
+    );
+    await assert.doesNotReject(() => tokenAudit(['--help']));
+
+    const { evaluateFixture } = await import(pathToFileURL(path.join(root, 'scripts/evaluate-trio-v2.mjs')).href);
+    await assert.doesNotReject(() => evaluateFixture({
+      fixtureRoot: path.join(process.cwd(), 'tests/fixtures/trio-v2/evaluation'),
+      sourceRoot: process.cwd(),
+      runProofs: false
+    }));
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
 
 test('runTokenAudit aggregates weekly rollout logs into stable workspace and thread summaries', async () => {
   const sessionsRoot = await mkdtemp(path.join(os.tmpdir(), 'token-audit-runtime-'));

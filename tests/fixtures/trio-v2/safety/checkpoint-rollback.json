@@ -1,0 +1,29 @@
+{
+  "id": "checkpoint-rollback",
+  "operation": "destructive_cleanup",
+  "target": "planning/active/example/destructive-target",
+  "targetScope": "authority_relative",
+  "mutates": true,
+  "externalEffect": "none",
+  "decision": "ask",
+  "reason": "Destructive cleanup requires a recovery path and a human gate.",
+  "requiredEvidence": [
+    "risk_assessment",
+    "checkpoint_reference",
+    "rollback_steps",
+    "human_confirmation"
+  ],
+  "checkpoint": {
+    "role": "recovery_evidence_only",
+    "reference": "checkpoint://example/destructive-cleanup"
+  },
+  "rollback": {
+    "restoreSource": "checkpoint://example/destructive-cleanup",
+    "steps": [
+      "Restore the authority-contained target from the checkpoint reference.",
+      "Re-read the Trio and verify the target before any further action."
+    ],
+    "stopOnFailure": true
+  },
+  "resumeCondition": "Resume only after a human confirms the bounded destructive action."
+}

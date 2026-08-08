@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-two-worker",
+  "goal": "Evaluate two visible workers with bounded mutable lane ownership.",
+  "constraints": ["Use authenticated public Host observations only.", "Reject overlapping mutable paths."],
+  "successCriteria": ["Capacity remains at two executing lanes.", "Reserved candidate paths still conflict."],
+  "nonGoals": ["No third lane.", "No durable lane registry."],
+  "returnContract": ["Return route evidence, path evidence, and blocker details."]
+}

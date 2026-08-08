@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-high-risk-cleanup",
+  "goal": "Evaluate a high-risk cleanup recommendation with ask, checkpoint, and rollback evidence.",
+  "constraints": ["Keep destructive action behind a human gate.", "Use deny or ask precedence faithfully."],
+  "successCriteria": ["The safety matrix exercises the applicable gate.", "Recovery evidence never becomes permission."],
+  "nonGoals": ["No destructive execution.", "No external send or publish."],
+  "returnContract": ["Return recommendation, evidence, blocker, and resume condition."]
+}

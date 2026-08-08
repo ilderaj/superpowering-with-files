@@ -1,0 +1,11 @@
+{
+  "id": "deny-outside-authority",
+  "operation": "delete",
+  "target": "../outside-authority/target",
+  "targetScope": "outside_authority",
+  "mutates": true,
+  "externalEffect": "none",
+  "decision": "deny",
+  "reason": "The target is outside the bound authority root.",
+  "resumeCondition": "Select an authority-relative target and re-run after the target is revalidated."
+}

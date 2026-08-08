@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "kind": "entry",
+      "target": "codex",
+      "strategy": "render",
+      "sourcePath": "harness/core/templates/AGENTS.md.hbs",
+      "targetPath": "/fixture/home/.codex/AGENTS.md",
+      "legacyStatus": "managed"
+    },
+    {
+      "kind": "skill",
+      "target": "codex",
+      "strategy": "materialize",
+      "sourcePath": "harness/trio/skill/SKILL.md",
+      "targetPath": "/fixture/home/.agents/skills/trio/SKILL.md",
+      "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "kind": "skill",
+      "target": "codex",
+      "strategy": "materialize",
+      "sourcePath": "harness/trio/skill/SKILL.md",
+      "targetPath": "/fixture/home/.agents/skills/trio/SKILL.md",
+      "sourceDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    {
+      "kind": "skill",
+      "target": "cursor",
+      "strategy": "manual",
+      "sourcePath": "harness/trio/capabilities/dev/SKILL.md",
+      "targetPath": "/fixture/home/manual/cursor/skills/trio/dev/SKILL.md",
+      "legacyStatus": "unmanaged"
+    },
+    {
+      "kind": "hook-config",
+      "target": "codex",
+      "strategy": "merge",
+      "sourcePath": "harness/core/hooks/codex.json",
+      "targetPath": "/fixture/home/.codex/settings.json"
+    },
+    {
+      "kind": "skill",
+      "target": "unknown-target",
+      "strategy": "materialize",
+      "sourcePath": "harness/trio/unknown/SKILL.md",
+      "targetPath": "/fixture/home/manual/unknown/skills/trio/SKILL.md"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "runtime": "trio",
+  "scope": {
+    "kind": "workspace"
+  },
+  "targets": [
+    {
+      "id": "codex",
+      "enabled": true,
+      "paths": [
+        "/fixture/workspace/AGENTS.md"
+      ],
+      "hostKind": "codex",
+      "mode": "managed"
+    }
+  ],
+  "ownership": {
+    "source": "fresh-input",
+    "manifestRef": null,
+    "entries": []
+  },
+  "recovery": {
+    "checkpointRef": null,
+    "rollbackRef": null
+  }
+}

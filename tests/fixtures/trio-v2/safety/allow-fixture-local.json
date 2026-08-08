@@ -1,0 +1,10 @@
+{
+  "id": "allow-fixture-local",
+  "operation": "verify",
+  "target": "tests/fixtures/trio-v2/safety/fixture.txt",
+  "targetScope": "fixture_local",
+  "mutates": false,
+  "externalEffect": "none",
+  "decision": "allow",
+  "reason": "Read-only verification is contained in the fixture area."
+}

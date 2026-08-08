@@ -3,7 +3,6 @@ import path from 'node:path';
 
 export const defaultSourceConfigPath = 'harness/upstream/sources.json';
 export const defaultSourceLockPath = 'harness/upstream/.source-lock.json';
-export const legacySourceHeadsPath = 'harness/upstream/.source-heads.json';
 
 function resolveRootPath(rootDir, relativePath) {
   return path.resolve(rootDir ?? process.cwd(), relativePath);
@@ -86,20 +85,6 @@ export async function loadUpstreamSourceConfig(rootDir = process.cwd()) {
   };
 }
 
-export function legacyHeadEntryToLockSource(name, entry) {
-  return normalizeLockSource(name, {
-    strategy: 'branch-head',
-    fallbackUsed: false,
-    resolved: {
-      kind: 'branch-head',
-      version: null,
-      ref: 'HEAD',
-      commitSha: entry.headSha
-    },
-    refreshedAt: entry.refreshedAt ?? null
-  });
-}
-
 function normalizeSourceLock(document) {
   return {
     schemaVersion: 2,
@@ -113,30 +98,11 @@ function normalizeSourceLock(document) {
   };
 }
 
-function normalizeLegacySourceHeads(document) {
-  return {
-    schemaVersion: 2,
-    refreshedAt: document.refreshedAt ?? null,
-    sources: Object.fromEntries(
-      Object.entries(document.sources ?? {}).map(([name, entry]) => [
-        name,
-        legacyHeadEntryToLockSource(name, entry)
-      ])
-    )
-  };
-}
-
 export async function loadSourceLock({ rootDir = process.cwd() } = {}) {
   const lockPath = resolveRootPath(rootDir, defaultSourceLockPath);
   const lockDocument = await readJsonIfExists(lockPath);
   if (lockDocument) {
     return normalizeSourceLock(lockDocument);
-  }
-
-  const legacyPath = resolveRootPath(rootDir, legacySourceHeadsPath);
-  const legacyDocument = await readJsonIfExists(legacyPath);
-  if (legacyDocument) {
-    return normalizeLegacySourceHeads(legacyDocument);
   }
 
   return {

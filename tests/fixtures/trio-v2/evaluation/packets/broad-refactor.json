@@ -1,0 +1,8 @@
+{
+  "taskId": "shadow-broad-refactor",
+  "goal": "Refactor a bounded set of modules while preserving the final import inventory.",
+  "constraints": ["Inspect ownership and dependencies first.", "Keep the vertical slice independently verifiable."],
+  "successCriteria": ["The development contract is satisfied.", "The final import inventory remains exact."],
+  "nonGoals": ["No package change.", "No unrelated compatibility cleanup."],
+  "returnContract": ["Return exact paths, checks, and an honest candidate status."]
+}
