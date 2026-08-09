@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import * as routing from '../../harness/trio/core/routing.mjs';
 import {
   hasMutablePathConflict,
   isEnvelopeSubset
@@ -277,4 +278,49 @@ test('lane capacity and candidate path reservations require an authenticated mat
     }]
   });
   assert.equal(releasedCandidate.routeEvidence.routeKind, 'visible_worker');
+});
+
+test('assignment packet rejects a ninth top-level field and keeps delegation inside capability', () => {
+  assert.deepEqual(routing.ASSIGNMENT_PACKET_FIELDS, [
+    'authority',
+    'currentSlice',
+    'nonGoals',
+    'proof',
+    'capability',
+    'allowedOperations',
+    'deadline',
+    'expectedReturn'
+  ]);
+
+  assert.throws(
+    () => routing.buildAssignmentPacket({
+      ...createAssignmentPacket(),
+      childDelegation: 'prohibited'
+    }),
+    /eight fields|childDelegation/i
+  );
+
+  const packet = routing.buildAssignmentPacket({
+    ...createAssignmentPacket(),
+    capability: {
+      requestedModel: 'gpt-5.6-luna',
+      requestedEffort: 'max',
+      childDelegation: 'prohibited'
+    }
+  });
+  assert.deepEqual(Object.keys(packet), routing.ASSIGNMENT_PACKET_FIELDS);
+  assert.equal(packet.capability.childDelegation, 'prohibited');
+});
+
+test('child delegation policy values are validated inside the capability object', () => {
+  const packet = routing.buildAssignmentPacket({
+    ...createAssignmentPacket(),
+    capability: {
+      requestedModel: 'gpt-5.6-luna',
+      requestedEffort: 'max',
+      childDelegation: 'worker_discretion'
+    }
+  });
+  assert.equal(packet.capability.childDelegation, 'worker_discretion');
+  assert.equal(Object.hasOwn(packet, 'childDelegation'), false);
 });

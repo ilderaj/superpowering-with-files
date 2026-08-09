@@ -1,20 +1,26 @@
-# 人工使用指引: Plan → Execute 路由与输入方式
+# 人工使用指引: Plan → Execute 路由与可见 worker 输入方式
 
-> 配套审计报告: `reports/audit/2026-08-09-plan-execute-deepseek-executor-audit.md`(Chief 只读审计,approve-with-notes)。
-> 本文是 `swf_executor` Plan→Execute 机制的人类操作面,精炼自任务 `plan-execute-deepseek-executor-20260808` 的实操指引。
+> 本文是 Trio v2 Plan→Execute 机制的人类操作面:路由、strict 拓扑、`childDelegation` / `executionMode` 策略、`manual_pending` 处置与人类 gate。
 
 ## 一句话模型
 
-`planning/active/<task-id>/` 下的三件套(`task_plan.md`、`findings.md`、`progress.md`)是唯一权威;Chief 负责接需求、路由、规划、派单、验收;`swf_executor` 是唯一负责生产变更的可见执行角色(锁死 DeepSeek Flash + xhigh,无 fallback);worker 干完只是 candidate,验收后才算数;merge/push/release/发布/发送/凭据/破坏性操作永远需要人类 gate。
+`planning/active/<task-id>/` 下的三件套(`task_plan.md`、`findings.md`、`progress.md`)是唯一任务权威;Chief 负责接需求、路由、规划、派单、review、验收;执行 worker 的生产变更结果只是 candidate,Chief 验收回写后才算数;merge/push/release/发布/发送/凭据/破坏性操作永远需要人类 gate。
+
+`swf_executor`、DeepSeek Flash、xhigh、无 fallback 是**请求/静态角色事实**(定义于 `harness/trio/hosts/codex.mjs` 的 `SWF_EXECUTOR_ROLE`,并由 `renderSwfExecutorAgentEntry` 渲染成 `[agents.swf_executor]` TOML)。**实际** role/model/effort 在 Host 提供 authenticated 证据之前一律视为 `unknown`;一个可见任务本身也不是完整的 Host 生命周期证据。
+
+## 本地契约与 Host 桥的边界(重要)
+
+- **本地 fail-closed 路由契约(已实现,仅本仓库代码)**:`harness/trio/core/routing.mjs` 校验 Assignment Packet 的八字段并拒绝第九个顶层字段;`capability.childDelegation` 只接受 `prohibited | worker_discretion | encouraged`,`capability.executionMode` 只接受 `bounded_slice | worker_self_goal`。未知值、strict 缺策略、`prohibited` 下的 native 子路由全部返回非执行的 `manual_pending`。静态角色配置不构成动态 child 权限。
+- **Host 桥(未实现)**:当前 Host 可能支持"人工可见的任务移交/观察",但没有完整的可注入 authenticated 契约来证明 role、精确 packet、actual model/effort、spawn/continue/status/interrupt/collect 与动态 child 拒绝。缺少任何一项时,诚实出口是 `manual_pending`,而不是本地模拟或绕过。
 
 ## 角色职责
 
 | 角色 | 做什么 | 不做什么 |
 |---|---|---|
 | 人类(你) | 提需求、做人类 gate、最终验收(accept)、决定 merge/release | 不代替模型写代码细节(除非亲自改) |
-| Chief(GPT 侧) | intake、路由(quick/tracked)、规划三件套、构造 Assignment Packet、派单、review、验收回写 | 在"需要可见 worker"时不得 inline 生产变更、不得用 native subagent 顶替主执行 |
-| swf_executor(DeepSeek Flash) | 按已接受计划执行生产变更 + 主验证,返回 candidate 证据 | 不重新设计 scope/架构/接口/验收标准;缺决策或模型不可用时返回 blocked;嵌套委托仍用 swf_executor |
-| Host(Codex 本体) | 锁 model/effort/permission/path、管理 worker 生命周期、提供 authenticated 证据 | 无 authenticated 证据时 actual model/effort 就是 `unknown`,任何人不得伪称 |
+| Chief | intake、路由(quick/tracked)、规划三件套、构造 Assignment Packet、派单、review、验收回写 | 在"需要可见 worker"时不得 inline 生产变更、不得用 native subagent 顶替主执行 |
+| swf_executor(请求角色) | 按已接受计划执行生产变更 + 主验证,返回 candidate 证据 | 不重新设计 scope/架构/接口/验收标准;缺决策或模型不可用时返回 blocked;默认(及 `childDelegation=prohibited`)下不得嵌套委托——仅当 packet 显式允许(`worker_discretion`/`encouraged`)时,worker 本地子委托才可使用 swf_executor,且必须携带机械 proper-subset envelope 并返回主 worker |
+| Host(Codex 本体) | 管理 worker/子任务生命周期、提供 authenticated role/identity/packet/actual model-effort 证据 | 无 authenticated 证据时 actual 就是 `unknown`,任何人不得伪称 |
 
 ## 路由对照表(核心)
 
@@ -22,10 +28,10 @@
 |---|---|---|
 | **quick(问答/小改动)** | 一句话直接问,零仪式 | 直接回答/小改动,无 Trio |
 | **tracked / default(常规开发)** | 一段话按五要素:"实现 X…影响面…约束…验收 verify:trio 全绿 + RED→GREEN 证据…完成后出 draft PR 不要 merge" | Chief 建三件套→切片计划→派 swf_executor→candidate→你验收→你决定 merge |
-| **strict(必须可见 worker)** | 加一句:"必须由可见执行角色 swf_executor 完成,不要用隐式子代理" | packet 设 `visible_worker_required`;worker 不可用时 `manual_pending`,绝不偷偷 native |
+| **strict(必须可见 worker)** | 加一句:"必须由可见执行角色 swf_executor 完成,不要用隐式子代理" | packet 设 `primaryExecution = visible_worker_required`,且必须显式声明 `capability.childDelegation`;缺策略/未知策略 → 本地 `manual_pending` |
 | **deep(先分析再动手)** | "这个问题需要深入分析再决定…先给证据-backed 分析,我 approve 后再动手" | 先出分析报告等你 approve,再进执行 |
 | **涉及人类 gate** | 明说停靠点:"停在 draft PR 等我看"/"不要 push"/"发布前必须我确认" | 停在 gate 前(默认也永远保留你的确认权) |
-| **manual_pending 后** | 别重说需求,看 blocker/resumeCondition 三选一:提供合规 worker / 释放 strict / 确认 blocked | 按对应处置继续 |
+| **manual_pending 后** | 别重说需求,看 blocker/resumeCondition 三选一(见下) | 按对应处置继续 |
 
 ## 需求输入五要素
 
@@ -37,18 +43,32 @@
 
 不需要调用任何 skill、不需要念固定格式、不需要自己建任务——入口策略(AGENTS.md)自动生效,代理自动扮演 Chief 完成路由、规划、派单。
 
-## strict 拓扑与 manual_pending 处置
+## strict 拓扑、childDelegation 与 manual_pending 处置
 
-- 在 Assignment Packet 的 `capability.primaryExecution = "visible_worker_required"` 时启用 strict:主执行必须由可见 worker 完成;visible 不可用时**只能** `manual_pending`(reason `visible_worker_required_unavailable:<detail>`),绝不落到 native subagent。
-- `manual_pending` descriptor 携带三件套: `assignmentPacket`(原封不动)、`blocker`(失败原因)、`resumeCondition`(恢复条件)。
-- 收到 manual_pending 后的三个选项:
-  1. **提供合规 worker**: 开一个 swf_executor 线程(角色已注册于 `~/.codex/config.toml` 的 `[agents.swf_executor]`),把 packet 交给它继续;
-  2. **释放 strict 拓扑**: 明确改回 default(接受 legacy visible→native→manual 链),再重派;
-  3. **判定 blocked**: 真实外部阻塞(模型不可用、缺权限、缺决策)时记录 blocked,等条件变化再恢复。
+- strict = `capability.primaryExecution = "visible_worker_required"`:主执行必须由可见 worker 完成;visible 不可用时**只能** `manual_pending`(reason `visible_worker_required_unavailable:<detail>`),绝不落到 native subagent。
+- 新 strict packet 必须显式声明 `capability.childDelegation`:
+  - `prohibited`:禁止任何 native 子路由(即使 child envelope 本身合法);本地路由返回 `manual_pending`(blocker `child_delegation_prohibited`)。
+  - `worker_discretion` / `encouraged`:仅当明确写出时才考虑 child 路由。
+  - 缺失(strict 必填)或未知值:本地 `manual_pending`(blocker `child_delegation_missing` / `child_delegation_unknown:<value>`),不会选择 visible 或 native 路由。
+- legacy 非 strict packet(没有这些字段)保持既有兼容:visible→native→manual 链不变。
+- `capability.executionMode` 只接受 `bounded_slice`(有界切片)或 `worker_self_goal`(worker 自身可见会话内的长目标);未知值本地 `manual_pending`(blocker `execution_mode_unknown:<value>`)。worker self-goal 只存在于其自身可见会话;没有 authenticated Host 操作时,Chief 不得声称跨线程 goal 控制或任何生命周期控制。
+- `manual_pending` descriptor 携带三件套:`assignmentPacket`(原封不动)、`blocker`(失败原因)、`resumeCondition`(恢复条件)。收到后三选一:
+  1. **人工提供/操作可见 worker**:用精确 packet 手动开一个可见 worker 继续——这只携带 requested 事实,不自动证明 actual model/role;
+  2. **显式释放 strict 拓扑**:明确改回 default(接受 legacy visible→native→manual 链),再重派;
+  3. **等待/判定 blocked**:等待合规 Host 能力,或记录真实外部阻塞(模型不可用、缺权限、缺决策)后 blocked,等条件变化再恢复。
+  没有任何一个选项会自动证明 actual model/role;这些都只是处置选择。
 
 ## 人类 gate 清单(任何时候都保留)
 
-merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR merge gate)、发送消息/邮件/对外回复、凭据/token/密钥处理、破坏性/不可逆操作(删除、格式化、清空、迁移)。路由或角色配置不构成对这些动作的授权。
+merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR merge gate)、发送消息/邮件/对外回复、凭据/token/密钥处理、破坏性/不可逆操作(删除、格式化、清空、迁移)。路由、角色配置或本地路由契约都不构成对这些动作的授权。
+
+## 并行执行与 worktree-preflight(2026-08-09)
+
+- **稳定任务亲和性** = 显式 `authorityRoot + taskId`,即 `planning/active/<task-id>/` 下的三件套;HEAD、Trio 文件 hash、脏路径只是派单那一刻的短生命周期执行快照,不是任务身份。
+- 多个 active 任务并存时,`./scripts/harness worktree-preflight --task <task-id> --safety` 会按显式 task 解析该任务的风险行,输出通过 `selectionSource` / `taskId` 标识选择来源与任务;不带 `--task` 时保持 fail-closed,CLI 明确提示 `Multiple active planning tasks ... Use --task <task-id>.`,绝不借用其它任务的风险行。
+- 缺失、非 `Status: active`、格式损坏或风险行不完整的选中任务会阻断 safety 结果(`riskAssessmentRecorded: problem`)。
+- 仓库代码无法认证或抑制 Codex 注入的 "thread has no valid binding" 提示:那是 Host 能力边界;工作流以显式 Assignment Packet 与 Trio hash 为准。
+- 本命令不新增线程/会话注册表、不自动推断分支归属、不改变既有 base 建议与命名规则。
 
 ## 验收清单(Chief/人类侧)
 
@@ -56,19 +76,17 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 2. **核对证据链**: RED 记录、GREEN 通过数、验证命令与退出码、变更路径清单;"worker 说 done"不是证据。
 3. **复跑关键验证**(至少): `npm run verify:trio`;涉及 core/homepage 时跑 `verify:all`;`git diff --check`。
 4. **检查越权**: 变更是否超出 `allowedOperations`/`nonGoals`/mutablePaths;有无未授权 stage/commit/push。
-5. **actual vs requested**: 无 authenticated Host 证据的模型/effort 声明一律视为 `unknown`。
+5. **actual vs requested**: 无 authenticated Host 证据的模型/effort/role 声明一律视为 `unknown`。
 6. **写回并关闭**: `trio accept` → `trio close` →(可选)`trio archive`。
 
 ## 红线
 
 **做**: 输入用自然语言讲清目标/影响面/约束/验收;任务开始前确认三件套存在且 hash 一致;packet 永远随派单一起给 worker;worker 结果一律先当 candidate;验收证据要"命令 + 退出码 + 计数 + 变更路径";全局投影用 `./scripts/harness sync --check` / `doctor --check-only` 自检。
 
-**不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 strict 模式下让 Chief inline 改生产代码或让 native 顶包;不声称 actual model/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口。
+**不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 strict 模式下让 Chief inline 改生产代码或让 native 顶包;不把静态角色配置当成动态 child 权限;不声称 actual model/role/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口;不把本地 fail-closed 路由契约当成已实现的 Host 生命周期桥。
 
-## 现状速查(2026-08-09)
+## 已验证现状与限制(2026-08-09 本会话)
 
-- `dev` = `757fc73`(upstream refresh 提交已推送),`main` = `42e19c4`(PR #146 已合并)。
-- PR #147(upstream refresh,draft)repo-verify SUCCESS、MERGEABLE、CLEAN,待你决策。
-- `swf_executor` 角色已注册: `~/.codex/agents/swf_executor.toml`(flash / xhigh / 无 fallback),备份 `~/.codex/config.toml.bak-plan-execute-20260808`。
-- 验证基线: `verify:trio` 217/217、focused 43/43、`verify:all` exit 0。
-- 已知待办: Trio CLI `progress` 命令的 BigInt 序列化输出 bug(既有,未触碰的 installer/store 路径),证据以 progress.md 内容为准。
+- 本次桥接任务在 Host 分支 `codex/swf-executor-bridge-admission`、HEAD `4dec89dd`(合并 PR #148)、clean 状态下完成;规划三件套 hash 与派单一致。
+- 本地测试里程碑(本会话实测):focused host-routing/permission-routing 34/34;`npm run verify:trio` 227/227(含 import-boundary 终检);`verify:all` exit 0;`git diff --check` 无警告。
+- Host 集成限制(Phase 1 实测,`manual_pending`):Host 桌面端可创建/移交/观察可见任务,但无可注入的 authenticated 生命周期契约(role、精确 packet、actual model/effort、spawn/continue/status/interrupt/collect、动态 child 拒绝)。在这些能力被认证之前,任何 Host 生命周期或实际身份声明都只能停留在 `manual_pending`。
