@@ -1,3 +1,10 @@
+@import './theme.css';
+
+/*
+ * Brand alias bridge. theme.css holds the shadcn/ui-aligned semantic token
+ * layer; these aliases keep the DESIGN.md palette explicit and are pinned by
+ * homepage-styles.test.mjs. Values are identical to theme.css.
+ */
 :root {
   color-scheme: light;
   --ink: #141413;
@@ -14,8 +21,6 @@
   --line: #e6dfd8;
   --accent: #cc785c;
   --accent-strong: #a9583e;
-  --shadow: 0 24px 70px rgba(20, 20, 19, 0.08);
-  --radius: 28px;
 }
 
 * {
@@ -31,10 +36,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   color: var(--body);
+  background: var(--paper);
   font-family: StyreneB, Inter, 'Helvetica Neue', Arial, sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(204, 120, 92, 0.14), transparent 28rem),
-    linear-gradient(180deg, var(--paper) 0%, var(--paper-warm) 56%, #fffdf8 100%);
+  -webkit-font-smoothing: antialiased;
 }
 
 a {
@@ -42,11 +46,16 @@ a {
   text-decoration: none;
 }
 
+a:hover {
+  color: var(--ink);
+}
+
 .shell {
   width: min(1180px, calc(100% - 40px));
   margin: 0 auto;
 }
 
+/* --- Topbar: floating pill, solid surface, hairline. No glass (tell 19). --- */
 .nav {
   position: sticky;
   top: 16px;
@@ -57,11 +66,10 @@ a {
   gap: 18px;
   margin-top: 16px;
   padding: 12px 14px 12px 18px;
-  border: 1px solid rgba(230, 223, 216, 0.94);
-  border-radius: 999px;
-  background: rgba(250, 249, 245, 0.86);
-  backdrop-filter: blur(18px);
-  box-shadow: 0 10px 30px rgba(20, 20, 19, 0.05);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--background);
+  box-shadow: var(--shadow-xs);
 }
 
 .brand {
@@ -79,7 +87,7 @@ a {
   display: grid;
   place-items: center;
   color: var(--on-dark);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-dark);
   font-size: 15px;
 }
@@ -92,44 +100,16 @@ a {
   font-size: 14px;
 }
 
+.nav-links a {
+  border-radius: var(--radius-sm);
+  transition: color 150ms ease;
+}
+
 .nav-links a:hover {
   color: var(--ink);
 }
 
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  font-weight: 720;
-  letter-spacing: -0.01em;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-}
-
-.button:hover {
-  transform: translateY(-2px);
-}
-
-.button.primary {
-  color: var(--paper);
-  background: var(--accent);
-  box-shadow: 0 12px 24px rgba(204, 120, 92, 0.18);
-}
-
-.button.primary:hover {
-  background: var(--accent-strong);
-}
-
-.button.secondary {
-  color: var(--ink);
-  background: rgba(250, 249, 245, 0.74);
-  border-color: var(--line);
-}
-
+/* --- Hero ---------------------------------------------------------------- */
 .hero {
   padding: 84px 0 54px;
 }
@@ -146,20 +126,20 @@ a {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
-  background: rgba(250, 249, 245, 0.84);
+  background: var(--card);
   color: var(--ink);
   font-size: 13px;
   font-weight: 680;
 }
 
+/* Flat status dot: no halo, no pulse, no glow (tell 16). */
 .pulse {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 0 0 6px rgba(204, 120, 92, 0.14);
 }
 
 h1,
@@ -168,6 +148,7 @@ h3 {
   color: var(--ink);
   font-family: Copernicus, 'Tiempos Headline', Georgia, serif;
   font-weight: 400;
+  text-wrap: balance;
 }
 
 h1 {
@@ -207,12 +188,13 @@ h3 {
   margin-top: 30px;
 }
 
+/* --- Proof surface: the dark anchor, flat + hairline ---------------------- */
 .product-card {
-  border: 1px solid rgba(230, 223, 216, 0.92);
-  border-radius: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-2xl);
   padding: 18px;
-  background: rgba(248, 244, 237, 0.82);
-  box-shadow: var(--shadow);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
 }
 
 .proof-row {
@@ -224,9 +206,9 @@ h3 {
 
 .proof {
   padding: 14px;
-  border: 1px solid rgba(230, 223, 216, 0.92);
-  border-radius: 18px;
-  background: rgba(255, 252, 246, 0.84);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--background);
 }
 
 .proof strong {
@@ -245,7 +227,7 @@ h3 {
 }
 
 .terminal {
-  border-radius: 26px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--surface-dark);
   color: var(--on-dark);
@@ -305,9 +287,9 @@ h3 {
 
 .route-card {
   margin-top: 16px;
-  border-radius: 26px;
-  background: rgba(255, 252, 246, 0.9);
-  border: 1px solid rgba(230, 223, 216, 0.92);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  border: 1px solid var(--line);
   padding: 18px;
 }
 
@@ -321,11 +303,12 @@ h3 {
   font-weight: 760;
 }
 
+/* shadcn badge, accent variant: real category label (route badge). */
 .pill {
   padding: 5px 9px;
-  border-radius: 999px;
-  color: var(--accent-strong);
-  background: rgba(204, 120, 92, 0.12);
+  border-radius: var(--radius-pill);
+  color: var(--accent-foreground);
+  background: var(--muted);
   font-size: 12px;
 }
 
@@ -350,7 +333,7 @@ h3 {
   height: 34px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--paper);
   background: var(--surface-dark);
   font-weight: 800;
@@ -362,6 +345,7 @@ h3 {
   color: var(--ink);
 }
 
+/* --- Sections -------------------------------------------------------------- */
 section {
   padding: 56px 0;
 }
@@ -378,6 +362,9 @@ section {
   line-height: 1.6;
 }
 
+/* Small section markers are part of the editorial contract (DESIGN.md:
+ * "Labels may be uppercase, but only as small navigation or section
+ * markers."). Kept deliberately; not a slop kicker (tell 10). */
 .kicker {
   color: var(--accent-strong);
   font-family: StyreneB, Inter, 'Helvetica Neue', Arial, sans-serif;
@@ -395,7 +382,7 @@ section {
 
 .quote-card {
   padding: 30px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
   background: var(--surface-dark);
   color: var(--on-dark);
   min-height: 100%;
@@ -420,22 +407,19 @@ section {
 
 .pain {
   padding: 22px;
-  border: 1px solid rgba(230, 223, 216, 0.92);
-  border-radius: 22px;
-  background: rgba(255, 252, 246, 0.8);
-  box-shadow: 0 14px 30px rgba(20, 20, 19, 0.04);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--card);
 }
 
+/* Plain index label instead of a pastel icon tile (tells 18/24/28): the
+ * sequence is real (four pains), so the numbers stay as quiet labels. */
 .icon {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 15px;
   margin-bottom: 18px;
-  background: rgba(204, 120, 92, 0.12);
-  color: var(--accent-strong);
-  font-weight: 900;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
 }
 
 .pain h3 {
@@ -451,11 +435,11 @@ section {
 }
 
 .system {
-  border-radius: 32px;
+  border-radius: var(--radius-xl);
   padding: 28px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.74) 0%, rgba(248, 244, 237, 0.98) 100%);
-  border: 1px solid rgba(230, 223, 216, 0.92);
-  box-shadow: var(--shadow);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
 }
 
 .system-grid {
@@ -466,9 +450,9 @@ section {
 
 .module {
   padding: 20px;
-  border-radius: 22px;
-  background: rgba(255, 252, 246, 0.82);
-  border: 1px solid rgba(230, 223, 216, 0.92);
+  border-radius: var(--radius-lg);
+  background: var(--background);
+  border: 1px solid var(--line);
   min-height: 210px;
 }
 
@@ -492,6 +476,7 @@ section {
   line-height: 1.6;
 }
 
+/* Routing lanes are real category labels -> badge treatment. */
 .lanes {
   display: flex;
   flex-wrap: wrap;
@@ -501,9 +486,9 @@ section {
 
 .lane {
   padding: 9px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(230, 223, 216, 0.92);
-  background: rgba(255, 252, 246, 0.84);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--card);
   color: var(--ink);
   font-size: 13px;
   font-weight: 680;
@@ -518,10 +503,9 @@ section {
 .feature-card,
 .install-card,
 .cta {
-  border-radius: 28px;
-  border: 1px solid rgba(230, 223, 216, 0.92);
-  background: rgba(255, 252, 246, 0.82);
-  box-shadow: var(--shadow);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: var(--card);
 }
 
 .feature-card {
@@ -550,9 +534,9 @@ section {
 
 .matrix-cell {
   padding: 16px;
-  border-radius: 18px;
-  background: var(--surface);
-  border: 1px solid rgba(230, 223, 216, 0.92);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  border: 1px solid var(--line);
   color: var(--muted);
   font-size: 14px;
   line-height: 1.55;
@@ -571,7 +555,7 @@ section {
 .code-block {
   margin-top: 18px;
   padding: 18px;
-  border-radius: 22px;
+  border-radius: var(--radius-md);
   background: var(--surface-dark);
   color: var(--on-dark);
   font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
@@ -587,7 +571,6 @@ section {
   align-items: center;
   margin-top: 24px;
   padding: 28px;
-  background: linear-gradient(135deg, rgba(239, 233, 222, 0.86) 0%, rgba(255, 252, 246, 0.96) 100%);
 }
 
 .cta-actions {
@@ -607,7 +590,7 @@ footer {
   justify-content: space-between;
   gap: 12px;
   padding-top: 24px;
-  border-top: 1px solid rgba(230, 223, 216, 0.92);
+  border-top: 1px solid var(--line);
   color: var(--muted);
   font-size: 14px;
 }
@@ -620,6 +603,11 @@ footer {
 
 .footer-links a {
   color: var(--ink);
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 @media (max-width: 920px) {

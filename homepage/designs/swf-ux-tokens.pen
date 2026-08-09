@@ -1,0 +1,2087 @@
+{
+  "version": 2.8,
+  "children": [
+    {
+      "type": "frame",
+      "id": "NtYkY",
+      "x": 0,
+      "y": 0,
+      "name": "SWF UX Tokens — shadcn/ui aligned standard",
+      "clip": true,
+      "width": 1240,
+      "height": 1700,
+      "layout": "none",
+      "fill": "$--background",
+      "children": [
+        {
+          "type": "text",
+          "id": "b1ESJ",
+          "x": 40,
+          "y": 24,
+          "name": "Palette — warm paper flo",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 900,
+          "height": 30,
+          "content": "Palette — warm paper floor, coral accent, off-dark proof",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "Copernicus, Tiempos Headline, Georgia, serif",
+          "fontSize": 24,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "tiGZ4",
+          "x": 40,
+          "y": 58,
+          "name": "Brand contract (DESIGN.m",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 22,
+          "content": "Brand contract (DESIGN.md) mapped onto shadcn semantic tokens.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        {
+          "type": "frame",
+          "id": "2W9WU",
+          "x": 40,
+          "y": 100,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#faf9f5",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "tOTId",
+              "x": 14,
+              "y": 14,
+              "name": "--background / --paper",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--background / --paper",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "YIRay",
+              "x": 14,
+              "y": 38,
+              "name": "#faf9f5 — canvas",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#faf9f5 — canvas",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "yaPI6",
+          "x": 336,
+          "y": 100,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#f5f0e7",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "CQDIL",
+              "x": 14,
+              "y": 14,
+              "name": "--secondary / --paper-wa",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--secondary / --paper-warm",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "Oui8I",
+              "x": 14,
+              "y": 38,
+              "name": "#f5f0e7 — sand",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#f5f0e7 — sand",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "NFw5P",
+          "x": 632,
+          "y": 100,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#f8f4ed",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "e3EUe",
+              "x": 14,
+              "y": 14,
+              "name": "--muted / --surface",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--muted / --surface",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "XC7HD",
+              "x": 14,
+              "y": 38,
+              "name": "#f8f4ed — surface",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#f8f4ed — surface",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "vf4cM",
+          "x": 928,
+          "y": 100,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#efe9de",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "hoMWO",
+              "x": 14,
+              "y": 14,
+              "name": "--surface-card",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--surface-card",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "Wx4kd",
+              "x": 14,
+              "y": 38,
+              "name": "#efe9de — raised warm",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#efe9de — raised warm",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "Djvbj",
+          "x": 40,
+          "y": 192,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#e6dfd8",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "VbGyO",
+              "x": 14,
+              "y": 14,
+              "name": "--border / --line",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--border / --line",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "7CZ6U",
+              "x": 14,
+              "y": 38,
+              "name": "#e6dfd8 — hairline",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#e6dfd8 — hairline",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "mUMqb",
+          "x": 336,
+          "y": 192,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#cc785c",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "WQlzz",
+              "x": 14,
+              "y": 14,
+              "name": "--primary / --accent",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--primary / --accent",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "D3hml",
+              "x": 14,
+              "y": 38,
+              "name": "#cc785c — coral",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#cc785c — coral",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "oS9Wb",
+          "x": 632,
+          "y": 192,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#a9583e",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "yWSzf",
+              "x": 14,
+              "y": 14,
+              "name": "--ring / --accent-strong",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--ring / --accent-strong",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "L7eNQ",
+              "x": 14,
+              "y": 38,
+              "name": "#a9583e — deep coral",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#a9583e — deep coral",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VBCO5",
+          "x": 928,
+          "y": 192,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#141413",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "KnFJ4",
+              "x": 14,
+              "y": 14,
+              "name": "--foreground / --ink",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--foreground / --ink",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "mxd2D",
+              "x": 14,
+              "y": 38,
+              "name": "#141413 — ink",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#141413 — ink",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "zieMI",
+          "x": 40,
+          "y": 284,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#6c6a64",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "8unNu",
+              "x": 14,
+              "y": 14,
+              "name": "--muted-foreground / --m",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--muted-foreground / --muted",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "mapUY",
+              "x": 14,
+              "y": 38,
+              "name": "#6c6a64 — muted text",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#6c6a64 — muted text",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "jBZTI",
+          "x": 336,
+          "y": 284,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#181715",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "DbppJ",
+              "x": 14,
+              "y": 14,
+              "name": "--surface-dark",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--surface-dark",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "5gtVE",
+              "x": 14,
+              "y": 38,
+              "name": "#181715 — proof surface",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#181715 — proof surface",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "AUrcZ",
+          "x": 632,
+          "y": 284,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#faf9f5",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "uClOF",
+              "x": 14,
+              "y": 14,
+              "name": "--on-dark",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--on-dark",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "lsgr0",
+              "x": 14,
+              "y": 38,
+              "name": "#faf9f5 — on dark",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#faf9f5 — on dark",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "2fA1V",
+          "x": 928,
+          "y": 284,
+          "name": "swatch",
+          "clip": false,
+          "width": 280,
+          "height": 72,
+          "layout": "none",
+          "fill": "#c7c0b5",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "1ZQt1",
+              "x": 14,
+              "y": 14,
+              "name": "--on-dark-muted",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "--on-dark-muted",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 11,
+              "fontWeight": 600
+            },
+            {
+              "type": "text",
+              "id": "bm8ro",
+              "x": 14,
+              "y": 38,
+              "name": "#c7c0b5 — on dark muted",
+              "fill": "#3d3d3aff",
+              "textGrowth": "fixed-width-height",
+              "width": 250,
+              "height": 18,
+              "content": "#c7c0b5 — on dark muted",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "g37Yv",
+          "x": 40,
+          "y": 384,
+          "name": "Radius scale — shadcn-de",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 900,
+          "height": 30,
+          "content": "Radius scale — shadcn-derived multipliers",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "Copernicus, Tiempos Headline, Georgia, serif",
+          "fontSize": 24,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "xsybL",
+          "x": 40,
+          "y": 418,
+          "name": "sm=×0.6 · md=×0.8 · lg=×",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 22,
+          "content": "sm=×0.6 · md=×0.8 · lg=×1 · xl=×1.4 · 2xl=×1.8; pills only on CTAs, badges, chips.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        {
+          "type": "frame",
+          "id": "TsKot",
+          "x": 40,
+          "y": 460,
+          "name": "radius sample",
+          "clip": false,
+          "width": 180,
+          "height": 64,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 6,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "cCBMs",
+              "x": 0,
+              "y": 70,
+              "name": "--radius-sm · 6px",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 180,
+              "height": 18,
+              "content": "--radius-sm · 6px",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VJvr2",
+          "x": 240,
+          "y": 460,
+          "name": "radius sample",
+          "clip": false,
+          "width": 180,
+          "height": 64,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 8,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "ZHHdu",
+              "x": 0,
+              "y": 70,
+              "name": "--radius-md · 8px",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 180,
+              "height": 18,
+              "content": "--radius-md · 8px",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "3Mr60",
+          "x": 440,
+          "y": 460,
+          "name": "radius sample",
+          "clip": false,
+          "width": 180,
+          "height": 64,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 10,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "XJWFD",
+              "x": 0,
+              "y": 70,
+              "name": "--radius-lg · 10px",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 180,
+              "height": 18,
+              "content": "--radius-lg · 10px",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "hXcLH",
+          "x": 640,
+          "y": 460,
+          "name": "radius sample",
+          "clip": false,
+          "width": 180,
+          "height": 64,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 14,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "VlBvj",
+              "x": 0,
+              "y": 70,
+              "name": "--radius-xl · 14px",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 180,
+              "height": 18,
+              "content": "--radius-xl · 14px",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "ordNG",
+          "x": 840,
+          "y": 460,
+          "name": "radius sample",
+          "clip": false,
+          "width": 180,
+          "height": 64,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 18,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "9MVB7",
+              "x": 0,
+              "y": 70,
+              "name": "--radius-2xl · 18px",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 180,
+              "height": 18,
+              "content": "--radius-2xl · 18px",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "KZ1q5",
+          "x": 1040,
+          "y": 460,
+          "name": "radius sample",
+          "clip": false,
+          "width": 180,
+          "height": 64,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 40,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "u1mBN",
+              "x": 0,
+              "y": 70,
+              "name": "--radius-pill · 9999px",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 180,
+              "height": 18,
+              "content": "--radius-pill · 9999px",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "JeZwQ",
+          "x": 40,
+          "y": 570,
+          "name": "Typography — editorial s",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 900,
+          "height": 30,
+          "content": "Typography — editorial serif display, sans body, mono for code only",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "Copernicus, Tiempos Headline, Georgia, serif",
+          "fontSize": 24,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "C7Ewd",
+          "x": 40,
+          "y": 604,
+          "name": "Display Copernicus 400 ·",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 22,
+          "content": "Display Copernicus 400 · body StyreneB/Inter 400 · labels 720 uppercase · mono JetBrains Mono.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "zUEF9",
+          "x": 40,
+          "y": 646,
+          "name": "Aa Plan in one session. ",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 80,
+          "content": "Aa Plan in one session. Execute with proof.",
+          "lineHeight": 0.94,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "Copernicus, Tiempos Headline, Georgia, serif",
+          "fontSize": 56,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "dpDz2",
+          "x": 40,
+          "y": 746,
+          "name": "Heading — Copernicus ser",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 40,
+          "content": "Heading — Copernicus serif, 400, tight tracking (design contract).",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 14,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "hRbGD",
+          "x": 40,
+          "y": 796,
+          "name": "Body text — StyreneB/Int",
+          "fill": "#141413ff",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 40,
+          "content": "Body text — StyreneB/Inter sans, 16px/1.65. The warm editorial voice stays; Inter is a compared fallback, not a default.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 16,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "aHOhm",
+          "x": 40,
+          "y": 856,
+          "name": "KICKER — section marker",
+          "fill": "$--accent-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 500,
+          "height": 30,
+          "content": "KICKER — section marker",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 12,
+          "fontWeight": 720
+        },
+        {
+          "type": "text",
+          "id": "uqzQa",
+          "x": 560,
+          "y": 856,
+          "name": "$ ./scripts/harness veri",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 600,
+          "height": 30,
+          "content": "$ ./scripts/harness verify — mono, code only",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "lVY6k",
+          "x": 40,
+          "y": 926,
+          "name": "Buttons — shadcn variant",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 900,
+          "height": 30,
+          "content": "Buttons — shadcn variants, pill radius, surface-shift hover, no springs",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "Copernicus, Tiempos Headline, Georgia, serif",
+          "fontSize": 24,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "RdcYS",
+          "x": 40,
+          "y": 960,
+          "name": "40px default height · ho",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 22,
+          "content": "40px default height · hover = background change only · focus-visible = 2px ring + background offset.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        {
+          "type": "frame",
+          "id": "zFva8",
+          "x": 40,
+          "y": 1038,
+          "name": "button sample",
+          "clip": false,
+          "width": 320,
+          "height": 40,
+          "layout": "none",
+          "fill": "$--primary",
+          "cornerRadius": 20,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "na1QD",
+              "x": 0,
+              "y": 0,
+              "name": "Primary / default",
+              "fill": "$--primary-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 320,
+              "height": 40,
+              "content": "Primary / default",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 13,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "NDT3Q",
+          "x": 420,
+          "y": 1038,
+          "name": "button sample",
+          "clip": false,
+          "width": 320,
+          "height": 40,
+          "layout": "none",
+          "fill": "$--secondary",
+          "cornerRadius": 20,
+          "stroke": "$--border",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "q63UD",
+              "x": 0,
+              "y": 0,
+              "name": "Secondary",
+              "fill": "$--ink",
+              "textGrowth": "fixed-width-height",
+              "width": 320,
+              "height": 40,
+              "content": "Secondary",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 13,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "VcMXC",
+          "x": 800,
+          "y": 1038,
+          "name": "button sample",
+          "clip": false,
+          "width": 320,
+          "height": 40,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 20,
+          "stroke": "$--border",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "D9WM0",
+              "x": 0,
+              "y": 0,
+              "name": "Outline",
+              "fill": "$--ink",
+              "textGrowth": "fixed-width-height",
+              "width": 320,
+              "height": 40,
+              "content": "Outline",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 13,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "TFSYH",
+          "x": 40,
+          "y": 1098,
+          "name": "Hover: bg → --accent-str",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1150,
+          "height": 40,
+          "content": "Hover: bg → --accent-strong (primary) / --surface-card (secondary). Focus: 0 0 0 2px --background, 0 0 0 4px --ring. Disabled: 50% opacity, no pointer events.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 12,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "2g698",
+          "x": 40,
+          "y": 1172,
+          "name": "Badges — pill, thin, onl",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 900,
+          "height": 30,
+          "content": "Badges — pill, thin, only real labels",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "Copernicus, Tiempos Headline, Georgia, serif",
+          "fontSize": 24,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "qrOOj",
+          "x": 40,
+          "y": 1206,
+          "name": "Eyebrow, route badge, an",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 22,
+          "content": "Eyebrow, route badge, and routing lanes; never decorative.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        {
+          "type": "frame",
+          "id": "QXIQl",
+          "x": 40,
+          "y": 1248,
+          "name": "eyebrow badge",
+          "clip": false,
+          "width": 170,
+          "height": 30,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 15,
+          "stroke": "$--border",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "Fnxkv",
+              "x": 0,
+              "y": 0,
+              "name": "Trio v2 for Codex",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 170,
+              "height": 30,
+              "content": "Trio v2 for Codex",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "OUi52",
+          "x": 230,
+          "y": 1248,
+          "name": "route badge",
+          "clip": false,
+          "width": 150,
+          "height": 30,
+          "layout": "none",
+          "fill": "$--muted",
+          "cornerRadius": 15,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "yI8aW",
+              "x": 0,
+              "y": 0,
+              "name": "deep is current-round",
+              "fill": "$--accent-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 150,
+              "height": 30,
+              "content": "deep is current-round",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "gJViZ",
+          "x": 400,
+          "y": 1248,
+          "name": "lane chip",
+          "clip": false,
+          "width": 90,
+          "height": 30,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 15,
+          "stroke": "$--border",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "ztZv7",
+              "x": 0,
+              "y": 0,
+              "name": "quick",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 90,
+              "height": 30,
+              "content": "quick",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "PIseD",
+          "x": 500,
+          "y": 1248,
+          "name": "lane chip",
+          "clip": false,
+          "width": 100,
+          "height": 30,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 15,
+          "stroke": "$--border",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "pfooz",
+              "x": 0,
+              "y": 0,
+              "name": "tracked",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 100,
+              "height": 30,
+              "content": "tracked",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "NhzRO",
+          "x": 610,
+          "y": 1248,
+          "name": "lane chip",
+          "clip": false,
+          "width": 80,
+          "height": 30,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 15,
+          "stroke": "$--border",
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "tPw0i",
+              "x": 0,
+              "y": 0,
+              "name": "deep",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 80,
+              "height": 30,
+              "content": "deep",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 11,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "5DCt9",
+          "x": 40,
+          "y": 1328,
+          "name": "Surfaces — flat + hairli",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 900,
+          "height": 30,
+          "content": "Surfaces — flat + hairline; depth from borders, never gradients",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "Copernicus, Tiempos Headline, Georgia, serif",
+          "fontSize": 24,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "tbGmO",
+          "x": 40,
+          "y": 1362,
+          "name": "Card, matrix cell, code ",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 22,
+          "content": "Card, matrix cell, code block, dark proof frame.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        {
+          "type": "frame",
+          "id": "8Fns1",
+          "x": 40,
+          "y": 1404,
+          "name": "surface card (14px)",
+          "clip": false,
+          "width": 540,
+          "height": 220,
+          "layout": "none",
+          "fill": "$--card",
+          "cornerRadius": 14,
+          "stroke": "$--border",
+          "children": [
+            {
+              "type": "text",
+              "id": "rEvpx",
+              "x": 20,
+              "y": 16,
+              "name": "Card — --card / --card-f",
+              "fill": "#141413ff",
+              "textGrowth": "fixed-width-height",
+              "width": 480,
+              "height": 26,
+              "content": "Card — --card / --card-foreground",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 14,
+              "fontWeight": 680
+            },
+            {
+              "type": "text",
+              "id": "Wj82M",
+              "x": 20,
+              "y": 50,
+              "name": "Hairline border, flat fi",
+              "fill": "$--muted-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 500,
+              "height": 60,
+              "content": "Hairline border, flat fill, shadow-sm only when raised. Content stays text-forward; no nested card walls.",
+              "lineHeight": 1.55,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 12,
+              "fontWeight": 400
+            },
+            {
+              "type": "frame",
+              "id": "QJ1F6",
+              "x": 20,
+              "y": 130,
+              "name": "matrix cell (8px)",
+              "clip": false,
+              "width": 230,
+              "height": 64,
+              "layout": "none",
+              "fill": "$--muted",
+              "cornerRadius": 8,
+              "stroke": "$--border",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "Wh0hE",
+                  "x": 14,
+                  "y": 10,
+                  "name": "Core state",
+                  "fill": "#141413ff",
+                  "textGrowth": "fixed-width-height",
+                  "width": 200,
+                  "height": 20,
+                  "content": "Core state",
+                  "lineHeight": 1.4,
+                  "textAlign": "left",
+                  "textAlignVertical": "top",
+                  "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+                  "fontSize": 13,
+                  "fontWeight": 680
+                },
+                {
+                  "type": "text",
+                  "id": "tGtXA",
+                  "x": 14,
+                  "y": 32,
+                  "name": "Only the Trio files live",
+                  "fill": "#141413ff",
+                  "textGrowth": "fixed-width-height",
+                  "width": 200,
+                  "height": 26,
+                  "content": "Only the Trio files live under planning/active/",
+                  "lineHeight": 1.4,
+                  "textAlign": "left",
+                  "textAlignVertical": "top",
+                  "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+                  "fontSize": 11,
+                  "fontWeight": 400
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "xvQo6",
+              "x": 266,
+              "y": 130,
+              "name": "matrix cell (8px)",
+              "clip": false,
+              "width": 254,
+              "height": 64,
+              "layout": "none",
+              "fill": "$--muted",
+              "cornerRadius": 8,
+              "stroke": "$--border",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "mC0un",
+                  "x": 14,
+                  "y": 10,
+                  "name": "Selected pack",
+                  "fill": "#141413ff",
+                  "textGrowth": "fixed-width-height",
+                  "width": 220,
+                  "height": 20,
+                  "content": "Selected pack",
+                  "lineHeight": 1.4,
+                  "textAlign": "left",
+                  "textAlignVertical": "top",
+                  "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+                  "fontSize": 13,
+                  "fontWeight": 680
+                },
+                {
+                  "type": "text",
+                  "id": "dWzz4",
+                  "x": 14,
+                  "y": 32,
+                  "name": "dev, office, or safety —",
+                  "fill": "#141413ff",
+                  "textGrowth": "fixed-width-height",
+                  "width": 220,
+                  "height": 26,
+                  "content": "dev, office, or safety — one per task",
+                  "lineHeight": 1.4,
+                  "textAlign": "left",
+                  "textAlignVertical": "top",
+                  "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+                  "fontSize": 11,
+                  "fontWeight": 400
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "A3Urk",
+          "x": 600,
+          "y": 1404,
+          "name": "code block (8px)",
+          "clip": false,
+          "width": 600,
+          "height": 220,
+          "layout": "none",
+          "fill": "$--surface-dark",
+          "cornerRadius": 8,
+          "children": [
+            {
+              "type": "text",
+              "id": "rX7ze",
+              "x": 20,
+              "y": 16,
+              "name": "Code block — mono, on --",
+              "fill": "$--on-dark-muted",
+              "textGrowth": "fixed-width-height",
+              "width": 540,
+              "height": 24,
+              "content": "Code block — mono, on --surface-dark",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 12,
+              "fontWeight": 400
+            },
+            {
+              "type": "text",
+              "id": "4GZA1",
+              "x": 20,
+              "y": 52,
+              "name": "$ ./scripts/harness trio",
+              "fill": "#f8c8b5ff",
+              "textGrowth": "fixed-width-height",
+              "width": 540,
+              "height": 30,
+              "content": "$ ./scripts/harness trio",
+              "lineHeight": 1.4,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 13,
+              "fontWeight": 400
+            },
+            {
+              "type": "text",
+              "id": "nR9Ze",
+              "x": 20,
+              "y": 88,
+              "name": "task_plan.md · findings.",
+              "fill": "$--on-dark-muted",
+              "textGrowth": "fixed-width-height",
+              "width": 540,
+              "height": 80,
+              "content": "task_plan.md · findings.md · progress.md\none selected pack: dev / office / safety",
+              "lineHeight": 1.72,
+              "textAlign": "left",
+              "textAlignVertical": "top",
+              "fontFamily": "JetBrains Mono, SFMono-Regular, Consolas, monospace",
+              "fontSize": 13,
+              "fontWeight": 400
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "jsZ0e",
+          "x": 40,
+          "y": 1664,
+          "name": "Focus & interaction — ke",
+          "fill": "$--ink",
+          "textGrowth": "fixed-width-height",
+          "width": 900,
+          "height": 30,
+          "content": "Focus & interaction — keyboard first",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "Copernicus, Tiempos Headline, Georgia, serif",
+          "fontSize": 24,
+          "fontWeight": 400
+        },
+        {
+          "type": "text",
+          "id": "NI8qV",
+          "x": 40,
+          "y": 1698,
+          "name": "shadcn ring pattern: foc",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 1100,
+          "height": 22,
+          "content": "shadcn ring pattern: focus-visible only, ring on --background offset, never :focus.",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        {
+          "type": "frame",
+          "id": "RX3sf",
+          "x": 40,
+          "y": 1740,
+          "name": "focused button",
+          "clip": false,
+          "width": 220,
+          "height": 44,
+          "layout": "none",
+          "fill": "$--primary",
+          "cornerRadius": 22,
+          "justifyContent": "center",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "X0WGX",
+              "x": 0,
+              "y": 0,
+              "name": "View source",
+              "fill": "$--primary-foreground",
+              "textGrowth": "fixed-width-height",
+              "width": 220,
+              "height": 44,
+              "content": "View source",
+              "lineHeight": 1.4,
+              "textAlign": "center",
+              "textAlignVertical": "top",
+              "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+              "fontSize": 13,
+              "fontWeight": 680
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "UgnDo",
+          "x": 38,
+          "y": 1738,
+          "name": "focus ring demo",
+          "clip": false,
+          "width": 224,
+          "height": 48,
+          "layout": "none",
+          "fill": "none",
+          "cornerRadius": 24,
+          "stroke": "$--ring",
+          "children": []
+        },
+        {
+          "type": "text",
+          "id": "C2mqV",
+          "x": 290,
+          "y": 1750,
+          "name": "Outline 2px solid --ring",
+          "fill": "$--muted-foreground",
+          "textGrowth": "fixed-width-height",
+          "width": 700,
+          "height": 40,
+          "content": "Outline 2px solid --ring, offset 2px; buttons swap to a box-shadow ring (2px --background + 4px --ring).",
+          "lineHeight": 1.4,
+          "textAlign": "left",
+          "textAlignVertical": "top",
+          "fontFamily": "StyreneB, Inter, Helvetica Neue, Arial, sans-serif",
+          "fontSize": 12,
+          "fontWeight": 400
+        }
+      ]
+    }
+  ],
+  "themes": {
+    "Mode": [
+      "Light"
+    ],
+    "Base": [
+      "Warm"
+    ],
+    "Accent": [
+      "Coral"
+    ]
+  },
+  "variables": {
+    "--paper": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#faf9f5"
+        }
+      ]
+    },
+    "--paper-warm": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#f5f0e7"
+        }
+      ]
+    },
+    "--surface": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#f8f4ed"
+        }
+      ]
+    },
+    "--surface-card": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#efe9de"
+        }
+      ]
+    },
+    "--ink": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#141413"
+        }
+      ]
+    },
+    "--body": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#3d3d3a"
+        }
+      ]
+    },
+    "--muted": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#6c6a64"
+        }
+      ]
+    },
+    "--line": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#e6dfd8"
+        }
+      ]
+    },
+    "--accent": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#cc785c"
+        }
+      ]
+    },
+    "--accent-strong": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#a9583e"
+        }
+      ]
+    },
+    "--surface-dark": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#181715"
+        }
+      ]
+    },
+    "--surface-dark-soft": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#252320"
+        }
+      ]
+    },
+    "--on-dark": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#faf9f5"
+        }
+      ]
+    },
+    "--on-dark-muted": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#c7c0b5"
+        }
+      ]
+    },
+    "--background": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#faf9f5"
+        }
+      ]
+    },
+    "--foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#141413"
+        }
+      ]
+    },
+    "--card": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#fffdf8"
+        }
+      ]
+    },
+    "--card-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#141413"
+        }
+      ]
+    },
+    "--primary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#cc785c"
+        }
+      ]
+    },
+    "--primary-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#faf9f5"
+        }
+      ]
+    },
+    "--secondary": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#f5f0e7"
+        }
+      ]
+    },
+    "--secondary-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#141413"
+        }
+      ]
+    },
+    "--muted-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#6c6a64"
+        }
+      ]
+    },
+    "--accent-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#a9583e"
+        }
+      ]
+    },
+    "--destructive": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#a9583e"
+        }
+      ]
+    },
+    "--destructive-foreground": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#faf9f5"
+        }
+      ]
+    },
+    "--border": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#e6dfd8"
+        }
+      ]
+    },
+    "--input": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#e6dfd8"
+        }
+      ]
+    },
+    "--ring": {
+      "type": "color",
+      "value": [
+        {
+          "value": "#a9583e"
+        }
+      ]
+    },
+    "--radius": {
+      "type": "color",
+      "value": [
+        {
+          "value": "0.625rem"
+        }
+      ]
+    },
+    "--radius-sm": {
+      "type": "color",
+      "value": [
+        {
+          "value": "0.375rem"
+        }
+      ]
+    },
+    "--radius-md": {
+      "type": "color",
+      "value": [
+        {
+          "value": "0.5rem"
+        }
+      ]
+    },
+    "--radius-lg": {
+      "type": "color",
+      "value": [
+        {
+          "value": "0.625rem"
+        }
+      ]
+    },
+    "--radius-xl": {
+      "type": "color",
+      "value": [
+        {
+          "value": "0.875rem"
+        }
+      ]
+    },
+    "--radius-2xl": {
+      "type": "color",
+      "value": [
+        {
+          "value": "1.125rem"
+        }
+      ]
+    },
+    "--radius-pill": {
+      "type": "color",
+      "value": [
+        {
+          "value": "9999px"
+        }
+      ]
+    }
+  }
+}
