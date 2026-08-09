@@ -83,7 +83,7 @@ async function gitOutput(cwd, ...args) {
   }
 }
 
-async function findSingleActiveTask(rootDir) {
+async function findActiveTasks(rootDir) {
   const activeRoot = path.join(rootDir, 'planning/active');
   const entries = await readdir(activeRoot, { withFileTypes: true }).catch(() => []);
   const matches = [];
@@ -94,31 +94,112 @@ async function findSingleActiveTask(rootDir) {
     const content = await readFile(taskPlanPath, 'utf8').catch(() => null);
     if (!content) continue;
     if (/^Status:\s*active$/m.test(content)) {
-      matches.push({ taskDir: path.join(activeRoot, entry.name), content });
+      matches.push({ taskDir: path.join(activeRoot, entry.name), taskId: entry.name, content });
     }
   }
 
-  return matches.length === 1 ? matches[0] : null;
+  return matches;
 }
 
-async function collectSafetyChecks(rootDir, snapshot) {
-  const [remote, activeTask, gitDir, gitCommonDir, checkpointSnapshot] = await Promise.all([
+function isDirectChildTaskId(taskId) {
+  return Boolean(taskId) && !taskId.includes('/') && !taskId.includes('\\') && taskId !== '..';
+}
+
+async function resolveSafetyTask(rootDir, explicitTaskId) {
+  const activeRoot = path.join(rootDir, 'planning/active');
+
+  if (explicitTaskId) {
+    if (!isDirectChildTaskId(explicitTaskId)) {
+      return {
+        selectionSource: 'explicit',
+        taskId: explicitTaskId,
+        taskDir: null,
+        content: null,
+        resolution: 'problem',
+        message: `Selected task ${explicitTaskId} is not a direct-child task id.`
+      };
+    }
+
+    const taskDir = path.join(activeRoot, explicitTaskId);
+    const content = await readFile(path.join(taskDir, 'task_plan.md'), 'utf8').catch(() => null);
+    if (!content) {
+      return {
+        selectionSource: 'explicit',
+        taskId: explicitTaskId,
+        taskDir: null,
+        content: null,
+        resolution: 'problem',
+        message: `Selected task ${explicitTaskId} was not found under planning/active.`
+      };
+    }
+    if (!/^Status:\s*active$/m.test(content)) {
+      return {
+        selectionSource: 'explicit',
+        taskId: explicitTaskId,
+        taskDir,
+        content,
+        resolution: 'problem',
+        message: `Selected task ${explicitTaskId} exists but is not Status: active.`
+      };
+    }
+    return {
+      selectionSource: 'explicit',
+      taskId: explicitTaskId,
+      taskDir,
+      content,
+      resolution: 'ok',
+      message: taskDir
+    };
+  }
+
+  const activeTasks = await findActiveTasks(rootDir);
+  if (activeTasks.length === 1) {
+    return {
+      selectionSource: 'single-active',
+      taskId: activeTasks[0].taskId,
+      taskDir: activeTasks[0].taskDir,
+      content: activeTasks[0].content,
+      resolution: 'ok',
+      message: activeTasks[0].taskDir
+    };
+  }
+
+  return {
+    selectionSource: 'unbound',
+    taskId: null,
+    taskDir: null,
+    content: null,
+    resolution: 'problem',
+    message:
+      activeTasks.length === 0
+        ? 'No active task was found; selection is ambiguous without an explicit --task.'
+        : `${activeTasks.length} active tasks found; selection is ambiguous without an explicit --task.`
+  };
+}
+
+async function collectSafetyChecks(rootDir, snapshot, explicitTaskId) {
+  const [remote, safetyTask, gitDir, gitCommonDir, checkpointSnapshot] = await Promise.all([
     gitOutput(rootDir, 'remote', 'get-url', 'origin'),
-    findSingleActiveTask(rootDir),
+    resolveSafetyTask(rootDir, explicitTaskId),
     gitOutput(rootDir, 'rev-parse', '--absolute-git-dir'),
     gitOutput(rootDir, 'rev-parse', '--path-format=absolute', '--git-common-dir'),
     collectCheckpointPushSnapshot(rootDir)
   ]);
 
   const isWorktree = Boolean(gitDir && gitCommonDir && gitDir !== gitCommonDir);
-  const riskAssessmentRecorded = Boolean(activeTask && hasFilledRiskAssessment(activeTask.content));
+  const riskAssessmentRecorded = Boolean(
+    safetyTask.content && hasFilledRiskAssessment(safetyTask.content)
+  );
   const checkpointReadiness = evaluateCheckpointPushReadiness(checkpointSnapshot);
   const checkpointMessage = checkpointReadiness.status === 'ok'
     ? ''
     : checkpointReadiness.reasons[0] ?? 'checkpoint push is not ready';
 
   return {
-    activeTaskDir: activeTask?.taskDir ?? null,
+    selectionSource: safetyTask.selectionSource,
+    taskId: safetyTask.taskId,
+    taskResolution: safetyTask.resolution,
+    activeTaskDir: safetyTask.taskDir,
     checkpointCommand: './scripts/harness checkpoint . --quiet --skip-if-clean',
     isWorktree,
     checks: [
@@ -136,8 +217,8 @@ async function collectSafetyChecks(rootDir, snapshot) {
         name: 'riskAssessmentRecorded',
         status: riskAssessmentRecorded ? 'ok' : 'problem',
         message: riskAssessmentRecorded
-          ? activeTask.taskDir
-          : 'No active task with a filled Risk Assessment row was found.'
+          ? `${safetyTask.selectionSource}:${safetyTask.taskId} ${safetyTask.taskDir}`
+          : safetyTask.message
       },
       {
         name: 'worktreeIsolation',
@@ -187,6 +268,9 @@ function renderText(snapshot, recommendation, naming, safety) {
     lines.push(
       '',
       'Safety checks:',
+      `- selectionSource: ${safety.selectionSource}`,
+      `- taskId: ${safety.taskId ?? 'none'}`,
+      `- taskResolution: ${safety.taskResolution}`,
       ...safety.checks.map((check) => `- ${check.name}: ${check.status}${check.message ? ` (${check.message})` : ''}`),
       `- checkpointCommand: ${safety.checkpointCommand}`
     );
@@ -203,7 +287,9 @@ export async function worktreePreflight(args = []) {
     taskId: parseTaskId(args),
     namespace: namespaceFromBranch(snapshot.currentBranch)
   });
-  const safety = wantsSafety(args) ? await collectSafetyChecks(rootDir, snapshot) : null;
+  const safety = wantsSafety(args)
+    ? await collectSafetyChecks(rootDir, snapshot, parseTaskId(args))
+    : null;
 
   if (wantsJson(args)) {
     console.log(JSON.stringify({ snapshot, recommendation, naming, safety }, null, 2));

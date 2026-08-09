@@ -278,3 +278,146 @@ test('worktree-preflight --safety reports checkpoint-push readiness problems for
     await rm(remote, { recursive: true, force: true });
   }
 });
+
+test('worktree-preflight --task --safety resolves the explicit task with multiple active tasks', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await initRepo(root);
+    await writeActiveTask(root, true);
+    await mkdir(path.join(root, 'planning/active/second-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/second-task/task_plan.md'),
+      [
+        '# Second task',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        ''
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/second-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/second-task/progress.md'), '# Progress\n');
+
+    const { stdout } = await harness(
+      root,
+      'worktree-preflight',
+      '--task',
+      'preflight-task',
+      '--safety',
+      '--json',
+      { env: { HARNESS_WORKTREE_NAME_NOW: '202604281159' } }
+    );
+    const output = JSON.parse(stdout);
+
+    assert.equal(output.safety.selectionSource, 'explicit');
+    assert.equal(output.safety.taskId, 'preflight-task');
+    assert.equal(output.safety.taskResolution, 'ok');
+    assert.match(output.safety.activeTaskDir, /planning\/active\/preflight-task$/);
+    const riskCheck = output.safety.checks.find((check) => check.name === 'riskAssessmentRecorded');
+    assert.equal(riskCheck.status, 'ok');
+    assert.match(riskCheck.message, /preflight-task/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('worktree-preflight --safety stays fail-closed and ambiguous with multiple active tasks and no --task', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await initRepo(root);
+    await writeActiveTask(root, true);
+    await mkdir(path.join(root, 'planning/active/second-task'), { recursive: true });
+    await writeFile(
+      path.join(root, 'planning/active/second-task/task_plan.md'),
+      [
+        '# Second task',
+        '',
+        '## Current State',
+        'Status: active',
+        'Archive Eligible: no',
+        'Close Reason:',
+        ''
+      ].join('\n')
+    );
+    await writeFile(path.join(root, 'planning/active/second-task/findings.md'), '# Findings\n');
+    await writeFile(path.join(root, 'planning/active/second-task/progress.md'), '# Progress\n');
+
+    await assert.rejects(
+      harness(root, 'worktree-preflight', '--safety', '--json'),
+      /Multiple active planning tasks found under planning\/active: preflight-task, second-task\. Use --task <task-id>\./
+    );
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('worktree-preflight --task --safety blocks a missing selected task', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await initRepo(root);
+    await writeActiveTask(root, true);
+
+    const { stdout } = await harness(
+      root,
+      'worktree-preflight',
+      '--task',
+      'missing-task',
+      '--safety',
+      '--json'
+    );
+    const output = JSON.parse(stdout);
+
+    assert.equal(output.safety.selectionSource, 'explicit');
+    assert.equal(output.safety.taskId, 'missing-task');
+    assert.equal(output.safety.taskResolution, 'problem');
+    const riskCheck = output.safety.checks.find((check) => check.name === 'riskAssessmentRecorded');
+    assert.equal(riskCheck.status, 'problem');
+    assert.match(riskCheck.message, /missing-task/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('worktree-preflight --task --safety blocks a selected task that is not active', async () => {
+  const root = await createHarnessFixture();
+  try {
+    await initRepo(root);
+    const taskDir = path.join(root, 'planning/active/preflight-task');
+    await mkdir(taskDir, { recursive: true });
+    await writeFile(
+      path.join(taskDir, 'task_plan.md'),
+      [
+        '# Preflight task',
+        '',
+        '## Current State',
+        'Status: closed',
+        'Archive Eligible: no',
+        'Close Reason:',
+        ''
+      ].join('\n')
+    );
+    await writeFile(path.join(taskDir, 'findings.md'), '# Findings\n');
+    await writeFile(path.join(taskDir, 'progress.md'), '# Progress\n');
+
+    const { stdout } = await harness(
+      root,
+      'worktree-preflight',
+      '--task',
+      'preflight-task',
+      '--safety',
+      '--json'
+    );
+    const output = JSON.parse(stdout);
+
+    assert.equal(output.safety.selectionSource, 'explicit');
+    assert.equal(output.safety.taskId, 'preflight-task');
+    assert.equal(output.safety.taskResolution, 'problem');
+    const riskCheck = output.safety.checks.find((check) => check.name === 'riskAssessmentRecorded');
+    assert.equal(riskCheck.status, 'problem');
+    assert.match(riskCheck.message, /not Status: active/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});

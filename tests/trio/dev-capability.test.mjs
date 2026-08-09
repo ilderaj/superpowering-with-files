@@ -50,6 +50,7 @@ function assertDevSkillContract(markdown) {
   assert.match(fields.description ?? '', /\S/);
   for (const heading of [
     'Quality Loop',
+    'Implementation Discipline',
     'Planning Contract',
     'Debugging Contract',
     'Review Contract',
@@ -64,6 +65,21 @@ function assertDevSkillContract(markdown) {
   assert.match(qualityLoop, /clarify or design only when[\s\S]*material uncertainty/);
   assert.match(qualityLoop, /when judgment is material[\s\S]*compare bounded alternatives/);
   assert.match(qualityLoop, /write one behavior at a time[\s\S]*observe a real red[\s\S]*write the smallest green[\s\S]*refactor only while green/);
+  const discipline = sectionBody(body, 'Implementation Discipline').toLowerCase();
+  for (const constraint of [
+    'simplest bounded solution',
+    'smallest root-cause diff',
+    'reuse an existing public surface before creating a new one',
+    'no speculative complexity',
+    'preserve working behavior and architectural ownership',
+    'explicitly requires or permits',
+    'never invent an unexpected fallback',
+    'obsolete code only within the bound slice',
+    'out-of-scope findings',
+    'without mutating'
+  ]) {
+    assert.ok(discipline.includes(constraint), `Missing implementation discipline: ${constraint}`);
+  }
   const isolation = sectionBody(body, 'Isolation and Closure').toLowerCase();
   for (const safeguard of [
     'detect existing isolation and ownership before creating a workspace',
@@ -274,6 +290,28 @@ test('dev validator rejects continued patching after repeated failures', async (
     markdown,
     'After three failed attempts, stop and question the plan or architecture instead of adding another patch.',
     'After three failed attempts, add another patch and continue without questioning the plan or architecture.'
+  );
+
+  assert.throws(() => assertDevSkillContract(mutated));
+});
+
+test('dev validator rejects speculative abstraction beyond the slice', async () => {
+  const markdown = await readFile(devSkillPath, 'utf8');
+  const mutated = replaceExactlyOnce(
+    markdown,
+    'Add no speculative complexity: no speculative abstractions, configurable branches, or machinery the slice does not need.',
+    'Add speculative abstractions, configurable branches, and future-proofing machinery freely.'
+  );
+
+  assert.throws(() => assertDevSkillContract(mutated));
+});
+
+test('dev validator rejects an unexpected fallback without a governing contract', async () => {
+  const markdown = await readFile(devSkillPath, 'utf8');
+  const mutated = replaceExactlyOnce(
+    markdown,
+    'Fallbacks are explicit-contract-only: add a fallback only when the governing contract explicitly requires or permits one; never invent an unexpected fallback.',
+    'Add any fallback the implementation finds useful, even without a governing contract.'
   );
 
   assert.throws(() => assertDevSkillContract(mutated));

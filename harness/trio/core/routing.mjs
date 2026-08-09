@@ -35,6 +35,15 @@ export const PRIMARY_EXECUTION_KINDS = Object.freeze([
   'visible_worker_required'
 ]);
 export const PRIMARY_EXECUTION_REQUIRED = 'visible_worker_required';
+export const CHILD_DELEGATION_KINDS = Object.freeze([
+  'prohibited',
+  'worker_discretion',
+  'encouraged'
+]);
+export const EXECUTION_MODE_KINDS = Object.freeze([
+  'bounded_slice',
+  'worker_self_goal'
+]);
 export const HOST_ROUTE_KINDS = Object.freeze([
   'visible_worker',
   'native_subagent',
@@ -225,6 +234,10 @@ export function buildAssignmentPacket(input = {}) {
   const missing = ASSIGNMENT_PACKET_FIELDS.filter((field) => !Object.hasOwn(input, field));
   if (missing.length > 0) {
     throw new Error(`Assignment packet requires eight fields: ${missing.join(', ')}.`);
+  }
+  const unexpected = Object.keys(input).filter((field) => !ASSIGNMENT_PACKET_FIELDS.includes(field));
+  if (unexpected.length > 0) {
+    throw new Error(`Assignment packet rejects unexpected top-level fields: ${unexpected.join(', ')}.`);
   }
   assertAuthorityBinding(input.authority);
   return Object.fromEntries(ASSIGNMENT_PACKET_FIELDS.map((field) => [field, input[field]]));
@@ -682,6 +695,32 @@ function primaryExecutionKind(input) {
   return value;
 }
 
+function childDelegationPolicy(capability, primaryExecution) {
+  const source = objectRecord(capability);
+  const declared = source.childDelegation;
+  if (declared === undefined) {
+    return primaryExecution === PRIMARY_EXECUTION_REQUIRED
+      ? { valid: false, blocker: 'child_delegation_missing' }
+      : { valid: true, policy: null };
+  }
+  if (typeof declared !== 'string' || !CHILD_DELEGATION_KINDS.includes(declared)) {
+    return { valid: false, blocker: `child_delegation_unknown:${String(declared)}` };
+  }
+  return { valid: true, policy: declared };
+}
+
+function executionModePolicy(capability) {
+  const source = objectRecord(capability);
+  const declared = source.executionMode;
+  if (declared === undefined) {
+    return { valid: true, mode: null };
+  }
+  if (typeof declared !== 'string' || !EXECUTION_MODE_KINDS.includes(declared)) {
+    return { valid: false, blocker: `execution_mode_unknown:${String(declared)}` };
+  }
+  return { valid: true, mode: declared };
+}
+
 function manualCapabilityEvidence({ operation, observation, visibleCapability, nativeCapability, visibleResult, nativeResult }) {
   const visibleSource = objectRecord(visibleCapability);
   const nativeSource = objectRecord(nativeCapability);
@@ -741,6 +780,59 @@ export function resolveHostOperation(input = {}) {
     'visible_worker',
     observation
   );
+  const nativeResult = nativeSafety({
+    operation,
+    capability: nativeCapability,
+    observation,
+    parentEnvelope,
+    childEnvelope,
+    requestedEffort: modelResolution.requestedEffort,
+    lanes
+  });
+  const capabilitySource = objectRecord(input.assignmentPacket?.capability);
+  const childPolicy = childDelegationPolicy(capabilitySource, primaryExecution);
+  const modePolicy = executionModePolicy(capabilitySource);
+  const policyBlocker = !childPolicy.valid
+    ? childPolicy.blocker
+    : (!modePolicy.valid ? modePolicy.blocker : null);
+  if (policyBlocker) {
+    const assignmentPacket = buildManualPacket(input);
+    const routeEvidence = buildRouteEvidence({
+      routeKind: 'manual_pending',
+      requestedModel: modelResolution.requestedModel,
+      requestedEffort: modelResolution.requestedEffort,
+      actual: unknownActual(),
+      workerId: null,
+      capability: manualCapabilityEvidence({
+        operation,
+        observation,
+        visibleCapability,
+        nativeCapability,
+        visibleResult,
+        nativeResult
+      }),
+      permissionEnvelope: parentEnvelope,
+      pathEnvelope: parentEnvelope,
+      fallbackReason: policyBlocker,
+      status: 'manual_pending'
+    });
+    return {
+      operation,
+      routeEvidence,
+      descriptor: buildOperationDescriptor({
+        operation,
+        routeKind: 'manual_pending',
+        childEnvelope: null,
+        assignmentPacket,
+        blocker: policyBlocker,
+        resumeCondition: policyBlocker === 'child_delegation_missing'
+          ? 'Declare an explicit childDelegation policy (prohibited | worker_discretion | encouraged) on the assignment packet before routing.'
+          : policyBlocker.startsWith('child_delegation_unknown')
+            ? 'Replace the unknown childDelegation value with an explicit prohibited, worker_discretion, or encouraged policy.'
+            : 'Replace the unknown executionMode value with bounded_slice or worker_self_goal.'
+      })
+    };
+  }
   if (visibleResult.safe) {
     const routeEvidence = buildRouteEvidence({
       routeKind: 'visible_worker',
@@ -766,15 +858,6 @@ export function resolveHostOperation(input = {}) {
   }
 
   if (primaryExecution === PRIMARY_EXECUTION_REQUIRED) {
-    const nativeResult = nativeSafety({
-      operation,
-      capability: nativeCapability,
-      observation,
-      parentEnvelope,
-      childEnvelope,
-      requestedEffort: modelResolution.requestedEffort,
-      lanes
-    });
     const assignmentPacket = buildManualPacket(input);
     const fallbackReason = `visible_worker_required_unavailable:${visibleResult.reason}`;
     const routeEvidence = buildRouteEvidence({
@@ -810,15 +893,41 @@ export function resolveHostOperation(input = {}) {
     };
   }
 
-  const nativeResult = nativeSafety({
-    operation,
-    capability: nativeCapability,
-    observation,
-    parentEnvelope,
-    childEnvelope,
-    requestedEffort: modelResolution.requestedEffort,
-    lanes
-  });
+  if (childPolicy.policy === 'prohibited') {
+    const blocker = 'child_delegation_prohibited';
+    const assignmentPacket = buildManualPacket(input);
+    const routeEvidence = buildRouteEvidence({
+      routeKind: 'manual_pending',
+      requestedModel: modelResolution.requestedModel,
+      requestedEffort: modelResolution.requestedEffort,
+      actual: unknownActual(),
+      workerId: null,
+      capability: manualCapabilityEvidence({
+        operation,
+        observation,
+        visibleCapability,
+        nativeCapability,
+        visibleResult,
+        nativeResult
+      }),
+      permissionEnvelope: parentEnvelope,
+      pathEnvelope: parentEnvelope,
+      fallbackReason: blocker,
+      status: 'manual_pending'
+    });
+    return {
+      operation,
+      routeEvidence,
+      descriptor: buildOperationDescriptor({
+        operation,
+        routeKind: 'manual_pending',
+        childEnvelope: null,
+        assignmentPacket,
+        blocker,
+        resumeCondition: 'childDelegation: prohibited denies native child creation; admit a native child only under an explicit worker_discretion or encouraged policy.'
+      })
+    };
+  }
   const nativeEvidence = capabilityEvidence(
     nativeCapability,
     operation,

@@ -553,7 +553,8 @@ test('strict primary execution selects a visible worker when one is available', 
       capability: {
         requestedModel: 'gpt-5.6-luna',
         requestedEffort: 'max',
-        primaryExecution: 'visible_worker_required'
+        primaryExecution: 'visible_worker_required',
+        childDelegation: 'prohibited'
       }
     },
     observation: {
@@ -589,7 +590,8 @@ test('strict primary execution never falls back to a native subagent', () => {
       capability: {
         requestedModel: 'gpt-5.6-luna',
         requestedEffort: 'max',
-        primaryExecution: 'visible_worker_required'
+        primaryExecution: 'visible_worker_required',
+        childDelegation: 'prohibited'
       }
     },
     parentEnvelope: {
@@ -644,7 +646,8 @@ test('strict primary execution fails closed when no visible worker capability is
       capability: {
         requestedModel: 'gpt-5.6-luna',
         requestedEffort: 'max',
-        primaryExecution: 'visible_worker_required'
+        primaryExecution: 'visible_worker_required',
+        childDelegation: 'prohibited'
       }
     },
     observation: {
@@ -773,4 +776,332 @@ test('swf_executor instructions forbid redesign, require blocked on missing deci
   assert.match(instructions, /material decision/i);
   assert.match(instructions, /swf_executor/i);
   assert.match(instructions, /unavailable/i);
+});
+
+test('capability.childDelegation = prohibited denies any native child route even with a valid child envelope', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        requestedModel: 'gpt-5.6-luna',
+        requestedEffort: 'max',
+        childDelegation: 'prohibited'
+      }
+    },
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/app'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'prohibited-child-denial-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: false,
+        permissionBinding: true,
+        pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.notEqual(result.routeEvidence.routeKind, 'native_subagent');
+  assert.match(result.routeEvidence.fallbackReason, /child_delegation|prohibited/i);
+  assert.equal(result.descriptor.executed, false);
+  assert.deepEqual(result.descriptor.writes, []);
+});
+
+test('strict visible-worker-required packet without an explicit childDelegation fails closed', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        requestedModel: 'gpt-5.6-luna',
+        requestedEffort: 'max',
+        primaryExecution: 'visible_worker_required'
+      }
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'strict-missing-child-delegation-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: true,
+        permissionBinding: true,
+        pathBinding: true
+      }
+    },
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/app'] }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.match(result.routeEvidence.fallbackReason, /child_delegation|delegation policy/i);
+  assert.equal(result.descriptor.executed, false);
+  assert.deepEqual(result.descriptor.writes, []);
+});
+
+test('explicit worker_discretion and encouraged delegation are admitted on strict packets', () => {
+  for (const childDelegation of ['worker_discretion', 'encouraged']) {
+    const result = resolveGenericHostOperation({
+      operation: 'spawn',
+      assignmentPacket: {
+        ...createAssignmentPacket(),
+        capability: {
+          requestedModel: 'gpt-5.6-luna',
+          requestedEffort: 'max',
+          primaryExecution: 'visible_worker_required',
+          childDelegation
+        }
+      },
+      observation: {
+        authenticated: true,
+        evidenceRef: `admitted-${childDelegation}-1`,
+        visibleWorker: {
+          visible: true,
+          operations: { spawn: true },
+          requestedModelEffortControls: true,
+          permissionBinding: true,
+          pathBinding: true
+        }
+      },
+      permissionEnvelope: {
+        permissions: ['workspace'],
+        operations: ['spawn'],
+        externalEffects: []
+      },
+      pathEnvelope: { mutablePaths: ['src/app'] }
+    });
+
+    assert.equal(result.routeEvidence.routeKind, 'visible_worker', childDelegation);
+    assert.equal(result.descriptor.executed, false, childDelegation);
+  }
+});
+
+test('legacy non-strict packets without childDelegation preserve native subagent compatibility', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: createAssignmentPacket(),
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/app'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'legacy-non-strict-compat-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: false,
+        permissionBinding: true,
+        pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'native_subagent');
+  assert.equal(result.descriptor.executed, false);
+});
+
+test('unknown childDelegation values fail closed before native child acceptance', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        requestedModel: 'gpt-5.6-luna',
+        requestedEffort: 'max',
+        childDelegation: 'unknown-mode'
+      }
+    },
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/app'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'unknown-child-delegation-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: false,
+        permissionBinding: true,
+        pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.notEqual(result.routeEvidence.routeKind, 'native_subagent');
+  assert.equal(result.descriptor.executed, false);
+});
+
+test('unknown capability.executionMode values fail closed before native child acceptance', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        requestedModel: 'gpt-5.6-luna',
+        requestedEffort: 'max',
+        executionMode: 'unknown-mode'
+      }
+    },
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/app'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'unknown-execution-mode-child-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: false,
+        permissionBinding: true,
+        pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.notEqual(result.routeEvidence.routeKind, 'native_subagent');
+  assert.equal(result.descriptor.executed, false);
+  assert.deepEqual(result.descriptor.writes, []);
+});
+
+test('unknown primary execution mode values fail closed', () => {
+  assert.throws(
+    () => resolveGenericHostOperation({
+      operation: 'spawn',
+      assignmentPacket: {
+        ...createAssignmentPacket(),
+        capability: {
+          requestedModel: 'gpt-5.6-luna',
+          requestedEffort: 'max',
+          primaryExecution: 'unknown-mode'
+        }
+      },
+      observation: { authenticated: true, evidenceRef: 'unknown-execution-mode-1' },
+      permissionEnvelope: {
+        permissions: ['workspace'],
+        operations: ['spawn'],
+        externalEffects: []
+      },
+      pathEnvelope: { mutablePaths: [] }
+    }),
+    /Unknown primaryExecution kind/i
+  );
+});
+
+test('static role configuration alone grants no dynamic child permission', () => {
+  assert.equal(Object.hasOwn(SWF_EXECUTOR_ROLE, 'childDelegation'), false);
+
+  const entry = renderSwfExecutorAgentEntry('/tmp/host/agents/swf_executor.toml');
+  const roleFile = renderSwfExecutorRoleFile();
+  assert.doesNotMatch(`${entry}\n${roleFile}`, /childDelegation|child_delegation|delegation\s*=\s*"allowed"/i);
+
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        requestedModel: 'gpt-5.6-luna',
+        requestedEffort: 'max',
+        childDelegation: 'prohibited'
+      }
+    },
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/app'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'static-role-no-dynamic-permission-1',
+      workerId: 'swf-executor-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: false,
+        permissionBinding: true,
+        pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.descriptor.executed, false);
 });
