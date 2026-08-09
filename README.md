@@ -44,6 +44,21 @@ Codex is the only managed native target. Its plugin contains the Trio entry poli
 
 Requested model and reasoning effort are intent. Actual values remain unknown unless the Host authenticates them. The main session plans, integrates, and accepts; bounded workers execute assigned slices and return evidence.
 
+### Plan → Execute usage at a glance
+
+Tracked production changes are delegated to the visible `swf_executor` role (DeepSeek Flash, xhigh effort, no fallback). A worker result is a candidate until the main session accepts it. Say what you need in plain language — no skill invocation or task ceremony is required.
+
+| Route | How you ask | What you get |
+|---|---|---|
+| quick (Q&A / small edit) | one-line question, zero ceremony | direct answer/edit, no trio |
+| tracked / default | one paragraph: goal, affected surfaces, constraints, acceptance proof, gate | trio + slice plan + `swf_executor` candidate → you accept → you decide merge |
+| strict (visible worker required) | add: "must be done by the visible swf_executor role, no hidden subagent" | `visible_worker_required` packet; `manual_pending` if unavailable, never a silent native fallback |
+| deep (analyze first) | "analyze first with evidence, I approve before you touch code" | evidence-backed analysis report, then execution |
+| human gate | state the stopping point ("stop at a draft PR" / "no push" / "confirm before release") | stops at the gate; human confirmation is always retained |
+| after `manual_pending` | don't repeat the request; pick one: provide a compliant worker / release strict / confirm blocked | handled via the descriptor's `blocker` and `resumeCondition` |
+
+Full operator guide (Chinese): [docs/trio-v2/human-usage.md](docs/trio-v2/human-usage.md). Audit of the plan-execute mechanism: [reports/audit/2026-08-09-plan-execute-deepseek-executor-audit.md](reports/audit/2026-08-09-plan-execute-deepseek-executor-audit.md).
+
 ## Public commands
 
 The public command list is: `install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, and `token-audit`.
