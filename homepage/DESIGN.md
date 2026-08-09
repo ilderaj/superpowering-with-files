@@ -91,6 +91,13 @@ This homepage should feel useful, calm, and inspectable: warm editorial type exp
 
 The goal is not to mimic Claude.com wholesale. The page borrows an editorial palette and typographic posture, then narrows them for a repo-native tool. Copy stays concise and direct. Visual energy comes from contrast between cream content areas and the dark proof module, not from animation, gradients, or generic AI decorations.
 
+> **UX refactor 2026-08-09:** the visual implementation now follows
+> [UX-TOKENS.md](UX-TOKENS.md) — the shadcn/ui-aligned token + component
+> standard informed by opencodex.me and cursor.com. It keeps every color,
+> font, layout hook, and responsive rule below; it only changes how surfaces,
+> borders, radii, hover, and focus are expressed (flat + hairline, no
+> gradients/glass/glow, standard focus rings, corrected nested radii).
+
 ## Voice
 
 - Lead with the concrete value: one shared workflow keeps agents on the same rails.

@@ -1,0 +1,190 @@
+/*
+ * WebApp UX Tokens — shadcn/ui-aligned semantic layer for the Superpowering
+ * with Files homepage.
+ *
+ * Source of truth for every visual decision on this page:
+ *  - shadcn/ui token contract (https://ui.shadcn.com/docs/theming)
+ *  - restraint checklist from opencodex.me/zh-cn and cursor.com (2026-08 audit)
+ *  - brand contract in DESIGN.md (warm cream canvas, coral accent, off-dark
+ *    proof surfaces, editorial serif display + sans body)
+ *
+ * Rule: components consume semantic tokens (`--primary`, `--border`, ...),
+ * never raw hexes. Brand aliases (`--paper`, `--accent`, `--surface-dark`)
+ * exist only to keep the DESIGN.md palette explicit and test-pinned.
+ *
+ * Why this palette: the warm cream floor and coral accent are the brand (pinned
+ * by homepage-styles.test.mjs and the design contract). The neutral/hairline
+ * system follows Cursor (`#f7f7f4` paper, borders derived from ink at low
+ * alpha) and OpenCodex (flat surfaces, 1px hairlines, one accent, no chrome
+ * gradients). The serif display + sans body pairing is the editorial voice the
+ * contract requires; Inter is a compared fallback, not a default (tell 31).
+ */
+
+:root {
+  color-scheme: light;
+
+  /* --- shadcn/ui semantic token contract ---------------------------------- */
+  --background: #faf9f5;            /* warm paper floor (brand: --paper)      */
+  --foreground: #141413;            /* ink                                     */
+  --card: #fffdf8;                  /* raised warm white                      */
+  --card-foreground: #141413;
+  --popover: #fffdf8;
+  --popover-foreground: #141413;
+  --primary: #cc785c;               /* coral accent (brand: --accent)         */
+  --primary-foreground: #faf9f5;
+  --secondary: #f5f0e7;             /* warm sand surface (brand: --paper-warm)*/
+  --secondary-foreground: #141413;
+  --muted: #f8f4ed;                 /* muted surface (brand: --surface)       */
+  --muted-foreground: #6c6a64;      /* muted text (brand: --muted)            */
+  --accent: #f5f0e7;                /* subtle warm hover surface              */
+  --accent-foreground: #a9583e;     /* deep coral text                        */
+  --destructive: #a9583e;
+  --destructive-foreground: #faf9f5;
+  --border: #e6dfd8;                /* hairline (brand: --line)               */
+  --input: #e6dfd8;
+  --ring: #a9583e;                  /* focus ring: deep coral, ink-grade       */
+  --radius: 0.625rem;               /* shadcn base radius, 10px (current)     */
+
+  /* --- brand aliases (DESIGN.md palette; values pinned by tests) ----------- */
+  --ink: #141413;
+  --body: #3d3d3a;
+  --paper: #faf9f5;
+  --paper-warm: #f5f0e7;
+  --surface: #f8f4ed;
+  --surface-card: #efe9de;
+  --surface-dark: #181715;
+  --surface-dark-soft: #252320;
+  --on-dark: #faf9f5;
+  --on-dark-muted: #c7c0b5;
+  --line: #e6dfd8;
+  --accent: #cc785c;
+  --accent-strong: #a9583e;
+  --muted: #6c6a64;
+
+  /* --- radius scale (shadcn-derived: sm=×0.6, md=×0.8, lg=×1, xl=×1.4,
+   *     2xl=×1.8; pills only on CTAs, badges, and chips) ------------------- */
+  --radius-sm: 0.375rem;            /* 6px: inputs, inline code, chips       */
+  --radius-md: 0.5rem;              /* 8px: controls, inner cards            */
+  --radius-lg: 0.625rem;            /* 10px: nested surfaces                 */
+  --radius-xl: 0.875rem;            /* 14px: large surfaces                  */
+  --radius-2xl: 1.125rem;           /* 18px: hero proof frame                */
+  --radius-pill: 9999px;            /* buttons, badges, lanes                */
+
+  /* --- spacing scale (4/8/12/16/24/32/48/64) -------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* --- typography scale ----------------------------------------------------- */
+  --font-display: Copernicus, 'Tiempos Headline', Georgia, serif;
+  --font-sans: StyreneB, Inter, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+
+  /* --- elevation: hairline first, shadow is a whisper (never a glow) ------- */
+  --shadow-xs: 0 1px 2px rgba(20, 20, 19, 0.04);
+  --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.05), 0 4px 12px -6px rgba(20, 20, 19, 0.06);
+}
+
+/*
+ * Interaction base: keyboard focus is a crisp ink-grade ring on the deep coral
+ * (Cursor: 2px solid fg; shadcn: ring + ring-offset on --background).
+ */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/*
+ * Button contract (shadcn button, variants):
+ *  - default: --primary / --primary-foreground, pill radius
+ *  - secondary: --secondary / --secondary-foreground, hairline
+ *  - hover is a surface shift (background), never transform/scale (tell 25)
+ *  - focus-visible: ring on --background offset
+ *  - disabled: 50% opacity, no pointer events
+ */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 2.5rem;               /* shadcn default button height 40px     */
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-weight: 720;
+  letter-spacing: -0.01em;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+button:not(:disabled),
+[role='button']:not(:disabled) {
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+}
+
+.button.primary {
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.button.primary:hover {
+  background: var(--accent-strong);
+}
+
+.button.primary:active {
+  background: var(--destructive);
+}
+
+.button.secondary {
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  border-color: var(--border);
+}
+
+.button.secondary:hover {
+  background: var(--surface-card);
+}
+
+.button:disabled,
+.button[aria-disabled='true'] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/*
+ * Badge contract (shadcn badge): pill, small, used only for real status or
+ * category labels — the hero eyebrow, the route badge, and the routing lanes.
+ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: var(--text-xs);
+  font-weight: 680;
+  letter-spacing: 0.02em;
+}
+
+.badge--accent {
+  color: var(--accent-foreground);
+  background: var(--muted);
+  border-color: transparent;
+}
