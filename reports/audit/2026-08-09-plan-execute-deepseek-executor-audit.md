@@ -67,7 +67,7 @@ Task: `plan-execute-deepseek-executor-20260808`
 
 需求：验证 OpenCodex host 假设并记录 delta；`[roles.swf_executor]`（实现为原生 `[agents.swf_executor]` 表）应用到 `~/.codex/config.toml`，带时间戳备份；TOML 可解析；不启用任何 model fallback。
 实现与实况：
-- `~/.codex/config.toml` 含 `[agents.swf_executor] → config_file = /Users/jared/.codex/agents/swf_executor.toml`；备份 `config.toml.bak-plan-execute-20260808` 存在。
+- `~/.codex/config.toml` 含 `[agents.swf_executor] → config_file = ~/.codex/agents/swf_executor.toml`；备份 `config.toml.bak-plan-execute-20260808` 存在。
 - role 文件：name/description/nickname_candidates/model=flash/model_reasoning_effort=xhigh/developer_instructions；**无 fallback 键**。python tomllib 复解析通过（含断言）。
 - `ocx agent status` 实况：`injection.model = opencode-go/deepseek-v4-flash`、`injection.effort = xhigh`、`injection.syncCodexSubagentDefaults = true`、`fallback.models = none`、efforts 含 `xhigh`、`subagents.chosen` 当前仅 flash。
 核查：Host 假设全部满足；delta 记录基本准确（见 §6 第 4/6 条）。
