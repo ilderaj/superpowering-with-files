@@ -29,7 +29,7 @@ test('defines search-ready title, description, canonical, robots, and theme colo
   assert.match(compactHtml, new RegExp(`<meta name="description" content="${expectedDescription}" \\/>`));
   assert.match(compactHtml, new RegExp(`<link rel="canonical" href="${expectedUrl}" \\/>`));
   assert.match(compactHtml, /<meta name="robots" content="index, follow, max-image-preview:large" \/>/);
-  assert.match(compactHtml, /<meta name="theme-color" content="#faf9f5" \/>/);
+  assert.match(compactHtml, /<meta name="theme-color" content="#f7f7f4" \/>/);
 });
 
 test('defines Open Graph and Twitter metadata for repository sharing', () => {
