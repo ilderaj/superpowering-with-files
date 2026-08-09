@@ -13,6 +13,41 @@ That's it! The skill is now active.
 
 ---
 
+## What Each Install Route Actually Ships
+
+Not every route delivers every surface. This matrix is the difference between "installed" and "fully working":
+
+| Route | SKILL.md + scripts + templates | Slash commands (`/plan-goal`, `/plan-loop`, `/plan-attest`, `/plan-doctor`) | Hooks (plan injection, Stop check, PreCompact) |
+|---|---|---|---|
+| Plugin: `/plugin marketplace add` + `/plugin install` | Yes | **Yes** | **Yes** |
+| `npx skills add OthmanAdi/planning-with-files` | Yes | No (`commands/` is not copied) | Frontmatter hooks; see the two silent killers below |
+| ClawHub / manual skill copy to `~/.claude/skills/` | Yes | No | Frontmatter hooks; see below |
+
+Two conditions can leave a skill-route install **silently hook-less** — everything looks installed, but no plan context is ever injected:
+
+1. **Project trust.** A project-level install (`.claude/skills/` inside the repo) only activates after the project's trust dialog is accepted (`hasTrustDialogAccepted`). Headless or scripted sessions that never accepted trust load no project skills, and nothing prints an error.
+2. **Hook registration.** SKILL.md frontmatter hooks have been observed not to register on some project-level skill installs (observed on headless Claude Code 2.1.201 during the July 2026 benchmark). The plugin route registers hooks reliably.
+
+If hooks matter to you (they are the differentiating mechanism of this skill), install via the plugin route. Either way, verify with the doctor:
+
+```bash
+sh scripts/plan-doctor.sh    # from your project root; reports resolution, injection, latency
+```
+
+---
+
+## Reliability Tip: Belt-and-Suspenders Trigger
+
+Skill descriptions trigger probabilistically — in our July 2026 benchmark, unforced engagement was 60-67%, while an always-loaded rules-file instruction engaged 100% of the time. If you want the skill to fire every time a task is complex, add one line to your project's `CLAUDE.md` (or global `~/.claude/CLAUDE.md`):
+
+```markdown
+When a task needs 3+ steps or 5+ tool calls, invoke the planning-with-files skill first and keep task_plan.md current.
+```
+
+The skill description still handles discovery; the rules line makes engagement deterministic. Both together cost nothing when no complex task is running.
+
+---
+
 ## Installation Methods
 
 ### 1. Claude Code Plugin (Recommended)

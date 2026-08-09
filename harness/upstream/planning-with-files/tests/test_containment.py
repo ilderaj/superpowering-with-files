@@ -32,6 +32,29 @@ def have_sh() -> bool:
     return shutil.which("sh") is not None
 
 
+def host_realpath(sh_path: str) -> str:
+    """Canonicalize a path emitted by an sh script for host-side comparison.
+
+    Under Git Bash on Windows the resolver prints POSIX-style paths, and the
+    user temp directory is mounted at /tmp, so os.path.realpath on the raw
+    string would resolve against a nonexistent C:\\tmp and the containment
+    assertion would fail even though the resolved dir is contained. Map the
+    path back to its Windows form with cygpath first, then canonicalize.
+    """
+    if os.name == "nt" and sh_path.startswith("/"):
+        cygpath = shutil.which("cygpath")
+        if cygpath:
+            mapped = subprocess.run(
+                [cygpath, "-w", sh_path],
+                text=True,
+                capture_output=True,
+                check=False,
+            ).stdout.strip()
+            if mapped:
+                sh_path = mapped
+    return os.path.realpath(sh_path)
+
+
 def can_make_escaping_symlink() -> bool:
     """True only if we can create a dir symlink that realpath sees escaping root.
 
@@ -75,6 +98,7 @@ class ContainmentTests(unittest.TestCase):
             ["sh", str(RESOLVE_SH)],
             cwd=str(cwd),
             text=True,
+            encoding="utf-8",
             capture_output=True,
             env=env,
             check=False,
@@ -122,10 +146,12 @@ class ContainmentTests(unittest.TestCase):
                 resolved.endswith("escape"),
                 f"escaping symlink dir must be rejected, got {resolved!r}",
             )
-            # And the resolved path (if any) must stay under the root.
+            # And the resolved path (if any) must stay under the root. Compare
+            # both sides in the host path domain: the resolver's stdout is a
+            # POSIX-style path under Git Bash (see host_realpath).
             if resolved:
                 self.assertTrue(
-                    os.path.realpath(resolved).startswith(os.path.realpath(str(root))),
+                    host_realpath(resolved).startswith(os.path.realpath(str(root))),
                     f"resolved path escaped root: {resolved!r}",
                 )
 
@@ -149,6 +175,89 @@ class ContainmentTests(unittest.TestCase):
                 result.stdout.strip(),
                 "escaping symlink via PLAN_ID must yield empty (legacy fallback)",
             )
+
+
+INJECT_SH = REPO_ROOT / "skills" / "planning-with-files" / "scripts" / "inject-plan.sh"
+
+
+@unittest.skipUnless(have_sh(), "sh not available on this platform")
+class WindowsNativeCanonicalizerTests(unittest.TestCase):
+    """Regression: a Windows-native coreutils realpath (e.g. an installed
+    C:\\Program Files\\coreutils on PATH ahead of Git's usr/bin) canonicalizes
+    MSYS-style /c/... input to C:\\-style BACKSLASH output. The containment
+    prefix match in is_within_root is written with forward slashes, so every
+    canonical pair mismatched: the resolver (fail-closed) resolved nothing and
+    inject-plan.sh (guarded exit) emitted nothing — plan resolution and hook
+    injection silently dark on the whole machine. Found live 2026-07-18.
+
+    A PATH-prepended stub realpath reproduces the backslash output shape on
+    every platform, so this guards the norm_slashes fix on Linux CI too.
+    """
+
+    def make_backslash_realpath(self, bin_dir: Path) -> None:
+        stub = bin_dir / "realpath"
+        stub.write_text(
+            "#!/bin/sh\n"
+            "# test stub: Windows-native realpath shape (backslash separators)\n"
+            'case "$1" in\n'
+            '  "") exit 1 ;;\n'
+            '  /*) abs="$1" ;;\n'
+            '  .) abs="$(pwd -P)" ;;\n'
+            '  *) abs="$(pwd -P)/$1" ;;\n'
+            "esac\n"
+            "printf '%s\\n' \"$abs\" | sed 's|/|\\\\|g'\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        os.chmod(stub, 0o755)
+
+    def run_with_stub(self, script: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
+        with tempfile.TemporaryDirectory() as stub_tmp:
+            bin_dir = Path(stub_tmp) / "bin"
+            bin_dir.mkdir()
+            self.make_backslash_realpath(bin_dir)
+            env = os.environ.copy()
+            env.pop("PLAN_ID", None)
+            env["PATH"] = str(bin_dir) + os.pathsep + env.get("PATH", "")
+            return subprocess.run(
+                ["sh", str(script)],
+                cwd=str(cwd),
+                text=True,
+                encoding="utf-8",
+                capture_output=True,
+                env=env,
+                check=False,
+            )
+
+    def test_resolver_survives_backslash_realpath(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan = root / ".planning" / "real"
+            plan.mkdir(parents=True)
+            (plan / "task_plan.md").write_text("# real\n", encoding="utf-8")
+            (root / ".planning" / ".active_plan").write_text("real\n", encoding="utf-8")
+            result = self.run_with_stub(RESOLVE_SH, root)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertTrue(
+                result.stdout.strip().endswith("real"),
+                f"backslash canonical paths must not kill resolution, got {result.stdout!r}",
+            )
+
+    def test_inject_survives_backslash_realpath(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            plan = root / ".planning" / "real"
+            plan.mkdir(parents=True)
+            (plan / "task_plan.md").write_text("# real plan body\n", encoding="utf-8")
+            (root / ".planning" / ".active_plan").write_text("real\n", encoding="utf-8")
+            result = self.run_with_stub(INJECT_SH, root)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn(
+                "===BEGIN PLAN DATA===",
+                result.stdout,
+                f"injection must survive backslash canonical paths, got {result.stdout!r}",
+            )
+            self.assertIn("# real plan body", result.stdout)
 
 
 if __name__ == "__main__":

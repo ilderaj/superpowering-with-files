@@ -97,7 +97,7 @@ Once activated, the skill creates:
 
 ### Templates
 
-The skill includes starter templates in `.codebuddy/skills/planning-with-files/references/`:
+The skill includes starter templates in `.codebuddy/skills/planning-with-files/templates/`:
 - `task_plan.md` — Phase tracking template
 - `findings.md` — Research storage template
 - `progress.md` — Session logging template
@@ -209,8 +209,8 @@ Check:
 ### Need Templates?
 
 Templates are in:
-- **Workspace:** `.codebuddy/skills/planning-with-files/references/`
-- **Personal:** `~/.codebuddy/skills/planning-with-files/references/`
+- **Workspace:** `.codebuddy/skills/planning-with-files/templates/`
+- **Personal:** `~/.codebuddy/skills/planning-with-files/templates/`
 
 Copy them to your project root and customize.
 
@@ -229,7 +229,7 @@ Edit `.codebuddy/skills/planning-with-files/SKILL.md` to customize:
 
 Place custom templates in:
 ```
-.codebuddy/skills/planning-with-files/references/
+.codebuddy/skills/planning-with-files/templates/
 ```
 
 CodeBuddy will reference them automatically.

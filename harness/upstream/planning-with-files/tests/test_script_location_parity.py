@@ -45,6 +45,7 @@ DUAL_SHIPPED = [
     "ledger-summary.sh",
     "phase-status.ps1",
     "phase-status.sh",
+    "plan-doctor.sh",
     "resolve-plan-dir.ps1",
     "resolve-plan-dir.sh",
     "set-active-plan.ps1",

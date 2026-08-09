@@ -3,6 +3,10 @@
 # ينهي دائمًا برمز خروج 0 — يستخدم stdout للإبلاغ عن الحالة
 # يُستدعى بواسطة خطاف Stop للإبلاغ عن حالة اكتمال المهمة
 
+# issue #195: per-invocation opt-out (PLANNING_DISABLED=1) for one-shot/CI
+# sessions that share a cwd with a plan but never opted into it.
+[ "${PLANNING_DISABLED:-}" = "1" ] && exit 0
+
 PLAN_FILE="${1:-task_plan.md}"
 
 if [ ! -f "$PLAN_FILE" ]; then
@@ -32,6 +36,11 @@ fi
 : "${PENDING:=0}"
 
 # الإبلاغ عن الحالة (ينهي دائمًا برمز خروج 0 — المهام غير المكتملة حالة طبيعية)
+# issue #191: TOTAL=0 -> not phase-structured, stay silent
+if [ "$TOTAL" -eq 0 ]; then
+    exit 0
+fi
+
 if [ "$COMPLETE" -eq "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
     echo "[planning-with-files-ar] اكتملت جميع المراحل ($COMPLETE/$TOTAL). إذا كان لدى المستخدم عمل إضافي، أضف مراحل في task_plan.md قبل البدء."
 else

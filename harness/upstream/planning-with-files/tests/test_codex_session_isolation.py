@@ -34,6 +34,7 @@ class CodexSessionIsolationTests(unittest.TestCase):
             [sys.executable, str(HOOKS_DIR / script_name)],
             input=json.dumps(payload),
             text=True,
+            encoding="utf-8",
             capture_output=True,
             cwd=str(cwd),
             check=False,
@@ -65,6 +66,7 @@ class CodexSessionIsolationTests(unittest.TestCase):
                 ["sh", str(HOOKS_DIR / "user-prompt-submit.sh")],
                 cwd=str(root),
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 env={**os.environ, "PWF_SESSION_ID": "sess-A"},
                 check=False,
@@ -86,6 +88,7 @@ class CodexSessionIsolationTests(unittest.TestCase):
                 ["sh", str(HOOKS_DIR / "user-prompt-submit.sh")],
                 cwd=str(root),
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 env=env,
                 check=False,
@@ -102,6 +105,7 @@ class CodexSessionIsolationTests(unittest.TestCase):
                 ["sh", str(HOOKS_DIR / "user-prompt-submit.sh")],
                 cwd=str(root),
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 env=env,
                 check=False,
@@ -117,11 +121,7 @@ class CodexSessionIsolationTests(unittest.TestCase):
             payload = {"cwd": str(root), "session_id": "sess-B"}
             result = self.run_python_hook("pre_tool_use.py", payload, root)
             self.assertEqual(0, result.returncode, result.stderr)
-            # No systemMessage payload should be emitted
-            stdout = result.stdout.strip()
-            if stdout:
-                emitted = json.loads(stdout)
-                self.assertNotIn("systemMessage", emitted)
+            self.assertEqual("", result.stdout.strip())
 
     def test_stop_does_not_block_unattached_session(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -146,11 +146,11 @@ class CodexSessionIsolationTests(unittest.TestCase):
             env_b = {**os.environ, "PWF_SESSION_ID": "sess-B"}
             ra = subprocess.run(
                 ["sh", str(HOOKS_DIR / "user-prompt-submit.sh")],
-                cwd=str(root), text=True, capture_output=True, env=env_a, check=False,
+                cwd=str(root), text=True, encoding="utf-8", capture_output=True, env=env_a, check=False,
             )
             rb = subprocess.run(
                 ["sh", str(HOOKS_DIR / "user-prompt-submit.sh")],
-                cwd=str(root), text=True, capture_output=True, env=env_b, check=False,
+                cwd=str(root), text=True, encoding="utf-8", capture_output=True, env=env_b, check=False,
             )
             self.assertIn("ACTIVE PLAN", ra.stdout)
             self.assertNotIn("ACTIVE PLAN", rb.stdout)

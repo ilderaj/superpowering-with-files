@@ -14,6 +14,7 @@ Usage: python3 session-catchup.py [project-path]
 """
 
 import json
+import re
 import sys
 import os
 from pathlib import Path
@@ -44,13 +45,75 @@ def detect_ide() -> str:
     return 'unknown'
 
 
+def normalize_project_path(project_path: str) -> str:
+    """Absolute, platform-native spelling of a project path.
+
+    Git Bash / MSYS2 hands us /c/Users/... where Claude Code recorded
+    C:\\Users\\..., so the drive letter is restored before anything else.
+    """
+    p = project_path
+    if len(p) >= 3 and p[0] == '/' and p[2] == '/' and p[1].isalpha():
+        p = p[1].upper() + ':' + p[2:]
+    if ':' in p or '\\' in p:
+        try:
+            p = str(Path(p).resolve())
+        except (OSError, ValueError):
+            pass
+    return p
+
+
+def claude_sanitize(path_str: str, astral_width: int = 2) -> str:
+    """Spell a project path the way Claude Code names ~/.claude/projects entries.
+
+    Every character outside [A-Za-z0-9_-] becomes '-'. The count is in UTF-16
+    code units, not codepoints: Claude Code walks the name as UTF-16, so a
+    non-BMP character (an emoji in a folder name) costs TWO dashes. Passing
+    astral_width=1 produces the codepoint-width spelling for older stores.
+    """
+    return re.sub(
+        r'[^A-Za-z0-9_-]',
+        lambda m: '-' * (astral_width if ord(m.group()) > 0xFFFF else 1),
+        path_str,
+    )
+
+
+def store_candidates(normalized: str) -> List[str]:
+    """Every ~/.claude/projects spelling Claude Code has used, exact first.
+
+    Current versions fold '_' to '-' as well, but stores written before that
+    change kept it, and both are live on disk, so both spellings are probed.
+    The leading-dash-stripped forms cover stores created by pre-v3.8.0
+    versions of this script.
+    """
+    candidates: List[str] = []
+    for width in (2, 1):
+        exact = claude_sanitize(normalized, width)
+        for spelling in (exact, exact.replace('_', '-')):
+            if spelling not in candidates:
+                candidates.append(spelling)
+    for candidate in list(candidates):
+        stripped = candidate[1:] if candidate.startswith('-') else candidate
+        if stripped and stripped not in candidates:
+            candidates.append(stripped)
+    return candidates
+
+
 def get_project_dir_claude(project_path: str) -> Path:
-    """Convert project path to Claude's storage path format."""
-    sanitized = project_path.replace('/', '-')
-    if not sanitized.startswith('-'):
-        sanitized = '-' + sanitized
-    sanitized = sanitized.replace('_', '-')
-    return Path.home() / '.claude' / 'projects' / sanitized
+    """Resolve Claude Code's session store directory for a project path.
+
+    Probes the exact spelling first and falls back through the legacy
+    spellings, so a store written by any past version still resolves. Paths
+    containing '.', ' ' or any other non-alphanumeric character are folded
+    the same way Claude Code folds them, which is what makes recovery work
+    for hidden directories such as ~/.dotfiles (issue #209).
+    """
+    normalized = normalize_project_path(project_path)
+    projects_root = Path.home() / '.claude' / 'projects'
+    candidates = store_candidates(normalized)
+    for candidate in candidates:
+        if (projects_root / candidate).is_dir():
+            return projects_root / candidate
+    return projects_root / candidates[0]
 
 
 def get_project_dir_opencode(project_path: str) -> Optional[Path]:
@@ -76,6 +139,82 @@ def get_sessions_sorted(project_dir: Path) -> List[Path]:
     sessions = list(project_dir.glob('*.jsonl'))
     main_sessions = [s for s in sessions if not s.name.startswith('agent-')]
     return sorted(main_sessions, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def claude_session_cwd(session_file: Path) -> Optional[str]:
+    """The cwd a Claude Code transcript records, or None if it records none."""
+    try:
+        with open(session_file, 'r', encoding='utf-8', errors='replace') as f:
+            for _ in range(50):
+                line = f.readline()
+                if not line:
+                    break
+                try:
+                    data = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(data, dict):
+                    cwd = data.get('cwd')
+                    if isinstance(cwd, str) and cwd:
+                        return cwd
+    except OSError:
+        return None
+    return None
+
+
+def same_project_path(left: str, right: str) -> bool:
+    """Compare two absolute paths the way the host filesystem would."""
+    def canonical(value: str) -> str:
+        expanded = os.path.expanduser(value)
+        try:
+            return str(Path(expanded).resolve())
+        except (OSError, ValueError):
+            return os.path.abspath(expanded)
+
+    a, b = canonical(left), canonical(right)
+    if os.name == 'nt':
+        a, b = a.lower(), b.lower()
+    return a == b
+
+
+def filter_sessions_by_cwd(sessions: List[Path], project_path: str) -> Tuple[List[Path], Optional[str]]:
+    """Drop transcripts that positively belong to a different project.
+
+    Claude Code folds project paths into a single directory name, so two
+    projects whose paths differ only in folded characters (client.acme and
+    client-acme both fold to client-acme) share one store. Without this
+    filter a catchup in one of them prints the other's conversation into the
+    fresh context.
+
+    Fail open: transcripts that record no cwd are kept, because that field is
+    not present in every generation of the format, and a store whose sessions
+    all record another project is reported rather than silently used.
+    Returns (sessions_to_use, notice).
+    """
+    project_cmp = normalize_project_path(project_path)
+    mine: List[Path] = []
+    unknown: List[Path] = []
+    foreign: List[str] = []
+    for session in sessions:
+        cwd = claude_session_cwd(session)
+        if cwd is None:
+            unknown.append(session)
+        elif same_project_path(cwd, project_cmp):
+            mine.append(session)
+        else:
+            foreign.append(cwd)
+
+    if mine:
+        keep = [s for s in sessions if s in mine or s in unknown]
+        return keep, None
+    if foreign:
+        return [], (
+            "[planning-with-files] Session catchup skipped: "
+            f"{Path(sorted(set(foreign))[0]).name} and this project share one "
+            "~/.claude/projects directory, so no transcript here belongs to "
+            f"{project_cmp}."
+        )
+    return unknown, None
 
 
 def get_sessions_sorted_opencode(storage_dir: Path) -> List[Path]:
@@ -260,7 +399,11 @@ def main():
     if not project_dir.exists():
         return
 
-    sessions = get_sessions_sorted(project_dir)
+    sessions, cwd_notice = filter_sessions_by_cwd(
+        get_sessions_sorted(project_dir), project_path
+    )
+    if cwd_notice:
+        print(cwd_notice)
     if len(sessions) < 2:
         return
 
