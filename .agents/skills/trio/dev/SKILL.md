@@ -13,6 +13,10 @@ Inspect the current code or artifact first, along with constraints, ownership, a
 
 Use the highest feasible public seam. Keep the rule red before green: write one behavior at a time, observe a real RED before production text or code, write the smallest GREEN change, and refactor only while GREEN. Keep one vertical slice in flight; it must be independently verifiable. Reject implementation-coupled assertions, tautological expectations, bulk horizontal test batches, and mock-only proof.
 
+## Implementation Discipline
+
+Choose the simplest bounded solution that satisfies the verified slice and its constraints. Make the smallest root-cause diff against the existing code or text. Reuse an existing public surface before creating a new one. Add no speculative complexity: no speculative abstractions, configurable branches, or machinery the slice does not need. Preserve working behavior and architectural ownership while changing only what the slice requires. Fallbacks are explicit-contract-only: add a fallback only when the governing contract explicitly requires or permits one; never invent an unexpected fallback. Remove obsolete code only within the bound slice and only when removal is verifiable. Record out-of-scope findings in the Trio findings file without mutating the surface.
+
 ## Planning Contract
 
 Plan the smallest independently verifiable slice with exact files, dependencies, non-goals, proof command, evidence sink, stop conditions, and return contract. Every step must have a concrete outcome; use no placeholders. Keep durable task state in the Trio and do not create another authority or task-state surface.
