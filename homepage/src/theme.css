@@ -1,74 +1,68 @@
 /*
- * WebApp UX Tokens — shadcn/ui-aligned semantic layer for the Superpowering
- * with Files homepage.
+ * WebApp UX Tokens — shadcn/ui-aligned semantic layer, "Paper & Ink" (v2).
  *
- * Source of truth for every visual decision on this page:
- *  - shadcn/ui token contract (https://ui.shadcn.com/docs/theming)
- *  - restraint checklist from opencodex.me/zh-cn and cursor.com (2026-08 audit)
- *  - brand contract in DESIGN.md (warm cream canvas, coral accent, off-dark
- *    proof surfaces, editorial serif display + sans body)
+ * v2 replaces the v1 warm-editorial contract entirely. The language follows
+ * the reference audit (2026-08-09, sources loaded live):
+ *   - cursor.com: near-neutral paper canvas (#f7f7f4), ink foreground,
+ *     hairlines derived from ink at low alpha, ONE accent used sparingly,
+ *     ink-filled primary buttons, 4-12px radius scale, pills on CTAs/chips,
+ *     quiet hovers (surface shift, no transform), crisp ink focus rings.
+ *   - opencodex.me/zh-cn: flat surfaces, 1px hairlines, monochrome restraint,
+ *     terminal-centric product mock, mono reserved for code.
+ *   - shadcn/ui: semantic token contract below (component consumption via
+ *     --primary/--border/--ring/--radius; future `shadcn init` reuses these
+ *     variable names unchanged).
  *
- * Rule: components consume semantic tokens (`--primary`, `--border`, ...),
- * never raw hexes. Brand aliases (`--paper`, `--accent`, `--surface-dark`)
- * exist only to keep the DESIGN.md palette explicit and test-pinned.
- *
- * Why this palette: the warm cream floor and coral accent are the brand (pinned
- * by homepage-styles.test.mjs and the design contract). The neutral/hairline
- * system follows Cursor (`#f7f7f4` paper, borders derived from ink at low
- * alpha) and OpenCodex (flat surfaces, 1px hairlines, one accent, no chrome
- * gradients). The serif display + sans body pairing is the editorial voice the
- * contract requires; Inter is a compared fallback, not a default (tell 31).
+ * Brand: coral (#cc785c) survives as the single accent — status dot, badge
+ * accents, hover emphasis. It never fills large surfaces.
  */
 
 :root {
   color-scheme: light;
 
   /* --- shadcn/ui semantic token contract ---------------------------------- */
-  --background: #faf9f5;            /* warm paper floor (brand: --paper)      */
-  --foreground: #141413;            /* ink                                     */
-  --card: #fffdf8;                  /* raised warm white                      */
-  --card-foreground: #141413;
-  --popover: #fffdf8;
-  --popover-foreground: #141413;
-  --primary: #cc785c;               /* coral accent (brand: --accent)         */
-  --primary-foreground: #faf9f5;
-  --secondary: #f5f0e7;             /* warm sand surface (brand: --paper-warm)*/
-  --secondary-foreground: #141413;
-  --muted: #f8f4ed;                 /* muted surface (brand: --surface)       */
-  --muted-foreground: #6c6a64;      /* muted text (brand: --muted)            */
-  --accent: #f5f0e7;                /* subtle warm hover surface              */
-  --accent-foreground: #a9583e;     /* deep coral text                        */
+  --background: #f7f7f4;            /* near-neutral warm paper (cursor)       */
+  --foreground: #1f1e1a;            /* ink                                     */
+  --card: #ffffff;
+  --card-foreground: #1f1e1a;
+  --popover: #ffffff;
+  --popover-foreground: #1f1e1a;
+  --primary: #1f1e1a;               /* ink button (cursor primary)            */
+  --primary-foreground: #f7f7f4;
+  --secondary: #efeeea;             /* quiet surface                          */
+  --secondary-foreground: #1f1e1a;
+  --muted: #efeeea;
+  --muted-foreground: #6e6c65;
+  --accent: #cc785c;                /* brand coral, accents only              */
+  --accent-foreground: #a9583e;
   --destructive: #a9583e;
-  --destructive-foreground: #faf9f5;
-  --border: #e6dfd8;                /* hairline (brand: --line)               */
-  --input: #e6dfd8;
-  --ring: #a9583e;                  /* focus ring: deep coral, ink-grade       */
-  --radius: 0.625rem;               /* shadcn base radius, 10px (current)     */
+  --destructive-foreground: #ffffff;
+  --border: #e3e2dd;                /* ink @ ~12% hairline                    */
+  --input: #d8d7d1;
+  --ring: #1f1e1a;                  /* ink focus ring (cursor-style)          */
+  --radius: 0.5rem;                 /* shadcn base radius, 8px                */
 
-  /* --- brand aliases (DESIGN.md palette; values pinned by tests) ----------- */
-  --ink: #141413;
-  --body: #3d3d3a;
-  --paper: #faf9f5;
-  --paper-warm: #f5f0e7;
-  --surface: #f8f4ed;
-  --surface-card: #efe9de;
-  --surface-dark: #181715;
-  --surface-dark-soft: #252320;
-  --on-dark: #faf9f5;
-  --on-dark-muted: #c7c0b5;
-  --line: #e6dfd8;
+  /* --- brand aliases (v2; used by page surfaces, not the editorial v1 set) - */
+  --ink: #1f1e1a;
+  --paper: #f7f7f4;
+  --paper-warm: #f7f7f4;
+  --surface: #efeeea;
+  --surface-card: #e6e5e0;
+  --surface-dark: #171614;          /* terminal / proof surface              */
+  --surface-dark-soft: #242320;
+  --on-dark: #f7f7f4;
+  --on-dark-muted: #a8a69e;
+  --line: #e3e2dd;
   --accent: #cc785c;
   --accent-strong: #a9583e;
-  --muted: #6c6a64;
+  --muted: #6e6c65;
 
-  /* --- radius scale (shadcn-derived: sm=×0.6, md=×0.8, lg=×1, xl=×1.4,
-   *     2xl=×1.8; pills only on CTAs, badges, and chips) ------------------- */
-  --radius-sm: 0.375rem;            /* 6px: inputs, inline code, chips       */
-  --radius-md: 0.5rem;              /* 8px: controls, inner cards            */
-  --radius-lg: 0.625rem;            /* 10px: nested surfaces                 */
-  --radius-xl: 0.875rem;            /* 14px: large surfaces                  */
-  --radius-2xl: 1.125rem;           /* 18px: hero proof frame                */
-  --radius-pill: 9999px;            /* buttons, badges, lanes                */
+  /* --- radius scale (shadcn-derived; pills only on CTAs/badges/chips) ----- */
+  --radius-sm: 0.375rem;            /* 6px: inline code, chips               */
+  --radius-md: 0.5rem;              /* 8px: controls, inner cells            */
+  --radius-lg: 0.625rem;            /* 10px: terminal, nested surfaces       */
+  --radius-xl: 0.75rem;             /* 12px: cards, hero mock                */
+  --radius-pill: 9999px;            /* buttons, badges, chips                */
 
   /* --- spacing scale (4/8/12/16/24/32/48/64) -------------------------------- */
   --space-1: 0.25rem;
@@ -80,8 +74,7 @@
   --space-12: 3rem;
   --space-16: 4rem;
 
-  /* --- typography scale ----------------------------------------------------- */
-  --font-display: Copernicus, 'Tiempos Headline', Georgia, serif;
+  /* --- typography scale (sans-first; serif removed in v2) ------------------ */
   --font-sans: StyreneB, Inter, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace;
   --text-xs: 0.75rem;
@@ -90,14 +83,13 @@
   --text-lg: 1.125rem;
   --text-xl: 1.25rem;
 
-  /* --- elevation: hairline first, shadow is a whisper (never a glow) ------- */
-  --shadow-xs: 0 1px 2px rgba(20, 20, 19, 0.04);
-  --shadow-sm: 0 1px 2px rgba(20, 20, 19, 0.05), 0 4px 12px -6px rgba(20, 20, 19, 0.06);
+  /* --- elevation: hairlines first; shadows are a whisper ------------------- */
+  --shadow-xs: 0 1px 2px rgba(31, 30, 26, 0.04);
+  --shadow-sm: 0 1px 2px rgba(31, 30, 26, 0.05), 0 8px 24px -12px rgba(31, 30, 26, 0.08);
 }
 
 /*
- * Interaction base: keyboard focus is a crisp ink-grade ring on the deep coral
- * (Cursor: 2px solid fg; shadcn: ring + ring-offset on --background).
+ * Interaction base: crisp ink-grade keyboard ring (cursor-style 2px outline).
  */
 :focus-visible {
   outline: 2px solid var(--ring);
@@ -105,23 +97,24 @@
 }
 
 /*
- * Button contract (shadcn button, variants):
- *  - default: --primary / --primary-foreground, pill radius
- *  - secondary: --secondary / --secondary-foreground, hairline
- *  - hover is a surface shift (background), never transform/scale (tell 25)
- *  - focus-visible: ring on --background offset
- *  - disabled: 50% opacity, no pointer events
+ * Button contract (shadcn button):
+ *  - default: ink fill (--primary), paper text — the cursor primary
+ *  - secondary: quiet surface + hairline
+ *  - hover = surface shift only, 150ms (no transform/scale)
+ *  - focus-visible ring on --background offset; disabled 50% + no pointer
  */
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 2.5rem;               /* shadcn default button height 40px     */
+  min-height: 2.5rem;
   padding: 0 var(--space-4);
   border-radius: var(--radius-pill);
   border: 1px solid transparent;
-  font-weight: 720;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 650;
   letter-spacing: -0.01em;
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
@@ -142,21 +135,21 @@ button:not(:disabled),
 }
 
 .button.primary:hover {
-  background: var(--accent-strong);
+  background: #3a3832;
 }
 
 .button.primary:active {
-  background: var(--destructive);
+  background: #000000;
 }
 
 .button.secondary {
   color: var(--secondary-foreground);
-  background: var(--secondary);
+  background: var(--card);
   border-color: var(--border);
 }
 
 .button.secondary:hover {
-  background: var(--surface-card);
+  background: var(--surface);
 }
 
 .button:disabled,
@@ -166,8 +159,8 @@ button:not(:disabled),
 }
 
 /*
- * Badge contract (shadcn badge): pill, small, used only for real status or
- * category labels — the hero eyebrow, the route badge, and the routing lanes.
+ * Badge contract (shadcn badge): pill, thin, real labels only (eyebrow,
+ * route badge, routing lanes).
  */
 .badge {
   display: inline-flex;
@@ -179,12 +172,12 @@ button:not(:disabled),
   background: var(--card);
   color: var(--foreground);
   font-size: var(--text-xs);
-  font-weight: 680;
-  letter-spacing: 0.02em;
+  font-weight: 650;
+  letter-spacing: 0.01em;
 }
 
 .badge--accent {
   color: var(--accent-foreground);
-  background: var(--muted);
+  background: rgba(204, 120, 92, 0.08);
   border-color: transparent;
 }

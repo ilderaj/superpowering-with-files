@@ -3,18 +3,29 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const css = readFileSync(new URL('./styles.css', import.meta.url), 'utf8');
+const theme = readFileSync(new URL('./theme.css', import.meta.url), 'utf8');
 
-test('keeps the warm editorial palette and dark proof surface from the design contract', () => {
-  assert.ok(css.includes('color-scheme: light'));
-  assert.ok(css.includes('--accent: #cc785c'));
-  assert.ok(css.includes('--paper: #faf9f5'));
-  assert.ok(css.includes('--surface-dark: #181715'));
-  assert.ok(css.includes('--line: #e6dfd8'));
-  assert.ok(css.includes("font-family: StyreneB, Inter, 'Helvetica Neue', Arial, sans-serif"));
-  assert.ok(css.includes("font-family: Copernicus, 'Tiempos Headline', Georgia, serif"));
+test('keeps the Paper & Ink token contract and the dark proof surface', () => {
+  assert.ok(theme.includes('color-scheme: light'));
+  assert.ok(theme.includes('--background: #f7f7f4'));
+  assert.ok(theme.includes('--accent: #cc785c'));
+  assert.ok(theme.includes('--paper: #f7f7f4'));
+  assert.ok(theme.includes('--surface-dark: #171614'));
+  assert.ok(theme.includes('--line: #e3e2dd'));
+  assert.ok(theme.includes("--font-sans: StyreneB, Inter, 'Helvetica Neue', Arial, sans-serif"));
+  assert.ok(theme.includes("--font-mono: 'JetBrains Mono', 'SFMono-Regular', Consolas, monospace"));
 });
 
-test('defines the key layout hooks used by the simplified homepage', () => {
+test('v2 restraint: no serif display, no gradients, no glass', () => {
+  const all = `${theme}\n${css}`;
+  const rules = all.replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(rules, /(?<!sans-)serif/);
+  assert.doesNotMatch(rules, /gradient/);
+  assert.doesNotMatch(rules, /backdrop-filter/);
+  assert.doesNotMatch(rules, /translateY\(-2px\)/);
+});
+
+test('defines the key layout hooks used by the homepage', () => {
   assert.ok(css.includes('.nav'));
   assert.ok(css.includes('.hero-grid'));
   assert.ok(css.includes('.product-card'));
@@ -41,5 +52,5 @@ test('includes sticky navigation and responsive single-column collapse', () => {
   assert.ok(css.includes('justify-items: stretch;'));
   assert.ok(css.includes('overflow-wrap: anywhere;'));
   assert.ok(css.includes('width: min(1180px, calc(100% - 28px));'));
-  assert.ok(css.includes('font-size: clamp(42px, 15vw, 60px);'));
+  assert.ok(css.includes('font-size: clamp(34px, 12vw, 48px);'));
 });
