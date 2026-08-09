@@ -1,10 +1,14 @@
-# التحقق من اكتمال جميع المراحل في task_plan.md
+﻿# التحقق من اكتمال جميع المراحل في task_plan.md
 # ينهي دائمًا برمز خروج 0 — يستخدم stdout للإبلاغ عن الحالة
 # يُستدعى بواسطة خطاف Stop للإبلاغ عن حالة اكتمال المهمة
 
 param(
     [string]$PlanFile = "task_plan.md"
 )
+
+# issue #195: per-invocation opt-out (PLANNING_DISABLED=1) for one-shot/CI
+# sessions that share a cwd with a plan but never opted into it.
+if ($env:PLANNING_DISABLED -eq '1') { exit 0 }
 
 if (-not (Test-Path $PlanFile)) {
     Write-Host '[planning-with-files-ar] لم يتم العثور على task_plan.md — لا توجد جلسة تخطيط نشطة.'

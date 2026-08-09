@@ -3,6 +3,8 @@ import io
 import json
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -237,6 +239,331 @@ class SessionCatchupCodexTests(unittest.TestCase):
         self.assertIn("Runtime: codex", output)
         self.assertIn("Last planning update: task_plan.md", output)
         self.assertIn("CODEX: Codex summary after planning update", output)
+
+    def test_codex_cli_prints_unicode_when_parent_requests_cp1252(self):
+        for filename in self.module.PLANNING_FILES:
+            (self.project_dir / filename).write_text("# test\n", encoding="utf-8")
+        self.write_codex_session(
+            "rollout-2026-04-07T00-00-00-unicode-thread.jsonl",
+            records=[
+                {
+                    "timestamp": "2026-04-07T00:00:02.000Z",
+                    "type": "event_msg",
+                    "payload": {
+                        "type": "patch_apply_end",
+                        "success": True,
+                        "changes": {"task_plan.md": {"operation": "modified"}},
+                    },
+                },
+                {
+                    "timestamp": "2026-04-07T00:00:03.000Z",
+                    "type": "response_item",
+                    "payload": {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {"type": "output_text", "text": "继续完成中文计划"},
+                        ],
+                    },
+                },
+            ],
+        )
+        env = os.environ.copy()
+        env["CODEX_SESSIONS_DIR"] = str(self.sessions_dir)
+        env["PYTHONIOENCODING"] = "cp1252"
+        env.pop("CODEX_THREAD_ID", None)
+
+        result = subprocess.run(
+            [sys.executable, str(self.codex_script), self.project_path],
+            capture_output=True,
+            encoding="utf-8",
+            env=env,
+            check=False,
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("继续完成中文计划", result.stdout)
+
+
+class SessionCatchupClaudeToolResultTests(unittest.TestCase):
+    """Tool outcome annotations on the Claude session path (v3.8.0).
+
+    GOLDEN_RESULT_FREE was captured from the pre-annotation script on the same
+    fixture: transcripts without tool_result entries must keep byte-identical
+    catchup output.
+    """
+
+    SESSION_STEM = "11111111-aaaa-bbbb-cccc-000000000001"
+
+    GOLDEN_RESULT_FREE = (
+        "\n[planning-with-files] SESSION CATCHUP DETECTED\n"
+        "Previous session: 11111111-aaaa-bbbb-cccc-000000000001\n"
+        "Runtime: claude\n"
+        "Last planning update: task_plan.md at message #1\n"
+        "Unsynced messages: 2\n"
+        "\n--- UNSYNCED CONTEXT ---\n"
+        "USER: Please run the tests and fix the failures\n"
+        "CLAUDE: Running tests now\n"
+        "  Tools: Bash: pytest -q\n"
+        "\n--- RECOMMENDED ---\n"
+        "1. Run: git diff --stat\n"
+        "2. Read: task_plan.md, progress.md, findings.md\n"
+        "3. Update planning files based on above context\n"
+        "4. Continue with task\n"
+    )
+
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.root = Path(self.tempdir.name)
+        self.project_dir = self.root / "project"
+        self.project_dir.mkdir()
+        self.project_path = str(self.project_dir)
+        self.module = load_module(SCRIPT_SOURCE)
+        for filename in self.module.PLANNING_FILES:
+            (self.project_dir / filename).write_text("# test\n", encoding="utf-8")
+        sanitized = self.module._claude_sanitize(
+            self.module.normalize_path(self.project_path)
+        )
+        self.claude_project_dir = self.root / ".claude" / "projects" / sanitized
+        self.claude_project_dir.mkdir(parents=True)
+
+    def tearDown(self):
+        self.tempdir.cleanup()
+
+    def base_records(self):
+        # Line 0 keeps the session above MIN_SESSION_BYTES, line 1 is the last
+        # planning update, lines 2-3 are the unsynced tail under test.
+        return [
+            {
+                "type": "assistant",
+                "message": {"content": [{"type": "text", "text": "x" * 6000}]},
+            },
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": "toolu_plan",
+                            "name": "Write",
+                            "input": {
+                                "file_path": str(self.project_dir / "task_plan.md")
+                            },
+                        }
+                    ]
+                },
+            },
+            {
+                "type": "user",
+                "message": {"content": "Please run the tests and fix the failures"},
+            },
+            {
+                "type": "assistant",
+                "message": {
+                    "content": [
+                        {"type": "text", "text": "Running tests now"},
+                        {
+                            "type": "tool_use",
+                            "id": "toolu_bash1",
+                            "name": "Bash",
+                            "input": {"command": "pytest -q"},
+                        },
+                    ]
+                },
+            },
+        ]
+
+    def tool_result_record(self, *, use_id="toolu_bash1", is_error=None, text=""):
+        item = {
+            "type": "tool_result",
+            "tool_use_id": use_id,
+            "content": [{"type": "text", "text": text}],
+        }
+        if is_error is not None:
+            item["is_error"] = is_error
+        return {"type": "user", "message": {"content": [item]}}
+
+    def write_claude_session(self, records):
+        path = self.claude_project_dir / f"{self.SESSION_STEM}.jsonl"
+        with path.open("w", encoding="utf-8") as f:
+            for record in records:
+                f.write(json.dumps(record) + "\n")
+        return path
+
+    def run_main(self):
+        stdout = io.StringIO()
+        with mock.patch("pathlib.Path.home", return_value=self.root):
+            with mock.patch.object(
+                self.module.sys,
+                "argv",
+                ["session-catchup.py", self.project_path],
+            ):
+                with redirect_stdout(stdout):
+                    self.module.main()
+        return stdout.getvalue()
+
+    def test_result_free_fixture_is_byte_identical_to_legacy_output(self):
+        self.write_claude_session(self.base_records())
+        self.assertEqual(self.GOLDEN_RESULT_FREE, self.run_main())
+
+    def test_error_result_annotates_tool_line_with_first_error_line(self):
+        records = self.base_records()
+        records.append(
+            self.tool_result_record(
+                is_error=True,
+                text="E   assert 1 == 2\nFAILED tests/test_x.py::test_y",
+            )
+        )
+        self.write_claude_session(records)
+        expected = self.GOLDEN_RESULT_FREE.replace(
+            "  Tools: Bash: pytest -q\n",
+            "  Tools: Bash: pytest -q -> FAILED (E   assert 1 == 2)\n",
+        )
+        self.assertEqual(expected, self.run_main())
+
+    def test_success_result_annotates_tool_line_with_ok(self):
+        records = self.base_records()
+        records.append(
+            self.tool_result_record(is_error=False, text="42 passed in 1.02s")
+        )
+        self.write_claude_session(records)
+        expected = self.GOLDEN_RESULT_FREE.replace(
+            "  Tools: Bash: pytest -q\n",
+            "  Tools: Bash: pytest -q -> ok\n",
+        )
+        self.assertEqual(expected, self.run_main())
+
+    def test_unmatched_result_leaves_tool_line_unannotated(self):
+        records = self.base_records()
+        records.append(
+            self.tool_result_record(use_id="toolu_other", is_error=True, text="boom")
+        )
+        self.write_claude_session(records)
+        self.assertEqual(self.GOLDEN_RESULT_FREE, self.run_main())
+
+    def test_missing_is_error_counts_as_success(self):
+        records = self.base_records()
+        records.append(self.tool_result_record(text="clean run"))
+        self.write_claude_session(records)
+        self.assertIn("  Tools: Bash: pytest -q -> ok\n", self.run_main())
+
+    def test_error_excerpt_is_hard_truncated(self):
+        records = self.base_records()
+        records.append(self.tool_result_record(is_error=True, text="E" * 300))
+        self.write_claude_session(records)
+        expected_line = "  Tools: Bash: pytest -q -> FAILED (" + "E" * 80 + ")\n"
+        self.assertIn(expected_line, self.run_main())
+
+    def test_string_result_content_is_read(self):
+        records = self.base_records()
+        records.append(
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "toolu_bash1",
+                            "is_error": True,
+                            "content": "pytest: command not found",
+                        }
+                    ]
+                },
+            }
+        )
+        self.write_claude_session(records)
+        self.assertIn(
+            "  Tools: Bash: pytest -q -> FAILED (pytest: command not found)\n",
+            self.run_main(),
+        )
+
+
+class OpencodeToolResultAnnotationTests(unittest.TestCase):
+    """_format_opencode_part outcome annotations (v3.8.0), schema-defensive.
+
+    Rows without a terminal state.status must render exactly as before.
+    """
+
+    def setUp(self):
+        self.module = load_module(SCRIPT_SOURCE)
+
+    def format_part(self, data):
+        msg = self.module._format_opencode_part(data, "ses_abcdef123")
+        self.assertIsNotNone(msg)
+        return msg["summary"]
+
+    def test_state_without_status_renders_as_before(self):
+        summary = self.format_part(
+            {
+                "type": "tool",
+                "tool": "bash",
+                "state": {"input": {"command": "pytest -q"}},
+            }
+        )
+        self.assertEqual("Tool bash: pytest -q", summary)
+
+    def test_completed_status_appends_ok(self):
+        summary = self.format_part(
+            {
+                "type": "tool",
+                "tool": "bash",
+                "state": {
+                    "status": "completed",
+                    "input": {"command": "pytest -q"},
+                    "output": "42 passed",
+                },
+            }
+        )
+        self.assertEqual("Tool bash: pytest -q -> ok", summary)
+
+    def test_error_status_appends_failed_with_error_excerpt(self):
+        summary = self.format_part(
+            {
+                "type": "tool",
+                "tool": "write",
+                "state": {
+                    "status": "error",
+                    "input": {"filePath": "/p/task_plan.md"},
+                    "error": "EACCES: permission denied\nmore detail",
+                },
+            }
+        )
+        self.assertEqual(
+            "Tool write: /p/task_plan.md -> FAILED (EACCES: permission denied)",
+            summary,
+        )
+
+    def test_error_status_falls_back_to_output_excerpt(self):
+        summary = self.format_part(
+            {
+                "type": "tool",
+                "tool": "bash",
+                "state": {
+                    "status": "error",
+                    "input": {"command": "pytest -q"},
+                    "output": "1 failed, 41 passed",
+                },
+            }
+        )
+        self.assertEqual(
+            "Tool bash: pytest -q -> FAILED (1 failed, 41 passed)", summary
+        )
+
+    def test_error_status_without_text_appends_bare_failed(self):
+        summary = self.format_part(
+            {
+                "type": "tool",
+                "tool": "bash",
+                "state": {"status": "error", "input": {"command": "pytest -q"}},
+            }
+        )
+        self.assertEqual("Tool bash: pytest -q -> FAILED", summary)
+
+    def test_non_dict_state_is_ignored(self):
+        summary = self.format_part(
+            {"type": "tool", "tool": "read", "state": None}
+        )
+        self.assertEqual("Tool read", summary)
 
 
 if __name__ == "__main__":

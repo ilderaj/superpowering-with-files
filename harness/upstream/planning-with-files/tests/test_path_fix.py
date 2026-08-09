@@ -1,59 +1,51 @@
-"""Test the path sanitization fix for session-catchup.py"""
+"""Test the path sanitization in scripts/session-catchup.py.
+
+Loads the real module via importlib (the filename has a hyphen, so it can't
+be `import`-ed normally) and exercises its actual get_project_dir_claude,
+instead of reimplementing the logic here. An earlier version of this file
+reimplemented a fixed sanitizer for testing "to avoid import issues" — that
+reimplementation was correct, but it meant the suite stayed green while the
+shipped session-catchup.py (which it never touched) was still broken on
+Windows. See CHANGELOG for the fix this guards.
+"""
+import importlib.util
 import os
 import sys
+import unittest
 from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'skills', 'planning-with-files', 'scripts'))
+REPO_ROOT = Path(__file__).resolve().parent.parent
+MODULE_PATH = REPO_ROOT / "scripts" / "session-catchup.py"
 
-# Re-implement the fix here for testing (avoids import issues)
-def normalize_path(project_path):
-    p = project_path
-    # Git Bash / MSYS2: /c/Users/... -> C:/Users/...
-    if len(p) >= 3 and p[0] == '/' and p[2] == '/':
-        p = p[1].upper() + ':' + p[2:]
-    try:
-        resolved = str(Path(p).resolve())
-        if os.name == 'nt' or os.sep == '\\':
-            p = resolved
-    except (OSError, ValueError):
-        pass
-    return p
+spec = importlib.util.spec_from_file_location("session_catchup", MODULE_PATH)
+assert spec is not None and spec.loader is not None
+session_catchup = importlib.util.module_from_spec(spec)
+sys.modules["session_catchup"] = session_catchup
+spec.loader.exec_module(session_catchup)
 
 
-def sanitize(project_path):
-    normalized = normalize_path(project_path)
-    sanitized = normalized.replace('\\', '-').replace('/', '-').replace(':', '-')
-    sanitized = sanitized.replace('_', '-')
-    if sanitized.startswith('-'):
-        sanitized = sanitized[1:]
-    return sanitized
+class SessionCatchupPathSanitizeTests(unittest.TestCase):
+    def _sanitized_name(self, project_path: str) -> str:
+        project_dir = session_catchup.get_project_dir_claude(project_path)
+        return project_dir.name
+
+    @unittest.skipUnless(os.name == "nt", "Windows-shaped input; on POSIX Path.resolve() treats C:/... as relative and prepends the CWD")
+    def test_windows_native_path(self) -> None:
+        result = self._sanitized_name("C:/Users/oasrvadmin/Documents/planning-with-files-repo")
+        self.assertEqual(result, "C--Users-oasrvadmin-Documents-planning-with-files-repo")
+
+    @unittest.skipUnless(os.name == "nt", "Windows-shaped input; on POSIX Path.resolve() treats C:/... as relative and prepends the CWD")
+    def test_git_bash_path(self) -> None:
+        result = self._sanitized_name("/c/Users/oasrvadmin/Documents/planning-with-files-repo")
+        self.assertEqual(result, "C--Users-oasrvadmin-Documents-planning-with-files-repo")
+
+    @unittest.skipIf(os.name == "nt", "exercises the real-Unix-path branch, not meaningful on Windows")
+    def test_unix_absolute_path_unchanged(self) -> None:
+        # Real Unix paths never contain ':' or '\\', so this must take the
+        # legacy branch untouched by the Windows fix (regression guard).
+        result = self._sanitized_name("/home/user/project")
+        self.assertEqual(result, "-home-user-project")
 
 
-expected = "C--Users-oasrvadmin-Documents-planning-with-files-repo"
-
-tests = {
-    "Git Bash": "/c/Users/oasrvadmin/Documents/planning-with-files-repo",
-    "Forward slash": "C:/Users/oasrvadmin/Documents/planning-with-files-repo",
-}
-
-all_pass = True
-for label, path in tests.items():
-    result = sanitize(path)
-    claude_dir = Path.home() / '.claude' / 'projects' / result
-    match = result == expected
-    exists = claude_dir.exists()
-    print(f"[{label}]")
-    print(f"  Input:    {path}")
-    print(f"  Result:   {result}")
-    print(f"  Expected: {expected}")
-    print(f"  Match:    {match}")
-    print(f"  Dir exists: {exists}")
-    print()
-    if not match:
-        all_pass = False
-
-if all_pass:
-    print("ALL TESTS PASSED")
-else:
-    print("SOME TESTS FAILED")
-    sys.exit(1)
+if __name__ == "__main__":
+    unittest.main()

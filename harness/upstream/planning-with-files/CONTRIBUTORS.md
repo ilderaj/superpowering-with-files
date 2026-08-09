@@ -106,6 +106,54 @@ These amazing people have contributed code, documentation, or significant improv
 
 ### Other Contributors
 
+- **[@webwww123](https://github.com/webwww123)** - [Issue #212](https://github.com/OthmanAdi/planning-with-files/issues/212)
+  - Reported that a Codex thread whose cwd is a shared parent injects an unrelated nested project's plan on every hook fire, with a working reproduction, a correct trace of the `PLAN_ID` to `.active_plan` to newest-by-mtime chain, and the observation that the Agent Skills route never received the session-attachment mechanism the `.codex` hooks got in #146
+  - **Impact:** v3.9.0 adds `PWF_PLAN_ROOT` for an absolute plan root binding that a cwd relative slug could not express, refuses to inject on an ambiguous cwd instead of guessing, and moves all eleven stale hook bearing SKILL.md variants onto the hardened dispatcher. Verifying the report also exposed that `PLANNING_DISABLED=1` was inoperative on those eleven routes, that the Stop hook could never find its script on six hosts, and that eight shipped PowerShell scripts could not be parsed by Windows PowerShell 5.1 at all
+
+- **[@killianMei](https://github.com/killianMei)** - [Issue #211](https://github.com/OthmanAdi/planning-with-files/issues/211)
+  - Traced the Pi extension's follow-up amplification to an `agent_end` handler that ignores its event argument entirely, and the stale status bar to the specific handlers that never publish once a plan is execution approved, citing every call site
+  - **Impact:** v3.9.0 returns from `agent_end` on a trailing assistant `stopReason` of `error` or `aborted` before the auto continue counter is touched, so a provider outage costs no retry budget, and publishes the phase count from all four active handlers including the all-phases-complete branch where the final transition never reached the bar; bundled Pi extension bumped to 1.2.3
+
+- **[@GlitterKill](https://github.com/GlitterKill)** - [Issue #210](https://github.com/OthmanAdi/planning-with-files/issues/210)
+  - Asked whether plan injection is deterministic enough not to break prompt caching, a question the project had never actually measured for the injection script itself
+  - **Impact:** v3.9.0 asserts byte-identical injection across fires in every context and mode, normalizes wall clock timestamps on the five routes that had never received the v2.40 pass, and corrects the skill text that attributed a whole-workflow token measurement to per tool call recitation
+
+- **[@seathatflowsinourveins](https://github.com/seathatflowsinourveins)** - [Issue #209](https://github.com/OthmanAdi/planning-with-files/issues/209)
+  - Reported that `session-catchup.py` never folded `.` while Claude Code does, so any project path containing a dot resolved to a `~/.claude/projects` directory that is never written, citing the exact blob, the two sanitize branches, and the `main()` line where the miss returns exit 0 with no output
+  - **Impact:** v3.8.2 folds every character Claude Code folds in the three remaining copies (one of them the copy every `/plugin install` runs on Linux, macOS and Git Bash), counts UTF-16 code units so emoji folder names resolve, and adds a per-session `cwd` filter so two projects sharing one folded directory name cannot read each other's transcripts
+
+- **[@fd44fdg](https://github.com/fd44fdg)** - [Issue #208](https://github.com/OthmanAdi/planning-with-files/issues/208)
+  - Reported that a stale `.planning/<id>/` directory silently shadowed a fresh root `task_plan.md` in the Pi extension while a false "No task_plan.md found" warning fired on every write and edit, with a root-cause trace against `resolvePlanPaths` and the `runtime.ts` warning path
+  - **Impact:** v3.8.1 anchors Pi plan resolution on the nearest ancestor with planning state (bounded by the `.git` repository boundary), labels every injection with the resolved plan id so shadowing is visible, and kills the subdirectory warning loop; bundled Pi extension bumped to 1.2.2
+
+- **[@jschmied](https://github.com/jschmied)** - [Issue #206](https://github.com/OthmanAdi/planning-with-files/issues/206)
+  - Diagnosed that pre-tool recitations and the tamper notice queued by the Pi extension's `tool_call` hook were delivered as steer, and that an interactive tool such as AskUserQuestion blocking the turn on its own custom UI consumed that steer text as the dialog's answer instead of letting it reach the model, pinning down the precise runtime location of the collision and the `nextTurn` delivery fix that shipped
+  - **Impact:** v3.5.1 delivers Pi extension recitations and the tamper notice as `nextTurn` instead of steer, so interactive tool dialogs no longer swallow injected planning text; bundled Pi extension bumped to 1.2.1
+
+- **[@yolo0731](https://github.com/yolo0731)** (yoloyq) - [PR #205](https://github.com/OthmanAdi/planning-with-files/pull/205), closes [Issue #204](https://github.com/OthmanAdi/planning-with-files/issues/204)
+  - Fixed the Codex hooks on Windows emitting invalid JSON and failing on Unicode: plain `[planning-with-files]` stdout where Codex expects `hookSpecificOutput.additionalContext` or a common-fields object, UTF-8 shell output decoded through the Windows code page, and `ensure_ascii=False` JSON written through cmd.exe
+  - Serialized each event in its supported Codex JSON shape with ASCII-safe output, decoded shell output as UTF-8, routed PreToolUse plan text through model-visible `additionalContext`, resolved scoped plans in PermissionRequest, added `clear|compact` SessionStart sources, wrote the `.active_plan` pointer without a BOM, and hardened the containment resolver to fail closed
+  - **Impact:** v3.5.0 makes the full Codex hook surface work on Windows across active-plan, no-plan, disabled, malformed-input, and Unicode scenarios
+
+- **[@ziyu4huang](https://github.com/ziyu4huang)** (Ziyu Huang) - [Issue #203](https://github.com/OthmanAdi/planning-with-files/issues/203)
+  - Reported that a closed and complete plan kept emitting "Task incomplete" nags for many turns, with a root-cause trace against the Pi extension's own exported `resolvePlanPaths`, `readPlanStatus`, and `isPlanIncomplete`
+  - **Impact:** v3.5.0 ranks newest-plan resolution by `task_plan.md` file mtime, adds close-marker awareness, and gates the nag on `status.closed`
+
+- **[@kcinzgg](https://github.com/kcinzgg)** (Kcinzgg) - [Issue #202](https://github.com/OthmanAdi/planning-with-files/issues/202)
+  - Asked for a direct statement of the plan-file lifecycle and why there is no archiving step, noting the earlier #14 had no visible resolution
+  - **Impact:** v3.5.0 documents the ephemeral-working-memory lifecycle in `docs/workflow.md`, with pointers from `quickstart.md` and the README FAQ
+
+- **[@mahdiit](https://github.com/mahdiit)** (Mahdi) - [Issue #201](https://github.com/OthmanAdi/planning-with-files/issues/201), [PR #207](https://github.com/OthmanAdi/planning-with-files/pull/207)
+  - Reported that Codex hooks failed on Windows with `hook exited with code 1`: the `.codex/hooks.json` commands were POSIX only, so the Windows command interpreter choked on `python3` (the Store alias), `2>/dev/null`, and the `|| true` success guard whose `true` is not a Windows command
+  - PR #207: after v3.4.1 still did not clear the hook errors on his machine, traced the remaining failure to the shell resolver preferring the WSL bash launcher over Git Bash whenever `usr\bin` was off PATH, and to `pwf-hook.cmd` losing the Python interpreter under Codex's reduced PATH; produced the fix with Codex Terra, having the resolver skip WSL launchers and adding a `PYTHON_BIN` override plus standard install-location probing to the launcher
+  - **Impact:** v3.4.1 adds per-hook `commandWindows` overrides, a `pwf-hook.cmd` launcher, a `run_sh.py` front door, and a git-bash resolver so all seven Codex hooks run on Windows; v3.5.1 closes the remaining WSL-launcher and Python-discovery gaps that PR #207 found
+
+- **[@Dikshj](https://github.com/Dikshj)** (diksha) - [PR #193](https://github.com/OthmanAdi/planning-with-files/pull/193), closes [Issue #190](https://github.com/OthmanAdi/planning-with-files/issues/190)
+  - Added the `/plan-execute` approval command to the Pi extension: hooks previously activated the moment `task_plan.md` existed, so plan injection, pre-tool recitation, post-write reminders, and auto-continue could start while the user was still reviewing a draft plan
+  - The extension now stays passive (status line only) until the user approves the active plan; approval is scoped to the current session and plan path, resets on session lifecycle events, and `/plan-execute reset` returns to passive review mode
+  - A plan with a tampered SHA-256 attestation cannot be approved, and the runtime test suite plus Python docs guards cover the passive review flow
+  - **Impact:** Pi users can draft and review a plan without the extension pushing execution before they have confirmed it, closing the workflow gap reported in #190
+
 - **[@2023Anita](https://github.com/2023Anita)** - [PR #180](https://github.com/OthmanAdi/planning-with-files/pull/180), [Issue #178](https://github.com/OthmanAdi/planning-with-files/issues/178)
   - Made the Codex Stop hook non-blocking for incomplete plans: `.codex/hooks/stop.py` previously emitted `{"decision": "block"}` on the first stop while phases were still pending, which pushed the agent to continue into the next phase without the user asking
   - Collapsed the conditional block path to a single advisory `systemMessage` and rewrote `.codex/hooks/stop.sh` to drop the imperative "continue working on the remaining phases" wording, keeping only the progress-sync reminder
@@ -275,6 +323,22 @@ These amazing people have contributed code, documentation, or significant improv
   - Linked the upstream OpenAI page so the canonical key change was easy to verify
   - **Impact:** v2.39.0 swaps the docs to `hooks = true` in four sites with an alias note, so new users get the canonical key while users on older configs are not pushed to migrate
 
+- **[@Stephen-abc](https://github.com/Stephen-abc)** (Wang Jun) - [PR #187](https://github.com/OthmanAdi/planning-with-files/pull/187)
+  - Fixed `UnicodeDecodeError` across 15 test files by adding explicit `encoding="utf-8"` to `subprocess.run`/`Popen` calls, which fail on Windows accounts whose default codepage isn't UTF-8
+  - Corrected `docs/adal.md`, `docs/antigravity.md`, `docs/kilocode.md`, and `docs/openclaw.md`, which referenced IDE-specific source folders (`.adal/`, `.agent/`, `.kilocode/`) removed in v2.24.0, and fixed a `references/` versus `templates/` mislabel in antigravity.md
+  - **Impact:** v3.2.0 test suite is now robust on non-UTF-8-default Windows accounts, and four installation guides point at paths that actually exist
+
+- **[@igorcosta](https://github.com/igorcosta)** (Igor Costa, Autohand) - [PR #192](https://github.com/OthmanAdi/planning-with-files/pull/192)
+  - Added `docs/autohand.md`, a setup guide for Autohand Code covering user-level and project-level Agent Skills installs
+  - Added Autohand Code to the README's supported-IDEs table
+  - **Impact:** planning-with-files now documents a supported install path for Autohand Code alongside the other 17+ platforms
+
+- **[@Yigtwxx](https://github.com/Yigtwxx)** (Yiğit Erdoğan) - [PR #198](https://github.com/OthmanAdi/planning-with-files/pull/198), [PR #199](https://github.com/OthmanAdi/planning-with-files/pull/199), [Issue #197](https://github.com/OthmanAdi/planning-with-files/issues/197)
+  - Filed #197 after running the suite on GitHub-hosted runners from a fork: the repo had a 200+ test pytest suite and a 21-test Pi vitest suite that CONTRIBUTING.md asks contributors to run, but no workflow ran either; the only CI was the Tessl skill-prose review
+  - PR #199 added `.github/workflows/tests.yml`: pytest on `ubuntu-latest` and `windows-latest` (Python 3.12) plus the Pi extension vitest suite (Node 22), on every pull request and push to master, with `contents: read` permissions, `fail-fast: false`, and an explicit `sh`-on-PATH assertion so hook tests cannot silently skip
+  - PR #198 fixed the two latent test-portability failures the first hosted run exposed, test-side only: a `host_realpath()` helper that maps the resolver's Git Bash POSIX path back with `cygpath` before the containment comparison, and `skipUnless(os.name == "nt")` on two Windows-shaped path vectors that fail on POSIX where `Path.resolve()` treats `C:/...` as relative
+  - **Impact:** every PR now runs the real test suite on both Linux and Windows, catching the recurring Windows regression class (the v3.2.0 audit found `session-catchup.py` silently broken on Windows) at PR time instead of at release audit time
+
 ## Community Forks
 
 These developers have created forks that extend the functionality:
@@ -299,6 +363,10 @@ Thank you to everyone who reported issues, provided feedback, and helped test fi
 - [@st01cs](https://github.com/st01cs) - Issue #28 (Devis fork discussion)
 - [@wqh17101](https://github.com/wqh17101) - Issue #11 testing and confirmation
 - [@luyanfeng](https://github.com/luyanfeng) - Issue #172 (OpenCode install/verify paths doubled the folder segment in docs/opencode.md; fixed in v2.43.0)
+- [@mixian939](https://github.com/mixian939) - Issue #191 (Codex hooks reporting a false "0/0 phases complete" status for an unstructured task_plan.md, with a full root-cause diagnosis and suggested fix; the audit this triggered found and fixed the same defect in the canonical scripts and two other IDE adapters, fixed in v3.2.0)
+- [@AvitalAviv](https://github.com/AvitalAviv) - Issue #188 (flagged that the repo had no private vulnerability disclosure channel; private vulnerability reporting is now enabled and documented in SECURITY.md)
+- [@lazyst](https://github.com/lazyst) - Issue #190 (feature request describing the Pi extension activating hooks on a draft plan before user confirmation, with the exact passive-until-confirmed behavior that shipped as `/plan-execute` in v3.3.0)
+- [@marcmuon](https://github.com/marcmuon) (Marc Kelechava) - Issue #195 (one-shot `codex exec` sessions sharing a cwd with an incomplete plan got hijacked and mutated orchestrator-owned plan files; the report's reproductions, root-cause file list, and acceptance criteria shipped directly as the `PLANNING_DISABLED=1` opt-out in v3.4.0)
 
 And many others who have starred, forked, and shared this project!
 
@@ -326,6 +394,6 @@ If you've contributed and don't see your name here, please open an issue! We wan
 
 ---
 
-**Total Contributors:** 46+ and growing!
+**Total Contributors:** 50+ and growing!
 
-*Last updated: June 13, 2026*
+*Last updated: August 1, 2026*

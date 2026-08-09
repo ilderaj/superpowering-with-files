@@ -14,7 +14,9 @@ passed, restoring slug-mode parity.
 """
 from __future__ import annotations
 
+import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -23,6 +25,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 CHECK_COMPLETE = REPO_ROOT / "scripts" / "check-complete.sh"
+CANONICAL_TEMPLATES = REPO_ROOT / "skills" / "planning-with-files" / "templates"
+ROOT_TEMPLATES = REPO_ROOT / "templates"
+
+# Both canonical plan templates ship 5 phases: Phase 1 in_progress, 2-5 pending.
+TEMPLATE_NAMES = ("task_plan.md", "task_plan_autonomous.md")
 
 
 PLAN_WITH_FIVE_PHASES = """# Task Plan: Smoke
@@ -70,6 +77,7 @@ class CheckCompleteResolverTests(unittest.TestCase):
             cmd,
             cwd=str(cwd),
             text=True,
+            encoding="utf-8",
             capture_output=True,
             env=env,
             check=False,
@@ -138,6 +146,117 @@ class CheckCompleteResolverTests(unittest.TestCase):
             self.assertEqual(0, result.returncode, result.stderr)
             self.assertIn("No task_plan.md found", result.stdout)
 
+
+class TemplateNextStepTests(unittest.TestCase):
+    """v3.8.0: plan templates gain a '## Next Step' section right after '## Goal'.
+
+    check-complete.sh derives phase totals from '### Phase' headings, status
+    counts from '**Status:** ...' lines, and the gate's in_progress phase name
+    from the first '### ' heading above an in_progress status. The new section
+    is a '##' heading plus one bracketed placeholder line, so none of those
+    patterns may shift. These tests run the real script against the real
+    templates to pin that down.
+    """
+
+    def template_body(self, name: str) -> str:
+        return (CANONICAL_TEMPLATES / name).read_text(encoding="utf-8")
+
+    def run_check_on_template(self, name: str, root: Path, *, gate: bool = False) -> subprocess.CompletedProcess[str]:
+        shutil.copyfile(CANONICAL_TEMPLATES / name, root / "task_plan.md")
+        cmd = ["sh", str(CHECK_COMPLETE)]
+        if gate:
+            cmd.append("--gate")
+        cmd.append("task_plan.md")
+        return subprocess.run(
+            cmd,
+            cwd=str(root),
+            text=True,
+            encoding="utf-8",
+            capture_output=True,
+            input=json.dumps({"stop_hook_active": False}),
+            check=False,
+        )
+
+    def test_canonical_templates_contain_next_step(self) -> None:
+        for name in TEMPLATE_NAMES:
+            body = self.template_body(name)
+            self.assertIn("## Next Step", body, name)
+            self.assertIn(
+                "[The single next action. Update whenever phase status changes.]",
+                body,
+                name,
+            )
+
+    def test_root_template_copy_contains_next_step(self) -> None:
+        # templates/task_plan.md is a manually maintained copy; sync-ide-folders
+        # does not manage the repo-root templates dir. The autonomous template
+        # deliberately has no root copy.
+        body = (ROOT_TEMPLATES / "task_plan.md").read_text(encoding="utf-8")
+        self.assertIn("## Next Step", body)
+
+    def test_next_step_sits_between_goal_and_current_phase(self) -> None:
+        # Placement contract: directly after ## Goal, so the section rides
+        # inside the head-30/head-50 hook injections.
+        for name in TEMPLATE_NAMES:
+            body = self.template_body(name)
+            goal = body.index("## Goal")
+            next_step = body.index("## Next Step")
+            current = body.index("## Current Phase")
+            self.assertLess(goal, next_step, name)
+            self.assertLess(next_step, current, name)
+
+    def test_template_phase_counts_unchanged(self) -> None:
+        # 5 phases, 0 complete, 1 in_progress, 4 pending, with the new section
+        # present. A count shift here means the section leaked a parse token.
+        for name in TEMPLATE_NAMES:
+            with tempfile.TemporaryDirectory() as tmp:
+                result = self.run_check_on_template(name, Path(tmp))
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn("0/5 phases complete", result.stdout, name)
+                self.assertIn("1 phase(s) still in progress", result.stdout, name)
+                self.assertIn("4 phase(s) pending", result.stdout, name)
+
+    def test_gate_extracts_phase_1_as_in_progress(self) -> None:
+        # in_progress extraction: the gate names the first in_progress phase in
+        # its block reason. '## Next Step' is a '##' heading, so the awk pass
+        # tracking '### ' headings must still land on Phase 1.
+        for name in TEMPLATE_NAMES:
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                (root / ".mode").write_text("gate\n", encoding="utf-8")
+                result = self.run_check_on_template(name, root, gate=True)
+                self.assertEqual(0, result.returncode, result.stderr)
+                decision_lines = [
+                    ln for ln in result.stdout.splitlines() if ln.startswith("{")
+                ]
+                self.assertEqual(1, len(decision_lines), result.stdout)
+                decision = json.loads(decision_lines[0])
+                self.assertEqual("block", decision["decision"], name)
+                self.assertIn(
+                    "Phase 1: Requirements & Discovery", decision["reason"], name
+                )
+
+
+
+    def test_init_session_output_contains_next_step(self):
+        """v3.8.1 regression: init-session writes plans from an inline heredoc,
+        not from templates/task_plan.md, so the v3.8.0 Next Step section never
+        reached created plans. Assert the OUTPUT, not the template."""
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory(prefix="pwf-nextstep-") as tmp:
+            script = REPO_ROOT / "skills" / "planning-with-files" / "scripts" / "init-session.sh"
+            result = subprocess.run(
+                ["sh", str(script), "next-step-probe"],
+                cwd=tmp, capture_output=True, text=True, timeout=60,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            created = Path(tmp) / ".planning"
+            plans = list(created.glob("*/task_plan.md"))
+            self.assertEqual(len(plans), 1, f"expected one plan, got {plans}")
+            body = plans[0].read_text(encoding="utf-8")
+            self.assertIn("## Next Step", body)
+            self.assertIn("[The single next action. Update whenever phase status changes.]", body)
 
 if __name__ == "__main__":
     unittest.main()

@@ -17,6 +17,9 @@ if (-not (Test-Path "task_plan.md")) {
 ## Goal
 [One sentence describing the end state]
 
+## Next Step
+[The single next action. Update whenever phase status changes.]
+
 ## Current Phase
 Phase 1
 

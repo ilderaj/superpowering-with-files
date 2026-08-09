@@ -1,10 +1,14 @@
-# 檢查 task_plan.md 中所有階段是否完成
+﻿# 檢查 task_plan.md 中所有階段是否完成
 # 始終以退出碼 0 結束 — 使用標準輸出回報狀態
 # 由 Stop 鉤子呼叫以回報任務完成狀態
 
 param(
     [string]$PlanFile = "task_plan.md"
 )
+
+# issue #195: per-invocation opt-out (PLANNING_DISABLED=1) for one-shot/CI
+# sessions that share a cwd with a plan but never opted into it.
+if ($env:PLANNING_DISABLED -eq '1') { exit 0 }
 
 if (-not (Test-Path $PlanFile)) {
     Write-Host '[planning-with-files] 未找到 task_plan.md — 沒有進行中的規劃會話。'

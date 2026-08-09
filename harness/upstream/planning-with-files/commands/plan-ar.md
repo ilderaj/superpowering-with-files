@@ -2,7 +2,7 @@
 description: "بدء تخطيط الملفات بنمط Manus. إنشاء task_plan.md و findings.md و progress.md للمهام المعقدة."
 ---
 
-استدعاء مهارة planning-with-files-ar:planning-with-files-ar وتنفيذ التعليمات بدقة.
+استدعاء مهارة planning-with-files:planning-with-files-ar وتنفيذ التعليمات بدقة.
 
 إذا لم تكن ملفات التخطيط الثلاثة موجودة في مجلد المشروع الحالي، قم بإنشائها:
 - task_plan.md — للمراحل والتقدم والقرارات
