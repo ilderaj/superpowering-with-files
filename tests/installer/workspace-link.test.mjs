@@ -4,7 +4,7 @@ import { execFile } from 'node:child_process';
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
-import { discoverAuthorityRoot } from '../../harness/runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../harness/trio/core/authority.mjs';
 import {
   createHarnessFixture,
   removeHarnessFixture

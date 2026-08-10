@@ -8,7 +8,7 @@ import {
   evaluateCheckpointPushReadiness
 } from '../lib/checkpoint-push.mjs';
 import { resolveWorktreeNaming } from '../lib/worktree-name.mjs';
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 
 const execFileAsync = promisify(execFile);
 

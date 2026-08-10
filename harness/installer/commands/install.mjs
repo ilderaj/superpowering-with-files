@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import { withTrioPublicationLock } from '../../trio/core/store.mjs';
 import {
   assertProductionRuntimeSelector,

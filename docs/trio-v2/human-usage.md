@@ -85,8 +85,27 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 **不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 strict 模式下让 Chief inline 改生产代码或让 native 顶包;不把静态角色配置当成动态 child 权限;不声称 actual model/role/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口;不把本地 fail-closed 路由契约当成已实现的 Host 生命周期桥。
 
-## 已验证现状与限制(2026-08-09 本会话)
+## worker 本地 goal 契约(`worker_self_goal`)
 
-- 本次桥接任务在 Host 分支 `codex/swf-executor-bridge-admission`、HEAD `4dec89dd`(合并 PR #148)、clean 状态下完成;规划三件套 hash 与派单一致。
-- 本地测试里程碑(本会话实测):focused host-routing/permission-routing 34/34;`npm run verify:trio` 227/227(含 import-boundary 终检);`verify:all` exit 0;`git diff --check` 无警告。
-- Host 集成限制(Phase 1 实测,`manual_pending`):Host 桌面端可创建/移交/观察可见任务,但无可注入的 authenticated 生命周期契约(role、精确 packet、actual model/effort、spawn/continue/status/interrupt/collect、动态 child 拒绝)。在这些能力被认证之前,任何 Host 生命周期或实际身份声明都只能停留在 `manual_pending`。
+`executionMode = worker_self_goal` 只在 worker 自身可见会话内成立,不是跨线程或 Host 级 goal 控制。该契约是闭合的七个字段:
+
+- `objective`(目标)、`successCriteria`(可验证成功条件)、`stopConditions`(必须停止的条件)、`expectedEvidence`(交付必须附带的证据)、`maxIterations`(1–100 的安全整数上限)、`milestoneCheckIn`(每个切片/里程碑后汇报)、`returnCondition`(只允许 `candidate_done` / `blocked` 等契约允许的结果)。
+- 字段缺失、类型不符或越界时,本地路由在派单前拒绝(`assertGoalContract`);worker 不发明新的返回状态,也不把候选结果冒充已验收。
+- 经济路由与角色/复杂度/结构化手动 override 只作为**请求事实**进入纯路由决策与只读输出(`trio next --dry-run --role/--complexity/--override-reason/--override-source`);写命令不接受这些只读参数。请求事实不等于 actual 证据。
+- **CLI fail-closed 契约**:任何 requested-model 决策都必须有已声明的工作角色。`trio next` 未给 `--role` 时直接报错退出(exit 1,提示 `trio next requires --role <workRole>`),绝不输出未分类模型(如 Luna);`status` 与全部 Trio 生命周期写命令(`init/progress/accept/stop/close/archive`)从不做模型决策,报告里 `model: null`。Host 侧的 Assignment Packet 同理:缺少 `capability.workRole`、执行角色缺少唯一合法复杂度、或 Chief 角色携带执行复杂度,均在派单/路由前被拒绝。
+
+## 手动 bind / handoff 与 `manual_pending` 恢复
+
+- **手动 bind**:在可见 worker 会话中显式绑定 `planning/active/<task-id>/` 三件套与派单 packet;绑定后任何 re-read/测试/编辑之前先复核三件套 hash 与工作区基线,不一致即 `binding_mismatch` 停止。
+- **手动 handoff**:把未完成的切片与证据连同 packet 交回 Chief 或另一个可见 worker 时,必须原样传递 `assignmentPacket`、`blocker`、`resumeCondition` 与已记录的 hash 证据;handoff 不自动证明 actual model/role。
+- **`manual_pending` 恢复三选一**(重复请求不会改变结果):
+  1. **提供/操作合规可见 worker**:用精确 packet 手动 bind 一个可见 worker 继续——只携带 requested 事实,不自动证明 actual;
+  2. **显式释放 strict 拓扑**:明确改回 default(接受 legacy visible→native→manual 链)后重派;
+  3. **等待/判定 blocked**:等待合规 Host 能力,或记录真实外部阻塞后 blocked,条件变化再恢复。
+
+  任何选项都不自动证明 actual model/role;这些都只是处置选择。
+
+## 当前边界与限制(截至 2026-08-10)
+
+- 本地 fail-closed 路由、goal 契约、economic 只读输出与 ChiefOps 治理伴生文件均以本仓库源码为准;本文件不声称任何外部安装已被迁移或采纳。
+- Host 集成限制:`manual_pending` 是设计内的诚实出口。在 Host 提供可注入的 authenticated 生命周期契约(role、精确 packet、actual model/effort、spawn/continue/status/interrupt/collect、动态 child 拒绝)之前,任何 Host 生命周期或实际身份声明都只能停留在 `manual_pending`,不得伪称。

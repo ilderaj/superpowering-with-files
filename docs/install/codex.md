@@ -49,7 +49,7 @@ Then use Codex's marketplace flow to enable the plugin when required by the inst
 
 ## Verify the package boundary
 
-The extracted package must contain `.codex-plugin/plugin.json` and exactly these four skills:
+The extracted package must contain `.codex-plugin/plugin.json`, exactly these four Trio skills, and the `skills/chiefops/SKILL.md` ChiefOps governance companion:
 
 ```text
 skills/trio/SKILL.md

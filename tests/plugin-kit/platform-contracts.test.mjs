@@ -16,6 +16,7 @@ test('platform contracts define only the Codex plugin target', () => {
     assert.ok(contract.requiredFiles.includes('skills/trio/dev/SKILL.md'));
     assert.ok(contract.requiredFiles.includes('skills/trio/office/SKILL.md'));
     assert.ok(contract.requiredFiles.includes('skills/trio/safety/SKILL.md'));
+    assert.ok(contract.requiredFiles.includes('skills/chiefops/SKILL.md'));
     assert.ok(!contract.requiredFiles.includes('skills/harness/SKILL.md'));
     assert.ok(!contract.requiredFiles.includes('hooks/hooks.json'));
     assert.ok(!contract.requiredFiles.includes('.mcp.json'));

@@ -1,11 +1,23 @@
 import { spawn } from 'node:child_process';
-import { cp, mkdir, readFile, rm } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { loadSourceLock, loadUpstreamSourceConfig, normalizeUpstreamSource } from './upstream-config.mjs';
 import { buildFetchPlan } from '../../../scripts/ci/lib/upstream-resolver.mjs';
 
 const UPSTREAM_ROOT = 'harness/upstream';
 const CANDIDATE_ROOT = '.harness/upstream-candidates';
+
+const PLANNING_WITH_FILES_LANGUAGE_ALLOWLIST = new Set([
+  'planning-with-files',
+  'planning-with-files-zh',
+  'planning-with-files-zht'
+]);
+
+const PLANNING_WITH_FILES_LANGUAGE_REMOVALS = [
+  'planning-with-files-ar',
+  'planning-with-files-de',
+  'planning-with-files-es'
+];
 function normalizeInside(rootDir, relativePath) {
   const resolved = path.resolve(rootDir, relativePath);
   const root = path.resolve(rootDir);
@@ -155,17 +167,53 @@ export async function stageGitCandidate(rootDir, sourceName, source, resolvedSou
   return candidatePath;
 }
 
+export async function curatePlanningWithFilesCandidate(candidatePath, overlayPath) {
+  if (overlayPath) {
+    await cp(overlayPath, candidatePath, { recursive: true, force: true });
+  }
+
+  const skillsDir = path.join(candidatePath, 'skills');
+  let entries;
+  try {
+    entries = await readdir(skillsDir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return candidatePath;
+    }
+    throw error;
+  }
+
+  const directories = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+  for (const name of directories) {
+    if (PLANNING_WITH_FILES_LANGUAGE_REMOVALS.includes(name)) {
+      await rm(path.join(skillsDir, name), { recursive: true, force: true });
+    }
+  }
+
+  const remaining = (await readdir(skillsDir, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  for (const name of remaining) {
+    if (!PLANNING_WITH_FILES_LANGUAGE_ALLOWLIST.has(name)) {
+      throw new Error(`Unsupported planning-with-files language variant: ${name}`);
+    }
+  }
+
+  return candidatePath;
+}
+
 export async function applyCandidate(rootDir, sourceName, source) {
   const candidatePath = candidatePathForSource(rootDir, sourceName);
   const targetPath = upstreamPathForSource(rootDir, sourceName, source);
   const overlayPath = overlayPathForSource(rootDir, sourceName, source);
+
+  if (sourceName === 'planning-with-files') {
+    await curatePlanningWithFilesCandidate(candidatePath, overlayPath);
+  }
+
   await rm(targetPath, { recursive: true, force: true });
   await mkdir(path.dirname(targetPath), { recursive: true });
   await cp(candidatePath, targetPath, { recursive: true, verbatimSymlinks: true });
-
-  if (overlayPath) {
-    await cp(overlayPath, targetPath, { recursive: true, force: true });
-  }
 
   return targetPath;
 }

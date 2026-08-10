@@ -3,9 +3,13 @@ import test from 'node:test';
 
 import * as routing from '../../harness/trio/core/routing.mjs';
 import {
+  SWF_EXECUTOR_PROFILES,
   SWF_EXECUTOR_ROLE,
+  adapterStatus,
+  renderCodexHandoffRequest,
   renderSwfExecutorAgentEntry,
   renderSwfExecutorRoleFile,
+  resolveSwfExecutorProfile,
   resolveCodexHostOperation
 } from '../../harness/trio/hosts/codex.mjs';
 import { resolveGenericHostOperation } from '../../harness/trio/hosts/generic.mjs';
@@ -43,7 +47,7 @@ function createAssignmentPacket() {
     currentSlice: { name: 'wave-4-host-routing' },
     nonGoals: ['no Host calls'],
     proof: { primary: ['focused tests'] },
-    capability: { requestedModel: 'gpt-5.6-luna', requestedEffort: 'max' },
+    capability: { workRole: 'chief', requestedModel: 'gpt-5.6-sol', requestedEffort: 'max' },
     allowedOperations: { files: ['harness/trio/hosts/generic.mjs'] },
     deadline: { stopConditions: ['binding mismatch'] },
     expectedReturn: { status: ['candidate_done', 'blocked'] }
@@ -55,7 +59,8 @@ test('resolveHostOperation selects a visible worker with exact route evidence', 
 
   const result = routing.resolveHostOperation({
     operation: 'spawn',
-    requestedModel: 'gpt-5.6-luna',
+    workRole: 'chief',
+    requestedModel: 'gpt-5.6-sol',
     requestedEffort: 'max',
     observation: {
       authenticated: true,
@@ -82,7 +87,7 @@ test('resolveHostOperation selects a visible worker with exact route evidence', 
 
   assert.deepEqual(Object.keys(result.routeEvidence), ROUTE_EVIDENCE_FIELDS);
   assert.equal(result.routeEvidence.routeKind, 'visible_worker');
-  assert.equal(result.routeEvidence.requestedModel, 'gpt-5.6-luna');
+  assert.equal(result.routeEvidence.requestedModel, 'gpt-5.6-sol');
   assert.equal(result.routeEvidence.requestedEffort, 'max');
   assert.equal(result.routeEvidence.actualModel, 'unknown');
   assert.equal(result.routeEvidence.actualEffort, 'unknown');
@@ -158,7 +163,8 @@ test('generic host adapter fails closed to a bounded manual pending descriptor',
 test('Host routing falls back from visible worker to native subagent and then manual pending', () => {
   const baseInput = {
     operation: 'spawn',
-    requestedModel: 'gpt-5.6-luna',
+    workRole: 'chief',
+    requestedModel: 'gpt-5.6-sol',
     requestedEffort: 'max',
     assignmentPacket: createAssignmentPacket(),
     permissionEnvelope: {
@@ -380,6 +386,7 @@ test('manual capability evidence preserves observed native support when safety i
 test('Codex host adapter normalizes explicit observations without executing an operation', () => {
   const result = resolveCodexHostOperation({
     operation: 'status',
+    workRole: 'chief',
     requestedWorkerId: 'observed-worker-1',
     observation: {
       authenticated: true,
@@ -484,6 +491,7 @@ test('Host routing ignores unauthenticated and request-side actual model claims'
 test('Host worker candidate status never becomes Chief acceptance', () => {
   const input = {
     operation: 'status',
+    workRole: 'chief',
     requestedWorkerId: 'observed-candidate-1',
     observation: {
       authenticated: true,
@@ -520,6 +528,7 @@ test('Host operation descriptors support spawn, continue, status, interrupt, and
   for (const operation of operations) {
     const result = resolveGenericHostOperation({
       operation,
+      workRole: 'chief',
       ...(operation === 'spawn' ? {} : { requestedWorkerId: 'observed-worker-ops' }),
       observation: {
         authenticated: true,
@@ -551,7 +560,8 @@ test('strict primary execution selects a visible worker when one is available', 
     assignmentPacket: {
       ...createAssignmentPacket(),
       capability: {
-        requestedModel: 'gpt-5.6-luna',
+        workRole: 'chief',
+        requestedModel: 'gpt-5.6-sol',
         requestedEffort: 'max',
         primaryExecution: 'visible_worker_required',
         childDelegation: 'prohibited'
@@ -588,7 +598,8 @@ test('strict primary execution never falls back to a native subagent', () => {
     assignmentPacket: {
       ...createAssignmentPacket(),
       capability: {
-        requestedModel: 'gpt-5.6-luna',
+        workRole: 'chief',
+        requestedModel: 'gpt-5.6-sol',
         requestedEffort: 'max',
         primaryExecution: 'visible_worker_required',
         childDelegation: 'prohibited'
@@ -644,7 +655,8 @@ test('strict primary execution fails closed when no visible worker capability is
     assignmentPacket: {
       ...createAssignmentPacket(),
       capability: {
-        requestedModel: 'gpt-5.6-luna',
+        workRole: 'chief',
+        requestedModel: 'gpt-5.6-sol',
         requestedEffort: 'max',
         primaryExecution: 'visible_worker_required',
         childDelegation: 'prohibited'
@@ -735,7 +747,8 @@ test('assignment packets carry topology intent inside capability without a new t
   const packet = routing.buildAssignmentPacket({
     ...createAssignmentPacket(),
     capability: {
-      requestedModel: 'gpt-5.6-luna',
+      workRole: 'chief',
+      requestedModel: 'gpt-5.6-sol',
       requestedEffort: 'max',
       primaryExecution: 'visible_worker_required'
     }
@@ -784,7 +797,8 @@ test('capability.childDelegation = prohibited denies any native child route even
     assignmentPacket: {
       ...createAssignmentPacket(),
       capability: {
-        requestedModel: 'gpt-5.6-luna',
+        workRole: 'chief',
+        requestedModel: 'gpt-5.6-sol',
         requestedEffort: 'max',
         childDelegation: 'prohibited'
       }
@@ -832,7 +846,8 @@ test('strict visible-worker-required packet without an explicit childDelegation 
     assignmentPacket: {
       ...createAssignmentPacket(),
       capability: {
-        requestedModel: 'gpt-5.6-luna',
+        workRole: 'chief',
+        requestedModel: 'gpt-5.6-sol',
         requestedEffort: 'max',
         primaryExecution: 'visible_worker_required'
       }
@@ -869,7 +884,8 @@ test('explicit worker_discretion and encouraged delegation are admitted on stric
       assignmentPacket: {
         ...createAssignmentPacket(),
         capability: {
-          requestedModel: 'gpt-5.6-luna',
+          workRole: 'chief',
+          requestedModel: 'gpt-5.6-sol',
           requestedEffort: 'max',
           primaryExecution: 'visible_worker_required',
           childDelegation
@@ -943,7 +959,8 @@ test('unknown childDelegation values fail closed before native child acceptance'
     assignmentPacket: {
       ...createAssignmentPacket(),
       capability: {
-        requestedModel: 'gpt-5.6-luna',
+        workRole: 'chief',
+        requestedModel: 'gpt-5.6-sol',
         requestedEffort: 'max',
         childDelegation: 'unknown-mode'
       }
@@ -989,7 +1006,8 @@ test('unknown capability.executionMode values fail closed before native child ac
     assignmentPacket: {
       ...createAssignmentPacket(),
       capability: {
-        requestedModel: 'gpt-5.6-luna',
+        workRole: 'chief',
+        requestedModel: 'gpt-5.6-sol',
         requestedEffort: 'max',
         executionMode: 'unknown-mode'
       }
@@ -1037,7 +1055,8 @@ test('unknown primary execution mode values fail closed', () => {
       assignmentPacket: {
         ...createAssignmentPacket(),
         capability: {
-          requestedModel: 'gpt-5.6-luna',
+          workRole: 'chief',
+          requestedModel: 'gpt-5.6-sol',
           requestedEffort: 'max',
           primaryExecution: 'unknown-mode'
         }
@@ -1066,7 +1085,8 @@ test('static role configuration alone grants no dynamic child permission', () =>
     assignmentPacket: {
       ...createAssignmentPacket(),
       capability: {
-        requestedModel: 'gpt-5.6-luna',
+        workRole: 'chief',
+        requestedModel: 'gpt-5.6-sol',
         requestedEffort: 'max',
         childDelegation: 'prohibited'
       }
@@ -1104,4 +1124,425 @@ test('static role configuration alone grants no dynamic child permission', () =>
 
   assert.equal(result.routeEvidence.routeKind, 'manual_pending');
   assert.equal(result.descriptor.executed, false);
+});
+
+test('Host routing consumes the validated packet policy and rejects conflicting outer model input', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'xhigh',
+      primaryExecution: 'visible_worker_required',
+      childDelegation: 'prohibited'
+    }
+  };
+  const base = {
+    operation: 'spawn',
+    assignmentPacket: packet,
+    observation: {
+      authenticated: true,
+      evidenceRef: 'economic-visible-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: true,
+        permissionBinding: true,
+        pathBinding: true
+      }
+    },
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/app'] }
+  };
+
+  const result = resolveGenericHostOperation(base);
+  assert.equal(result.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(result.routeEvidence.requestedModel, 'opencode-go/deepseek-v4-flash');
+  assert.equal(result.routeEvidence.requestedEffort, 'xhigh');
+  assert.equal(result.routeEvidence.actualModel, 'unknown');
+  assert.equal(result.routeEvidence.actualEffort, 'unknown');
+  assert.deepEqual(result.descriptor.assignmentPacket, packet);
+  assert.match(result.descriptor.packetDigest, /^[0-9a-f]{64}$/);
+  assert.equal(result.descriptor.executed, false);
+  assert.equal(Object.hasOwn(result.descriptor, 'threadId'), false);
+
+  assert.throws(
+    () => resolveGenericHostOperation({ ...base, requestedModel: 'gpt-5.6-sol' }),
+    /conflicts with the validated packet policy/i
+  );
+  assert.throws(
+    () => resolveGenericHostOperation({ ...base, requestedEffort: 'max' }),
+    /conflicts with the validated packet policy/i
+  );
+});
+
+test('packet capability validation runs before every Host route decision', () => {
+  const visibleObservation = {
+    authenticated: true,
+    evidenceRef: 'packet-validation-visible-1',
+    visibleWorker: {
+      visible: true,
+      operations: { spawn: true },
+      requestedModelEffortControls: true,
+      permissionBinding: true,
+      pathBinding: true
+    }
+  };
+  const envelopes = {
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/app'] }
+  };
+
+  assert.throws(
+    () => resolveGenericHostOperation({
+      operation: 'spawn',
+      assignmentPacket: {
+        ...createAssignmentPacket(),
+        capability: { workRole: 'deep-reasoning' }
+      },
+      observation: visibleObservation,
+      ...envelopes
+    }),
+    /unknown work role/i
+  );
+  assert.throws(
+    () => resolveGenericHostOperation({
+      operation: 'spawn',
+      assignmentPacket: {
+        ...createAssignmentPacket(),
+        capability: { workRole: 'coding', complexity: 'xhigh', executionMode: 'worker_self_goal' }
+      },
+      observation: visibleObservation,
+      ...envelopes
+    }),
+    /goal contract/i
+  );
+  assert.throws(
+    () => resolveGenericHostOperation({
+      operation: 'spawn',
+      assignmentPacket: {
+        ...createAssignmentPacket(),
+        capability: { workRole: 'coding', complexity: 'ultra' }
+      },
+      observation: visibleObservation,
+      ...envelopes
+    }),
+    /complexity/i
+  );
+});
+
+test('host operations fail closed without a declared work role or execution complexity', () => {
+  const observation = {
+    authenticated: true,
+    evidenceRef: 'host-negative-1',
+    visibleWorker: {
+      visible: true,
+      operations: { spawn: true },
+      requestedModelEffortControls: true,
+      permissionBinding: true,
+      pathBinding: true
+    }
+  };
+  const envelopes = {
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/app'] }
+  };
+
+  assert.throws(
+    () => resolveGenericHostOperation({
+      operation: 'spawn',
+      assignmentPacket: {
+        ...createAssignmentPacket(),
+        capability: {}
+      },
+      observation,
+      ...envelopes
+    }),
+    /declared workRole/i
+  );
+  assert.throws(
+    () => resolveGenericHostOperation({
+      operation: 'spawn',
+      assignmentPacket: {
+        ...createAssignmentPacket(),
+        capability: { workRole: 'coding' }
+      },
+      observation,
+      ...envelopes
+    }),
+    /exactly one valid complexity/i
+  );
+  assert.throws(
+    () => resolveGenericHostOperation({
+      operation: 'spawn',
+      assignmentPacket: {
+        ...createAssignmentPacket(),
+        capability: { workRole: 'planning', complexity: 'max' }
+      },
+      observation,
+      ...envelopes
+    }),
+    /execution-scoped/i
+  );
+  assert.throws(
+    () => resolveGenericHostOperation({
+      operation: 'spawn',
+      requestedModel: 'gpt-5.6-luna',
+      requestedEffort: 'max',
+      observation,
+      ...envelopes
+    }),
+    /declared workRole/i
+  );
+});
+
+test('packet digest authentication gates actual worker facts while identity binding stays exact', () => {
+  const packet = createAssignmentPacket();
+  const observationBase = {
+    authenticated: true,
+    evidenceRef: 'digest-observation-1',
+    workerId: 'observed-digest-worker',
+    status: 'idle',
+    actualModel: 'gpt-5.6-luna',
+    actualEffort: 'max',
+    visibleWorker: {
+      visible: true,
+      operations: { status: true },
+      requestedModelEffortControls: true,
+      permissionBinding: true,
+      pathBinding: true
+    }
+  };
+  const base = {
+    operation: 'status',
+    requestedWorkerId: 'observed-digest-worker',
+    assignmentPacket: packet,
+    permissionEnvelope: {
+      permissions: ['observe'],
+      operations: ['status'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: [] }
+  };
+
+  const spawn = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: packet,
+    observation: observationBase,
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/app'] }
+  });
+  const digest = spawn.descriptor.packetDigest;
+  assert.match(digest, /^[0-9a-f]{64}$/);
+
+  const unbound = resolveGenericHostOperation({
+    ...base,
+    observation: { ...observationBase, evidenceRef: 'digest-unbound-1' }
+  });
+  assert.equal(unbound.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(unbound.routeEvidence.workerId, 'observed-digest-worker');
+  assert.equal(unbound.routeEvidence.actualModel, 'unknown');
+  assert.equal(unbound.routeEvidence.actualEffort, 'unknown');
+
+  const mismatch = resolveGenericHostOperation({
+    ...base,
+    observation: {
+      ...observationBase,
+      evidenceRef: 'digest-mismatch-1',
+      packetDigest: '0'.repeat(64)
+    }
+  });
+  assert.equal(mismatch.routeEvidence.actualModel, 'unknown');
+  assert.equal(mismatch.routeEvidence.actualEffort, 'unknown');
+
+  const bound = resolveGenericHostOperation({
+    ...base,
+    observation: {
+      ...observationBase,
+      evidenceRef: 'digest-bound-1',
+      packetDigest: digest
+    }
+  });
+  assert.equal(bound.routeEvidence.workerId, 'observed-digest-worker');
+  assert.equal(bound.routeEvidence.actualModel, 'gpt-5.6-luna');
+  assert.equal(bound.routeEvidence.actualEffort, 'max');
+});
+
+test('child requests must carry a bound Flash profile no wider than the parent', () => {
+  const visibleObservation = {
+    authenticated: true,
+    evidenceRef: 'child-visible-1',
+    visibleWorker: {
+      visible: true,
+      operations: { spawn: true },
+      requestedModelEffortControls: true,
+      permissionBinding: true,
+      pathBinding: true
+    }
+  };
+  const envelopes = {
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/app'] }
+  };
+  const childPacket = (capability) => ({ ...createAssignmentPacket(), capability });
+
+  const nonFlash = resolveGenericHostOperation({
+    operation: 'spawn',
+    isChild: true,
+    parentEffort: 'xhigh',
+    assignmentPacket: childPacket({
+      workRole: 'chief',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max'
+    }),
+    observation: visibleObservation,
+    ...envelopes
+  });
+  assert.equal(nonFlash.routeEvidence.routeKind, 'manual_pending');
+  assert.match(nonFlash.routeEvidence.fallbackReason, /child_profile_unbound:model/);
+  assert.equal(nonFlash.routeEvidence.actualModel, 'unknown');
+  assert.equal(nonFlash.descriptor.executed, false);
+  assert.deepEqual(nonFlash.descriptor.assignmentPacket, nonFlash.descriptor.assignmentPacket);
+
+  const widened = resolveGenericHostOperation({
+    operation: 'spawn',
+    isChild: true,
+    parentEffort: 'xhigh',
+    assignmentPacket: childPacket({ workRole: 'coding', complexity: 'max' }),
+    observation: visibleObservation,
+    ...envelopes
+  });
+  assert.equal(widened.routeEvidence.routeKind, 'manual_pending');
+  assert.match(widened.routeEvidence.fallbackReason, /child_profile_widened:max_over_xhigh/);
+
+  const unbound = resolveGenericHostOperation({
+    operation: 'spawn',
+    isChild: true,
+    assignmentPacket: childPacket({ workRole: 'coding', complexity: 'xhigh' }),
+    observation: visibleObservation,
+    ...envelopes
+  });
+  assert.equal(unbound.routeEvidence.routeKind, 'manual_pending');
+  assert.match(unbound.routeEvidence.fallbackReason, /child_profile_unbound:parent_effort/);
+
+  const admissible = resolveGenericHostOperation({
+    operation: 'spawn',
+    isChild: true,
+    parentEffort: 'xhigh',
+    assignmentPacket: childPacket({ workRole: 'coding', complexity: 'xhigh' }),
+    observation: visibleObservation,
+    ...envelopes
+  });
+  assert.equal(admissible.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(admissible.routeEvidence.requestedModel, 'opencode-go/deepseek-v4-flash');
+  assert.equal(admissible.routeEvidence.requestedEffort, 'xhigh');
+  assert.equal(admissible.descriptor.executed, false);
+});
+
+test('a strict unavailable Host returns manual_pending with the intact packet and digest', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'xhigh',
+      primaryExecution: 'visible_worker_required',
+      childDelegation: 'prohibited'
+    }
+  };
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: packet,
+    observation: {
+      authenticated: true,
+      evidenceRef: 'strict-unavailable-1',
+      nativeSubagent: { supported: true, visible: false, operations: { spawn: true } }
+    },
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src'] }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.status, 'manual_pending');
+  assert.equal(result.routeEvidence.requestedModel, 'opencode-go/deepseek-v4-flash');
+  assert.equal(result.routeEvidence.requestedEffort, 'xhigh');
+  assert.equal(result.routeEvidence.actualModel, 'unknown');
+  assert.match(result.routeEvidence.fallbackReason, /visible_worker_required/);
+  assert.deepEqual(result.descriptor.assignmentPacket, packet);
+  assert.match(result.descriptor.packetDigest, /^[0-9a-f]{64}$/);
+  assert.equal(result.descriptor.executed, false);
+  assert.deepEqual(result.descriptor.writes, []);
+});
+
+test('swf_executor exposes three calibrated Flash profiles with no fallback model', () => {
+  assert.deepEqual(Object.keys(SWF_EXECUTOR_PROFILES), ['high', 'xhigh', 'max']);
+  for (const effort of ['high', 'xhigh', 'max']) {
+    const profile = resolveSwfExecutorProfile(effort);
+    assert.equal(profile.name, 'swf_executor');
+    assert.equal(profile.model, 'opencode-go/deepseek-v4-flash');
+    assert.equal(profile.modelReasoningEffort, effort);
+    assert.equal(profile.fallbackModel, null);
+
+    const roleFile = renderSwfExecutorRoleFile(effort);
+    assert.match(roleFile, new RegExp(`model_reasoning_effort\\s*=\\s*"${effort}"`));
+    assert.doesNotMatch(roleFile, /fallback/i);
+
+    const entry = renderSwfExecutorAgentEntry('/tmp/host/agents/swf_executor.toml', effort);
+    assert.match(entry, /\[agents\.swf_executor\]/);
+    assert.doesNotMatch(entry, /fallback/i);
+  }
+
+  assert.equal(SWF_EXECUTOR_PROFILES.high.modelReasoningEffort, 'high');
+  assert.equal(SWF_EXECUTOR_PROFILES.xhigh.modelReasoningEffort, 'xhigh');
+  assert.equal(SWF_EXECUTOR_PROFILES.max.modelReasoningEffort, 'max');
+  assert.equal(SWF_EXECUTOR_ROLE.modelReasoningEffort, 'xhigh');
+
+  assert.throws(() => resolveSwfExecutorProfile('ultra'), /profile/i);
+  assert.throws(() => renderSwfExecutorRoleFile('ultra'), /profile/i);
+  assert.throws(() => renderSwfExecutorAgentEntry('/tmp/x.toml', 'luna'), /profile/i);
+});
+
+test('adapter vocabulary reserves claude_code and pi as unimplemented while codex renders a provider-neutral handoff', () => {
+  const packet = createAssignmentPacket();
+  const handoff = renderCodexHandoffRequest({
+    operation: 'spawn',
+    packet,
+    packetDigest: 'a'.repeat(64),
+    effort: 'xhigh'
+  });
+
+  assert.equal(handoff.provider, 'codex');
+  assert.equal(handoff.role, 'swf_executor');
+  assert.equal(handoff.profile.modelReasoningEffort, 'xhigh');
+  assert.equal(handoff.profile.model, 'opencode-go/deepseek-v4-flash');
+  assert.equal(handoff.operation, 'spawn');
+  assert.deepEqual(handoff.packet, packet);
+  assert.equal(handoff.packetDigest, 'a'.repeat(64));
+  assert.equal(handoff.executed, false);
+  assert.equal(adapterStatus('codex'), 'implemented');
+  assert.equal(adapterStatus('claude_code'), 'unimplemented');
+  assert.equal(adapterStatus('pi'), 'unimplemented');
+  assert.throws(() => adapterStatus('unknown-adapter'), /adapter/i);
 });

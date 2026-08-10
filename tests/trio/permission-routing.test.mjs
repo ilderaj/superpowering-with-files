@@ -27,7 +27,7 @@ function createAssignmentPacket() {
     currentSlice: { name: 'wave-4-permission-routing' },
     nonGoals: ['no Host calls'],
     proof: { primary: ['focused tests'] },
-    capability: { requestedModel: 'gpt-5.6-luna', requestedEffort: 'max' },
+    capability: { workRole: 'chief', requestedModel: 'gpt-5.6-sol', requestedEffort: 'max' },
     allowedOperations: { files: ['harness/trio/core/routing.mjs'] },
     deadline: { stopConditions: ['binding mismatch'] },
     expectedReturn: { status: ['candidate_done', 'blocked'] }
@@ -303,7 +303,8 @@ test('assignment packet rejects a ninth top-level field and keeps delegation ins
   const packet = routing.buildAssignmentPacket({
     ...createAssignmentPacket(),
     capability: {
-      requestedModel: 'gpt-5.6-luna',
+      workRole: 'chief',
+      requestedModel: 'gpt-5.6-sol',
       requestedEffort: 'max',
       childDelegation: 'prohibited'
     }
@@ -316,7 +317,8 @@ test('child delegation policy values are validated inside the capability object'
   const packet = routing.buildAssignmentPacket({
     ...createAssignmentPacket(),
     capability: {
-      requestedModel: 'gpt-5.6-luna',
+      workRole: 'chief',
+      requestedModel: 'gpt-5.6-sol',
       requestedEffort: 'max',
       childDelegation: 'worker_discretion'
     }

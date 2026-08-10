@@ -21,7 +21,7 @@ Copilot cloud dispatch is a separate external-behavior K3 DAG, not a repository 
   - `.agents/skills/trio/SKILL.md`
   - `.codex/AGENTS.md` for user-global placement
 - Claim:
-  - the managed Codex surface contains the entry policy and exactly the four Trio skills.
+  - the managed Codex surface contains the entry policy, exactly the four Trio skills, and one ChiefOps governance companion.
 
 ### 2. Generic/Manual Fallback
 

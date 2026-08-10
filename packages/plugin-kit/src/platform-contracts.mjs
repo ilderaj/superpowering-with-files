@@ -12,6 +12,7 @@ export const platformContracts = {
       'skills/trio/dev/SKILL.md',
       'skills/trio/office/SKILL.md',
       'skills/trio/safety/SKILL.md',
+      'skills/chiefops/SKILL.md',
       'README.md'
     ],
     loadsRootInstructionFile: true,

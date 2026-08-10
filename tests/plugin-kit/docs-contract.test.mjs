@@ -88,16 +88,19 @@ test('release and installation docs describe one Codex Trio plugin artifact', as
   assert.match(releaseArtifacts, /harness-codex-plugin-<version>\.tgz/);
   assert.match(releaseArtifacts, /\.codex-plugin\/plugin\.json/);
   assert.match(releaseArtifacts, /four Trio skills/i);
+  assert.match(releaseArtifacts, /ChiefOps governance companion|chiefops/i);
   assert.doesNotMatch(releaseArtifacts, /harness-runtime|harness-(?:claude-code|cursor|copilot)-plugin/i);
 
   assert.match(pluginPackages, /harness-codex-plugin-<version>\.tgz/);
   assert.match(pluginPackages, /codex plugin marketplace add/);
+  assert.match(pluginPackages, /ChiefOps governance companion|chiefops/i);
   assert.doesNotMatch(pluginPackages, /harness-(?:claude-code|cursor|copilot)-plugin/i);
 
   assert.match(platformSupport, /Codex is the only managed native target/i);
   assert.match(platformSupport, /generic\/manual fallback/i);
   assert.match(codex, /harness-codex-plugin-<version>\.tgz/);
   assert.match(codex, /codex plugin marketplace add/);
+  assert.match(codex, /ChiefOps governance companion|chiefops/i);
 
   for (const doc of [pluginPackages, codex]) {
     assert.match(doc, /PLUGIN_ROOT=.*harness-codex-plugin-\$\{VERSION\}/);

@@ -46,7 +46,7 @@ Requested model and reasoning effort are intent. Actual values remain unknown un
 
 ### Plan → Execute usage at a glance
 
-Tracked production changes are delegated to the visible `swf_executor` role (DeepSeek Flash, xhigh effort, no fallback). A worker result is a candidate until the main session accepts it. Say what you need in plain language — no skill invocation or task ceremony is required.
+Tracked production changes are routed to the visible `swf_executor` execution role with a requested economic profile (DeepSeek Flash provider, xhigh effort, no fallback). Requested values are routing intent: the actual provider, model, and effort remain `unknown` until the Host authenticates them. When strict routing requires a visible worker and no compliant one is available, the result is `manual_pending`, never a silent native fallback. A worker result is a candidate until the main session accepts it. Say what you need in plain language — no skill invocation or task ceremony is required.
 
 | Route | How you ask | What you get |
 |---|---|---|
@@ -57,7 +57,7 @@ Tracked production changes are delegated to the visible `swf_executor` role (Dee
 | human gate | state the stopping point ("stop at a draft PR" / "no push" / "confirm before release") | stops at the gate; human confirmation is always retained |
 | after `manual_pending` | don't repeat the request; pick one: provide a compliant worker / release strict / confirm blocked | handled via the descriptor's `blocker` and `resumeCondition` |
 
-Full operator guide (Chinese): [docs/trio-v2/human-usage.md](docs/trio-v2/human-usage.md). Audit of the plan-execute mechanism: [reports/audit/2026-08-09-plan-execute-deepseek-executor-audit.md](reports/audit/2026-08-09-plan-execute-deepseek-executor-audit.md).
+Full operator guide (Chinese): [docs/trio-v2/human-usage.md](docs/trio-v2/human-usage.md). Audits: [2026-08-09-plan-execute-deepseek-executor-audit.md](reports/audit/2026-08-09-plan-execute-deepseek-executor-audit.md) and [2026-08-09-economic-execution-routing-20260809-conclusion.md](reports/audit/2026-08-09-economic-execution-routing-20260809-conclusion.md).
 
 ## Public commands
 

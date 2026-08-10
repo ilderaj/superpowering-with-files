@@ -53,7 +53,41 @@ test('trioCommand status resolves a unique active task without --task and preser
     assert.equal(report.task.taskId, 'command-task');
     assert.equal(report.task.source, 'unique-active');
     assert.equal(report.task.status, 'active');
+    assert.equal(report.model, null);
     assert.deepEqual(after, before);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('trio next fails closed without a declared work role and makes no model decision', async () => {
+  const root = await createTrioRoot();
+  try {
+    await assert.rejects(
+      () => trioCommand(
+        ['next', '--root', root, '--dry-run', '--class', 'tracked'],
+        { writeOutput: false }
+      ),
+      /--role|declared work role/i
+    );
+    await assert.rejects(
+      () => trioCommand(
+        ['next', '--root', root, '--dry-run', '--class', 'quick'],
+        { writeOutput: false }
+      ),
+      /--role|declared work role/i
+    );
+
+    const status = await trioCommand(['status', '--root', root], { writeOutput: false });
+    assert.equal(status.command, 'status');
+    assert.equal(status.model, null);
+
+    const next = await trioCommand(
+      ['next', '--root', root, '--dry-run', '--role', 'chief'],
+      { writeOutput: false }
+    );
+    assert.equal(next.model.workRole, 'chief');
+    assert.equal(next.model.requestedModel, 'gpt-5.6-sol');
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -64,7 +98,7 @@ test('trioCommand calculates next --dry-run without writing or creating a Trio',
   try {
     const before = await fileSnapshot(root);
     const report = await trioCommand(
-      ['next', '--root', root, '--dry-run'],
+      ['next', '--root', root, '--dry-run', '--role', 'chief'],
       { writeOutput: false }
     );
     const after = await fileSnapshot(root);
@@ -85,7 +119,7 @@ test('trioCommand routes quick no-Trio work inline without reading or creating T
   try {
     const before = await fileSnapshot(root);
     const report = await trioCommand(
-      ['next', '--root', root, '--class', 'quick', '--dry-run'],
+      ['next', '--root', root, '--class', 'quick', '--dry-run', '--role', 'coding', '--complexity', 'high'],
       { writeOutput: false }
     );
     const after = await fileSnapshot(root);
@@ -104,11 +138,11 @@ test('trioCommand returns create-trio only for definite tracked no-Trio cases', 
   try {
     const before = await fileSnapshot(root);
     const noActive = await trioCommand(
-      ['next', '--root', root, '--class', 'tracked', '--dry-run'],
+      ['next', '--root', root, '--class', 'tracked', '--dry-run', '--role', 'chief'],
       { writeOutput: false }
     );
     const explicitMissing = await trioCommand(
-      ['next', '--root', root, '--task', 'future-task', '--class', 'tracked', '--dry-run'],
+      ['next', '--root', root, '--task', 'future-task', '--class', 'tracked', '--dry-run', '--role', 'chief'],
       { writeOutput: false }
     );
     const after = await fileSnapshot(root);
@@ -134,7 +168,7 @@ test('trioCommand fails closed for multiple or corrupt tasks and invalid explici
     await writeFile(path.join(secondTask, 'progress.md'), '# Progress\n', 'utf8');
 
     await assert.rejects(
-      () => trioCommand(['next', '--root', multipleRoot, '--class', 'tracked', '--dry-run'], { writeOutput: false }),
+      () => trioCommand(['next', '--root', multipleRoot, '--class', 'tracked', '--dry-run', '--role', 'chief'], { writeOutput: false }),
       /multiple/i
     );
 
@@ -144,7 +178,7 @@ test('trioCommand fails closed for multiple or corrupt tasks and invalid explici
       'utf8'
     );
     await assert.rejects(
-      () => trioCommand(['next', '--root', corruptRoot, '--task', 'command-task', '--class', 'tracked', '--dry-run'], { writeOutput: false }),
+      () => trioCommand(['next', '--root', corruptRoot, '--task', 'command-task', '--class', 'tracked', '--dry-run', '--role', 'chief'], { writeOutput: false }),
       /corrupt|status|incomplete/i
     );
     await assert.rejects(
@@ -168,4 +202,119 @@ test('verify all runs the final Trio inventory before legacy backstops', async (
     packageJson.scripts['verify:trio'],
     /node tests\/trio\/import-boundaries\.test\.mjs --milestone final$/
   );
+});
+
+test('trio next --dry-run exposes role and complexity decisions without writing', async () => {
+  const root = await createTrioRoot();
+  try {
+    const before = await fileSnapshot(root);
+    const report = await trioCommand(
+      ['next', '--root', root, '--dry-run', '--role', 'coding', '--complexity', 'xhigh'],
+      { writeOutput: false }
+    );
+    const after = await fileSnapshot(root);
+
+    assert.equal(report.command, 'next');
+    assert.equal(report.mode, 'dry-run');
+    assert.equal(report.readOnly, true);
+    assert.equal(report.model.workRole, 'coding');
+    assert.equal(report.model.complexity, 'xhigh');
+    assert.equal(report.model.requestedModel, 'opencode-go/deepseek-v4-flash');
+    assert.equal(report.model.requestedEffort, 'xhigh');
+    assert.equal(report.model.actualModel, 'unknown');
+    assert.deepEqual(report.writes, []);
+    assert.deepEqual(after, before);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('trio next rejects execution overrides and unknown role or complexity input', async () => {
+  const root = await createTrioRoot();
+  try {
+    await assert.rejects(
+      () => trioCommand(
+        ['next', '--root', root, '--dry-run', '--role', 'coding', '--complexity', 'xhigh', '--override-reason', 'upgrade'],
+        { writeOutput: false }
+      ),
+      /override.*execution|execution roles never upgrade/i
+    );
+    await assert.rejects(
+      () => trioCommand(['next', '--root', root, '--dry-run', '--role', 'deep'], { writeOutput: false }),
+      /unknown work role/i
+    );
+    await assert.rejects(
+      () => trioCommand(['next', '--root', root, '--dry-run', '--role', 'coding', '--complexity', 'ultra'], { writeOutput: false }),
+      /complexity/i
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('trio next records structured Chief override provenance and stays read-only', async () => {
+  const root = await createTrioRoot();
+  try {
+    const before = await fileSnapshot(root);
+    const report = await trioCommand(
+      ['next', '--root', root, '--dry-run', '--role', 'planning', '--override-reason', 'chief gate review', '--override-source', 'operator'],
+      { writeOutput: false }
+    );
+    const after = await fileSnapshot(root);
+
+    assert.equal(report.model.workRole, 'planning');
+    assert.equal(report.model.requestedModel, 'gpt-5.6-sol');
+    assert.equal(report.model.requestedEffort, 'max');
+    assert.deepEqual(report.model.override, {
+      reason: 'chief gate review',
+      provenance: 'operator'
+    });
+    assert.deepEqual(report.writes, []);
+    assert.deepEqual(after, before);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('trio write commands render JSON-serializable reports to a captured stdout writer', async () => {
+  const root = await createTrioRoot();
+  try {
+    async function capture(args) {
+      const chunks = [];
+      const stdout = {
+        write(chunk) {
+          chunks.push(String(chunk));
+          return true;
+        }
+      };
+      const report = await trioCommand(args, { writeOutput: true, stdout });
+      return { report, parsed: JSON.parse(chunks.join('')) };
+    }
+
+    const progress = await capture([
+      'progress', '--root', root, '--task', 'command-task',
+      '--event', 'worker_done', '--actor', 'worker-1', '--detail', 'BigInt-free CLI output.'
+    ]);
+    assert.equal(progress.report.command, 'progress');
+    assert.equal(progress.parsed.command, 'progress');
+    assert.equal(progress.parsed.result.event, 'worker_done');
+    assert.equal(progress.parsed.result.actor, 'worker-1');
+    assert.equal(progress.parsed.result.detail, 'BigInt-free CLI output.');
+    assert.equal(typeof progress.parsed.result.sha256, 'string');
+    assert.equal(progress.parsed.result.sha256.length, 64);
+    assert.equal(typeof progress.parsed.result.dev, 'string');
+    assert.equal(typeof progress.parsed.result.ino, 'string');
+    assert.equal(typeof progress.parsed.result.nlink, 'string');
+    assert.equal(typeof progress.report.result.dev, 'string');
+
+    const accepted = await capture([
+      'accept', '--root', root, '--task', 'command-task',
+      '--actor', 'chief', '--detail', 'Accepted via CLI.'
+    ]);
+    assert.equal(accepted.report.command, 'accept');
+    assert.equal(accepted.parsed.result.event, 'accepted');
+    assert.equal(accepted.parsed.result.actor, 'chief');
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

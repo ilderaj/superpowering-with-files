@@ -1,20 +1,6 @@
 {
   "schemaVersion": 2,
   "sources": {
-    "superpowers": {
-      "type": "git",
-      "url": "https://github.com/obra/superpowers",
-      "github": {
-        "owner": "obra",
-        "repo": "superpowers"
-      },
-      "path": "harness/upstream/superpowers",
-      "resolution": {
-        "strategy": "latest-release",
-        "allowPrerelease": false,
-        "fallbacks": []
-      }
-    },
     "planning-with-files": {
       "type": "git",
       "url": "https://github.com/OthmanAdi/planning-with-files",
@@ -24,20 +10,6 @@
       },
       "path": "harness/upstream/planning-with-files",
       "overlayPath": "harness/core/upstream-overlays/planning-with-files",
-      "resolution": {
-        "strategy": "latest-release",
-        "allowPrerelease": false,
-        "fallbacks": []
-      }
-    },
-    "mattpocock-skills": {
-      "type": "git",
-      "url": "https://github.com/mattpocock/skills",
-      "github": {
-        "owner": "mattpocock",
-        "repo": "skills"
-      },
-      "path": "harness/upstream/mattpocock-skills",
       "resolution": {
         "strategy": "latest-release",
         "allowPrerelease": false,

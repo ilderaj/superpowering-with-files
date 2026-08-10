@@ -56,7 +56,8 @@ const TRIO_MANAGED_SOURCE_PATHS = Object.freeze([
   'harness/trio/skill/SKILL.md',
   'harness/trio/capabilities/dev/SKILL.md',
   'harness/trio/capabilities/office/SKILL.md',
-  'harness/trio/capabilities/safety/SKILL.md'
+  'harness/trio/capabilities/safety/SKILL.md',
+  'harness/trio/governance/chiefops/SKILL.md'
 ]);
 
 function sha256(bytes) {
@@ -567,7 +568,8 @@ function codexDestinations(root, scope = 'user-global') {
     `${root}/.agents/skills/trio/SKILL.md`,
     `${root}/.agents/skills/trio/dev/SKILL.md`,
     `${root}/.agents/skills/trio/office/SKILL.md`,
-    `${root}/.agents/skills/trio/safety/SKILL.md`
+    `${root}/.agents/skills/trio/safety/SKILL.md`,
+    `${root}/.agents/skills/chiefops/SKILL.md`
   ];
 }
 
@@ -845,11 +847,11 @@ test('production V2 reinstall preserves recovery and ownership while refusing us
   }
 });
 
-test('production projection settles dynamic zero, five, and ten managed surface cardinalities', async () => {
+test('production projection settles dynamic zero, six, and twelve managed surface cardinalities', async () => {
   const cases = [
     { label: 'zero', scopeKind: 'workspace', includeCodex: false, count: 0 },
-    { label: 'five', scopeKind: 'workspace', includeCodex: true, count: 5 },
-    { label: 'ten', scopeKind: 'both', includeCodex: true, count: 10 }
+    { label: 'six', scopeKind: 'workspace', includeCodex: true, count: 6 },
+    { label: 'twelve', scopeKind: 'both', includeCodex: true, count: 12 }
   ];
   for (const item of cases) {
     const roots = await createProductionRoots(`cardinality-${item.label}`);
@@ -870,7 +872,7 @@ test('production projection settles dynamic zero, five, and ten managed surface 
       if (item.count === 0) {
         await assertAbsentTrioMaterialization([...workspaceDestinations, ...homeDestinations]);
         await assertExactSettledOwnership(persisted, []);
-      } else if (item.count === 5) {
+      } else if (item.count === 6) {
         await assertExactTrioMaterialization(workspaceDestinations);
         await assertAbsentTrioMaterialization(homeDestinations);
         await assertExactSettledOwnership(persisted, workspaceDestinations);
@@ -2031,7 +2033,7 @@ test('install fixtures have exact roots/files and fresh input is strict V2', asy
       scope: 'workspace',
       root: '/fixture/workspace'
     }]);
-    assert.equal(projected.descriptors.length, 5);
+    assert.equal(projected.descriptors.length, 6);
     assert.throws(
       () => migrateV1ToV2({
         persistedState: freshInput,
@@ -2123,8 +2125,8 @@ test('standard V1 migration consumes real raw bytes from a temp copy and preserv
       placements,
       pathObservations: observations
     });
-    assert.equal(projected.descriptors.length, 10);
-    assert.equal(projected.descriptors.filter((descriptor) => descriptor.targetId === 'codex').length, 5);
+    assert.equal(projected.descriptors.length, 12);
+    assert.equal(projected.descriptors.filter((descriptor) => descriptor.targetId === 'codex').length, 6);
     const codexEntry = projected.descriptors.find((descriptor) =>
       descriptor.targetId === 'codex' && descriptor.surface === 'entry'
     );
@@ -2134,13 +2136,13 @@ test('standard V1 migration consumes real raw bytes from a temp copy and preserv
       projected.descriptors
         .filter((descriptor) => descriptor.targetId === 'codex' && descriptor.surface !== 'entry')
         .map((descriptor) => [descriptor.action, descriptor.execution]),
-      Array.from({ length: 4 }, () => ['create', 'managed'])
+      Array.from({ length: 5 }, () => ['create', 'managed'])
     );
     assert.deepEqual(
       projected.descriptors
         .filter((descriptor) => descriptor.targetId === 'cursor')
         .map((descriptor) => [descriptor.action, descriptor.execution]),
-      Array.from({ length: 5 }, () => ['create', 'manual'])
+      Array.from({ length: 6 }, () => ['create', 'manual'])
     );
     assert.deepEqual(projected.conflicts, []);
     assert.equal(projected.descriptors.some((descriptor) => descriptor.destination === '/fixture/home/.codex/AGENTS.md'), true);

@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { atomicWriteText, withTrioPublicationLock } from '../../trio/core/store.mjs';
 import { parseV2Config } from '../../trio/config.mjs';
 import { projectConfig } from '../../trio/projection.mjs';
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import {
   assertProductionRuntimeSelector,
   assertInstallerStateEvidence,
@@ -25,7 +25,8 @@ const TRIO_SURFACE_SOURCES = Object.freeze({
   trio: 'harness/trio/skill/SKILL.md',
   dev: 'harness/trio/capabilities/dev/SKILL.md',
   office: 'harness/trio/capabilities/office/SKILL.md',
-  safety: 'harness/trio/capabilities/safety/SKILL.md'
+  safety: 'harness/trio/capabilities/safety/SKILL.md',
+  chiefops: 'harness/trio/governance/chiefops/SKILL.md'
 });
 
 function trioBridgeError(message, code = 'ERR_TRIO_BRIDGE') {

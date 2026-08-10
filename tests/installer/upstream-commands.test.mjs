@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, readlink, lstat, rm, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, readlink, lstat, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -44,6 +44,31 @@ async function createTaggedGitSource(root, { content, tag }) {
   );
   const { stdout } = await execFileAsync('git', ['rev-parse', `${tag}^{commit}`], { cwd: root });
   return stdout.trim();
+}
+
+async function createLanguageVariantGitSource(root, variantNames) {
+  await mkdir(path.join(root, 'skills'), { recursive: true });
+  for (const variant of variantNames) {
+    await mkdir(path.join(root, 'skills', variant), { recursive: true });
+    await writeFile(path.join(root, 'skills', variant, 'SKILL.md'), `# ${variant}\n`);
+  }
+  await writeFile(path.join(root, 'SKILL.md'), '# Planning With Files\n');
+  await execFileAsync('git', ['init'], { cwd: root });
+  await execFileAsync('git', ['add', '.'], { cwd: root });
+  await execFileAsync(
+    'git',
+    ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'commit', '-m', 'initial'],
+    { cwd: root }
+  );
+  const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: root });
+  return stdout.trim();
+}
+
+async function languageVariantNames(root) {
+  const entries = await readdir(path.join(root, 'harness/upstream/planning-with-files/skills'), {
+    withFileTypes: true
+  });
+  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
 }
 
 async function writeSources(root, source) {
@@ -450,35 +475,102 @@ test('updateCommand resolves the authority root from a nested leaf directory', a
 test('updateCommand preserves relative symlinks from the candidate', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-symlink-'));
   try {
-    await mkdir(path.join(root, '.harness/upstream-candidates/superpowers'), { recursive: true });
+    await mkdir(path.join(root, '.harness/upstream-candidates/planning-with-files'), { recursive: true });
     await mkdir(path.join(root, 'harness/upstream'), { recursive: true });
     await writeFile(
       path.join(root, 'harness/upstream/sources.json'),
       JSON.stringify({
         schemaVersion: 1,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             type: 'git',
-            url: 'https://example.invalid/superpowers.git',
-            path: 'harness/upstream/superpowers'
+            url: 'https://example.invalid/planning-with-files.git',
+            path: 'harness/upstream/planning-with-files'
           }
         }
       })
     );
     await writeFile(
-      path.join(root, '.harness/upstream-candidates/superpowers/CLAUDE.md'),
+      path.join(root, '.harness/upstream-candidates/planning-with-files/CLAUDE.md'),
       '# candidate\n'
     );
-    await symlink('CLAUDE.md', path.join(root, '.harness/upstream-candidates/superpowers/AGENTS.md'));
+    await symlink(
+      'CLAUDE.md',
+      path.join(root, '.harness/upstream-candidates/planning-with-files/AGENTS.md')
+    );
 
-    await withCwd(root, () => updateCommand(['--source=superpowers']));
+    await withCwd(root, () => updateCommand(['--source=planning-with-files']));
 
-    const agentsPath = path.join(root, 'harness/upstream/superpowers/AGENTS.md');
+    const agentsPath = path.join(root, 'harness/upstream/planning-with-files/AGENTS.md');
     const agentsStat = await lstat(agentsPath);
     assert.equal(agentsStat.isSymbolicLink(), true);
     assert.equal(await readlink(agentsPath), 'CLAUDE.md');
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('updateCommand prunes retired language variants and keeps the en/zh/zht allow-list', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-language-prune-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-language-source-'));
+  try {
+    await writeSources(root, source);
+    await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
+    await writeFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'old skill');
+    const commitSha = await createLanguageVariantGitSource(source, [
+      'planning-with-files',
+      'planning-with-files-ar',
+      'planning-with-files-de',
+      'planning-with-files-es',
+      'planning-with-files-zh',
+      'planning-with-files-zht'
+    ]);
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
+
+    await withCwd(root, async () => {
+      await fetchCommand(['--source=planning-with-files']);
+      await updateCommand(['--source=planning-with-files']);
+    });
+
+    assert.deepEqual(await languageVariantNames(root), [
+      'planning-with-files',
+      'planning-with-files-zh',
+      'planning-with-files-zht'
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});
+
+test('updateCommand rejects unknown language variants and leaves the current target unchanged', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-language-guard-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-language-guard-source-'));
+  try {
+    await writeSources(root, source);
+    await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
+    await writeFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'old skill');
+    const commitSha = await createLanguageVariantGitSource(source, [
+      'planning-with-files',
+      'planning-with-files-fr'
+    ]);
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
+
+    await withCwd(root, async () => {
+      await fetchCommand(['--source=planning-with-files']);
+      await assert.rejects(
+        updateCommand(['--source=planning-with-files']),
+        /Unsupported planning-with-files language variant/
+      );
+    });
+
+    assert.equal(
+      await readFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'utf8'),
+      'old skill'
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
   }
 });
 

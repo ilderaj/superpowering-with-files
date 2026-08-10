@@ -1,5 +1,5 @@
 import { checkpointPush } from '../lib/checkpoint-push.mjs';
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 
 export async function checkpointPushCommand(args = []) {
   const { rootDir } = await discoverAuthorityRoot(process.cwd());

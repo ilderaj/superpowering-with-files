@@ -82,7 +82,7 @@ test('Trio-only recovery keeps explicit, unique-active, status, and next decisio
       (error) => error?.code === 'ERR_TRIO_EXTRA_STATE'
     );
     await assert.rejects(
-      () => trioCommand(['next', '--root', root, '--class', 'tracked', '--dry-run'], { writeOutput: false }),
+      () => trioCommand(['next', '--root', root, '--class', 'tracked', '--dry-run', '--role', 'chief'], { writeOutput: false }),
       (error) => error?.code === 'ERR_TRIO_EXTRA_STATE'
     );
 
@@ -102,7 +102,7 @@ test('Trio-only recovery keeps explicit, unique-active, status, and next decisio
     const explicit = await store.readExactTrioTask(root, { taskId: 'recovery-task' });
     const unique = await store.readExactTrioTask(root);
     const status = await trioCommand(['status', '--root', root], { writeOutput: false });
-    const next = await trioCommand(['next', '--root', root, '--class', 'tracked', '--dry-run'], { writeOutput: false });
+    const next = await trioCommand(['next', '--root', root, '--class', 'tracked', '--dry-run', '--role', 'chief'], { writeOutput: false });
     assert.equal(explicit.taskId, 'recovery-task');
     assert.equal(unique.source, 'unique-active');
     assert.equal(status.task.taskId, 'recovery-task');
@@ -132,7 +132,7 @@ test('exact Trio reads and read-only CLI commands reject invalid UTF-8 authority
       (error) => error?.code === 'ERR_TRIO_CORRUPT'
     );
     await assert.rejects(
-      () => trioCommand(['next', '--root', root, '--class', 'tracked', '--dry-run'], { writeOutput: false }),
+      () => trioCommand(['next', '--root', root, '--class', 'tracked', '--dry-run', '--role', 'chief'], { writeOutput: false }),
       (error) => error?.code === 'ERR_TRIO_CORRUPT'
     );
   } finally {
