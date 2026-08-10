@@ -133,7 +133,7 @@ test('harness checkpoint resolves the authority root when run from a nested leaf
 test('harness checkpoint remains runnable after the retired source-root helper is absent', async () => {
   const root = await createHarnessFixture();
   try {
-    await rm(path.join(root, 'harness/runtime/source-root.mjs'));
+    await rm(path.join(root, 'harness/runtime/source-root.mjs'), { force: true });
 
     const { checkpointCommand } = await import(
       pathToFileURL(path.join(root, 'harness/installer/commands/checkpoint.mjs')).href

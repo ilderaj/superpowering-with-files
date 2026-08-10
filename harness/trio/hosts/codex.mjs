@@ -1,9 +1,8 @@
 export { resolveHostOperation as resolveCodexHostOperation } from '../core/routing.mjs';
 
-export const SWF_EXECUTOR_ROLE = Object.freeze({
+const SWF_EXECUTOR_BASE = Object.freeze({
   name: 'swf_executor',
   model: 'opencode-go/deepseek-v4-flash',
-  modelReasoningEffort: 'xhigh',
   fallbackModel: null,
   description: 'SWF execution worker: executes an already accepted SWF plan without redesigning scope, architecture, interfaces, or acceptance criteria.',
   nicknameCandidates: ['SWF Executor'],
@@ -15,24 +14,73 @@ export const SWF_EXECUTOR_ROLE = Object.freeze({
   ].join(' ')
 });
 
-export function renderSwfExecutorAgentEntry(configFilePath) {
+const SWF_EXECUTOR_EFFORTS = Object.freeze(['high', 'xhigh', 'max']);
+
+export const SWF_EXECUTOR_PROFILES = Object.freeze(
+  Object.fromEntries(SWF_EXECUTOR_EFFORTS.map((effort) => [
+    effort,
+    Object.freeze({ ...SWF_EXECUTOR_BASE, modelReasoningEffort: effort })
+  ]))
+);
+
+export const SWF_EXECUTOR_ROLE = SWF_EXECUTOR_PROFILES.xhigh;
+
+export function resolveSwfExecutorProfile(effort = 'xhigh') {
+  if (typeof effort !== 'string' || !Object.hasOwn(SWF_EXECUTOR_PROFILES, effort)) {
+    throw new TypeError(`Unsupported swf_executor profile effort: ${String(effort)}; use high, xhigh, or max.`);
+  }
+  return SWF_EXECUTOR_PROFILES[effort];
+}
+
+export function renderSwfExecutorAgentEntry(configFilePath, effort = 'xhigh') {
   if (typeof configFilePath !== 'string' || configFilePath.length === 0) {
     throw new TypeError('swf_executor agent entry requires a role config file path.');
   }
+  const role = resolveSwfExecutorProfile(effort);
   return [
-    `[agents.${SWF_EXECUTOR_ROLE.name}]`,
-    `description = "${SWF_EXECUTOR_ROLE.description}"`,
+    `[agents.${role.name}]`,
+    `description = "${role.description}"`,
     `config_file = "${configFilePath}"`
   ].join('\n') + '\n';
 }
 
-export function renderSwfExecutorRoleFile() {
+export function renderSwfExecutorRoleFile(effort = 'xhigh') {
+  const role = resolveSwfExecutorProfile(effort);
   return [
-    `name = "${SWF_EXECUTOR_ROLE.name}"`,
-    `description = "${SWF_EXECUTOR_ROLE.description}"`,
-    `nickname_candidates = [${SWF_EXECUTOR_ROLE.nicknameCandidates.map((name) => `"${name}"`).join(', ')}]`,
-    `model = "${SWF_EXECUTOR_ROLE.model}"`,
-    `model_reasoning_effort = "${SWF_EXECUTOR_ROLE.modelReasoningEffort}"`,
-    `developer_instructions = "${SWF_EXECUTOR_ROLE.instructions}"`
+    `name = "${role.name}"`,
+    `description = "${role.description}"`,
+    `nickname_candidates = [${role.nicknameCandidates.map((name) => `"${name}"`).join(', ')}]`,
+    `model = "${role.model}"`,
+    `model_reasoning_effort = "${role.modelReasoningEffort}"`,
+    `developer_instructions = "${role.instructions}"`
   ].join('\n') + '\n';
+}
+
+export const ADAPTER_VOCABULARY = Object.freeze(['codex', 'claude_code', 'pi']);
+
+export function adapterStatus(adapter) {
+  if (adapter === 'codex') return 'implemented';
+  if (adapter === 'claude_code' || adapter === 'pi') return 'unimplemented';
+  throw new Error(`Unknown Host adapter: ${String(adapter)}`);
+}
+
+export function renderCodexHandoffRequest({ operation, packet, packetDigest, effort = 'xhigh' }) {
+  if (typeof operation !== 'string' || operation.length === 0) {
+    throw new TypeError('Codex handoff request requires a lifecycle operation.');
+  }
+  if (!packet || typeof packet !== 'object') {
+    throw new TypeError('Codex handoff request requires an immutable Assignment Packet.');
+  }
+  if (typeof packetDigest !== 'string' || !/^[0-9a-f]{64}$/u.test(packetDigest)) {
+    throw new TypeError('Codex handoff request requires a stable packet digest.');
+  }
+  return {
+    provider: 'codex',
+    role: 'swf_executor',
+    profile: resolveSwfExecutorProfile(effort),
+    operation,
+    packet,
+    packetDigest,
+    executed: false
+  };
 }

@@ -25,7 +25,7 @@ When primary execution requires a visible worker, the Chief never performs produ
 
 ## Projected Inventory
 
-The projected inventory is exactly this entry policy plus `trio/SKILL.md`, `trio/dev/SKILL.md`, `trio/office/SKILL.md`, and `trio/safety/SKILL.md`. The entry policy is routing policy, not a fifth capability pack.
+The projected inventory is exactly this entry policy plus `trio/SKILL.md`, `trio/dev/SKILL.md`, `trio/office/SKILL.md`, `trio/safety/SKILL.md`, and one companion `chiefops/SKILL.md`. The entry policy is routing policy, not a fifth capability pack. The ChiefOps companion is a governance companion outside the three capability families; it is not a runner, scheduler, registry, or fourth task-state surface.
 
 ## Human Gates
 

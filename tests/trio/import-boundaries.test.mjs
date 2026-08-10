@@ -15,8 +15,7 @@ export const FINAL_INVENTORY = Object.freeze([
   'harness/trio/hosts/codex.mjs',
   'harness/trio/config.mjs',
   'harness/trio/projection.mjs',
-  'harness/installer/commands/trio.mjs',
-  'harness/runtime/authority-root.mjs'
+  'harness/installer/commands/trio.mjs'
 ]);
 
 const MILESTONE_INVENTORY = Object.freeze({
@@ -25,8 +24,7 @@ const MILESTONE_INVENTORY = Object.freeze({
     FINAL_INVENTORY[1],
     FINAL_INVENTORY[2],
     FINAL_INVENTORY[4],
-    FINAL_INVENTORY[9],
-    FINAL_INVENTORY[10]
+    FINAL_INVENTORY[9]
   ]),
   wave2: Object.freeze([
     FINAL_INVENTORY[0],
@@ -34,8 +32,7 @@ const MILESTONE_INVENTORY = Object.freeze({
     FINAL_INVENTORY[2],
     FINAL_INVENTORY[3],
     FINAL_INVENTORY[4],
-    FINAL_INVENTORY[9],
-    FINAL_INVENTORY[10]
+    FINAL_INVENTORY[9]
   ]),
   wave4: Object.freeze([
     FINAL_INVENTORY[0],
@@ -45,8 +42,7 @@ const MILESTONE_INVENTORY = Object.freeze({
     FINAL_INVENTORY[4],
     FINAL_INVENTORY[5],
     FINAL_INVENTORY[6],
-    FINAL_INVENTORY[9],
-    FINAL_INVENTORY[10]
+    FINAL_INVENTORY[9]
   ]),
   final: FINAL_INVENTORY
 });
@@ -85,9 +81,6 @@ export const FINAL_DIRECTION_MATRIX = Object.freeze({
     'harness/trio/hosts/codex.mjs',
     'harness/trio/config.mjs',
     'harness/trio/projection.mjs'
-  ]),
-  'harness/runtime/authority-root.mjs': Object.freeze([
-    'harness/trio/core/authority.mjs'
   ])
 });
 
@@ -126,8 +119,7 @@ async function walkMjs(relativeDir) {
 async function discoveredInventory() {
   const paths = await walkMjs('harness/trio');
   for (const externalPath of [
-    'harness/installer/commands/trio.mjs',
-    'harness/runtime/authority-root.mjs'
+    'harness/installer/commands/trio.mjs'
   ]) {
     if (await pathExists(path.join(AUTHORITY_ROOT, externalPath))) paths.push(externalPath);
   }

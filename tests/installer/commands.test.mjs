@@ -251,7 +251,11 @@ test('harness public dispatcher exposes Trio quick routing without creating plan
       root,
       '--class',
       'quick',
-      '--dry-run'
+      '--dry-run',
+      '--role',
+      'coding',
+      '--complexity',
+      'high'
     );
     const report = JSON.parse(stdout);
 

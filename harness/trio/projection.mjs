@@ -7,7 +7,8 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'trio', relativePath: 'trio/SKILL.md', source: 'harness/trio/skill/SKILL.md' }),
   Object.freeze({ id: 'dev', relativePath: 'trio/dev/SKILL.md', source: 'harness/trio/capabilities/dev/SKILL.md' }),
   Object.freeze({ id: 'office', relativePath: 'trio/office/SKILL.md', source: 'harness/trio/capabilities/office/SKILL.md' }),
-  Object.freeze({ id: 'safety', relativePath: 'trio/safety/SKILL.md', source: 'harness/trio/capabilities/safety/SKILL.md' })
+  Object.freeze({ id: 'safety', relativePath: 'trio/safety/SKILL.md', source: 'harness/trio/capabilities/safety/SKILL.md' }),
+  Object.freeze({ id: 'chiefops', relativePath: 'chiefops/SKILL.md', source: 'harness/trio/governance/chiefops/SKILL.md' })
 ]);
 
 const APPROVED_TARGET_CONTRACT = Object.freeze({

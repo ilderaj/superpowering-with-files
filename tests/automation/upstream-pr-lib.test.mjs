@@ -13,7 +13,7 @@ test('buildUpstreamPullRequestPlan uses the fixed upstream refresh PR target', a
   const { baseBranch, branchName, buildUpstreamPullRequestPlan, title } = await loadUpstreamPrModule();
 
   const plan = buildUpstreamPullRequestPlan({
-    eligibleFiles: ['harness/upstream/superpowers/SKILL.md']
+    eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md']
   });
 
   assert.equal(plan.shouldCreatePullRequest, true);
@@ -39,11 +39,11 @@ test('buildPullRequestBody marks automatic review and checks as advisory', async
 
   const body = buildPullRequestBody({
     eligibleFiles: [
-      'harness/upstream/superpowers/SKILL.md',
+      'harness/upstream/planning-with-files/SKILL.md',
       'harness/upstream/.source-lock.json'
     ],
     strategySummary: {
-      superpowers: {
+      'planning-with-files': {
         strategy: 'latest-release',
         previousVersion: 'v6.0.3',
         nextVersion: 'v6.1.1',
@@ -58,8 +58,8 @@ test('buildPullRequestBody marks automatic review and checks as advisory', async
   assert.match(body, /final human review remains required/i);
   assert.match(body, /No auto-merge is configured/i);
   assert.match(body, /guarded --force-with-lease update is limited to the fixed automation branch/i);
-  assert.match(body, /harness\/upstream\/superpowers\/SKILL\.md/);
-  assert.match(body, /superpowers/);
+  assert.match(body, /harness\/upstream\/planning-with-files\/SKILL\.md/);
+  assert.match(body, /planning-with-files/);
   assert.match(body, /v6\.0\.3/);
   assert.match(body, /v6\.1\.1/);
   assert.match(body, /latest-release/);
@@ -73,7 +73,7 @@ test('buildUpstreamPullRequestPlan carries resolved lock metadata into the PR bo
     previousLock: {
       schemaVersion: 2,
       sources: {
-        superpowers: {
+        'planning-with-files': {
           strategy: 'latest-release',
           resolved: {
             kind: 'latest-release',
@@ -87,7 +87,7 @@ test('buildUpstreamPullRequestPlan carries resolved lock metadata into the PR bo
     resolvedLock: {
       schemaVersion: 2,
       sources: {
-        superpowers: {
+        'planning-with-files': {
           strategy: 'latest-release',
           resolved: {
             kind: 'latest-release',
@@ -99,7 +99,7 @@ test('buildUpstreamPullRequestPlan carries resolved lock metadata into the PR bo
       }
     },
     strategySummary: {
-      superpowers: {
+      'planning-with-files': {
         strategy: 'latest-release',
         previousVersion: 'v6.0.3',
         nextVersion: 'v6.1.1',
@@ -111,8 +111,8 @@ test('buildUpstreamPullRequestPlan carries resolved lock metadata into the PR bo
   });
 
   assert.equal(plan.shouldCreatePullRequest, true);
-  assert.equal(plan.previousLock.sources.superpowers.resolved.version, 'v6.0.3');
-  assert.equal(plan.resolvedLock.sources.superpowers.resolved.version, 'v6.1.1');
+  assert.equal(plan.previousLock.sources['planning-with-files'].resolved.version, 'v6.0.3');
+  assert.equal(plan.resolvedLock.sources['planning-with-files'].resolved.version, 'v6.1.1');
   assert.match(plan.body, /harness\/upstream\/\.source-lock\.json/);
   assert.match(plan.body, /1111111111111111111111111111111111111111/);
 });
@@ -239,7 +239,7 @@ test('buildUpstreamPullRequestPlan creates a new PR only when no automation bran
   const { buildUpstreamPullRequestPlan } = await loadUpstreamPrModule();
 
   const plan = buildUpstreamPullRequestPlan({
-    eligibleFiles: ['harness/upstream/superpowers/SKILL.md'],
+    eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
     openPullRequests: []
   });
 
@@ -253,7 +253,7 @@ test('buildUpstreamPullRequestPlan creates a new PR when only unrelated PRs are 
   const { buildUpstreamPullRequestPlan } = await loadUpstreamPrModule();
 
   const plan = buildUpstreamPullRequestPlan({
-    eligibleFiles: ['harness/upstream/superpowers/SKILL.md'],
+    eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
     openPullRequests: [
       {
         number: 17,
@@ -310,7 +310,7 @@ test('runOpenUpstreamPullRequest rejects and skips git and gh commands when refr
       cwd: '/tmp/repo',
       readRefreshResult: async () => ({
         status: 'failure',
-        eligibleFiles: ['harness/upstream/superpowers/SKILL.md']
+        eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md']
       }),
       runCommand: async (command) => {
         commands.push(command);
@@ -361,7 +361,7 @@ test('runOpenUpstreamPullRequest rejects and skips git and gh commands when refr
     runOpenUpstreamPullRequest({
       cwd: '/tmp/repo',
       readRefreshResult: async () => ({
-        eligibleFiles: ['harness/upstream/superpowers/SKILL.md']
+        eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md']
       }),
       runCommand: async (command) => {
         commands.push(command);
@@ -390,7 +390,7 @@ test('runOpenUpstreamPullRequest commits, pushes, and creates a PR when no autom
     cwd,
     readRefreshResult: async () => ({
       status: 'success',
-      eligibleFiles: ['harness/upstream/superpowers/SKILL.md'],
+      eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
       sourceHeads: {}
     }),
     runCommand: async (command) => {
@@ -418,7 +418,7 @@ test('runOpenUpstreamPullRequest commits, pushes, and creates a PR when no autom
   assert.deepEqual(commands.slice(0, 4), [
     'git config user.name github-actions[bot]',
     'git config user.email 41898282+github-actions[bot]@users.noreply.github.com',
-    'git add -- harness/upstream/superpowers/SKILL.md',
+    'git add -- harness/upstream/planning-with-files/SKILL.md',
     "git commit -m 'chore: refresh upstream baselines'"
   ]);
   assert.ok(commands.includes('gh pr list --head automation/upstream-refresh --base dev --state open --json number,url,headRefName,baseRefName --limit 1'));
@@ -440,12 +440,12 @@ test('runOpenUpstreamPullRequest forwards resolved metadata into the final PR bo
       status: 'success',
       eligibleFiles: ['harness/upstream/.source-lock.json'],
       sourceHeads: {
-        superpowers: '1111111111111111111111111111111111111111'
+        'planning-with-files': '1111111111111111111111111111111111111111'
       },
       previousLock: {
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-release',
             resolved: {
               kind: 'latest-release',
@@ -459,7 +459,7 @@ test('runOpenUpstreamPullRequest forwards resolved metadata into the final PR bo
       resolvedLock: {
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-release',
             resolved: {
               kind: 'latest-release',
@@ -471,7 +471,7 @@ test('runOpenUpstreamPullRequest forwards resolved metadata into the final PR bo
         }
       },
       strategySummary: {
-        superpowers: {
+        'planning-with-files': {
           strategy: 'latest-release',
           previousVersion: 'v6.0.3',
           nextVersion: 'v6.1.1',
@@ -510,7 +510,7 @@ test('runOpenUpstreamPullRequest creates a dev PR instead of updating a same-hea
     cwd: '/tmp/repo',
     readRefreshResult: async () => ({
       status: 'success',
-      eligibleFiles: ['harness/upstream/superpowers/SKILL.md'],
+      eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
       sourceHeads: {}
     }),
     runCommand: async (command) => {
@@ -555,7 +555,7 @@ test('runOpenUpstreamPullRequest updates an existing automation PR branch and bo
     cwd,
     readRefreshResult: async () => ({
       status: 'success',
-      eligibleFiles: ['harness/upstream/superpowers/SKILL.md'],
+      eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
       sourceHeads: {}
     }),
     runCommand: async (command) => {
@@ -602,7 +602,7 @@ test('runOpenUpstreamPullRequest force-pushes and creates a PR when the automati
     cwd: '/tmp/repo',
     readRefreshResult: async () => ({
       status: 'success',
-      eligibleFiles: ['harness/upstream/superpowers/SKILL.md'],
+      eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
       sourceHeads: {}
     }),
     runCommand: async (command) => {
@@ -635,7 +635,7 @@ test('runOpenUpstreamPullRequest treats git commit failures as terminal errors',
       cwd: '/tmp/repo',
       readRefreshResult: async () => ({
         status: 'success',
-        eligibleFiles: ['harness/upstream/superpowers/SKILL.md']
+        eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md']
       }),
       runCommand: async (command) => {
         if (command.file === 'git' && command.args[0] === 'commit') {
@@ -656,7 +656,7 @@ test('runOpenUpstreamPullRequest treats gh PR creation failures as terminal erro
       cwd: '/tmp/repo',
       readRefreshResult: async () => ({
         status: 'success',
-        eligibleFiles: ['harness/upstream/superpowers/SKILL.md']
+        eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md']
       }),
       runCommand: async (command) => {
         if (command.file === 'gh' && command.args[0] === 'pr' && command.args[1] === 'list') {

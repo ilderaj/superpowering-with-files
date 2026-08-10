@@ -13,19 +13,25 @@ import {
   stageGitCandidate,
   upstreamPathForSource
 } from '../../harness/installer/lib/upstream.mjs';
+import { loadSourceLock } from '../../harness/installer/lib/upstream-config.mjs';
 
 const execFileAsync = promisify(execFile);
 
-test('loadUpstreamSources reads configured upstream sources', async () => {
+test('loadUpstreamSources exposes exactly the planning-with-files source', async () => {
   const sources = await loadUpstreamSources(process.cwd());
-  assert.equal(sources.superpowers.type, 'git');
-  assert.equal(sources.superpowers.path, 'harness/upstream/superpowers');
+  assert.deepEqual(Object.keys(sources), ['planning-with-files']);
   assert.equal(sources['planning-with-files'].type, 'git');
   assert.equal(sources['planning-with-files'].url, 'https://github.com/OthmanAdi/planning-with-files');
-  assert.equal(sources['mattpocock-skills'].type, 'git');
-  assert.equal(sources['mattpocock-skills'].url, 'https://github.com/mattpocock/skills');
-  assert.equal(sources['mattpocock-skills'].path, 'harness/upstream/mattpocock-skills');
-  assert.equal(sources['mattpocock-skills'].resolution.strategy, 'latest-release');
+  assert.equal(sources['planning-with-files'].path, 'harness/upstream/planning-with-files');
+  assert.equal(sources['planning-with-files'].overlayPath, 'harness/core/upstream-overlays/planning-with-files');
+  assert.equal(sources['planning-with-files'].resolution.strategy, 'latest-release');
+});
+
+test('source lock contains exactly the planning-with-files entry', async () => {
+  const lock = await loadSourceLock({ rootDir: process.cwd() });
+  assert.deepEqual(Object.keys(lock.sources), ['planning-with-files']);
+  assert.equal(lock.sources['planning-with-files'].resolved.kind, 'latest-release');
+  assert.equal(typeof lock.sources['planning-with-files'].resolved.commitSha, 'string');
 });
 
 test('upstream paths are constrained to harness/upstream', async () => {
@@ -58,8 +64,8 @@ test('upstream paths are constrained to harness/upstream', async () => {
 test('candidate paths are constrained to local harness state', () => {
   const root = '/repo';
   assert.equal(
-    candidatePathForSource(root, 'superpowers'),
-    path.join(root, '.harness/upstream-candidates/superpowers')
+    candidatePathForSource(root, 'planning-with-files'),
+    path.join(root, '.harness/upstream-candidates/planning-with-files')
   );
   assert.throws(() => assertInsideRoot('/repo/harness/core', '/repo/harness/upstream'), /outside allowed root/);
 });
@@ -69,7 +75,7 @@ test('stageGitCandidate clones a git source into local candidate state', async (
   const upstreamRepo = await mkdtemp(path.join(os.tmpdir(), 'harness-git-source-'));
   try {
     await execFileAsync('git', ['init'], { cwd: upstreamRepo });
-    await writeFile(path.join(upstreamRepo, 'SKILL.md'), '# Superpowers\n');
+    await writeFile(path.join(upstreamRepo, 'SKILL.md'), '# Planning With Files\n');
     await execFileAsync('git', ['add', 'SKILL.md'], { cwd: upstreamRepo });
     await execFileAsync(
       'git',
@@ -80,7 +86,7 @@ test('stageGitCandidate clones a git source into local candidate state', async (
     const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: upstreamRepo });
     const candidate = await stageGitCandidate(
       root,
-      'superpowers',
+      'planning-with-files',
       { url: upstreamRepo },
       {
         resolved: {
@@ -89,7 +95,7 @@ test('stageGitCandidate clones a git source into local candidate state', async (
         }
       }
     );
-    assert.equal(candidate, path.join(root, '.harness/upstream-candidates/superpowers'));
+    assert.equal(candidate, path.join(root, '.harness/upstream-candidates/planning-with-files'));
   } finally {
     await rm(root, { recursive: true, force: true });
     await rm(upstreamRepo, { recursive: true, force: true });
@@ -105,11 +111,11 @@ test('loadResolvedSourceForFetch reads the authoritative source lock entry', asy
       JSON.stringify({
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             type: 'git',
-            url: 'https://example.invalid/superpowers.git',
-            github: { owner: 'fixture', repo: 'superpowers' },
-            path: 'harness/upstream/superpowers',
+            url: 'https://example.invalid/planning-with-files.git',
+            github: { owner: 'fixture', repo: 'planning-with-files' },
+            path: 'harness/upstream/planning-with-files',
             resolution: {
               strategy: 'latest-release',
               allowPrerelease: false,
@@ -125,26 +131,26 @@ test('loadResolvedSourceForFetch reads the authoritative source lock entry', asy
         schemaVersion: 2,
         refreshedAt: '2026-07-04T00:00:00.000Z',
         sources: {
-          superpowers: {
-            name: 'superpowers',
+          'planning-with-files': {
+            name: 'planning-with-files',
             strategy: 'latest-release',
             fallbackUsed: false,
             refreshedAt: '2026-07-04T00:00:00.000Z',
             resolved: {
               kind: 'latest-release',
-              version: 'v6.1.1',
-              ref: 'refs/tags/v6.1.1',
-              commitSha: 'd884ae04edebef577e82ff7c4e143debd0bbec99'
+              version: 'v3.9.0',
+              ref: 'refs/tags/v3.9.0',
+              commitSha: '0e2b00ce4e8d1789cbcb16a41f7c9510b212b942'
             }
           }
         }
       })
     );
 
-    const { source, resolvedSource } = await loadResolvedSourceForFetch(root, 'superpowers');
+    const { source, resolvedSource } = await loadResolvedSourceForFetch(root, 'planning-with-files');
     assert.equal(source.resolution.strategy, 'latest-release');
-    assert.equal(resolvedSource.resolved.version, 'v6.1.1');
-    assert.equal(resolvedSource.resolved.ref, 'refs/tags/v6.1.1');
+    assert.equal(resolvedSource.resolved.version, 'v3.9.0');
+    assert.equal(resolvedSource.resolved.ref, 'refs/tags/v3.9.0');
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -159,11 +165,11 @@ test('loadResolvedSourceForFetch does not direct callers to the retired upstream
       JSON.stringify({
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             type: 'git',
-            url: 'https://example.invalid/superpowers.git',
-            github: { owner: 'fixture', repo: 'superpowers' },
-            path: 'harness/upstream/superpowers',
+            url: 'https://example.invalid/planning-with-files.git',
+            github: { owner: 'fixture', repo: 'planning-with-files' },
+            path: 'harness/upstream/planning-with-files',
             resolution: {
               strategy: 'latest-release',
               allowPrerelease: false,
@@ -174,8 +180,8 @@ test('loadResolvedSourceForFetch does not direct callers to the retired upstream
       })
     );
 
-    await assert.rejects(loadResolvedSourceForFetch(root, 'superpowers'), (error) => {
-      assert.match(error.message, /Missing resolved source lock for superpowers\./);
+    await assert.rejects(loadResolvedSourceForFetch(root, 'planning-with-files'), (error) => {
+      assert.match(error.message, /Missing resolved source lock for planning-with-files\./);
       assert.doesNotMatch(error.message, /upstream-lock/);
       return true;
     });

@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 
 const execFileAsync = promisify(execFile);
 const CAPABILITY_SCRIPT = path.resolve(

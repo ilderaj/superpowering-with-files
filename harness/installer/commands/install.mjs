@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import { withTrioPublicationLock } from '../../trio/core/store.mjs';
 import {
   assertProductionRuntimeSelector,
@@ -12,7 +12,11 @@ import {
   selectInstallerRuntime
 } from '../lib/state.mjs';
 import { migrateV1ToV2, parseV2Config } from '../../trio/config.mjs';
-import { applyTrioProjection } from './sync.mjs';
+import { applyTrioProjection, prepareTrioProjection } from './sync.mjs';
+import {
+  captureTrioTakeoverPreimages,
+  publishTrioTakeoverBackup
+} from '../lib/trio-takeover-backup.mjs';
 
 function trioInstallError(message, code = 'ERR_TRIO_INSTALL') {
   const error = new Error(message);
@@ -382,7 +386,7 @@ function requiresExplicitProductionUpgrade(args) {
 function parseProductionInstallOptions(args) {
   const options = parseTrioCommandOptions(args, {
     values: ['recovery'],
-    flags: ['upgrade']
+    flags: ['upgrade', 'takeover-chiefops']
   });
   if (Object.hasOwn(options, 'recovery') && !options.upgrade) {
     throw trioInstallError('Trio --recovery is only valid for --upgrade.');
@@ -390,7 +394,129 @@ function parseProductionInstallOptions(args) {
   if (options.upgrade && !Object.hasOwn(options, 'recovery')) {
     throw trioInstallError('Trio V1 upgrade requires an explicit --recovery.');
   }
+  if (options['takeover-chiefops'] && (options.upgrade || Object.hasOwn(options, 'recovery'))) {
+    throw trioInstallError('Trio --takeover-chiefops cannot be combined with --upgrade or --recovery.', 'ERR_TRIO_TAKEOVER');
+  }
   return options;
+}
+
+function trioTakeoverError(message) {
+  return trioInstallError(message, 'ERR_TRIO_TAKEOVER');
+}
+
+function assertTrioChiefOpsShapeEligible({ state, environment }) {
+  if (state.scope.kind !== 'user-global') {
+    throw trioTakeoverError('Trio --takeover-chiefops requires an existing schema-v2 user-global state.');
+  }
+  const codexTargets = state.targets.filter((target) => target.hostKind === 'codex');
+  if (codexTargets.length !== 1
+    || !codexTargets[0].enabled
+    || codexTargets[0].mode !== 'managed'
+    || codexTargets[0].paths.length !== 1) {
+    throw trioTakeoverError('Trio --takeover-chiefops requires exactly one enabled managed Codex user-global placement.');
+  }
+  const expectedEntry = path.join(environment.homeDir, '.codex', 'AGENTS.md');
+  if (path.resolve(codexTargets[0].paths[0]) !== path.resolve(expectedEntry)) {
+    throw trioTakeoverError('Trio --takeover-chiefops requires the managed Codex placement at the user-global entry path.');
+  }
+}
+
+async function assertTrioChiefOpsTakeoverEligible({ state, prepared }) {
+  const managed = prepared.descriptors.filter((descriptor) => descriptor.management === 'managed');
+  if (managed.length !== 6) {
+    throw trioTakeoverError('Trio --takeover-chiefops requires exactly six managed user-global Trio surfaces.');
+  }
+  const chiefops = managed.find((descriptor) => descriptor.surface === 'chiefops');
+  const owned = managed.filter((descriptor) => descriptor.surface !== 'chiefops');
+  if (!chiefops || owned.length !== 5) {
+    throw trioTakeoverError('Trio --takeover-chiefops requires the six managed user-global Trio surfaces.');
+  }
+  if (state.ownership.entries.some((entry) =>
+    entry.targetId === 'codex' && path.resolve(entry.path) === path.resolve(chiefops.destination)
+  )) {
+    throw trioTakeoverError('Trio --takeover-chiefops refuses an already-owned ChiefOps surface.');
+  }
+  const ownedByPath = new Map(state.ownership.entries.map((entry) => [path.resolve(entry.path), entry]));
+  if (state.ownership.entries.length !== owned.length
+    || owned.some((descriptor) => !ownedByPath.has(path.resolve(descriptor.destination)))) {
+    throw trioTakeoverError('Trio --takeover-chiefops requires ownership of exactly the five existing Trio surfaces.');
+  }
+  for (const descriptor of owned) {
+    const entry = ownedByPath.get(path.resolve(descriptor.destination));
+    if (!entry || entry.targetId !== 'codex') {
+      throw trioTakeoverError('Trio --takeover-chiefops requires Codex ownership of the existing Trio surfaces.');
+    }
+  }
+  for (const descriptor of owned) {
+    const entry = ownedByPath.get(path.resolve(descriptor.destination));
+    const actual = sha256(await readFile(descriptor.destination));
+    if (entry.identity !== `sha256:${actual}`) {
+      throw trioTakeoverError(`Trio --takeover-chiefops rejects owned-surface content mismatch: ${descriptor.destination}.`);
+    }
+  }
+  const managedDestinations = new Set(managed.map((descriptor) => descriptor.destination));
+  const managedConflicts = prepared.conflicts.filter((conflict) => managedDestinations.has(conflict.destination));
+  if (managedConflicts.length !== 1
+    || managedConflicts[0].destination !== chiefops.destination
+    || managedConflicts[0].reason !== 'destination-observation-unknown') {
+    throw trioTakeoverError('Trio --takeover-chiefops accepts only the single unowned ChiefOps conflict.');
+  }
+  return Object.freeze({ managed, owned, chiefops });
+}
+
+async function runTrioChiefOpsTakeover({ environment, state, statePrecondition }) {
+  assertTrioChiefOpsShapeEligible({ state, environment });
+  const prepared = await prepareTrioProjection({ environment, config: state });
+  const eligible = await assertTrioChiefOpsTakeoverEligible({ state, prepared });
+  const captured = await captureTrioTakeoverPreimages({
+    environment,
+    descriptors: eligible.managed,
+    statePrecondition
+  });
+  const backup = await publishTrioTakeoverBackup({
+    environment,
+    preimages: captured,
+    ownership: state.ownership,
+    recovery: state.recovery
+  });
+  const chiefopsSnapshot = captured.snapshots.get(path.resolve(eligible.chiefops.destination));
+  if (!chiefopsSnapshot) {
+    throw trioTakeoverError('Trio --takeover-chiefops lost its ChiefOps preimage snapshot.');
+  }
+  const takeoverConfig = parseV2Config({
+    ...state,
+    ownership: {
+      ...state.ownership,
+      entries: [
+        ...state.ownership.entries,
+        {
+          targetId: 'codex',
+          path: eligible.chiefops.destination,
+          identity: `sha256:${chiefopsSnapshot.sha256}`
+        }
+      ]
+    },
+    recovery: {
+      checkpointRef: state.recovery.checkpointRef,
+      rollbackRef: backup.rollbackRef
+    }
+  });
+  const result = await applyTrioProjection({
+    environment,
+    config: takeoverConfig,
+    statePrecondition,
+    preimageSnapshots: captured.snapshots
+  });
+  return Object.freeze({
+    ...result,
+    mode: 'takeover-chiefops',
+    backup: Object.freeze({
+      ref: backup.rollbackRef,
+      root: backup.root,
+      manifestPath: backup.manifestPath,
+      bundlePath: backup.bundlePath
+    })
+  });
 }
 
 function usage() {
@@ -400,6 +526,7 @@ function usage() {
     'Options:',
     '  --upgrade                 Upgrade persisted schema-v1 state to Trio v2',
     '  --recovery <path>         Required recovery input for --upgrade',
+    '  --takeover-chiefops       Take over the unowned ChiefOps surface of an existing schema-v2 user-global state',
     '  --help, -h                Show this help message'
   ].join('\n');
 }
@@ -440,6 +567,28 @@ export async function install(args = [], options = {}) {
     const installOptions = parseProductionInstallOptions(args);
     if (probe.kind !== 'v1' && (installOptions.upgrade || Object.hasOwn(installOptions, 'recovery'))) {
       throw trioInstallError('Trio --upgrade is only available for a persisted schema-v1 state.');
+    }
+    if (installOptions['takeover-chiefops']) {
+      if (probe.kind !== 'v2') {
+        throw trioTakeoverError('Trio --takeover-chiefops requires an existing schema-v2 user-global state.');
+      }
+      const environment = await resolveTrioProductionEnvironment({
+        rootDir,
+        homeDir: options.homeDir
+      });
+      const outcome = await runTrioChiefOpsTakeover({
+        environment,
+        state: probe.state,
+        statePrecondition: probe.evidence
+      });
+      console.log(JSON.stringify({
+        runtime: 'trio',
+        mode: outcome.mode,
+        writes: outcome.writes,
+        conflicts: outcome.conflicts,
+        backup: outcome.backup
+      }, null, 2));
+      return outcome;
     }
 
     const environment = await resolveTrioProductionEnvironment({

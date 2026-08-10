@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -8,6 +8,8 @@ import * as trioRead from '../../harness/trio/core/read.mjs';
 
 import {
   ASSIGNMENT_PACKET_FIELDS,
+  CHIEF_WORK_ROLES,
+  EXECUTION_WORK_ROLES,
   ROUTE_KINDS,
   buildAssignmentPacket,
   calculateNextAction,
@@ -41,56 +43,57 @@ test('routeTask promotes multi-phase durable work to the tracked route', () => {
   assert.equal(result.createTrio, true);
 });
 
-test('resolveModelEffort never infers actual model or effort from requested values', () => {
+test('resolveModelEffort fails closed without a declared work role and never infers actual values', () => {
+  assert.throws(
+    () => resolveModelEffort({ taskClass: 'tracked' }),
+    /declared workRole/i
+  );
+  assert.throws(
+    () => resolveModelEffort({
+      taskClass: 'tracked',
+      requestedModel: 'gpt-5.6-luna',
+      requestedEffort: 'max'
+    }),
+    /declared workRole/i
+  );
+
   const result = resolveModelEffort({
     taskClass: 'tracked',
-    requestedModel: 'gpt-5.6-luna',
-    requestedEffort: 'max'
+    workRole: 'chief',
+    requestedModel: 'gpt-5.6-sol',
+    requestedEffort: 'max',
+    actualModel: 'gpt-5.6-sol',
+    actualEffort: 'max'
   });
-
-  assert.equal(result.requestedModel, 'gpt-5.6-luna');
+  assert.equal(result.requestedModel, 'gpt-5.6-sol');
   assert.equal(result.requestedEffort, 'max');
   assert.equal(result.actualModel, 'unknown');
   assert.equal(result.actualEffort, 'unknown');
   assert.equal(result.actualObserved, false);
 });
 
-test('resolveModelEffort applies the durable routing policy and authenticated actual evidence gate', () => {
+test('resolveModelEffort requires a declared work role and keeps the authenticated actual evidence gate', () => {
   assert.deepEqual(ROUTE_KINDS, ['quick', 'tracked']);
 
-  for (const signals of [
-    { multiFileIntegration: true },
-    { uncertainDebugging: true },
-    { lunaFailureCount: 2 }
-  ]) {
-    const result = resolveModelEffort({ taskClass: 'tracked', ...signals });
-    assert.equal(result.requestedModel, 'gpt-5.6-terra');
-    assert.equal(result.requestedEffort, 'max');
-  }
-
-  for (const signals of [
-    { chiefArchitecture: true },
-    { chiefPlanning: true },
-    { majorGate: true },
-    { finalAcceptance: true }
-  ]) {
-    const result = resolveModelEffort({ taskClass: 'tracked', ...signals });
-    assert.equal(result.requestedModel, 'gpt-5.6-sol');
-    assert.equal(result.requestedEffort, 'ultra');
-  }
-
+  // Legacy signal-only classification is gone: without a declared work role
+  // the same signals fail closed instead of silently selecting a model.
   for (const signals of [
     { security: true },
-    { dataIntegrity: true },
-    { irreversibleMigration: true }
+    { chiefArchitecture: true },
+    { multiFileIntegration: true },
+    { lunaFailureCount: 2 }
   ]) {
-    const result = resolveModelEffort({ taskClass: 'tracked', ...signals });
-    assert.equal(result.requestedModel, 'gpt-5.6-sol');
-    assert.equal(result.requestedEffort, 'max');
+    assert.throws(
+      () => resolveModelEffort({ taskClass: 'tracked', ...signals }),
+      /declared workRole/i
+    );
   }
 
   const unauthenticated = resolveModelEffort({
     taskClass: 'tracked',
+    workRole: 'planning',
+    requestedModel: 'gpt-5.6-sol',
+    requestedEffort: 'max',
     actualModel: 'gpt-5.6-terra',
     actualEffort: 'max',
     evidence: { authenticated: false, actualModel: 'gpt-5.6-terra', actualEffort: 'max' }
@@ -100,6 +103,9 @@ test('resolveModelEffort applies the durable routing policy and authenticated ac
 
   const authenticated = resolveModelEffort({
     taskClass: 'tracked',
+    workRole: 'planning',
+    requestedModel: 'gpt-5.6-sol',
+    requestedEffort: 'max',
     evidence: { authenticated: true, actualModel: 'gpt-5.6-terra', actualEffort: 'max' }
   });
   assert.equal(authenticated.actualModel, 'gpt-5.6-terra');
@@ -110,6 +116,7 @@ test('resolveModelEffort applies the durable routing policy and authenticated ac
     () => resolveModelEffort({
       taskClass: 'tracked',
       isChild: true,
+      workRole: 'chief',
       requestedModel: 'gpt-5.6-sol',
       requestedEffort: 'ultra'
     }),
@@ -129,7 +136,12 @@ test('buildAssignmentPacket emits exactly the eight approved fields from a verif
     currentSlice: { name: 'wave-1', files: ['harness/trio/core/read.mjs'] },
     nonGoals: ['no writes', 'no default runtime cutover'],
     proof: { primary: ['focused tests'], backstop: ['diff check'] },
-    capability: { requestedModel: 'gpt-5.6-luna', requestedEffort: 'max', actualModel: 'unknown' },
+    capability: {
+      workRole: 'chief',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max',
+      actualModel: 'unknown'
+    },
     allowedOperations: { files: ['harness/trio/core/read.mjs'], delegation: 'prohibited' },
     deadline: { stopAt: 'candidate_done', stopConditions: ['binding mismatch'] },
     expectedReturn: { status: ['candidate_done', 'blocked'], evidence: ['commands and exits'] }
@@ -202,4 +214,423 @@ test('calculateNextAction fails closed unless it is explicitly dry-run', () => {
     }),
     /dry-run/i
   );
+});
+
+test('execution work roles always request the Flash model with calibrated effort', () => {
+  for (const workRole of EXECUTION_WORK_ROLES) {
+    const bounded = resolveModelEffort({ taskClass: 'tracked', workRole, complexity: 'high' });
+    assert.equal(bounded.requestedModel, 'opencode-go/deepseek-v4-flash');
+    assert.equal(bounded.requestedEffort, 'high');
+    assert.equal(bounded.requestedProvider, 'opencode-go');
+    assert.equal(bounded.workRole, workRole);
+    assert.equal(bounded.complexity, 'high');
+    assert.equal(bounded.route, 'tracked');
+
+    const iterative = resolveModelEffort({ taskClass: 'tracked', workRole, complexity: 'xhigh' });
+    assert.equal(iterative.requestedModel, 'opencode-go/deepseek-v4-flash');
+    assert.equal(iterative.requestedEffort, 'xhigh');
+
+    const longRunning = resolveModelEffort({ taskClass: 'tracked', workRole, complexity: 'max' });
+    assert.equal(longRunning.requestedModel, 'opencode-go/deepseek-v4-flash');
+    assert.equal(longRunning.requestedEffort, 'max');
+    assert.equal(longRunning.actualModel, 'unknown');
+    assert.equal(longRunning.actualEffort, 'unknown');
+    assert.equal(longRunning.actualObserved, false);
+  }
+});
+
+test('execution complexity classifiers map bounded, multi-file, and long-running work to high, xhigh, and max', () => {
+  const bounded = resolveModelEffort({ taskClass: 'tracked', workRole: 'coding', bounded: true });
+  assert.equal(bounded.complexity, 'high');
+  assert.equal(bounded.requestedEffort, 'high');
+
+  const routine = resolveModelEffort({ taskClass: 'tracked', workRole: 'executing', routine: true });
+  assert.equal(routine.complexity, 'high');
+
+  const multiFile = resolveModelEffort({
+    taskClass: 'tracked',
+    workRole: 'coding',
+    multiFile: true,
+    verificationHeavy: true
+  });
+  assert.equal(multiFile.complexity, 'xhigh');
+  assert.equal(multiFile.requestedEffort, 'xhigh');
+
+  const research = resolveModelEffort({ taskClass: 'tracked', workRole: 'researching', research: true });
+  assert.equal(research.requestedEffort, 'xhigh');
+
+  const repeated = resolveModelEffort({ taskClass: 'tracked', workRole: 'coding', repeatedRepair: true });
+  assert.equal(repeated.complexity, 'max');
+  assert.equal(repeated.requestedEffort, 'max');
+
+  const broad = resolveModelEffort({ taskClass: 'tracked', workRole: 'coding', broadIntegration: true });
+  assert.equal(broad.requestedEffort, 'max');
+
+  const explicit = resolveModelEffort({ taskClass: 'tracked', workRole: 'executing', highComplexity: true });
+  assert.equal(explicit.complexity, 'max');
+});
+
+test('chief roles may request only Sol or Terra and remain the sole premium-model path', () => {
+  for (const workRole of CHIEF_WORK_ROLES) {
+    const sol = resolveModelEffort({
+      taskClass: 'tracked',
+      workRole,
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max'
+    });
+    assert.equal(sol.requestedModel, 'gpt-5.6-sol');
+    assert.equal(sol.requestedEffort, 'max');
+    assert.equal(sol.requestedProvider, 'gpt-5.6');
+    assert.equal(sol.workRole, workRole);
+    assert.equal(sol.complexity, null);
+
+    const terra = resolveModelEffort({
+      taskClass: 'tracked',
+      workRole,
+      requestedModel: 'gpt-5.6-terra',
+      requestedEffort: 'ultra'
+    });
+    assert.equal(terra.requestedModel, 'gpt-5.6-terra');
+    assert.equal(terra.requestedEffort, 'ultra');
+
+    assert.throws(
+      () => resolveModelEffort({ taskClass: 'tracked', workRole, requestedModel: 'gpt-5.6-luna' }),
+      /only gpt-5\.6-sol or gpt-5\.6-terra/i
+    );
+    assert.throws(
+      () => resolveModelEffort({ taskClass: 'tracked', workRole, requestedModel: 'opencode-go/deepseek-v4-flash' }),
+      /only gpt-5\.6-sol or gpt-5\.6-terra/i
+    );
+    assert.throws(
+      () => resolveModelEffort({ taskClass: 'tracked', workRole, requestedEffort: 'xhigh' }),
+      /max or ultra/i
+    );
+  }
+});
+
+test('unknown work roles and unknown or ambiguous complexity fail closed instead of escalating', () => {
+  assert.throws(
+    () => resolveModelEffort({ taskClass: 'tracked', workRole: 'deep-reasoning' }),
+    /unknown work role/i
+  );
+  assert.throws(
+    () => resolveModelEffort({ taskClass: 'tracked', workRole: 'coding' }),
+    /unknown complexity.*blocker/i
+  );
+  assert.throws(
+    () => resolveModelEffort({ taskClass: 'tracked', workRole: 'coding', complexity: 'ultra' }),
+    /complexity/i
+  );
+  assert.throws(
+    () => resolveModelEffort({ taskClass: 'tracked', workRole: 'coding', bounded: true, longRunning: true }),
+    /blocker/i
+  );
+  assert.throws(
+    () => resolveModelEffort({ taskClass: 'tracked', workRole: 'planning', complexity: 'max' }),
+    /execution-scoped/i
+  );
+});
+
+test('caller-supplied model or effort cannot bypass or upgrade an execution slice', () => {
+  assert.throws(
+    () => resolveModelEffort({
+      taskClass: 'tracked',
+      workRole: 'coding',
+      complexity: 'xhigh',
+      requestedModel: 'gpt-5.6-sol'
+    }),
+    /may only request opencode-go\/deepseek-v4-flash/i
+  );
+  assert.throws(
+    () => resolveModelEffort({
+      taskClass: 'tracked',
+      workRole: 'coding',
+      complexity: 'xhigh',
+      requestedEffort: 'max'
+    }),
+    /requests effort xhigh/i
+  );
+
+  const consistent = resolveModelEffort({
+    taskClass: 'tracked',
+    workRole: 'coding',
+    complexity: 'xhigh',
+    requestedModel: 'opencode-go/deepseek-v4-flash',
+    requestedEffort: 'xhigh'
+  });
+  assert.equal(consistent.requestedModel, 'opencode-go/deepseek-v4-flash');
+  assert.equal(consistent.requestedEffort, 'xhigh');
+});
+
+test('structured human overrides classify only Chief slices and carry provenance', () => {
+  const override = {
+    reason: 'host gate requires chief acceptance review',
+    provenance: 'operator:jared'
+  };
+  const result = resolveModelEffort({
+    taskClass: 'tracked',
+    workRole: 'planning',
+    requestedModel: 'gpt-5.6-sol',
+    requestedEffort: 'ultra',
+    override
+  });
+  assert.deepEqual(result.override, override);
+  assert.equal(result.requestedModel, 'gpt-5.6-sol');
+  assert.equal(result.requestedEffort, 'ultra');
+
+  assert.throws(
+    () => resolveModelEffort({
+      taskClass: 'tracked',
+      workRole: 'coding',
+      complexity: 'xhigh',
+      override
+    }),
+    /override.*execution|execution roles never upgrade/i
+  );
+  assert.throws(
+    () => resolveModelEffort({
+      taskClass: 'tracked',
+      workRole: 'planning',
+      override: { reason: '' }
+    }),
+    /override/i
+  );
+});
+
+test('Chief planning and Flash execution slices never leak model or effort into each other', () => {
+  const chief = resolveModelEffort({
+    taskClass: 'tracked',
+    workRole: 'planning',
+    requestedModel: 'gpt-5.6-sol',
+    requestedEffort: 'max'
+  });
+  const execution = resolveModelEffort({
+    taskClass: 'tracked',
+    workRole: 'executing',
+    complexity: 'xhigh'
+  });
+
+  assert.equal(chief.requestedModel, 'gpt-5.6-sol');
+  assert.equal(execution.requestedModel, 'opencode-go/deepseek-v4-flash');
+  assert.notEqual(chief.requestedModel, execution.requestedModel);
+  assert.notEqual(chief.requestedEffort, execution.requestedEffort);
+  assert.equal(chief.workRole, 'planning');
+  assert.equal(execution.workRole, 'executing');
+  assert.equal(execution.actualModel, 'unknown');
+  assert.equal(execution.actualEffort, 'unknown');
+});
+
+test('economic policy results keep actual evidence unknown without authenticated Host evidence', () => {
+  const result = resolveModelEffort({
+    taskClass: 'tracked',
+    workRole: 'coding',
+    complexity: 'max',
+    actualModel: 'gpt-5.6-sol',
+    actualEffort: 'ultra',
+    evidence: { authenticated: false, actualModel: 'gpt-5.6-sol', actualEffort: 'ultra' }
+  });
+  assert.equal(result.requestedModel, 'opencode-go/deepseek-v4-flash');
+  assert.equal(result.requestedEffort, 'max');
+  assert.equal(result.actualModel, 'unknown');
+  assert.equal(result.actualEffort, 'unknown');
+  assert.equal(result.actualObserved, false);
+
+  const authenticated = resolveModelEffort({
+    taskClass: 'tracked',
+    workRole: 'coding',
+    complexity: 'xhigh',
+    evidence: { authenticated: true, actualModel: 'opencode-go/deepseek-v4-flash', actualEffort: 'xhigh' }
+  });
+  assert.equal(authenticated.actualModel, 'opencode-go/deepseek-v4-flash');
+  assert.equal(authenticated.actualEffort, 'xhigh');
+  assert.equal(authenticated.actualObserved, true);
+});
+
+function goalContract(overrides = {}) {
+  return {
+    objective: 'Implement the reviewed routing plan',
+    successCriteria: ['focused RED tests pass', 'verify:trio passes'],
+    stopConditions: ['binding mismatch', 'three failed attempts'],
+    expectedEvidence: ['test exits', 'changed paths'],
+    maxIterations: 24,
+    milestoneCheckIn: 'after each completed slice',
+    returnCondition: 'candidate_done or blocked',
+    ...overrides
+  };
+}
+
+test('worker_self_goal packets require a complete bounded goal contract with an exact closed shape', async () => {
+  const { root, taskDir } = await createBoundTrio();
+  try {
+    const reading = await trioRead.readTrioTask(root, { taskId: 'binding-task' });
+    const baseCapability = {
+      workRole: 'coding',
+      complexity: 'xhigh',
+      executionMode: 'worker_self_goal',
+      goalContract: goalContract()
+    };
+    const base = {
+      authority: { binding: reading.binding, bindingObservation: reading.binding },
+      currentSlice: { name: 'goal-slice' },
+      nonGoals: ['no cross-thread goal control'],
+      proof: { primary: ['focused tests'] },
+      capability: baseCapability,
+      allowedOperations: { files: [] },
+      deadline: { stopConditions: [] },
+      expectedReturn: { status: ['candidate_done', 'blocked'], evidence: ['commands and exits'] }
+    };
+
+    const packet = buildAssignmentPacket(base);
+    assert.equal(packet.capability.executionMode, 'worker_self_goal');
+    assert.deepEqual(Object.keys(packet.capability.goalContract), [
+      'objective',
+      'successCriteria',
+      'stopConditions',
+      'expectedEvidence',
+      'maxIterations',
+      'milestoneCheckIn',
+      'returnCondition'
+    ]);
+
+    const invalidCases = [
+      { label: 'missing contract', capability: { ...baseCapability, goalContract: undefined } },
+      { label: 'empty objective', capability: { ...baseCapability, goalContract: goalContract({ objective: '' }) } },
+      { label: 'empty success criteria', capability: { ...baseCapability, goalContract: goalContract({ successCriteria: [] }) } },
+      { label: 'blank stop condition', capability: { ...baseCapability, goalContract: goalContract({ stopConditions: [' '] }) } },
+      { label: 'zero iterations', capability: { ...baseCapability, goalContract: goalContract({ maxIterations: 0 }) } },
+      { label: 'excessive iterations', capability: { ...baseCapability, goalContract: goalContract({ maxIterations: 101 }) } },
+      { label: 'non-integer iterations', capability: { ...baseCapability, goalContract: goalContract({ maxIterations: 24.5 }) } },
+      { label: 'missing milestone check-in', capability: { ...baseCapability, goalContract: goalContract({ milestoneCheckIn: '' }) } },
+      { label: 'extra contract field', capability: { ...baseCapability, goalContract: goalContract({ threadControl: true }) } }
+    ];
+    for (const invalid of invalidCases) {
+      assert.throws(
+        () => buildAssignmentPacket({ ...base, capability: invalid.capability }),
+        /goal contract|objective|successCriteria|stopConditions|maxIterations|milestoneCheckIn|closed shape/i,
+        invalid.label
+      );
+    }
+
+    const bounded = buildAssignmentPacket({
+      ...base,
+      capability: {
+        workRole: 'coding',
+        complexity: 'xhigh',
+        executionMode: 'bounded_slice'
+      }
+    });
+    assert.equal(bounded.capability.executionMode, 'bounded_slice');
+    assert.equal(Object.hasOwn(bounded.capability, 'goalContract'), false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('goal packets retain their exact bounded shape through the packet round trip', async () => {
+  const { root, taskDir } = await createBoundTrio();
+  try {
+    const reading = await trioRead.readTrioTask(root, { taskId: 'binding-task' });
+    const contract = goalContract();
+    const packet = buildAssignmentPacket({
+      authority: { binding: reading.binding, bindingObservation: reading.binding },
+      currentSlice: { name: 'goal-slice' },
+      nonGoals: [],
+      proof: { primary: ['focused tests'] },
+      capability: {
+        workRole: 'coding',
+        complexity: 'xhigh',
+        executionMode: 'worker_self_goal',
+        goalContract: contract
+      },
+      allowedOperations: { files: [] },
+      deadline: { stopConditions: [] },
+      expectedReturn: { status: ['candidate_done', 'blocked'] }
+    });
+
+    assert.deepEqual(packet.capability.goalContract, contract);
+    assert.equal(packet.capability.goalContract.maxIterations, 24);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('assignment packets fail closed without a declared work role or execution complexity', async () => {
+  const { root, taskDir } = await createBoundTrio();
+  try {
+    const reading = await trioRead.readTrioTask(root, { taskId: 'binding-task' });
+    const base = {
+      authority: { binding: reading.binding, bindingObservation: reading.binding },
+      currentSlice: { name: 'negative-slice' },
+      nonGoals: [],
+      proof: { primary: ['focused negative tests'] },
+      capability: {},
+      allowedOperations: { files: [] },
+      deadline: { stopConditions: [] },
+      expectedReturn: { status: ['candidate_done', 'blocked'] }
+    };
+
+    assert.throws(
+      () => buildAssignmentPacket(base),
+      /declared workRole/i
+    );
+    assert.throws(
+      () => buildAssignmentPacket({
+        ...base,
+        capability: { workRole: 'coding' }
+      }),
+      /exactly one valid complexity/i
+    );
+    assert.throws(
+      () => buildAssignmentPacket({
+        ...base,
+        capability: { workRole: 'planning', complexity: 'max' }
+      }),
+      /execution-scoped/i
+    );
+    assert.throws(
+      () => buildAssignmentPacket({
+        ...base,
+        capability: { workRole: 'coding', bounded: true, longRunning: true }
+      }),
+      /ambiguous complexity/i
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('economic routing can never produce a requested Luna model and no unclassified path exists', async () => {
+  const source = await readFile(new URL('../../harness/trio/core/routing.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /gpt-5\.6-luna/i);
+
+  const allowedRequestedModels = new Set([
+    'opencode-go/deepseek-v4-flash',
+    'gpt-5.6-sol',
+    'gpt-5.6-terra'
+  ]);
+  const cases = [
+    ...CHIEF_WORK_ROLES.flatMap((workRole) => [
+      { workRole },
+      { workRole, requestedModel: 'gpt-5.6-sol', requestedEffort: 'max' },
+      { workRole, requestedModel: 'gpt-5.6-terra', requestedEffort: 'ultra' }
+    ]),
+    ...EXECUTION_WORK_ROLES.flatMap((workRole) => [
+      { workRole, complexity: 'high' },
+      { workRole, complexity: 'xhigh' },
+      { workRole, complexity: 'max' },
+      { workRole, bounded: true },
+      { workRole, multiFile: true, verificationHeavy: true },
+      { workRole, longRunning: true, highComplexity: true }
+    ])
+  ];
+  for (const input of cases) {
+    const result = resolveModelEffort({ taskClass: 'tracked', ...input });
+    assert.equal(result.requestedModel.includes('luna'), false, JSON.stringify(input));
+    assert.ok(allowedRequestedModels.has(result.requestedModel), result.requestedModel);
+  }
+
+  const chief = resolveModelEffort({ taskClass: 'tracked', workRole: 'planning', requestedModel: 'gpt-5.6-sol', requestedEffort: 'max' });
+  const execution = resolveModelEffort({ taskClass: 'tracked', workRole: 'coding', complexity: 'xhigh' });
+  assert.equal(chief.requestedModel, 'gpt-5.6-sol');
+  assert.equal(execution.requestedModel, 'opencode-go/deepseek-v4-flash');
 });

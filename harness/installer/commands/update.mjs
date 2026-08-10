@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import {
   applyCandidate,
   loadUpstreamSources,

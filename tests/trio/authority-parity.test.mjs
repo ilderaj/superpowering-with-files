@@ -1,15 +1,43 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { fileURLToPath } from 'node:url';
 
-import * as legacyAuthority from '../../harness/runtime/authority-root.mjs';
 import * as coreAuthority from '../../harness/trio/core/authority.mjs';
 
 const execFileAsync = promisify(execFile);
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+const RETIRED_RUNTIME_MODULES = Object.freeze([
+  'authority-root',
+  'decision-plane-router',
+  'execution-contract',
+  'policy-evaluator',
+  'policy-signature',
+  'redaction',
+  'root-policy',
+  'source-root',
+  'verification-contract',
+  'write-plan'
+]);
+
+const INSTALLER_AUTHORITY_CONSUMERS = Object.freeze([
+  'checkpoint-push',
+  'checkpoint',
+  'doctor',
+  'fetch',
+  'install',
+  'sync',
+  'token-audit',
+  'update',
+  'verify',
+  'workspace-link',
+  'worktree-preflight'
+]);
 
 function assertAuthorityOracle(result, expected) {
   assert.equal(result.rootDir, expected.rootDir);
@@ -24,7 +52,7 @@ async function initGitRepo(root) {
   await execFileAsync('git', ['config', 'user.email', 'trio@example.com'], { cwd: root });
 }
 
-test('legacy authority path and Trio Core authority expose the same API and nested-marker result', async () => {
+test('Trio Core authority resolves the nearest ancestor harness marker from a nested cwd', async () => {
   const sandboxRoot = await mkdtemp(path.join(os.tmpdir(), 'trio-authority-parity-'));
   try {
     const repoRoot = path.join(sandboxRoot, 'repo');
@@ -34,7 +62,6 @@ test('legacy authority path and Trio Core authority expose the same API and nest
     await mkdir(leafDir, { recursive: true });
     await writeFile(path.join(repoRoot, 'scripts', 'harness'), '#!/usr/bin/env bash\n', 'utf8');
 
-    assert.deepEqual(Object.keys(legacyAuthority).sort(), Object.keys(coreAuthority).sort());
     const expectedRoot = await realpath(repoRoot);
     const expectedLeaf = await realpath(leafDir);
     const coreResult = await coreAuthority.discoverAuthorityRoot(leafDir);
@@ -44,16 +71,12 @@ test('legacy authority path and Trio Core authority expose the same API and nest
       requestedRoot: expectedRoot,
       markerPath: await realpath(path.join(expectedRoot, 'planning', 'active'))
     });
-    assert.deepEqual(
-      await legacyAuthority.discoverAuthorityRoot(leafDir),
-      coreResult
-    );
   } finally {
     await rm(sandboxRoot, { recursive: true, force: true });
   }
 });
 
-test('legacy and Core authority preserve explicit, override, environment, and git-boundary behavior', async () => {
+test('Core authority preserves explicit, override, environment, and git-boundary behavior', async () => {
   const sandboxRoot = await mkdtemp(path.join(os.tmpdir(), 'trio-authority-parity-matrix-'));
   const previousRoot = process.env.HARNESS_PROJECT_ROOT;
   try {
@@ -80,10 +103,6 @@ test('legacy and Core authority preserve explicit, override, environment, and gi
       requestedRoot: path.resolve(authorityRoot),
       markerPath: null
     });
-    assert.deepEqual(
-      await legacyAuthority.discoverAuthorityRoot(leafDir, explicitOptions),
-      explicitCore
-    );
     const overrideCore = await coreAuthority.discoverAuthorityRoot(leafDir);
     assertAuthorityOracle(overrideCore, {
       rootDir: expectedAuthorityRoot,
@@ -91,10 +110,6 @@ test('legacy and Core authority preserve explicit, override, environment, and gi
       requestedRoot: expectedAuthorityRoot,
       markerPath: await realpath(expectedMarkerPath)
     });
-    assert.deepEqual(
-      await legacyAuthority.discoverAuthorityRoot(leafDir),
-      overrideCore
-    );
 
     process.env.HARNESS_PROJECT_ROOT = await realpath(authorityRoot);
     const environmentCore = await coreAuthority.discoverAuthorityRoot(leafDir);
@@ -104,10 +119,6 @@ test('legacy and Core authority preserve explicit, override, environment, and gi
       requestedRoot: expectedAuthorityRoot,
       markerPath: null
     });
-    assert.deepEqual(
-      await legacyAuthority.discoverAuthorityRoot(leafDir),
-      environmentCore
-    );
 
     delete process.env.HARNESS_PROJECT_ROOT;
     const gitRoot = path.join(sandboxRoot, 'git-repo');
@@ -121,13 +132,36 @@ test('legacy and Core authority preserve explicit, override, environment, and gi
       requestedRoot: await realpath(gitRoot),
       markerPath: null
     });
-    assert.deepEqual(
-      await legacyAuthority.discoverAuthorityRoot(gitLeaf),
-      gitCore
-    );
   } finally {
     if (previousRoot === undefined) delete process.env.HARNESS_PROJECT_ROOT;
     else process.env.HARNESS_PROJECT_ROOT = previousRoot;
     await rm(sandboxRoot, { recursive: true, force: true });
+  }
+});
+
+test('retired runtime authority modules are absent and installer consumers import Trio Core directly', async () => {
+  for (const moduleName of RETIRED_RUNTIME_MODULES) {
+    await assert.rejects(
+      access(path.join(REPO_ROOT, `harness/runtime/${moduleName}.mjs`)),
+      (error) => error?.code === 'ENOENT',
+      `expected harness/runtime/${moduleName}.mjs to be retired`
+    );
+  }
+
+  for (const commandName of INSTALLER_AUTHORITY_CONSUMERS) {
+    const source = await readFile(
+      path.join(REPO_ROOT, `harness/installer/commands/${commandName}.mjs`),
+      'utf8'
+    );
+    assert.match(
+      source,
+      /from '\.\.\/\.\.\/trio\/core\/authority\.mjs'/,
+      `${commandName}.mjs must import Trio Core authority directly`
+    );
+    assert.doesNotMatch(
+      source,
+      /runtime\/authority-root/,
+      `${commandName}.mjs must not import the retired runtime authority shim`
+    );
   }
 });

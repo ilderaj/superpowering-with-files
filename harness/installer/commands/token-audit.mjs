@@ -1,4 +1,4 @@
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import { renderTokenAuditMarkdown, runTokenAudit } from '../lib/token-audit.mjs';
 
 function hasFlag(args, ...names) {

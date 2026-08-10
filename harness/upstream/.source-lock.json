@@ -2,18 +2,6 @@
   "schemaVersion": 2,
   "refreshedAt": "2026-08-08T13:07:20.342Z",
   "sources": {
-    "superpowers": {
-      "name": "superpowers",
-      "strategy": "latest-release",
-      "fallbackUsed": false,
-      "resolved": {
-        "kind": "latest-release",
-        "version": "v6.2.0",
-        "ref": "v6.2.0",
-        "commitSha": "3dcbd5c4b48e02263fbf4a3c01e3fe4f81d584d9"
-      },
-      "refreshedAt": "2026-08-08T13:07:20.342Z"
-    },
     "planning-with-files": {
       "name": "planning-with-files",
       "strategy": "latest-release",
@@ -23,18 +11,6 @@
         "version": "v3.9.0",
         "ref": "v3.9.0",
         "commitSha": "0e2b00ce4e8d1789cbcb16a41f7c9510b212b942"
-      },
-      "refreshedAt": "2026-08-08T13:07:20.342Z"
-    },
-    "mattpocock-skills": {
-      "name": "mattpocock-skills",
-      "strategy": "latest-release",
-      "fallbackUsed": false,
-      "resolved": {
-        "kind": "latest-release",
-        "version": "v1.2.3",
-        "ref": "v1.2.3",
-        "commitSha": "6acc160e4e0cd062dbbbd7a1b26ae92855edf07e"
       },
       "refreshedAt": "2026-08-08T13:07:20.342Z"
     }

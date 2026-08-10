@@ -46,7 +46,7 @@ codex plugin marketplace add "$MARKETPLACE_ROOT"
 
 Create the marketplace manifest described in [Codex installation](codex.md), then enable the plugin through the Codex marketplace flow when needed.
 
-The extracted package contains `.codex-plugin/plugin.json` and exactly four Trio skills under `skills/trio/`. Generic/manual fallback hosts have no packaged artifact.
+The extracted package contains `.codex-plugin/plugin.json`, exactly four Trio skills under `skills/trio/`, and one ChiefOps governance companion under `skills/chiefops/`. Generic/manual fallback hosts have no packaged artifact.
 
 ## Related docs
 

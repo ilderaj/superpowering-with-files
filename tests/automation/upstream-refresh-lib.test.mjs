@@ -155,8 +155,9 @@ test('upstream refresh report keeps refresh-sensitive checks independent from th
 test('verify:upstream-refresh runner preserves child test output streaming', async () => {
   const script = await readFile(verifyUpstreamRefreshScriptPath, 'utf8');
 
-  assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*stdio:\s*'inherit'/);
-  assert.match(script, /await execFileAsync\('node', \['--test', \.\.\.files\], \{[\s\S]*maxBuffer:\s*1024 \* 1024 \* 8/);
+  assert.match(script, /spawn\(process\.execPath, \['--test', \.\.\.files\], \{ stdio:\s*'inherit' \}\)/);
+  assert.match(script, /child\.on\('close', \(code\) => \{[\s\S]*if \(code === 0\) \{/);
+  assert.match(script, /reject\(new Error\(`node --test \$\{files\.join\(' '\)\} failed with exit code \$\{code\}`\)\)/);
   assert.match(script, /tests\/installer\/upstream-commands\.test\.mjs/);
   assert.doesNotMatch(script, /skill-projection|sync-skills|sync-hooks|matt-skill-patches|policy-render/);
 });
@@ -242,7 +243,7 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
   const previousLock = {
     schemaVersion: 2,
     sources: {
-      superpowers: {
+      'planning-with-files': {
         strategy: 'latest-release',
         fallbackUsed: false,
         resolved: {
@@ -257,7 +258,7 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
   const resolvedLock = {
     schemaVersion: 2,
     sources: {
-      superpowers: {
+      'planning-with-files': {
         strategy: 'latest-release',
         fallbackUsed: false,
         resolved: {
@@ -278,12 +279,12 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
       status: 'changes_detected',
       previousLock,
       resolvedLock,
-      changedSources: ['superpowers'],
+      changedSources: ['planning-with-files'],
       sourceHeads: {
-        superpowers: '1111111111111111111111111111111111111111'
+        'planning-with-files': '1111111111111111111111111111111111111111'
       },
       strategySummary: {
-        superpowers: {
+        'planning-with-files': {
           strategy: 'latest-release',
           previousVersion: 'v6.0.3',
           nextVersion: 'v6.1.1',
@@ -301,7 +302,7 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
     writeSourceLock: async (record) => {
       events.push(`writeSourceLock:${record.refreshedAt ? 'final' : 'staged'}`);
       sourceLockWritten = true;
-      assert.equal(record.sources.superpowers.resolved.version, 'v6.1.1');
+      assert.equal(record.sources['planning-with-files'].resolved.version, 'v6.1.1');
     },
     captureChanges: async () => {
       events.push('captureChanges');
@@ -318,8 +319,8 @@ test('runUpstreamRefresh captures eligible files after writing the authoritative
 
   assert.deepEqual(events, ['writeSourceLock:staged', 'runRefresh', 'writeSourceLock:final', 'captureChanges', 'writeResult']);
   assert.deepEqual(result.eligibleFiles, ['harness/upstream/.source-lock.json']);
-  assert.equal(result.previousLock.sources.superpowers.resolved.version, 'v6.0.3');
-  assert.equal(result.resolvedLock.sources.superpowers.resolved.version, 'v6.1.1');
+  assert.equal(result.previousLock.sources['planning-with-files'].resolved.version, 'v6.0.3');
+  assert.equal(result.resolvedLock.sources['planning-with-files'].resolved.version, 'v6.1.1');
   assert.equal(result.lockPersistence, 'written');
   assert.equal(result.executionMode, 'base-branch-refresh');
   assert.deepEqual(writtenResults, [result]);
@@ -333,7 +334,7 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
   const authoritativeLock = {
     schemaVersion: 2,
     sources: {
-      superpowers: {
+      'planning-with-files': {
         strategy: 'latest-release',
         resolved: {
           kind: 'latest-release',
@@ -354,7 +355,7 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
       previousLock: {
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-release',
             resolved: {
               kind: 'latest-release',
@@ -368,7 +369,7 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
       resolvedLock: {
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-release',
             resolved: {
               kind: 'latest-release',
@@ -379,12 +380,12 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
           }
         }
       },
-      changedSources: ['superpowers'],
+      changedSources: ['planning-with-files'],
       sourceHeads: {
-        superpowers: '1111111111111111111111111111111111111111'
+        'planning-with-files': '1111111111111111111111111111111111111111'
       },
       strategySummary: {
-        superpowers: {
+        'planning-with-files': {
           strategy: 'latest-release',
           previousVersion: 'v6.0.3',
           nextVersion: 'v6.1.1',
@@ -403,11 +404,11 @@ test('runUpstreamRefresh skips authoritative source lock persistence for run-sco
       events.push('runRefresh');
     },
     writeSourceLock: async (record) => {
-      events.push(`writeSourceLock:${record.sources.superpowers.resolved.version}`);
+      events.push(`writeSourceLock:${record.sources['planning-with-files'].resolved.version}`);
     },
     captureChanges: async () => {
       events.push('captureChanges');
-      return [{ path: 'harness/upstream/superpowers/SKILL.md', tracked: true }];
+      return [{ path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true }];
     },
     filterChanges: filterEligibleChanges,
     writeResult: async (refreshResult) => {
@@ -431,21 +432,12 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
     schemaVersion: 2,
     refreshedAt: '2026-03-01T00:00:00.000Z',
     sources: {
-      superpowers: {
-        strategy: 'latest-release',
-        resolved: {
-          kind: 'latest-release',
-          version: 'v6.0.3',
-          ref: 'v6.0.3',
-          commitSha: '0000000000000000000000000000000000000000'
-        }
-      },
       'planning-with-files': {
         strategy: 'latest-release',
         resolved: {
           kind: 'latest-release',
-          version: 'v3.2.0',
-          ref: 'v3.2.0',
+          version: 'v3.8.0',
+          ref: 'v3.8.0',
           commitSha: '2222222222222222222222222222222222222222'
         }
       }
@@ -462,13 +454,13 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
         schemaVersion: 2,
         refreshedAt: '2026-04-01T00:00:00.000Z',
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-release',
             resolved: {
               kind: 'latest-release',
-              version: 'v6.0.3',
-              ref: 'v6.0.3',
-              commitSha: '0000000000000000000000000000000000000000'
+              version: 'v3.8.0',
+              ref: 'v3.8.0',
+              commitSha: '2222222222222222222222222222222222222222'
             }
           }
         }
@@ -476,28 +468,28 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
       resolvedLock: {
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-tag',
             resolved: {
               kind: 'latest-tag',
-              version: 'v6.1.1-beta.1',
-              ref: 'v6.1.1-beta.1',
-              commitSha: '1111111111111111111111111111111111111111'
+              version: 'v3.9.1-beta.1',
+              ref: 'v3.9.1-beta.1',
+              commitSha: '3333333333333333333333333333333333333333'
             }
           }
         }
       },
-      changedSources: ['superpowers'],
+      changedSources: ['planning-with-files'],
       sourceHeads: {
-        superpowers: '1111111111111111111111111111111111111111'
+        'planning-with-files': '3333333333333333333333333333333333333333'
       },
       strategySummary: {
-        superpowers: {
+        'planning-with-files': {
           strategy: 'latest-tag',
-          previousVersion: 'v6.0.3',
-          nextVersion: 'v6.1.1-beta.1',
-          previousCommitSha: '0000000000000000000000000000000000000000',
-          nextCommitSha: '1111111111111111111111111111111111111111',
+          previousVersion: 'v3.8.0',
+          nextVersion: 'v3.9.1-beta.1',
+          previousCommitSha: '2222222222222222222222222222222222222222',
+          nextCommitSha: '3333333333333333333333333333333333333333',
           fallbackUsed: false
         }
       }
@@ -505,19 +497,19 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
     loadBaseHealth: async () => healthyBaseHealthStub(),
     runOverrides: {
       active: true,
-      sourceFilter: 'superpowers'
+      sourceFilter: 'planning-with-files'
     },
     runRefresh: async ({ beforeExecution }) => {
       await beforeExecution?.();
       events.push('runRefresh');
     },
     writeSourceLock: async (record) => {
-      events.push(`writeSourceLock:${record.sources.superpowers.resolved.version}`);
+      events.push(`writeSourceLock:${record.sources['planning-with-files'].resolved.version}`);
       writes.push(record);
     },
     captureChanges: async () => {
       events.push('captureChanges');
-      return [{ path: 'harness/upstream/superpowers/SKILL.md', tracked: true }];
+      return [{ path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true }];
     },
     filterChanges: filterEligibleChanges,
     writeResult: async () => {
@@ -526,16 +518,16 @@ test('runUpstreamRefresh pre-stages the current resolved lock before the refresh
   });
 
   assert.deepEqual(events, [
-    'writeSourceLock:v6.1.1-beta.1',
+    'writeSourceLock:v3.9.1-beta.1',
     'runRefresh',
-    'writeSourceLock:v6.0.3',
+    'writeSourceLock:v3.8.0',
     'captureChanges',
     'writeResult'
   ]);
-  assert.equal(writes[0].sources.superpowers.resolved.version, 'v6.1.1-beta.1');
-  assert.equal(writes[1].sources.superpowers.resolved.version, 'v6.0.3');
-  assert.deepEqual(Object.keys(writes[1].sources).sort(), ['planning-with-files', 'superpowers']);
-  assert.equal(writes[1].sources['planning-with-files'].resolved.version, 'v3.2.0');
+  assert.equal(writes[0].sources['planning-with-files'].resolved.version, 'v3.9.1-beta.1');
+  assert.equal(writes[1].sources['planning-with-files'].resolved.version, 'v3.8.0');
+  assert.deepEqual(Object.keys(writes[1].sources).sort(), ['planning-with-files']);
+  assert.equal(writes[1].sources['planning-with-files'].resolved.commitSha, '2222222222222222222222222222222222222222');
 });
 
 test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps them run-scoped', async () => {
@@ -564,16 +556,6 @@ test('runUpstreamRefresh consumes workflow dispatch source overrides and keeps t
     loadSourceConfig: async () => ({
       schemaVersion: 2,
       sources: {
-        superpowers: {
-          name: 'superpowers',
-          type: 'git',
-          url: 'https://github.com/obra/superpowers',
-          resolution: {
-            strategy: 'latest-release',
-            allowPrerelease: false,
-            fallbacks: []
-          }
-        },
         'planning-with-files': {
           name: 'planning-with-files',
           type: 'git',
@@ -673,7 +655,7 @@ test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out b
 
   await writeFile(eventPath, JSON.stringify({
     inputs: {
-      source_filter: 'superpowers',
+      source_filter: 'planning-with-files',
       validation_mode: 'true',
       create_pr: 'true',
       dry_run: 'false'
@@ -689,10 +671,10 @@ test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out b
     loadSourceConfig: async () => ({
       schemaVersion: 2,
       sources: {
-        superpowers: {
-          name: 'superpowers',
+        'planning-with-files': {
+          name: 'planning-with-files',
           type: 'git',
-          url: 'https://github.com/obra/superpowers',
+          url: 'https://github.com/OthmanAdi/planning-with-files',
           resolution: {
             strategy: 'latest-release',
             allowPrerelease: false,
@@ -704,7 +686,7 @@ test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out b
     loadAuthoritativeLock: async () => ({
       schemaVersion: 2,
       sources: {
-        superpowers: {
+        'planning-with-files': {
           strategy: 'latest-release',
           resolved: {
             kind: 'latest-release',
@@ -720,7 +702,7 @@ test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out b
       previousLock: {
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-release',
             resolved: {
               kind: 'latest-release',
@@ -734,7 +716,7 @@ test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out b
       resolvedLock: {
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-release',
             resolved: {
               kind: 'latest-release',
@@ -745,12 +727,12 @@ test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out b
           }
         }
       },
-      changedSources: ['superpowers'],
+      changedSources: ['planning-with-files'],
       sourceHeads: {
-        superpowers: '1111111111111111111111111111111111111111'
+        'planning-with-files': '1111111111111111111111111111111111111111'
       },
       strategySummary: {
-        superpowers: {
+        'planning-with-files': {
           strategy: 'latest-release',
           previousVersion: 'v6.0.3',
           nextVersion: 'v6.1.1',
@@ -766,11 +748,11 @@ test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out b
       events.push(`runRefresh:${sourceFilter}:${validationMode ? 'validation' : 'default'}`);
     },
     writeSourceLock: async (record) => {
-      events.push(`writeSourceLock:${record.sources.superpowers.resolved.version}`);
+      events.push(`writeSourceLock:${record.sources['planning-with-files'].resolved.version}`);
     },
     captureChanges: async () => {
       events.push('captureChanges');
-      return [{ path: 'harness/upstream/superpowers/SKILL.md', tracked: true }];
+      return [{ path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true }];
     },
     filterChanges: (changes) => ({
       eligibleFiles: changes.map((change) => change.path),
@@ -783,14 +765,14 @@ test('runUpstreamRefresh keeps workflow-ref validation runs on the checked-out b
 
   assert.deepEqual(events, [
     'writeSourceLock:v6.1.1',
-    'runRefresh:superpowers:validation',
+    'runRefresh:planning-with-files:validation',
     'writeSourceLock:v6.0.3',
     'captureChanges',
     'writeResult'
   ]);
   assert.equal(result.lockPersistence, 'skipped_due_to_run_override');
   assert.equal(result.executionMode, 'workflow-ref-validation');
-  assert.deepEqual(result.eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/planning-with-files/SKILL.md']);
 });
 
 test('runUpstreamRefresh blocks before the refresh command chain when origin/dev base health is unhealthy', async () => {
@@ -806,7 +788,7 @@ test('runUpstreamRefresh blocks before the refresh command chain when origin/dev
         status: 'changes_detected',
         sources: [],
         sourceHeads: {
-          superpowers: '4444444444444444444444444444444444444444'
+          'planning-with-files': '4444444444444444444444444444444444444444'
         }
       }),
       loadBaseHealth: async ({ cwd, branch }) => {
@@ -840,7 +822,7 @@ test('runUpstreamRefresh blocks before the refresh command chain when origin/dev
     baseRef: 'origin/dev',
     branchName: 'automation/upstream-refresh',
     sourceHeads: {
-      superpowers: '4444444444444444444444444444444444444444'
+      'planning-with-files': '4444444444444444444444444444444444444444'
     },
     eligibleFiles: [],
     previousLock: {
@@ -880,12 +862,12 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
       status: 'changes_detected',
       sources: [
         {
-          name: 'superpowers',
-          url: 'https://github.com/obra/superpowers'
+          name: 'planning-with-files',
+          url: 'https://github.com/OthmanAdi/planning-with-files'
         }
       ],
       sourceHeads: {
-        superpowers: '1212121212121212121212121212121212121212'
+        'planning-with-files': '1212121212121212121212121212121212121212'
       }
     }),
     loadBaseHealth: async () => healthyBaseHealthStub(),
@@ -903,12 +885,12 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
       if (captureCount === 1) {
         return [
           { path: 'AGENTS.md', tracked: true },
-          { path: 'harness/upstream/superpowers/SKILL.md', tracked: true }
+          { path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true }
         ];
       }
 
       return [
-        { path: 'harness/upstream/superpowers/SKILL.md', tracked: true }
+        { path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true }
       ];
     },
     filterChanges: filterEligibleChanges,
@@ -931,7 +913,7 @@ test('runUpstreamRefresh restores repo-local entry files before enforcing the al
     'captureChanges:2',
     'writeResult'
   ]);
-  assert.deepEqual(result.eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/planning-with-files/SKILL.md']);
   assert.deepEqual(writtenResults, [result]);
 });
 
@@ -941,7 +923,7 @@ test('filterEligibleChanges ignores runtime node_modules artifacts before enforc
   const filtered = filterEligibleChanges([
     { path: 'node_modules/.bin/harness', tracked: false },
     { path: 'node_modules/.cache/wrangler/wrangler-account.json', tracked: false },
-    { path: 'node_modules/@superpowering-with-files/harness-runtime', tracked: false },
+    { path: 'node_modules/@example/harness-runtime', tracked: false },
     { path: 'harness/upstream/.source-lock.json', tracked: true }
   ]);
 
@@ -966,7 +948,7 @@ test('runUpstreamRefresh removes known transient cache artifacts before final al
       resolvedLock: {
         schemaVersion: 2,
         sources: {
-          superpowers: {
+          'planning-with-files': {
             strategy: 'latest-release',
             resolved: {
               kind: 'latest-release',
@@ -977,7 +959,7 @@ test('runUpstreamRefresh removes known transient cache artifacts before final al
           }
         }
       },
-      sourceHeads: { superpowers: '1111111111111111111111111111111111111111' }
+      sourceHeads: { 'planning-with-files': '1111111111111111111111111111111111111111' }
     }),
     loadBaseHealth: async () => healthyBaseHealthStub(),
     runRefresh: async ({ beforeExecution }) => {
@@ -1049,7 +1031,7 @@ test('runUpstreamRefresh writes a failure result and rejects when verification f
         status: 'changes_detected',
         sources: [],
         sourceHeads: {
-          superpowers: '2222222222222222222222222222222222222222'
+          'planning-with-files': '2222222222222222222222222222222222222222'
         }
       }),
       loadBaseHealth: async () => healthyBaseHealthStub(),
@@ -1061,7 +1043,7 @@ test('runUpstreamRefresh writes a failure result and rejects when verification f
       captureChanges: async () => {
         events.push('captureChanges');
         return [
-          { path: 'harness/upstream/superpowers/SKILL.md', tracked: true },
+          { path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true },
           { path: 'README.md', tracked: true }
         ];
       },
@@ -1079,10 +1061,10 @@ test('runUpstreamRefresh writes a failure result and rejects when verification f
   assert.equal(writtenResults[0].status, 'failure');
   assert.match(writtenResults[0].blockedReason, /npm run verify/);
   assert.equal(writtenResults[0].failureKind, 'runtime_failure');
-  assert.deepEqual(writtenResults[0].eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
+  assert.deepEqual(writtenResults[0].eligibleFiles, ['harness/upstream/planning-with-files/SKILL.md']);
   assert.match(writtenResults[0].blockedReason, /README\.md/);
   assert.deepEqual(writtenResults[0].sourceHeads, {
-    superpowers: '2222222222222222222222222222222222222222'
+    'planning-with-files': '2222222222222222222222222222222222222222'
   });
 });
 
@@ -1138,7 +1120,7 @@ test('runUpstreamRefresh writes a failure result and rejects when refresh hits a
       loadBaseHealth: async () => healthyBaseHealthStub(),
       runRefresh: async ({ beforeExecution }) => {
         await beforeExecution?.();
-        throw new Error('CONFLICT (content): Merge conflict in harness/upstream/superpowers/SKILL.md');
+        throw new Error('CONFLICT (content): Merge conflict in harness/upstream/planning-with-files/SKILL.md');
       },
       writeResult: async (refreshResult) => {
         writtenResults.push(refreshResult);
@@ -1150,7 +1132,7 @@ test('runUpstreamRefresh writes a failure result and rejects when refresh hits a
   assert.equal(writtenResults.length, 1);
   assert.equal(writtenResults[0].status, 'failure');
   assert.match(writtenResults[0].blockedReason, /Merge conflict/);
-  assert.match(writtenResults[0].blockedReason, /harness\/upstream\/superpowers\/SKILL\.md/);
+  assert.match(writtenResults[0].blockedReason, /harness\/upstream\/planning-with-files\/SKILL\.md/);
   assert.equal(writtenResults[0].failureKind, 'runtime_failure');
 });
 
@@ -1168,13 +1150,13 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
       probeHeads: async () => ({
         status: 'changes_detected',
         sources: [
-          {
-            name: 'superpowers',
-            url: 'https://github.com/obra/superpowers'
-          }
-        ],
+        {
+          name: 'planning-with-files',
+          url: 'https://github.com/OthmanAdi/planning-with-files'
+        }
+      ],
         sourceHeads: {
-        superpowers: '3333333333333333333333333333333333333333'
+        'planning-with-files': '3333333333333333333333333333333333333333'
       }
     }),
       loadBaseHealth: async () => healthyBaseHealthStub(),
@@ -1188,7 +1170,7 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
       captureChanges: async () => {
         events.push('captureChanges');
         return [
-          { path: 'harness/upstream/superpowers/SKILL.md', tracked: true },
+          { path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true },
           { path: 'README.md', tracked: true }
         ];
       },
@@ -1204,7 +1186,7 @@ test('runUpstreamRefresh writes a failure result and rejects on allowlist violat
   assert.deepEqual(events, ['writeSourceLock', 'runRefresh', 'writeSourceLock', 'captureChanges', 'writeSourceLock', 'writeResult']);
   assert.equal(writtenResults.length, 1);
   assert.equal(writtenResults[0].status, 'failure');
-  assert.deepEqual(writtenResults[0].eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
+  assert.deepEqual(writtenResults[0].eligibleFiles, ['harness/upstream/planning-with-files/SKILL.md']);
   assert.match(writtenResults[0].blockedReason, /allowlist violation/i);
   assert.match(writtenResults[0].blockedReason, /README\.md/);
   assert.equal(writtenResults[0].failureKind, 'runtime_failure');
@@ -1214,12 +1196,12 @@ test('filterEligibleChanges includes tracked and untracked repo-owned upstream f
   const { filterEligibleChanges } = await loadUpstreamRefreshModule();
 
   const result = filterEligibleChanges([
-    { path: 'harness/upstream/superpowers/SKILL.md', status: 'M', tracked: true },
+    { path: 'harness/upstream/planning-with-files/SKILL.md', status: 'M', tracked: true },
     { path: 'harness/upstream/planning-with-files/new-skill.md', status: '??', tracked: false }
   ]);
 
   assert.deepEqual(result.eligibleFiles, [
-    'harness/upstream/superpowers/SKILL.md',
+    'harness/upstream/planning-with-files/SKILL.md',
     'harness/upstream/planning-with-files/new-skill.md'
   ]);
 });
@@ -1232,13 +1214,13 @@ test('source refresh retains only Codex projections and the AGENTS.md entry', as
     { path: 'AGENTS.md', status: 'M', tracked: true },
     { path: 'CLAUDE.md', status: 'M', tracked: true },
     { path: '.agents/skills/planning-with-files/SKILL.md', status: 'M', tracked: true },
-    { path: '.claude/skills/superpowers/SKILL.md', status: 'M', tracked: true },
+    { path: '.claude/skills/planning-with-files/SKILL.md', status: 'M', tracked: true },
     { path: '.codex/skills/planning-with-files/SKILL.md', status: 'M', tracked: true },
     { path: '.cursor/rules/harness.mdc', status: 'M', tracked: true },
     { path: '.github/copilot-instructions.md', status: 'M', tracked: true },
     { path: '.github/instructions/harness.instructions.md', status: 'M', tracked: true },
     { path: '.github/prompts/review.prompt.md', status: 'M', tracked: true },
-    { path: 'harness/upstream/superpowers/SKILL.md', status: 'M', tracked: true }
+    { path: 'harness/upstream/planning-with-files/SKILL.md', status: 'M', tracked: true }
   ];
   const result = filterEligibleChanges(changes);
 
@@ -1246,12 +1228,12 @@ test('source refresh retains only Codex projections and the AGENTS.md entry', as
     'docs/maintenance.md',
     '.agents/skills/planning-with-files/SKILL.md',
     '.codex/skills/planning-with-files/SKILL.md',
-    'harness/upstream/superpowers/SKILL.md'
+    'harness/upstream/planning-with-files/SKILL.md'
   ]);
   assert.deepEqual(result.excludedFiles, [
     'AGENTS.md',
     'CLAUDE.md',
-    '.claude/skills/superpowers/SKILL.md',
+    '.claude/skills/planning-with-files/SKILL.md',
     '.cursor/rules/harness.mdc',
     '.github/copilot-instructions.md',
     '.github/instructions/harness.instructions.md',
@@ -1270,7 +1252,7 @@ test('source refresh infers only Codex for retained repository projections', asy
     eligibleFiles: [
       '.agents/skills/trio/SKILL.md',
       '.codex/AGENTS.md',
-      'harness/upstream/superpowers/SKILL.md'
+      'harness/upstream/planning-with-files/SKILL.md'
     ]
   });
 
@@ -1288,10 +1270,10 @@ test('filterEligibleChanges excludes harness runtime state and unrelated workspa
     { path: 'workspace-notes.md', status: '??', tracked: false },
     { path: 'src/app.js', status: 'M', tracked: true },
     { path: 'README.md', status: 'M', tracked: true },
-    { path: 'harness/upstream/superpowers/SKILL.md', status: 'M', tracked: true }
+    { path: 'harness/upstream/planning-with-files/SKILL.md', status: 'M', tracked: true }
   ]);
 
-  assert.deepEqual(result.eligibleFiles, ['harness/upstream/superpowers/SKILL.md']);
+  assert.deepEqual(result.eligibleFiles, ['harness/upstream/planning-with-files/SKILL.md']);
   assert.deepEqual(result.excludedFiles, [
     '.harness/projections.json',
     '.harness/state.json',
@@ -1309,12 +1291,12 @@ test('filterEligibleChanges ignores generated Python cache files', async () => {
   const result = filterEligibleChanges([
     { path: 'harness/core/upstream-overlays/planning-with-files/scripts/__pycache__/planning_paths.cpython-312.pyc', tracked: false },
     { path: 'harness/upstream/planning-with-files/scripts/__pycache__/planning_paths.cpython-313.pyc', tracked: false },
-    { path: 'harness/upstream/superpowers/SKILL.md', tracked: true },
+    { path: 'harness/upstream/planning-with-files/SKILL.md', tracked: true },
     { path: 'README.md', tracked: true }
   ]);
 
   assert.deepEqual(result.eligibleFiles, [
-    'harness/upstream/superpowers/SKILL.md'
+    'harness/upstream/planning-with-files/SKILL.md'
   ]);
   assert.deepEqual(result.excludedFiles, [
     'README.md'

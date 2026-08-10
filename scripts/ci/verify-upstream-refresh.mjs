@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-
-const execFileAsync = promisify(execFile);
+import { spawn } from 'node:child_process';
 
 const groups = [
   [
@@ -21,8 +18,15 @@ const groups = [
 ];
 
 for (const files of groups) {
-  await execFileAsync('node', ['--test', ...files], {
-    stdio: 'inherit',
-    maxBuffer: 1024 * 1024 * 8
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ['--test', ...files], { stdio: 'inherit' });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      reject(new Error(`node --test ${files.join(' ')} failed with exit code ${code}`));
+    });
   });
 }

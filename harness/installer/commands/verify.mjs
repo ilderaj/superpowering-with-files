@@ -7,7 +7,7 @@ import {
   resolveTrioProductionEnvironment,
   selectInstallerRuntime
 } from '../lib/state.mjs';
-import { discoverAuthorityRoot } from '../../runtime/authority-root.mjs';
+import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import { assertTrioProjectionInSync, prepareTrioProjection } from './sync.mjs';
 
 function hasFlag(args, ...names) {

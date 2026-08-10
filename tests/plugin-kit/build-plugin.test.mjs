@@ -17,7 +17,7 @@ test('plugin source config exists only for the Codex target', async () => {
   }
 });
 
-test('buildPlugin creates a Codex root with exactly the four Trio skills', async () => {
+test('buildPlugin creates a Codex root with exactly four Trio skills plus one ChiefOps companion', async () => {
   const outDir = path.join(await fsMkdtemp('harness-build-plugin-'), 'plugins');
   const build = await buildPlugin({ target: 'codex', version: '1.0.9', outDir });
   const contract = platformContracts.codex;
@@ -36,10 +36,16 @@ test('buildPlugin creates a Codex root with exactly the four Trio skills', async
     'office',
     'safety'
   ]);
+  assert.deepEqual((await readdir(path.join(build.pluginRoot, 'skills/chiefops'))).sort(), [
+    'SKILL.md'
+  ]);
   await assertFileMatches(build.pluginRoot, 'skills/trio/SKILL.md', /name: trio/);
   await assertFileMatches(build.pluginRoot, 'skills/trio/dev/SKILL.md', /name: dev/);
   await assertFileMatches(build.pluginRoot, 'skills/trio/office/SKILL.md', /name: office/);
   await assertFileMatches(build.pluginRoot, 'skills/trio/safety/SKILL.md', /name: safety/);
+  await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /name: chiefops/);
+  await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /governance companion/i);
+  await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /not a runner|no runner/i);
 
   for (const forbiddenPath of ['skills/harness', 'hooks', '.mcp.json', 'mcp', 'runtime', 'node_modules']) {
     await assert.rejects(access(path.join(build.pluginRoot, forbiddenPath)), /ENOENT/);

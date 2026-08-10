@@ -62,7 +62,8 @@ async function writeTrioSkills({ pluginRoot, rootDir }) {
     ['harness/trio/skill/SKILL.md', 'skills/trio/SKILL.md'],
     ['harness/trio/capabilities/dev/SKILL.md', 'skills/trio/dev/SKILL.md'],
     ['harness/trio/capabilities/office/SKILL.md', 'skills/trio/office/SKILL.md'],
-    ['harness/trio/capabilities/safety/SKILL.md', 'skills/trio/safety/SKILL.md']
+    ['harness/trio/capabilities/safety/SKILL.md', 'skills/trio/safety/SKILL.md'],
+    ['harness/trio/governance/chiefops/SKILL.md', 'skills/chiefops/SKILL.md']
   ];
 
   for (const [source, destination] of skills) {

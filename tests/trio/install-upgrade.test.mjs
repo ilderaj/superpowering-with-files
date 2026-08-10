@@ -32,6 +32,7 @@ import { verify } from '../../harness/installer/commands/verify.mjs';
 import { resolveTrioFixture, resolveTrioProductionEnvironment } from '../../harness/installer/lib/state.mjs';
 import { atomicWriteText } from '../../harness/trio/core/store.mjs';
 import { applyTrioProjection, prepareTrioProjection } from '../../harness/installer/commands/sync.mjs';
+import { parseTrioBackupV1Ref } from '../../harness/installer/lib/trio-takeover-backup.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const FIXTURE_ROOT = path.join(REPO_ROOT, 'tests/fixtures/trio-v2/install');
@@ -56,7 +57,8 @@ const TRIO_MANAGED_SOURCE_PATHS = Object.freeze([
   'harness/trio/skill/SKILL.md',
   'harness/trio/capabilities/dev/SKILL.md',
   'harness/trio/capabilities/office/SKILL.md',
-  'harness/trio/capabilities/safety/SKILL.md'
+  'harness/trio/capabilities/safety/SKILL.md',
+  'harness/trio/governance/chiefops/SKILL.md'
 ]);
 
 function sha256(bytes) {
@@ -567,7 +569,8 @@ function codexDestinations(root, scope = 'user-global') {
     `${root}/.agents/skills/trio/SKILL.md`,
     `${root}/.agents/skills/trio/dev/SKILL.md`,
     `${root}/.agents/skills/trio/office/SKILL.md`,
-    `${root}/.agents/skills/trio/safety/SKILL.md`
+    `${root}/.agents/skills/trio/safety/SKILL.md`,
+    `${root}/.agents/skills/chiefops/SKILL.md`
   ];
 }
 
@@ -845,11 +848,11 @@ test('production V2 reinstall preserves recovery and ownership while refusing us
   }
 });
 
-test('production projection settles dynamic zero, five, and ten managed surface cardinalities', async () => {
+test('production projection settles dynamic zero, six, and twelve managed surface cardinalities', async () => {
   const cases = [
     { label: 'zero', scopeKind: 'workspace', includeCodex: false, count: 0 },
-    { label: 'five', scopeKind: 'workspace', includeCodex: true, count: 5 },
-    { label: 'ten', scopeKind: 'both', includeCodex: true, count: 10 }
+    { label: 'six', scopeKind: 'workspace', includeCodex: true, count: 6 },
+    { label: 'twelve', scopeKind: 'both', includeCodex: true, count: 12 }
   ];
   for (const item of cases) {
     const roots = await createProductionRoots(`cardinality-${item.label}`);
@@ -870,7 +873,7 @@ test('production projection settles dynamic zero, five, and ten managed surface 
       if (item.count === 0) {
         await assertAbsentTrioMaterialization([...workspaceDestinations, ...homeDestinations]);
         await assertExactSettledOwnership(persisted, []);
-      } else if (item.count === 5) {
+      } else if (item.count === 6) {
         await assertExactTrioMaterialization(workspaceDestinations);
         await assertAbsentTrioMaterialization(homeDestinations);
         await assertExactSettledOwnership(persisted, workspaceDestinations);
@@ -2031,7 +2034,7 @@ test('install fixtures have exact roots/files and fresh input is strict V2', asy
       scope: 'workspace',
       root: '/fixture/workspace'
     }]);
-    assert.equal(projected.descriptors.length, 5);
+    assert.equal(projected.descriptors.length, 6);
     assert.throws(
       () => migrateV1ToV2({
         persistedState: freshInput,
@@ -2123,8 +2126,8 @@ test('standard V1 migration consumes real raw bytes from a temp copy and preserv
       placements,
       pathObservations: observations
     });
-    assert.equal(projected.descriptors.length, 10);
-    assert.equal(projected.descriptors.filter((descriptor) => descriptor.targetId === 'codex').length, 5);
+    assert.equal(projected.descriptors.length, 12);
+    assert.equal(projected.descriptors.filter((descriptor) => descriptor.targetId === 'codex').length, 6);
     const codexEntry = projected.descriptors.find((descriptor) =>
       descriptor.targetId === 'codex' && descriptor.surface === 'entry'
     );
@@ -2134,13 +2137,13 @@ test('standard V1 migration consumes real raw bytes from a temp copy and preserv
       projected.descriptors
         .filter((descriptor) => descriptor.targetId === 'codex' && descriptor.surface !== 'entry')
         .map((descriptor) => [descriptor.action, descriptor.execution]),
-      Array.from({ length: 4 }, () => ['create', 'managed'])
+      Array.from({ length: 5 }, () => ['create', 'managed'])
     );
     assert.deepEqual(
       projected.descriptors
         .filter((descriptor) => descriptor.targetId === 'cursor')
         .map((descriptor) => [descriptor.action, descriptor.execution]),
-      Array.from({ length: 5 }, () => ['create', 'manual'])
+      Array.from({ length: 6 }, () => ['create', 'manual'])
     );
     assert.deepEqual(projected.conflicts, []);
     assert.equal(projected.descriptors.some((descriptor) => descriptor.destination === '/fixture/home/.codex/AGENTS.md'), true);
@@ -2427,4 +2430,781 @@ test('unmanaged V1 upgrade preserves the existing destination and never updates 
     await rm(tempRoot, { recursive: true, force: true });
   }
   assert.deepEqual(await fixtureSnapshot(), before);
+});
+
+async function materializeTrioSourceBytes(destinations) {
+  return Promise.all(destinations.map(async (destination, index) => {
+    await mkdir(path.dirname(destination), { recursive: true });
+    const bytes = await readFile(path.join(REPO_ROOT, TRIO_MANAGED_SOURCE_PATHS[index]));
+    await writeFile(destination, bytes);
+    return bytes;
+  }));
+}
+
+async function writeTrioStateFile(environment, state) {
+  await mkdir(path.dirname(environment.stateFile), { recursive: true });
+  await atomicWriteText(environment.stateFile, `${JSON.stringify(state, null, 2)}\n`);
+}
+
+async function stageExistingV2UserGlobal(label, { generic = true } = {}) {
+  const roots = await createProductionRoots(label);
+  const environment = await resolveTrioProductionEnvironment({
+    rootDir: roots.rootDir,
+    homeDir: roots.homeDir
+  });
+  const staged = await stageExistingV2UserGlobalAt(roots, environment, { generic });
+  return Object.freeze({
+    roots,
+    environment,
+    ...staged,
+    options: { rootDir: roots.rootDir, homeDir: roots.homeDir }
+  });
+}
+
+async function assertTakeoverBackupVerified({ staged, backup, stateBefore }) {
+  const manifest = JSON.parse(await readFile(backup.manifestPath, 'utf8'));
+  assert.equal(manifest.kind, 'trio-takeover-backup');
+  assert.equal(manifest.schemaVersion, 1);
+  assert.equal(manifest.id, path.basename(backup.root));
+  assert.deepEqual(manifest.objects.map((object) => object.surface), [
+    'entry',
+    'trio',
+    'dev',
+    'office',
+    'safety',
+    'chiefops',
+    'state'
+  ]);
+  assert.equal(manifest.objects.length, 7);
+  assert.equal(manifest.ownership.source, 'existing-v2-user-global');
+  assert.equal(manifest.ownership.manifestRef, null);
+  assert.deepEqual(manifest.ownership.entries, stateBefore.ownership.entries);
+  assert.equal(manifest.recovery.checkpointRef, 'checkpoint-existing-v2');
+  assert.equal(manifest.recovery.rollbackRef, 'rollback-existing-v2');
+  assert.equal(typeof manifest.createdAt, 'string');
+  assert.equal(typeof manifest.bundleSha256, 'string');
+
+  const bundle = await readFile(backup.bundlePath);
+  const expectedBytes = new Map([
+    ...staged.owned.map((destination, index) => [
+      destination,
+      staged.liveBytes.get(destination)
+    ]),
+    [staged.chiefopsDestination, staged.chiefopsDrifted],
+    [staged.environment.stateFile, staged.stateBytes]
+  ]);
+  let cursor = 0;
+  for (const object of manifest.objects) {
+    assert.equal(object.offset, cursor);
+    const slice = bundle.subarray(object.offset, object.offset + object.length);
+    assert.equal(sha256(slice), object.sha256.slice('sha256:'.length));
+    assert.deepEqual(slice, expectedBytes.get(object.path));
+    assert.equal(typeof object.dev, 'string');
+    assert.equal(typeof object.ino, 'string');
+    assert.equal(object.nlink, '1');
+    assert.equal(typeof object.parent.dev, 'string');
+    assert.equal(typeof object.parent.ino, 'string');
+    cursor = object.offset + object.length;
+  }
+  assert.equal(cursor, bundle.length);
+}
+
+test('production install --takeover-chiefops adopts one unowned global ChiefOps with a verified seven-object backup', async () => {
+  const staged = await stageExistingV2UserGlobal('takeover-success');
+  try {
+    const { environment, destinations, owned, options } = staged;
+    const stateBefore = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+    const outcome = await install(['--takeover-chiefops'], options);
+
+    assert.equal(outcome.mode, 'takeover-chiefops');
+    assert.deepEqual([...outcome.writes].sort(), [...destinations].sort());
+    assert.match(outcome.backup.ref, /^trio-backup-v1:/u);
+    const parsedRollbackRef = parseTrioBackupV1Ref(outcome.backup.ref);
+    assert.equal(parsedRollbackRef.manifestPath, outcome.backup.manifestPath);
+    assert.equal(parsedRollbackRef.digest, sha256(await readFile(outcome.backup.manifestPath)));
+    assert.equal(outcome.backup.manifestPath, path.join(outcome.backup.root, 'manifest.json'));
+    assert.equal(
+      path.dirname(outcome.backup.root),
+      path.join(environment.authorityRoot, '.harness-backup', 'trio-takeover')
+    );
+
+    const settled = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+    assert.equal(settled.ownership.source, 'existing-v2-user-global');
+    assert.equal(settled.ownership.manifestRef, null);
+    assert.equal(settled.recovery.checkpointRef, 'checkpoint-existing-v2');
+    assert.equal(settled.recovery.rollbackRef, outcome.backup.ref);
+    await assertExactSettledOwnership(settled, destinations);
+    await assertExactTrioMaterialization(destinations);
+
+    const genericEntry = path.join(environment.homeDir, 'manual', 'copilot', 'entry-policy.md');
+    await assert.rejects(access(genericEntry), /ENOENT/);
+
+    await assertTakeoverBackupVerified({ staged, backup: outcome.backup, stateBefore });
+
+    const dryRun = await sync(['--dry-run'], options);
+    assertNoManagedConflicts(dryRun, destinations);
+    await sync(['--check'], options);
+    const doctorReport = await doctor(['--check-only'], options);
+    assert.equal(doctorReport.runtime, 'trio');
+
+    assert.deepEqual(
+      await Promise.all(owned.map((destination) => readFile(destination))),
+      await Promise.all(owned.map((destination) => staged.liveBytes.get(destination)))
+    );
+  } finally {
+    await rm(staged.roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+async function stageExistingV2UserGlobalAt(roots, environment, { chiefopsPresent = true, generic = false } = {}) {
+  const destinations = codexDestinations(environment.homeDir, 'user-global');
+  const owned = destinations.slice(0, 5);
+  await materializeTrioSourceBytes(owned);
+  const chiefopsDestination = destinations[5];
+  await mkdir(path.dirname(chiefopsDestination), { recursive: true });
+  const chiefopsDrifted = Buffer.from('legacy unowned global ChiefOps content\n', 'utf8');
+  if (chiefopsPresent) {
+    await writeFile(chiefopsDestination, chiefopsDrifted);
+  }
+
+  const targets = [{
+    id: 'codex',
+    enabled: true,
+    paths: [path.join(environment.homeDir, '.codex', 'AGENTS.md')],
+    hostKind: 'codex',
+    mode: 'managed'
+  }];
+  if (generic) {
+    targets.push({
+      id: 'copilot',
+      enabled: true,
+      paths: [path.join(environment.homeDir, 'manual', 'copilot', 'entry-policy.md')],
+      hostKind: 'generic',
+      mode: 'manual'
+    });
+  }
+  const ownershipEntries = await Promise.all(owned.map(async (destination) => ({
+    targetId: 'codex',
+    path: destination,
+    identity: contentIdentity(await readFile(destination))
+  })));
+  const state = parseV2Config({
+    schemaVersion: 2,
+    runtime: 'trio',
+    scope: { kind: 'user-global' },
+    targets,
+    ownership: {
+      source: 'existing-v2-user-global',
+      manifestRef: null,
+      entries: ownershipEntries
+    },
+    recovery: {
+      checkpointRef: 'checkpoint-existing-v2',
+      rollbackRef: 'rollback-existing-v2'
+    }
+  });
+  const stateBytes = Buffer.from(`${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  await writeTrioStateFile(environment, state);
+  const liveBytes = new Map(await Promise.all(
+    [...destinations]
+      .filter((destination) => destination !== chiefopsDestination || chiefopsPresent)
+      .map(async (destination) => [destination, await readFile(destination)])
+  ));
+  return Object.freeze({
+    roots,
+    environment,
+    destinations,
+    owned,
+    chiefopsDestination,
+    chiefopsDrifted,
+    state,
+    stateBytes,
+    liveBytes
+  });
+}
+
+async function runTakeoverRejection(label, setup, expectedCode) {
+  const roots = await createProductionRoots(`takeover-reject-${label}`);
+  try {
+    const options = { rootDir: roots.rootDir, homeDir: roots.homeDir };
+    await setup({ roots, options });
+    const statePath = path.join(roots.rootDir, '.harness', 'state.json');
+    const stateBytes = await readFile(statePath).catch((error) => {
+      if (error?.code === 'ENOENT') return null;
+      throw error;
+    });
+    await assert.rejects(
+      () => install(['--takeover-chiefops'], options),
+      (error) => error?.code === expectedCode,
+      label
+    );
+    if (stateBytes !== null) {
+      assert.deepEqual(await readFile(statePath), stateBytes, label);
+    }
+    await assert.rejects(
+      access(path.join(roots.rootDir, '.harness-backup')),
+      (error) => error?.code === 'ENOENT',
+      label
+    );
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+}
+
+test('production install --takeover-chiefops rejects ineligible or unsafe states before any write', async () => {
+  await runTakeoverRejection('absent', async () => {}, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('v1', async ({ roots }) => {
+    const sourceRoot = path.join(FIXTURE_ROOT, 'upgrade-v1-standard');
+    await mkdir(path.join(roots.rootDir, '.harness'), { recursive: true });
+    await writeFile(
+      path.join(roots.rootDir, '.harness', 'state.json'),
+      await readFile(path.join(sourceRoot, 'state.json'))
+    );
+  }, 'ERR_TRIO_UPGRADE_REQUIRED');
+
+  await runTakeoverRejection('workspace-scope', async ({ options }) => {
+    await install([], options);
+  }, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('both-scope', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir: roots.rootDir,
+      homeDir: roots.homeDir
+    });
+    const state = parseV2Config({
+      schemaVersion: 2,
+      runtime: 'trio',
+      scope: { kind: 'both' },
+      targets: [{
+        id: 'codex',
+        enabled: true,
+        paths: [
+          path.join(environment.authorityRoot, 'AGENTS.md'),
+          path.join(environment.homeDir, '.codex', 'AGENTS.md')
+        ],
+        hostKind: 'codex',
+        mode: 'managed'
+      }],
+      ownership: { source: 'test', manifestRef: null, entries: [] },
+      recovery: { checkpointRef: null, rollbackRef: null }
+    });
+    await writeTrioStateFile(environment, state);
+  }, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('no-codex-target', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir: roots.rootDir,
+      homeDir: roots.homeDir
+    });
+    const state = parseV2Config({
+      schemaVersion: 2,
+      runtime: 'trio',
+      scope: { kind: 'user-global' },
+      targets: [{
+        id: 'copilot',
+        enabled: true,
+        paths: [path.join(environment.homeDir, 'manual', 'copilot', 'entry-policy.md')],
+        hostKind: 'generic',
+        mode: 'manual'
+      }],
+      ownership: { source: 'test', manifestRef: null, entries: [] },
+      recovery: { checkpointRef: null, rollbackRef: null }
+    });
+    await writeTrioStateFile(environment, state);
+  }, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('wrong-entry-path', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir: roots.rootDir,
+      homeDir: roots.homeDir
+    });
+    const state = parseV2Config({
+      schemaVersion: 2,
+      runtime: 'trio',
+      scope: { kind: 'user-global' },
+      targets: [{
+        id: 'codex',
+        enabled: true,
+        paths: [path.join(environment.homeDir, 'AGENTS.md')],
+        hostKind: 'codex',
+        mode: 'managed'
+      }],
+      ownership: { source: 'test', manifestRef: null, entries: [] },
+      recovery: { checkpointRef: null, rollbackRef: null }
+    });
+    await writeTrioStateFile(environment, state);
+  }, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('chiefops-absent', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir: roots.rootDir,
+      homeDir: roots.homeDir
+    });
+    await stageExistingV2UserGlobalAt(roots, environment, { chiefopsPresent: false });
+  }, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('chiefops-owned', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir: roots.rootDir,
+      homeDir: roots.homeDir
+    });
+    const staged = await stageExistingV2UserGlobalAt(roots, environment);
+    const state = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+    state.ownership.entries.push({
+      targetId: 'codex',
+      path: staged.chiefopsDestination,
+      identity: contentIdentity(staged.chiefopsDrifted)
+    });
+    await writeTrioStateFile(environment, parseV2Config(state));
+  }, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('owned-five-mismatch', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir: roots.rootDir,
+      homeDir: roots.homeDir
+    });
+    const staged = await stageExistingV2UserGlobalAt(roots, environment);
+    await writeFile(staged.owned[0], 'user-owned drift in the entry surface\n');
+  }, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('extra-ownership', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir: roots.rootDir,
+      homeDir: roots.homeDir
+    });
+    const staged = await stageExistingV2UserGlobalAt(roots, environment, { generic: true });
+    const state = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+    state.ownership.entries.push({
+      targetId: 'copilot',
+      path: path.join(environment.homeDir, 'manual', 'copilot', 'entry-policy.md'),
+      identity: contentIdentity(Buffer.from('generic owned sentinel\n'))
+    });
+    await writeTrioStateFile(environment, parseV2Config(state));
+  }, 'ERR_TRIO_TAKEOVER');
+
+  await runTakeoverRejection('symlinked-owned', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({
+      rootDir: roots.rootDir,
+      homeDir: roots.homeDir
+    });
+    const staged = await stageExistingV2UserGlobalAt(roots, environment);
+    const outside = path.join(roots.sandbox, 'outside-entry.md');
+    await writeFile(outside, 'outside physical sentinel\n');
+    await rm(staged.owned[0]);
+    await symlink(outside, staged.owned[0]);
+  }, 'ERR_TRIO_PHYSICAL_GATE');
+});
+
+function takeoverProbePrelude({ installUrl, backupUrl }) {
+  return `
+import { createHash } from 'node:crypto';
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  realpath,
+  rename,
+  rm,
+  writeFile
+} from 'node:fs/promises';
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import os from 'node:os';
+import path from 'node:path';
+
+import * as realBackup from ${JSON.stringify(backupUrl)};
+
+const INSTALL_URL = ${JSON.stringify(installUrl)};
+const BACKUP_URL = ${JSON.stringify(backupUrl)};
+
+function contentIdentity(bytes) {
+  return \`sha256:\${createHash('sha256').update(bytes).digest('hex')}\`;
+}
+
+async function stageExistingV2UserGlobal() {
+  const sandbox = await mkdtemp(path.join(os.tmpdir(), 'trio-v2-takeover-probe-'));
+  const rootDir = path.join(sandbox, 'authority');
+  const homeDir = path.join(sandbox, 'home');
+  await Promise.all([mkdir(rootDir, { recursive: true }), mkdir(homeDir, { recursive: true })]);
+  const rootReal = await realpath(rootDir);
+  const homeReal = await realpath(homeDir);
+  const stateFile = path.join(rootDir, '.harness', 'state.json');
+  const sourceRoot = ${JSON.stringify(REPO_ROOT)};
+  const sources = [
+    'harness/trio/templates/entry-policy.md',
+    'harness/trio/skill/SKILL.md',
+    'harness/trio/capabilities/dev/SKILL.md',
+    'harness/trio/capabilities/office/SKILL.md',
+    'harness/trio/capabilities/safety/SKILL.md'
+  ];
+  const entry = path.join(homeReal, '.codex', 'AGENTS.md');
+  const owned = [
+    entry,
+    path.join(homeReal, '.agents', 'skills', 'trio', 'SKILL.md'),
+    path.join(homeReal, '.agents', 'skills', 'trio', 'dev', 'SKILL.md'),
+    path.join(homeReal, '.agents', 'skills', 'trio', 'office', 'SKILL.md'),
+    path.join(homeReal, '.agents', 'skills', 'trio', 'safety', 'SKILL.md')
+  ];
+  for (const [index, destination] of owned.entries()) {
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, await readFile(path.join(sourceRoot, sources[index])));
+  }
+  const chiefopsDestination = path.join(homeReal, '.agents', 'skills', 'chiefops', 'SKILL.md');
+  await mkdir(path.dirname(chiefopsDestination), { recursive: true });
+  const chiefopsDrifted = Buffer.from('legacy unowned global ChiefOps content\\n', 'utf8');
+  await writeFile(chiefopsDestination, chiefopsDrifted);
+  const destinations = [...owned, chiefopsDestination];
+  const ownership = await Promise.all(owned.map(async (destination) => ({
+    targetId: 'codex',
+    path: destination,
+    identity: contentIdentity(await readFile(destination))
+  })));
+  const state = {
+    schemaVersion: 2,
+    runtime: 'trio',
+    scope: { kind: 'user-global' },
+    targets: [{
+      id: 'codex',
+      enabled: true,
+      paths: [entry],
+      hostKind: 'codex',
+      mode: 'managed'
+    }],
+    ownership: {
+      source: 'existing-v2-user-global',
+      manifestRef: null,
+      entries: ownership
+    },
+    recovery: {
+      checkpointRef: 'checkpoint-existing-v2',
+      rollbackRef: 'rollback-existing-v2'
+    }
+  };
+  const stateBytes = Buffer.from(JSON.stringify(state, null, 2) + '\\n', 'utf8');
+  await mkdir(path.dirname(stateFile), { recursive: true });
+  await writeFile(stateFile, stateBytes);
+  const liveBytes = new Map(await Promise.all(
+    destinations.map(async (destination) => [destination, await readFile(destination)])
+  ));
+  return Object.freeze({
+    sandbox,
+    rootDir,
+    homeDir,
+    stateFile,
+    stateBytes,
+    destinations,
+    owned,
+    chiefopsDestination,
+    liveBytes
+  });
+}
+`;
+}
+
+async function runTakeoverFaultProbe(label, source) {
+  const root = await mkdtemp(path.join(os.tmpdir(), `trio-v2-takeover-${label}-`));
+  const probePath = path.join(root, `${label}.test.mjs`);
+  try {
+    await writeFile(probePath, source, 'utf8');
+    const result = await runNode(
+      ['--experimental-test-module-mocks', '--test', probePath],
+      { SWF_TRIO_FAULT_PROBE: label }
+    );
+    assert.equal(result.code, 0, result.stderr || result.stdout);
+    return result;
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+function takeoverProbeTest({ label, installUrl, backupUrl, inject, assertions }) {
+  return `
+${takeoverProbePrelude({ installUrl, backupUrl })}
+test('${label}', async (t) => {
+  const staged = await stageExistingV2UserGlobal();
+  try {
+    await t.mock.module(BACKUP_URL, {
+      namedExports: {
+        ...realBackup,
+        publishTrioTakeoverBackup: ${inject}
+      }
+    });
+    const { install } = await import(INSTALL_URL);
+    ${assertions}
+  } finally {
+    await rm(staged.sandbox, { recursive: true, force: true });
+  }
+});
+`;
+}
+
+test('production install --takeover-chiefops fails closed when the seven-object backup cannot be published', async () => {
+  const installUrl = new URL('../../harness/installer/commands/install.mjs', import.meta.url).href;
+  const backupUrl = new URL('../../harness/installer/lib/trio-takeover-backup.mjs', import.meta.url).href;
+  const source = takeoverProbeTest({
+    label: 'takeover backup failure fails closed before any write',
+    installUrl,
+    backupUrl,
+    inject: `async () => {
+      const error = new Error('injected backup publication failure');
+      error.code = 'ERR_TRIO_BACKUP';
+      throw error;
+    }`,
+    assertions: `
+    await assert.rejects(
+      () => install(['--takeover-chiefops'], { rootDir: staged.rootDir, homeDir: staged.homeDir }),
+      (error) => error?.code === 'ERR_TRIO_BACKUP'
+    );
+    assert.deepEqual(await readFile(staged.stateFile), staged.stateBytes);
+    for (const [destination, bytes] of staged.liveBytes) {
+      assert.deepEqual(await readFile(destination), bytes);
+    }
+    await assert.rejects(
+      access(path.join(staged.rootDir, '.harness-backup')),
+      (error) => error?.code === 'ENOENT'
+    );`
+  });
+  await runTakeoverFaultProbe('backup-failure', source);
+});
+
+test('production install --takeover-chiefops rejects a same-content state replacement bound after the backup', async () => {
+  const installUrl = new URL('../../harness/installer/commands/install.mjs', import.meta.url).href;
+  const backupUrl = new URL('../../harness/installer/lib/trio-takeover-backup.mjs', import.meta.url).href;
+  const source = takeoverProbeTest({
+    label: 'takeover state race with a same-content inode replacement',
+    installUrl,
+    backupUrl,
+    inject: `async (...args) => {
+      const published = await realBackup.publishTrioTakeoverBackup(...args);
+      const temporary = staged.stateFile + '.race';
+      await writeFile(temporary, await readFile(staged.stateFile));
+      await rename(temporary, staged.stateFile);
+      return published;
+    }`,
+    assertions: `
+    await assert.rejects(
+      () => install(['--takeover-chiefops'], { rootDir: staged.rootDir, homeDir: staged.homeDir }),
+      (error) => error?.code === 'ERR_TRIO_STATE_DRIFT'
+    );
+    assert.deepEqual(await readFile(staged.stateFile), staged.stateBytes);
+    for (const [destination, bytes] of staged.liveBytes) {
+      assert.deepEqual(await readFile(destination), bytes);
+    }
+    const entries = await readdir(path.join(staged.rootDir, '.harness-backup', 'trio-takeover'));
+    assert.equal(entries.length, 1);`
+  });
+  await runTakeoverFaultProbe('state-race', source);
+});
+
+test('production install --takeover-chiefops compensates an Nth-write same-content inode replacement of the ChiefOps target', async () => {
+  const installUrl = new URL('../../harness/installer/commands/install.mjs', import.meta.url).href;
+  const backupUrl = new URL('../../harness/installer/lib/trio-takeover-backup.mjs', import.meta.url).href;
+  const source = takeoverProbeTest({
+    label: 'takeover Nth-write same-content inode replacement compensation',
+    installUrl,
+    backupUrl,
+    inject: `async (...args) => {
+      const published = await realBackup.publishTrioTakeoverBackup(...args);
+      const temporary = staged.chiefopsDestination + '.race';
+      await writeFile(temporary, await readFile(staged.chiefopsDestination));
+      await rename(temporary, staged.chiefopsDestination);
+      return published;
+    }`,
+    assertions: `
+    await assert.rejects(
+      () => install(['--takeover-chiefops'], { rootDir: staged.rootDir, homeDir: staged.homeDir }),
+      (error) => error?.code === 'ERR_TRIO_ROLLBACK' && error.cause?.code === 'ERR_TRIO_TARGET_IDENTITY'
+    );
+    assert.deepEqual(await readFile(staged.stateFile), staged.stateBytes);
+    for (const [destination, bytes] of staged.liveBytes) {
+      assert.deepEqual(await readFile(destination), bytes);
+    }`
+  });
+  await runTakeoverFaultProbe('target-race', source);
+});
+
+test('production install --takeover-chiefops fails closed on a post-lstat read replacement of the state preimage', async () => {
+  const installUrl = new URL('../../harness/installer/commands/install.mjs', import.meta.url).href;
+  const backupUrl = new URL('../../harness/installer/lib/trio-takeover-backup.mjs', import.meta.url).href;
+  // This probe must not pre-load the backup module before the mock is
+  // registered: a static import would bind its fs functions to the real module
+  // and the capture would never observe the replacement. The shared prelude is
+  // reused with only the realBackup import removed.
+  const source = `
+${takeoverProbePrelude({ installUrl, backupUrl }).replace(/^import \* as realBackup from .*;$/mu, '')}
+import * as realFs from 'node:fs/promises';
+
+test('takeover capture race with a post-lstat read replacement', async (t) => {
+  const staged = await stageExistingV2UserGlobal();
+  try {
+    const canonicalStateFile = await realpath(staged.stateFile);
+    let replacementIndex = 0;
+    await t.mock.module('node:fs/promises', {
+      namedExports: {
+        ...realFs,
+        readFile: async (filePath, ...rest) => {
+          const bytes = await realFs.readFile(filePath, ...rest);
+          if (String(filePath) === canonicalStateFile) {
+            replacementIndex += 1;
+            const temporary = canonicalStateFile + '.capture-race-' + replacementIndex;
+            await realFs.writeFile(temporary, bytes);
+            await realFs.rename(temporary, canonicalStateFile);
+          }
+          return bytes;
+        }
+      }
+    });
+    const { install } = await import(INSTALL_URL);
+    await assert.rejects(
+      () => install(['--takeover-chiefops'], { rootDir: staged.rootDir, homeDir: staged.homeDir }),
+      (error) => error?.code === 'ERR_TRIO_PREIMAGE_DRIFT'
+    );
+    assert.deepEqual(await realFs.readFile(staged.stateFile), staged.stateBytes);
+    for (const [destination, bytes] of staged.liveBytes) {
+      assert.deepEqual(await realFs.readFile(destination), bytes);
+    }
+    await assert.rejects(
+      realFs.access(path.join(staged.rootDir, '.harness-backup')),
+      (error) => error?.code === 'ENOENT'
+    );
+  } finally {
+    await rm(staged.sandbox, { recursive: true, force: true });
+  }
+});
+`;
+  await runTakeoverFaultProbe('capture-race', source);
+});
+
+test('production install --takeover-chiefops preserves provenance and later ChiefOps user drift fails closed', async () => {
+  const staged = await stageExistingV2UserGlobal('takeover-drift');
+  try {
+    const { environment, chiefopsDestination, options } = staged;
+    const outcome = await install(['--takeover-chiefops'], options);
+    const settled = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+    assert.equal(settled.ownership.source, 'existing-v2-user-global');
+    assert.equal(settled.ownership.manifestRef, null);
+    assert.equal(settled.recovery.checkpointRef, 'checkpoint-existing-v2');
+    assert.equal(settled.recovery.rollbackRef, outcome.backup.ref);
+    await assertExactSettledOwnership(settled, staged.destinations);
+
+    await writeFile(chiefopsDestination, 'user drift after takeover\n');
+    const stateBeforeDrift = await readFile(environment.stateFile);
+    let caught;
+    const output = await captureCommandOutput(async () => {
+      try {
+        await sync([], options);
+      } catch (error) {
+        caught = error;
+      }
+    });
+    assert.equal(caught?.code, 'ERR_TRIO_CONFLICT');
+    assert.equal(output, '');
+    assert.deepEqual(await readFile(environment.stateFile), stateBeforeDrift);
+    await assert.rejects(
+      () => sync(['--check'], options),
+      (error) => error?.code === 'ERR_TRIO_CHECK'
+    );
+    await assert.rejects(
+      () => doctor(['--check-only'], options),
+      (error) => error?.code === 'ERR_TRIO_CHECK'
+    );
+    assert.equal(await readFile(chiefopsDestination, 'utf8'), 'user drift after takeover\n');
+  } finally {
+    await rm(staged.roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('production install --takeover-chiefops fails closed on a symlinked backup ancestor', async () => {
+  const staged = await stageExistingV2UserGlobal('takeover-symlink-ancestor');
+  try {
+    const { environment, options } = staged;
+    const outsideRoot = path.join(staged.roots.sandbox, 'outside-backup-target');
+    await mkdir(outsideRoot, { recursive: true });
+    for (const relative of ['.harness-backup', path.join('.harness-backup', 'trio-takeover')]) {
+      const ancestor = path.join(environment.authorityRoot, relative);
+      await mkdir(path.dirname(ancestor), { recursive: true });
+      await rm(ancestor, { recursive: true, force: true });
+      await symlink(outsideRoot, ancestor);
+
+      await assert.rejects(
+        () => install(['--takeover-chiefops'], options),
+        (error) => error?.code === 'ERR_TRIO_PHYSICAL_GATE'
+      );
+      assert.deepEqual(await readFile(environment.stateFile), staged.stateBytes);
+      for (const [destination, bytes] of staged.liveBytes) {
+        assert.deepEqual(await readFile(destination), bytes);
+      }
+      assert.equal((await lstat(ancestor)).isSymbolicLink(), true);
+      assert.deepEqual(await readdir(outsideRoot), []);
+      await rm(ancestor);
+    }
+  } finally {
+    await rm(staged.roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('production install --takeover-chiefops fails at the parser gate on a manual Codex placement with zero writes', async () => {
+  const staged = await stageExistingV2UserGlobal('takeover-manual-codex');
+  try {
+    const { environment, options } = staged;
+    // A codex target with mode "manual" is structurally invalid V2 state
+    // (hostKind/mode coupling), so the takeover eligibility gate is never
+    // reached: the authoritative parsing gate must fail closed before any
+    // projection, state, or backup write.
+    const state = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+    state.targets[0].mode = 'manual';
+    const malformedBytes = Buffer.from(`${JSON.stringify(state, null, 2)}\n`, 'utf8');
+    await writeFile(environment.stateFile, malformedBytes);
+
+    await assert.rejects(
+      () => install(['--takeover-chiefops'], options),
+      (error) => error?.code === 'ERR_TRIO_CONFIG'
+    );
+    assert.deepEqual(await readFile(environment.stateFile), malformedBytes);
+    for (const [destination, bytes] of staged.liveBytes) {
+      assert.deepEqual(await readFile(destination), bytes);
+    }
+    await assert.rejects(
+      access(path.join(environment.authorityRoot, '.harness-backup')),
+      (error) => error?.code === 'ENOENT'
+    );
+  } finally {
+    await rm(staged.roots.sandbox, { recursive: true, force: true });
+  }
+});
+
+test('Trio fixture install rejects --takeover-chiefops before any write', async () => {
+  const fixtureRoot = await mkdtemp(path.join(os.tmpdir(), 'trio-v2-takeover-fixture-'));
+  try {
+    await withRuntimeSelector('trio', async () => {
+      await assert.rejects(
+        install(['--fixture-root', fixtureRoot, '--takeover-chiefops']),
+        (error) => error?.code === 'ERR_TRIO_FIXTURE'
+      );
+    });
+    await assert.rejects(access(path.join(fixtureRoot, '.harness')), /ENOENT/);
+  } finally {
+    await rm(fixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test('Trio install help advertises the existing-V2 ChiefOps takeover flag', async () => {
+  const output = await captureCommandOutput(async () => {
+    await install(['--help'], {});
+  });
+  assert.match(output, /--takeover-chiefops/);
+  assert.match(output, /existing schema-v2 user-global state/);
+});
+
+test('Trio sync help no longer advertises unavailable takeover or conflict flags', async () => {
+  const output = await captureCommandOutput(async () => {
+    await sync(['--help'], {});
+  });
+  assert.match(output, /Usage: .*sync \[--dry-run\] \[--check\]/);
+  assert.match(output, /--check/);
+  assert.doesNotMatch(output, /--takeover/);
+  assert.doesNotMatch(output, /--conflict/);
 });

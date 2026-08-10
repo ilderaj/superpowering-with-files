@@ -3,7 +3,7 @@ import path from 'node:path';
 import {
   AUTHORITY_OVERRIDE_RELATIVE_PATH,
   discoverAuthorityRoot
-} from '../../runtime/authority-root.mjs';
+} from '../../trio/core/authority.mjs';
 
 function readOption(args, name, fallback = undefined) {
   const prefix = `--${name}=`;

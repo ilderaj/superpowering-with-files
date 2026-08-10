@@ -14,10 +14,10 @@ async function loadUpstreamConfigModule() {
 test('normalizeUpstreamSource applies legacy branch-head defaults', async () => {
   const { normalizeUpstreamSource } = await loadUpstreamConfigModule();
 
-  const source = normalizeUpstreamSource('superpowers', {
+  const source = normalizeUpstreamSource('planning-with-files', {
     type: 'git',
-    url: 'https://github.com/obra/superpowers',
-    path: 'harness/upstream/superpowers'
+    url: 'https://github.com/OthmanAdi/planning-with-files',
+    path: 'harness/upstream/planning-with-files'
   });
 
   assert.equal(source.resolution.strategy, 'branch-head');
@@ -31,7 +31,8 @@ test('loadUpstreamSourceConfig normalizes schema v2 sources', async () => {
   const config = await loadUpstreamSourceConfig(rootDir);
 
   assert.equal(config.schemaVersion, 2);
-  assert.equal(config.sources.superpowers.resolution.strategy, 'latest-release');
+  assert.deepEqual(Object.keys(config.sources), ['planning-with-files']);
+  assert.equal(config.sources['planning-with-files'].resolution.strategy, 'latest-release');
   assert.equal(config.sources['planning-with-files'].overlayPath, 'harness/core/upstream-overlays/planning-with-files');
   assert.deepEqual(config.sources['planning-with-files'].resolution.fallbacks, []);
 });
@@ -48,9 +49,9 @@ test('loadSourceLock ignores legacy source-head records when no authoritative lo
       schemaVersion: 1,
       refreshedAt: '2026-06-22T01:30:41.867Z',
       sources: {
-        superpowers: {
-          name: 'superpowers',
-          url: 'https://github.com/obra/superpowers',
+        'planning-with-files': {
+          name: 'planning-with-files',
+          url: 'https://github.com/OthmanAdi/planning-with-files',
           headSha: '896224c4b1879920ab573417e68fd51d2ccc9072',
           refreshedAt: '2026-06-22T01:30:41.867Z'
         }
@@ -77,8 +78,14 @@ test('writeSourceLock persists the lock document to the default path', async () 
 
   const written = JSON.parse(await readFile(path.join(tempRoot, defaultSourceLockPath), 'utf8'));
   assert.equal(written.schemaVersion, 2);
-  assert.equal(written.sources.superpowers.resolved.commitSha, lock.sources.superpowers.resolved.commitSha);
-  assert.equal(written.sources.superpowers.resolved.kind, lock.sources.superpowers.resolved.kind);
+  assert.equal(
+    written.sources['planning-with-files'].resolved.commitSha,
+    lock.sources['planning-with-files'].resolved.commitSha
+  );
+  assert.equal(
+    written.sources['planning-with-files'].resolved.kind,
+    lock.sources['planning-with-files'].resolved.kind
+  );
 });
 
 test('compareResolvedFingerprints reports changes when the resolved commit moves', async () => {
@@ -86,10 +93,10 @@ test('compareResolvedFingerprints reports changes when the resolved commit moves
 
   const recordedLock = await loadSourceLock({ rootDir });
   const resolvedLock = structuredClone(recordedLock);
-  resolvedLock.sources.superpowers.resolved.commitSha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  resolvedLock.sources['planning-with-files'].resolved.commitSha = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
   const comparison = compareResolvedFingerprints({ recordedLock, resolvedLock });
 
-  assert.deepEqual(comparison.changedSources, ['superpowers']);
+  assert.deepEqual(comparison.changedSources, ['planning-with-files']);
   assert.equal(comparison.status, 'changes_detected');
 });

@@ -5,15 +5,15 @@ async function loadUpstreamResolverModule() {
   return import('../../scripts/ci/lib/upstream-resolver.mjs');
 }
 
-const superpowersSource = {
-  name: 'superpowers',
+const planningWithFilesSource = {
+  name: 'planning-with-files',
   type: 'git',
-  url: 'https://github.com/obra/superpowers',
+  url: 'https://github.com/OthmanAdi/planning-with-files',
   github: {
-    owner: 'obra',
-    repo: 'superpowers'
+    owner: 'OthmanAdi',
+    repo: 'planning-with-files'
   },
-  path: 'harness/upstream/superpowers',
+  path: 'harness/upstream/planning-with-files',
   resolution: {
     strategy: 'latest-release',
     allowPrerelease: false,
@@ -22,7 +22,7 @@ const superpowersSource = {
 };
 
 const pinnedCommitSource = {
-  ...superpowersSource,
+  ...planningWithFilesSource,
   resolution: {
     strategy: 'pinned-commit',
     pinnedRef: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
@@ -32,7 +32,7 @@ const pinnedCommitSource = {
 test('latest-release ignores prereleases by default', async () => {
   const { resolveSourceTarget } = await loadUpstreamResolverModule();
 
-  const resolved = await resolveSourceTarget(superpowersSource, {
+  const resolved = await resolveSourceTarget(planningWithFilesSource, {
     listReleases: async () => [
       { tag_name: 'v6.2.0-rc.1', prerelease: true, draft: false },
       { tag_name: 'v6.1.1', prerelease: false, draft: false }
@@ -54,7 +54,7 @@ test('latest-release ignores prereleases by default', async () => {
 test('latest-release skips draft releases even when they are newer', async () => {
   const { resolveSourceTarget } = await loadUpstreamResolverModule();
 
-  const resolved = await resolveSourceTarget(superpowersSource, {
+  const resolved = await resolveSourceTarget(planningWithFilesSource, {
     listReleases: async () => [
       { tag_name: 'v6.2.0', prerelease: false, draft: true },
       { tag_name: 'v6.1.1', prerelease: false, draft: false }
@@ -76,7 +76,7 @@ test('latest-release uses latest-tag fallback only when configured', async () =>
 
   const resolved = await resolveSourceTarget(
     {
-      ...superpowersSource,
+      ...planningWithFilesSource,
       resolution: {
         strategy: 'latest-release',
         allowPrerelease: false,
@@ -117,7 +117,7 @@ test('latest-release rejects API failure instead of silently falling back to bra
   const { resolveSourceTarget } = await loadUpstreamResolverModule();
 
   await assert.rejects(
-    resolveSourceTarget(superpowersSource, {
+    resolveSourceTarget(planningWithFilesSource, {
       listReleases: async () => {
         throw new Error('release resolution failed: api down');
       },
@@ -147,7 +147,7 @@ test('pinned-tag resolves the configured tag to its commit SHA', async () => {
 
   const resolved = await resolveSourceTarget(
     {
-      ...superpowersSource,
+      ...planningWithFilesSource,
       resolution: {
         strategy: 'pinned-tag',
         pinnedRef: 'v6.1.1'
@@ -173,7 +173,7 @@ test('branch-head resolves HEAD directly for branch fallback sources', async () 
 
   const resolved = await resolveSourceTarget(
     {
-      ...superpowersSource,
+      ...planningWithFilesSource,
       resolution: {
         strategy: 'branch-head',
         fallbacks: []
@@ -197,7 +197,7 @@ test('resolveTagCommit peels annotated tags to the commit SHA', async () => {
   const { resolveTagCommit } = await loadUpstreamResolverModule();
 
   const commitSha = await resolveTagCommit(
-    superpowersSource.url,
+    planningWithFilesSource.url,
     'v6.1.1',
     {
       gitLsRemote: async (_url, refs) => ({
@@ -217,7 +217,7 @@ test('resolveSourceTarget latest-tag resolves the latest annotated tag commit', 
 
   const resolved = await resolveSourceTarget(
     {
-      ...superpowersSource,
+      ...planningWithFilesSource,
       resolution: {
         strategy: 'latest-tag',
         allowPrerelease: false,

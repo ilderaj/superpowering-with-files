@@ -119,7 +119,8 @@ function codexDestinations(root, scope = 'user-global') {
     `${root}/.agents/skills/trio/SKILL.md`,
     `${root}/.agents/skills/trio/dev/SKILL.md`,
     `${root}/.agents/skills/trio/office/SKILL.md`,
-    `${root}/.agents/skills/trio/safety/SKILL.md`
+    `${root}/.agents/skills/trio/safety/SKILL.md`,
+    `${root}/.agents/skills/chiefops/SKILL.md`
   ];
 }
 
@@ -130,7 +131,8 @@ function genericDestinations(root, targetId) {
     `${base}/skills/trio/SKILL.md`,
     `${base}/skills/trio/dev/SKILL.md`,
     `${base}/skills/trio/office/SKILL.md`,
-    `${base}/skills/trio/safety/SKILL.md`
+    `${base}/skills/trio/safety/SKILL.md`,
+    `${base}/skills/chiefops/SKILL.md`
   ];
 }
 
@@ -186,7 +188,10 @@ function assertEntryPolicyContract(markdown) {
   assert.match(inventory, /trio\/dev\/SKILL\.md/i);
   assert.match(inventory, /trio\/office\/SKILL\.md/i);
   assert.match(inventory, /trio\/safety\/SKILL\.md/i);
+  assert.match(inventory, /chiefops\/SKILL\.md/i);
+  assert.match(inventory, /governance companion/i);
   assert.match(inventory, /not a fifth capability pack/i);
+  assert.match(inventory, /not a runner/i);
 
   const gates = markdownSection(markdown, 'Human Gates');
   assert.match(gates, /applicable Host and human gate/i);
@@ -210,8 +215,9 @@ test('V2 config and projection expose pure public seams', () => {
     'recovery'
   ]);
   assert.equal(config.targets[0].paths[0], '/fixture/home/.codex/AGENTS.md');
-  assert.equal(result.descriptors.length, 5);
+  assert.equal(result.descriptors.length, 6);
   assert.deepEqual(result.descriptors.map((descriptor) => descriptor.action), [
+    'create',
     'create',
     'create',
     'create',
@@ -237,8 +243,8 @@ test('projection wrapper requires exactly four own fields', () => {
     pathObservations: {}
   };
 
-  assert.equal(projectConfig(wrapper).descriptors.length, 10);
-  assert.equal(projectConfig(JSON.parse(JSON.stringify(wrapper))).descriptors.length, 10);
+  assert.equal(projectConfig(wrapper).descriptors.length, 12);
+  assert.equal(projectConfig(JSON.parse(JSON.stringify(wrapper))).descriptors.length, 12);
   withObjectPrototypeValues(wrapper, () => {
     assert.throws(
       () => projectConfig({}),
@@ -280,7 +286,8 @@ test('projection preserves evidence paths while using caller placements for Host
       [destinations[1]]: { state: 'managed', identity: identity('trio') },
       [destinations[2]]: { state: 'unmanaged' },
       [destinations[3]]: { state: 'unknown' },
-      [destinations[4]]: { state: 'managed', identity: identity('other') }
+      [destinations[4]]: { state: 'managed', identity: identity('other') },
+      [destinations[5]]: { state: 'absent' }
     }
   });
 
@@ -289,7 +296,8 @@ test('projection preserves evidence paths while using caller placements for Host
     'update',
     'preserve',
     'preserve',
-    'preserve'
+    'preserve',
+    'create'
   ]);
   assert.equal(result.descriptors[1].retainedTargetPath, '/fixture/home/.codex/AGENTS.md');
   assert.equal(result.descriptors[1].destination, '/fixture/home/.agents/skills/trio/SKILL.md');
@@ -356,7 +364,7 @@ test('managed Codex scope cardinality is exact and two-sided', () => {
     placement('codex', workspacePath, 'workspace', '/fixture/workspace'),
     placement('codex', globalPath, 'user-global', '/fixture/home')
   ]);
-  assert.equal(bothResult.descriptors.length, 10);
+  assert.equal(bothResult.descriptors.length, 12);
   assert.deepEqual(
     [...new Set(bothResult.descriptors.map((descriptor) => descriptor.destination))].sort(),
     [...codexDestinations('/fixture/workspace', 'workspace'), ...codexDestinations('/fixture/home')].sort()
@@ -751,6 +759,28 @@ test('entry policy validator rejects weakened authority, capability, inventory, 
     const mutation = entryPolicy.replace(from, to);
     assert.notEqual(mutation, entryPolicy);
     assert.throws(() => assertEntryPolicyContract(mutation), /authority|capability|durable|fifth|permission/i);
+  }
+});
+
+test('entry policy validator rejects a ChiefOps capability or runner weakening', async () => {
+  const entryPolicy = await readFile(
+    path.join(REPO_ROOT, 'harness/trio/templates/entry-policy.md'),
+    'utf8'
+  );
+  const mutations = [
+    [
+      'The ChiefOps companion is a governance companion outside the three capability families',
+      'The ChiefOps companion is a fifth capability family alongside dev, office, and safety'
+    ],
+    [
+      'not a runner, scheduler, registry, or fourth task-state surface',
+      'and may act as a runner when the Chief is busy'
+    ]
+  ];
+  for (const [from, to] of mutations) {
+    const mutation = entryPolicy.replace(from, to);
+    assert.notEqual(mutation, entryPolicy);
+    assert.throws(() => assertEntryPolicyContract(mutation), /fifth|runner|capability|governance/i);
   }
 });
 
