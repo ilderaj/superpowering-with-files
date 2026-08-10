@@ -2,6 +2,6 @@
   "target": "codex",
   "name": "harness-codex-plugin",
   "displayName": "Harness for Codex",
-  "version": "1.0.9",
+  "version": "1.0.14",
   "description": "Trio skills for Codex."
 }
