@@ -1,4 +1,5 @@
 export { resolveHostOperation as resolveCodexHostOperation } from '../core/routing.mjs';
+import { adjudicatePermission } from '../core/routing.mjs';
 
 const SWF_EXECUTOR_BASE = Object.freeze({
   name: 'swf_executor',
@@ -82,5 +83,80 @@ export function renderCodexHandoffRequest({ operation, packet, packetDigest, eff
     packet,
     packetDigest,
     executed: false
+  };
+}
+
+export function resolveCodexPermissionIntent(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new TypeError('Codex permission intent input must be an object.');
+  }
+  const observation = input.hostObservation !== null
+    && typeof input.hostObservation === 'object'
+    && !Array.isArray(input.hostObservation)
+    ? input.hostObservation
+    : {};
+  const verdict = adjudicatePermission({
+    assignmentPacket: input.assignmentPacket,
+    targetPaths: input.targetPaths,
+    permissionIntent: input.permissionIntent,
+    approval: input.approval,
+    hostObservation: observation,
+    generatedTargets: input.generatedTargets
+  });
+  const rawReviewer = observation.actualReviewer;
+  const reviewer = typeof rawReviewer === 'string' && rawReviewer.trim() !== ''
+    ? rawReviewer.trim()
+    : 'unknown';
+  const actual = {
+    authenticated: verdict.actual.authenticated,
+    evidenceRef: verdict.actual.evidenceRef,
+    sandbox: verdict.actual.sandbox,
+    writableRoots: Array.isArray(verdict.actual.writableRoots)
+      ? [...verdict.actual.writableRoots]
+      : verdict.actual.writableRoots,
+    reviewer
+  };
+  const bound = actual.authenticated === true
+    && actual.sandbox !== 'unknown'
+    && actual.writableRoots !== 'unknown'
+    && actual.reviewer !== 'unknown';
+  const expression = {
+    provider: 'codex',
+    sandboxMode: verdict.requested.sandboxMode,
+    writableRoots: [...verdict.requested.writableRoots],
+    applied: false
+  };
+  let outcome;
+  if (verdict.stage === 'scope') {
+    outcome = {
+      kind: 'blocked',
+      stage: 'scope',
+      reason: verdict.reason,
+      executed: false,
+      writes: []
+    };
+  } else if (!bound) {
+    outcome = {
+      kind: 'manual_pending',
+      executed: false,
+      writes: [],
+      blocker: verdict.reason ?? 'permission_actual_unbound',
+      resumeCondition: 'Provide authenticated Host evidence binding the exact packet digest with actual sandbox, writable roots, and reviewer state before any permission claim.'
+    };
+  } else {
+    outcome = {
+      kind: 'codex_permission_expression',
+      decision: verdict.verdict,
+      stage: verdict.stage,
+      reason: verdict.reason,
+      applied: false
+    };
+  }
+  return {
+    provider: 'codex',
+    requested: verdict.requested,
+    expression,
+    actual,
+    outcome
   };
 }

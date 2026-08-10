@@ -13,6 +13,18 @@
 - **本地 fail-closed 路由契约(已实现,仅本仓库代码)**:`harness/trio/core/routing.mjs` 校验 Assignment Packet 的八字段并拒绝第九个顶层字段;`capability.childDelegation` 只接受 `prohibited | worker_discretion | encouraged`,`capability.executionMode` 只接受 `bounded_slice | worker_self_goal`。未知值、strict 缺策略、`prohibited` 下的 native 子路由全部返回非执行的 `manual_pending`。静态角色配置不构成动态 child 权限。
 - **Host 桥(未实现)**:当前 Host 可能支持"人工可见的任务移交/观察",但没有完整的可注入 authenticated 契约来证明 role、精确 packet、actual model/effort、spawn/continue/status/interrupt/collect 与动态 child 拒绝。缺少任何一项时,诚实出口是 `manual_pending`,而不是本地模拟或绕过。
 
+## 权限治理:范围 → Host 沙箱 → 审批
+
+权限判定是三层严格顺序的纯本地契约(实现在 `harness/trio/core/routing.mjs` 的 `adjudicatePermission`,不引入 runner、审批引擎或新状态):
+
+1. **Trio 范围(scope)**:Assignment Packet 的 `allowedOperations` 是唯一授权来源。目标路径必须在 `allowedOperations.files` 之内,且不得落在物化输出上(见下)。任何越界路径在此层直接 `blocked`(`outside_assignment_scope:<path>` 或 `generated_target:<path>`),审批与 escalation/review 根本不进入评估(`approvalEligible: false`,sandbox/approval 阶段为 `skipped`)。
+2. **Host 沙箱(sandbox)**:仅在范围通过后评估。Host 必须提供 authenticated 证据(`authenticated: true` + `evidenceRef` + 与 assignment packet 匹配的 `packetDigest`),否则 actual 沙箱与可写根一律 `unknown` 并 fail-closed(`sandbox_actual_unknown`);`bounded` 沙箱的可写根必须覆盖目标路径,否则拒绝(`sandbox_writable_roots_unbound`);自报的 Full Access 或可写根不是证据。
+3. **审批(approval)**:最后一个 gate,只可在范围与沙箱都通过后决定放行或拒绝(`approval_denied`);`user` / `auto_review` 审批**永远不能扩大 allowed paths**。
+
+不可扩权证明:Full Access、用户审批、auto-review、可写沙箱均无法把越界操作救回;物化输出(`AGENTS.md`、`.agents/**`)即使被误列入 `allowedOperations.files`、即使沙箱可写、即使已审批,仍然在 scope 层被 `generated_target` 阻断——受支持的工作流是**改源(模板/策略)+ 投影/fixture proof**,绝不直接编辑物化输出。
+
+请求与实际的区分:`permissionIntent`(请求的 `sandboxMode: bounded | full_access`、`writableRoots`、`approval`)与 `hostObservation`(authenticated 的 actual 证据)是两个独立输入;结果同时携带 `requested` 与 `actual`,无 authenticated 证据时 `actual.sandbox` / `actual.writableRoots` 为 `unknown`。本契约不声称 Host 已执行任何权限绑定,也不对运行中 worker 做追溯性权限改写。
+
 ## 角色职责
 
 | 角色 | 做什么 | 不做什么 |
@@ -83,7 +95,7 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 **做**: 输入用自然语言讲清目标/影响面/约束/验收;任务开始前确认三件套存在且 hash 一致;packet 永远随派单一起给 worker;worker 结果一律先当 candidate;验收证据要"命令 + 退出码 + 计数 + 变更路径";全局投影用 `./scripts/harness sync --check` / `doctor --check-only` 自检。
 
-**不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 strict 模式下让 Chief inline 改生产代码或让 native 顶包;不把静态角色配置当成动态 child 权限;不声称 actual model/role/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口;不把本地 fail-closed 路由契约当成已实现的 Host 生命周期桥。
+**不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 strict 模式下让 Chief inline 改生产代码或让 native 顶包;不把静态角色配置当成动态 child 权限;不声称 actual model/role/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口;不把本地 fail-closed 路由契约当成已实现的 Host 生命周期桥;不以 Full Access / 用户审批 / auto-review / 可写沙箱为扩权手段(范围先决,越界一律 blocked 在 scope 层);不直接写物化输出(`AGENTS.md`、`.agents/**`)——改源 + 投影 proof 是唯一受支持的工作流。
 
 ## worker 本地 goal 契约(`worker_self_goal`)
 
@@ -133,3 +145,4 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 - 本地 fail-closed 路由、goal 契约、economic 只读输出与 ChiefOps 治理伴生文件均以本仓库源码为准;本文件不声称任何外部安装已被迁移或采纳。
 - Host 集成限制:`manual_pending` 是设计内的诚实出口。在 Host 提供可注入的 authenticated 生命周期契约(role、精确 packet、actual model/effort、spawn/continue/status/interrupt/collect、动态 child 拒绝)之前,任何 Host 生命周期或实际身份声明都只能停留在 `manual_pending`,不得伪称。
+- 权限治理:`adjudicatePermission` 是本地纯路由契约(范围 → Host 沙箱 → 审批),不构成 Host 权限执行引擎;实际 Host 权限证据在 authenticated + packet digest 绑定之前一律视为 `unknown`,本仓库不伪称任何沙箱或可写根已被 Host 授予。

@@ -50,6 +50,10 @@ Check in after each completed slice and immediately on stop. Record concrete evi
 
 Worker completion is only a candidate. Chief acceptance and Trio writeback are required before durable completion. Do not self-approve content that carries a human gate, and record the exact resume condition when you stop.
 
+## Permission Ordering
+
+Plan the exact permission scope before creating or spawning any worker: the assignment packet and its allowed paths are settled before any visible worker exists. Apply least privilege with task-specific writable roots that never exceed the frozen slice. Full Access is an explicit exception, never a default or an escalation path. Recheck the frozen scope before any escalation or review: an out-of-scope operation is blocked before escalation eligibility. Approval only resolves Host restriction and never expands allowed paths. Generated or materialized surfaces are never direct-written through escalation; change source-owned policy and projection proof instead.
+
 ## Prohibitions
 
 ChiefOps never acts as a runner, scheduler, registry, or receipt dialect, never adds a fourth task-state surface, never claims a false actual model, and never performs cross-thread goal control. Native subagents remain allowed only as worker-local bounded delegation under an explicit policy.

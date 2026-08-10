@@ -116,7 +116,7 @@ test('README names the Trio as the sole durable authority and only seven public 
   for (const file of ['task_plan.md', 'findings.md', 'progress.md']) {
     assert.match(readme, new RegExp(`planning/active/<task-id>/${file}`));
   }
-  assert.doesNotMatch(readme, /reconciliation\.md|companion[- ]plan|ChiefOps|receipt|registry/i);
+  assert.doesNotMatch(readme, /reconciliation\.md|companion[- ]plan|\[ChiefOps\]\(chiefops\.md\)|harness_chiefops_board|receipt|registry/i);
   assert.match(
     readme,
     /`install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, and `token-audit`/

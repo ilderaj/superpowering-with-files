@@ -1009,6 +1009,179 @@ function manualCapabilityEvidence({ operation, observation, visibleCapability, n
   };
 }
 
+// ---------------------------------------------------------------------------
+// Scope-first permission governance: Trio scope -> Host sandbox -> approval.
+// Scope authorizes first; neither Host sandbox privilege nor approval may
+// expand the assignment scope. Materialized outputs stay generated targets.
+// ---------------------------------------------------------------------------
+
+export const SANDBOX_MODE_KINDS = Object.freeze(['bounded', 'full_access']);
+export const APPROVAL_KINDS = Object.freeze(['user', 'auto_review']);
+export const PERMISSION_STAGES = Object.freeze(['scope', 'sandbox', 'approval']);
+export const DEFAULT_GENERATED_TARGETS = Object.freeze(['.agents', 'AGENTS.md']);
+
+function normalizeSandboxMode(value, label) {
+  if (typeof value !== 'string' || !SANDBOX_MODE_KINDS.includes(value)) {
+    throw new Error(`${label} must be bounded or full_access.`);
+  }
+  return value;
+}
+
+function normalizeApproval(input) {
+  if (input === undefined || input === null) return null;
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('approval requires a structured signal.');
+  }
+  const kind = normalizedString(input.kind);
+  if (!kind || !APPROVAL_KINDS.includes(kind)) {
+    throw new Error('approval kind must be user or auto_review.');
+  }
+  if (typeof input.granted !== 'boolean') {
+    throw new Error('approval granted must be a boolean.');
+  }
+  return { kind, granted: input.granted };
+}
+
+function scopeDecision(assignmentPacket, targetPaths, generatedTargets) {
+  const allowedFiles = normalizePathSet(
+    objectRecord(objectRecord(assignmentPacket).allowedOperations).files,
+    'assignment scope files'
+  );
+  for (const target of targetPaths) {
+    if (generatedTargets.some((root) => pathIsWithin(target, root))) {
+      return { decision: 'blocked', reason: `generated_target:${target}` };
+    }
+  }
+  for (const target of targetPaths) {
+    if (!allowedFiles.some((root) => pathIsWithin(target, root))) {
+      return { decision: 'blocked', reason: `outside_assignment_scope:${target}` };
+    }
+  }
+  return { decision: 'allowed', reason: null };
+}
+
+function permissionActual(hostObservation, packetDigest) {
+  const authenticated = hostObservation.authenticated === true
+    && normalizedString(hostObservation.evidenceRef) !== null;
+  if (!authenticated || (packetDigest !== null && hostObservation.packetDigest !== packetDigest)) {
+    return { authenticated: false, evidenceRef: null, sandbox: 'unknown', writableRoots: 'unknown' };
+  }
+  const sandbox = normalizedString(hostObservation.actualSandbox);
+  return {
+    authenticated: true,
+    evidenceRef: normalizedString(hostObservation.evidenceRef),
+    sandbox: sandbox !== null && SANDBOX_MODE_KINDS.includes(sandbox) ? sandbox : 'unknown',
+    writableRoots: Array.isArray(hostObservation.actualWritableRoots)
+      ? normalizePathSet(hostObservation.actualWritableRoots, 'actual writable roots')
+      : 'unknown'
+  };
+}
+
+function sandboxDecision(hostObservation, packetDigest, targetPaths) {
+  const actual = permissionActual(hostObservation, packetDigest);
+  if (actual.sandbox === 'unknown' || actual.writableRoots === 'unknown') {
+    return { decision: 'blocked', reason: 'sandbox_actual_unknown', actual };
+  }
+  if (actual.sandbox === 'bounded') {
+    const covered = targetPaths.every((target) =>
+      actual.writableRoots.some((root) => pathIsWithin(target, root)));
+    if (!covered) {
+      return { decision: 'blocked', reason: 'sandbox_writable_roots_unbound', actual };
+    }
+  }
+  return { decision: 'allowed', reason: null, actual };
+}
+
+function permissionVerdict({ stage, reason, scope, sandbox, approval, requested, actual }) {
+  return {
+    verdict: reason === null ? 'allowed' : 'blocked',
+    stage,
+    reason,
+    approvalEligible: scope.decision === 'allowed' && sandbox.decision === 'allowed',
+    stages: {
+      scope: { decision: scope.decision, reason: scope.reason },
+      sandbox: { decision: sandbox.decision, reason: sandbox.reason },
+      approval: { decision: approval.decision, reason: approval.reason }
+    },
+    requested: {
+      sandboxMode: requested.sandboxMode,
+      writableRoots: [...requested.writableRoots],
+      approval: requested.approval === null
+        ? null
+        : { kind: requested.approval.kind, granted: requested.approval.granted }
+    },
+    actual: {
+      authenticated: actual.authenticated,
+      evidenceRef: actual.evidenceRef,
+      sandbox: actual.sandbox,
+      writableRoots: Array.isArray(actual.writableRoots) ? [...actual.writableRoots] : actual.writableRoots
+    }
+  };
+}
+
+export function adjudicatePermission(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('Permission adjudication input must be an object.');
+  }
+  const assignmentPacket = objectRecord(input.assignmentPacket);
+  if (Object.keys(assignmentPacket).length === 0) {
+    throw new Error('Permission adjudication requires an assignment packet.');
+  }
+  const targetPaths = normalizePathSet(input.targetPaths, 'target paths');
+  if (targetPaths.length === 0) {
+    throw new Error('Permission adjudication requires at least one target path.');
+  }
+  const generatedTargets = normalizePathSet(
+    input.generatedTargets ?? DEFAULT_GENERATED_TARGETS,
+    'generated targets'
+  );
+  const intent = objectRecord(input.permissionIntent);
+  const requested = {
+    sandboxMode: normalizeSandboxMode(intent.sandboxMode, 'permissionIntent.sandboxMode'),
+    writableRoots: normalizePathSet(intent.writableRoots, 'permissionIntent.writableRoots'),
+    approval: normalizeApproval(input.approval)
+  };
+  const hostObservation = objectRecord(input.hostObservation);
+  const packetDigest = packetDigestOf(assignmentPacket);
+
+  const scope = scopeDecision(assignmentPacket, targetPaths, generatedTargets);
+  if (scope.decision === 'blocked') {
+    return permissionVerdict({
+      stage: 'scope',
+      reason: scope.reason,
+      scope,
+      sandbox: { decision: 'skipped', reason: null },
+      approval: { decision: 'skipped', reason: null },
+      requested,
+      actual: permissionActual(hostObservation, packetDigest)
+    });
+  }
+  const sandbox = sandboxDecision(hostObservation, packetDigest, targetPaths);
+  if (sandbox.decision === 'blocked') {
+    return permissionVerdict({
+      stage: 'sandbox',
+      reason: sandbox.reason,
+      scope,
+      sandbox,
+      approval: { decision: 'skipped', reason: null },
+      requested,
+      actual: sandbox.actual
+    });
+  }
+  const approval = requested.approval === null || requested.approval.granted
+    ? { decision: 'allowed', reason: null }
+    : { decision: 'blocked', reason: 'approval_denied' };
+  return permissionVerdict({
+    stage: 'approval',
+    reason: approval.reason,
+    scope,
+    sandbox,
+    approval,
+    requested,
+    actual: sandbox.actual
+  });
+}
+
 export function resolveHostOperation(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new Error('Host operation input must be an object.');

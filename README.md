@@ -48,6 +48,10 @@ Requested model and reasoning effort are intent. Actual values remain unknown un
 
 Tracked production changes are routed to the visible `swf_executor` execution role with a requested economic profile (DeepSeek Flash provider, xhigh effort, no fallback). Requested values are routing intent: the actual provider, model, and effort remain `unknown` until the Host authenticates them. When strict routing requires a visible worker and no compliant one is available, the result is `manual_pending`, never a silent native fallback. A worker result is a candidate until the main session accepts it. Say what you need in plain language — no skill invocation or task ceremony is required.
 
+### Chief → worker → subagent
+
+Humans state outcome, constraints, proof, and stopping point in natural language. The main session classifies quick/tracked work, owns the tracked planning trio, and plans, integrates, and accepts results. A bounded tracked slice is executed by a visible worker; its result is a candidate until the main session validates it and records the outcome in the trio. Worker-local subagents are allowed only when the worker packet explicitly grants child delegation, and their scope and profile must be a strict proper subset of the worker's own; otherwise they are prohibited. Strict routes require the visible worker — when no compliant one is available the result is `manual_pending`, never a silent native fallback. Merge, push, publish, and release actions remain human gates. Requested model and effort are routing intent; the actual provider and model remain `unknown` unless the Host authenticates them.
+
 | Route | How you ask | What you get |
 |---|---|---|
 | quick (Q&A / small edit) | one-line question, zero ceremony | direct answer/edit, no trio |
@@ -77,12 +81,16 @@ The backup is recovery evidence, not a crash or power-loss atomicity guarantee. 
 
 ## Codex plugin
 
-The only packaged artifact is `harness-codex-plugin-<version>.tgz`. It contains `.codex-plugin/plugin.json` and exactly four Trio skills:
+The only packaged artifact is `harness-codex-plugin-<version>.tgz`. It contains `.codex-plugin/plugin.json` and five skill files: the four Trio skill files plus the ChiefOps governance companion.
 
+- `.codex-plugin/plugin.json`
 - `skills/trio/SKILL.md`
 - `skills/trio/dev/SKILL.md`
 - `skills/trio/office/SKILL.md`
 - `skills/trio/safety/SKILL.md`
+- `skills/chiefops/SKILL.md`
+
+ChiefOps is a governance companion outside the `dev`, `office`, and `safety` capability families; it is not a fourth capability pack.
 
 See [Codex installation](docs/install/codex.md), [plugin package installation](docs/install/plugin-packages.md), and [release artifacts](docs/release-plugin-artifacts.md).
 
