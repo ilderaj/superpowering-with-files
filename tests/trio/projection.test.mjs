@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { parseV2Config } from '../../harness/trio/config.mjs';
 import { projectConfig } from '../../harness/trio/projection.mjs';
 import { readState, writeState } from '../../harness/installer/lib/state.mjs';
+import { adjudicatePermission } from '../../harness/trio/core/routing.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const APPROVED_TARGET_CONTRACT = Object.freeze({
@@ -798,5 +799,71 @@ test('state bridge dual-reads strict V2 without creating a projection manifest',
     await assert.rejects(readFile(path.join(rootDir, '.harness', 'projections.json')), /ENOENT/);
   } finally {
     await rm(rootDir, { recursive: true, force: true });
+  }
+});
+
+test('materialized Codex outputs stay blocked by the scope gate even when allow-listed, sandbox-writable, and approved', () => {
+  const destinations = codexDestinations('/fixture/home', 'workspace');
+  const materialized = destinations.map((destination) => destination.replace('/fixture/home/', ''));
+  const sha256 = 'c'.repeat(64);
+  const taskDir = '/tmp/trio-projection-authority/planning/active/projection-scope-task';
+  const binding = {
+    authorityRoot: '/tmp/trio-projection-authority',
+    taskId: 'projection-scope-task',
+    files: {
+      taskPlan: { path: `${taskDir}/task_plan.md`, sha256 },
+      findings: { path: `${taskDir}/findings.md`, sha256 },
+      progress: { path: `${taskDir}/progress.md`, sha256 }
+    }
+  };
+  const packet = {
+    authority: { binding, bindingObservation: binding },
+    currentSlice: { name: 'projection-scope-proof' },
+    nonGoals: [],
+    proof: { primary: ['projection proof'] },
+    capability: { workRole: 'chief', requestedModel: 'gpt-5.6-sol', requestedEffort: 'max' },
+    allowedOperations: { files: materialized },
+    deadline: { stopConditions: [] },
+    expectedReturn: { status: ['candidate_done', 'blocked'] }
+  };
+
+  assert.equal(materialized.length, 6);
+  for (const target of materialized) {
+    const result = adjudicatePermission({
+      assignmentPacket: packet,
+      targetPaths: [target],
+      permissionIntent: { sandboxMode: 'full_access', writableRoots: [] },
+      hostObservation: {
+        authenticated: true,
+        evidenceRef: 'sandbox-writable-1',
+        actualSandbox: 'full_access',
+        actualWritableRoots: []
+      },
+      approval: { kind: 'user', granted: true }
+    });
+    assert.equal(result.verdict, 'blocked', target);
+    assert.equal(result.stage, 'scope', target);
+    assert.match(result.reason, /generated_target/, target);
+    assert.equal(result.approvalEligible, false, target);
+    assert.equal(result.stages.sandbox.decision, 'skipped', target);
+    assert.equal(result.stages.approval.decision, 'skipped', target);
+  }
+});
+
+test('ChiefOps source carries the six operative permission-ordering clauses', async () => {
+  const chiefOps = await readFile(
+    path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'),
+    'utf8'
+  );
+  const clauses = [
+    /permission scope before creating or spawning any worker/i,
+    /least privilege.{0,160}task-specific writable roots/i,
+    /Full Access is an explicit exception/i,
+    /recheck the frozen scope before any escalation or review/i,
+    /approval only resolves host restriction and never expands allowed paths/i,
+    /(generated|materialized) surfaces are never direct-written through escalation/i
+  ];
+  for (const clause of clauses) {
+    assert.match(chiefOps, clause);
   }
 });

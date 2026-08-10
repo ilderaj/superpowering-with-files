@@ -326,3 +326,247 @@ test('child delegation policy values are validated inside the capability object'
   assert.equal(packet.capability.childDelegation, 'worker_discretion');
   assert.equal(Object.hasOwn(packet, 'childDelegation'), false);
 });
+
+// ---------------------------------------------------------------------------
+// Scope-first permission governance: Trio scope -> Host sandbox -> approval.
+// ---------------------------------------------------------------------------
+
+function packetDigestOf(packet) {
+  const probe = routing.resolveHostOperation({
+    operation: 'spawn',
+    assignmentPacket: packet,
+    observation: {
+      authenticated: true,
+      evidenceRef: 'digest-probe-observation',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: true,
+        permissionBinding: true,
+        pathBinding: true
+      }
+    },
+    permissionEnvelope: { permissions: ['workspace'], operations: ['spawn'], externalEffects: [] },
+    pathEnvelope: { mutablePaths: [] }
+  });
+  return probe.descriptor.packetDigest;
+}
+
+function createPermissionInput(overrides = {}) {
+  const packet = createAssignmentPacket();
+  return {
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/core/routing.mjs'],
+    permissionIntent: { sandboxMode: 'bounded', writableRoots: ['harness/trio/core'] },
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'host-permission-evidence-1',
+      packetDigest: packetDigestOf(packet),
+      actualSandbox: 'bounded',
+      actualWritableRoots: ['harness/trio/core']
+    },
+    approval: { kind: 'user', granted: true },
+    ...overrides
+  };
+}
+
+test('scope-first adjudication allows an in-scope target with authenticated sandbox and approval', () => {
+  const result = routing.adjudicatePermission(createPermissionInput());
+  assert.equal(result.verdict, 'allowed');
+  assert.equal(result.stage, 'approval');
+  assert.equal(result.reason, null);
+  assert.equal(result.approvalEligible, true);
+  assert.deepEqual(result.stages.scope, { decision: 'allowed', reason: null });
+  assert.equal(result.stages.sandbox.decision, 'allowed');
+  assert.equal(result.stages.approval.decision, 'allowed');
+});
+
+test('in-scope targets stay blocked at the sandbox stage when actual Host evidence is unknown', () => {
+  const result = routing.adjudicatePermission(createPermissionInput({ hostObservation: {} }));
+  assert.equal(result.verdict, 'blocked');
+  assert.equal(result.stage, 'sandbox');
+  assert.equal(result.approvalEligible, false);
+  assert.match(result.reason, /sandbox_actual_unknown/);
+  assert.equal(result.actual.authenticated, false);
+  assert.equal(result.actual.sandbox, 'unknown');
+  assert.equal(result.actual.writableRoots, 'unknown');
+  assert.equal(result.stages.scope.decision, 'allowed');
+  assert.equal(result.stages.approval.decision, 'skipped');
+});
+
+test('authorized in-scope work stays blocked when authenticated sandbox roots do not cover the target', () => {
+  const packet = createAssignmentPacket();
+  const result = routing.adjudicatePermission(createPermissionInput({
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'narrow-sandbox-1',
+      packetDigest: packetDigestOf(packet),
+      actualSandbox: 'bounded',
+      actualWritableRoots: ['other/path']
+    }
+  }));
+  assert.equal(result.verdict, 'blocked');
+  assert.equal(result.stage, 'sandbox');
+  assert.equal(result.approvalEligible, false);
+  assert.match(result.reason, /sandbox_writable_roots_unbound/);
+  assert.equal(result.stages.approval.decision, 'skipped');
+});
+
+test('out-of-scope targets are blocked before Full Access, user approval, auto-review, or a writable sandbox can expand scope', () => {
+  const attacks = [
+    { name: 'full access intent', permissionIntent: { sandboxMode: 'full_access', writableRoots: [] } },
+    { name: 'user approval', approval: { kind: 'user', granted: true } },
+    { name: 'auto-review', approval: { kind: 'auto_review', granted: true } },
+    {
+      name: 'authenticated writable sandbox',
+      hostObservation: {
+        authenticated: true,
+        evidenceRef: 'writable-sandbox-1',
+        actualSandbox: 'full_access',
+        actualWritableRoots: ['harness/trio/core/routing.mjs']
+      }
+    }
+  ];
+  for (const attack of attacks) {
+    const result = routing.adjudicatePermission(createPermissionInput({
+      targetPaths: ['outside/the/allowlist'],
+      ...attack
+    }));
+    assert.equal(result.verdict, 'blocked', attack.name);
+    assert.equal(result.stage, 'scope', attack.name);
+    assert.equal(result.approvalEligible, false, attack.name);
+    assert.match(result.reason, /outside_assignment_scope/, attack.name);
+    assert.equal(result.stages.scope.decision, 'blocked', attack.name);
+    assert.equal(result.stages.sandbox.decision, 'skipped', attack.name);
+    assert.equal(result.stages.approval.decision, 'skipped', attack.name);
+  }
+});
+
+test('generated materialized targets stay blocked even when allow-listed, sandbox-writable, and approved', () => {
+  for (const target of ['AGENTS.md', '.agents/skills/trio/dev/SKILL.md']) {
+    const packet = {
+      ...createAssignmentPacket(),
+      allowedOperations: { files: ['harness/trio/core/routing.mjs', target] }
+    };
+    const result = routing.adjudicatePermission({
+      assignmentPacket: packet,
+      targetPaths: [target],
+      permissionIntent: { sandboxMode: 'full_access', writableRoots: [] },
+      hostObservation: {
+        authenticated: true,
+        evidenceRef: 'sandbox-writable-1',
+        actualSandbox: 'full_access',
+        actualWritableRoots: []
+      },
+      approval: { kind: 'user', granted: true }
+    });
+    assert.equal(result.verdict, 'blocked', target);
+    assert.equal(result.stage, 'scope', target);
+    assert.match(result.reason, /generated_target/, target);
+    assert.equal(result.approvalEligible, false, target);
+    assert.equal(result.stages.sandbox.decision, 'skipped', target);
+    assert.equal(result.stages.approval.decision, 'skipped', target);
+  }
+});
+
+test('requested permission intent and authenticated actual Host evidence stay distinct and digest-bound', () => {
+  const packet = createAssignmentPacket();
+  const result = routing.adjudicatePermission({
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/core/routing.mjs'],
+    permissionIntent: { sandboxMode: 'bounded', writableRoots: ['harness/trio/core'] },
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'authenticated-actual-1',
+      packetDigest: packetDigestOf(packet),
+      actualSandbox: 'full_access',
+      actualWritableRoots: ['harness/trio/core/routing.mjs']
+    },
+    approval: null
+  });
+  assert.deepEqual(result.requested, {
+    sandboxMode: 'bounded',
+    writableRoots: ['harness/trio/core'],
+    approval: null
+  });
+  assert.deepEqual(result.actual, {
+    authenticated: true,
+    evidenceRef: 'authenticated-actual-1',
+    sandbox: 'full_access',
+    writableRoots: ['harness/trio/core/routing.mjs']
+  });
+  assert.equal(result.verdict, 'allowed');
+  assert.equal(result.stage, 'approval');
+});
+
+test('actual Host permission stays unknown without authenticated evidence or with a mismatched packet digest', () => {
+  const selfReported = routing.adjudicatePermission(createPermissionInput({
+    hostObservation: { actualSandbox: 'full_access', actualWritableRoots: ['everything'] }
+  }));
+  assert.equal(selfReported.actual.authenticated, false);
+  assert.equal(selfReported.actual.sandbox, 'unknown');
+  assert.equal(selfReported.actual.writableRoots, 'unknown');
+  assert.equal(selfReported.verdict, 'blocked');
+  assert.equal(selfReported.stage, 'sandbox');
+
+  const digestMismatch = routing.adjudicatePermission(createPermissionInput({
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'wrong-digest-1',
+      packetDigest: '0'.repeat(64),
+      actualSandbox: 'bounded',
+      actualWritableRoots: ['harness/trio/core']
+    }
+  }));
+  assert.equal(digestMismatch.actual.authenticated, false);
+  assert.equal(digestMismatch.actual.sandbox, 'unknown');
+  assert.equal(digestMismatch.verdict, 'blocked');
+  assert.equal(digestMismatch.stage, 'sandbox');
+});
+
+test('approval is the final gate and can deny only within scope and sandbox, never expand them', () => {
+  const denied = routing.adjudicatePermission(createPermissionInput({
+    approval: { kind: 'user', granted: false }
+  }));
+  assert.equal(denied.verdict, 'blocked');
+  assert.equal(denied.stage, 'approval');
+  assert.equal(denied.approvalEligible, true);
+  assert.match(denied.reason, /approval_denied/);
+  assert.equal(denied.stages.scope.decision, 'allowed');
+  assert.equal(denied.stages.sandbox.decision, 'allowed');
+
+  const autoReviewDenied = routing.adjudicatePermission(createPermissionInput({
+    approval: { kind: 'auto_review', granted: false }
+  }));
+  assert.equal(autoReviewDenied.verdict, 'blocked');
+  assert.equal(autoReviewDenied.stage, 'approval');
+  assert.match(autoReviewDenied.reason, /approval_denied/);
+});
+
+test('malformed assignment scope and incomplete adjudication inputs fail closed', () => {
+  assert.throws(
+    () => routing.adjudicatePermission(createPermissionInput({
+      assignmentPacket: { ...createAssignmentPacket(), allowedOperations: { files: ['/absolute/path'] } }
+    })),
+    /authority-relative/i
+  );
+  assert.throws(
+    () => routing.adjudicatePermission(createPermissionInput({
+      assignmentPacket: { ...createAssignmentPacket(), allowedOperations: { files: ['src/../secret'] } }
+    })),
+    /unsafe segment/i
+  );
+  assert.throws(() => routing.adjudicatePermission({}), /assignment packet/i);
+  assert.throws(
+    () => routing.adjudicatePermission({ assignmentPacket: createAssignmentPacket(), targetPaths: [] }),
+    /at least one target path/i
+  );
+  assert.throws(
+    () => routing.adjudicatePermission({
+      assignmentPacket: createAssignmentPacket(),
+      targetPaths: ['harness/trio/core/routing.mjs'],
+      permissionIntent: { writableRoots: [] }
+    }),
+    /sandboxMode/i
+  );
+});

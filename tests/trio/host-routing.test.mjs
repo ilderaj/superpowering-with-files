@@ -12,6 +12,7 @@ import {
   resolveSwfExecutorProfile,
   resolveCodexHostOperation
 } from '../../harness/trio/hosts/codex.mjs';
+import * as codexAdapter from '../../harness/trio/hosts/codex.mjs';
 import { resolveGenericHostOperation } from '../../harness/trio/hosts/generic.mjs';
 
 const ROUTE_EVIDENCE_FIELDS = [
@@ -1545,4 +1546,167 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while code
   assert.equal(adapterStatus('claude_code'), 'unimplemented');
   assert.equal(adapterStatus('pi'), 'unimplemented');
   assert.throws(() => adapterStatus('unknown-adapter'), /adapter/i);
+});
+
+// ---------------------------------------------------------------------------
+// Provider-neutral permission intent -> Codex adapter mapping (Slice B).
+// ---------------------------------------------------------------------------
+
+function adapterPacketDigest(packet) {
+  const probe = resolveCodexHostOperation({
+    operation: 'spawn',
+    assignmentPacket: packet,
+    observation: {
+      authenticated: true,
+      evidenceRef: 'digest-probe-observation',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: true,
+        permissionBinding: true,
+        pathBinding: true
+      }
+    },
+    permissionEnvelope: { permissions: ['workspace'], operations: ['spawn'], externalEffects: [] },
+    pathEnvelope: { mutablePaths: [] }
+  });
+  return probe.descriptor.packetDigest;
+}
+
+test('Codex adapter maps provider-neutral permission intent without claiming Host application', () => {
+  assert.equal(typeof codexAdapter.resolveCodexPermissionIntent, 'function');
+  const packet = createAssignmentPacket();
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/hosts/generic.mjs'],
+    permissionIntent: { sandboxMode: 'bounded', writableRoots: ['harness/trio/hosts'] },
+    approval: { kind: 'user', granted: true }
+  });
+
+  assert.equal(result.provider, 'codex');
+  assert.deepEqual(result.requested, {
+    sandboxMode: 'bounded',
+    writableRoots: ['harness/trio/hosts'],
+    approval: { kind: 'user', granted: true }
+  });
+
+  assert.equal(result.actual.authenticated, false);
+  assert.equal(result.actual.sandbox, 'unknown');
+  assert.equal(result.actual.writableRoots, 'unknown');
+  assert.equal(result.actual.reviewer, 'unknown');
+
+  assert.equal(result.outcome.kind, 'manual_pending');
+  assert.equal(result.outcome.executed, false);
+  assert.deepEqual(result.outcome.writes, []);
+  assert.match(result.outcome.blocker, /unbound|unknown/);
+  assert.match(result.outcome.resumeCondition, /authenticated Host/i);
+
+  assert.deepEqual(result.expression.writableRoots, ['harness/trio/hosts']);
+  assert.equal(result.expression.applied, false);
+  assert.equal(Object.hasOwn(result.expression, 'actualSandbox'), false);
+  assert.equal(Object.hasOwn(result, 'workerId'), false);
+  assert.equal(Object.hasOwn(result, 'retroactive'), false);
+});
+
+test('Codex adapter keeps an out-of-scope request blocked before any manual gate', () => {
+  const packet = createAssignmentPacket();
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: ['outside/the/allowlist'],
+    permissionIntent: { sandboxMode: 'full_access', writableRoots: [] },
+    approval: { kind: 'user', granted: true }
+  });
+  assert.equal(result.outcome.kind, 'blocked');
+  assert.equal(result.outcome.stage, 'scope');
+  assert.match(result.outcome.reason, /outside_assignment_scope/);
+  assert.equal(result.outcome.executed, false);
+  assert.equal(result.actual.sandbox, 'unknown');
+  assert.equal(Object.hasOwn(result, 'workerId'), false);
+});
+
+test('Codex adapter surfaces bound actual permission only with authenticated digest evidence and never applies it', () => {
+  const packet = createAssignmentPacket();
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/hosts/generic.mjs'],
+    permissionIntent: { sandboxMode: 'bounded', writableRoots: ['harness/trio/hosts'] },
+    approval: null,
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'bound-permission-1',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'bounded',
+      actualWritableRoots: ['harness/trio/hosts/generic.mjs'],
+      actualReviewer: 'human'
+    }
+  });
+  assert.deepEqual(result.requested.writableRoots, ['harness/trio/hosts']);
+  assert.equal(result.actual.authenticated, true);
+  assert.equal(result.actual.sandbox, 'bounded');
+  assert.deepEqual(result.actual.writableRoots, ['harness/trio/hosts/generic.mjs']);
+  assert.equal(result.actual.reviewer, 'human');
+  assert.equal(result.outcome.kind, 'codex_permission_expression');
+  assert.equal(result.outcome.decision, 'allowed');
+  assert.equal(result.expression.applied, false);
+  assert.equal(Object.hasOwn(result, 'workerId'), false);
+  assert.equal(Object.hasOwn(result, 'retroactive'), false);
+});
+
+test('Codex adapter keeps partial authenticated evidence manual_pending when writable roots are absent', () => {
+  const packet = createAssignmentPacket();
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/hosts/generic.mjs'],
+    permissionIntent: { sandboxMode: 'bounded', writableRoots: ['harness/trio/hosts'] },
+    approval: null,
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'partial-evidence-a',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'bounded'
+      // actualWritableRoots deliberately absent
+    }
+  });
+  assert.deepEqual(result.requested.writableRoots, ['harness/trio/hosts']);
+  assert.equal(result.actual.authenticated, true);
+  assert.equal(result.actual.sandbox, 'bounded');
+  assert.equal(result.actual.writableRoots, 'unknown');
+  assert.equal(result.actual.reviewer, 'unknown');
+  assert.equal(result.expression.applied, false);
+  assert.equal(result.outcome.kind, 'manual_pending');
+  assert.equal(result.outcome.executed, false);
+  assert.deepEqual(result.outcome.writes, []);
+  assert.match(result.outcome.blocker, /unbound|unknown/);
+  assert.equal(Object.hasOwn(result, 'workerId'), false);
+  assert.equal(Object.hasOwn(result, 'retroactive'), false);
+});
+
+test('Codex adapter keeps partial authenticated evidence manual_pending when reviewer state is absent', () => {
+  const packet = createAssignmentPacket();
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/hosts/generic.mjs'],
+    permissionIntent: { sandboxMode: 'bounded', writableRoots: ['harness/trio/hosts'] },
+    approval: null,
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'partial-evidence-b',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'bounded',
+      actualWritableRoots: ['harness/trio/hosts/generic.mjs']
+      // actualReviewer deliberately absent
+    }
+  });
+  assert.deepEqual(result.requested.writableRoots, ['harness/trio/hosts']);
+  assert.equal(result.actual.authenticated, true);
+  assert.equal(result.actual.sandbox, 'bounded');
+  assert.deepEqual(result.actual.writableRoots, ['harness/trio/hosts/generic.mjs']);
+  assert.equal(result.actual.reviewer, 'unknown');
+  assert.equal(result.expression.applied, false);
+  assert.equal(result.outcome.kind, 'manual_pending');
+  assert.equal(result.outcome.executed, false);
+  assert.deepEqual(result.outcome.writes, []);
+  assert.match(result.outcome.blocker, /unbound|unknown/);
+  assert.equal(Object.hasOwn(result, 'workerId'), false);
+  assert.equal(Object.hasOwn(result, 'retroactive'), false);
 });
