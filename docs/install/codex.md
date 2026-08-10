@@ -60,4 +60,42 @@ skills/trio/safety/SKILL.md
 
 This local package procedure does not migrate an existing user-global installation. Keep its state unchanged unless a separately authorized migration is performed.
 
+## Existing user-global ChiefOps takeover
+
+When a durable authority root already holds a schema-v2 `user-global` Trio state that owns the five core surfaces (entry plus `trio`, `dev`, `office`, `safety`) but leaves the global ChiefOps destination unowned, the exact migration command is:
+
+```sh
+./scripts/harness install --takeover-chiefops
+```
+
+Run it from the durable authority root — the checkout that owns `.harness/state.json` — not from a transient worktree, and only after a separate human gate approves the global write. Ordinary `install` stays workspace-only, and normal `sync` keeps only `--dry-run` and `--check`; neither is a bypass for this migration.
+
+### Eligibility (all must hold, otherwise the command fails before any write)
+
+- Persisted state is schema-v2 with `scope.kind: user-global`.
+- Exactly one enabled managed Codex target with exactly one placement at `<home>/.codex/AGENTS.md`.
+- Ownership contains exactly the five existing Trio surfaces, and each file's content matches its ownership identity (`sha256:<hex>`).
+- Exactly one unowned ChiefOps destination exists at `<home>/.agents/skills/chiefops/SKILL.md`; it is not in `ownership.entries`.
+- No other managed destination conflict and no unsafe physical path (symlink, hard link, or scope escape).
+- Extra generic/manual targets are allowed but are preserved and never written.
+
+Absent state, V1 state, workspace or both scope, a wrong placement, an already-owned ChiefOps, a second managed conflict, or an unsafe physical path all fail closed with `ERR_TRIO_TAKEOVER` or `ERR_TRIO_PHYSICAL_GATE` before any target or state write.
+
+### What the command does
+
+1. Under the authority publication lock, captures and revalidates seven stable preimages: the six global Trio surfaces and the prior V2 state file. Each capture is `lstat → read → lstat` and requires the exact file and parent dev/ino/nlink identities (plus a size matching the read) before and after the read; a replacement between the stat and the read fails closed with `ERR_TRIO_PREIMAGE_DRIFT` before any backup or apply write.
+2. Publishes a unique immutable backup at `<authorityRoot>/.harness-backup/trio-takeover/<id>/` containing `manifest.json` and `bundle.bin`, then re-reads and verifies both. Before any backup write, every existing backup-root ancestor from the authority root through `.harness-backup/trio-takeover` must be a real, non-symlink directory whose physical path is contained under the authority root; a symlinked or escaping ancestor fails closed with `ERR_TRIO_PHYSICAL_GATE` and no state or target change. The manifest records every object's path, sha256, dev/ino/nlink, parent identity, offset, and length, plus the prior `ownership.source`/`manifestRef`/entries and the prior recovery `checkpointRef` **and** `rollbackRef` exactly as they were before the takeover.
+3. Writes the six managed surfaces (the five owned surfaces plus the adopted ChiefOps) and the settled state. Ownership keeps its existing `source` and `manifestRef`, appends only the ChiefOps ownership entry, keeps `recovery.checkpointRef`, and sets `recovery.rollbackRef` to a parseable `trio-backup-v1:<absolute manifest path>:<sha256>` file reference (see below).
+4. Binds every write to the backup preimages (expected sha256, inode, parent), so a same-content inode replacement fails closed, and compensates all prior writes back to the preimages if any later write fails.
+
+### Recovery evidence
+
+`<authorityRoot>/.harness-backup/trio-takeover/<id>/manifest.json` names each object and its sha256/dev/ino/nlink/parent, and `bundle.bin` contains the exact original bytes in manifest order. The manifest's `recovery` section preserves the pre-takeover `checkpointRef` and `rollbackRef` unchanged; the newly created reference is not written into the manifest. The settled `recovery.rollbackRef` is a parseable `trio-backup-v1:<absolute manifest path>:<sha256>` file reference whose digest is derived from the manifest file bytes as written and re-read: verification parses the reference, recomputes sha256 over the manifest file, and compares it to the digest in the reference. Restoring means parsing the reference, recomputing and matching the manifest digest, verifying each bundle slice against the manifest, and copying each object's slice back to its path while the publication lock is held; the manifest is the evidence that the restore set is complete and unmodified.
+
+### Limits
+
+- The backup is durable recovery evidence, not a journal: this command makes no crash, SIGKILL, or power-loss atomicity claim for the overall migration.
+- The command never merges, pushes, publishes, or auto-adopts anything. After the run, verify with `./scripts/harness sync --check` and `./scripts/harness doctor --check-only`.
+- The actual global run requires a separately authorized human gate at a durable authority root. This repository's tests exercise the command only against temporary fixtures.
+
 See [plugin package installation](plugin-packages.md) for download and checksum steps.

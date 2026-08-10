@@ -105,6 +105,30 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
   任何选项都不自动证明 actual model/role;这些都只是处置选择。
 
+## 已有 V2 全局状态的 ChiefOps 接管(`install --takeover-chiefops`)
+
+当持久化 authority root 已持有 schema-v2 `user-global` 状态、且只差全局 ChiefOps 目标未被托管时,唯一的 V2 迁移路径是:
+
+```sh
+./scripts/harness install --takeover-chiefops
+```
+
+严格资格(全部满足才执行,否则在任何写入前失败):
+
+- 状态为 schema-v2 且 `scope.kind: user-global`;
+- 恰好一个启用的 managed Codex placement,路径为 `<home>/.codex/AGENTS.md`;
+- ownership 恰好包含五个现有 Trio 表面(entry + `trio`/`dev`/`office`/`safety`),且每个文件内容与其 ownership identity 一致;
+- 恰好一个未托管的 ChiefOps 目标(`<home>/.agents/skills/chiefops/SKILL.md`),不在 `ownership.entries` 中;
+- 无其它 managed 冲突、无不安全物理路径(符号链接/硬链接/越界);generic/manual 目标原样保留、绝不写入。
+
+命令行为:在 authority publication lock 下先捕获并复核七个稳定 preimage(六个全局 Trio 表面 + 既有 V2 state);每个捕获都是 `lstat → read → lstat`,要求读前读后文件与父目录的 dev/ino/nlink 完全一致(文件大小须与读到的字节一致),stat 与 read 之间被替换会以 `ERR_TRIO_PREIMAGE_DRIFT` fail-closed,不产生任何备份或写入。再把唯一、不可变、写后重读验证的备份发布到 `<authorityRoot>/.harness-backup/trio-takeover/<id>/`(含 `manifest.json` 与 `bundle.bin`,保留原始字节、ownership 来源/清单与 recovery 值)。发布任何备份文件之前,须证明从 authority root 到 `.harness-backup/trio-takeover` 的每个已存在祖先都是真实、非符号链接、物理上位于 authority root 之内的目录;符号链接或越界的祖先以 `ERR_TRIO_PHYSICAL_GATE` fail-closed,状态与目标零变更。manifest 的 `recovery` 段原样保留接管前的 `checkpointRef` 与 `rollbackRef`(不写入新建引用)。落盘状态保留 `ownership.source`/`manifestRef` 与 `checkpointRef`,只追加 ChiefOps 的 ownership,并把 `recovery.rollbackRef` 设为可解析的 `trio-backup-v1:<manifest 绝对路径>:<sha256>` 文件引用,其摘要由写后重读的 manifest 文件字节推导;校验时解析该引用、对 manifest 文件重算 sha256 并比对。所有写入绑定备份 preimage(sha256/inode/parent):同内容换 inode 会 fail-closed,中途失败会把已写表面补偿回 preimage。
+
+限制与 gate:
+
+- 备份是恢复证据,不是日志:本命令**不承诺**崩溃/SIGKILL/断电级别的整体原子性。
+- 只能从 durable authority root(持有 `.harness/state.json` 的 checkout)运行,不能从临时 worktree 运行;实际全局运行需要单独的人类 gate。
+- 命令不自动 merge/push/发布/采纳;运行后请用 `./scripts/harness sync --check` 与 `./scripts/harness doctor --check-only` 复核。本仓库测试只在临时 fixture 上演练该命令,未执行真实全局接管。
+
 ## 当前边界与限制(截至 2026-08-10)
 
 - 本地 fail-closed 路由、goal 契约、economic 只读输出与 ChiefOps 治理伴生文件均以本仓库源码为准;本文件不声称任何外部安装已被迁移或采纳。

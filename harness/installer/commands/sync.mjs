@@ -328,6 +328,52 @@ async function snapshotPaths(paths) {
   return snapshots;
 }
 
+function normalizeBoundPreimageSnapshots(value) {
+  if (!(value instanceof Map)) {
+    throw trioBridgeError('Trio preimage snapshots must be a Map.', 'ERR_TRIO_BRIDGE');
+  }
+  const result = new Map();
+  for (const [targetPath, snapshot] of value) {
+    const resolved = path.resolve(targetPath);
+    if (typeof targetPath !== 'string' || !snapshot || typeof snapshot !== 'object') {
+      throw trioBridgeError(`Trio preimage snapshot is invalid: ${resolved}.`, 'ERR_TRIO_BRIDGE');
+    }
+    if (typeof snapshot.exists !== 'boolean'
+      || typeof snapshot.sha256 !== 'string'
+      || typeof snapshot.dev !== 'bigint'
+      || typeof snapshot.ino !== 'bigint'
+      || typeof snapshot.nlink !== 'bigint'
+      || !snapshot.parent
+      || typeof snapshot.parent !== 'object'
+      || typeof snapshot.parent.dev !== 'bigint'
+      || typeof snapshot.parent.ino !== 'bigint'
+      || typeof snapshot.parent.nlink !== 'bigint') {
+      throw trioBridgeError(`Trio preimage snapshot shape is invalid: ${resolved}.`, 'ERR_TRIO_BRIDGE');
+    }
+    if (snapshot.exists) {
+      if (!Buffer.isBuffer(snapshot.bytes) || snapshot.sha256 !== hashText(snapshot.bytes)) {
+        throw trioBridgeError(`Trio preimage snapshot bytes are invalid: ${resolved}.`, 'ERR_TRIO_BRIDGE');
+      }
+    } else if (snapshot.bytes !== null) {
+      throw trioBridgeError(`Trio absent preimage snapshot has bytes: ${resolved}.`, 'ERR_TRIO_BRIDGE');
+    }
+    result.set(resolved, Object.freeze({
+      exists: snapshot.exists,
+      bytes: snapshot.exists ? snapshot.bytes : null,
+      sha256: snapshot.sha256,
+      dev: snapshot.dev,
+      ino: snapshot.ino,
+      nlink: snapshot.nlink,
+      parent: Object.freeze({
+        dev: snapshot.parent.dev,
+        ino: snapshot.parent.ino,
+        nlink: snapshot.parent.nlink
+      })
+    }));
+  }
+  return result;
+}
+
 function settledConfigForWrites(config, writes, sources) {
   if (new Set(writes.map((descriptor) => descriptor.destination)).size !== writes.length) {
     throw trioBridgeError('Trio apply cannot settle duplicate managed surfaces.', 'ERR_TRIO_BRIDGE');
@@ -583,11 +629,15 @@ export async function applyTrioProjection({
   legacyOwnershipByPath,
   beforeWrite,
   statePrecondition,
+  preimageSnapshots,
   writeText = atomicWriteText
 } = {}) {
   if (beforeWrite !== undefined && typeof beforeWrite !== 'function') {
     throw trioBridgeError('Trio beforeWrite must be a function when supplied.', 'ERR_TRIO_BRIDGE');
   }
+  const boundPreimages = preimageSnapshots === undefined
+    ? null
+    : normalizeBoundPreimageSnapshots(preimageSnapshots);
   const runtimeEnvironment = environment ?? fixture;
   if (!runtimeEnvironment || typeof runtimeEnvironment !== 'object') {
     throw trioBridgeError('Trio apply requires a resolved environment.', 'ERR_TRIO_PHYSICAL_GATE');
@@ -612,6 +662,13 @@ export async function applyTrioProjection({
   const writes = prepared.descriptors.filter((descriptor) =>
     descriptor.management === 'managed' && ['create', 'update'].includes(descriptor.action)
   );
+  if (boundPreimages) {
+    for (const targetPath of [...writes.map((descriptor) => descriptor.destination), runtimeEnvironment.stateFile]) {
+      if (!boundPreimages.has(path.resolve(targetPath))) {
+        throw trioBridgeError(`Trio apply is missing a bound preimage snapshot: ${targetPath}.`, 'ERR_TRIO_BRIDGE');
+      }
+    }
+  }
   const sources = await readTrioSources(writes);
   const settledConfig = settledConfigForWrites(prepared.config, writes, sources);
   const desired = new Map(sources);
@@ -619,7 +676,8 @@ export async function applyTrioProjection({
   const createdDirectories = [];
   const attempts = [];
   const writeDesired = async (targetPath, explicitBefore = null) => {
-    const before = explicitBefore ?? (await snapshotPaths([targetPath])).get(targetPath);
+    const boundBefore = boundPreimages?.get(path.resolve(targetPath)) ?? null;
+    const before = boundBefore ?? explicitBefore ?? (await snapshotPaths([targetPath])).get(targetPath);
     if (!before) {
       throw trioBridgeError(`Trio write is missing its external precondition snapshot: ${targetPath}.`, 'ERR_TRIO_BRIDGE');
     }
@@ -821,13 +879,11 @@ function hasFlag(args, ...names) {
 
 function usage() {
   return [
-    'Usage: ./scripts/harness sync [--conflict=reject|backup] [--dry-run] [--check] [--takeover]',
+    'Usage: ./scripts/harness sync [--dry-run] [--check]',
     '',
     'Options:',
-    '  --conflict=reject|backup  Refuse or back up non-Harness-owned paths before writing',
     '  --dry-run                 Print the desired projection diff without writing files',
     '  --check                   Exit non-zero when sync would make changes',
-    '  --takeover                Treat desired projection targets as Harness-owned for this run',
     '  --help, -h                Show this help message'
   ].join('\n');
 }
