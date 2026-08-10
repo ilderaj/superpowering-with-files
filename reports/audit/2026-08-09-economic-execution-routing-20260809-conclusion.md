@@ -3,7 +3,7 @@
 Task: `economic-execution-routing-20260809`
 执行时间: 2026-08-10（Asia/Shanghai）
 执行性质: 可见执行 worker 生产变更 + 主验证;结果为 candidate,待 Chief 验收
-执行现场: Host 创建的执行 worktree（`/Users/jared/.codex/worktrees/e8eb/SuperpoweringWithFiles`,HEAD `ae9f2c4`,clean 基线）;未提交、未推送、未开 PR、未全局 adopt、未归档 Trio
+执行现场: Host 创建的执行 worktree（本仓库候选 checkout,HEAD `cad10cd9`,clean 基线）;worker 未提交、未推送、未开 PR、未全局 adopt、未归档 Trio
 
 ## 1. 结论摘要
 
