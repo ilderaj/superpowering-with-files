@@ -25,6 +25,14 @@
 
 请求与实际的区分:`permissionIntent`(请求的 `sandboxMode: bounded | full_access`、`writableRoots`、`approval`)与 `hostObservation`(authenticated 的 actual 证据)是两个独立输入;结果同时携带 `requested` 与 `actual`,无 authenticated 证据时 `actual.sandbox` / `actual.writableRoots` 为 `unknown`。本契约不声称 Host 已执行任何权限绑定,也不对运行中 worker 做追溯性权限改写。
 
+## 审批策略、Full Access 与语义车道(2026-08-11)
+
+- **Full Access ≠ approval_policy=never**:`full_access` 只描述沙箱轴。任何权限声明都必须显式声明请求的 approval policy;实际 per-worker 审批策略在 Host authenticated 证据(精确 packet digest 绑定)之前一律 `unknown`。请求的 approval policy 缺失、或与实际策略缺失/不一致时,诚实出口都是 `manual_pending:worker_approval_policy_unbound`;任何"Full Access 所以不用审批"或未声明策略就声称放行的说法都是越权声称,提示词也不能改变 Host 策略。
+- **`awaiting_approval` 是非终态保留车道**:不是派新 worker 的理由。恢复阶梯:`awaiting_approval` → 人类/Host 审批 → continue 同一 worker;binding/上下文不一致 → rebind 同一 worker → 有界完整性探测;不可用/无法 rebind → Chief 显式释放旧车道 → 单个替换 worker。不同输出目录本身不构成独立修复车道;独立切片必须有不同的冻结 `currentSlice` 身份与不重叠的声明 scope。
+- **语义车道身份**:由 authority taskId + 冻结 currentSlice 身份推导并保留工作,不新增 packet 字段或 worker 注册表;packet digest 是不可变证据/审计绑定,不是允许替换的判别器,也不是必需的身份字段——同一 task + 冻结 currentSlice 下,即使因声明输出/scope 改变使 digest 变化,车道仍被保留(blocker `semantic_lane_reserved:<status>`),resumeCondition 指向既有 worker 与允许的下一步(observe/approve/continue 同一 worker,或匹配的 authenticated Chief release)。所有未释放活跃状态(`planned` / `observed` / `idle` / `executing` / `awaiting_approval` / `blocked` / 未验收 `candidate_done`)都保留其 task + 冻结 slice;`stopped` 不属于活跃保留。缺失 task 或 currentSlice 身份的未释放活跃车道在路径不重叠的新 spawn 上 fail-closed 为 `manual_pending:semantic_identity_unbound:<status>`;无 assignment packet 的 legacy spawn 面对已完整识别身份的活跃车道同样 pending——需提供不可变 Assignment Packet,或匹配的 authenticated Chief release 才能了结;未知身份是 pending,不是放行。
+- **未解析 worktree `clientThreadId` 视为 pending**:阻止 fallback spawn,只能对该确切 setup 做有界 status/wait;create 修正最多一次,第二次 Host 校验错误 → `manual_pending`,不重试。
+- **`on-request` worker 的非破坏性临时空间**:用 `mktemp -d` 或作用域内非破坏路径创建临时工作区;绝不用 `rm -rf` 仅为重建临时状态。
+
 ## 角色职责
 
 | 角色 | 做什么 | 不做什么 |

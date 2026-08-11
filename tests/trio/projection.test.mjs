@@ -867,3 +867,65 @@ test('ChiefOps source carries the six operative permission-ordering clauses', as
     assert.match(chiefOps, clause);
   }
 });
+
+test('ChiefOps and human usage carry approval-policy, recovery-ladder, and non-destructive workspace clauses', async () => {
+  const [chiefOps, humanUsage] = await Promise.all([
+    readFile(path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'), 'utf8'),
+    readFile(path.join(REPO_ROOT, 'docs/trio-v2/human-usage.md'), 'utf8')
+  ]);
+  const chiefOpsClauses = [
+    /Full Access is not `approval_policy=never`/i,
+    /worker_approval_policy_unbound/i,
+    /awaiting_approval/,
+    /continue the same worker/i,
+    /Chief explicitly releases the old lane/i,
+    /`mktemp -d`/,
+    /never issue `rm -rf`/i
+  ];
+  for (const clause of chiefOpsClauses) {
+    assert.match(chiefOps, clause);
+  }
+  const humanUsageClauses = [
+    /approval_policy=never/,
+    /manual_pending:worker_approval_policy_unbound/,
+    /awaiting_approval/,
+    /mktemp -d/,
+    /rm -rf/
+  ];
+  for (const clause of humanUsageClauses) {
+    assert.match(humanUsage, clause);
+  }
+});
+
+test('ChiefOps and human usage bind semantic reservation to task plus frozen slice identity', async () => {
+  const [chiefOps, humanUsage] = await Promise.all([
+    readFile(path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'), 'utf8'),
+    readFile(path.join(REPO_ROOT, 'docs/trio-v2/human-usage.md'), 'utf8')
+  ]);
+  const chiefOpsClauses = [
+    /task ID plus frozen `currentSlice` identity reserve the semantic work/i,
+    /packet digest is immutable evidence and audit binding/i,
+    /never a discriminator that permits a replacement/i,
+    /required identity field/i,
+    /semantic_identity_unbound/i,
+    /every unreleased active status/i,
+    /`stopped` is not an active reservation/i,
+    /packet-less spawn/i,
+    /missing requested approval policy/i
+  ];
+  for (const clause of chiefOpsClauses) {
+    assert.match(chiefOps, clause);
+  }
+  const humanUsageClauses = [
+    /taskId/,
+    /冻结 currentSlice/,
+    /semantic_identity_unbound/,
+    /判别器/,
+    /stopped/,
+    /assignment packet/i,
+    /approval policy 缺失/
+  ];
+  for (const clause of humanUsageClauses) {
+    assert.match(humanUsage, clause);
+  }
+});

@@ -113,6 +113,7 @@ const HOST_WORKER_STATUSES = new Set([
   'observed',
   'idle',
   'executing',
+  'awaiting_approval',
   'candidate_done',
   'stopped',
   'blocked'
@@ -620,6 +621,12 @@ function normalizeObservationRecord(input) {
     source.nativeSubagent
       ?? capabilities.native_subagent
   );
+  const worktreeSetup = objectRecord(source.worktreeSetup);
+  const createAttempts = source.createAttempts;
+  if (createAttempts !== undefined
+    && (!Number.isSafeInteger(createAttempts) || createAttempts < 0)) {
+    throw new Error('Host createAttempts must be a non-negative safe integer.');
+  }
   return {
     authenticated: source.authenticated === true,
     evidenceRef: normalizedString(source.evidenceRef),
@@ -630,7 +637,12 @@ function normalizeObservationRecord(input) {
     nativeSubagent,
     workerId: normalizedString(source.workerId),
     status: normalizedString(source.status ?? source.workerStatus),
-    lanes: source.lanes ?? source.laneObservations ?? []
+    lanes: source.lanes ?? source.laneObservations ?? [],
+    worktreeSetup: {
+      clientThreadId: normalizedString(worktreeSetup.clientThreadId),
+      resolved: worktreeSetup.resolved === true
+    },
+    createAttempts: createAttempts === undefined ? null : createAttempts
   };
 }
 
@@ -712,12 +724,22 @@ function normalizeLanes(input, observation) {
     }
     const lanePathEnvelope = normalizeEnvelope(source.pathEnvelope ?? source, `lane ${index}`);
     const workerId = normalizedString(source.workerId);
+    const taskId = normalizedString(source.taskId);
+    const currentSlice = normalizedString(source.currentSlice);
+    const packetDigest = normalizedString(source.packetDigest);
+    if (source.packetDigest !== undefined
+      && (packetDigest === null || !SHA256_PATTERN.test(packetDigest))) {
+      throw new Error(`Host lane packet digest is invalid: ${String(source.packetDigest)}`);
+    }
     return {
       routeKind,
       workerId,
       status,
       released: matchesChiefRelease(source, workerId, lanePathEnvelope.mutablePaths),
-      mutablePaths: lanePathEnvelope.mutablePaths
+      mutablePaths: lanePathEnvelope.mutablePaths,
+      taskId,
+      currentSlice,
+      packetDigest
     };
   });
 }
@@ -738,6 +760,96 @@ function executingVisibleLaneCount(lanes, workerId, operation) {
     && lane.status === 'executing'
     && lane.routeKind === 'visible_worker'
     && !(operation !== 'spawn' && workerId && lane.workerId === workerId)).length;
+}
+
+// ---------------------------------------------------------------------------
+// Semantic dispatch lanes: derived from the immutable packet, never a ninth
+// packet field or a durable worker registry.
+// ---------------------------------------------------------------------------
+
+const ACTIVE_SEMANTIC_STATUSES = Object.freeze([
+  'planned',
+  'observed',
+  'idle',
+  'executing',
+  'awaiting_approval',
+  'blocked',
+  'candidate_done'
+]);
+
+function packetSemanticLane(assignmentPacket) {
+  if (!assignmentPacket) return null;
+  const binding = objectRecord(objectRecord(assignmentPacket.authority).binding);
+  const taskId = normalizedString(binding.taskId);
+  const slice = objectRecord(assignmentPacket.currentSlice);
+  const sliceName = normalizedString(slice.name);
+  if (!taskId || !sliceName) return null;
+  return { taskId, sliceName };
+}
+
+function laneSemanticIdentity(lane) {
+  if (!lane.taskId || !lane.currentSlice) return null;
+  return { taskId: lane.taskId, sliceName: lane.currentSlice };
+}
+
+function semanticSpawnBlocker({ lanes, assignmentPacket, candidatePaths }) {
+  if (lanes.length === 0) return null;
+  const candidate = packetSemanticLane(assignmentPacket);
+  for (const lane of lanes) {
+    if (lane.released === true || !ACTIVE_SEMANTIC_STATUSES.includes(lane.status)) {
+      continue;
+    }
+    const identity = laneSemanticIdentity(lane);
+    if (identity === null) {
+      if (!hasMutablePathConflict(candidatePaths, lane.mutablePaths)) {
+        return {
+          blocker: `semantic_identity_unbound:${lane.status}`,
+          workerId: lane.workerId,
+          status: lane.status,
+          resumeCondition: `Reserved ${lane.status} lane ${lane.workerId ?? 'unknown'} lacks authority task and frozen current-slice identity. Do not spawn a replacement: supply the lane's task ID and current-slice identity, or settle the lane with an authenticated Chief release (chiefRelease disposition release with matching workerId and mutable paths).`
+        };
+      }
+      continue;
+    }
+    if (candidate
+      && identity.taskId === candidate.taskId
+      && identity.sliceName === candidate.sliceName) {
+      return {
+        blocker: `semantic_lane_reserved:${lane.status}`,
+        workerId: lane.workerId,
+        status: lane.status,
+        resumeCondition: `Semantic lane ${candidate.taskId}/${candidate.sliceName} is reserved by worker ${lane.workerId ?? 'unknown'} in status ${lane.status}. Do not spawn a replacement: observe, approve, and continue that exact worker, or supply an authenticated Chief release (chiefRelease disposition release with the matching workerId and mutable paths) before any new spawn.`
+      };
+    }
+    if (!candidate && !hasMutablePathConflict(candidatePaths, lane.mutablePaths)) {
+      return {
+        blocker: `semantic_identity_unbound:${lane.status}`,
+        workerId: lane.workerId,
+        status: lane.status,
+        resumeCondition: `Semantic lane ${identity.taskId}/${identity.sliceName} is reserved by worker ${lane.workerId ?? 'unknown'} in status ${lane.status}, but this request carries no immutable assignment packet. Do not spawn a replacement: supply the immutable assignment packet (authority task ID and frozen currentSlice), or settle the lane with an authenticated Chief release (chiefRelease disposition release with matching workerId and mutable paths).`
+      };
+    }
+  }
+  return null;
+}
+
+function worktreePendingBlocker(observation) {
+  const setup = observation.worktreeSetup ?? {};
+  const clientThreadId = setup.clientThreadId;
+  if (!clientThreadId || setup.resolved === true) return null;
+  return {
+    blocker: `worktree_setup_pending:${clientThreadId}`,
+    resumeCondition: `Resolve the pending worktree setup ${clientThreadId} with a bounded status/wait on that exact setup before any fallback spawn; one corrected create-request attempt is the maximum.`
+  };
+}
+
+function createAttemptsBlocker(observation) {
+  const attempts = observation.createAttempts;
+  if (attempts === null || attempts < 2) return null;
+  return {
+    blocker: 'worker_create_attempts_exhausted',
+    resumeCondition: 'One bounded create correction is the maximum; a second Host validation error returns manual_pending for Chief/human correction, not another retry.'
+  };
 }
 
 function validateObservedStatus(status) {
@@ -862,7 +974,8 @@ function buildOperationDescriptor({
   assignmentPacket,
   packetDigest,
   blocker,
-  resumeCondition
+  resumeCondition,
+  reservedLane
 }) {
   const descriptor = {
     kind: 'host_operation',
@@ -887,6 +1000,12 @@ function buildOperationDescriptor({
     descriptor.packetDigest = packetDigest;
     descriptor.blocker = blocker;
     descriptor.resumeCondition = resumeCondition;
+    if (reservedLane) {
+      descriptor.reservedLane = {
+        workerId: reservedLane.workerId,
+        status: reservedLane.status
+      };
+    }
   }
   return descriptor;
 }
@@ -901,7 +1020,7 @@ function stableStringify(value) {
   return JSON.stringify(value);
 }
 
-function packetDigestOf(packet) {
+export function packetDigestOf(packet) {
   if (!packet) return null;
   return createHash('sha256').update(stableStringify(packet)).digest('hex');
 }
@@ -1256,6 +1375,121 @@ export function resolveHostOperation(input = {}) {
     ? null
     : normalizeEnvelope(input.childEnvelope, 'child envelope');
   const lanes = normalizeLanes(input, observation);
+  if (operation === 'spawn') {
+    const worktreeBlock = worktreePendingBlocker(observation);
+    if (worktreeBlock) {
+      const routeEvidence = buildRouteEvidence({
+        routeKind: 'manual_pending',
+        requestedModel: modelResolution.requestedModel,
+        requestedEffort: modelResolution.requestedEffort,
+        actual: unknownActual(),
+        workerId: null,
+        capability: manualCapabilityEvidence({
+          operation,
+          observation,
+          visibleCapability: observation.visibleWorker,
+          nativeCapability: observation.nativeSubagent,
+          visibleResult: { support: 'unknown' },
+          nativeResult: { support: 'unknown' }
+        }),
+        permissionEnvelope: parentEnvelope,
+        pathEnvelope: parentEnvelope,
+        fallbackReason: worktreeBlock.blocker,
+        status: 'manual_pending'
+      });
+      return {
+        operation,
+        routeEvidence,
+        descriptor: buildOperationDescriptor({
+          operation,
+          routeKind: 'manual_pending',
+          childEnvelope: null,
+          assignmentPacket,
+          packetDigest,
+          blocker: worktreeBlock.blocker,
+          resumeCondition: worktreeBlock.resumeCondition
+        })
+      };
+    }
+    const attemptsBlock = createAttemptsBlocker(observation);
+    if (attemptsBlock) {
+      const routeEvidence = buildRouteEvidence({
+        routeKind: 'manual_pending',
+        requestedModel: modelResolution.requestedModel,
+        requestedEffort: modelResolution.requestedEffort,
+        actual: unknownActual(),
+        workerId: null,
+        capability: manualCapabilityEvidence({
+          operation,
+          observation,
+          visibleCapability: observation.visibleWorker,
+          nativeCapability: observation.nativeSubagent,
+          visibleResult: { support: 'unknown' },
+          nativeResult: { support: 'unknown' }
+        }),
+        permissionEnvelope: parentEnvelope,
+        pathEnvelope: parentEnvelope,
+        fallbackReason: attemptsBlock.blocker,
+        status: 'manual_pending'
+      });
+      return {
+        operation,
+        routeEvidence,
+        descriptor: buildOperationDescriptor({
+          operation,
+          routeKind: 'manual_pending',
+          childEnvelope: null,
+          assignmentPacket,
+          packetDigest,
+          blocker: attemptsBlock.blocker,
+          resumeCondition: attemptsBlock.resumeCondition
+        })
+      };
+    }
+    const semanticBlock = semanticSpawnBlocker({
+      lanes,
+      assignmentPacket,
+      candidatePaths: parentEnvelope.mutablePaths
+    });
+    if (semanticBlock) {
+      const routeEvidence = buildRouteEvidence({
+        routeKind: 'manual_pending',
+        requestedModel: modelResolution.requestedModel,
+        requestedEffort: modelResolution.requestedEffort,
+        actual: unknownActual(),
+        workerId: semanticBlock.workerId,
+        capability: manualCapabilityEvidence({
+          operation,
+          observation,
+          visibleCapability: observation.visibleWorker,
+          nativeCapability: observation.nativeSubagent,
+          visibleResult: { support: 'unknown' },
+          nativeResult: { support: 'unknown' }
+        }),
+        permissionEnvelope: parentEnvelope,
+        pathEnvelope: parentEnvelope,
+        fallbackReason: semanticBlock.blocker,
+        status: 'manual_pending'
+      });
+      return {
+        operation,
+        routeEvidence,
+        descriptor: buildOperationDescriptor({
+          operation,
+          routeKind: 'manual_pending',
+          childEnvelope: null,
+          assignmentPacket,
+          packetDigest,
+          blocker: semanticBlock.blocker,
+          resumeCondition: semanticBlock.resumeCondition,
+          reservedLane: {
+            workerId: semanticBlock.workerId,
+            status: semanticBlock.status
+          }
+        })
+      };
+    }
+  }
   const visibleCapability = observation.visibleWorker;
   const nativeCapability = observation.nativeSubagent;
   const visibleResult = visibleSafety({

@@ -1587,7 +1587,8 @@ test('Codex adapter maps provider-neutral permission intent without claiming Hos
   assert.deepEqual(result.requested, {
     sandboxMode: 'bounded',
     writableRoots: ['harness/trio/hosts'],
-    approval: { kind: 'user', granted: true }
+    approval: { kind: 'user', granted: true },
+    approvalPolicy: null
   });
 
   assert.equal(result.actual.authenticated, false);
@@ -1631,13 +1632,15 @@ test('Codex adapter surfaces bound actual permission only with authenticated dig
     targetPaths: ['harness/trio/hosts/generic.mjs'],
     permissionIntent: { sandboxMode: 'bounded', writableRoots: ['harness/trio/hosts'] },
     approval: null,
+    approvalPolicy: 'never',
     hostObservation: {
       authenticated: true,
       evidenceRef: 'bound-permission-1',
       packetDigest: adapterPacketDigest(packet),
       actualSandbox: 'bounded',
       actualWritableRoots: ['harness/trio/hosts/generic.mjs'],
-      actualReviewer: 'human'
+      actualReviewer: 'human',
+      actualApprovalPolicy: 'never'
     }
   });
   assert.deepEqual(result.requested.writableRoots, ['harness/trio/hosts']);
@@ -1650,6 +1653,34 @@ test('Codex adapter surfaces bound actual permission only with authenticated dig
   assert.equal(result.expression.applied, false);
   assert.equal(Object.hasOwn(result, 'workerId'), false);
   assert.equal(Object.hasOwn(result, 'retroactive'), false);
+});
+
+test('Codex adapter treats a missing requested approval policy as unbound even with fully authenticated actual evidence', () => {
+  const packet = createAssignmentPacket();
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/hosts/generic.mjs'],
+    permissionIntent: { sandboxMode: 'full_access', writableRoots: [] },
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'full-auth-no-policy-1',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'full_access',
+      actualWritableRoots: [],
+      actualReviewer: 'human',
+      actualApprovalPolicy: 'on-request'
+    }
+  });
+  assert.equal(result.outcome.kind, 'manual_pending');
+  assert.equal(result.outcome.blocker, 'worker_approval_policy_unbound');
+  assert.equal(result.outcome.executed, false);
+  assert.deepEqual(result.outcome.writes, []);
+  assert.equal(result.requested.approvalPolicy, null);
+  assert.equal(result.requested.sandboxMode, 'full_access');
+  assert.equal(result.actual.approvalPolicy, 'on-request');
+  assert.equal(result.expression.applied, false);
+  assert.equal(result.expression.requestedApprovalPolicy, null);
+  assert.match(result.outcome.resumeCondition, /approval policy/i);
 });
 
 test('Codex adapter keeps partial authenticated evidence manual_pending when writable roots are absent', () => {
@@ -1766,4 +1797,489 @@ test('Codex adapter keeps the user-global .codex/AGENTS.md projection generated 
   assert.equal(result.outcome.executed, false);
   assert.deepEqual(result.outcome.writes, []);
   assert.equal(result.expression.applied, false);
+});
+
+// ---------------------------------------------------------------------------
+// Worker approval policy, semantic lanes, and dispatch fail-closed contract.
+// ---------------------------------------------------------------------------
+
+function createSemanticPacket(overrides = {}) {
+  return {
+    ...createAssignmentPacket(),
+    currentSlice: { name: 'deck-repair-slice' },
+    allowedOperations: { files: ['harness/trio/hosts/generic.mjs'] },
+    ...overrides
+  };
+}
+
+function visibleObservation(overrides = {}) {
+  return {
+    authenticated: true,
+    evidenceRef: 'approval-lane-observation',
+    workerId: 'deck-worker-1',
+    status: 'awaiting_approval',
+    visibleWorker: {
+      visible: true,
+      operations: { spawn: true, continue: true, status: true },
+      requestedModelEffortControls: true,
+      permissionBinding: true,
+      pathBinding: true
+    },
+    ...overrides
+  };
+}
+
+function dispatchBase(overrides = {}) {
+  return {
+    operation: 'spawn',
+    assignmentPacket: createSemanticPacket(),
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn', 'continue', 'status'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/deck/alternate-output'] },
+    observation: visibleObservation(),
+    ...overrides
+  };
+}
+
+test('Host awaiting_approval is a recognized non-terminal reserved worker status', () => {
+  const lane = {
+    routeKind: 'visible_worker',
+    status: 'awaiting_approval',
+    workerId: 'deck-worker-1',
+    mutablePaths: ['src/deck']
+  };
+  const pathConflict = resolveGenericHostOperation({
+    ...dispatchBase(),
+    pathEnvelope: { mutablePaths: ['src/deck/rework'] },
+    lanes: [lane]
+  });
+  assert.equal(pathConflict.routeEvidence.routeKind, 'manual_pending');
+  assert.match(pathConflict.routeEvidence.fallbackReason, /mutable_path_conflict/);
+
+  const resume = resolveGenericHostOperation({
+    operation: 'continue',
+    requestedWorkerId: 'deck-worker-1',
+    assignmentPacket: createSemanticPacket(),
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn', 'continue', 'status'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/deck'] },
+    observation: visibleObservation()
+  });
+  assert.equal(resume.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(resume.routeEvidence.workerId, 'deck-worker-1');
+  assert.equal(resume.routeEvidence.status, 'awaiting_approval');
+});
+
+test('same semantic lane in awaiting_approval blocks a new spawn even with a different output root', () => {
+  const packet = createSemanticPacket();
+  const lane = {
+    routeKind: 'visible_worker',
+    status: 'awaiting_approval',
+    workerId: 'deck-worker-1',
+    taskId: 'wave4-task',
+    currentSlice: 'deck-repair-slice',
+    packetDigest: adapterPacketDigest(packet),
+    mutablePaths: ['src/deck/original-output']
+  };
+  const result = resolveGenericHostOperation({
+    ...dispatchBase({ assignmentPacket: packet }),
+    lanes: [lane]
+  });
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.workerId, 'deck-worker-1');
+  assert.equal(result.routeEvidence.status, 'manual_pending');
+  assert.match(result.routeEvidence.fallbackReason, /semantic_lane_reserved:awaiting_approval/);
+  assert.deepEqual(result.descriptor.reservedLane, { workerId: 'deck-worker-1', status: 'awaiting_approval' });
+  assert.match(result.descriptor.blocker, /semantic_lane_reserved:awaiting_approval/);
+  assert.match(result.descriptor.resumeCondition, /deck-worker-1/);
+  assert.match(result.descriptor.resumeCondition, /continue|release/);
+});
+
+test('blocked and unaccepted candidate_done lanes keep the semantic lane reserved until an authenticated Chief release', () => {
+  const packet = createSemanticPacket();
+  for (const status of ['blocked', 'candidate_done']) {
+    const lane = {
+      routeKind: 'visible_worker',
+      status,
+      workerId: 'deck-worker-1',
+      taskId: 'wave4-task',
+      currentSlice: 'deck-repair-slice',
+      packetDigest: adapterPacketDigest(packet),
+      mutablePaths: ['src/deck/original-output']
+    };
+    const blocked = resolveGenericHostOperation({
+      ...dispatchBase({ assignmentPacket: packet }),
+      lanes: [lane]
+    });
+    assert.equal(blocked.routeEvidence.routeKind, 'manual_pending', status);
+    assert.match(blocked.routeEvidence.fallbackReason, new RegExp(`semantic_lane_reserved:${status}`), status);
+
+    const fakeRelease = resolveGenericHostOperation({
+      ...dispatchBase({ assignmentPacket: packet }),
+      lanes: [{
+        ...lane,
+        chiefRelease: {
+          authenticated: true,
+          workerId: 'other-worker',
+          mutablePaths: ['src/deck/original-output'],
+          disposition: 'release',
+          evidenceRef: 'chief-release'
+        }
+      }]
+    });
+    assert.equal(fakeRelease.routeEvidence.routeKind, 'manual_pending', status);
+    assert.match(fakeRelease.routeEvidence.fallbackReason, /semantic_lane_reserved/, status);
+
+    const released = resolveGenericHostOperation({
+      ...dispatchBase({ assignmentPacket: packet }),
+      lanes: [{
+        ...lane,
+        chiefRelease: {
+          authenticated: true,
+          workerId: 'deck-worker-1',
+          mutablePaths: ['src/deck/original-output'],
+          disposition: 'release',
+          evidenceRef: 'chief-release-evidence'
+        }
+      }]
+    });
+    assert.equal(released.routeEvidence.routeKind, 'visible_worker', status);
+  }
+});
+
+test('only an explicitly distinct frozen slice identity admits an independent dispatch lane', () => {
+  const packet = createSemanticPacket();
+  const sameLane = {
+    routeKind: 'visible_worker',
+    status: 'awaiting_approval',
+    workerId: 'deck-worker-1',
+    taskId: 'wave4-task',
+    currentSlice: 'deck-repair-slice',
+    packetDigest: adapterPacketDigest(packet),
+    mutablePaths: ['src/deck/one']
+  };
+
+  const otherSlice = resolveGenericHostOperation({
+    ...dispatchBase(),
+    pathEnvelope: { mutablePaths: ['src/cards/two'] },
+    lanes: [{
+      ...sameLane,
+      currentSlice: 'cards-only-slice',
+      workerId: 'cards-worker-1'
+    }]
+  });
+  assert.equal(otherSlice.routeEvidence.routeKind, 'visible_worker');
+
+  const otherTask = resolveGenericHostOperation({
+    ...dispatchBase(),
+    pathEnvelope: { mutablePaths: ['src/cards/three'] },
+    lanes: [{
+      ...sameLane,
+      taskId: 'other-task',
+      workerId: 'cards-worker-2'
+    }]
+  });
+  assert.equal(otherTask.routeEvidence.routeKind, 'visible_worker');
+});
+
+test('a revised packet digest for the same task and frozen slice cannot open a reserved semantic lane', () => {
+  const original = createSemanticPacket();
+  const revised = createSemanticPacket({
+    allowedOperations: { files: ['harness/trio/hosts/generic.mjs', 'src/deck/extra'] }
+  });
+  assert.notEqual(adapterPacketDigest(original), adapterPacketDigest(revised));
+  const lane = {
+    routeKind: 'visible_worker',
+    status: 'awaiting_approval',
+    workerId: 'deck-worker-1',
+    taskId: 'wave4-task',
+    currentSlice: 'deck-repair-slice',
+    packetDigest: adapterPacketDigest(original),
+    mutablePaths: ['src/deck/original-output']
+  };
+  const result = resolveGenericHostOperation({
+    ...dispatchBase({ assignmentPacket: revised }),
+    lanes: [lane]
+  });
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.workerId, 'deck-worker-1');
+  assert.match(result.routeEvidence.fallbackReason, /semantic_lane_reserved:awaiting_approval/);
+  assert.deepEqual(result.descriptor.reservedLane, { workerId: 'deck-worker-1', status: 'awaiting_approval' });
+});
+
+test('reserved lanes without task or current-slice identity fail closed on non-overlapping spawns', () => {
+  const identityLessLanes = [
+    { routeKind: 'visible_worker', status: 'awaiting_approval', workerId: 'legacy-worker-1', mutablePaths: ['src/legacy/one'] },
+    { routeKind: 'visible_worker', status: 'blocked', workerId: 'legacy-worker-2', taskId: 'wave4-task', mutablePaths: ['src/legacy/two'] },
+    { routeKind: 'visible_worker', status: 'candidate_done', workerId: 'legacy-worker-3', currentSlice: 'deck-repair-slice', mutablePaths: ['src/legacy/three'] }
+  ];
+  for (const lane of identityLessLanes) {
+    const result = resolveGenericHostOperation({
+      ...dispatchBase(),
+      lanes: [lane]
+    });
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', `${lane.status}/${lane.workerId}`);
+    assert.equal(result.routeEvidence.workerId, lane.workerId, `${lane.status}/${lane.workerId}`);
+    assert.match(
+      result.routeEvidence.fallbackReason,
+      new RegExp(`semantic_identity_unbound:${lane.status}`),
+      `${lane.status}/${lane.workerId}`
+    );
+    assert.match(result.descriptor.blocker, /semantic_identity_unbound/, `${lane.status}/${lane.workerId}`);
+    assert.match(result.descriptor.resumeCondition, /task|current-slice|identity/i, `${lane.status}/${lane.workerId}`);
+    assert.deepEqual(
+      result.descriptor.reservedLane,
+      { workerId: lane.workerId, status: lane.status },
+      `${lane.status}/${lane.workerId}`
+    );
+  }
+
+  const released = resolveGenericHostOperation({
+    ...dispatchBase(),
+    lanes: [{
+      routeKind: 'visible_worker',
+      status: 'candidate_done',
+      workerId: 'legacy-worker-1',
+      mutablePaths: ['src/legacy/one'],
+      chiefRelease: {
+        authenticated: true,
+        workerId: 'legacy-worker-1',
+        mutablePaths: ['src/legacy/one'],
+        disposition: 'release',
+        evidenceRef: 'chief-release-evidence'
+      }
+    }]
+  });
+  assert.equal(released.routeEvidence.routeKind, 'visible_worker');
+
+  const overlappingPathConflict = resolveGenericHostOperation({
+    ...dispatchBase(),
+    pathEnvelope: { mutablePaths: ['src/legacy/one/file'] },
+    lanes: [{
+      routeKind: 'visible_worker',
+      status: 'awaiting_approval',
+      workerId: 'legacy-worker-1',
+      mutablePaths: ['src/legacy/one']
+    }]
+  });
+  assert.equal(overlappingPathConflict.routeEvidence.routeKind, 'manual_pending');
+  assert.match(overlappingPathConflict.routeEvidence.fallbackReason, /mutable_path_conflict/);
+});
+
+test('task and frozen slice identity alone reserve a lane even without a packet digest', () => {
+  const packet = createSemanticPacket();
+  const lane = {
+    routeKind: 'visible_worker',
+    status: 'awaiting_approval',
+    workerId: 'deck-worker-1',
+    taskId: 'wave4-task',
+    currentSlice: 'deck-repair-slice',
+    mutablePaths: ['src/deck/original-output']
+  };
+  const result = resolveGenericHostOperation({
+    ...dispatchBase({ assignmentPacket: packet }),
+    lanes: [lane]
+  });
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.workerId, 'deck-worker-1');
+  assert.match(result.routeEvidence.fallbackReason, /semantic_lane_reserved:awaiting_approval/);
+  assert.doesNotMatch(result.routeEvidence.fallbackReason, /semantic_identity_unbound/);
+  assert.deepEqual(result.descriptor.reservedLane, { workerId: 'deck-worker-1', status: 'awaiting_approval' });
+});
+
+test('every unreleased active status reserves the same task and frozen slice semantic lane', () => {
+  const packet = createSemanticPacket();
+  const activeStatuses = [
+    'planned',
+    'observed',
+    'idle',
+    'executing',
+    'awaiting_approval',
+    'blocked',
+    'candidate_done'
+  ];
+  for (const status of activeStatuses) {
+    const lane = {
+      routeKind: 'visible_worker',
+      status,
+      workerId: `worker-${status}`,
+      taskId: 'wave4-task',
+      currentSlice: 'deck-repair-slice',
+      mutablePaths: ['src/deck/one']
+    };
+    const result = resolveGenericHostOperation({
+      ...dispatchBase({ assignmentPacket: packet }),
+      pathEnvelope: { mutablePaths: ['src/deck/other'] },
+      lanes: [lane]
+    });
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', status);
+    assert.equal(result.routeEvidence.workerId, `worker-${status}`, status);
+    assert.match(result.routeEvidence.fallbackReason, new RegExp(`semantic_lane_reserved:${status}`), status);
+    assert.deepEqual(result.descriptor.reservedLane, { workerId: `worker-${status}`, status }, status);
+  }
+
+  const stopped = resolveGenericHostOperation({
+    ...dispatchBase({ assignmentPacket: packet }),
+    pathEnvelope: { mutablePaths: ['src/deck/other'] },
+    lanes: [{
+      routeKind: 'visible_worker',
+      status: 'stopped',
+      workerId: 'worker-stopped',
+      taskId: 'wave4-task',
+      currentSlice: 'deck-repair-slice',
+      mutablePaths: ['src/deck/one']
+    }]
+  });
+  assert.equal(stopped.routeEvidence.routeKind, 'visible_worker');
+});
+
+test('a packet-less legacy spawn facing a fully identified active lane is pending, not independent', () => {
+  const activeStatuses = [
+    'planned',
+    'observed',
+    'idle',
+    'executing',
+    'awaiting_approval',
+    'blocked',
+    'candidate_done'
+  ];
+  for (const status of activeStatuses) {
+    const lane = {
+      routeKind: 'visible_worker',
+      status,
+      workerId: `reserved-${status}`,
+      taskId: 'wave4-task',
+      currentSlice: 'deck-repair-slice',
+      mutablePaths: ['src/deck/one']
+    };
+    const result = resolveGenericHostOperation({
+      operation: 'spawn',
+      workRole: 'chief',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max',
+      permissionEnvelope: {
+        permissions: ['workspace'],
+        operations: ['spawn'],
+        externalEffects: []
+      },
+      pathEnvelope: { mutablePaths: ['src/deck/other'] },
+      observation: visibleObservation(),
+      lanes: [lane]
+    });
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', status);
+    assert.equal(result.routeEvidence.workerId, `reserved-${status}`, status);
+    assert.match(
+      result.routeEvidence.fallbackReason,
+      new RegExp(`semantic_identity_unbound:${status}`),
+      status
+    );
+    assert.deepEqual(
+      result.descriptor.reservedLane,
+      { workerId: `reserved-${status}`, status },
+      status
+    );
+    assert.match(result.descriptor.resumeCondition, /assignment packet/i, status);
+  }
+});
+
+test('an unresolved worktree clientThreadId blocks a fallback spawn until that exact setup resolves', () => {
+  const pending = resolveGenericHostOperation({
+    ...dispatchBase(),
+    observation: visibleObservation({ worktreeSetup: { clientThreadId: 'wt-pending-1', resolved: false } })
+  });
+  assert.equal(pending.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(pending.routeEvidence.workerId, null);
+  assert.match(pending.routeEvidence.fallbackReason, /worktree_setup_pending:wt-pending-1/);
+  assert.match(pending.descriptor.blocker, /worktree_setup_pending:wt-pending-1/);
+  assert.match(pending.descriptor.resumeCondition, /wt-pending-1/);
+  assert.match(pending.descriptor.resumeCondition, /fallback|fallback spawn/i);
+
+  const resolved = resolveGenericHostOperation({
+    ...dispatchBase(),
+    observation: visibleObservation({ worktreeSetup: { clientThreadId: 'wt-ready-1', resolved: true } })
+  });
+  assert.equal(resolved.routeEvidence.routeKind, 'visible_worker');
+});
+
+test('Host create-attempt accounting allows one bounded correction then manual_pending', () => {
+  const firstCorrection = resolveGenericHostOperation({
+    ...dispatchBase(),
+    observation: visibleObservation({ createAttempts: 1 })
+  });
+  assert.equal(firstCorrection.routeEvidence.routeKind, 'visible_worker');
+
+  const exhausted = resolveGenericHostOperation({
+    ...dispatchBase(),
+    observation: visibleObservation({ createAttempts: 2 })
+  });
+  assert.equal(exhausted.routeEvidence.routeKind, 'manual_pending');
+  assert.match(exhausted.routeEvidence.fallbackReason, /worker_create_attempts_exhausted/);
+  assert.match(exhausted.descriptor.blocker, /worker_create_attempts_exhausted/);
+  assert.match(exhausted.descriptor.resumeCondition, /manual_pending/);
+});
+
+test('Codex adapter keeps the requested approval policy separate from authenticated actual Host evidence', () => {
+  const packet = createAssignmentPacket();
+  const base = {
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/hosts/generic.mjs'],
+    permissionIntent: { sandboxMode: 'full_access', writableRoots: [] }
+  };
+
+  const unbound = codexAdapter.resolveCodexPermissionIntent({
+    ...base,
+    approvalPolicy: 'never'
+  });
+  assert.equal(unbound.outcome.kind, 'manual_pending');
+  assert.equal(unbound.outcome.blocker, 'worker_approval_policy_unbound');
+  assert.equal(unbound.outcome.executed, false);
+  assert.deepEqual(unbound.outcome.writes, []);
+  assert.equal(unbound.requested.approvalPolicy, 'never');
+  assert.equal(unbound.requested.sandboxMode, 'full_access');
+  assert.equal(unbound.actual.approvalPolicy, 'unknown');
+  assert.equal(unbound.expression.applied, false);
+  assert.equal(unbound.expression.requestedApprovalPolicy, 'never');
+  assert.match(unbound.outcome.resumeCondition, /approval_policy=never/);
+
+  const mismatch = codexAdapter.resolveCodexPermissionIntent({
+    ...base,
+    approvalPolicy: 'never',
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'approval-policy-evidence-1',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'full_access',
+      actualWritableRoots: [],
+      actualReviewer: 'human',
+      actualApprovalPolicy: 'on-request'
+    }
+  });
+  assert.equal(mismatch.outcome.kind, 'manual_pending');
+  assert.equal(mismatch.outcome.blocker, 'worker_approval_policy_unbound');
+  assert.equal(mismatch.actual.approvalPolicy, 'on-request');
+
+  const bound = codexAdapter.resolveCodexPermissionIntent({
+    ...base,
+    approvalPolicy: 'never',
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'approval-policy-evidence-2',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'full_access',
+      actualWritableRoots: [],
+      actualReviewer: 'human',
+      actualApprovalPolicy: 'never'
+    }
+  });
+  assert.equal(bound.outcome.kind, 'codex_permission_expression');
+  assert.equal(bound.actual.authenticated, true);
+  assert.equal(bound.actual.approvalPolicy, 'never');
+  assert.equal(bound.expression.applied, false);
+  assert.equal(bound.expression.requestedApprovalPolicy, 'never');
 });

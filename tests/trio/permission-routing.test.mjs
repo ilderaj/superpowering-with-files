@@ -158,7 +158,7 @@ test('all mutable lane statuses remain reserved and invalid lane records fail cl
     }
   };
 
-  for (const status of ['planned', 'observed', 'idle', 'executing', 'candidate_done', 'stopped', 'blocked']) {
+  for (const status of ['planned', 'observed', 'idle', 'executing', 'awaiting_approval', 'candidate_done', 'stopped', 'blocked']) {
     const result = resolveGenericHostOperation({
       ...base,
       lanes: [{
@@ -215,8 +215,24 @@ test('lane capacity and candidate path reservations require an authenticated mat
   const thirdLane = resolveGenericHostOperation({
     ...base,
     lanes: [
-      { routeKind: 'visible_worker', status: 'executing', workerId: 'w1', mutable: true, mutablePaths: ['src/one'] },
-      { routeKind: 'visible_worker', status: 'executing', workerId: 'w2', mutable: true, mutablePaths: ['src/two'] }
+      {
+        routeKind: 'visible_worker',
+        status: 'executing',
+        workerId: 'w1',
+        taskId: 'wave4-task',
+        currentSlice: 'capacity-other-slice',
+        mutable: true,
+        mutablePaths: ['src/one']
+      },
+      {
+        routeKind: 'visible_worker',
+        status: 'executing',
+        workerId: 'w2',
+        taskId: 'wave4-task',
+        currentSlice: 'capacity-other-slice',
+        mutable: true,
+        mutablePaths: ['src/two']
+      }
     ]
   });
   assert.equal(thirdLane.routeEvidence.routeKind, 'manual_pending');
