@@ -42,6 +42,10 @@ If delegation is allowed, every child carries an explicit Flash profile and a me
 
 `worker_self_goal` is a handoff prompt contract for the visible worker's own session. It never creates a cross-thread goal, loop daemon, scheduler, registry, or implicit continuation. Keep the bounded contract: objective, success criteria, stop conditions, expected evidence, max iterations, milestone check-in, and return condition.
 
+Prefer measurable or numeric success criteria when the domain supports them (for example an exact validation command plus a pass count or threshold). Measurability is advisory guidance, not a fail-closed validation; a non-numeric criterion does not block dispatch.
+
+When the Host exposes native goal tools (for example `get_goal` / `create_goal`), apply the tool-lifecycle rules before creating a goal: check the active goal state first; reuse a matching active goal instead of duplicating it; ask on conflict; set a token budget only when explicitly requested; and do not create a goal for ordinary tasks.
+
 ## Event-Driven Milestone Check-ins
 
 Check in after each completed slice and immediately on stop. Record concrete evidence: RED/GREEN outputs, fresh test exits and counts, exact changed paths, and structural proofs. Do not rely on a previous run, a partial run, or an adjacent green test as proof.

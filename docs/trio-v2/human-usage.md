@@ -103,6 +103,8 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 - `objective`(目标)、`successCriteria`(可验证成功条件)、`stopConditions`(必须停止的条件)、`expectedEvidence`(交付必须附带的证据)、`maxIterations`(1–100 的安全整数上限)、`milestoneCheckIn`(每个切片/里程碑后汇报)、`returnCondition`(只允许 `candidate_done` / `blocked` 等契约允许的结果)。
 - 字段缺失、类型不符或越界时,本地路由在派单前拒绝(`assertGoalContract`);worker 不发明新的返回状态,也不把候选结果冒充已验收。
+- 成功标准软规则:领域支持时优先给出可测/数字化的 `successCriteria`(例如精确验证命令 + 通过数或阈值);这是建议性指引,不是 fail-closed 校验,缺失数字目标不阻断派单。
+- 目标工具生命周期(当 Host 暴露 `get_goal` / `create_goal` 等原生 goal 工具时):创建前先检查 active goal 状态;匹配的 active goal 直接复用,不重复创建;冲突时询问用户;token budget 仅在用户显式要求时设置;普通任务不创建 goal。该规则以 advisory 形式吸收自上游 `define-goal`(openai curated)的质量条,不纳入 packet 级校验。
 - 经济路由与角色/复杂度/结构化手动 override 只作为**请求事实**进入纯路由决策与只读输出(`trio next --dry-run --role/--complexity/--override-reason/--override-source`);写命令不接受这些只读参数。请求事实不等于 actual 证据。
 - **CLI fail-closed 契约**:任何 requested-model 决策都必须有已声明的工作角色。`trio next` 未给 `--role` 时直接报错退出(exit 1,提示 `trio next requires --role <workRole>`),绝不输出未分类模型(如 Luna);`status` 与全部 Trio 生命周期写命令(`init/progress/accept/stop/close/archive`)从不做模型决策,报告里 `model: null`。Host 侧的 Assignment Packet 同理:缺少 `capability.workRole`、执行角色缺少唯一合法复杂度、或 Chief 角色携带执行复杂度,均在派单/路由前被拒绝。
 
@@ -143,6 +145,7 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 ## 当前边界与限制(截至 2026-08-10)
 
+- goal-writer / goal2plan 为 legacy harness 时代的技能包,已在 v2 退役(仓库侧 wave9 物理删除,`harness/core/skills` 不再含其副本;用户全局活跃面亦已移除,备份可恢复)。其目标契约职责由 `worker_self_goal` 七字段契约承接,计划评审职责由 Chief acceptance + dev Review Contract 承接。上游 `define-goal`(openai curated)不纳入 SWF 技能清单,其 goal 工具生命周期规则已吸收进本文件与 chiefops 伴生技能的 worker_self_goal 契约。
 - 本地 fail-closed 路由、goal 契约、economic 只读输出与 ChiefOps 治理伴生文件均以本仓库源码为准;本文件不声称任何外部安装已被迁移或采纳。
 - Host 集成限制:`manual_pending` 是设计内的诚实出口。在 Host 提供可注入的 authenticated 生命周期契约(role、精确 packet、actual model/effort、spawn/continue/status/interrupt/collect、动态 child 拒绝)之前,任何 Host 生命周期或实际身份声明都只能停留在 `manual_pending`,不得伪称。
 - 权限治理:`adjudicatePermission` 是本地纯路由契约(范围 → Host 沙箱 → 审批),不构成 Host 权限执行引擎;实际 Host 权限证据在 authenticated + packet digest 绑定之前一律视为 `unknown`,本仓库不伪称任何沙箱或可写根已被 Host 授予。
