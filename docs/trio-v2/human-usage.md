@@ -25,6 +25,14 @@
 
 请求与实际的区分:`permissionIntent`(请求的 `sandboxMode: bounded | full_access`、`writableRoots`、`approval`)与 `hostObservation`(authenticated 的 actual 证据)是两个独立输入;结果同时携带 `requested` 与 `actual`,无 authenticated 证据时 `actual.sandbox` / `actual.writableRoots` 为 `unknown`。本契约不声称 Host 已执行任何权限绑定,也不对运行中 worker 做追溯性权限改写。
 
+## 审批策略、Full Access 与语义车道(2026-08-11)
+
+- **Full Access ≠ approval_policy=never**:`full_access` 只描述沙箱轴。请求的 approval policy 是意图;实际 per-worker 审批策略在 Host authenticated 证据(精确 packet digest 绑定)之前一律 `unknown`。缺失或与请求不一致时,诚实出口是 `manual_pending:worker_approval_policy_unbound`;任何"Full Access 所以不用审批"的说法都是越权声称,提示词也不能改变 Host 策略。
+- **`awaiting_approval` 是非终态保留车道**:不是派新 worker 的理由。恢复阶梯:`awaiting_approval` → 人类/Host 审批 → continue 同一 worker;binding/上下文不一致 → rebind 同一 worker → 有界完整性探测;不可用/无法 rebind → Chief 显式释放旧车道 → 单个替换 worker。不同输出目录本身不构成独立修复车道;独立切片必须有不同的冻结 `currentSlice` 身份与不重叠的声明 scope。
+- **语义车道身份**:由 authority taskId + currentSlice + packet digest(内含声明 scope)推导,不新增 packet 字段或 worker 注册表。同一未释放车道(`awaiting_approval` / `blocked` / 未验收 `candidate_done`)下再 spawn → `manual_pending`(blocker `semantic_lane_reserved:<status>`),resumeCondition 指向既有 worker 与允许的下一步(observe/approve/continue 同一 worker,或匹配的 authenticated Chief release)。
+- **未解析 worktree `clientThreadId` 视为 pending**:阻止 fallback spawn,只能对该确切 setup 做有界 status/wait;create 修正最多一次,第二次 Host 校验错误 → `manual_pending`,不重试。
+- **`on-request` worker 的非破坏性临时空间**:用 `mktemp -d` 或作用域内非破坏路径创建临时工作区;绝不用 `rm -rf` 仅为重建临时状态。
+
 ## 角色职责
 
 | 角色 | 做什么 | 不做什么 |

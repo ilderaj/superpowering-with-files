@@ -158,7 +158,7 @@ test('all mutable lane statuses remain reserved and invalid lane records fail cl
     }
   };
 
-  for (const status of ['planned', 'observed', 'idle', 'executing', 'candidate_done', 'stopped', 'blocked']) {
+  for (const status of ['planned', 'observed', 'idle', 'executing', 'awaiting_approval', 'candidate_done', 'stopped', 'blocked']) {
     const result = resolveGenericHostOperation({
       ...base,
       lanes: [{

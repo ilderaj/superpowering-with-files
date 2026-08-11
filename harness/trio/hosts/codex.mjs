@@ -1,5 +1,11 @@
 export { resolveHostOperation as resolveCodexHostOperation } from '../core/routing.mjs';
-import { adjudicatePermission } from '../core/routing.mjs';
+import { adjudicatePermission, packetDigestOf } from '../core/routing.mjs';
+
+export const APPROVAL_POLICY_KINDS = Object.freeze(['never', 'on-request']);
+
+function normalizedString(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
 
 const SWF_EXECUTOR_BASE = Object.freeze({
   name: 'swf_executor',
@@ -86,6 +92,29 @@ export function renderCodexHandoffRequest({ operation, packet, packetDigest, eff
   };
 }
 
+function normalizeApprovalPolicy(value, label) {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string' || !APPROVAL_POLICY_KINDS.includes(value)) {
+    throw new Error(`${label} must be never or on-request.`);
+  }
+  return value;
+}
+
+function approvalPolicyActual(hostObservation, packetDigest) {
+  const authenticated = hostObservation.authenticated === true
+    && normalizedString(hostObservation.evidenceRef) !== null
+    && (packetDigest === null || hostObservation.packetDigest === packetDigest);
+  if (!authenticated) {
+    return { authenticated: false, evidenceRef: null, policy: 'unknown' };
+  }
+  const policy = normalizedString(hostObservation.actualApprovalPolicy);
+  return {
+    authenticated: true,
+    evidenceRef: normalizedString(hostObservation.evidenceRef),
+    policy: policy !== null && APPROVAL_POLICY_KINDS.includes(policy) ? policy : 'unknown'
+  };
+}
+
 export function resolveCodexPermissionIntent(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new TypeError('Codex permission intent input must be an object.');
@@ -103,6 +132,8 @@ export function resolveCodexPermissionIntent(input = {}) {
     hostObservation: observation,
     generatedTargets: input.generatedTargets
   });
+  const requestedApprovalPolicy = normalizeApprovalPolicy(input.approvalPolicy, 'approvalPolicy');
+  const actualApprovalPolicy = approvalPolicyActual(observation, packetDigestOf(input.assignmentPacket));
   const rawReviewer = observation.actualReviewer;
   const reviewer = typeof rawReviewer === 'string' && rawReviewer.trim() !== ''
     ? rawReviewer.trim()
@@ -114,7 +145,8 @@ export function resolveCodexPermissionIntent(input = {}) {
     writableRoots: Array.isArray(verdict.actual.writableRoots)
       ? [...verdict.actual.writableRoots]
       : verdict.actual.writableRoots,
-    reviewer
+    reviewer,
+    approvalPolicy: actualApprovalPolicy.policy
   };
   const bound = actual.authenticated === true
     && actual.sandbox !== 'unknown'
@@ -124,6 +156,7 @@ export function resolveCodexPermissionIntent(input = {}) {
     provider: 'codex',
     sandboxMode: verdict.requested.sandboxMode,
     writableRoots: [...verdict.requested.writableRoots],
+    requestedApprovalPolicy,
     applied: false
   };
   let outcome;
@@ -134,6 +167,15 @@ export function resolveCodexPermissionIntent(input = {}) {
       reason: verdict.reason,
       executed: false,
       writes: []
+    };
+  } else if (requestedApprovalPolicy !== null
+    && actualApprovalPolicy.policy !== requestedApprovalPolicy) {
+    outcome = {
+      kind: 'manual_pending',
+      executed: false,
+      writes: [],
+      blocker: 'worker_approval_policy_unbound',
+      resumeCondition: 'Provide authenticated Host evidence binding the exact packet digest to a per-worker approval policy before claiming approval-free execution; Full Access is a sandbox mode, not approval_policy=never.'
     };
   } else if (!bound) {
     outcome = {
@@ -154,7 +196,10 @@ export function resolveCodexPermissionIntent(input = {}) {
   }
   return {
     provider: 'codex',
-    requested: verdict.requested,
+    requested: {
+      ...verdict.requested,
+      approvalPolicy: requestedApprovalPolicy
+    },
     expression,
     actual,
     outcome

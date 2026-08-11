@@ -58,6 +58,16 @@ Worker completion is only a candidate. Chief acceptance and Trio writeback are r
 
 Plan the exact permission scope before creating or spawning any worker: the assignment packet and its allowed paths are settled before any visible worker exists. Apply least privilege with task-specific writable roots that never exceed the frozen slice. Full Access is an explicit exception, never a default or an escalation path. Recheck the frozen scope before any escalation or review: an out-of-scope operation is blocked before escalation eligibility. Approval only resolves Host restriction and never expands allowed paths. Generated or materialized surfaces are never direct-written through escalation; change source-owned policy and projection proof instead.
 
+## Worker Approval Policy and Semantic Lanes
+
+Full Access is not `approval_policy=never`; it describes only the sandbox axis. A requested approval policy is intent, and the actual per-worker approval policy stays `unknown` until the Host authenticates it against the exact packet digest. When worker-specific approval evidence is missing or mismatched, return `manual_pending:worker_approval_policy_unbound`; never claim that Full Access makes a worker approval-free.
+
+`awaiting_approval` is a non-terminal reserved lane status, not a reason to spawn a replacement. Recovery follows the approved ladder: awaiting approval -> human/Host approval -> continue the same worker; binding or context inconsistency -> rebind the same worker -> bounded integrity probe; unavailable or rebind impossible -> Chief explicitly releases the old lane -> one replacement worker. A different output root alone never creates a distinct repair lane; a new worker needs a different frozen `currentSlice` identity and disjoint declared scope.
+
+An unresolved worktree `clientThreadId` is pending Host lifecycle state: resolve that exact setup with a bounded status/wait before any fallback, and allow at most one corrected create-request attempt before `manual_pending`. The Host owns this lifecycle; the repository only models it as a fail-closed descriptor contract.
+
+`on-request` workers must create temporary workspace non-destructively (`mktemp -d` or a scoped non-destructive path); never issue `rm -rf` merely to recreate temporary state.
+
 ## Prohibitions
 
 ChiefOps never acts as a runner, scheduler, registry, or receipt dialect, never adds a fourth task-state surface, never claims a false actual model, and never performs cross-thread goal control. Native subagents remain allowed only as worker-local bounded delegation under an explicit policy.
