@@ -1958,6 +1958,111 @@ test('only an explicitly distinct frozen slice identity admits an independent di
   assert.equal(otherTask.routeEvidence.routeKind, 'visible_worker');
 });
 
+test('a revised packet digest for the same task and frozen slice cannot open a reserved semantic lane', () => {
+  const original = createSemanticPacket();
+  const revised = createSemanticPacket({
+    allowedOperations: { files: ['harness/trio/hosts/generic.mjs', 'src/deck/extra'] }
+  });
+  assert.notEqual(adapterPacketDigest(original), adapterPacketDigest(revised));
+  const lane = {
+    routeKind: 'visible_worker',
+    status: 'awaiting_approval',
+    workerId: 'deck-worker-1',
+    taskId: 'wave4-task',
+    currentSlice: 'deck-repair-slice',
+    packetDigest: adapterPacketDigest(original),
+    mutablePaths: ['src/deck/original-output']
+  };
+  const result = resolveGenericHostOperation({
+    ...dispatchBase({ assignmentPacket: revised }),
+    lanes: [lane]
+  });
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.workerId, 'deck-worker-1');
+  assert.match(result.routeEvidence.fallbackReason, /semantic_lane_reserved:awaiting_approval/);
+  assert.deepEqual(result.descriptor.reservedLane, { workerId: 'deck-worker-1', status: 'awaiting_approval' });
+});
+
+test('reserved lanes without task or current-slice identity fail closed on non-overlapping spawns', () => {
+  const identityLessLanes = [
+    { routeKind: 'visible_worker', status: 'awaiting_approval', workerId: 'legacy-worker-1', mutablePaths: ['src/legacy/one'] },
+    { routeKind: 'visible_worker', status: 'blocked', workerId: 'legacy-worker-2', taskId: 'wave4-task', mutablePaths: ['src/legacy/two'] },
+    { routeKind: 'visible_worker', status: 'candidate_done', workerId: 'legacy-worker-3', currentSlice: 'deck-repair-slice', mutablePaths: ['src/legacy/three'] }
+  ];
+  for (const lane of identityLessLanes) {
+    const result = resolveGenericHostOperation({
+      ...dispatchBase(),
+      lanes: [lane]
+    });
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', `${lane.status}/${lane.workerId}`);
+    assert.equal(result.routeEvidence.workerId, lane.workerId, `${lane.status}/${lane.workerId}`);
+    assert.match(
+      result.routeEvidence.fallbackReason,
+      new RegExp(`semantic_identity_unbound:${lane.status}`),
+      `${lane.status}/${lane.workerId}`
+    );
+    assert.match(result.descriptor.blocker, /semantic_identity_unbound/, `${lane.status}/${lane.workerId}`);
+    assert.match(result.descriptor.resumeCondition, /task|current-slice|identity/i, `${lane.status}/${lane.workerId}`);
+    assert.deepEqual(
+      result.descriptor.reservedLane,
+      { workerId: lane.workerId, status: lane.status },
+      `${lane.status}/${lane.workerId}`
+    );
+  }
+
+  const released = resolveGenericHostOperation({
+    ...dispatchBase(),
+    lanes: [{
+      routeKind: 'visible_worker',
+      status: 'candidate_done',
+      workerId: 'legacy-worker-1',
+      mutablePaths: ['src/legacy/one'],
+      chiefRelease: {
+        authenticated: true,
+        workerId: 'legacy-worker-1',
+        mutablePaths: ['src/legacy/one'],
+        disposition: 'release',
+        evidenceRef: 'chief-release-evidence'
+      }
+    }]
+  });
+  assert.equal(released.routeEvidence.routeKind, 'visible_worker');
+
+  const overlappingPathConflict = resolveGenericHostOperation({
+    ...dispatchBase(),
+    pathEnvelope: { mutablePaths: ['src/legacy/one/file'] },
+    lanes: [{
+      routeKind: 'visible_worker',
+      status: 'awaiting_approval',
+      workerId: 'legacy-worker-1',
+      mutablePaths: ['src/legacy/one']
+    }]
+  });
+  assert.equal(overlappingPathConflict.routeEvidence.routeKind, 'manual_pending');
+  assert.match(overlappingPathConflict.routeEvidence.fallbackReason, /mutable_path_conflict/);
+});
+
+test('task and frozen slice identity alone reserve a lane even without a packet digest', () => {
+  const packet = createSemanticPacket();
+  const lane = {
+    routeKind: 'visible_worker',
+    status: 'awaiting_approval',
+    workerId: 'deck-worker-1',
+    taskId: 'wave4-task',
+    currentSlice: 'deck-repair-slice',
+    mutablePaths: ['src/deck/original-output']
+  };
+  const result = resolveGenericHostOperation({
+    ...dispatchBase({ assignmentPacket: packet }),
+    lanes: [lane]
+  });
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.workerId, 'deck-worker-1');
+  assert.match(result.routeEvidence.fallbackReason, /semantic_lane_reserved:awaiting_approval/);
+  assert.doesNotMatch(result.routeEvidence.fallbackReason, /semantic_identity_unbound/);
+  assert.deepEqual(result.descriptor.reservedLane, { workerId: 'deck-worker-1', status: 'awaiting_approval' });
+});
+
 test('an unresolved worktree clientThreadId blocks a fallback spawn until that exact setup resolves', () => {
   const pending = resolveGenericHostOperation({
     ...dispatchBase(),

@@ -896,3 +896,28 @@ test('ChiefOps and human usage carry approval-policy, recovery-ladder, and non-d
     assert.match(humanUsage, clause);
   }
 });
+
+test('ChiefOps and human usage bind semantic reservation to task plus frozen slice identity', async () => {
+  const [chiefOps, humanUsage] = await Promise.all([
+    readFile(path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'), 'utf8'),
+    readFile(path.join(REPO_ROOT, 'docs/trio-v2/human-usage.md'), 'utf8')
+  ]);
+  const chiefOpsClauses = [
+    /task ID plus frozen `currentSlice` identity reserve the semantic work/i,
+    /packet digest is immutable evidence and audit binding/i,
+    /never a discriminator that permits a replacement/i,
+    /semantic_identity_unbound/i
+  ];
+  for (const clause of chiefOpsClauses) {
+    assert.match(chiefOps, clause);
+  }
+  const humanUsageClauses = [
+    /taskId/,
+    /冻结 currentSlice/,
+    /semantic_identity_unbound/,
+    /判别器/
+  ];
+  for (const clause of humanUsageClauses) {
+    assert.match(humanUsage, clause);
+  }
+});

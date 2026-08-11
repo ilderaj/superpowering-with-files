@@ -785,35 +785,45 @@ function packetSemanticLane(assignmentPacket) {
 }
 
 function laneSemanticIdentity(lane) {
-  if (!lane.taskId || !lane.currentSlice || !lane.packetDigest) return null;
+  if (!lane.taskId || !lane.currentSlice) return null;
   return {
     taskId: lane.taskId,
     sliceName: lane.currentSlice,
-    packetDigest: lane.packetDigest
+    packetDigest: lane.packetDigest ?? null
   };
 }
 
-function semanticSpawnBlocker({ lanes, assignmentPacket }) {
-  if (lanes.length === 0 || !assignmentPacket) return null;
+function semanticSpawnBlocker({ lanes, assignmentPacket, candidatePaths }) {
+  if (lanes.length === 0) return null;
   const candidate = packetSemanticLane(assignmentPacket);
-  if (!candidate) return null;
-  const reserved = lanes.find((lane) => {
+  for (const lane of lanes) {
     if (lane.released === true || !SEMANTIC_RESERVED_STATUSES.includes(lane.status)) {
-      return false;
+      continue;
     }
     const identity = laneSemanticIdentity(lane);
-    return identity !== null
+    if (identity === null) {
+      if (!hasMutablePathConflict(candidatePaths, lane.mutablePaths)) {
+        return {
+          blocker: `semantic_identity_unbound:${lane.status}`,
+          workerId: lane.workerId,
+          status: lane.status,
+          resumeCondition: `Reserved ${lane.status} lane ${lane.workerId ?? 'unknown'} lacks authority task and frozen current-slice identity. Do not spawn a replacement: supply the lane's task ID and current-slice identity, or settle the lane with an authenticated Chief release (chiefRelease disposition release with matching workerId and mutable paths).`
+        };
+      }
+      continue;
+    }
+    if (candidate
       && identity.taskId === candidate.taskId
-      && identity.sliceName === candidate.sliceName
-      && identity.packetDigest === candidate.packetDigest;
-  });
-  if (!reserved) return null;
-  return {
-    blocker: `semantic_lane_reserved:${reserved.status}`,
-    workerId: reserved.workerId,
-    status: reserved.status,
-    resumeCondition: `Semantic lane ${candidate.taskId}/${candidate.sliceName} is reserved by worker ${reserved.workerId ?? 'unknown'} in status ${reserved.status}. Do not spawn a replacement: observe, approve, and continue that exact worker, or supply an authenticated Chief release (chiefRelease disposition release with the matching workerId and mutable paths) before any new spawn.`
-  };
+      && identity.sliceName === candidate.sliceName) {
+      return {
+        blocker: `semantic_lane_reserved:${lane.status}`,
+        workerId: lane.workerId,
+        status: lane.status,
+        resumeCondition: `Semantic lane ${candidate.taskId}/${candidate.sliceName} is reserved by worker ${lane.workerId ?? 'unknown'} in status ${lane.status}. Do not spawn a replacement: observe, approve, and continue that exact worker, or supply an authenticated Chief release (chiefRelease disposition release with the matching workerId and mutable paths) before any new spawn.`
+      };
+    }
+  }
+  return null;
 }
 
 function worktreePendingBlocker(observation) {
@@ -1429,7 +1439,11 @@ export function resolveHostOperation(input = {}) {
         })
       };
     }
-    const semanticBlock = semanticSpawnBlocker({ lanes, assignmentPacket });
+    const semanticBlock = semanticSpawnBlocker({
+      lanes,
+      assignmentPacket,
+      candidatePaths: parentEnvelope.mutablePaths
+    });
     if (semanticBlock) {
       const routeEvidence = buildRouteEvidence({
         routeKind: 'manual_pending',
