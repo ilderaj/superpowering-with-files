@@ -1710,3 +1710,60 @@ test('Codex adapter keeps partial authenticated evidence manual_pending when rev
   assert.equal(Object.hasOwn(result, 'workerId'), false);
   assert.equal(Object.hasOwn(result, 'retroactive'), false);
 });
+
+test('Codex adapter keeps generated .agents targets blocked when generatedTargets is an empty list', () => {
+  const target = '.agents/skills/trio/dev/SKILL.md';
+  const packet = {
+    ...createAssignmentPacket(),
+    allowedOperations: { files: ['harness/trio/hosts/generic.mjs', target] }
+  };
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: [target],
+    permissionIntent: { sandboxMode: 'full_access', writableRoots: [] },
+    approval: { kind: 'user', granted: true },
+    generatedTargets: [],
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'generated-union-evidence-1',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'full_access',
+      actualWritableRoots: [],
+      actualReviewer: 'human'
+    }
+  });
+  assert.equal(result.outcome.kind, 'blocked');
+  assert.equal(result.outcome.stage, 'scope');
+  assert.match(result.outcome.reason, /generated_target/);
+  assert.equal(result.outcome.executed, false);
+  assert.deepEqual(result.outcome.writes, []);
+  assert.equal(result.expression.applied, false);
+});
+
+test('Codex adapter keeps the user-global .codex/AGENTS.md projection generated and blocked', () => {
+  const target = '.codex/AGENTS.md';
+  const packet = {
+    ...createAssignmentPacket(),
+    allowedOperations: { files: ['harness/trio/hosts/generic.mjs', target] }
+  };
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: [target],
+    permissionIntent: { sandboxMode: 'full_access', writableRoots: [] },
+    approval: { kind: 'user', granted: true },
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'user-global-generated-1',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'full_access',
+      actualWritableRoots: [],
+      actualReviewer: 'human'
+    }
+  });
+  assert.equal(result.outcome.kind, 'blocked');
+  assert.equal(result.outcome.stage, 'scope');
+  assert.match(result.outcome.reason, /generated_target/);
+  assert.equal(result.outcome.executed, false);
+  assert.deepEqual(result.outcome.writes, []);
+  assert.equal(result.expression.applied, false);
+});

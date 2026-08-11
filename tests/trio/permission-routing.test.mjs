@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import test from 'node:test';
 
 import * as routing from '../../harness/trio/core/routing.mjs';
@@ -568,5 +569,41 @@ test('malformed assignment scope and incomplete adjudication inputs fail closed'
       permissionIntent: { writableRoots: [] }
     }),
     /sandboxMode/i
+  );
+});
+
+test('partial assignment packets are rejected before scope or approval can allow them', () => {
+  const full = createAssignmentPacket();
+  // Replicate the canonical stable packet digest so a partial packet alone
+  // would otherwise satisfy digest-bound Host evidence and reach approval.
+  const stableStringify = (value) => {
+    if (value === undefined) return 'null';
+    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+    if (value && typeof value === 'object') {
+      const keys = Object.keys(value).sort();
+      return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+  };
+  const stableDigest = (value) => createHash('sha256').update(stableStringify(value)).digest('hex');
+  assert.equal(stableDigest(full), packetDigestOf(full));
+
+  const partial = { ...full };
+  delete partial.capability;
+  assert.throws(
+    () => routing.adjudicatePermission({
+      assignmentPacket: partial,
+      targetPaths: ['harness/trio/core/routing.mjs'],
+      permissionIntent: { sandboxMode: 'full_access', writableRoots: [] },
+      hostObservation: {
+        authenticated: true,
+        evidenceRef: 'partial-packet-evidence-1',
+        packetDigest: stableDigest(partial),
+        actualSandbox: 'full_access',
+        actualWritableRoots: []
+      },
+      approval: { kind: 'user', granted: true }
+    }),
+    /eight fields/i
   );
 });

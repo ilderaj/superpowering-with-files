@@ -1018,7 +1018,7 @@ function manualCapabilityEvidence({ operation, observation, visibleCapability, n
 export const SANDBOX_MODE_KINDS = Object.freeze(['bounded', 'full_access']);
 export const APPROVAL_KINDS = Object.freeze(['user', 'auto_review']);
 export const PERMISSION_STAGES = Object.freeze(['scope', 'sandbox', 'approval']);
-export const DEFAULT_GENERATED_TARGETS = Object.freeze(['.agents', 'AGENTS.md']);
+export const DEFAULT_GENERATED_TARGETS = Object.freeze(['.agents', 'AGENTS.md', '.codex/AGENTS.md']);
 
 function normalizeSandboxMode(value, label) {
   if (typeof value !== 'string' || !SANDBOX_MODE_KINDS.includes(value)) {
@@ -1123,16 +1123,17 @@ export function adjudicatePermission(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new Error('Permission adjudication input must be an object.');
   }
-  const assignmentPacket = objectRecord(input.assignmentPacket);
-  if (Object.keys(assignmentPacket).length === 0) {
-    throw new Error('Permission adjudication requires an assignment packet.');
-  }
+  const assignmentPacket = buildAssignmentPacket(input.assignmentPacket);
   const targetPaths = normalizePathSet(input.targetPaths, 'target paths');
   if (targetPaths.length === 0) {
     throw new Error('Permission adjudication requires at least one target path.');
   }
+  const callerGeneratedTargets = input.generatedTargets ?? [];
+  if (!Array.isArray(callerGeneratedTargets)) {
+    throw new Error('generated targets must be an array.');
+  }
   const generatedTargets = normalizePathSet(
-    input.generatedTargets ?? DEFAULT_GENERATED_TARGETS,
+    [...DEFAULT_GENERATED_TARGETS, ...callerGeneratedTargets],
     'generated targets'
   );
   const intent = objectRecord(input.permissionIntent);
