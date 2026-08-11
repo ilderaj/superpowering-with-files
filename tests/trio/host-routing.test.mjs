@@ -1632,13 +1632,15 @@ test('Codex adapter surfaces bound actual permission only with authenticated dig
     targetPaths: ['harness/trio/hosts/generic.mjs'],
     permissionIntent: { sandboxMode: 'bounded', writableRoots: ['harness/trio/hosts'] },
     approval: null,
+    approvalPolicy: 'never',
     hostObservation: {
       authenticated: true,
       evidenceRef: 'bound-permission-1',
       packetDigest: adapterPacketDigest(packet),
       actualSandbox: 'bounded',
       actualWritableRoots: ['harness/trio/hosts/generic.mjs'],
-      actualReviewer: 'human'
+      actualReviewer: 'human',
+      actualApprovalPolicy: 'never'
     }
   });
   assert.deepEqual(result.requested.writableRoots, ['harness/trio/hosts']);
@@ -1651,6 +1653,34 @@ test('Codex adapter surfaces bound actual permission only with authenticated dig
   assert.equal(result.expression.applied, false);
   assert.equal(Object.hasOwn(result, 'workerId'), false);
   assert.equal(Object.hasOwn(result, 'retroactive'), false);
+});
+
+test('Codex adapter treats a missing requested approval policy as unbound even with fully authenticated actual evidence', () => {
+  const packet = createAssignmentPacket();
+  const result = codexAdapter.resolveCodexPermissionIntent({
+    assignmentPacket: packet,
+    targetPaths: ['harness/trio/hosts/generic.mjs'],
+    permissionIntent: { sandboxMode: 'full_access', writableRoots: [] },
+    hostObservation: {
+      authenticated: true,
+      evidenceRef: 'full-auth-no-policy-1',
+      packetDigest: adapterPacketDigest(packet),
+      actualSandbox: 'full_access',
+      actualWritableRoots: [],
+      actualReviewer: 'human',
+      actualApprovalPolicy: 'on-request'
+    }
+  });
+  assert.equal(result.outcome.kind, 'manual_pending');
+  assert.equal(result.outcome.blocker, 'worker_approval_policy_unbound');
+  assert.equal(result.outcome.executed, false);
+  assert.deepEqual(result.outcome.writes, []);
+  assert.equal(result.requested.approvalPolicy, null);
+  assert.equal(result.requested.sandboxMode, 'full_access');
+  assert.equal(result.actual.approvalPolicy, 'on-request');
+  assert.equal(result.expression.applied, false);
+  assert.equal(result.expression.requestedApprovalPolicy, null);
+  assert.match(result.outcome.resumeCondition, /approval policy/i);
 });
 
 test('Codex adapter keeps partial authenticated evidence manual_pending when writable roots are absent', () => {
@@ -2061,6 +2091,101 @@ test('task and frozen slice identity alone reserve a lane even without a packet 
   assert.match(result.routeEvidence.fallbackReason, /semantic_lane_reserved:awaiting_approval/);
   assert.doesNotMatch(result.routeEvidence.fallbackReason, /semantic_identity_unbound/);
   assert.deepEqual(result.descriptor.reservedLane, { workerId: 'deck-worker-1', status: 'awaiting_approval' });
+});
+
+test('every unreleased active status reserves the same task and frozen slice semantic lane', () => {
+  const packet = createSemanticPacket();
+  const activeStatuses = [
+    'planned',
+    'observed',
+    'idle',
+    'executing',
+    'awaiting_approval',
+    'blocked',
+    'candidate_done'
+  ];
+  for (const status of activeStatuses) {
+    const lane = {
+      routeKind: 'visible_worker',
+      status,
+      workerId: `worker-${status}`,
+      taskId: 'wave4-task',
+      currentSlice: 'deck-repair-slice',
+      mutablePaths: ['src/deck/one']
+    };
+    const result = resolveGenericHostOperation({
+      ...dispatchBase({ assignmentPacket: packet }),
+      pathEnvelope: { mutablePaths: ['src/deck/other'] },
+      lanes: [lane]
+    });
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', status);
+    assert.equal(result.routeEvidence.workerId, `worker-${status}`, status);
+    assert.match(result.routeEvidence.fallbackReason, new RegExp(`semantic_lane_reserved:${status}`), status);
+    assert.deepEqual(result.descriptor.reservedLane, { workerId: `worker-${status}`, status }, status);
+  }
+
+  const stopped = resolveGenericHostOperation({
+    ...dispatchBase({ assignmentPacket: packet }),
+    pathEnvelope: { mutablePaths: ['src/deck/other'] },
+    lanes: [{
+      routeKind: 'visible_worker',
+      status: 'stopped',
+      workerId: 'worker-stopped',
+      taskId: 'wave4-task',
+      currentSlice: 'deck-repair-slice',
+      mutablePaths: ['src/deck/one']
+    }]
+  });
+  assert.equal(stopped.routeEvidence.routeKind, 'visible_worker');
+});
+
+test('a packet-less legacy spawn facing a fully identified active lane is pending, not independent', () => {
+  const activeStatuses = [
+    'planned',
+    'observed',
+    'idle',
+    'executing',
+    'awaiting_approval',
+    'blocked',
+    'candidate_done'
+  ];
+  for (const status of activeStatuses) {
+    const lane = {
+      routeKind: 'visible_worker',
+      status,
+      workerId: `reserved-${status}`,
+      taskId: 'wave4-task',
+      currentSlice: 'deck-repair-slice',
+      mutablePaths: ['src/deck/one']
+    };
+    const result = resolveGenericHostOperation({
+      operation: 'spawn',
+      workRole: 'chief',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max',
+      permissionEnvelope: {
+        permissions: ['workspace'],
+        operations: ['spawn'],
+        externalEffects: []
+      },
+      pathEnvelope: { mutablePaths: ['src/deck/other'] },
+      observation: visibleObservation(),
+      lanes: [lane]
+    });
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', status);
+    assert.equal(result.routeEvidence.workerId, `reserved-${status}`, status);
+    assert.match(
+      result.routeEvidence.fallbackReason,
+      new RegExp(`semantic_identity_unbound:${status}`),
+      status
+    );
+    assert.deepEqual(
+      result.descriptor.reservedLane,
+      { workerId: `reserved-${status}`, status },
+      status
+    );
+    assert.match(result.descriptor.resumeCondition, /assignment packet/i, status);
+  }
 });
 
 test('an unresolved worktree clientThreadId blocks a fallback spawn until that exact setup resolves', () => {

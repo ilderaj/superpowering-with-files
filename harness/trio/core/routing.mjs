@@ -767,7 +767,11 @@ function executingVisibleLaneCount(lanes, workerId, operation) {
 // packet field or a durable worker registry.
 // ---------------------------------------------------------------------------
 
-const SEMANTIC_RESERVED_STATUSES = Object.freeze([
+const ACTIVE_SEMANTIC_STATUSES = Object.freeze([
+  'planned',
+  'observed',
+  'idle',
+  'executing',
   'awaiting_approval',
   'blocked',
   'candidate_done'
@@ -779,25 +783,20 @@ function packetSemanticLane(assignmentPacket) {
   const taskId = normalizedString(binding.taskId);
   const slice = objectRecord(assignmentPacket.currentSlice);
   const sliceName = normalizedString(slice.name);
-  const packetDigest = packetDigestOf(assignmentPacket);
-  if (!taskId || !sliceName || !packetDigest) return null;
-  return { taskId, sliceName, packetDigest };
+  if (!taskId || !sliceName) return null;
+  return { taskId, sliceName };
 }
 
 function laneSemanticIdentity(lane) {
   if (!lane.taskId || !lane.currentSlice) return null;
-  return {
-    taskId: lane.taskId,
-    sliceName: lane.currentSlice,
-    packetDigest: lane.packetDigest ?? null
-  };
+  return { taskId: lane.taskId, sliceName: lane.currentSlice };
 }
 
 function semanticSpawnBlocker({ lanes, assignmentPacket, candidatePaths }) {
   if (lanes.length === 0) return null;
   const candidate = packetSemanticLane(assignmentPacket);
   for (const lane of lanes) {
-    if (lane.released === true || !SEMANTIC_RESERVED_STATUSES.includes(lane.status)) {
+    if (lane.released === true || !ACTIVE_SEMANTIC_STATUSES.includes(lane.status)) {
       continue;
     }
     const identity = laneSemanticIdentity(lane);
@@ -820,6 +819,14 @@ function semanticSpawnBlocker({ lanes, assignmentPacket, candidatePaths }) {
         workerId: lane.workerId,
         status: lane.status,
         resumeCondition: `Semantic lane ${candidate.taskId}/${candidate.sliceName} is reserved by worker ${lane.workerId ?? 'unknown'} in status ${lane.status}. Do not spawn a replacement: observe, approve, and continue that exact worker, or supply an authenticated Chief release (chiefRelease disposition release with the matching workerId and mutable paths) before any new spawn.`
+      };
+    }
+    if (!candidate && !hasMutablePathConflict(candidatePaths, lane.mutablePaths)) {
+      return {
+        blocker: `semantic_identity_unbound:${lane.status}`,
+        workerId: lane.workerId,
+        status: lane.status,
+        resumeCondition: `Semantic lane ${identity.taskId}/${identity.sliceName} is reserved by worker ${lane.workerId ?? 'unknown'} in status ${lane.status}, but this request carries no immutable assignment packet. Do not spawn a replacement: supply the immutable assignment packet (authority task ID and frozen currentSlice), or settle the lane with an authenticated Chief release (chiefRelease disposition release with matching workerId and mutable paths).`
       };
     }
   }

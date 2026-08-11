@@ -168,14 +168,14 @@ export function resolveCodexPermissionIntent(input = {}) {
       executed: false,
       writes: []
     };
-  } else if (requestedApprovalPolicy !== null
-    && actualApprovalPolicy.policy !== requestedApprovalPolicy) {
+  } else if (requestedApprovalPolicy === null
+    || actualApprovalPolicy.policy !== requestedApprovalPolicy) {
     outcome = {
       kind: 'manual_pending',
       executed: false,
       writes: [],
       blocker: 'worker_approval_policy_unbound',
-      resumeCondition: 'Provide authenticated Host evidence binding the exact packet digest to a per-worker approval policy before claiming approval-free execution; Full Access is a sandbox mode, not approval_policy=never.'
+      resumeCondition: 'Declare an explicit requested approval policy (never | on-request) and provide authenticated Host evidence binding the exact packet digest to the actual per-worker approval policy before any permission claim; Full Access is a sandbox mode, not approval_policy=never.'
     };
   } else if (!bound) {
     outcome = {

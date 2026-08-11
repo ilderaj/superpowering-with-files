@@ -906,7 +906,12 @@ test('ChiefOps and human usage bind semantic reservation to task plus frozen sli
     /task ID plus frozen `currentSlice` identity reserve the semantic work/i,
     /packet digest is immutable evidence and audit binding/i,
     /never a discriminator that permits a replacement/i,
-    /semantic_identity_unbound/i
+    /required identity field/i,
+    /semantic_identity_unbound/i,
+    /every unreleased active status/i,
+    /`stopped` is not an active reservation/i,
+    /packet-less spawn/i,
+    /missing requested approval policy/i
   ];
   for (const clause of chiefOpsClauses) {
     assert.match(chiefOps, clause);
@@ -915,7 +920,10 @@ test('ChiefOps and human usage bind semantic reservation to task plus frozen sli
     /taskId/,
     /冻结 currentSlice/,
     /semantic_identity_unbound/,
-    /判别器/
+    /判别器/,
+    /stopped/,
+    /assignment packet/i,
+    /approval policy 缺失/
   ];
   for (const clause of humanUsageClauses) {
     assert.match(humanUsage, clause);
