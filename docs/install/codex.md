@@ -2,6 +2,8 @@
 
 Codex is the only managed native Trio target. Install the packaged `harness-codex-plugin-<version>.tgz` through a local Codex marketplace.
 
+Releases also include a separate portable Agent Plugins package (`harness-agent-plugins-<version>.tgz`) for non-Codex clients that implement the standard; it is not installed through this Codex marketplace flow. See [Agent Plugins installation](agent-plugins.md).
+
 ## Prepare a local marketplace
 
 ```sh

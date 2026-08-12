@@ -11,6 +11,6 @@ npm run plugin:smoke
 npm run verify:trio
 ```
 
-Confirm that the generated release directory contains only `harness-codex-plugin-<version>.tgz`, `manifest.json`, `SHA256SUMS`, and `release-notes.md`. Check the checksum before a human chooses a distribution path.
+Confirm that the generated release directory contains `harness-codex-plugin-<version>.tgz`, `harness-agent-plugins-<version>.tgz`, `manifest.json`, `SHA256SUMS`, and `release-notes.md`. Check the checksums before a human chooses a distribution path.
 
-The release note should describe the verified Codex Trio change in user-facing language. Do not state that generic/manual fallback hosts are packaged, or that an existing user-global installation has been migrated, unless separate evidence and authorization exist.
+The release note should name both artifacts — the native Codex Trio package and the portable Agent Plugins v1 package — and describe the verified change in user-facing language. Do not state that generic/manual fallback hosts are packaged or managed, or that an existing user-global installation has been migrated, unless separate evidence and authorization exist.

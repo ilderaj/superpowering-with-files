@@ -7,26 +7,30 @@ Use it when you need to answer:
 - where a behavior lives
 - which layer owns a rule
 - which artifact is authoritative
-- how projection, runtime, MCP, hooks, and upstream baselines fit together
+- how projection, distribution, and upstream baselines fit together
 
-superpowering-with-files uses six layers:
+## Implementation Layers
+
+superpowering-with-files uses four implementation layers plus one distribution package:
 
 - `harness/core`: platform-neutral policy, skills metadata, templates, and schemas.
-- `harness/adapters`: platform-specific projection manifests.
 - `harness/installer`: CLI commands and projection logic.
-- `harness/runtime`: typed runtime services shared by CLI and MCP.
-- `harness/mcp`: MCP tools, resources, and transports.
+- `harness/trio`: Trio v2 entry policy, capability packs, the ChiefOps governance companion, host expressions, and compatibility fixtures.
 - `harness/upstream`: vendored baselines and source metadata.
+- `packages/plugin-kit`: release-artifact builder and validators that generate packages directly from the Trio skill sources.
 
-Core is the source of truth. Adapters translate core into platform-specific entry files. The installer manages state, safe writes, and entry + skills projection. Runtime services hold reusable business logic. The MCP layer exposes that logic to external agents as a governed facade rather than as another adapter.
+Core is the source of truth for policy. The installer manages state, safe writes, and entry + skills projection for the local Codex install path. The Trio layer owns the workflow protocol: its entry policy routes work first, the `dev`, `office`, and `safety` capability packs define quality contracts, and the ChiefOps companion restores the planning trio without acting as a runner. The host expressions under `harness/trio/hosts/` carry Host routing and permission semantics for Codex (`codex.mjs`) and the manual fail-closed fallback (`generic.mjs`); they are governance semantics, not package-format adapters.
 
-The runtime split is intentional:
+The retired `harness/adapters`, `harness/runtime`, and `harness/mcp` planes are not part of the current implementation. No package includes MCP, hooks, runtime executables, or credentials.
 
-- `harness/adapters` remains the legacy compatibility boundary for the current Codex target.
-- `harness/runtime` contains root policy, status/doctor/summary services, dry-run planning, safe-apply flows, approval verification, receipts, and registry/policy evaluation.
-- `harness/mcp` registers those services as MCP tools and resources over stdio or Streamable HTTP.
+## Distribution
 
-If a feature can be shared between CLI and MCP, it belongs in `harness/runtime`, not in `harness/mcp`, and not in a shell wrapper around `./scripts/harness`.
+Each release produces two artifacts generated from one shared skill source map:
+
+- `harness-codex-plugin-<version>.tgz` — the native Codex package. It contains `.codex-plugin/plugin.json` and the established nested layout `skills/trio/{dev,office,safety}` plus the `skills/chiefops/` companion, and installs through the Codex native marketplace path.
+- `harness-agent-plugins-<version>.tgz` — the portable Agent Plugins v1 package. It contains a root `plugin.json` with the closed portable schema (`https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`) and five immediate skill children: `skills/{trio,dev,office,safety,chiefops}/SKILL.md`. Agent Plugins discovery is non-recursive, so the portable package uses a flat layout rather than the Codex-nested one.
+
+Codex is the only managed native target. The portable package is a vendor-neutral distribution artifact: installation is manual and client-owned, following each Agent Plugins-compatible client's own procedure. This repository makes no managed generic-client installation claim. The local `install`/`sync` projection remains a Codex-specific local migration path, not a third-party distribution mechanism.
 
 ## Trio v2 Operating Boundary
 
@@ -42,7 +46,7 @@ This repository does not project planning hooks or scripts. Host hook configurat
 
 The implementation layers above are not the same thing as the operator surface.
 
-- The implementation surface is `core`, `adapters`, `installer`, and `upstream`.
+- The implementation surface is `core`, `installer`, `trio`, `upstream`, and `packages/plugin-kit`.
 - The operator surface is the workflow-lane map documented in [Workflows](workflows.md).
 
 This separation is intentional:

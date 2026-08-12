@@ -1,10 +1,11 @@
 # Harness Packed Plugin Installation
 
-Harness publishes one packaged Codex Trio artifact per release:
+Harness publishes two packaged artifacts per release:
 
 | Host | Package |
 | --- | --- |
-| Codex | `harness-codex-plugin-<version>.tgz` |
+| Codex (native) | `harness-codex-plugin-<version>.tgz` |
+| Agent Plugins clients (portable) | `harness-agent-plugins-<version>.tgz` |
 
 Download the package from the [latest GitHub release](https://github.com/ilderaj/superpowering-with-files/releases/latest). The release also includes `SHA256SUMS`, `manifest.json`, and `release-notes.md`.
 
@@ -48,8 +49,15 @@ Create the marketplace manifest described in [Codex installation](codex.md), the
 
 The extracted package contains `.codex-plugin/plugin.json`, exactly four Trio skills under `skills/trio/`, and one ChiefOps governance companion under `skills/chiefops/`. Generic/manual fallback hosts have no packaged artifact.
 
+## Portable Agent Plugins clients
+
+For clients that implement Agent Plugins v1, download `harness-agent-plugins-<version>.tgz` and follow the client's own installation procedure. The portable package has a root `plugin.json` with the closed portable schema and five immediate skills (`skills/{trio,dev,office,safety,chiefops}/SKILL.md`); it contains no Codex interface metadata and no MCP, hooks, or runtime. Installation is manual and client-owned; this repository does not manage or install anything in third-party clients.
+
+See [Agent Plugins installation](agent-plugins.md) for details.
+
 ## Related docs
 
 - [Codex installation](codex.md)
+- [Agent Plugins installation](agent-plugins.md)
 - [Platform support](platform-support.md)
 - [Harness Plugin Release Artifacts](../release-plugin-artifacts.md)
