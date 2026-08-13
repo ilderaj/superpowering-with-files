@@ -42,3 +42,29 @@ test('buildArtifactManifest records versioned artifact names and checksums', asy
 
   await readFile(artifactPath);
 });
+
+test('buildArtifactManifest records both release artifacts with distinct checksums', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'harness-manifest-both-'));
+  const codexPath = path.join(dir, 'harness-codex-plugin-1.1.0.tgz');
+  const portablePath = path.join(dir, 'harness-agent-plugins-1.1.0.tgz');
+  await writeFile(codexPath, 'codex plugin\n');
+  await writeFile(portablePath, 'portable plugin\n');
+
+  const manifest = await buildArtifactManifest({
+    version: '1.1.0',
+    artifacts: [
+      { target: 'codex', type: 'plugin', path: codexPath },
+      { target: 'agent-plugins', type: 'plugin', path: portablePath }
+    ]
+  });
+
+  assert.equal(manifest.version, '1.1.0');
+  assert.equal(manifest.artifacts.length, 2);
+  assert.deepEqual(
+    manifest.artifacts.map((artifact) => artifact.name),
+    ['harness-agent-plugins-1.1.0.tgz', 'harness-codex-plugin-1.1.0.tgz']
+  );
+  assert.notEqual(manifest.artifacts[0].sha256, manifest.artifacts[1].sha256);
+  assert.equal(manifest.artifacts[0].target, 'agent-plugins');
+  assert.equal(manifest.artifacts[1].target, 'codex');
+});

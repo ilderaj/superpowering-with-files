@@ -1,6 +1,10 @@
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { platformContractFor } from './platform-contracts.mjs';
+import {
+  agentPluginsSchemaUrl,
+  platformContractFor,
+  trioSkillSourceMap
+} from './platform-contracts.mjs';
 
 export async function buildPlugin({ target, version, outDir, rootDir = process.cwd() }) {
   const contract = platformContractFor(target);
@@ -15,7 +19,7 @@ export async function buildPlugin({ target, version, outDir, rootDir = process.c
   await rm(pluginRoot, { recursive: true, force: true });
   await mkdir(pluginRoot, { recursive: true });
   await writePlatformManifest({ pluginRoot, contract, config, version });
-  await writeTrioSkills({ pluginRoot, rootDir });
+  await writeTrioSkills({ pluginRoot, rootDir, contract });
   await writeReadme({ pluginRoot, contract, config });
 
   return {
@@ -26,6 +30,11 @@ export async function buildPlugin({ target, version, outDir, rootDir = process.c
 }
 
 async function writePlatformManifest({ pluginRoot, contract, config, version }) {
+  if (contract.id === 'agent-plugins') {
+    await writePortableManifest({ pluginRoot, config, version });
+    return;
+  }
+
   const manifest = {
     name: config.name,
     version,
@@ -57,16 +66,26 @@ async function writePlatformManifest({ pluginRoot, contract, config, version }) 
   );
 }
 
-async function writeTrioSkills({ pluginRoot, rootDir }) {
-  const skills = [
-    ['harness/trio/skill/SKILL.md', 'skills/trio/SKILL.md'],
-    ['harness/trio/capabilities/dev/SKILL.md', 'skills/trio/dev/SKILL.md'],
-    ['harness/trio/capabilities/office/SKILL.md', 'skills/trio/office/SKILL.md'],
-    ['harness/trio/capabilities/safety/SKILL.md', 'skills/trio/safety/SKILL.md'],
-    ['harness/trio/governance/chiefops/SKILL.md', 'skills/chiefops/SKILL.md']
-  ];
+async function writePortableManifest({ pluginRoot, config, version }) {
+  const manifest = {
+    $schema: agentPluginsSchemaUrl,
+    name: config.name,
+    version,
+    description: config.description,
+    author: {
+      name: 'Superpowering With Files'
+    },
+    repository: config.repository,
+    license: 'MIT',
+    keywords: config.keywords
+  };
 
-  for (const [source, destination] of skills) {
+  await writeFile(path.join(pluginRoot, 'plugin.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+async function writeTrioSkills({ pluginRoot, rootDir, contract }) {
+  for (const { name, source } of trioSkillSourceMap) {
+    const destination = contract.skillDestinations[name];
     const outputPath = path.join(pluginRoot, destination);
     await mkdir(path.dirname(outputPath), { recursive: true });
     await cp(path.join(rootDir, source), outputPath);
@@ -74,6 +93,10 @@ async function writeTrioSkills({ pluginRoot, rootDir }) {
 }
 
 async function writeReadme({ pluginRoot, contract, config }) {
+  const installLine = contract.id === 'agent-plugins'
+    ? 'Install this packed plugin with an Agent Plugins-compatible client using that client\'s own procedure.'
+    : 'Install this packed plugin with the corresponding IDE plugin installer.';
+
   await writeFile(
     path.join(pluginRoot, 'README.md'),
     [
@@ -83,7 +106,7 @@ async function writeReadme({ pluginRoot, contract, config }) {
       '',
       `This package targets ${contract.displayName} and bundles the Trio skills.`,
       '',
-      'Install this packed plugin with the corresponding IDE plugin installer.'
+      installLine
     ].join('\n')
   );
 }

@@ -10,7 +10,7 @@ function assertNoLegacyOperatorClaims(doc, { name }) {
   assert.doesNotMatch(doc, /workspace-skills|--skills-profile|\bminimal-global\b|\bhigh-assurance\b/i, `${name} must not make the retired profile plane current`);
 }
 
-test('public installation docs retain only the Codex page', async () => {
+test('public installation docs retain only the Codex and Agent Plugins pages', async () => {
   for (const retiredDoc of [
     'docs/install/claude-code.md',
     'docs/install/cursor.md',
@@ -77,30 +77,42 @@ test('non-Codex repository projections are retired and current documents retain 
   }
 });
 
-test('release and installation docs describe one Codex Trio plugin artifact', async () => {
-  const [releaseArtifacts, pluginPackages, platformSupport, codex] = await Promise.all([
+test('release and installation docs describe the Codex and portable Agent Plugins artifacts', async () => {
+  const [releaseArtifacts, pluginPackages, platformSupport, codex, release] = await Promise.all([
     readFile('docs/release-plugin-artifacts.md', 'utf8'),
     readFile('docs/install/plugin-packages.md', 'utf8'),
     readFile('docs/install/platform-support.md', 'utf8'),
-    readFile('docs/install/codex.md', 'utf8')
+    readFile('docs/install/codex.md', 'utf8'),
+    readFile('docs/release.md', 'utf8')
   ]);
 
   assert.match(releaseArtifacts, /harness-codex-plugin-<version>\.tgz/);
+  assert.match(releaseArtifacts, /harness-agent-plugins-<version>\.tgz/);
   assert.match(releaseArtifacts, /\.codex-plugin\/plugin\.json/);
   assert.match(releaseArtifacts, /four Trio skills/i);
   assert.match(releaseArtifacts, /ChiefOps governance companion|chiefops/i);
+  assert.match(releaseArtifacts, /https:\/\/agent-plugins\.org\/schemas\/1\.0\.0\/plugin\.schema\.json/);
+  assert.match(releaseArtifacts, /skills\/trio\/SKILL\.md/);
+  assert.match(releaseArtifacts, /skills\/dev\/SKILL\.md/);
   assert.doesNotMatch(releaseArtifacts, /harness-runtime|harness-(?:claude-code|cursor|copilot)-plugin/i);
 
   assert.match(pluginPackages, /harness-codex-plugin-<version>\.tgz/);
+  assert.match(pluginPackages, /harness-agent-plugins-<version>\.tgz/);
   assert.match(pluginPackages, /codex plugin marketplace add/);
   assert.match(pluginPackages, /ChiefOps governance companion|chiefops/i);
   assert.doesNotMatch(pluginPackages, /harness-(?:claude-code|cursor|copilot)-plugin/i);
 
   assert.match(platformSupport, /Codex is the only managed native target/i);
   assert.match(platformSupport, /generic\/manual fallback/i);
+  assert.match(platformSupport, /harness-agent-plugins-<version>\.tgz/);
+  assert.match(platformSupport, /no managed generic-client installation/i);
   assert.match(codex, /harness-codex-plugin-<version>\.tgz/);
   assert.match(codex, /codex plugin marketplace add/);
   assert.match(codex, /ChiefOps governance companion|chiefops/i);
+  assert.match(codex, /harness-agent-plugins-<version>\.tgz/);
+
+  assert.match(release, /harness-codex-plugin-<version>\.tgz/);
+  assert.match(release, /harness-agent-plugins-<version>\.tgz/);
 
   for (const doc of [pluginPackages, codex]) {
     assert.match(doc, /PLUGIN_ROOT=.*harness-codex-plugin-\$\{VERSION\}/);
@@ -108,6 +120,21 @@ test('release and installation docs describe one Codex Trio plugin artifact', as
     assert.match(doc, /Refusing existing destination/);
     assert.doesNotMatch(doc, /mkdir -p "\$PLUGIN_ROOT"/);
   }
+});
+
+test('Agent Plugins install doc explains portable manual client-owned semantics', async () => {
+  const doc = await readFile('docs/install/agent-plugins.md', 'utf8');
+
+  assert.match(doc, /harness-agent-plugins-<version>\.tgz/);
+  assert.match(doc, /client-owned/i);
+  assert.match(doc, /client's own procedure/i);
+  assert.match(doc, /skills\/\{trio,dev,office,safety,chiefops\}\/SKILL\.md/);
+  assert.match(doc, /non-recursive/i);
+  assert.match(doc, /https:\/\/agent-plugins\.org\/schemas\/1\.0\.0\/plugin\.schema\.json/);
+  assert.doesNotMatch(doc, /codex plugin marketplace add/);
+  assert.doesNotMatch(doc, /managed generic-client installation/i);
+  assert.match(doc, /no MCP, hooks/);
+  assert.doesNotMatch(doc, /hooks\.json|mcp\.json/i);
 });
 
 test('README names the Trio as the sole durable authority and only seven public commands', async () => {

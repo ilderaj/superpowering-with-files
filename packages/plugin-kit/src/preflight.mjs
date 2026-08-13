@@ -1,10 +1,15 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { platformContractFor } from './platform-contracts.mjs';
+import { validatePortablePlugin } from './portable-validation.mjs';
 
 export async function validateBuiltPlugin({ target, pluginRoot }) {
   const contract = platformContractFor(target);
   const errors = [];
+
+  if (contract.id === 'agent-plugins') {
+    errors.push(...(await validatePortablePlugin({ pluginRoot })).errors);
+  }
 
   for (const requiredFile of contract.requiredFiles) {
     if (!(await pathExists(path.join(pluginRoot, requiredFile)))) {

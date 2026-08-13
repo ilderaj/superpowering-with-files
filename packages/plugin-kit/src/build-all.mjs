@@ -71,11 +71,12 @@ function renderReleaseNotes(version) {
   return [
     `# Superpowering With Files ${version}`,
     '',
-    'Trio skills plugin release for Codex.',
+    'Trio skills plugin release: a portable Agent Plugins v1 package and a native Codex package, both built from the same skill sources.',
     '',
     'Artifacts:',
     '',
-    `- harness-codex-plugin-${version}.tgz`,
+    `- harness-agent-plugins-${version}.tgz (portable Agent Plugins v1 package)`,
+    `- harness-codex-plugin-${version}.tgz (native Codex package)`,
     '',
     'Use `SHA256SUMS` and `manifest.json` to verify downloaded assets.'
   ].join('\n');
