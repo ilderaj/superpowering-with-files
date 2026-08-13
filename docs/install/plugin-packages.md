@@ -1,11 +1,13 @@
 # Harness Packed Plugin Installation
 
-Harness publishes two packaged artifacts per release:
+Harness publishes two core Trio artifacts and two independent, opt-in Matt companion artifacts per release:
 
 | Host | Package |
 | --- | --- |
 | Codex (native) | `harness-codex-plugin-<version>.tgz` |
 | Agent Plugins clients (portable) | `harness-agent-plugins-<version>.tgz` |
+| Codex Matt companion (native) | `harness-matt-skills-codex-plugin-<version>.tgz` |
+| Agent Plugins Matt companion (portable) | `harness-matt-skills-agent-plugins-<version>.tgz` |
 
 Download the package from the [latest GitHub release](https://github.com/ilderaj/superpowering-with-files/releases/latest). The release also includes `SHA256SUMS`, `manifest.json`, and `release-notes.md`.
 
@@ -14,6 +16,8 @@ Download the package from the [latest GitHub release](https://github.com/ilderaj
 ```sh
 shasum -a 256 -c SHA256SUMS
 ```
+
+Confirm that each checked archive also has the expected name, target, and digest in `manifest.json`.
 
 For a single downloaded package, compare its checksum manually:
 
@@ -49,9 +53,15 @@ Create the marketplace manifest described in [Codex installation](codex.md), the
 
 The extracted package contains `.codex-plugin/plugin.json`, exactly four Trio skills under `skills/trio/`, and one ChiefOps governance companion under `skills/chiefops/`. Generic/manual fallback hosts have no packaged artifact.
 
+## Optional Matt companion packages
+
+The companion archives are independent and opt-in; they make no change to Trio or its projection. Both carry only `grill-me`, `grilling`, and `to-questionnaire`, plus `LICENSE` and `UPSTREAM.json`. `grill-me` and `grilling` are explicit opt-in. `to-questionnaire` creates a local Markdown draft; external delivery remains human-gated.
+
+Verify `harness-matt-skills-codex-plugin-<version>.tgz` and `harness-matt-skills-agent-plugins-<version>.tgz` with `SHA256SUMS` and `manifest.json` before extracting either archive. The native companion is a distinct Codex marketplace package with its own `.codex-plugin/plugin.json`; see [Codex installation](codex.md). The portable companion has a root `plugin.json` and three flat skills. It is client-owned: follow the client's own procedure and do not claim a remote install.
+
 ## Portable Agent Plugins clients
 
-For clients that implement Agent Plugins v1, download `harness-agent-plugins-<version>.tgz` and follow the client's own installation procedure. The portable package has a root `plugin.json` with the closed portable schema and five immediate skills (`skills/{trio,dev,office,safety,chiefops}/SKILL.md`); it contains no Codex interface metadata and no MCP, hooks, or runtime. Installation is manual and client-owned; this repository does not manage or install anything in third-party clients.
+For clients that implement Agent Plugins v1, download either `harness-agent-plugins-<version>.tgz` for the core Trio package or `harness-matt-skills-agent-plugins-<version>.tgz` for the opt-in companion, then follow the client's own installation procedure. The core portable package has five immediate skills (`skills/{trio,dev,office,safety,chiefops}/SKILL.md`); the companion has only `skills/{grill-me,grilling,to-questionnaire}/SKILL.md`. The companion makes no change to Trio: `grill-me` and `grilling` are explicit opt-in, `to-questionnaire` creates a local Markdown draft, and external delivery remains human-gated. Installation is manual and client-owned; this repository does not manage or install anything in third-party clients.
 
 See [Agent Plugins installation](agent-plugins.md) for details.
 

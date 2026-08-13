@@ -1,14 +1,17 @@
 import { access, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { platformContractFor } from './platform-contracts.mjs';
+import { mattSkillsCompanionFamily, platformContractFor } from './platform-contracts.mjs';
 import { validatePortablePlugin } from './portable-validation.mjs';
 
 export async function validateBuiltPlugin({ target, pluginRoot }) {
   const contract = platformContractFor(target);
   const errors = [];
 
-  if (contract.id === 'agent-plugins') {
-    errors.push(...(await validatePortablePlugin({ pluginRoot })).errors);
+  if (contract.manifestPath === 'plugin.json') {
+    const skillNames = contract.id === 'matt-skills-agent-plugins'
+      ? mattSkillsCompanionFamily.skillSourceMap.map(({ name }) => name)
+      : undefined;
+    errors.push(...(await validatePortablePlugin({ pluginRoot, skillNames })).errors);
   }
 
   for (const requiredFile of contract.requiredFiles) {

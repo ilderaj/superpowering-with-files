@@ -20,11 +20,11 @@ const PORTABLE_SKILL_NAMES = ['trio', 'dev', 'office', 'safety', 'chiefops'];
 // Mirrors the Agent Plugins v1.0.0 manifest name constraint.
 const PORTABLE_NAME_PATTERN = /^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
 
-export async function validatePortablePlugin({ pluginRoot }) {
+export async function validatePortablePlugin({ pluginRoot, skillNames = PORTABLE_SKILL_NAMES }) {
   const errors = [];
 
   await validateManifest(path.join(pluginRoot, 'plugin.json'), errors);
-  await validateImmediateSkillDiscovery(path.join(pluginRoot, 'skills'), errors);
+  await validateImmediateSkillDiscovery(path.join(pluginRoot, 'skills'), skillNames, errors);
   await validateRootContainment(pluginRoot, errors);
 
   return {
@@ -125,7 +125,7 @@ async function validateManifest(manifestPath, errors) {
   }
 }
 
-async function validateImmediateSkillDiscovery(skillsRoot, errors) {
+async function validateImmediateSkillDiscovery(skillsRoot, skillNames, errors) {
   let entries;
   try {
     entries = (await readdir(skillsRoot, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name));
@@ -135,9 +135,12 @@ async function validateImmediateSkillDiscovery(skillsRoot, errors) {
   }
 
   const names = entries.map((entry) => entry.name);
-  const expected = [...PORTABLE_SKILL_NAMES].sort();
+  const expected = [...skillNames].sort();
   if (names.join(',') !== expected.join(',')) {
-    errors.push(`Portable skills/ must contain exactly the five immediate skill directories, got: ${names.join(', ')}`);
+    const expectation = skillNames === PORTABLE_SKILL_NAMES
+      ? 'exactly the five immediate skill directories'
+      : `exactly these immediate skill directories: ${expected.join(', ')}`;
+    errors.push(`Portable skills/ must contain ${expectation}, got: ${names.join(', ')}`);
     return;
   }
 
