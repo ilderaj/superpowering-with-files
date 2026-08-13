@@ -1,0 +1,31 @@
+{
+  "repo": "https://github.com/mattpocock/skills",
+  "tag": "v1.2.3",
+  "tagObject": "835450ef244ab7335f75d95b83e7d979eae22a6d",
+  "commit": "6acc160e4e0cd062dbbbd7a1b26ae92855edf07e",
+  "license": {
+    "path": "LICENSE",
+    "sha256": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5"
+  },
+  "bodyPatch": false,
+  "skills": [
+    {
+      "name": "grill-me",
+      "corpusPath": "grill-me/SKILL.md",
+      "originalPath": "skills/productivity/grill-me/SKILL.md",
+      "sha256": "6189dfceb7304a6e5558f75d87e68fa3bc7fcf7ba120e44f21f8a61fe01eba54"
+    },
+    {
+      "name": "grilling",
+      "corpusPath": "grilling/SKILL.md",
+      "originalPath": "skills/productivity/grilling/SKILL.md",
+      "sha256": "fa5c1e5ee76b1c8f1ae56101f52c9e239de75d5c578adc61227b92d10b7e52ef"
+    },
+    {
+      "name": "to-questionnaire",
+      "corpusPath": "to-questionnaire/SKILL.md",
+      "originalPath": "skills/productivity/to-questionnaire/SKILL.md",
+      "sha256": "8e7f9ed8d7b2e66babf1a54aee9b94319bf38c32619cffe78819df6518ead5fc"
+    }
+  ]
+}

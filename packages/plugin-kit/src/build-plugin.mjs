@@ -2,9 +2,12 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   agentPluginsSchemaUrl,
+  mattSkillsCompanionFamily,
+  mattSkillsCompanionTargets,
   platformContractFor,
   trioSkillSourceMap
 } from './platform-contracts.mjs';
+import { loadMattSkillsSource } from './matt-skills-source.mjs';
 
 export async function buildPlugin({ target, version, outDir, rootDir = process.cwd() }) {
   const contract = platformContractFor(target);
@@ -19,8 +22,12 @@ export async function buildPlugin({ target, version, outDir, rootDir = process.c
   await rm(pluginRoot, { recursive: true, force: true });
   await mkdir(pluginRoot, { recursive: true });
   await writePlatformManifest({ pluginRoot, contract, config, version });
-  await writeTrioSkills({ pluginRoot, rootDir, contract });
-  await writeReadme({ pluginRoot, contract, config });
+  if (mattSkillsCompanionTargets.includes(target)) {
+    await writeMattSkills({ pluginRoot, contract });
+  } else {
+    await writeTrioSkills({ pluginRoot, rootDir, contract });
+  }
+  await writeReadme({ pluginRoot, contract, config, target });
 
   return {
     target,
@@ -30,7 +37,7 @@ export async function buildPlugin({ target, version, outDir, rootDir = process.c
 }
 
 async function writePlatformManifest({ pluginRoot, contract, config, version }) {
-  if (contract.id === 'agent-plugins') {
+  if (contract.manifestPath === 'plugin.json') {
     await writePortableManifest({ pluginRoot, config, version });
     return;
   }
@@ -92,21 +99,49 @@ async function writeTrioSkills({ pluginRoot, rootDir, contract }) {
   }
 }
 
-async function writeReadme({ pluginRoot, contract, config }) {
-  const installLine = contract.id === 'agent-plugins'
+async function writeMattSkills({ pluginRoot, contract }) {
+  const source = await loadMattSkillsSource();
+
+  await Promise.all(mattSkillsCompanionFamily.skillSourceMap.map(async ({ name }) => {
+    const outputPath = path.join(pluginRoot, contract.skillDestinations[name]);
+    await mkdir(path.dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, source.skills[name]);
+  }));
+  await writeFile(path.join(pluginRoot, 'LICENSE'), source.license);
+  await writeFile(
+    path.join(pluginRoot, 'UPSTREAM.json'),
+    `${JSON.stringify(source.metadata, null, 2)}\n`
+  );
+}
+
+async function writeReadme({ pluginRoot, contract, config, target }) {
+  const installLine = contract.manifestPath === 'plugin.json'
     ? 'Install this packed plugin with an Agent Plugins-compatible client using that client\'s own procedure.'
     : 'Install this packed plugin with the corresponding IDE plugin installer.';
+  const isMattSkillsCompanion = mattSkillsCompanionTargets.includes(target);
+  const body = isMattSkillsCompanion
+    ? [
+        `# ${config.displayName}`,
+        '',
+        config.description,
+        '',
+        'The grilling skills are explicit and opt-in.',
+        '`to-questionnaire` only drafts a local Markdown document; any external delivery remains human-gated.',
+        '',
+        installLine
+      ]
+    : [
+        `# ${config.displayName}`,
+        '',
+        config.description,
+        '',
+        `This package targets ${contract.displayName} and bundles the Trio skills.`,
+        '',
+        installLine
+      ];
 
   await writeFile(
     path.join(pluginRoot, 'README.md'),
-    [
-      `# ${config.displayName}`,
-      '',
-      config.description,
-      '',
-      `This package targets ${contract.displayName} and bundles the Trio skills.`,
-      '',
-      installLine
-    ].join('\n')
+    body.join('\n')
   );
 }

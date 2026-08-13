@@ -72,7 +72,7 @@ test('packPlugin creates a versioned Agent Plugins tarball with flat portable sk
   assert.doesNotMatch(stdout, /(?:^|\/)node_modules\//);
 });
 
-test('buildAll creates release artifacts, manifest, checksums, and notes', async () => {
+test('buildAll creates core and Matt companion release artifacts, manifest, checksums, and notes', async () => {
   const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-build-all-'));
   const release = await buildAll({
     version: '1.1.0',
@@ -85,35 +85,52 @@ test('buildAll creates release artifacts, manifest, checksums, and notes', async
     'SHA256SUMS',
     'harness-agent-plugins-1.1.0.tgz',
     'harness-codex-plugin-1.1.0.tgz',
+    'harness-matt-skills-agent-plugins-1.1.0.tgz',
+    'harness-matt-skills-codex-plugin-1.1.0.tgz',
     'manifest.json',
     'release-notes.md'
   ]);
 
   const manifest = JSON.parse(await readFile(path.join(release.releaseOut, 'manifest.json'), 'utf8'));
   assert.equal(manifest.version, '1.1.0');
-  assert.equal(manifest.artifacts.length, 2);
+  assert.equal(manifest.artifacts.length, 4);
   assert.deepEqual(
     manifest.artifacts.map((artifact) => artifact.target).sort(),
-    ['agent-plugins', 'codex']
+    ['agent-plugins', 'codex', 'matt-skills-agent-plugins', 'matt-skills-codex']
   );
   assert.deepEqual(
     manifest.artifacts.map((artifact) => artifact.name).sort(),
-    ['harness-agent-plugins-1.1.0.tgz', 'harness-codex-plugin-1.1.0.tgz']
+    [
+      'harness-agent-plugins-1.1.0.tgz',
+      'harness-codex-plugin-1.1.0.tgz',
+      'harness-matt-skills-agent-plugins-1.1.0.tgz',
+      'harness-matt-skills-codex-plugin-1.1.0.tgz'
+    ]
   );
 
   const sums = await readFile(path.join(release.releaseOut, 'SHA256SUMS'), 'utf8');
   assert.doesNotMatch(sums, /harness-runtime-1\.1\.0\.tgz/);
   assert.match(sums, /harness-codex-plugin-1\.1\.0\.tgz/);
   assert.match(sums, /harness-agent-plugins-1\.1\.0\.tgz/);
+  assert.match(sums, /harness-matt-skills-codex-plugin-1\.1\.0\.tgz/);
+  assert.match(sums, /harness-matt-skills-agent-plugins-1\.1\.0\.tgz/);
   assert.doesNotMatch(sums, /harness-(?:claude-code|cursor|copilot)-plugin-1\.1\.0\.tgz/);
 
   const notes = await readFile(path.join(release.releaseOut, 'release-notes.md'), 'utf8');
   assert.match(notes, /harness-agent-plugins-1\.1\.0\.tgz/);
   assert.match(notes, /harness-codex-plugin-1\.1\.0\.tgz/);
 
-  for (const artifact of release.artifacts) {
+  for (const artifact of release.artifacts.filter((artifact) => ['codex', 'agent-plugins'].includes(artifact.target))) {
     const { stdout } = await execFileAsync('tar', ['-tzf', artifact.path]);
     assert.match(stdout, /skills\/trio\/SKILL\.md/);
     assert.match(stdout, /skills\/chiefops\/SKILL\.md/);
+  }
+
+  for (const artifact of release.artifacts.filter((artifact) => artifact.target.startsWith('matt-skills-'))) {
+    const { stdout } = await execFileAsync('tar', ['-tzf', artifact.path]);
+    assert.match(stdout, /skills\/grill-me\/SKILL\.md/);
+    assert.match(stdout, /skills\/grilling\/SKILL\.md/);
+    assert.match(stdout, /skills\/to-questionnaire\/SKILL\.md/);
+    assert.doesNotMatch(stdout, /skills\/trio\/SKILL\.md/);
   }
 });

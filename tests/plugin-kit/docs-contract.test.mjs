@@ -122,6 +122,40 @@ test('release and installation docs describe the Codex and portable Agent Plugin
   }
 });
 
+test('Matt companion documentation is opt-in, verified, and independent from Trio', async () => {
+  const [releaseArtifacts, pluginPackages, platformSupport, codex, agentPlugins, release] = await Promise.all([
+    readFile('docs/release-plugin-artifacts.md', 'utf8'),
+    readFile('docs/install/plugin-packages.md', 'utf8'),
+    readFile('docs/install/platform-support.md', 'utf8'),
+    readFile('docs/install/codex.md', 'utf8'),
+    readFile('docs/install/agent-plugins.md', 'utf8'),
+    readFile('docs/release.md', 'utf8')
+  ]);
+
+  for (const doc of [releaseArtifacts, pluginPackages, platformSupport, codex, agentPlugins, release]) {
+    assert.match(doc, /harness-matt-skills-codex-plugin-<version>\.tgz/);
+    assert.match(doc, /harness-matt-skills-agent-plugins-<version>\.tgz/);
+    assert.match(doc, /opt-in/i);
+    assert.match(doc, /no change to (?:the )?Trio|does not change (?:the )?Trio/i);
+    assert.match(doc, /grill-me.*grilling|grilling.*grill-me/i);
+    assert.match(doc, /local Markdown draft/i);
+    assert.match(doc, /external delivery.*human-gated|human-gated.*external delivery/i);
+  }
+
+  assert.match(codex, /^## Existing user-global ChiefOps takeover$/m);
+
+  for (const doc of [releaseArtifacts, pluginPackages, codex, agentPlugins, release]) {
+    assert.match(doc, /SHA256SUMS/);
+    assert.match(doc, /manifest\.json/);
+  }
+
+  assert.match(codex, /harness-matt-skills-codex-marketplace/);
+  assert.match(codex, /harness-matt-skills-codex-plugin/);
+  assert.match(agentPlugins, /client-owned/i);
+  assert.match(agentPlugins, /client's own procedure/i);
+  assert.doesNotMatch(agentPlugins, /remote install|codex plugin marketplace add/i);
+});
+
 test('Agent Plugins install doc explains portable manual client-owned semantics', async () => {
   const doc = await readFile('docs/install/agent-plugins.md', 'utf8');
 

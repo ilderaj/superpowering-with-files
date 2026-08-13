@@ -4,6 +4,8 @@ Codex is the only managed native Trio target. Install the packaged `harness-code
 
 Releases also include a separate portable Agent Plugins package (`harness-agent-plugins-<version>.tgz`) for non-Codex clients that implement the standard; it is not installed through this Codex marketplace flow. See [Agent Plugins installation](agent-plugins.md).
 
+Two independent, opt-in Matt companion archives are also available: `harness-matt-skills-codex-plugin-<version>.tgz` and `harness-matt-skills-agent-plugins-<version>.tgz`. They make no change to Trio or its projection. `grill-me` and `grilling` are explicit opt-in; `to-questionnaire` creates a local Markdown draft; external delivery remains human-gated. Verify every archive with `SHA256SUMS` and its digest record in `manifest.json` before extraction.
+
 ## Prepare a local marketplace
 
 ```sh
@@ -101,3 +103,29 @@ Absent state, V1 state, workspace or both scope, a wrong placement, an already-o
 - The actual global run requires a separately authorized human gate at a durable authority root. This repository's tests exercise the command only against temporary fixtures.
 
 See [plugin package installation](plugin-packages.md) for download and checksum steps.
+
+## Optional Matt companion in Codex
+
+The native companion uses a separate Codex marketplace root and manifest. It is not a replacement for, or extension of, the core Trio package.
+
+```sh
+set -eu
+
+VERSION=<version>
+MATT_MARKETPLACE_ROOT="$HOME/.local/share/harness-matt-skills-codex-marketplace"
+PLUGIN_ROOT="$MATT_MARKETPLACE_ROOT/plugins/harness-matt-skills-codex-plugin-${VERSION}"
+ARCHIVE="$HOME/Downloads/harness-matt-skills-codex-plugin-${VERSION}.tgz"
+
+if test -e "$PLUGIN_ROOT"; then
+  printf '%s\n' "Refusing existing destination: $PLUGIN_ROOT" >&2
+  exit 1
+fi
+
+mkdir -p "$MATT_MARKETPLACE_ROOT/plugins" "$MATT_MARKETPLACE_ROOT/.agents/plugins"
+mkdir "$PLUGIN_ROOT"
+tar -xzf "$ARCHIVE" -C "$PLUGIN_ROOT"
+```
+
+Create a local marketplace manifest that lists `harness-matt-skills-codex-plugin` at `./plugins/harness-matt-skills-codex-plugin-<version>`, then register that marketplace with `codex plugin marketplace add "$MATT_MARKETPLACE_ROOT"`. Confirm the companion `.codex-plugin/plugin.json`, `LICENSE`, `UPSTREAM.json`, and exactly the three skill files before enabling it. The separate package is opt-in: `grill-me` and `grilling` are explicit opt-in, `to-questionnaire` creates a local Markdown draft, and external delivery remains human-gated.
+
+See [plugin package installation](plugin-packages.md) for download, `SHA256SUMS`, and `manifest.json` verification steps.
