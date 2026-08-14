@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "refreshedAt": "2026-08-08T13:07:20.342Z",
+  "refreshedAt": "2026-08-14T12:19:22.710Z",
   "sources": {
     "planning-with-files": {
       "name": "planning-with-files",
@@ -8,11 +8,11 @@
       "fallbackUsed": false,
       "resolved": {
         "kind": "latest-release",
-        "version": "v3.9.0",
-        "ref": "v3.9.0",
-        "commitSha": "0e2b00ce4e8d1789cbcb16a41f7c9510b212b942"
+        "version": "v3.10.0",
+        "ref": "v3.10.0",
+        "commitSha": "40bef77fd8ccd9344e11d9acb85e7090ece0e1e0"
       },
-      "refreshedAt": "2026-08-08T13:07:20.342Z"
+      "refreshedAt": "2026-08-14T12:19:22.710Z"
     }
   }
 }
