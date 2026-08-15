@@ -11,3 +11,4 @@ export * from './storeRead.js';
 export * from './evidence.js';
 export * from './passthrough.js';
 export * from './routing.js';
+export * from './dispatch.js';

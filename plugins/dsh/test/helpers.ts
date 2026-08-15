@@ -196,13 +196,51 @@ export interface MockCtxHarness {
   commands: Map<string, SwfCommandDefinition>;
   listeners: Map<string, Set<(...args: unknown[]) => unknown>>;
   approvalCalls: { toolName: string; reason: string }[];
+  subagents: MockSubagentsState;
   emit: (name: string, ...args: unknown[]) => Promise<unknown[]>;
 }
 
-export function makeMockCtx(options: { approvalOutcome?: string } = {}): MockCtxHarness {
+export interface MockSubagentRun {
+  id: string | null;
+  stopReason?: string;
+}
+
+export interface MockSubagentsOptions {
+  providers?: string[];
+  runs?: MockSubagentRun[];
+  emitStartEvent?: boolean;
+  startThrows?: Error;
+}
+
+export interface MockSubagentsState {
+  providers: string[];
+  started: { name: string; request: Record<string, unknown> }[];
+  disposeCalls: string[];
+  runQueue: MockSubagentRun[];
+  emitStartEvent: boolean;
+}
+
+export function makeMockCtx(options: {
+  approvalOutcome?: string;
+  tokenMeterTotal?: number;
+  subagents?: MockSubagentsOptions;
+} = {}): MockCtxHarness {
   const listeners = new Map<string, Set<(...args: unknown[]) => unknown>>();
   const commands = new Map<string, SwfCommandDefinition>();
   const approvalCalls: { toolName: string; reason: string }[] = [];
+  const subagentsState: MockSubagentsState = {
+    providers: [...(options.subagents?.providers ?? ['subagent-dsh-sdk', 'subagent-codex', 'subagent-claude-code'])],
+    started: [],
+    disposeCalls: [],
+    runQueue: [...(options.subagents?.runs ?? [])],
+    emitStartEvent: options.subagents?.emitStartEvent ?? true
+  };
+  let runCounter = 0;
+  const emit = (name: string, ...args: unknown[]): Promise<unknown[]> => {
+    const set = listeners.get(name);
+    if (!set) return Promise.resolve([]);
+    return Promise.all([...set].map((listener) => listener(...args)));
+  };
   const ctx = {
     on: (name: string, listener: (...args: unknown[]) => unknown): (() => boolean) => {
       if (!listeners.has(name)) listeners.set(name, new Set());
@@ -234,13 +272,38 @@ export function makeMockCtx(options: { approvalOutcome?: string } = {}): MockCtx
         return options.approvalOutcome ?? 'allowed-once';
       }
     },
+    subagents: {
+      list: (): string[] => [...subagentsState.providers],
+      getProvider: (name: string) =>
+        subagentsState.providers.includes(name)
+          ? { name, capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false }, inheritsParentContext: true }
+          : undefined,
+      start: async (name: string, request: Record<string, unknown>) => {
+        if (options.subagents?.startThrows) throw options.subagents.startThrows;
+        runCounter += 1;
+        const spec = subagentsState.runQueue.shift() ?? { id: `session-${runCounter}` };
+        subagentsState.started.push({ name, request });
+        if (subagentsState.emitStartEvent && spec.id !== null) {
+          await emit('subagent/start', { runId: `run-${runCounter}`, provider: name, id: spec.id, local: true }, request.parent);
+        }
+        const runId = spec.id;
+        return {
+          id: runId,
+          localAgent: undefined,
+          result: Promise.resolve({ output: [], stopReason: spec.stopReason ?? 'completed' }),
+          dispose: async () => {
+            subagentsState.disposeCalls.push(String(runId));
+          }
+        };
+      }
+    },
     skills: { list: async () => [] },
     tokenMeter: {
       measure: () => ({
         logRevision: 0,
         baseline: 'heuristic',
         surfaceDeltaTokens: 0,
-        totalTokens: 0,
+        totalTokens: options.tokenMeterTotal ?? 0,
         surfaceTokens: 0,
         nodes: []
       })
@@ -256,11 +319,8 @@ export function makeMockCtx(options: { approvalOutcome?: string } = {}): MockCtx
     commands,
     listeners,
     approvalCalls,
-    emit: (name, ...args) => {
-      const set = listeners.get(name);
-      if (!set) return Promise.resolve([]);
-      return Promise.all([...set].map((listener) => listener(...args)));
-    }
+    subagents: subagentsState,
+    emit
   };
 }
 

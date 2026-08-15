@@ -15,6 +15,7 @@ import {
   routeTask,
   type TrioBinding
 } from './core/index.js';
+import { createDispatcher, type DispatchResult } from './dispatch.js';
 import type { CommandInvocation, CommandResult, SwfCommandDefinition, SwfDshContext } from './context.js';
 import type { SessionTracker } from './detect.js';
 import {
@@ -27,22 +28,48 @@ import {
   writePacket
 } from './packet.js';
 
-export type SwfSubcommand = 'route' | 'bind' | 'status' | 'accept';
+export type SwfSubcommand = 'route' | 'bind' | 'dispatch' | 'status' | 'accept';
 
 export interface ParsedSwfCommand {
   subcommand: SwfSubcommand;
   args: string[];
 }
 
-const SUBCOMMANDS = new Set<SwfSubcommand>(['route', 'bind', 'status', 'accept']);
+const SUBCOMMANDS = new Set<SwfSubcommand>(['route', 'bind', 'dispatch', 'status', 'accept']);
 
 export function parseSwfCommand(rawInput: string): ParsedSwfCommand {
   const tokens = rawInput.trim().split(/\s+/).filter(Boolean);
   const first = (tokens[0] ?? '').toLowerCase();
   if (!SUBCOMMANDS.has(first as SwfSubcommand)) {
-    throw new Error('Usage: /swf route|bind|status|accept ...');
+    throw new Error('Usage: /swf route|bind|dispatch|status|accept ...');
   }
   return { subcommand: first as SwfSubcommand, args: tokens.slice(1) };
+}
+
+interface ParsedDispatchArgs {
+  positional: string[];
+  kv: Record<string, string>;
+  flags: Set<string>;
+}
+
+/** --key=value args plus bare --flags (e.g. --deep-confirmed). */
+export function parseDispatchArgs(args: string[]): ParsedDispatchArgs {
+  const positional: string[] = [];
+  const kv: Record<string, string> = {};
+  const flags = new Set<string>();
+  for (const arg of args) {
+    if (arg.startsWith('--')) {
+      const eq = arg.indexOf('=');
+      if (eq > 2) {
+        kv[arg.slice(2, eq)] = arg.slice(eq + 1);
+      } else {
+        flags.add(arg.slice(2));
+      }
+    } else {
+      positional.push(arg);
+    }
+  }
+  return { positional, kv, flags };
 }
 
 export function parseKeyValueArgs(args: string[]): Record<string, string> {
@@ -157,6 +184,7 @@ export async function statusHandler(
   }
   const worker = await readEvidence(authorityRoot, taskId, 'worker');
   const acceptance = await readEvidence(authorityRoot, taskId, 'acceptance');
+  const budget = await readEvidence(authorityRoot, taskId, 'budget');
   const kinds = await listEvidenceKinds(authorityRoot, taskId);
   const state = tracker.stateOf(kv.session ?? '') ?? null;
   return ok(JSON.stringify({
@@ -166,12 +194,13 @@ export async function statusHandler(
     bindingObservation: packet.bindingObservation,
     workerEvidence: worker ? { state: worker.state, sessionId: worker.sessionId, provider: worker.provider, declaredModel: worker.declaredModel } : null,
     acceptance: acceptance ? { state: acceptance.state, humanConfirmed: (acceptance.extra as { humanConfirmed?: boolean }).humanConfirmed ?? false } : null,
+    budget: budget ? (budget.extra as { snapshot?: unknown }).snapshot ?? null : null,
     evidenceKinds: kinds,
     session: state
   }, null, 2));
 }
 
-/** /swf accept <task-id> <authorityRoot> — human gate through the dsh approval channel. */
+/** /swf accept <task-id> <authorityRoot> — candidate -> human accept (plan item 5). */
 export async function acceptHandler(ctx: SwfDshContext, invocation: CommandInvocation): Promise<CommandResult> {
   const { args } = parseSwfCommand(invocation.rawInput);
   const taskId = args[0];
@@ -182,6 +211,15 @@ export async function acceptHandler(ctx: SwfDshContext, invocation: CommandInvoc
   const packet = await readPacket(authorityRoot, taskId);
   if (!packet) {
     return fail('no packet at ' + packetFilePath(authorityRoot, taskId));
+  }
+  // Trio hash verification before any human acceptance: a task whose planning
+  // authority cannot be verified is never durably done.
+  const binding = (packet.packet.authority as { binding?: unknown } | undefined)?.binding as TrioBinding;
+  const observation = await verifyTrioOnDisk(binding);
+  if (observation.status !== 'match') {
+    return fail(observation.status === 'mismatch'
+      ? 'binding_mismatch: ' + observation.mismatches.join(', ')
+      : 'binding_unavailable: cannot verify the planning trio before acceptance');
   }
   const worker = await readEvidence(authorityRoot, taskId, 'worker');
   if (!worker) {
@@ -204,21 +242,59 @@ export async function acceptHandler(ctx: SwfDshContext, invocation: CommandInvoc
     taskId,
     kind: 'acceptance',
     record: worker,
-    extra: { outcome, humanConfirmed: true, acceptedVia: 'dsh-approval' }
+    extra: { outcome, humanConfirmed: true, acceptedVia: 'dsh-approval', bindingObservation: observation }
   });
   return ok(JSON.stringify({ subcommand: 'accept', taskId, accepted: true, evidenceState: worker.state, humanConfirmed: true }, null, 2));
 }
 
 export function createSwfCommands(ctx: SwfDshContext, tracker: SessionTracker): SwfCommandDefinition[] {
+  const dispatcher = createDispatcher(ctx);
   return [{
     name: 'swf',
-    description: 'SWF Trio v2 control surface: route | bind | status | accept',
-    input: { hint: 'route <key=value ...> | bind <task-id> <packet-json> | status <task-id> <authorityRoot> [--session <id>] | accept <task-id> <authorityRoot>' },
-    handler: (invocation) => swfHandler(ctx, tracker, invocation)
+    description: 'SWF Trio v2 control surface: route | bind | dispatch | status | accept',
+    input: { hint: 'route <key=value ...> | bind <task-id> <packet-json> | dispatch <task-id> <authorityRoot> [--deep-confirmed] [--max-tokens N] [--session <id>] | status <task-id> <authorityRoot> [--session <id>] | accept <task-id> <authorityRoot>' },
+    handler: (invocation) => swfHandler(ctx, tracker, dispatcher, invocation)
   }];
 }
 
-async function swfHandler(ctx: SwfDshContext, tracker: SessionTracker, invocation: CommandInvocation): Promise<CommandResult> {
+/** /swf dispatch <task-id> <authorityRoot> [--deep-confirmed] [--max-tokens N] — visible worker dispatch. */
+export async function dispatchHandler(
+  ctx: SwfDshContext,
+  dispatcher: ReturnType<typeof createDispatcher>,
+  invocation: CommandInvocation
+): Promise<CommandResult> {
+  const { args } = parseSwfCommand(invocation.rawInput);
+  const { positional, kv, flags } = parseDispatchArgs(args);
+  const taskId = positional[0];
+  const authorityRoot = positional[1];
+  if (!taskId || !authorityRoot) {
+    return fail('/swf dispatch requires: <task-id> <authorityRoot> [--deep-confirmed] [--max-tokens N] [--session <id>]');
+  }
+  const maxTokens = kv['max-tokens'] === undefined ? undefined : Number(kv['max-tokens']);
+  const prompt = kv.prompt
+    ?? 'SWF assignment execution for task ' + taskId
+    + '. Read the immutable assignment packet at planning/active/' + taskId + '/swf-packet.json '
+    + 'and the planning trio (task_plan.md, findings.md, progress.md) under planning/active/' + taskId + '/. '
+    + 'Your dispatch is recorded as a visible worker with {SessionId, provider, declared model}; '
+    + 'your result is a candidate pending Chief acceptance.';
+  const result: DispatchResult = await dispatcher.dispatch({
+    authorityRoot,
+    taskId,
+    parent: invocation.agent,
+    prompt,
+    signal: invocation.signal,
+    deepConfirmed: flags.has('deep-confirmed') || undefined,
+    maxTokens: maxTokens !== undefined && Number.isFinite(maxTokens) ? maxTokens : undefined
+  });
+  return ok(JSON.stringify({ subcommand: 'dispatch', taskId, ...result }, null, 2));
+}
+
+async function swfHandler(
+  ctx: SwfDshContext,
+  tracker: SessionTracker,
+  dispatcher: ReturnType<typeof createDispatcher>,
+  invocation: CommandInvocation
+): Promise<CommandResult> {
   let parsed: ParsedSwfCommand;
   try {
     parsed = parseSwfCommand(invocation.rawInput);
@@ -230,6 +306,8 @@ async function swfHandler(ctx: SwfDshContext, tracker: SessionTracker, invocatio
       return routeHandler(invocation);
     case 'bind':
       return bindHandler(ctx, invocation);
+    case 'dispatch':
+      return dispatchHandler(ctx, dispatcher, invocation);
     case 'status':
       return statusHandler(ctx, tracker, invocation);
     case 'accept':

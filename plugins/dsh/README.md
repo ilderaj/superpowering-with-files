@@ -68,3 +68,48 @@ decides over in-memory inputs.
 
 Slice 1 keeps zero runtime import from dsh chain packages: all chain types are
 type-only devDependencies pinned to the dsh 0.1.0-rc.6 dependency chain.
+
+## Slice 2 — worker dispatch and gates
+
+- src/core/dispatch.ts — dispatch decision core (pure): provider routing
+  (default dsh-sdk + deepseek-v4-flash; codex/claude-code explicit-only with an
+  explicit model; anything else rejected), dispatch tier (complexity max or an
+  explicit tier declaration => deep), budget cap decision (<=2 parallel
+  workers, ~100k tokens/task), deep-tier confirmation gate, and the Trio gate
+  registry classification (destructive / external / credential / security /
+  send / merge-push-release) from capability.gateCategories plus a keyword
+  scan over allowedOperations.
+- src/budget.ts — BudgetTracker (reserve/settle against the tokenMeter,
+  parallel-slot claim) plus budget evidence persistence (kind 'budget').
+- src/dispatch.ts — dispatch orchestration: read packet -> Trio binding check
+  (binding_mismatch stops) -> provider resolution -> deep-tier confirmation ->
+  gate registry + dsh approval channel (gated without a grant stops) ->
+  subagents service/provider availability -> budget cap -> ctx.subagents.start
+  with a mandatory {SessionId, provider, declared model} evidence write
+  (host-claimed). A dispatch whose record cannot be formed is failed closed
+  (manual_pending) and the run is disposed: never a silent dispatch.
+- src/packet.ts — writePacketBudget: budget status is stored in the packet
+  FILE envelope; the immutable assignment packet (and its digest) never
+  changes. Trio mismatch refuses the write.
+- src/commands.ts — /swf dispatch <task-id> <authorityRoot> [--deep-confirmed]
+  [--max-tokens N] [--session <id>]; /swf accept now verifies the Trio hashes
+  on disk before asking for human acceptance; /swf status reports the budget.
+- test/ — 44 new Slice 2 cases (dispatch-core, budget, dispatch integration,
+  accept gate), all green with the prior golden suite (153 total).
+
+### Visible worker redefinition (report section 4)
+
+Under the dsh host, a visible worker is a subagent dispatched through
+ctx.subagents with a recorded {SessionId, provider, declared model} evidence
+record. Dispatching without a record is silent fallback and is prohibited: the
+dispatcher registers a subagent/start observer before starting, forms the
+three-state record immediately after publication, and disposes the run if the
+record cannot be formed.
+
+### Honest note on this slice's gate
+
+This Codex environment cannot run a real dsh session, so the "first real human
+accept" cannot happen here. The candidate -> accept flow (Trio hash verify ->
+evidence check -> dsh approval request -> durable acceptance evidence) is
+proven against mock ctx.subagents/ctx.approval; the real-dsh human accept is a
+Slice 3 rollout verification item.

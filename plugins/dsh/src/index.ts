@@ -5,7 +5,10 @@
 //    client/UI `conversationEvents` service is intentionally NOT injected).
 //  - auto-detect: planning trio or .swf-task marker via the Slice 0 passthrough
 //    core; non-SWF sessions pass through transparently (no interception).
-//  - /swf command surface: route / bind / status / accept.
+//  - /swf command surface: route / bind / dispatch / status / accept.
+//  - worker dispatch (Slice 2): ctx.subagents visible workers with mandatory
+//    {SessionId, provider, declared model} evidence, budget caps, dual-layer
+//    gates, and the candidate -> human accept flow.
 
 import { createSwfCommands } from './commands.js';
 import type { SwfDshContext } from './context.js';
@@ -24,7 +27,7 @@ export function apply(ctx: SwfDshContext): void {
 }
 
 export { createSessionTracker, detectSession, findPlanningTrioTask, approvalPolicyOf } from './detect.js';
-export { createSwfCommands, parseSwfCommand, parseKeyValueArgs } from './commands.js';
+export { createSwfCommands, parseSwfCommand, parseKeyValueArgs, parseDispatchArgs, dispatchHandler } from './commands.js';
 export {
   evidenceDirectory,
   listEvidenceKinds,
@@ -36,9 +39,12 @@ export {
   verifyTrioOnDisk,
   writeEvidence,
   writePacket,
+  writePacketBudget,
   PACKET_FILE_NAME,
   PACKET_SCHEMA,
   PACKET_VERSION
 } from './packet.js';
-export type { PacketFile, TrioObservation, WriteEvidenceOptions, WritePacketOptions } from './packet.js';
+export type { PacketBudget, PacketFile, TrioObservation, WriteEvidenceOptions, WritePacketOptions } from './packet.js';
+export { BudgetTracker, writeBudgetEvidence, type BudgetSnapshot } from './budget.js';
+export { createDispatcher, type DispatchOptions, type DispatchResult, type SettleOptions, type WorkerDispatcher } from './dispatch.js';
 export type { SessionTracker, SessionDetection, SwfSessionState } from './detect.js';

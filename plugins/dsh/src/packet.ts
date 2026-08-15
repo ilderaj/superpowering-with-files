@@ -82,7 +82,18 @@ export interface PacketFile {
   packet: Record<string, unknown>;
   packetDigest: string | null;
   bindingObservation: TrioObservation;
+  budget?: PacketBudget;
   createdAt: string;
+}
+
+/** Budget status persisted in the packet FILE envelope (plan item 3). */
+export interface PacketBudget {
+  cap: number;
+  spentTokens: number;
+  activeWorkers: number;
+  totalDispatches: number;
+  overLimit: boolean;
+  checkedAt: string;
 }
 
 export interface WritePacketOptions {
@@ -90,6 +101,7 @@ export interface WritePacketOptions {
   taskId: string;
   packet: Record<string, unknown>;
   bindingObservation: TrioObservation;
+  budget?: PacketBudget;
   createdAt?: string;
 }
 
@@ -103,11 +115,41 @@ export async function writePacket(options: WritePacketOptions): Promise<PacketFi
     packet,
     packetDigest: packetDigestOf(packet),
     bindingObservation,
+    ...(options.budget === undefined ? {} : { budget: options.budget }),
     createdAt: options.createdAt ?? new Date().toISOString()
   };
   await mkdir(taskDirectory(authorityRoot, taskId), { recursive: true });
   await writeFile(packetFilePath(authorityRoot, taskId), JSON.stringify(record, null, 2) + '\n', 'utf8');
   return record;
+}
+
+/**
+ * Refresh the budget status inside the packet file envelope. The immutable
+ * assignment packet (and therefore its digest) is preserved. A Trio binding
+ * mismatch (or unavailable trio) refuses the write: budget state must never
+ * be recorded against a task whose planning authority cannot be verified.
+ */
+export async function writePacketBudget(
+  authorityRoot: string,
+  taskId: string,
+  budget: PacketBudget
+): Promise<{ status: 'updated' } | { status: 'mismatch' } | { status: 'no_packet' }> {
+  const stored = await readPacket(authorityRoot, taskId);
+  if (!stored) return { status: 'no_packet' };
+  const binding = (stored.packet.authority as { binding?: unknown } | undefined)?.binding;
+  const observation = await verifyTrioOnDisk(binding as TrioBinding);
+  if (observation.status !== 'match') {
+    return { status: 'mismatch' };
+  }
+  await writePacket({
+    authorityRoot,
+    taskId,
+    packet: stored.packet,
+    bindingObservation: observation,
+    budget,
+    createdAt: stored.createdAt
+  });
+  return { status: 'updated' };
 }
 
 export async function readPacket(authorityRoot: string, taskId: string): Promise<PacketFile | null> {
