@@ -39,3 +39,32 @@ TypeScript, with zero dsh runtime imports.
 No dsh runtime import yet (that is Slice 1). No writes outside plugins/dsh/.
 The planning trio stays the sole durable task authority; this module only
 decides over in-memory inputs.
+
+## Slice 1 — plugin skeleton and trigger
+
+- src/index.ts — cordis plugin entry: name + inject + apply(ctx).
+  Injected host-side services: sessions, commands, skills, tokenMeter,
+  approval. The client/UI conversationEvents service is intentionally NOT
+  injected — verified facts show it lives under dsh packages/client/** and
+  the CLI host may not provide it (see src/context.ts seam note and
+  assets/dsh-host-adaptation.md).
+- src/detect.ts — auto-detect trigger: session/created lifecycle events +
+  planning trio or .swf-task marker via src/core/passthrough. Non-SWF
+  sessions pass through transparently (no interception, no writes). SWF
+  sessions get a session-scoped session/event observer (state + approval
+  policy fold), cleaned up on session/disposed.
+- src/commands.ts — /swf command surface: route / bind / status / accept,
+  thin adapters over the Slice 0 decision core. bind stops on
+  binding_mismatch without writing.
+- src/packet.ts — packet/evidence persistence:
+  planning/active/<task-id>/swf-packet.json and
+  planning/active/<task-id>/evidence/; the host-claimed-as-authenticated
+  invariant is enforced at the write boundary.
+- assets/ — vendored trio skills (SKILL/dev/office/safety), chiefops, and
+  trio templates, byte-identical to the repository sources, plus
+  dsh-host-adaptation.md (report section 4 rules + seam notes).
+- test/ — 43 new Slice 1 cases (detect, packet, commands, entry, assets,
+  smoke), all green with the Slice 0 golden suite (109 total).
+
+Slice 1 keeps zero runtime import from dsh chain packages: all chain types are
+type-only devDependencies pinned to the dsh 0.1.0-rc.6 dependency chain.
