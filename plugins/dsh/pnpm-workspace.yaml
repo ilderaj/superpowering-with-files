@@ -1,0 +1,10 @@
+allowBuilds:
+  '@deepseek-ai/dsh-subprocess-local': false
+  '@google/genai': false
+  koffi: false
+  node-pty: false
+  protobufjs: false
+
+# Slice 0 keeps the dsh runtime unpinned at execution time: native build
+# scripts (node-pty, koffi, protobufjs, genai, subprocess-local) are
+# explicitly ignored until a later slice exercises the dsh runtime.
