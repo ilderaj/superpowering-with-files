@@ -18,6 +18,7 @@ import {
 import { createDispatcher, type DispatchResult } from './dispatch.js';
 import type { CommandInvocation, CommandResult, SwfCommandDefinition, SwfDshContext } from './context.js';
 import type { SessionTracker } from './detect.js';
+import { auditEvidenceDirectory } from './evidenceAudit.js';
 import {
   listEvidenceKinds,
   packetFilePath,
@@ -28,20 +29,20 @@ import {
   writePacket
 } from './packet.js';
 
-export type SwfSubcommand = 'route' | 'bind' | 'dispatch' | 'status' | 'accept';
+export type SwfSubcommand = 'route' | 'bind' | 'dispatch' | 'status' | 'accept' | 'audit';
 
 export interface ParsedSwfCommand {
   subcommand: SwfSubcommand;
   args: string[];
 }
 
-const SUBCOMMANDS = new Set<SwfSubcommand>(['route', 'bind', 'dispatch', 'status', 'accept']);
+const SUBCOMMANDS = new Set<SwfSubcommand>(['route', 'bind', 'dispatch', 'status', 'accept', 'audit']);
 
 export function parseSwfCommand(rawInput: string): ParsedSwfCommand {
   const tokens = rawInput.trim().split(/\s+/).filter(Boolean);
   const first = (tokens[0] ?? '').toLowerCase();
   if (!SUBCOMMANDS.has(first as SwfSubcommand)) {
-    throw new Error('Usage: /swf route|bind|dispatch|status|accept ...');
+    throw new Error('Usage: /swf route|bind|dispatch|status|accept|audit ...');
   }
   return { subcommand: first as SwfSubcommand, args: tokens.slice(1) };
 }
@@ -247,12 +248,24 @@ export async function acceptHandler(ctx: SwfDshContext, invocation: CommandInvoc
   return ok(JSON.stringify({ subcommand: 'accept', taskId, accepted: true, evidenceState: worker.state, humanConfirmed: true }, null, 2));
 }
 
+/** /swf audit <task-id> <authorityRoot> — runnable evidence audit (Slice 3). */
+export async function auditHandler(invocation: CommandInvocation): Promise<CommandResult> {
+  const { args } = parseSwfCommand(invocation.rawInput);
+  const taskId = args[0];
+  const authorityRoot = args[1];
+  if (!taskId || !authorityRoot) {
+    return fail('/swf audit requires: <task-id> <authorityRoot>');
+  }
+  const result = await auditEvidenceDirectory(authorityRoot, taskId);
+  return ok(JSON.stringify({ subcommand: 'audit', ...result }, null, 2));
+}
+
 export function createSwfCommands(ctx: SwfDshContext, tracker: SessionTracker): SwfCommandDefinition[] {
   const dispatcher = createDispatcher(ctx);
   return [{
     name: 'swf',
-    description: 'SWF Trio v2 control surface: route | bind | dispatch | status | accept',
-    input: { hint: 'route <key=value ...> | bind <task-id> <packet-json> | dispatch <task-id> <authorityRoot> [--deep-confirmed] [--max-tokens N] [--session <id>] | status <task-id> <authorityRoot> [--session <id>] | accept <task-id> <authorityRoot>' },
+    description: 'SWF Trio v2 control surface: route | bind | dispatch | status | accept | audit',
+    input: { hint: 'route <key=value ...> | bind <task-id> <packet-json> | dispatch <task-id> <authorityRoot> [--deep-confirmed] [--max-tokens N] [--session <id>] | status <task-id> <authorityRoot> [--session <id>] | accept <task-id> <authorityRoot> | audit <task-id> <authorityRoot>' },
     handler: (invocation) => swfHandler(ctx, tracker, dispatcher, invocation)
   }];
 }
@@ -312,5 +325,7 @@ async function swfHandler(
       return statusHandler(ctx, tracker, invocation);
     case 'accept':
       return acceptHandler(ctx, invocation);
+    case 'audit':
+      return auditHandler(invocation);
   }
 }

@@ -9,7 +9,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check:version-lock": "node scripts/guard-version-lock.mjs",
+    "check:evidence": "node scripts/audit-evidence.mjs",
+    "verify": "pnpm check:version-lock && pnpm build && pnpm test"
   },
   "dependencies": {
     "@deepseek-ai/dsh": "0.1.0-rc.6"
