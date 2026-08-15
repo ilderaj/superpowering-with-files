@@ -196,3 +196,28 @@ test('loadMattSkillsSource throws on verification failure', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('overlay replaces grilling body without touching the pinned corpus', async () => {
+  const loaded = await loadMattSkillsSource();
+  assert.ok(loaded.overlays.includes('grilling'), 'grilling overlay should be applied');
+  const grillingProvenance = loaded.overlayProvenance.find((entry) => entry.name === 'grilling');
+  assert.ok(grillingProvenance, 'grilling overlay provenance should be emitted');
+  assert.equal(
+    grillingProvenance.corpusSha256,
+    'fa5c1e5ee76b1c8f1ae56101f52c9e239de75d5c578adc61227b92d10b7e52ef',
+  );
+  assert.equal(
+    grillingProvenance.overlaySha256,
+    '3cce5d19fba086a5084c38f199818a7d90978487e41d10e802ae33e971bad858',
+  );
+  assert.ok(
+    loaded.skills.grilling.includes('request_user_input'),
+    'overlay body should contain the plan-mode question-card flow',
+  );
+  assert.ok(
+    loaded.skills.grilling.includes('Ask the whole frontier in one round, then wait'),
+    'overlay body should keep the frontier-round structure',
+  );
+  const result = await verifyMattSkillsSource();
+  assert.equal(result.ok, true, result.errors.join('\n'));
+});

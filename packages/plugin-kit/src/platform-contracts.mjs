@@ -114,6 +114,7 @@ export const mattSkillsPlatformContracts = {
       'skills/to-questionnaire/SKILL.md',
       'LICENSE',
       'UPSTREAM.json',
+      'OVERLAYS.json',
       'README.md'
     ],
     loadsRootInstructionFile: true,
@@ -134,6 +135,7 @@ export const mattSkillsPlatformContracts = {
       'skills/to-questionnaire/SKILL.md',
       'LICENSE',
       'UPSTREAM.json',
+      'OVERLAYS.json',
       'README.md'
     ],
     loadsRootInstructionFile: false,

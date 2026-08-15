@@ -112,6 +112,18 @@ async function writeMattSkills({ pluginRoot, contract }) {
     path.join(pluginRoot, 'UPSTREAM.json'),
     `${JSON.stringify(source.metadata, null, 2)}\n`
   );
+  await writeFile(
+    path.join(pluginRoot, 'OVERLAYS.json'),
+    `${JSON.stringify({
+      harnessOverlay: source.overlayProvenance.length > 0,
+      source: {
+        repo: source.metadata.repo,
+        tag: source.metadata.tag,
+        commit: source.metadata.commit,
+      },
+      skills: source.overlayProvenance,
+    }, null, 2)}\n`
+  );
 }
 
 async function writeReadme({ pluginRoot, contract, config, target }) {
