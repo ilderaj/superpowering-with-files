@@ -196,3 +196,18 @@ test('loadMattSkillsSource throws on verification failure', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('overlay replaces grilling body without touching the pinned corpus', async () => {
+  const loaded = await loadMattSkillsSource();
+  assert.ok(loaded.overlays.includes('grilling'), 'grilling overlay should be applied');
+  assert.ok(
+    loaded.skills.grilling.includes('request_user_input'),
+    'overlay body should contain the plan-mode question-card flow',
+  );
+  assert.ok(
+    loaded.skills.grilling.includes('Ask the whole frontier in one round, then wait'),
+    'overlay body should keep the frontier-round structure',
+  );
+  const result = await verifyMattSkillsSource();
+  assert.equal(result.ok, true, result.errors.join('\n'));
+});

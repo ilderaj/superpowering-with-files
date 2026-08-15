@@ -26,7 +26,7 @@ const LOCKED_SKILLS = Object.freeze([
     name: 'grilling',
     corpusPath: 'grilling/SKILL.md',
     originalPath: 'skills/productivity/grilling/SKILL.md',
-    sha256: '3cce5d19fba086a5084c38f199818a7d90978487e41d10e802ae33e971bad858',
+    sha256: 'fa5c1e5ee76b1c8f1ae56101f52c9e239de75d5c578adc61227b92d10b7e52ef',
   }),
   Object.freeze({
     name: 'to-questionnaire',
@@ -203,6 +203,11 @@ export function mattSkillsCorpusRoot() {
   return join(repositoryRoot, 'harness', 'optional-skills', 'mattpocock', 'v1.2.3');
 }
 
+export function mattSkillsOverlayRoot() {
+  const repositoryRoot = resolve(fileURLToPath(new URL('../../..', import.meta.url)));
+  return join(repositoryRoot, 'harness', 'core', 'upstream-overlays', 'mattpocock');
+}
+
 export async function verifyMattSkillsSource({ corpusRoot = mattSkillsCorpusRoot() } = {}) {
   const errors = [];
   await verifyCorpusInventory(corpusRoot, errors);
@@ -247,9 +252,22 @@ export async function loadMattSkillsSource({ corpusRoot = mattSkillsCorpusRoot()
     ...LOCKED_SKILLS.map((skill) => readFile(join(corpusRoot, skill.corpusPath), 'utf8')),
   ]);
 
+  const skills = Object.fromEntries(LOCKED_SKILLS.map((skill, index) => [skill.name, bodies[index]]));
+  const overlays = [];
+  const overlayRoot = mattSkillsOverlayRoot();
+  for (const skill of LOCKED_SKILLS) {
+    try {
+      skills[skill.name] = await readFile(join(overlayRoot, skill.name, 'SKILL.md'), 'utf8');
+      overlays.push(skill.name);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
+  }
+
   return {
     metadata: JSON.parse(metadataText),
     license,
-    skills: Object.fromEntries(LOCKED_SKILLS.map((skill, index) => [skill.name, bodies[index]])),
+    skills,
+    overlays,
   };
 }
