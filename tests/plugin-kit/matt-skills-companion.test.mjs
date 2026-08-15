@@ -27,6 +27,7 @@ const NATIVE_COMPANION_ENTRIES = Object.freeze([
   'README.md',
   'LICENSE',
   'UPSTREAM.json',
+  'OVERLAYS.json',
   'skills/grill-me/SKILL.md',
   'skills/grilling/SKILL.md',
   'skills/to-questionnaire/SKILL.md',
@@ -36,6 +37,7 @@ const PORTABLE_COMPANION_ENTRIES = Object.freeze([
   'README.md',
   'LICENSE',
   'UPSTREAM.json',
+  'OVERLAYS.json',
   'skills/grill-me/SKILL.md',
   'skills/grilling/SKILL.md',
   'skills/to-questionnaire/SKILL.md',
@@ -86,5 +88,25 @@ test('companion archives exclude trio, hooks, mcp, runtime, credential paths', a
     for (const entry of await tarEntries(name)) {
       assert.doesNotMatch(entry, /(^|\/)(trio|hooks|mcp|runtime|credential)s?(\/|$)/i, `${name}: ${entry}`);
     }
+  }
+});
+
+test('companion archives carry truthful overlay provenance', async () => {
+  for (const name of COMPANION_ARTIFACTS) {
+    const { stdout } = await execFileAsync('tar', ['-xOf', path.join(releaseDir, name), 'OVERLAYS.json']);
+    const provenance = JSON.parse(stdout);
+    assert.equal(provenance.harnessOverlay, true);
+    assert.equal(provenance.source.repo, 'https://github.com/mattpocock/skills');
+    assert.equal(provenance.source.tag, 'v1.2.3');
+    const grilling = provenance.skills.find((entry) => entry.name === 'grilling');
+    assert.ok(grilling, 'grilling overlay should be recorded in packaged provenance');
+    assert.equal(
+      grilling.corpusSha256,
+      'fa5c1e5ee76b1c8f1ae56101f52c9e239de75d5c578adc61227b92d10b7e52ef',
+    );
+    assert.equal(
+      grilling.overlaySha256,
+      '3cce5d19fba086a5084c38f199818a7d90978487e41d10e802ae33e971bad858',
+    );
   }
 });

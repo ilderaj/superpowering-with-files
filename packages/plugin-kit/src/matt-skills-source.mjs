@@ -254,11 +254,18 @@ export async function loadMattSkillsSource({ corpusRoot = mattSkillsCorpusRoot()
 
   const skills = Object.fromEntries(LOCKED_SKILLS.map((skill, index) => [skill.name, bodies[index]]));
   const overlays = [];
+  const overlayProvenance = [];
   const overlayRoot = mattSkillsOverlayRoot();
   for (const skill of LOCKED_SKILLS) {
+    const overlayPath = join(overlayRoot, skill.name, 'SKILL.md');
     try {
-      skills[skill.name] = await readFile(join(overlayRoot, skill.name, 'SKILL.md'), 'utf8');
+      skills[skill.name] = await readFile(overlayPath, 'utf8');
       overlays.push(skill.name);
+      overlayProvenance.push({
+        name: skill.name,
+        corpusSha256: skill.sha256,
+        overlaySha256: await sha256File(overlayPath),
+      });
     } catch (error) {
       if (error?.code !== 'ENOENT') throw error;
     }
@@ -269,5 +276,6 @@ export async function loadMattSkillsSource({ corpusRoot = mattSkillsCorpusRoot()
     license,
     skills,
     overlays,
+    overlayProvenance,
   };
 }
