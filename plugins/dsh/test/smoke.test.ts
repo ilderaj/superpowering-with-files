@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { evidenceRecord } from '../src/core/index.js';
 import { apply } from '../src/index.js';
-import { writeEvidence } from '../src/packet.js';
+import { readPacket, writeEvidence } from '../src/packet.js';
 import {
   makeMockCtx,
   makePacketInputFor,
@@ -67,6 +67,16 @@ describe('Slice 1 smoke (apply on a minimal mock cordis ctx)', () => {
         taskId: 'smoke-task',
         kind: 'worker',
         record: evidenceRecord({ sessionId: 'swf-session', provider: 'dsh-sdk', declaredModel: 'deepseek-v4-flash' })
+      });
+      // Completed worker-result candidate: /swf accept requires a settled run
+      // (matching run id, completed stop reason, bound packet digest).
+      const packet = await readPacket(swfDir, 'smoke-task');
+      await writeEvidence({
+        authorityRoot: swfDir,
+        taskId: 'smoke-task',
+        kind: 'worker-result',
+        record: evidenceRecord({ sessionId: 'swf-session', provider: 'dsh-sdk', declaredModel: 'deepseek-v4-flash' }),
+        extra: { runId: 'swf-session', stopReason: 'completed', packetDigest: packet!.packetDigest }
       });
 
       // 4. human accept via the dsh approval channel -> durable acceptance evidence.

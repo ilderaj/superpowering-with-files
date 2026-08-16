@@ -11,7 +11,7 @@ import {
   routeHandler
 } from '../src/commands.js';
 import { createSessionTracker } from '../src/detect.js';
-import { writeEvidence } from '../src/packet.js';
+import { readPacket, writeEvidence } from '../src/packet.js';
 import { makeInvocation, makeMockCtx, makePacketInputFor, runCommand, withTmpRoot } from './helpers.js';
 
 describe('/swf command parsing', () => {
@@ -86,6 +86,36 @@ describe('/swf bind', () => {
     });
   });
 
+  it('refuses a path-like CLI task id before any packet or evidence write', async () => {
+    await withTmpRoot(async (root) => {
+      const { ctx, commands } = makeMockCtx();
+      for (const def of createSwfCommands(ctx, createSessionTracker(ctx))) {
+        ctx.commands.register(def);
+      }
+      const input = await makePacketInputFor(root, 'alpha-task');
+      const result = await runCommand(commands, 'bind ../../escape ' + JSON.stringify(input));
+      expect(result.kind).toBe('error');
+      expect((result as { text: string }).text).toContain('invalid task id');
+      const { access } = await import('node:fs/promises');
+      await expect(access(join(root, 'escape', 'swf-packet.json'))).rejects.toThrow();
+    });
+  });
+
+  it('refuses to bind a packet under a task id that differs from the packet authority task', async () => {
+    await withTmpRoot(async (root) => {
+      const { ctx, commands } = makeMockCtx();
+      for (const def of createSwfCommands(ctx, createSessionTracker(ctx))) {
+        ctx.commands.register(def);
+      }
+      const input = await makePacketInputFor(root, 'alpha-task');
+      const result = await runCommand(commands, 'bind beta-task ' + JSON.stringify(input));
+      expect(result.kind).toBe('error');
+      expect((result as { text: string }).text).toContain('binding task mismatch');
+      const { access } = await import('node:fs/promises');
+      await expect(access(join(root, 'planning', 'active', 'beta-task', 'swf-packet.json'))).rejects.toThrow();
+    });
+  });
+
   it('records worker evidence as unknown when no dispatch record exists', async () => {
     await withTmpRoot(async (root) => {
       const { ctx, commands } = makeMockCtx();
@@ -145,6 +175,14 @@ describe('/swf accept', () => {
       await runCommand(commands, 'bind alpha-task ' + JSON.stringify(input));
       const hostClaimed = evidenceRecord({ sessionId: 's-1', provider: 'dsh-sdk', declaredModel: 'deepseek-v4-flash' });
       await writeEvidence({ authorityRoot: root, taskId: 'alpha-task', kind: 'worker', record: hostClaimed });
+      const packet = await readPacket(root, 'alpha-task');
+      await writeEvidence({
+        authorityRoot: root,
+        taskId: 'alpha-task',
+        kind: 'worker-result',
+        record: hostClaimed,
+        extra: { runId: 's-1', stopReason: 'completed', packetDigest: packet!.packetDigest }
+      });
 
       const result = await runCommand(commands, 'accept alpha-task ' + root);
       expect(result.kind).toBe('success');
@@ -173,9 +211,41 @@ describe('/swf accept', () => {
         kind: 'worker',
         record: evidenceRecord({ sessionId: 's-1', provider: 'dsh-sdk', declaredModel: 'deepseek-v4-flash' })
       });
+      const packet = await readPacket(root, 'alpha-task');
+      await writeEvidence({
+        authorityRoot: root,
+        taskId: 'alpha-task',
+        kind: 'worker-result',
+        record: evidenceRecord({ sessionId: 's-1', provider: 'dsh-sdk', declaredModel: 'deepseek-v4-flash' }),
+        extra: { runId: 's-1', stopReason: 'completed', packetDigest: packet!.packetDigest }
+      });
       const result = await runCommand(commands, 'accept alpha-task ' + root);
       expect(result.kind).toBe('error');
       expect((result as { text: string }).text).toContain('not granted');
+    });
+  });
+
+  it('refuses acceptance when the worker-result belongs to a different run', async () => {
+    await withTmpRoot(async (root) => {
+      const { ctx, commands } = makeMockCtx({ approvalOutcome: 'allowed-once' });
+      for (const def of createSwfCommands(ctx, createSessionTracker(ctx))) {
+        ctx.commands.register(def);
+      }
+      const input = await makePacketInputFor(root, 'alpha-task');
+      await runCommand(commands, 'bind alpha-task ' + JSON.stringify(input));
+      const hostClaimed = evidenceRecord({ sessionId: 's-1', provider: 'dsh-sdk', declaredModel: 'deepseek-v4-flash' });
+      await writeEvidence({ authorityRoot: root, taskId: 'alpha-task', kind: 'worker', record: hostClaimed });
+      const packet = await readPacket(root, 'alpha-task');
+      await writeEvidence({
+        authorityRoot: root,
+        taskId: 'alpha-task',
+        kind: 'worker-result',
+        record: hostClaimed,
+        extra: { runId: 'other-run', stopReason: 'completed', packetDigest: packet!.packetDigest }
+      });
+      const result = await runCommand(commands, 'accept alpha-task ' + root);
+      expect(result.kind).toBe('error');
+      expect((result as { text: string }).text).toContain('does not match');
     });
   });
 

@@ -293,7 +293,137 @@ describe('dispatchWorker over mock ctx.subagents (Slice 2)', () => {
       expect(settled).not.toBeNull();
       expect((settled!.extra as { stopReason: string }).stopReason).toBe('completed');
       expect((settled!.extra as { trioVerified: boolean }).trioVerified).toBe(true);
-      expect(dispatcher.budgetOf().activeWorkers).toBe(0);
+      expect(dispatcher.budgetOf(root, 'settle-task').activeWorkers).toBe(0);
+    });
+  });
+
+  it('auto-settles the worker when the host completes the run and releases the slot', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'autosettle-task');
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'autosettle-task',
+        parent: PARENT,
+        prompt: 'execute'
+      });
+      expect(result.status).toBe('dispatched');
+      expect(dispatcher.budgetOf(root, 'autosettle-task').activeWorkers).toBe(1);
+
+      await harness.completeRun(0, 'completed');
+
+      const settled = await readEvidence(root, 'autosettle-task', 'worker-result');
+      expect(settled).not.toBeNull();
+      expect((settled!.extra as { stopReason: string }).stopReason).toBe('completed');
+      expect((settled!.extra as { runId: string }).runId).toBe(result.sessionId);
+      expect(dispatcher.budgetOf(root, 'autosettle-task').activeWorkers).toBe(0);
+      expect(harness.subagents.disposeCalls).toContain(result.sessionId);
+    });
+  });
+
+  it('settles a non-completed stop reason but never produces an acceptable candidate', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'failed-run-task');
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'failed-run-task',
+        parent: PARENT,
+        prompt: 'execute'
+      });
+      expect(result.status).toBe('dispatched');
+
+      await harness.completeRun(0, 'error');
+
+      const settled = await readEvidence(root, 'failed-run-task', 'worker-result');
+      expect(settled).not.toBeNull();
+      expect((settled!.extra as { stopReason: string }).stopReason).toBe('error');
+      expect(dispatcher.budgetOf(root, 'failed-run-task').activeWorkers).toBe(0);
+    });
+  });
+
+  it('keeps a separate budget ledger per task (spent tokens never bleed across tasks)', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'spender-task');
+      await boundTask(root, 'fresh-task');
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+
+      const spent = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'spender-task',
+        parent: PARENT,
+        prompt: 'x',
+        measuredTokens: 96_000
+      });
+      expect(spent.status).toBe('manual_pending');
+      expect(spent.blocker).toBe('budget_exceeded');
+
+      const fresh = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'fresh-task',
+        parent: PARENT,
+        prompt: 'x',
+        measuredTokens: 0
+      });
+      expect(fresh.status).toBe('dispatched');
+      expect(harness.subagents.started).toHaveLength(1);
+    });
+  });
+
+  it('initializes a restarted dispatcher ledger from the persisted packet budget', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'persist-task');
+      const first = createDispatcher(makeMockCtx().ctx);
+      const dispatched = await first.dispatch({
+        authorityRoot: root,
+        taskId: 'persist-task',
+        parent: PARENT,
+        prompt: 'x',
+        measuredTokens: 0,
+        maxTokens: 50_000
+      });
+      expect(dispatched.status).toBe('dispatched');
+
+      const second = createDispatcher(makeMockCtx().ctx);
+      const overBudget = await second.dispatch({
+        authorityRoot: root,
+        taskId: 'persist-task',
+        parent: PARENT,
+        prompt: 'x',
+        measuredTokens: 0,
+        maxTokens: 51_000
+      });
+      expect(overBudget.status).toBe('manual_pending');
+      expect(overBudget.blocker).toBe('budget_exceeded');
+      expect(overBudget.budget!.spentTokens).toBe(50_000);
+    });
+  });
+
+  it('gates an array-form allowedOperations push without approval (regression: no gate bypass)', async () => {
+    await withTmpRoot(async (root) => {
+      const harness = makeMockCtx({ approvalOutcome: 'rejected' });
+      for (const def of createSwfCommands(harness.ctx, createSessionTracker(harness.ctx))) {
+        harness.ctx.commands.register(def);
+      }
+      const input = await makePacketInputFor(root, 'arraygate-task');
+      input.allowedOperations = ['push origin main'];
+      await runCommand(harness.commands, 'bind arraygate-task ' + JSON.stringify(input));
+
+      const dispatcher = createDispatcher(harness.ctx);
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'arraygate-task',
+        parent: PARENT,
+        prompt: 'x'
+      });
+      expect(result.status).toBe('manual_pending');
+      expect(result.blocker).toBe('gate_approval_required');
+      expect(harness.subagents.started).toHaveLength(0);
+      const gate = await readEvidence(root, 'arraygate-task', 'gate');
+      expect((gate!.extra as { categories: string[] }).categories).toContain('merge-push-release');
     });
   });
 });
@@ -335,6 +465,9 @@ describe('/swf accept with Trio hash verification (plan item 5)', () => {
       const input = await makePacketInputFor(root, 'alpha-task');
       await runCommand(harness.commands, 'bind alpha-task ' + JSON.stringify(input));
       await runCommand(harness.commands, 'dispatch alpha-task ' + root);
+      // The host completes the run; the settle chain writes the worker-result
+      // candidate that /swf accept now requires before any approval request.
+      await harness.completeRun(0, 'completed');
       const result = await runCommand(harness.commands, 'accept alpha-task ' + root);
       expect(result.kind).toBe('success');
       const body = JSON.parse((result as { text: string }).text);
@@ -343,6 +476,46 @@ describe('/swf accept with Trio hash verification (plan item 5)', () => {
       expect(body.humanConfirmed).toBe(true);
       const acceptance = JSON.parse(await readFile(join(root, 'planning', 'active', 'alpha-task', 'evidence', 'acceptance.json'), 'utf8'));
       expect(acceptance.extra.humanConfirmed).toBe(true);
+    });
+  });
+
+  it('refuses acceptance while the dispatched run is still executing', async () => {
+    await withTmpRoot(async (root) => {
+      const harness = makeMockCtx({ approvalOutcome: 'allowed-once' });
+      for (const def of createSwfCommands(harness.ctx, createSessionTracker(harness.ctx))) {
+        harness.ctx.commands.register(def);
+      }
+      const input = await makePacketInputFor(root, 'running-task');
+      await runCommand(harness.commands, 'bind running-task ' + JSON.stringify(input));
+      await runCommand(harness.commands, 'dispatch running-task ' + root);
+
+      const denied = await runCommand(harness.commands, 'accept running-task ' + root);
+      expect(denied.kind).toBe('error');
+      expect((denied as { text: string }).text).toContain('no completed worker-result candidate');
+      expect(harness.approvalCalls).toHaveLength(0);
+
+      await harness.completeRun(0, 'completed');
+      const accepted = await runCommand(harness.commands, 'accept running-task ' + root);
+      expect(accepted.kind).toBe('success');
+      expect(harness.approvalCalls).toHaveLength(1);
+    });
+  });
+
+  it('refuses acceptance when the run settled with a non-completed stop reason', async () => {
+    await withTmpRoot(async (root) => {
+      const harness = makeMockCtx({ approvalOutcome: 'allowed-once' });
+      for (const def of createSwfCommands(harness.ctx, createSessionTracker(harness.ctx))) {
+        harness.ctx.commands.register(def);
+      }
+      const input = await makePacketInputFor(root, 'errored-task');
+      await runCommand(harness.commands, 'bind errored-task ' + JSON.stringify(input));
+      await runCommand(harness.commands, 'dispatch errored-task ' + root);
+      await harness.completeRun(0, 'error');
+
+      const result = await runCommand(harness.commands, 'accept errored-task ' + root);
+      expect(result.kind).toBe('error');
+      expect((result as { text: string }).text).toContain('not a completed candidate');
+      expect(harness.approvalCalls).toHaveLength(0);
     });
   });
 

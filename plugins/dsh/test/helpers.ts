@@ -198,6 +198,8 @@ export interface MockCtxHarness {
   approvalCalls: { toolName: string; reason: string }[];
   subagents: MockSubagentsState;
   emit: (name: string, ...args: unknown[]) => Promise<unknown[]>;
+  /** Resolve one started run's terminal result and flush the settle chain. */
+  completeRun: (index: number, stopReason?: string) => Promise<void>;
 }
 
 export interface MockSubagentRun {
@@ -218,6 +220,7 @@ export interface MockSubagentsState {
   disposeCalls: string[];
   runQueue: MockSubagentRun[];
   emitStartEvent: boolean;
+  runResolvers: Array<(result: { output: unknown[]; stopReason: string }) => void>;
 }
 
 export function makeMockCtx(options: {
@@ -233,7 +236,8 @@ export function makeMockCtx(options: {
     started: [],
     disposeCalls: [],
     runQueue: [...(options.subagents?.runs ?? [])],
-    emitStartEvent: options.subagents?.emitStartEvent ?? true
+    emitStartEvent: options.subagents?.emitStartEvent ?? true,
+    runResolvers: []
   };
   let runCounter = 0;
   const emit = (name: string, ...args: unknown[]): Promise<unknown[]> => {
@@ -281,16 +285,24 @@ export function makeMockCtx(options: {
       start: async (name: string, request: Record<string, unknown>) => {
         if (options.subagents?.startThrows) throw options.subagents.startThrows;
         runCounter += 1;
-        const spec = subagentsState.runQueue.shift() ?? { id: `session-${runCounter}` };
+        const spec = subagentsState.runQueue.shift() ?? { id: 'session-' + runCounter };
         subagentsState.started.push({ name, request });
         if (subagentsState.emitStartEvent && spec.id !== null) {
-          await emit('subagent/start', { runId: `run-${runCounter}`, provider: name, id: spec.id, local: true }, request.parent);
+          await emit('subagent/start', { runId: 'run-' + runCounter, provider: name, id: spec.id, local: true }, request.parent);
         }
         const runId = spec.id;
+        // Controlled result: like a real dsh host, the run settles only when
+        // the host reports its terminal outcome (completeRun), so tests can
+        // deterministically exercise the auto-settle path.
+        let resolveRun: (result: { output: unknown[]; stopReason: string }) => void = () => undefined;
+        const resultPromise = new Promise<{ output: unknown[]; stopReason: string }>((resolve) => {
+          resolveRun = resolve;
+        });
+        subagentsState.runResolvers.push(resolveRun);
         return {
           id: runId,
           localAgent: undefined,
-          result: Promise.resolve({ output: [], stopReason: spec.stopReason ?? 'completed' }),
+          result: resultPromise,
           dispose: async () => {
             subagentsState.disposeCalls.push(String(runId));
           }
@@ -320,7 +332,15 @@ export function makeMockCtx(options: {
     listeners,
     approvalCalls,
     subagents: subagentsState,
-    emit
+    emit,
+    completeRun: async (index: number, stopReason = 'completed') => {
+      const resolver = subagentsState.runResolvers[index];
+      if (!resolver) throw new Error('no started run at index ' + index);
+      resolver({ output: [], stopReason });
+      // Flush the settle chain (result.then -> settle -> dispose); a short
+      // timer lets every fs await in the chain complete deterministically.
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
   };
 }
 

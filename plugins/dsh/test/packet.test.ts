@@ -58,6 +58,20 @@ describe('packet persistence (Slice 1, plan item 4)', () => {
     });
   });
 
+  it('writePacket rejects task ids that could escape the task directory', async () => {
+    await withTmpRoot(async (root) => {
+      const input = await makePacketInputFor(root, 'alpha-task');
+      const packet = buildAssignmentPacket(input);
+      const observation = await verifyTrioOnDisk(input.authority.binding as never);
+      await expect(
+        writePacket({ authorityRoot: root, taskId: '../escape', packet, bindingObservation: observation })
+      ).rejects.toThrow('Invalid task id');
+      await expect(
+        writeEvidence({ authorityRoot: root, taskId: 'a/b', kind: 'worker', record: evidenceRecord({}) })
+      ).rejects.toThrow('Invalid task id');
+    });
+  });
+
   it('writes three-state evidence files under evidence/ and enforces the host-claimed guard', async () => {
     await withTmpRoot(async (root) => {
       const unknown = evidenceRecord({ sessionId: null, provider: null, declaredModel: null });

@@ -57,7 +57,7 @@ function normalizedString(value: unknown): string | null {
 }
 
 /**
- * Resolve the worker provider/model from the immutable assignment packet.
+ * Resolve the worker provider/model from the bound assignment packet.
  * Defaults to dsh-sdk + deepseek-v4-flash; codex/claude-code are allowed only
  * when explicitly declared AND carry an explicit model; anything else throws
  * (fail closed, no dispatch).
@@ -194,8 +194,17 @@ export function classifyGateCategories(packet: Record<string, unknown> | null | 
       categories.add(normalized);
     }
   }
-  const allowed = objectRecord(packet?.allowedOperations);
-  const operations = allowed.operations;
+  // allowedOperations is accepted in two shapes (both produced by the
+  // bind flow): an object envelope { files, operations } and a plain
+  // operation-name array. Both must feed the keyword scan — reducing an
+  // array through objectRecord() would silently drop every gated keyword
+  // and let push/release/destructive operations skip the human gate.
+  const allowed = packet?.allowedOperations;
+  const operations = Array.isArray(allowed)
+    ? allowed
+    : Array.isArray(objectRecord(allowed).operations)
+      ? objectRecord(allowed).operations
+      : null;
   if (Array.isArray(operations)) {
     for (const operation of operations) {
       const opName = String(operation).toLowerCase();

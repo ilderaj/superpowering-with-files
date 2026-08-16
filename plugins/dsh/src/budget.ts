@@ -1,10 +1,10 @@
 // Budget ledger and persistence (Slice 2, plan item 3).
 //
-// In-memory per-host ledger: ≤2 parallel workers, a per-task token cap
+// In-memory per-task ledger: ≤2 parallel workers, a per-task token cap
 // (default ~100k), tokenMeter reconciliation, and fail-closed over-limit
 // manual_pending. Budget snapshots are written as evidence (kind 'budget')
 // and into the packet FILE envelope (see writePacketBudget in packet.ts);
-// the immutable assignment packet itself never changes, so the digest stays
+// the bound assignment packet content itself never changes, so the digest stays
 // stable.
 
 import {
@@ -31,9 +31,15 @@ export class BudgetTracker {
   private active = 0;
   private dispatches = 0;
 
-  constructor(cap: number = TASK_TOKEN_BUDGET_DEFAULT) {
+  /**
+   * @param cap task token cap (defaults to the documented per-task 100k).
+   * @param initialSpent spent tokens carried over from the persisted packet
+   * budget envelope, so a restarted dispatcher keeps charging the same task
+   * against its already-consumed budget instead of resetting the ledger.
+   */
+  constructor(cap: number = TASK_TOKEN_BUDGET_DEFAULT, initialSpent: number = 0) {
     this.cap = cap;
-    this.spent = 0;
+    this.spent = Number.isFinite(initialSpent) && initialSpent > 0 ? initialSpent : 0;
   }
 
   /** Reserve tokens for one dispatch; fails closed on budget_exceeded. */

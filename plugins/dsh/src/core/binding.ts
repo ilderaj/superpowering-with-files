@@ -4,8 +4,9 @@
 // bindingsMatch / assertAuthorityBinding) and harness/trio/core/read.mjs
 // (assertTrioBinding / verifyTrioBinding comparison logic) at HEAD 275345d.
 // Pure functions only: no filesystem access, no side effects. The plugin
-// binds the immutable Assignment Packet to the three Trio planning files via
-// sha256; any mismatch is a hard stop (binding_mismatch).
+// binds the Assignment Packet (a derived ticket; the Trio planning files are
+// the durable authority) to the three Trio planning files via sha256; any
+// mismatch is a hard stop (binding_mismatch).
 
 import { createHash } from 'node:crypto';
 import path from 'node:path';

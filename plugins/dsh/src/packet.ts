@@ -2,10 +2,13 @@
 //
 // Assignment Packet JSON is written to planning/active/<task-id>/swf-packet.json
 // and worker evidence to planning/active/<task-id>/evidence/ under the
-// three-state model from src/core/evidence.ts. The invariant that host-claimed
-// evidence is never written as authenticated is enforced at the write boundary
-// (requireNotHostClaimedAsAuthenticated), so no downstream gate can observe a
-// mislabeled record.
+// three-state model from src/core/evidence.ts. The packet file is a DERIVED,
+// rebindable assignment ticket — the Trio planning files (task_plan.md,
+// findings.md, progress.md) are the sole durable task authority and are
+// re-verified against the binding on every dispatch/accept. The invariant
+// that host-claimed evidence is never written as authenticated is enforced
+// at the write boundary (requireNotHostClaimedAsAuthenticated), so no
+// downstream gate can observe a mislabeled record.
 
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -13,6 +16,7 @@ import { join } from 'node:path';
 import {
   assertEvidenceState,
   assertTrioBinding,
+  assertValidTaskId,
   compareTrioBindings,
   packetDigestOf,
   requireNotHostClaimedAsAuthenticated,
@@ -107,6 +111,10 @@ export interface WritePacketOptions {
 
 export async function writePacket(options: WritePacketOptions): Promise<PacketFile> {
   const { authorityRoot, taskId, packet, bindingObservation } = options;
+  // Defense in depth: the task id becomes a filesystem segment under
+  // planning/active/, so the persistence boundary itself rejects any id
+  // that could escape the task directory (traversal, separators, absolute).
+  assertValidTaskId(taskId);
   const record: PacketFile = {
     schema: PACKET_SCHEMA,
     version: PACKET_VERSION,
@@ -124,7 +132,7 @@ export async function writePacket(options: WritePacketOptions): Promise<PacketFi
 }
 
 /**
- * Refresh the budget status inside the packet file envelope. The immutable
+ * Refresh the budget status inside the packet file envelope. The bound
  * assignment packet (and therefore its digest) is preserved. A Trio binding
  * mismatch (or unavailable trio) refuses the write: budget state must never
  * be recorded against a task whose planning authority cannot be verified.
@@ -179,6 +187,7 @@ export interface WriteEvidenceOptions<TExtra = Record<string, unknown>> {
 export async function writeEvidence<TExtra = Record<string, unknown>>(
   options: WriteEvidenceOptions<TExtra>
 ): Promise<EvidenceFile<TExtra>> {
+  assertValidTaskId(options.taskId);
   // Three-state invariant enforced at the write boundary.
   assertEvidenceState(options.record.state);
   requireNotHostClaimedAsAuthenticated(options.record);

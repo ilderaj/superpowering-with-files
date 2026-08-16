@@ -144,6 +144,21 @@ describe('Trio gate registry classification (plan item 4)', () => {
     expect(categories).toContain('security');
   });
 
+  it('scans the array form of allowedOperations (regression: objectRecord must not drop gates)', () => {
+    const categories = classifyGateCategories({
+      allowedOperations: ['push origin main', 'delete file', 'notify webhook', 'write plugins/dsh/**']
+    });
+    expect(categories).toEqual(['destructive', 'external', 'merge-push-release']);
+  });
+
+  it('scans a mixed array form together with explicit declared categories', () => {
+    const categories = classifyGateCategories({
+      capability: { gateCategories: ['security'] },
+      allowedOperations: ['release v1']
+    });
+    expect(categories).toEqual(['merge-push-release', 'security']);
+  });
+
   it('returns a stable sorted union', () => {
     const categories = classifyGateCategories({ capability: { gateCategories: ['send', 'security'] } });
     expect(categories).toEqual(['security', 'send']);

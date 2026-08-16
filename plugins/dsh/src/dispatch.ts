@@ -1,8 +1,12 @@
 // Worker dispatch orchestration (Slice 2, plan items 1/2/3/4/5).
 //
-// Visible worker (report section 4 rewrite) = a subagent dispatched through
-// ctx.subagents with a recorded {SessionId, provider, declared model}
-// evidence record. Every dispatch goes through this module. A dispatch whose
+// Host adaptation (feasibility report decision 4 + assets/dsh-host-adaptation.md
+// rules 1/4): under dsh the visible execution worker IS a subagent dispatched
+// through ctx.subagents with a recorded {SessionId, provider, declared model}
+// evidence record; there is no Codex-style visible-worker seam on a dsh host,
+// and the entry policy's "never substitute a native subagent for the execution
+// worker" is restated as "never substitute an UNRECORDED subagent for the
+// visible worker". Every dispatch goes through this module. A dispatch whose
 // record cannot be formed is failed closed (manual_pending) and the run is
 // disposed: never a silent dispatch, never an unrecorded visible worker.
 //
@@ -40,7 +44,8 @@ import {
   verifyTrioOnDisk,
   writeEvidence,
   writePacketBudget,
-  type EvidenceFile
+  type EvidenceFile,
+  type PacketBudget
 } from './packet.js';
 
 export interface DispatchOptions {
@@ -80,13 +85,36 @@ export interface SettleOptions {
 export interface WorkerDispatcher {
   dispatch(options: DispatchOptions): Promise<DispatchResult>;
   settle(options: SettleOptions): Promise<void>;
-  budgetOf(): BudgetSnapshot;
+  budgetOf(authorityRoot: string, taskId: string): BudgetSnapshot;
 }
 
 export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
-  const ledger = new BudgetTracker();
+  // Per-task ledgers: one dispatcher serves every authorityRoot/taskId pair,
+  // so the 100k cap and spent tokens must never bleed across tasks. Ledgers
+  // are keyed by authorityRoot + taskId and initialized from the persisted
+  // packet budget envelope when one exists.
+  const ledgers = new Map<string, BudgetTracker>();
+  // Run settlement bookkeeping: auto-settlement (run.result) and manual
+  // settle() are both idempotent per run id, and only the run that still
+  // holds a task's worker slot releases it (a stale completion must never
+  // free a successor run's slot).
+  const settledRunIds = new Set<string>();
+  const activeRunByKey = new Map<string, string>();
 
-  function pending(blocker: string, resumeCondition?: string): DispatchResult {
+  function ledgerKey(authorityRoot: string, taskId: string): string {
+    return authorityRoot + '\u0000' + taskId;
+  }
+
+  function ledgerFor(authorityRoot: string, taskId: string, storedBudget?: PacketBudget | null): BudgetTracker {
+    const key = ledgerKey(authorityRoot, taskId);
+    const existing = ledgers.get(key);
+    if (existing) return existing;
+    const ledger = new BudgetTracker(storedBudget?.cap, storedBudget?.spentTokens);
+    ledgers.set(key, ledger);
+    return ledger;
+  }
+
+  function pending(ledger: BudgetTracker, blocker: string, resumeCondition?: string): DispatchResult {
     return {
       status: 'manual_pending',
       blocker,
@@ -102,20 +130,28 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
   async function dispatch(options: DispatchOptions): Promise<DispatchResult> {
     const { authorityRoot, taskId, parent, prompt } = options;
 
-    // 1. The assignment packet must exist (immutable authority).
+    // 1. The assignment ticket must exist. It is a DERIVED, rebindable copy
+    //    of the bind-time assignment — not a durable authority surface. The
+    //    Trio planning files are the sole durable task authority and are
+    //    re-verified against the binding on every dispatch (step 2).
     const packetFile = await readPacket(authorityRoot, taskId);
     if (!packetFile) {
-      return pending('no_packet', 'Bind the assignment packet with /swf bind before dispatching.');
+      return pending(
+        ledgerFor(authorityRoot, taskId),
+        'no_packet',
+        'Bind the assignment ticket with /swf bind before dispatching. The Trio planning files remain the sole durable task authority.'
+      );
     }
+    const ledger = ledgerFor(authorityRoot, taskId, packetFile.budget);
 
     // 2. Trio binding verification: binding_mismatch stops immediately.
     const binding = (packetFile.packet.authority as { binding?: unknown } | undefined)?.binding as TrioBinding;
     const observation = await verifyTrioOnDisk(binding);
     if (observation.status === 'mismatch') {
-      return pending('binding_mismatch', 'Restore the planning trio to the binding before dispatching: ' + observation.mismatches.join(', '));
+      return pending(ledger, 'binding_mismatch', 'Restore the planning trio to the binding before dispatching: ' + observation.mismatches.join(', '));
     }
     if (observation.status === 'unavailable') {
-      return pending('binding_unavailable', 'Trio files are missing; restore planning/active/<task>/ before dispatching.');
+      return pending(ledger, 'binding_unavailable', 'Trio files are missing; restore planning/active/<task>/ before dispatching.');
     }
 
     // 3. Provider routing (default dsh-sdk; explicit-only codex/claude-code).
@@ -123,7 +159,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     try {
       resolution = resolveDispatchProvider(packetFile.packet);
     } catch (error) {
-      return pending('unsupported_provider', (error as Error).message);
+      return pending(ledger, 'unsupported_provider', (error as Error).message);
     }
     const registryProvider = DISPATCH_PROVIDER_REGISTRY_NAMES[resolution.provider] ?? '';
 
@@ -131,7 +167,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     const tier = dispatchTierOf(packetFile.packet.capability);
     const tierGate = deepTierGate(tier, options.deepConfirmed);
     if (!tierGate.allowed) {
-      return pending(tierGate.reason ?? 'deep_tier_confirmation_required', 'Confirm the deep tier explicitly before dispatching.');
+      return pending(ledger, tierGate.reason ?? 'deep_tier_confirmation_required', 'Confirm the deep tier explicitly before dispatching.');
     }
 
     // 5. Dual-layer gate: Trio gate registry decides, dsh approval is the
@@ -152,7 +188,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
         extra: { categories: gateCategories, outcome, taskId, requestedProvider: resolution.provider }
       });
       if (outcome !== 'allowed-once') {
-        return pending('gate_approval_required', 'Gated categories require an explicit human approval grant: ' + gateCategories.join(', '));
+        return pending(ledger, 'gate_approval_required', 'Gated categories require an explicit human approval grant: ' + gateCategories.join(', '));
       }
     }
 
@@ -160,10 +196,10 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     // resolvable. Fail closed before any dispatch attempt.
     const subagents: SubagentRuntime | undefined = subagentsServiceOf(ctx);
     if (!subagents) {
-      return pending('subagents_service_unavailable', 'The dsh host did not mount the ctx.subagents service.');
+      return pending(ledger, 'subagents_service_unavailable', 'The dsh host did not mount the ctx.subagents service.');
     }
     if (!subagents.list().includes(registryProvider)) {
-      return pending('provider_unavailable', 'Registry provider ' + registryProvider + ' is not resolvable on this dsh host.');
+      return pending(ledger, 'provider_unavailable', 'Registry provider ' + registryProvider + ' is not resolvable on this dsh host.');
     }
 
     // 7. Budget cap: reconcile the tokenMeter measurement, claim a parallel
@@ -181,7 +217,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     if (!ledger.beginWorker()) {
       await writeBudgetEvidence(authorityRoot, taskId, ledger.snapshot(), { blockedBy: 'parallel_worker_cap_exceeded' });
       await writePacketBudget(authorityRoot, taskId, ledger.snapshot());
-      return pending('parallel_worker_cap_exceeded', 'Wait for an active worker to settle before dispatching another.');
+      return pending(ledger, 'parallel_worker_cap_exceeded', 'Wait for an active worker to settle before dispatching another.');
     }
     const capability = packetFile.packet.capability as { maxTokens?: unknown } | undefined;
     let requestedTokens: number;
@@ -189,14 +225,14 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       requestedTokens = validateMaxTokens(options.maxTokens ?? capability?.maxTokens);
     } catch (error) {
       ledger.endWorker();
-      return pending('invalid_max_tokens', (error as Error).message);
+      return pending(ledger, 'invalid_max_tokens', (error as Error).message);
     }
     const reserve = ledger.reserve(requestedTokens);
     if (!reserve.allowed) {
       ledger.endWorker();
       await writeBudgetEvidence(authorityRoot, taskId, ledger.snapshot(), { blockedBy: reserve.reason ?? 'budget_blocked' });
       await writePacketBudget(authorityRoot, taskId, ledger.snapshot());
-      return pending(reserve.reason ?? 'budget_blocked', 'Raise the task budget cap or reduce spent context before dispatching.');
+      return pending(ledger, reserve.reason ?? 'budget_blocked', 'Raise the task budget cap or reduce spent context before dispatching.');
     }
 
     // 8. Observe subagent/start BEFORE starting so the mandatory
@@ -225,7 +261,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       ledger.endWorker();
       await writeBudgetEvidence(authorityRoot, taskId, ledger.snapshot(), { blockedBy: 'dispatch_start_rejected' });
       await writePacketBudget(authorityRoot, taskId, ledger.snapshot());
-      return pending('dispatch_start_rejected', 'The subagent provider rejected the start before publication: ' + (error as Error).message);
+      return pending(ledger, 'dispatch_start_rejected', 'The subagent provider rejected the start before publication: ' + (error as Error).message);
     }
     disposeObserver();
 
@@ -256,7 +292,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       });
       await writeBudgetEvidence(authorityRoot, taskId, ledger.snapshot(), { blockedBy: 'dispatch_record_unavailable' });
       await writePacketBudget(authorityRoot, taskId, ledger.snapshot());
-      return pending('dispatch_record_unavailable', 'A visible worker requires a recorded {SessionId, provider, declared model}; the run was disposed and the dispatch failed closed.');
+      return pending(ledger, 'dispatch_record_unavailable', 'A visible worker requires a recorded {SessionId, provider, declared model}; the run was disposed and the dispatch failed closed.');
     }
 
     // 11. Write the three-state worker evidence (host-claimed: dsh records
@@ -284,6 +320,21 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     await writeBudgetEvidence(authorityRoot, taskId, budget);
     await writePacketBudget(authorityRoot, taskId, budget);
 
+    // 13. Host-owned completion: attach the run's terminal result so the
+    // worker slot settles automatically when the run finishes. The command
+    // surface returns while the worker is still executing; /swf accept only
+    // proceeds once this settles the completed worker-result candidate.
+    // The run id currently holding the task's slot is recorded first so a
+    // stale completion can never release a successor run's slot.
+    const key = ledgerKey(authorityRoot, taskId);
+    activeRunByKey.set(key, sessionId);
+    void run.result
+      .then((terminal) =>
+        settle({ authorityRoot, taskId, runId: sessionId, stopReason: terminal.stopReason })
+          .catch(() => undefined)
+          .then(() => run.dispose().catch(() => undefined))
+      );
+
     return {
       status: 'dispatched',
       provider: resolution.provider,
@@ -298,14 +349,23 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
   }
 
   async function settle(options: SettleOptions): Promise<void> {
+    const key = ledgerKey(options.authorityRoot, options.taskId);
     const packetFile = await readPacket(options.authorityRoot, options.taskId);
     const binding = packetFile
       ? (packetFile.packet.authority as { binding?: unknown } | undefined)?.binding as TrioBinding
       : null;
     const observation = binding ? await verifyTrioOnDisk(binding) : null;
     // worker settlement is a report, not a gate: end the slot and record the
-    // terminal stop reason with the prior three-state worker record.
-    ledger.endWorker();
+    // terminal stop reason with the prior three-state worker record. Slot
+    // release is idempotent per run id and only the run that still holds the
+    // task's slot releases it.
+    if (!settledRunIds.has(options.runId)) {
+      settledRunIds.add(options.runId);
+      if (activeRunByKey.get(key) === options.runId) {
+        activeRunByKey.delete(key);
+        ledgerFor(options.authorityRoot, options.taskId, packetFile?.budget ?? null).endWorker();
+      }
+    }
     const prior = await readEvidence(options.authorityRoot, options.taskId, 'worker');
     const record: WorkerEvidenceRecord = prior
       ? {
@@ -324,9 +384,14 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       taskId: options.taskId,
       kind: 'worker-result',
       record,
-      extra: { runId: options.runId, stopReason: options.stopReason, trioVerified: observation?.status === 'match' }
+      extra: {
+        runId: options.runId,
+        stopReason: options.stopReason,
+        trioVerified: observation?.status === 'match',
+        packetDigest: packetFile?.packetDigest ?? null
+      }
     });
-    const budget = ledger.snapshot();
+    const budget = ledgerFor(options.authorityRoot, options.taskId, packetFile?.budget ?? null).snapshot();
     await writeBudgetEvidence(options.authorityRoot, options.taskId, budget);
     await writePacketBudget(options.authorityRoot, options.taskId, budget);
   }
@@ -334,6 +399,6 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
   return {
     dispatch,
     settle,
-    budgetOf: () => ledger.snapshot()
+    budgetOf: (authorityRoot: string, taskId: string) => ledgerFor(authorityRoot, taskId).snapshot()
   };
 }

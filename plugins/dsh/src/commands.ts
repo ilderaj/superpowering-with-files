@@ -10,6 +10,7 @@ import {
   classifyTask,
   evidenceAcceptable,
   evidenceRecord,
+  isValidTaskId,
   packetDigestOf,
   parseTaskStatus,
   routeTask,
@@ -126,6 +127,12 @@ export async function bindHandler(ctx: SwfDshContext, invocation: CommandInvocat
   if (!taskId || !packetJson) {
     return fail('/swf bind requires: <task-id> <packet-json>');
   }
+  // The CLI task id becomes the directory name under planning/active/, so
+  // it must be a plain task slug: path separators, traversal segments, and
+  // absolute paths are rejected before any packet is read or written.
+  if (!isValidTaskId(taskId)) {
+    return fail('invalid task id: ' + taskId);
+  }
   let input: BindInput;
   try {
     input = JSON.parse(packetJson) as BindInput;
@@ -134,6 +141,13 @@ export async function bindHandler(ctx: SwfDshContext, invocation: CommandInvocat
   }
   try {
     const packet = buildAssignmentPacket(input as unknown as Record<string, unknown>);
+    // The bind target must be the task the packet authority actually binds:
+    // binding a packet to a different task id would write alpha's hashes
+    // under beta's directory and let beta dispatch on alpha's authority.
+    const boundTaskId = input.authority.binding.taskId;
+    if (boundTaskId !== taskId) {
+      return fail('binding task mismatch: packet authority binds task "' + boundTaskId + '", CLI supplied "' + taskId + '"');
+    }
     const authorityRoot = input.authority.binding.authorityRoot;
     const observation = await verifyTrioOnDisk(input.authority.binding);
     if (observation.status === 'mismatch') {
@@ -226,6 +240,37 @@ export async function acceptHandler(ctx: SwfDshContext, invocation: CommandInvoc
   if (!worker) {
     return fail('cannot accept: no worker evidence recorded for task ' + taskId);
   }
+  // Evidence state gate first: unknown can never be accepted, even with a
+  // human confirmation, and asking for approval before this check would be
+  // a spurious gate request.
+  if (!evidenceAcceptable(worker.state, true)) {
+    return fail('cannot accept: evidence state ' + worker.state + ' is not acceptable even with human confirmation');
+  }
+  // Completed-candidate gate: acceptance is only valid once the dispatched
+  // run has SETTLED into a worker-result. A start-time worker record alone
+  // (host-claimed or not) is not a candidate — accepting it would write
+  // durable acceptance while the worker is still running.
+  const workerResult = await readEvidence(authorityRoot, taskId, 'worker-result');
+  if (!workerResult) {
+    return fail('cannot accept: no completed worker-result candidate for task ' + taskId + '; wait for the dispatched run to settle before accepting');
+  }
+  const resultExtra = (workerResult.extra ?? {}) as { runId?: unknown; stopReason?: unknown; packetDigest?: unknown };
+  const runId = typeof resultExtra.runId === 'string' && resultExtra.runId ? resultExtra.runId : null;
+  const stopReason = typeof resultExtra.stopReason === 'string' && resultExtra.stopReason ? resultExtra.stopReason : null;
+  if (stopReason !== 'completed') {
+    return fail('cannot accept: worker stop reason ' + (stopReason ?? 'missing') + ' is not a completed candidate');
+  }
+  // Run identity: the settled result must belong to the dispatched worker
+  // session, not to some other run that happened to finish for this task.
+  if (runId === null || runId !== worker.sessionId) {
+    return fail('cannot accept: worker-result run id ' + (runId ?? 'missing') + ' does not match the dispatched worker session ' + (worker.sessionId ?? 'missing'));
+  }
+  // Packet identity: the settled result must have been produced against the
+  // currently bound packet, so a rebind between dispatch and completion
+  // cannot accept work done under a different assignment.
+  if (resultExtra.packetDigest !== packet.packetDigest) {
+    return fail('cannot accept: worker-result packet digest does not match the bound assignment packet');
+  }
   const outcome = await ctx.approval.request({
     agent: invocation.agent,
     toolName: 'swf.accept',
@@ -234,9 +279,6 @@ export async function acceptHandler(ctx: SwfDshContext, invocation: CommandInvoc
   });
   if (outcome !== 'allowed-once') {
     return fail('acceptance not granted: ' + outcome);
-  }
-  if (!evidenceAcceptable(worker.state, true)) {
-    return fail('cannot accept: evidence state ' + worker.state + ' is not acceptable even with human confirmation');
   }
   await writeEvidence({
     authorityRoot,
@@ -286,7 +328,7 @@ export async function dispatchHandler(
   const maxTokens = kv['max-tokens'] === undefined ? undefined : Number(kv['max-tokens']);
   const prompt = kv.prompt
     ?? 'SWF assignment execution for task ' + taskId
-    + '. Read the immutable assignment packet at planning/active/' + taskId + '/swf-packet.json '
+    + '. Read the bound assignment ticket at planning/active/' + taskId + '/swf-packet.json '
     + 'and the planning trio (task_plan.md, findings.md, progress.md) under planning/active/' + taskId + '/. '
     + 'Your dispatch is recorded as a visible worker with {SessionId, provider, declared model}; '
     + 'your result is a candidate pending Chief acceptance.';
