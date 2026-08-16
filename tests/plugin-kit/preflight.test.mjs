@@ -209,7 +209,7 @@ test('portable validation rejects nested skill discovery', async () => {
 
   const result = await validatePortablePlugin({ pluginRoot: build.pluginRoot });
   assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => error.includes('no nested discovery')));
+  assert.ok(result.errors.some((error) => error.includes('nested SKILL.md discovery')));
 });
 
 test('portable validation rejects frontmatter name that does not match its directory', async () => {
@@ -265,7 +265,7 @@ test('portable validation rejects symlinks and proves regular-file containment',
   assert.ok(result.errors.some((error) => error.includes('must not contain symlinks')));
 });
 
-test('portable validation requires exactly five immediate skill directories', async () => {
+test('portable validation requires the exact immediate skill directory set', async () => {
   const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-portable-skills-'));
   const build = await buildPlugin({ target: 'agent-plugins', version: '1.1.0', outDir: path.join(workDir, 'plugins') });
   await mkdir(path.join(build.pluginRoot, 'skills/extra'));
@@ -273,5 +273,24 @@ test('portable validation requires exactly five immediate skill directories', as
 
   const result = await validatePortablePlugin({ pluginRoot: build.pluginRoot });
   assert.equal(result.ok, false);
-  assert.ok(result.errors.some((error) => error.includes('exactly the five immediate skill directories')));
+  assert.ok(result.errors.some((error) => error.includes('exactly these immediate skill directories:')));
+});
+
+test('portable validation accepts multi-file harness skills without nested discovery', async () => {
+  const workDir = await mkdtemp(path.join(os.tmpdir(), 'harness-portable-multifile-'));
+  const build = await buildPlugin({ target: 'agent-plugins', version: '1.1.0', outDir: path.join(workDir, 'plugins') });
+
+  const result = await validatePortablePlugin({ pluginRoot: build.pluginRoot });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.errors, []);
+
+  await mkdir(path.join(build.pluginRoot, 'skills/planning-with-files/scripts/nested'), { recursive: true });
+  await writeFile(
+    path.join(build.pluginRoot, 'skills/planning-with-files/scripts/nested/SKILL.md'),
+    '---\nname: nested\n---\n'
+  );
+
+  const nestedResult = await validatePortablePlugin({ pluginRoot: build.pluginRoot });
+  assert.equal(nestedResult.ok, false);
+  assert.ok(nestedResult.errors.some((error) => error.includes('nested SKILL.md discovery')));
 });

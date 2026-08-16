@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
+  harnessSkillSourceMap,
   mattSkillsCompanionFamily,
   mattSkillsCompanionTargets,
   mattSkillsPlatformContracts,
@@ -45,6 +46,26 @@ test('core Trio targets and source map remain exact', () => {
     { name: 'office', source: 'harness/trio/capabilities/office/SKILL.md' },
     { name: 'safety', source: 'harness/trio/capabilities/safety/SKILL.md' },
     { name: 'chiefops', source: 'harness/trio/governance/chiefops/SKILL.md' },
+  ]);
+});
+
+test('harness skill source map covers the additional SWF skills as directory copies', () => {
+  assert.deepEqual(harnessSkillSourceMap, [
+    {
+      name: 'planning-with-files',
+      source: 'harness/core/upstream-overlays/planning-with-files',
+      directory: true
+    },
+    {
+      name: 'overengineering-review',
+      source: 'harness/core/skills/overengineering-review',
+      directory: true
+    },
+    {
+      name: 'simplification-ledger',
+      source: 'harness/core/skills/simplification-ledger',
+      directory: true
+    }
   ]);
 });
 

@@ -15,7 +15,16 @@ const PORTABLE_MANIFEST_FIELDS = new Set([
   'extensions'
 ]);
 
-const PORTABLE_SKILL_NAMES = ['trio', 'dev', 'office', 'safety', 'chiefops'];
+const PORTABLE_SKILL_NAMES = [
+  'trio',
+  'dev',
+  'office',
+  'safety',
+  'chiefops',
+  'planning-with-files',
+  'overengineering-review',
+  'simplification-ledger'
+];
 
 // Mirrors the Agent Plugins v1.0.0 manifest name constraint.
 const PORTABLE_NAME_PATTERN = /^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
@@ -137,10 +146,7 @@ async function validateImmediateSkillDiscovery(skillsRoot, skillNames, errors) {
   const names = entries.map((entry) => entry.name);
   const expected = [...skillNames].sort();
   if (names.join(',') !== expected.join(',')) {
-    const expectation = skillNames === PORTABLE_SKILL_NAMES
-      ? 'exactly the five immediate skill directories'
-      : `exactly these immediate skill directories: ${expected.join(', ')}`;
-    errors.push(`Portable skills/ must contain ${expectation}, got: ${names.join(', ')}`);
+    errors.push(`Portable skills/ must contain exactly these immediate skill directories: ${expected.join(', ')}, got: ${names.join(', ')}`);
     return;
   }
 
@@ -152,12 +158,36 @@ async function validateImmediateSkillDiscovery(skillsRoot, skillNames, errors) {
 
     const skillDir = path.join(skillsRoot, entry.name);
     const children = (await readdir(skillDir, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name));
-    if (children.length !== 1 || children[0].name !== 'SKILL.md' || !children[0].isFile()) {
-      errors.push(`Portable skills/${entry.name} must contain exactly one regular SKILL.md child (no nested discovery)`);
+
+    const skillMarkdown = children.find((child) => child.name === 'SKILL.md');
+    if (!skillMarkdown || !skillMarkdown.isFile()) {
+      errors.push(`Portable skills/${entry.name} must contain a regular SKILL.md file`);
+      continue;
+    }
+
+    const nested = [];
+    for (const child of children) {
+      if (child.isDirectory()) {
+        await collectNestedSkillMarkdown(path.join(skillDir, child.name), nested);
+      }
+    }
+    if (nested.length > 0) {
+      errors.push(`Portable skills/${entry.name} must not contain nested SKILL.md discovery`);
       continue;
     }
 
     await validateSkillFrontmatter(path.join(skillDir, 'SKILL.md'), entry.name, errors);
+  }
+}
+
+async function collectNestedSkillMarkdown(dir, found) {
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      await collectNestedSkillMarkdown(path.join(dir, entry.name), found);
+    } else if (entry.isFile() && entry.name === 'SKILL.md') {
+      found.push(path.join(dir, entry.name));
+    }
   }
 }
 

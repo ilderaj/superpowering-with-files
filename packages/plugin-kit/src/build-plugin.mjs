@@ -2,12 +2,22 @@ import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
   agentPluginsSchemaUrl,
+  harnessSkillSourceMap,
   mattSkillsCompanionFamily,
   mattSkillsCompanionTargets,
   platformContractFor,
   trioSkillSourceMap
 } from './platform-contracts.mjs';
 import { loadMattSkillsSource } from './matt-skills-source.mjs';
+
+// Host hook configs and Python bytecode caches are never projected: SWF keeps
+// hooks Host-owned and the plugin ships only skill assets.
+function isExcludedSkillCopyEntry(sourcePath) {
+  const segments = sourcePath.split(path.sep);
+  return segments.includes('__pycache__')
+    || segments.includes('.codex')
+    || segments.some((segment) => segment === '.DS_Store' || segment.endsWith('.pyc'));
+}
 
 export async function buildPlugin({ target, version, outDir, rootDir = process.cwd() }) {
   const contract = platformContractFor(target);
@@ -25,7 +35,7 @@ export async function buildPlugin({ target, version, outDir, rootDir = process.c
   if (mattSkillsCompanionTargets.includes(target)) {
     await writeMattSkills({ pluginRoot, contract });
   } else {
-    await writeTrioSkills({ pluginRoot, rootDir, contract });
+    await writeHarnessSkills({ pluginRoot, rootDir, contract });
   }
   await writeReadme({ pluginRoot, contract, config, target });
 
@@ -90,12 +100,21 @@ async function writePortableManifest({ pluginRoot, config, version }) {
   await writeFile(path.join(pluginRoot, 'plugin.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
-async function writeTrioSkills({ pluginRoot, rootDir, contract }) {
-  for (const { name, source } of trioSkillSourceMap) {
+async function writeHarnessSkills({ pluginRoot, rootDir, contract }) {
+  for (const { name, source, directory } of [...trioSkillSourceMap, ...harnessSkillSourceMap]) {
     const destination = contract.skillDestinations[name];
     const outputPath = path.join(pluginRoot, destination);
-    await mkdir(path.dirname(outputPath), { recursive: true });
-    await cp(path.join(rootDir, source), outputPath);
+    if (directory) {
+      const outputDir = path.dirname(outputPath);
+      await mkdir(outputDir, { recursive: true });
+      await cp(path.join(rootDir, source), outputDir, {
+        recursive: true,
+        filter: (candidate) => !isExcludedSkillCopyEntry(candidate)
+      });
+    } else {
+      await mkdir(path.dirname(outputPath), { recursive: true });
+      await cp(path.join(rootDir, source), outputPath);
+    }
   }
 }
 
@@ -147,7 +166,7 @@ async function writeReadme({ pluginRoot, contract, config, target }) {
         '',
         config.description,
         '',
-        `This package targets ${contract.displayName} and bundles the Trio skills.`,
+        `This package targets ${contract.displayName} and bundles the Trio skills, the ChiefOps governance companion, the Planning with Files skill, and the core overengineering-review and simplification-ledger skills.`,
         '',
         installLine
       ];

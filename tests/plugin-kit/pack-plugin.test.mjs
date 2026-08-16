@@ -32,6 +32,11 @@ test('packPlugin creates a versioned plugin tarball with plugin root contents', 
   assert.match(stdout, /skills\/trio\/dev\/SKILL\.md/);
   assert.match(stdout, /skills\/trio\/office\/SKILL\.md/);
   assert.match(stdout, /skills\/trio\/safety\/SKILL\.md/);
+  assert.match(stdout, /skills\/planning-with-files\/SKILL\.md/);
+  assert.match(stdout, /skills\/planning-with-files\/scripts\/session-catchup\.py/);
+  assert.match(stdout, /skills\/planning-with-files\/templates\/task_plan\.md/);
+  assert.match(stdout, /skills\/overengineering-review\/SKILL\.md/);
+  assert.match(stdout, /skills\/simplification-ledger\/SKILL\.md/);
   assert.doesNotMatch(stdout, /skills\/harness\/SKILL\.md/);
   assert.doesNotMatch(stdout, /(?:^|\/)hooks\//);
   assert.doesNotMatch(stdout, /(?:^|\/)\.mcp\.json$/m);
@@ -62,6 +67,9 @@ test('packPlugin creates a versioned Agent Plugins tarball with flat portable sk
   assert.match(stdout, /skills\/office\/SKILL\.md/);
   assert.match(stdout, /skills\/safety\/SKILL\.md/);
   assert.match(stdout, /skills\/chiefops\/SKILL\.md/);
+  assert.match(stdout, /skills\/planning-with-files\/SKILL\.md/);
+  assert.match(stdout, /skills\/overengineering-review\/SKILL\.md/);
+  assert.match(stdout, /skills\/simplification-ledger\/SKILL\.md/);
   assert.doesNotMatch(stdout, /skills\/trio\/dev\/SKILL\.md/);
   assert.doesNotMatch(stdout, /\.codex-plugin\/plugin\.json/);
   assert.doesNotMatch(stdout, /skills\/harness\/SKILL\.md/);
@@ -124,6 +132,9 @@ test('buildAll creates core and Matt companion release artifacts, manifest, chec
     const { stdout } = await execFileAsync('tar', ['-tzf', artifact.path]);
     assert.match(stdout, /skills\/trio\/SKILL\.md/);
     assert.match(stdout, /skills\/chiefops\/SKILL\.md/);
+    assert.match(stdout, /skills\/planning-with-files\/SKILL\.md/);
+    assert.match(stdout, /skills\/overengineering-review\/SKILL\.md/);
+    assert.match(stdout, /skills\/simplification-ledger\/SKILL\.md/);
   }
 
   for (const artifact of release.artifacts.filter((artifact) => artifact.target.startsWith('matt-skills-'))) {

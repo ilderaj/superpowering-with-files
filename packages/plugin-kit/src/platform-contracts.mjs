@@ -10,6 +10,28 @@ export const trioSkillSourceMap = [
   { name: 'chiefops', source: 'harness/trio/governance/chiefops/SKILL.md' }
 ];
 
+// Additional SWF skills projected into the packaged plugins. Each entry points
+// at a Harness-owned directory whose contents are copied into skills/<name>/
+// (minus runtime junk such as __pycache__ and host hook configs that SWF does
+// not project).
+export const harnessSkillSourceMap = [
+  {
+    name: 'planning-with-files',
+    source: 'harness/core/upstream-overlays/planning-with-files',
+    directory: true
+  },
+  {
+    name: 'overengineering-review',
+    source: 'harness/core/skills/overengineering-review',
+    directory: true
+  },
+  {
+    name: 'simplification-ledger',
+    source: 'harness/core/skills/simplification-ledger',
+    directory: true
+  }
+];
+
 export const mattSkillsCompanionTargets = [
   'matt-skills-codex',
   'matt-skills-agent-plugins'
@@ -41,7 +63,10 @@ const portableSkillDestinations = {
   dev: 'skills/dev/SKILL.md',
   office: 'skills/office/SKILL.md',
   safety: 'skills/safety/SKILL.md',
-  chiefops: 'skills/chiefops/SKILL.md'
+  chiefops: 'skills/chiefops/SKILL.md',
+  'planning-with-files': 'skills/planning-with-files/SKILL.md',
+  'overengineering-review': 'skills/overengineering-review/SKILL.md',
+  'simplification-ledger': 'skills/simplification-ledger/SKILL.md'
 };
 
 const codexSkillDestinations = {
@@ -49,7 +74,10 @@ const codexSkillDestinations = {
   dev: 'skills/trio/dev/SKILL.md',
   office: 'skills/trio/office/SKILL.md',
   safety: 'skills/trio/safety/SKILL.md',
-  chiefops: 'skills/chiefops/SKILL.md'
+  chiefops: 'skills/chiefops/SKILL.md',
+  'planning-with-files': 'skills/planning-with-files/SKILL.md',
+  'overengineering-review': 'skills/overengineering-review/SKILL.md',
+  'simplification-ledger': 'skills/simplification-ledger/SKILL.md'
 };
 
 const mattSkillsSkillDestinations = {
@@ -71,6 +99,9 @@ export const platformContracts = {
       'skills/trio/office/SKILL.md',
       'skills/trio/safety/SKILL.md',
       'skills/chiefops/SKILL.md',
+      'skills/planning-with-files/SKILL.md',
+      'skills/overengineering-review/SKILL.md',
+      'skills/simplification-ledger/SKILL.md',
       'README.md'
     ],
     loadsRootInstructionFile: true,
@@ -91,6 +122,9 @@ export const platformContracts = {
       'skills/office/SKILL.md',
       'skills/safety/SKILL.md',
       'skills/chiefops/SKILL.md',
+      'skills/planning-with-files/SKILL.md',
+      'skills/overengineering-review/SKILL.md',
+      'skills/simplification-ledger/SKILL.md',
       'README.md'
     ],
     loadsRootInstructionFile: false,

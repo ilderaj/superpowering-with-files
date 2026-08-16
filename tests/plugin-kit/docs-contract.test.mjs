@@ -89,7 +89,8 @@ test('release and installation docs describe the Codex and portable Agent Plugin
   assert.match(releaseArtifacts, /harness-codex-plugin-<version>\.tgz/);
   assert.match(releaseArtifacts, /harness-agent-plugins-<version>\.tgz/);
   assert.match(releaseArtifacts, /\.codex-plugin\/plugin\.json/);
-  assert.match(releaseArtifacts, /four Trio skills/i);
+  assert.match(releaseArtifacts, /three additional SWF skills/i);
+  assert.match(releaseArtifacts, /planning-with-files/i);
   assert.match(releaseArtifacts, /ChiefOps governance companion|chiefops/i);
   assert.match(releaseArtifacts, /https:\/\/agent-plugins\.org\/schemas\/1\.0\.0\/plugin\.schema\.json/);
   assert.match(releaseArtifacts, /skills\/trio\/SKILL\.md/);
@@ -162,7 +163,7 @@ test('Agent Plugins install doc explains portable manual client-owned semantics'
   assert.match(doc, /harness-agent-plugins-<version>\.tgz/);
   assert.match(doc, /client-owned/i);
   assert.match(doc, /client's own procedure/i);
-  assert.match(doc, /skills\/\{trio,dev,office,safety,chiefops\}\/SKILL\.md/);
+  assert.match(doc, /skills\/\{trio,dev,office,safety,chiefops,planning-with-files,overengineering-review,simplification-ledger\}\/SKILL\.md/);
   assert.match(doc, /non-recursive/i);
   assert.match(doc, /https:\/\/agent-plugins\.org\/schemas\/1\.0\.0\/plugin\.schema\.json/);
   assert.doesNotMatch(doc, /codex plugin marketplace add/);

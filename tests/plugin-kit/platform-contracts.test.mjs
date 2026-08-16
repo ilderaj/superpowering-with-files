@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   agentPluginsSchemaUrl,
+  harnessSkillSourceMap,
   platformContracts,
   supportedPluginTargets,
   trioSkillSourceMap
@@ -16,6 +17,9 @@ test('platform contracts define the Codex and Agent Plugins plugin targets', () 
     assert.equal(typeof contract.displayName, 'string');
     assert.ok(contract.requiredFiles.includes('skills/trio/SKILL.md'));
     assert.ok(contract.requiredFiles.includes('skills/chiefops/SKILL.md'));
+    assert.ok(contract.requiredFiles.includes('skills/planning-with-files/SKILL.md'));
+    assert.ok(contract.requiredFiles.includes('skills/overengineering-review/SKILL.md'));
+    assert.ok(contract.requiredFiles.includes('skills/simplification-ledger/SKILL.md'));
     assert.ok(!contract.requiredFiles.includes('skills/harness/SKILL.md'));
     assert.ok(!contract.requiredFiles.includes('hooks/hooks.json'));
     assert.ok(!contract.requiredFiles.includes('.mcp.json'));
@@ -76,4 +80,24 @@ test('both targets are generated from one shared Trio skill source map', () => {
   }
 
   assert.equal(agentPluginsSchemaUrl, 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json');
+});
+
+test('both targets also bundle the additional Harness-owned SWF skills', () => {
+  assert.deepEqual(
+    harnessSkillSourceMap.map((entry) => entry.name),
+    ['planning-with-files', 'overengineering-review', 'simplification-ledger']
+  );
+  assert.equal(harnessSkillSourceMap[0].source, 'harness/core/upstream-overlays/planning-with-files');
+  assert.equal(harnessSkillSourceMap[1].source, 'harness/core/skills/overengineering-review');
+  assert.equal(harnessSkillSourceMap[2].source, 'harness/core/skills/simplification-ledger');
+  assert.equal(harnessSkillSourceMap.every((entry) => entry.directory === true), true);
+
+  for (const target of supportedPluginTargets) {
+    const contract = platformContracts[target];
+    for (const { name } of harnessSkillSourceMap) {
+      const destination = contract.skillDestinations[name];
+      assert.equal(destination, `skills/${name}/SKILL.md`);
+      assert.ok(contract.requiredFiles.includes(destination));
+    }
+  }
 });

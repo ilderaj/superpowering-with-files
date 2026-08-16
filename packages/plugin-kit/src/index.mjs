@@ -1,6 +1,7 @@
 export { buildArtifactManifest } from './artifact-manifest.mjs';
 export {
   agentPluginsSchemaUrl,
+  harnessSkillSourceMap,
   platformContracts,
   platformContractFor,
   supportedPluginTargets,

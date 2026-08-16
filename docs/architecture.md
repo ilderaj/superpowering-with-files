@@ -21,14 +21,14 @@ superpowering-with-files uses four implementation layers plus one distribution p
 
 Core is the source of truth for policy. The installer manages state, safe writes, and entry + skills projection for the local Codex install path. The Trio layer owns the workflow protocol: its entry policy routes work first, the `dev`, `office`, and `safety` capability packs define quality contracts, and the ChiefOps companion restores the planning trio without acting as a runner. The host expressions under `harness/trio/hosts/` carry Host routing and permission semantics for Codex (`codex.mjs`) and the manual fail-closed fallback (`generic.mjs`); they are governance semantics, not package-format adapters.
 
-The retired `harness/adapters`, `harness/runtime`, and `harness/mcp` planes are not part of the current implementation. No package includes MCP, hooks, runtime executables, or credentials.
+The retired `harness/adapters`, `harness/runtime`, and `harness/mcp` planes are not part of the current implementation. No package includes MCP, hooks, or a managed host runtime, and no credentials. Executable scripts inside the packaged plugins are vendored skill assets (for example the `planning-with-files` scripts), not a host runtime.
 
 ## Distribution
 
 Each release produces two artifacts generated from one shared skill source map:
 
 - `harness-codex-plugin-<version>.tgz` — the native Codex package. It contains `.codex-plugin/plugin.json` and the established nested layout `skills/trio/{dev,office,safety}` plus the `skills/chiefops/` companion, and installs through the Codex native marketplace path.
-- `harness-agent-plugins-<version>.tgz` — the portable Agent Plugins v1 package. It contains a root `plugin.json` with the closed portable schema (`https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`) and five immediate skill children: `skills/{trio,dev,office,safety,chiefops}/SKILL.md`. Agent Plugins discovery is non-recursive, so the portable package uses a flat layout rather than the Codex-nested one.
+- `harness-agent-plugins-<version>.tgz` — the portable Agent Plugins v1 package. It contains a root `plugin.json` with the closed portable schema (`https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`) and eight immediate skill children: `skills/{trio,dev,office,safety,chiefops,planning-with-files,overengineering-review,simplification-ledger}/SKILL.md`. Agent Plugins discovery is non-recursive, so the portable package uses a flat layout rather than the Codex-nested one.
 
 Codex is the only managed native target. The portable package is a vendor-neutral distribution artifact: installation is manual and client-owned, following each Agent Plugins-compatible client's own procedure. This repository makes no managed generic-client installation claim. The local `install`/`sync` projection remains a Codex-specific local migration path, not a third-party distribution mechanism.
 

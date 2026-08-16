@@ -8,7 +8,7 @@ This package is separate from the native Codex package (`harness-codex-plugin-<v
 
 ## Package contents
 
-The portable package contains a root `plugin.json` with the closed Agent Plugins v1 schema (`https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`) and five immediate skill children (`skills/{trio,dev,office,safety,chiefops}/SKILL.md`). Agent Plugins discovery is non-recursive, so the skills are flat:
+The portable package contains a root `plugin.json` with the closed Agent Plugins v1 schema (`https://agent-plugins.org/schemas/1.0.0/plugin.schema.json`) and eight immediate skill children (`skills/{trio,dev,office,safety,chiefops,planning-with-files,overengineering-review,simplification-ledger}/SKILL.md`). Agent Plugins discovery is non-recursive, so the skills are flat:
 
 ```text
 plugin.json
@@ -17,9 +17,12 @@ skills/dev/SKILL.md
 skills/office/SKILL.md
 skills/safety/SKILL.md
 skills/chiefops/SKILL.md
+skills/planning-with-files/SKILL.md
+skills/overengineering-review/SKILL.md
+skills/simplification-ledger/SKILL.md
 ```
 
-The manifest declares the exact schema URL, a lowercase package name, the release version, source/repository metadata, an MIT license, and keywords. It contains no Codex interface, capabilities, or skills metadata, and the package contains no MCP, hooks, runtime executables, or credentials.
+The manifest declares the exact schema URL, a lowercase package name, the release version, source/repository metadata, an MIT license, and keywords. It contains no Codex interface, capabilities, or skills metadata, and the package contains no MCP, hooks, or managed host runtime, and no credentials.
 
 ## Verify the download
 
@@ -48,7 +51,7 @@ tar -xzf "$HOME/Downloads/harness-agent-plugins-${VERSION}.tgz" -C "$HOME/.local
 
 Each client defines its own plugin location and enablement flow. Follow the client's documentation; there is no single portable install command because the standard leaves installation, enablement, updates, and lifecycle to the client.
 
-This repository does not manage, install, or sync anything into third-party clients. The local `install`/`sync` projection is a Codex-specific migration path only and is not a portable-client installer. A client reports a loading or discovery mismatch if it does not see all five core skills; in that case keep the extracted directory regular (no symlinks), verify the root `plugin.json`, and consult the client's Agent Plugins support.
+This repository does not manage, install, or sync anything into third-party clients. The local `install`/`sync` projection is a Codex-specific migration path only and is not a portable-client installer. A client reports a loading or discovery mismatch if it does not see all eight core skills; in that case keep the extracted directory regular (no symlinks), verify the root `plugin.json`, and consult the client's Agent Plugins support.
 
 ## Optional Matt companion
 
