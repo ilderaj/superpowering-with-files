@@ -1,99 +1,109 @@
 # superpowering-with-files
 
-superpowering-with-files is a lightweight Trio workflow for local coding-agent work. It keeps durable task state in a planning trio, applies one capability pack at a time, and treats Codex as the managed native host. Other hosts use the generic/manual fallback.
+A lightweight Trio workflow for local coding-agent work: planning-trio task state, one capability pack at a time, tracked execution via a visible `swf_executor` worker, Codex as managed native host (others: generic/manual fallback). It is a harness, not an IDE — it classifies requests, applies rules, picks the executor, decides when a result is done, and keeps human gates. Agents: [AGENTS.md](AGENTS.md) is the binding policy; humans: use the intake table.
+
+## What the harness does
+
+- Routes `quick` / `tracked` / `deep` (deep: per-round reasoning); picks one pack: `dev` / `office` / `safety`.
+- Keeps the planning trio as the only durable task authority for tracked work.
+- Routes tracked changes to the visible `swf_executor` role with a requested economic profile (Flash, high/xhigh/max); never silent fallback — no compliant worker means `manual_pending` (`blocker` + `resumeCondition`).
+- Enforces three-layer permission governance (scope → sandbox → approval); approval never expands allowed paths.
+- Retains human gates (merge, push, publish, release, send, credentials, destructive) and a command surface (list below).
+
+## How the harness controls work
+
+| Layer | Where it lives | What it does |
+|---|---|---|
+| Entry policy | [AGENTS.md](AGENTS.md) | Injected every session: route first, one pack, human gates. |
+| Skills | [`.agents/skills/trio/`](.agents/skills/trio/SKILL.md) | Quality contracts: `dev` / `office` / `safety` + `chiefops`. |
+| Durable record | `planning/active/<task-id>/` | Only authority for task outcome, scope, evidence. |
+| Decision core | [`harness/trio/core/routing.mjs`](harness/trio/core/routing.mjs) | Pure logic: assignment packet, sha256 binding, permission adjudication, `manual_pending`. |
+| Host adapters | [`harness/trio/hosts/codex.mjs`](harness/trio/hosts/codex.mjs), `generic.mjs` | Translate the contract into host form (`swf_executor` for Codex); generic fallback. |
+| Command surface | [`scripts/harness`](scripts/harness) | Operator CLI (see below). |
+| Runtime logs | `.harness/runtime-hooks/*.jsonl` | Per-host session logs; audit evidence, not rules. |
+| Human gates | every layer | Merge, push, publish, release, send, credentials, destructive — always require a human. |
+| Host plugins | [`plugins/`](plugins/) (e.g. `plugins/dsh/`) | Same governance for other hosts (DeepSeek Harness cordis). |
+
+## Control scope
+
+**Controls:** routing and pack selection; durable task record; visible-worker topology and evidence; permission adjudication; human gates; budgets and approval flows in host plugins.
+
+**Never claims:** scheduler or daemon behavior; authenticated model evidence it lacks (`actual` stays `unknown` until the Host authenticates it); an unimplemented Host lifecycle bridge (honest exit: `manual_pending`); silent fallback.
 
 ## Core model
 
-```mermaid
-flowchart TD
-    A["Task"] --> B{"Quick or tracked?"}
-    B -- "Quick" --> C["Execute and verify"]
-    B -- "Tracked" --> D["Restore the planning trio"]
-    D --> E["Choose dev, office, or safety"]
-    E --> F["Codex or generic/manual execution"]
-    F --> G["Verify and record evidence in the trio"]
-```
+![Core model](docs/trio-v2/trio-core-model.png)
 
-### Durable task authority
+## Durable task authority
 
-For every tracked task, the only durable task authority is:
+For tracked tasks the only durable authority is:
 
 ```text
-planning/active/<task-id>/task_plan.md
-planning/active/<task-id>/findings.md
-planning/active/<task-id>/progress.md
+planning/active/<task-id>/task_plan.md   # outcome, scope, completion criteria
+planning/active/<task-id>/findings.md    # verified facts and constraints
+planning/active/<task-id>/progress.md    # execution and verification evidence
 ```
 
-`task_plan.md` records the outcome, scope, and completion criteria. `findings.md` records verified facts and constraints. `progress.md` records execution and verification evidence.
+Quick tasks need no trio. Tracked work restores the three files before substantive rounds; a worker result is only a candidate until the main session accepts it.
 
-Quick tasks do not need a trio. Tracked work restores the three files before a substantive round. A worker result is only a candidate until the main session accepts it and records the outcome in the trio.
+## Capability packs
 
-### Capability packs
+One pack per task: `dev` — implementation, debugging, tests, review; `office` — documents, spreadsheets, presentations, PDFs; `safety` — destructive, security-sensitive, external-effect decisions. Packs guide quality only; they never own task state, Host lifecycle, permissions, or human gates.
 
-Select exactly one pack for a task:
+## Human intake: how to ask, what to expect
 
-- `dev` for implementation, debugging, tests, and code review.
-- `office` for source-backed documents, spreadsheets, presentations, and PDFs.
-- `safety` for destructive, security-sensitive, or external-effect decisions.
+Plain language, no ceremony; add goal, affected surfaces, constraints, proof, and stopping gate when relevant.
 
-The packs guide quality behavior. They do not replace the planning trio or Host-owned worker lifecycle, permissions, and human gates.
-
-### Host boundary
-
-Codex is the only managed native target. Its plugin contains the Trio entry policy and the `dev`, `office`, and `safety` packs. Generic/manual fallback is guidance for hosts without a managed native artifact.
-
-Requested model and reasoning effort are intent. Actual values remain unknown unless the Host authenticates them. The main session plans, integrates, and accepts; bounded workers execute assigned slices and return evidence.
-
-### Plan → Execute usage at a glance
-
-Tracked production changes are routed to the visible `swf_executor` execution role with a requested economic profile (DeepSeek Flash provider, xhigh effort, no fallback). Requested values are routing intent: the actual provider, model, and effort remain `unknown` until the Host authenticates them. When strict routing requires a visible worker and no compliant one is available, the result is `manual_pending`, never a silent native fallback. A worker result is a candidate until the main session accepts it. Say what you need in plain language — no skill invocation or task ceremony is required.
-
-### Chief → worker → subagent
-
-Humans state outcome, constraints, proof, and stopping point in natural language. The main session classifies quick/tracked work, owns the tracked planning trio, and plans, integrates, and accepts results. A bounded tracked slice is executed by a visible worker; its result is a candidate until the main session validates it and records the outcome in the trio. Worker-local subagents are allowed only when the worker packet explicitly grants child delegation, and their scope and profile must be a strict proper subset of the worker's own; otherwise they are prohibited. Strict routes require the visible worker — when no compliant one is available the result is `manual_pending`, never a silent native fallback. Merge, push, publish, and release actions remain human gates. Requested model and effort are routing intent; the actual provider and model remain `unknown` unless the Host authenticates them.
-
-| Route | How you ask | What you get |
+| Scenario | How to ask | What you get |
 |---|---|---|
-| quick (Q&A / small edit) | one-line question, zero ceremony | direct answer/edit, no trio |
-| tracked / default | one paragraph: goal, affected surfaces, constraints, acceptance proof, gate | trio + slice plan + `swf_executor` candidate → you accept → you decide merge |
-| strict (visible worker required) | add: "must be done by the visible swf_executor role, no hidden subagent" | `visible_worker_required` packet; `manual_pending` if unavailable, never a silent native fallback |
-| deep (analyze first) | "analyze first with evidence, I approve before you touch code" | evidence-backed analysis report, then execution |
-| human gate | state the stopping point ("stop at a draft PR" / "no push" / "confirm before release") | stops at the gate; human confirmation is always retained |
-| after `manual_pending` | don't repeat the request; pick one: provide a compliant worker / release strict / confirm blocked | handled via the descriptor's `blocker` and `resumeCondition` |
+| Quick (Q&A / small edit) | One line | Direct answer or small edit; no trio, no worker |
+| Tracked (default) | One paragraph: goal, surfaces, constraints, proof, gate | Trio → slice plan → candidate → your acceptance → you decide merge |
+| Strict (visible worker) | Add: "visible swf_executor role, no hidden subagent" | `visible_worker_required` packet; if unavailable → `manual_pending`, never silent fallback |
+| Deep (analyze first) | "Analyze first with evidence; I approve before touching code" | Evidence-backed analysis; execution only after your approval |
+| Human gate | State the stop: "stop at draft PR" / "no push" / "confirm before release" | Stops at the gate; confirmation always retained |
+| After `manual_pending` | Don't repeat the request; pick one of the three resolutions | Continues via `blocker` + `resumeCondition` |
 
-Full operator guide (Chinese): [docs/trio-v2/human-usage.md](docs/trio-v2/human-usage.md). Audits: [2026-08-09-plan-execute-deepseek-executor-audit.md](reports/audit/2026-08-09-plan-execute-deepseek-executor-audit.md) and [2026-08-09-economic-execution-routing-20260809-conclusion.md](reports/audit/2026-08-09-economic-execution-routing-20260809-conclusion.md).
+`manual_pending` resolutions: ① provide a compliant visible worker (manual bind with the exact packet) ② release the strict topology (legacy chain) ③ wait, or record the blocker as `blocked`.
+
+## Basic workflow
+
+Three diagrams (mermaid sources: [docs/trio-v2/workflow.md](docs/trio-v2/workflow.md)); operator guide (Chinese): [docs/trio-v2/human-usage.md](docs/trio-v2/human-usage.md).
+
+### 1. Routing and binding
+
+![Routing and binding](docs/trio-v2/trio-workflow-1-routing-binding.png)
+
+### 2. Strict topology and dispatch gates
+
+![Strict topology and dispatch gates](docs/trio-v2/trio-workflow-2-strict-dispatch.png)
+
+### 3. Execution, acceptance, and revision
+
+![Execution, acceptance, and revision](docs/trio-v2/trio-workflow-3-execution-acceptance.png)
+
+Guiding notes:
+
+- **Permission gate** — three ordered layers: scope (`allowedOperations.files` is the only authorization source; out-of-scope and materialized outputs like `generated_target` are blocked) → sandbox (authenticated evidence + matching packet digest; writable roots must cover the target) → approval (allow/deny only; never expands allowed paths).
+- **Requested vs actual** — requested model/effort are intent; `actual` stays `unknown` until the Host authenticates it; a result is a candidate until Chief acceptance and Trio writeback.
+- **Human gates** — merge/push/release/publish/send/credentials/destructive actions are retained at all times.
+- **Host bridge** — the local fail-closed routing contract is implemented; the Host lifecycle bridge (authenticated spawn/continue/status/interrupt/collect, dynamic child rejection) is not; until it exists, the honest exit is `manual_pending`, never local simulation or bypass.
+
+Audits: [2026-08-09-plan-execute-deepseek-executor-audit.md](reports/audit/2026-08-09-plan-execute-deepseek-executor-audit.md) and [2026-08-09-economic-execution-routing-20260809-conclusion.md](reports/audit/2026-08-09-economic-execution-routing-20260809-conclusion.md).
 
 ## Public commands
 
-The public command list is: `install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, and `token-audit`.
-
-Use `trio` to create or restore tracked task state. Use `verify` for the repository's supported verification surfaces. Use `checkpoint` before a scoped local recovery-sensitive change. These commands do not bypass Host or human gates for external, destructive, security-sensitive, merge, release, or publish actions.
+`install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, `token-audit`. `trio` creates/restores tracked state; `verify` runs supported verification; `checkpoint` precedes recovery-sensitive changes. Commands never bypass Host or human gates.
 
 ### Existing user-global governance-surface takeover
 
-The dedicated takeover flag on `./scripts/harness install` (documented in [docs/install/codex.md](docs/install/codex.md)) adopts one unowned user-global governance surface when the durable authority root already holds an eligible schema-v2 `user-global` state. It is the only V2 path that writes a managed user-global destination beyond the five core Trio surfaces; ordinary `install` stays workspace-only and normal `sync` keeps only `--dry-run` and `--check`.
-
-Eligibility is strict: exactly one enabled managed Codex user-global placement at `<home>/.codex/AGENTS.md`, ownership of exactly the five existing Trio surfaces (entry plus `trio`, `dev`, `office`, `safety`) with content matching their ownership identities, and exactly one unowned governance destination. Absent or V1 state, workspace/both scope, a wrong placement, an already-owned governance surface, a second managed conflict, or any unsafe physical path are rejected before any write. Generic/manual targets are preserved and never written.
-
-Before writing, the command takes and revalidates seven stable preimages (the six global Trio surfaces plus the prior V2 state); each capture is `lstat → read → lstat` and requires exact file and parent dev/ino/nlink identities before and after the read, so a replacement between the stat and the read fails closed before any backup or apply write. It then publishes a unique, read-back-verified immutable backup at `<authorityRoot>/.harness-backup/trio-takeover/<id>/` with a `manifest.json` and `bundle.bin` that retain the original bytes, ownership provenance, and the prior recovery values. Before any backup write, every existing backup-root ancestor from the authority root through `.harness-backup/trio-takeover` must be a real, non-symlink directory physically contained under the authority root; a symlinked or escaping ancestor fails closed with no state or target change. The manifest records the pre-takeover `checkpointRef` and `rollbackRef` unchanged. The settled state preserves `ownership.source`, `ownership.manifestRef`, and `recovery.checkpointRef`, appends only the governance surface's ownership, and sets `recovery.rollbackRef` to a parseable `trio-backup-v1:<absolute manifest path>:<sha256>` file reference whose digest is derived from the manifest file bytes as written and re-read. Every write stays bound to the backup preimages (sha256, inode, parent), so a same-content inode replacement fails closed and any mid-apply failure compensates back to the preimages.
-
-The backup is recovery evidence, not a crash or power-loss atomicity guarantee. Run the command only from the durable authority root (the checkout that owns `.harness/state.json`), never from a transient worktree, and only with a separate human gate. It never merges, pushes, publishes, or adopts anything automatically; after the run, verify with `./scripts/harness sync --check` and `doctor --check-only`. See [docs/install/codex.md](docs/install/codex.md), [docs/trio-v2/cutover.md](docs/trio-v2/cutover.md), and [docs/trio-v2/human-usage.md](docs/trio-v2/human-usage.md).
+`./scripts/harness install --takeover-chiefops` adopts one unowned user-global governance surface (ChiefOps) when the authority root holds an eligible schema-v2 `user-global` state. Eligibility fails closed: exactly one enabled managed Codex placement, exactly the five owned Trio surfaces, exactly one unowned ChiefOps target, no second managed conflict, no unsafe physical paths. Writes are bound to preimage-stable captures with a read-back-verified immutable backup under `<authorityRoot>/.harness-backup/trio-takeover/<id>/`; it never merges, pushes, or publishes automatically. Run only from the authority root with a separate human gate; verify with `sync --check` / `doctor --check-only`. See [docs/install/codex.md](docs/install/codex.md) and [docs/trio-v2/cutover.md](docs/trio-v2/cutover.md).
 
 ## Codex plugin
 
-The only packaged artifact is `harness-codex-plugin-<version>.tgz`. It contains `.codex-plugin/plugin.json` and five skill files: the four Trio skill files plus the ChiefOps governance companion.
-
-- `.codex-plugin/plugin.json`
-- `skills/trio/SKILL.md`
-- `skills/trio/dev/SKILL.md`
-- `skills/trio/office/SKILL.md`
-- `skills/trio/safety/SKILL.md`
-- `skills/chiefops/SKILL.md`
-
-ChiefOps is a governance companion outside the `dev`, `office`, and `safety` capability families; it is not a fourth capability pack.
+The only packaged artifact is `harness-codex-plugin-<version>.tgz`: `.codex-plugin/plugin.json` + five skill files (the four Trio skills plus ChiefOps). Experimental source plugins live in [`plugins/`](plugins/) — e.g. [`plugins/dsh/`](plugins/dsh/README.md) packages the same governance for DeepSeek Harness (cordis); source-first, not published to npm.
 
 See [Codex installation](docs/install/codex.md), [plugin package installation](docs/install/plugin-packages.md), and [release artifacts](docs/release-plugin-artifacts.md).
 
 ## Boundaries
 
-This repository documents the current local Trio contract. It does not claim that a user's existing global installation has been migrated. Keep a generic/manual host on its own documented setup path, and retain explicit human approval for external or irreversible actions.
+Codex is the only managed native target; its plugin carries the Trio policy and the three packs; generic/manual is guidance for hosts without a managed artifact. The Host owns worker/subtask lifecycle, permissions, continuation, and human gates; the main session plans, integrates, accepts, and writes the trio. This repository documents the current local Trio contract; it does not claim any existing global installation has been migrated. Keep generic/manual hosts on their own documented setup path, with human approval for external or irreversible actions.
