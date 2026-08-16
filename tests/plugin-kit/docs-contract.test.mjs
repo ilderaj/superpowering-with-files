@@ -181,7 +181,7 @@ test('README names the Trio as the sole durable authority and only seven public 
   assert.doesNotMatch(readme, /reconciliation\.md|companion[- ]plan|\[ChiefOps\]\(chiefops\.md\)|harness_chiefops_board|receipt|registry/i);
   assert.match(
     readme,
-    /`install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, and `token-audit`/
+    /`install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, `token-audit`/
   );
   assert.doesNotMatch(readme, /`(?:status|update|fetch|active-summary|summary|record|worktree-preflight|worktree-name)`/);
   assert.doesNotMatch(readme, /(?:profile|hooks|MCP)\s+(?:is|are|stays|remains|supports|projects)/i);
