@@ -53,13 +53,17 @@ Then use Codex's marketplace flow to enable the plugin when required by the inst
 
 ## Verify the package boundary
 
-The extracted package must contain `.codex-plugin/plugin.json`, exactly these four Trio skills, and the `skills/chiefops/SKILL.md` ChiefOps governance companion:
+The extracted package must contain `.codex-plugin/plugin.json`, these five Trio surfaces, the `skills/chiefops/SKILL.md` ChiefOps governance companion, and the three additional SWF skills (`planning-with-files`, `overengineering-review`, and `simplification-ledger`):
 
 ```text
 skills/trio/SKILL.md
 skills/trio/dev/SKILL.md
 skills/trio/office/SKILL.md
 skills/trio/safety/SKILL.md
+skills/chiefops/SKILL.md
+skills/planning-with-files/SKILL.md
+skills/overengineering-review/SKILL.md
+skills/simplification-ledger/SKILL.md
 ```
 
 This local package procedure does not migrate an existing user-global installation. Keep its state unchanged unless a separately authorized migration is performed.

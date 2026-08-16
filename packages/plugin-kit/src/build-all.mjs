@@ -111,6 +111,7 @@ function renderReleaseNotes(version) {
     `# Superpowering With Files ${version}`,
     '',
     'Trio skills plugin release: a portable Agent Plugins v1 package and a native Codex package, both built from the same skill sources. It also includes two independent, opt-in Matt skills companion packages; they make no change to Trio or its projection.',
+    'The core packages bundle the five Trio surfaces (entry policy, `trio`, `dev`, `office`, `safety`), the ChiefOps governance companion, and the three additional SWF skills: `planning-with-files`, `overengineering-review`, and `simplification-ledger`.',
     '',
     'Artifacts:',
     '',

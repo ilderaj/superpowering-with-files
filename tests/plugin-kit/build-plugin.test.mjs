@@ -17,7 +17,7 @@ test('plugin source config exists for the Codex and Agent Plugins targets', asyn
   }
 });
 
-test('buildPlugin creates a Codex root with exactly four Trio skills plus one ChiefOps companion', async () => {
+test('buildPlugin creates a Codex root with the Trio skills, ChiefOps companion, and harness skills', async () => {
   const outDir = path.join(await fsMkdtemp('harness-build-plugin-'), 'plugins');
   const build = await buildPlugin({ target: 'codex', version: '1.0.9', outDir });
   const contract = platformContracts.codex;
@@ -47,12 +47,19 @@ test('buildPlugin creates a Codex root with exactly four Trio skills plus one Ch
   await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /governance companion/i);
   await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /not a runner|no runner/i);
 
+  await access(path.join(build.pluginRoot, 'skills/planning-with-files/SKILL.md'));
+  await access(path.join(build.pluginRoot, 'skills/planning-with-files/scripts/session-catchup.py'));
+  await access(path.join(build.pluginRoot, 'skills/planning-with-files/templates/task_plan.md'));
+  await access(path.join(build.pluginRoot, 'skills/overengineering-review/SKILL.md'));
+  await access(path.join(build.pluginRoot, 'skills/simplification-ledger/SKILL.md'));
+  await assert.rejects(access(path.join(build.pluginRoot, 'skills/planning-with-files/.codex')), /ENOENT/);
+
   for (const forbiddenPath of ['skills/harness', 'hooks', '.mcp.json', 'mcp', 'runtime', 'node_modules']) {
     await assert.rejects(access(path.join(build.pluginRoot, forbiddenPath)), /ENOENT/);
   }
 });
 
-test('buildPlugin creates an Agent Plugins root with five flat skills and a portable manifest', async () => {
+test('buildPlugin creates an Agent Plugins root with eight flat skills and a portable manifest', async () => {
   const outDir = path.join(await fsMkdtemp('harness-build-portable-'), 'plugins');
   const build = await buildPlugin({ target: 'agent-plugins', version: '1.1.0', outDir });
   const contract = platformContracts['agent-plugins'];
@@ -69,7 +76,10 @@ test('buildPlugin creates an Agent Plugins root with five flat skills and a port
     'chiefops',
     'dev',
     'office',
+    'overengineering-review',
+    'planning-with-files',
     'safety',
+    'simplification-ledger',
     'trio'
   ]);
 
@@ -77,6 +87,15 @@ test('buildPlugin creates an Agent Plugins root with five flat skills and a port
     assert.deepEqual(await readdir(path.join(build.pluginRoot, 'skills', name)), ['SKILL.md']);
     await assertFileMatches(build.pluginRoot, `skills/${name}/SKILL.md`, new RegExp(`name: ${name}`));
   }
+
+  for (const name of ['planning-with-files', 'overengineering-review', 'simplification-ledger']) {
+    await access(path.join(build.pluginRoot, 'skills', name, 'SKILL.md'));
+    await assertFileMatches(build.pluginRoot, `skills/${name}/SKILL.md`, new RegExp(`name: ${name}`));
+  }
+  await access(path.join(build.pluginRoot, 'skills/planning-with-files/scripts/session-catchup.py'));
+  await access(path.join(build.pluginRoot, 'skills/planning-with-files/templates/task_plan.md'));
+  await access(path.join(build.pluginRoot, 'skills/overengineering-review/rubric.md'));
+  await assert.rejects(access(path.join(build.pluginRoot, 'skills/planning-with-files/.codex')), /ENOENT/);
 
   await assert.rejects(access(path.join(build.pluginRoot, 'skills/trio/dev/SKILL.md')), /ENOENT/);
   await assert.rejects(access(path.join(build.pluginRoot, '.codex-plugin/plugin.json')), /ENOENT/);
