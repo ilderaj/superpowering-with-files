@@ -227,6 +227,12 @@ export async function acceptHandler(ctx: SwfDshContext, invocation: CommandInvoc
   if (!packet) {
     return fail('no packet at ' + packetFilePath(authorityRoot, taskId));
   }
+  // Ticket integrity: acceptance is durable only against the ticket that was
+  // actually bound. A hand-edited ticket (e.g. removing a gated operation)
+  // still matches the Trio binding, so the recorded digest is the guard.
+  if (packetDigestOf(packet.packet) !== packet.packetDigest) {
+    return fail('packet_digest_mismatch: the stored assignment ticket does not match its recorded digest; rebind with /swf bind before accepting');
+  }
   // Trio hash verification before any human acceptance: a task whose planning
   // authority cannot be verified is never durably done.
   const binding = (packet.packet.authority as { binding?: unknown } | undefined)?.binding as TrioBinding;

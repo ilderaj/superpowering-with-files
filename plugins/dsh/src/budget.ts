@@ -44,12 +44,16 @@ export class BudgetTracker {
 
   /** Reserve tokens for one dispatch; fails closed on budget_exceeded. */
   reserve(requestedTokens: number): BudgetDecision {
+    // Parallel admission is enforced by the dispatcher's host-wide counter
+    // before reserve() is reached (README: ≤2 parallel workers per host).
+    // The per-task active count here is accounting/reporting only, so the
+    // pure parallel-cap branch of decideBudget is disabled on this path.
     const decision = decideBudget({
       spentTokens: this.spent,
       requestedTokens,
       budget: this.cap,
       activeWorkers: this.active,
-      maxParallelWorkers: MAX_PARALLEL_WORKERS
+      maxParallelWorkers: Number.MAX_SAFE_INTEGER
     });
     if (!decision.allowed) return decision;
     this.spent += requestedTokens;

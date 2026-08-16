@@ -4,7 +4,7 @@
 // flow. This Codex environment cannot run a real dsh session; the flow is
 // proven with mocks and the first real human accept is a Slice 3 rollout item.
 
-import { readFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -426,6 +426,107 @@ describe('dispatchWorker over mock ctx.subagents (Slice 2)', () => {
       expect((gate!.extra as { categories: string[] }).categories).toContain('merge-push-release');
     });
   });
+
+  it('rejects a ticket whose content no longer matches its recorded digest', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'tamper-ticket-task');
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+      const ticketPath = join(root, 'planning', 'active', 'tamper-ticket-task', 'swf-packet.json');
+      const stored = JSON.parse(await readFile(ticketPath, 'utf8'));
+      stored.packet.allowedOperations = ['push origin main'];
+      await writeFile(ticketPath, JSON.stringify(stored, null, 2) + '\n', 'utf8');
+
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'tamper-ticket-task',
+        parent: PARENT,
+        prompt: 'x'
+      });
+      expect(result.status).toBe('manual_pending');
+      expect(result.blocker).toBe('packet_digest_mismatch');
+      expect(harness.subagents.started).toHaveLength(0);
+    });
+  });
+
+  it('enforces the parallel worker cap across tasks on one dispatcher', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'cap-a-task');
+      await boundTask(root, 'cap-b-task');
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+
+      const a = await dispatcher.dispatch({ authorityRoot: root, taskId: 'cap-a-task', parent: PARENT, prompt: 'x' });
+      expect(a.status).toBe('dispatched');
+
+      const b = await dispatcher.dispatch({ authorityRoot: root, taskId: 'cap-b-task', parent: PARENT, prompt: 'x' });
+      expect(b.status).toBe('dispatched');
+
+      const c = await dispatcher.dispatch({ authorityRoot: root, taskId: 'cap-a-task', parent: PARENT, prompt: 'x' });
+      expect(c.status).toBe('manual_pending');
+      expect(c.blocker).toBe('parallel_worker_cap_exceeded');
+      expect(harness.subagents.started).toHaveLength(2);
+
+      await harness.completeRun(0, 'completed');
+      const d = await dispatcher.dispatch({ authorityRoot: root, taskId: 'cap-b-task', parent: PARENT, prompt: 'x' });
+      expect(d.status).toBe('dispatched');
+    });
+  });
+
+  it('tracks multiple concurrent runs per task and releases each slot exactly once', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'multi-task');
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+
+      const r1 = await dispatcher.dispatch({ authorityRoot: root, taskId: 'multi-task', parent: PARENT, prompt: 'x' });
+      const r2 = await dispatcher.dispatch({ authorityRoot: root, taskId: 'multi-task', parent: PARENT, prompt: 'x' });
+      expect(r1.status).toBe('dispatched');
+      expect(r2.status).toBe('dispatched');
+      expect(dispatcher.budgetOf(root, 'multi-task').activeWorkers).toBe(2);
+
+      const r3 = await dispatcher.dispatch({ authorityRoot: root, taskId: 'multi-task', parent: PARENT, prompt: 'x' });
+      expect(r3.status).toBe('manual_pending');
+      expect(r3.blocker).toBe('parallel_worker_cap_exceeded');
+
+      await harness.completeRun(0, 'completed');
+      expect(dispatcher.budgetOf(root, 'multi-task').activeWorkers).toBe(1);
+
+      await harness.completeRun(1, 'completed');
+      expect(dispatcher.budgetOf(root, 'multi-task').activeWorkers).toBe(0);
+
+      const r4 = await dispatcher.dispatch({ authorityRoot: root, taskId: 'multi-task', parent: PARENT, prompt: 'x' });
+      expect(r4.status).toBe('dispatched');
+    });
+  });
+
+  it('disposes the run and releases the slot when post-start persistence fails', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'persistfail-task');
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+      const evidenceDir = join(root, 'planning', 'active', 'persistfail-task', 'evidence');
+      await mkdir(evidenceDir, { recursive: true });
+      await chmod(evidenceDir, 0o555);
+      await chmod(join(evidenceDir, 'worker.json'), 0o444);
+      try {
+        const result = await dispatcher.dispatch({
+          authorityRoot: root,
+          taskId: 'persistfail-task',
+          parent: PARENT,
+          prompt: 'x'
+        });
+        expect(result.status).toBe('manual_pending');
+        expect(result.blocker).toBe('dispatch_persistence_failed');
+        expect(harness.subagents.started).toHaveLength(1);
+        expect(harness.subagents.disposeCalls.length).toBeGreaterThan(0);
+        expect(dispatcher.budgetOf(root, 'persistfail-task').activeWorkers).toBe(0);
+      } finally {
+        await chmod(join(evidenceDir, 'worker.json'), 0o644);
+        await chmod(evidenceDir, 0o755);
+      }
+    });
+  });
 });
 
 describe('/swf dispatch command surface (Slice 2)', () => {
@@ -515,6 +616,29 @@ describe('/swf accept with Trio hash verification (plan item 5)', () => {
       const result = await runCommand(harness.commands, 'accept errored-task ' + root);
       expect(result.kind).toBe('error');
       expect((result as { text: string }).text).toContain('not a completed candidate');
+      expect(harness.approvalCalls).toHaveLength(0);
+    });
+  });
+
+  it('refuses acceptance when the ticket digest no longer matches', async () => {
+    await withTmpRoot(async (root) => {
+      const harness = makeMockCtx({ approvalOutcome: 'allowed-once' });
+      for (const def of createSwfCommands(harness.ctx, createSessionTracker(harness.ctx))) {
+        harness.ctx.commands.register(def);
+      }
+      const input = await makePacketInputFor(root, 'alpha-task');
+      await runCommand(harness.commands, 'bind alpha-task ' + JSON.stringify(input));
+      await runCommand(harness.commands, 'dispatch alpha-task ' + root);
+      await harness.completeRun(0, 'completed');
+
+      const ticketPath = join(root, 'planning', 'active', 'alpha-task', 'swf-packet.json');
+      const stored = JSON.parse(await readFile(ticketPath, 'utf8'));
+      stored.packet.allowedOperations = ['push origin main'];
+      await writeFile(ticketPath, JSON.stringify(stored, null, 2) + '\n', 'utf8');
+
+      const result = await runCommand(harness.commands, 'accept alpha-task ' + root);
+      expect(result.kind).toBe('error');
+      expect((result as { text: string }).text).toContain('packet_digest_mismatch');
       expect(harness.approvalCalls).toHaveLength(0);
     });
   });

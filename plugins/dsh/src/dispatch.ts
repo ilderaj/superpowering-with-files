@@ -28,6 +28,7 @@ import {
   deepTierGate,
   DISPATCH_PROVIDER_REGISTRY_NAMES,
   dispatchTierOf,
+  MAX_PARALLEL_WORKERS,
   resolveDispatchProvider,
   validateMaxTokens,
   type DispatchTier
@@ -94,12 +95,15 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
   // are keyed by authorityRoot + taskId and initialized from the persisted
   // packet budget envelope when one exists.
   const ledgers = new Map<string, BudgetTracker>();
+  // Host-wide worker admission: README documents at most two parallel
+  // workers per host, so the cap is a dispatcher-wide counter, not a
+  // per-task one. Token spending stays per task (ledgers above).
+  let hostActive = 0;
   // Run settlement bookkeeping: auto-settlement (run.result) and manual
-  // settle() are both idempotent per run id, and only the run that still
-  // holds a task's worker slot releases it (a stale completion must never
-  // free a successor run's slot).
-  const settledRunIds = new Set<string>();
-  const activeRunByKey = new Map<string, string>();
+  // settle() both release slots idempotently per run id. Multiple runs may
+  // be concurrently active for one task, so each key holds a SET of active
+  // run ids; releasing only ever removes the run that actually settles.
+  const activeRunsByKey = new Map<string, Set<string>>();
 
   function ledgerKey(authorityRoot: string, taskId: string): string {
     return authorityRoot + '\u0000' + taskId;
@@ -112,6 +116,34 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     const ledger = new BudgetTracker(storedBudget?.cap, storedBudget?.spentTokens);
     ledgers.set(key, ledger);
     return ledger;
+  }
+
+  function beginHostWorker(): boolean {
+    if (hostActive >= MAX_PARALLEL_WORKERS) return false;
+    hostActive += 1;
+    return true;
+  }
+
+  function endHostWorker(): void {
+    if (hostActive > 0) hostActive -= 1;
+  }
+
+  function activeRunSet(key: string): Set<string> {
+    const existing = activeRunsByKey.get(key);
+    if (existing) return existing;
+    const set = new Set<string>();
+    activeRunsByKey.set(key, set);
+    return set;
+  }
+
+  /** Release one admitted run exactly once: frees the host slot and the
+   *  task's worker slot. No-op for unknown/stale run ids. */
+  function releaseSlot(key: string, runId: string, ledger: BudgetTracker): void {
+    const runs = activeRunsByKey.get(key);
+    if (!runs || !runs.delete(runId)) return;
+    if (runs.size === 0) activeRunsByKey.delete(key);
+    ledger.endWorker();
+    endHostWorker();
   }
 
   function pending(ledger: BudgetTracker, blocker: string, resumeCondition?: string): DispatchResult {
@@ -143,6 +175,14 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       );
     }
     const ledger = ledgerFor(authorityRoot, taskId, packetFile.budget);
+
+    // 1b. Ticket integrity: the stored ticket content must match its recorded
+    // digest. A hand-edited swf-packet.json (for example, removing a gated
+    // operation) would still pass the Trio binding check, so the digest is
+    // the guard that prevents an edited ticket from bypassing the gates.
+    if (packetDigestOf(packetFile.packet) !== packetFile.packetDigest) {
+      return pending(ledger, 'packet_digest_mismatch', 'Rebind the assignment ticket with /swf bind: the stored ticket content does not match its recorded digest.');
+    }
 
     // 2. Trio binding verification: binding_mismatch stops immediately.
     const binding = (packetFile.packet.authority as { binding?: unknown } | undefined)?.binding as TrioBinding;
@@ -214,7 +254,11 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       }
     }
     ledger.settle(measured ?? 0);
-    if (!ledger.beginWorker()) {
+    // Host-wide parallel cap first; the per-task ledger slot is secondary
+    // accounting (spent tokens and per-task active count stay per task).
+    const hostAdmitted = beginHostWorker();
+    if (!hostAdmitted || !ledger.beginWorker()) {
+      if (hostAdmitted) endHostWorker();
       await writeBudgetEvidence(authorityRoot, taskId, ledger.snapshot(), { blockedBy: 'parallel_worker_cap_exceeded' });
       await writePacketBudget(authorityRoot, taskId, ledger.snapshot());
       return pending(ledger, 'parallel_worker_cap_exceeded', 'Wait for an active worker to settle before dispatching another.');
@@ -225,11 +269,13 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       requestedTokens = validateMaxTokens(options.maxTokens ?? capability?.maxTokens);
     } catch (error) {
       ledger.endWorker();
+      endHostWorker();
       return pending(ledger, 'invalid_max_tokens', (error as Error).message);
     }
     const reserve = ledger.reserve(requestedTokens);
     if (!reserve.allowed) {
       ledger.endWorker();
+      endHostWorker();
       await writeBudgetEvidence(authorityRoot, taskId, ledger.snapshot(), { blockedBy: reserve.reason ?? 'budget_blocked' });
       await writePacketBudget(authorityRoot, taskId, ledger.snapshot());
       return pending(ledger, reserve.reason ?? 'budget_blocked', 'Raise the task budget cap or reduce spent context before dispatching.');
@@ -259,6 +305,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     } catch (error) {
       disposeObserver();
       ledger.endWorker();
+      endHostWorker();
       await writeBudgetEvidence(authorityRoot, taskId, ledger.snapshot(), { blockedBy: 'dispatch_start_rejected' });
       await writePacketBudget(authorityRoot, taskId, ledger.snapshot());
       return pending(ledger, 'dispatch_start_rejected', 'The subagent provider rejected the start before publication: ' + (error as Error).message);
@@ -279,6 +326,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     if (!sessionId || !observedProvider || !declaredModel) {
       await run.dispose();
       ledger.endWorker();
+      endHostWorker();
       await writeEvidence({
         authorityRoot,
         taskId,
@@ -295,45 +343,54 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       return pending(ledger, 'dispatch_record_unavailable', 'A visible worker requires a recorded {SessionId, provider, declared model}; the run was disposed and the dispatch failed closed.');
     }
 
-    // 11. Write the three-state worker evidence (host-claimed: dsh records
-    // the visible dispatch but provides no authenticated evidence ref).
-    const record: WorkerEvidenceRecord = evidenceRecord({ sessionId, provider: observedProvider, declaredModel });
-    const evidence = await writeEvidence({
-      authorityRoot,
-      taskId,
-      kind: 'worker',
-      record,
-      extra: {
-        runId: startInfos[0]?.runId ? String(startInfos[0].runId) : null,
-        registryProvider,
-        tier,
-        requestedTokens,
-        packetDigest: packetDigestOf(packetFile.packet),
-        startEventObserved: startInfos.length > 0,
-        observedRegistryProvider,
-        registryMismatch: observedRegistryProvider !== null && observedRegistryProvider !== registryProvider
-      }
-    });
-
-    // 12. Persist budget status into evidence and the packet file envelope.
-    const budget = ledger.snapshot();
-    await writeBudgetEvidence(authorityRoot, taskId, budget);
-    await writePacketBudget(authorityRoot, taskId, budget);
-
-    // 13. Host-owned completion: attach the run's terminal result so the
-    // worker slot settles automatically when the run finishes. The command
-    // surface returns while the worker is still executing; /swf accept only
-    // proceeds once this settles the completed worker-result candidate.
-    // The run id currently holding the task's slot is recorded first so a
-    // stale completion can never release a successor run's slot.
+    // 11. Attach host-owned completion IMMEDIATELY after the record is
+    // formed — before any persistence — so a persistence failure can never
+    // orphan a running worker: whenever the run settles, its slot is
+    // released, the worker-result is reported, and the run is disposed.
+    // Each key holds a set of active run ids (two runs may run concurrently
+    // for one task) and settlement only ever releases the run that settles.
     const key = ledgerKey(authorityRoot, taskId);
-    activeRunByKey.set(key, sessionId);
+    activeRunSet(key).add(sessionId);
     void run.result
       .then((terminal) =>
         settle({ authorityRoot, taskId, runId: sessionId, stopReason: terminal.stopReason })
           .catch(() => undefined)
           .then(() => run.dispose().catch(() => undefined))
       );
+
+    // 12. Persist the three-state worker evidence (host-claimed: dsh records
+    // the visible dispatch but provides no authenticated evidence ref) and
+    // the budget status. Any failure here ends the slot and disposes the
+    // run — the worker must never keep running without its mandatory
+    // evidence record.
+    let evidence: EvidenceFile;
+    try {
+      const record: WorkerEvidenceRecord = evidenceRecord({ sessionId, provider: observedProvider, declaredModel });
+      evidence = await writeEvidence({
+        authorityRoot,
+        taskId,
+        kind: 'worker',
+        record,
+        extra: {
+          runId: startInfos[0]?.runId ? String(startInfos[0].runId) : null,
+          registryProvider,
+          tier,
+          requestedTokens,
+          packetDigest: packetDigestOf(packetFile.packet),
+          startEventObserved: startInfos.length > 0,
+          observedRegistryProvider,
+          registryMismatch: observedRegistryProvider !== null && observedRegistryProvider !== registryProvider
+        }
+      });
+      const budget = ledger.snapshot();
+      await writeBudgetEvidence(authorityRoot, taskId, budget);
+      await writePacketBudget(authorityRoot, taskId, budget);
+    } catch (error) {
+      releaseSlot(key, sessionId, ledger);
+      await run.dispose().catch(() => undefined);
+      await writeBudgetEvidence(authorityRoot, taskId, ledger.snapshot(), { blockedBy: 'dispatch_persistence_failed' }).catch(() => undefined);
+      return pending(ledger, 'dispatch_persistence_failed', 'The worker started but its mandatory evidence could not be persisted; the run was disposed: ' + (error as Error).message);
+    }
 
     return {
       status: 'dispatched',
@@ -344,7 +401,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       runId: sessionId,
       sessionId,
       evidence,
-      budget
+      budget: ledger.snapshot()
     };
   }
 
@@ -355,17 +412,10 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       ? (packetFile.packet.authority as { binding?: unknown } | undefined)?.binding as TrioBinding
       : null;
     const observation = binding ? await verifyTrioOnDisk(binding) : null;
-    // worker settlement is a report, not a gate: end the slot and record the
-    // terminal stop reason with the prior three-state worker record. Slot
-    // release is idempotent per run id and only the run that still holds the
-    // task's slot releases it.
-    if (!settledRunIds.has(options.runId)) {
-      settledRunIds.add(options.runId);
-      if (activeRunByKey.get(key) === options.runId) {
-        activeRunByKey.delete(key);
-        ledgerFor(options.authorityRoot, options.taskId, packetFile?.budget ?? null).endWorker();
-      }
-    }
+    // worker settlement is a report, not a gate: release the slot (exactly
+    // once per admitted run) and record the terminal stop reason with the
+    // prior three-state worker record.
+    releaseSlot(key, options.runId, ledgerFor(options.authorityRoot, options.taskId, packetFile?.budget ?? null));
     const prior = await readEvidence(options.authorityRoot, options.taskId, 'worker');
     const record: WorkerEvidenceRecord = prior
       ? {
