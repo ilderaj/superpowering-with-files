@@ -24,7 +24,7 @@ const expectedCodexConfig = {
   target: 'matt-skills-codex',
   name: 'harness-matt-skills-codex-plugin',
   displayName: 'Matt Pocock Skills for Codex',
-  version: '1.1.0',
+  version: '1.2.0',
   description: 'Optional Matt Pocock skills for Codex.',
 };
 
@@ -32,7 +32,7 @@ const expectedPortableConfig = {
   target: 'matt-skills-agent-plugins',
   name: 'harness-matt-skills-agent-plugins',
   displayName: 'Matt Pocock Skills for Agent Plugins',
-  version: '1.1.0',
+  version: '1.2.0',
   description: 'Optional Matt Pocock skills for Agent Plugins clients.',
   repository: 'https://github.com/ilderaj/superpowering-with-files',
   keywords: ['harness', 'matt-pocock', 'skills', 'grilling', 'questionnaire'],
