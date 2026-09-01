@@ -3,13 +3,15 @@ import test from 'node:test';
 
 import * as routing from '../../harness/trio/core/routing.mjs';
 import {
-  SWF_EXECUTOR_PROFILES,
-  SWF_EXECUTOR_ROLE,
+  allocateCorleoneCallsign,
+  CORLEONE_AGENT_TYPES,
+  renderCorleoneAgentEntry,
+  renderCorleoneRosterConfig,
+  renderCorleoneRoleFile,
+  resolveCorleoneProfile,
+  selectCorleoneRole,
   adapterStatus,
   renderCodexHandoffRequest,
-  renderSwfExecutorAgentEntry,
-  renderSwfExecutorRoleFile,
-  resolveSwfExecutorProfile,
   resolveCodexHostOperation
 } from '../../harness/trio/hosts/codex.mjs';
 import * as codexAdapter from '../../harness/trio/hosts/codex.mjs';
@@ -54,6 +56,82 @@ function createAssignmentPacket() {
     expectedReturn: { status: ['candidate_done', 'blocked'] }
   };
 }
+
+test('Corleone role selection maps ordinary coding to a button man and strict visibility to Don Michael', () => {
+  assert.deepEqual(
+    selectCorleoneRole({ workRole: 'coding', complexity: 'high' }),
+    {
+      agentType: 'buttonman_neri',
+      displayName: 'Button Man Al Neri',
+      tier: 'buttonman',
+      ordinal: 1
+    }
+  );
+  assert.deepEqual(
+    selectCorleoneRole({
+      workRole: 'coding',
+      complexity: 'xhigh',
+      primaryExecution: 'visible_worker_required'
+    }),
+    {
+      agentType: 'don_michael',
+      displayName: 'Don Michael Corleone',
+      tier: 'don',
+      ordinal: 1
+    }
+  );
+  assert.throws(
+    () => selectCorleoneRole({
+      workRole: 'chief',
+      primaryExecution: 'visible_worker_required'
+    }),
+    /supported execution workRole/i
+  );
+});
+
+test('Corleone callsigns exhaust named capos before using a stable ordinal role name', () => {
+  assert.deepEqual(
+    allocateCorleoneCallsign({ tier: 'capo', ordinal: 2 }),
+    {
+      agentType: 'capo_lampone',
+      displayName: 'Capo Rocco Lampone',
+      tier: 'capo',
+      ordinal: 2
+    }
+  );
+  const thirdCapo = allocateCorleoneCallsign({ tier: 'capo', ordinal: 3 });
+  assert.deepEqual(thirdCapo, {
+    agentType: 'capo',
+    displayName: 'Capo 3rd',
+    tier: 'capo',
+    ordinal: 3
+  });
+  assert.equal(allocateCorleoneCallsign({ tier: 'capo', ordinal: 4 }).displayName, 'Capo 4th');
+  assert.deepEqual(
+    selectCorleoneRole({
+      workRole: 'coding',
+      complexity: 'high',
+      workerIdentity: thirdCapo
+    }),
+    thirdCapo
+  );
+});
+
+test('Corleone role profiles render a named Flash agent with no fallback or delegated authority', () => {
+  const profile = resolveCorleoneProfile('capo_clemenza', 'xhigh');
+  assert.equal(profile.name, 'capo_clemenza');
+  assert.equal(profile.model, 'opencode-go/deepseek-v4-flash');
+  assert.equal(profile.modelReasoningEffort, 'xhigh');
+  assert.equal(profile.fallbackModel, null);
+
+  const entry = renderCorleoneAgentEntry('capo_clemenza', '/tmp/agents/capo_clemenza.toml', 'xhigh');
+  const roleFile = renderCorleoneRoleFile('capo_clemenza', 'xhigh');
+  assert.match(entry, /\[agents\.capo_clemenza\]/);
+  assert.match(entry, /config_file\s*=\s*"\/tmp\/agents\/capo_clemenza\.toml"/);
+  assert.match(roleFile, /name\s*=\s*"capo_clemenza"/);
+  assert.match(roleFile, /Capo Peter Clemenza/);
+  assert.doesNotMatch(`${entry}\n${roleFile}`, /fallback|childDelegation|delegation\s*=\s*"allowed"/i);
+});
 
 test('resolveHostOperation selects a visible worker with exact route evidence', () => {
   assert.equal(typeof routing.resolveHostOperation, 'function');
@@ -221,6 +299,52 @@ test('Host routing falls back from visible worker to native subagent and then ma
   assert.equal(manual.routeEvidence.workerId, null);
   assert.match(manual.routeEvidence.fallbackReason, /native_unsupported/);
   assert.equal(manual.descriptor.executed, false);
+});
+
+test('default execution selects a safe native subagent even when a visible worker is available', () => {
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: {
+      ...createAssignmentPacket(),
+      capability: {
+        workRole: 'coding',
+        complexity: 'high',
+        primaryExecution: 'default',
+        childDelegation: 'worker_discretion'
+      }
+    },
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/feature'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'native-first-default-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: true,
+        permissionBinding: true,
+        pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'native_subagent');
+  assert.equal(result.routeEvidence.fallbackReason, null);
 });
 
 test('spawn routes do not inherit an old visible worker identity, status, or actual model evidence', () => {
@@ -758,37 +882,39 @@ test('assignment packets carry topology intent inside capability without a new t
   assert.equal(packet.capability.primaryExecution, 'visible_worker_required');
 });
 
-test('swf_executor role pins DeepSeek Flash with xhigh effort and no fallback model', () => {
-  assert.equal(SWF_EXECUTOR_ROLE.name, 'swf_executor');
-  assert.equal(SWF_EXECUTOR_ROLE.model, 'opencode-go/deepseek-v4-flash');
-  assert.equal(SWF_EXECUTOR_ROLE.modelReasoningEffort, 'xhigh');
-  assert.equal(SWF_EXECUTOR_ROLE.fallbackModel, null);
+test('Corleone config renders a named agent with xhigh effort and no fallback model', () => {
+  const profile = resolveCorleoneProfile('capo_clemenza');
+  assert.equal(profile.name, 'capo_clemenza');
+  assert.equal(profile.model, 'opencode-go/deepseek-v4-flash');
+  assert.equal(profile.modelReasoningEffort, 'xhigh');
+  assert.equal(profile.fallbackModel, null);
 
-  const entry = renderSwfExecutorAgentEntry('/tmp/host/agents/swf_executor.toml');
-  assert.match(entry, /\[agents\.swf_executor\]/);
+  const entry = renderCorleoneAgentEntry('capo_clemenza', '/tmp/host/agents/capo_clemenza.toml');
+  assert.match(entry, /\[agents\.capo_clemenza\]/);
   assert.match(entry, /description\s*=\s*"/);
-  assert.match(entry, /config_file\s*=\s*"\/tmp\/host\/agents\/swf_executor\.toml"/);
+  assert.match(entry, /config_file\s*=\s*"\/tmp\/host\/agents\/capo_clemenza\.toml"/);
 
-  const roleFile = renderSwfExecutorRoleFile();
-  assert.match(roleFile, /name\s*=\s*"swf_executor"/);
+  const roleFile = renderCorleoneRoleFile('capo_clemenza');
+  assert.match(roleFile, /name\s*=\s*"capo_clemenza"/);
   assert.match(roleFile, /model\s*=\s*"opencode-go\/deepseek-v4-flash"/);
   assert.match(roleFile, /model_reasoning_effort\s*=\s*"xhigh"/);
   assert.match(roleFile, /developer_instructions\s*=\s*"/);
   assert.doesNotMatch(`${entry}\n${roleFile}`, /fallback/i);
 
   assert.throws(
-    () => renderSwfExecutorAgentEntry(''),
+    () => renderCorleoneAgentEntry('capo_clemenza', ''),
     /requires a role config file path/i
   );
 });
 
-test('swf_executor instructions forbid redesign, require blocked on missing decisions, and reuse the role for nesting', () => {
-  const instructions = SWF_EXECUTOR_ROLE.instructions;
-  assert.match(instructions, /execute an already accepted SWF plan/i);
+test('Corleone instructions forbid redesign, require blocked on missing decisions, and limit delegation to the packet', () => {
+  const instructions = resolveCorleoneProfile('underboss_sonny').instructions;
+  assert.match(instructions, /execute an already accepted plan/i);
   assert.match(instructions, /do not redesign/i);
   assert.match(instructions, /blocked/i);
   assert.match(instructions, /material decision/i);
-  assert.match(instructions, /swf_executor/i);
+  assert.match(instructions, /exact assignment packet/i);
+  assert.match(instructions, /grants no permissions/i);
   assert.match(instructions, /unavailable/i);
 });
 
@@ -1075,10 +1201,10 @@ test('unknown primary execution mode values fail closed', () => {
 });
 
 test('static role configuration alone grants no dynamic child permission', () => {
-  assert.equal(Object.hasOwn(SWF_EXECUTOR_ROLE, 'childDelegation'), false);
+  assert.equal(Object.hasOwn(resolveCorleoneProfile('buttonman_neri'), 'childDelegation'), false);
 
-  const entry = renderSwfExecutorAgentEntry('/tmp/host/agents/swf_executor.toml');
-  const roleFile = renderSwfExecutorRoleFile();
+  const entry = renderCorleoneAgentEntry('buttonman_neri', '/tmp/host/agents/buttonman_neri.toml');
+  const roleFile = renderCorleoneRoleFile('buttonman_neri');
   assert.doesNotMatch(`${entry}\n${roleFile}`, /childDelegation|child_delegation|delegation\s*=\s*"allowed"/i);
 
   const result = resolveGenericHostOperation({
@@ -1107,7 +1233,7 @@ test('static role configuration alone grants no dynamic child permission', () =>
     observation: {
       authenticated: true,
       evidenceRef: 'static-role-no-dynamic-permission-1',
-      workerId: 'swf-executor-1',
+      workerId: 'buttonman-neri-1',
       visibleWorker: {
         visible: true,
         operations: { spawn: true },
@@ -1388,6 +1514,11 @@ test('child requests must carry a bound Flash profile no wider than the parent',
   const visibleObservation = {
     authenticated: true,
     evidenceRef: 'child-visible-1',
+    nativeSubagent: {
+      supported: true,
+      visible: false,
+      operations: { spawn: true }
+    },
     visibleWorker: {
       visible: true,
       operations: { spawn: true },
@@ -1397,12 +1528,18 @@ test('child requests must carry a bound Flash profile no wider than the parent',
     }
   };
   const envelopes = {
-    permissionEnvelope: {
+    parentEnvelope: {
       permissions: ['workspace'],
       operations: ['spawn'],
-      externalEffects: []
+      externalEffects: [],
+      mutablePaths: ['src']
     },
-    pathEnvelope: { mutablePaths: ['src/app'] }
+    childEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: [],
+      mutablePaths: ['src/app']
+    }
   };
   const childPacket = (capability) => ({ ...createAssignmentPacket(), capability });
 
@@ -1449,11 +1586,19 @@ test('child requests must carry a bound Flash profile no wider than the parent',
     operation: 'spawn',
     isChild: true,
     parentEffort: 'xhigh',
-    assignmentPacket: childPacket({ workRole: 'coding', complexity: 'xhigh' }),
+    assignmentPacket: childPacket({
+      workRole: 'coding',
+      complexity: 'xhigh',
+      childDelegation: 'worker_discretion'
+    }),
     observation: visibleObservation,
     ...envelopes
   });
-  assert.equal(admissible.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(
+    admissible.routeEvidence.routeKind,
+    'native_subagent',
+    admissible.routeEvidence.fallbackReason
+  );
   assert.equal(admissible.routeEvidence.requestedModel, 'opencode-go/deepseek-v4-flash');
   assert.equal(admissible.routeEvidence.requestedEffort, 'xhigh');
   assert.equal(admissible.descriptor.executed, false);
@@ -1497,36 +1642,75 @@ test('a strict unavailable Host returns manual_pending with the intact packet an
   assert.deepEqual(result.descriptor.writes, []);
 });
 
-test('swf_executor exposes three calibrated Flash profiles with no fallback model', () => {
-  assert.deepEqual(Object.keys(SWF_EXECUTOR_PROFILES), ['high', 'xhigh', 'max']);
+test('Corleone roster generates every named and ordinal role config with calibrated Flash profiles', () => {
+  assert.deepEqual(CORLEONE_AGENT_TYPES, [
+    'don_michael',
+    'underboss_sonny',
+    'consigliere_tom',
+    'capo_clemenza',
+    'capo_lampone',
+    'buttonman_neri',
+    'buttonman_brasi',
+    'soldato_cicci',
+    'don',
+    'underboss',
+    'consigliere',
+    'capo',
+    'buttonman',
+    'soldato'
+  ]);
   for (const effort of ['high', 'xhigh', 'max']) {
-    const profile = resolveSwfExecutorProfile(effort);
-    assert.equal(profile.name, 'swf_executor');
-    assert.equal(profile.model, 'opencode-go/deepseek-v4-flash');
-    assert.equal(profile.modelReasoningEffort, effort);
-    assert.equal(profile.fallbackModel, null);
-
-    const roleFile = renderSwfExecutorRoleFile(effort);
-    assert.match(roleFile, new RegExp(`model_reasoning_effort\\s*=\\s*"${effort}"`));
-    assert.doesNotMatch(roleFile, /fallback/i);
-
-    const entry = renderSwfExecutorAgentEntry('/tmp/host/agents/swf_executor.toml', effort);
-    assert.match(entry, /\[agents\.swf_executor\]/);
-    assert.doesNotMatch(entry, /fallback/i);
+    for (const agentType of CORLEONE_AGENT_TYPES) {
+      const profile = resolveCorleoneProfile(agentType, effort);
+      assert.equal(profile.name, agentType);
+      assert.equal(profile.model, 'opencode-go/deepseek-v4-flash');
+      assert.equal(profile.modelReasoningEffort, effort);
+      assert.equal(profile.fallbackModel, null);
+    }
   }
+  const rendered = renderCorleoneRosterConfig('/tmp/host/agents');
+  assert.equal(rendered.length, CORLEONE_AGENT_TYPES.length);
+  assert.match(rendered.at(-1).agentEntry, /\[agents\.soldato\]/);
+  assert.match(rendered.at(-1).roleFile, /name\s*=\s*"soldato"/);
+  assert.deepEqual(
+    Object.fromEntries(rendered.map(({ agentType, roleFile }) => [
+      agentType,
+      roleFile.match(/model_reasoning_effort\s*=\s*"(high|xhigh|max)"/)[1]
+    ])),
+    {
+      don_michael: 'xhigh',
+      underboss_sonny: 'max',
+      consigliere_tom: 'xhigh',
+      capo_clemenza: 'xhigh',
+      capo_lampone: 'xhigh',
+      buttonman_neri: 'high',
+      buttonman_brasi: 'high',
+      soldato_cicci: 'high',
+      don: 'xhigh',
+      underboss: 'max',
+      consigliere: 'xhigh',
+      capo: 'xhigh',
+      buttonman: 'high',
+      soldato: 'high'
+    }
+  );
+  assert.doesNotMatch(JSON.stringify(rendered), /fallback/i);
 
-  assert.equal(SWF_EXECUTOR_PROFILES.high.modelReasoningEffort, 'high');
-  assert.equal(SWF_EXECUTOR_PROFILES.xhigh.modelReasoningEffort, 'xhigh');
-  assert.equal(SWF_EXECUTOR_PROFILES.max.modelReasoningEffort, 'max');
-  assert.equal(SWF_EXECUTOR_ROLE.modelReasoningEffort, 'xhigh');
-
-  assert.throws(() => resolveSwfExecutorProfile('ultra'), /profile/i);
-  assert.throws(() => renderSwfExecutorRoleFile('ultra'), /profile/i);
-  assert.throws(() => renderSwfExecutorAgentEntry('/tmp/x.toml', 'luna'), /profile/i);
+  assert.throws(() => resolveCorleoneProfile('capo_clemenza', 'ultra'), /profile/i);
+  assert.throws(() => renderCorleoneRoleFile('capo_clemenza', 'ultra'), /profile/i);
+  assert.throws(() => renderCorleoneRosterConfig('', 'xhigh'), /config directory/i);
 });
 
-test('adapter vocabulary reserves claude_code and pi as unimplemented while codex renders a provider-neutral handoff', () => {
-  const packet = createAssignmentPacket();
+test('adapter vocabulary reserves claude_code and pi as unimplemented while Codex renders a Corleone handoff', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'xhigh',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max'
+    }
+  };
   const handoff = renderCodexHandoffRequest({
     operation: 'spawn',
     packet,
@@ -1535,13 +1719,45 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while code
   });
 
   assert.equal(handoff.provider, 'codex');
-  assert.equal(handoff.role, 'swf_executor');
+  assert.equal(handoff.role, 'capo_clemenza');
+  assert.deepEqual(handoff.workerIdentity, {
+    agentType: 'capo_clemenza',
+    displayName: 'Capo Peter Clemenza',
+    tier: 'capo',
+    ordinal: 1
+  });
   assert.equal(handoff.profile.modelReasoningEffort, 'xhigh');
   assert.equal(handoff.profile.model, 'opencode-go/deepseek-v4-flash');
   assert.equal(handoff.operation, 'spawn');
   assert.deepEqual(handoff.packet, packet);
   assert.equal(handoff.packetDigest, 'a'.repeat(64));
   assert.equal(handoff.executed, false);
+
+  const frozenCapo = allocateCorleoneCallsign({ tier: 'capo', ordinal: 3 });
+  const resumed = renderCodexHandoffRequest({
+    operation: 'continue',
+    packet,
+    packetDigest: 'b'.repeat(64),
+    workerIdentity: frozenCapo
+  });
+  assert.equal(resumed.role, 'capo');
+  assert.deepEqual(resumed.workerIdentity, frozenCapo);
+  assert.equal(resumed.profile.modelReasoningEffort, 'max');
+
+  const strict = renderCodexHandoffRequest({
+    operation: 'spawn',
+    packet: {
+      ...packet,
+      capability: {
+        ...packet.capability,
+        complexity: 'high',
+        primaryExecution: 'visible_worker_required'
+      }
+    },
+    packetDigest: 'c'.repeat(64)
+  });
+  assert.equal(strict.role, 'don_michael');
+  assert.equal(strict.workerIdentity.displayName, 'Don Michael Corleone');
   assert.equal(adapterStatus('codex'), 'implemented');
   assert.equal(adapterStatus('claude_code'), 'unimplemented');
   assert.equal(adapterStatus('pi'), 'unimplemented');

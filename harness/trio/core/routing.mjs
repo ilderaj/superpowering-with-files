@@ -1559,7 +1559,9 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  if (visibleResult.safe) {
+  const nativeFirst = primaryExecution !== PRIMARY_EXECUTION_REQUIRED
+    && EXECUTION_WORK_ROLES.includes(modelResolution.workRole);
+  if (!nativeFirst && visibleResult.safe) {
     const routeEvidence = buildRouteEvidence({
       routeKind: 'visible_worker',
       requestedModel: modelResolution.requestedModel,
@@ -1584,8 +1586,32 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-
   if (primaryExecution === PRIMARY_EXECUTION_REQUIRED) {
+    if (visibleResult.safe) {
+      const routeEvidence = buildRouteEvidence({
+        routeKind: 'visible_worker',
+        requestedModel: modelResolution.requestedModel,
+        requestedEffort: modelResolution.requestedEffort,
+        actual: operation === 'spawn' ? unknownActual() : authenticatedActual(observation, packetDigest),
+        workerId: operation === 'spawn' ? null : observation.workerId,
+        capability: visibleEvidence,
+        permissionEnvelope: parentEnvelope,
+        pathEnvelope: parentEnvelope,
+        fallbackReason: null,
+        status: routeStatus(observation, 'visible_worker', operation)
+      });
+      return {
+        operation,
+        routeEvidence,
+        descriptor: buildOperationDescriptor({
+          operation,
+          routeKind: 'visible_worker',
+          childEnvelope: null,
+          assignmentPacket,
+          packetDigest
+        })
+      };
+    }
     const fallbackReason = `visible_worker_required_unavailable:${visibleResult.reason}`;
     const routeEvidence = buildRouteEvidence({
       routeKind: 'manual_pending',
@@ -1672,7 +1698,7 @@ export function resolveHostOperation(input = {}) {
       capability: nativeEvidence,
       permissionEnvelope: childEnvelope,
       pathEnvelope: childEnvelope,
-      fallbackReason: visibleResult.reason,
+      fallbackReason: nativeFirst ? null : visibleResult.reason,
       status: routeStatus(observation, 'native_subagent', operation)
     });
     return {
@@ -1686,7 +1712,9 @@ export function resolveHostOperation(input = {}) {
     };
   }
 
-  const fallbackReason = `${visibleResult.reason};${nativeResult.reason}`;
+  const fallbackReason = nativeFirst
+    ? nativeResult.reason
+    : `${visibleResult.reason};${nativeResult.reason}`;
   const routeEvidence = buildRouteEvidence({
     routeKind: 'manual_pending',
     requestedModel: modelResolution.requestedModel,
