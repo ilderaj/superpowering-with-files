@@ -1,5 +1,9 @@
 export { resolveHostOperation as resolveCodexHostOperation } from '../core/routing.mjs';
-import { adjudicatePermission, packetDigestOf } from '../core/routing.mjs';
+import {
+  adjudicatePermission,
+  packetDigestOf,
+  resolveAssignmentPacketModelPolicy
+} from '../core/routing.mjs';
 
 export const APPROVAL_POLICY_KINDS = Object.freeze(['never', 'on-request']);
 
@@ -253,6 +257,11 @@ export function renderCodexHandoffRequest({
     throw new TypeError('Codex handoff request requires a stable packet digest.');
   }
   const capability = packet.capability;
+  const modelPolicy = resolveAssignmentPacketModelPolicy(packet);
+  const outerEffort = normalizedString(effort);
+  if (outerEffort !== null && outerEffort !== modelPolicy.requestedEffort) {
+    throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${modelPolicy.requestedEffort}.`);
+  }
   const identity = selectCorleoneRole({
     workerIdentity,
     workRole: capability?.workRole,
@@ -264,7 +273,7 @@ export function renderCodexHandoffRequest({
     provider: 'codex',
     role: identity.agentType,
     workerIdentity: identity,
-    profile: resolveCorleoneProfile(identity.agentType, effort ?? capability?.requestedEffort),
+    profile: resolveCorleoneProfile(identity.agentType, modelPolicy.requestedEffort),
     operation,
     packet,
     packetDigest,

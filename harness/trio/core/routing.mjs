@@ -348,6 +348,18 @@ export function resolveModelEffort(input = {}) {
   return resolveEconomicPolicy(input, taskClass);
 }
 
+export function resolveAssignmentPacketModelPolicy(assignmentPacket, { isChild = false } = {}) {
+  if (!assignmentPacket || typeof assignmentPacket !== 'object' || Array.isArray(assignmentPacket)) {
+    throw new Error('Assignment packet model policy requires an Assignment Packet.');
+  }
+  const capability = assignmentPacket.capability;
+  return resolveEconomicPolicy({
+    ...capability,
+    isChild,
+    evidence: { authenticated: false }
+  }, null);
+}
+
 function assertNonEmptyStringArray(values, label) {
   if (!Array.isArray(values) || values.length === 0) {
     throw new Error(`${label} must be a non-empty array of non-empty strings.`);

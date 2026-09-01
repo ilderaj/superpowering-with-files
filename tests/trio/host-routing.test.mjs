@@ -1707,15 +1707,14 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
     capability: {
       workRole: 'coding',
       complexity: 'xhigh',
-      requestedModel: 'gpt-5.6-sol',
-      requestedEffort: 'max'
+      requestedModel: 'opencode-go/deepseek-v4-flash',
+      requestedEffort: 'xhigh'
     }
   };
   const handoff = renderCodexHandoffRequest({
     operation: 'spawn',
     packet,
-    packetDigest: 'a'.repeat(64),
-    effort: 'xhigh'
+    packetDigest: 'a'.repeat(64)
   });
 
   assert.equal(handoff.provider, 'codex');
@@ -1742,7 +1741,7 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   });
   assert.equal(resumed.role, 'capo');
   assert.deepEqual(resumed.workerIdentity, frozenCapo);
-  assert.equal(resumed.profile.modelReasoningEffort, 'max');
+  assert.equal(resumed.profile.modelReasoningEffort, 'xhigh');
 
   const strict = renderCodexHandoffRequest({
     operation: 'spawn',
@@ -1751,6 +1750,7 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
       capability: {
         ...packet.capability,
         complexity: 'high',
+        requestedEffort: 'high',
         primaryExecution: 'visible_worker_required'
       }
     },
@@ -1758,10 +1758,56 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   });
   assert.equal(strict.role, 'don_michael');
   assert.equal(strict.workerIdentity.displayName, 'Don Michael Corleone');
+  assert.equal(strict.profile.modelReasoningEffort, 'high');
   assert.equal(adapterStatus('codex'), 'implemented');
   assert.equal(adapterStatus('claude_code'), 'unimplemented');
   assert.equal(adapterStatus('pi'), 'unimplemented');
   assert.throws(() => adapterStatus('unknown-adapter'), /adapter/i);
+});
+
+test('Corleone handoffs bind Flash effort to the execution packet economic policy', () => {
+  const packet = (capability) => ({
+    ...createAssignmentPacket(),
+    capability
+  });
+
+  const research = renderCodexHandoffRequest({
+    operation: 'spawn',
+    packet: packet({ workRole: 'searching', complexity: 'high' }),
+    packetDigest: 'd'.repeat(64)
+  });
+  assert.equal(research.role, 'consigliere_tom');
+  assert.equal(research.profile.modelReasoningEffort, 'high');
+
+  const repetitive = renderCodexHandoffRequest({
+    operation: 'spawn',
+    packet: packet({ workRole: 'repetitive_execution', complexity: 'max' }),
+    packetDigest: 'e'.repeat(64)
+  });
+  assert.equal(repetitive.role, 'soldato_cicci');
+  assert.equal(repetitive.profile.modelReasoningEffort, 'max');
+
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn',
+      packet: packet({ workRole: 'coding', complexity: 'high' }),
+      packetDigest: 'f'.repeat(64),
+      effort: 'xhigh'
+    }),
+    /conflicts with the validated packet policy/i
+  );
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn',
+      packet: packet({
+        workRole: 'coding',
+        complexity: 'high',
+        requestedEffort: 'xhigh'
+      }),
+      packetDigest: '0'.repeat(64)
+    }),
+    /with complexity high requests effort high/i
+  );
 });
 
 // ---------------------------------------------------------------------------
