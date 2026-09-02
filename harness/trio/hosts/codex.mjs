@@ -262,8 +262,11 @@ export function renderCodexHandoffRequest({
   if (outerEffort !== null && outerEffort !== modelPolicy.requestedEffort) {
     throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${modelPolicy.requestedEffort}.`);
   }
+  if (operation === 'spawn' && workerIdentity !== undefined) {
+    throw new TypeError('Codex spawn selects its Corleone workerIdentity from the Assignment Packet; frozen workerIdentity is only valid for a non-spawn lifecycle operation.');
+  }
   const identity = selectCorleoneRole({
-    workerIdentity,
+    workerIdentity: operation === 'spawn' ? undefined : workerIdentity,
     workRole: capability?.workRole,
     complexity: capability?.complexity,
     primaryExecution: capability?.primaryExecution,

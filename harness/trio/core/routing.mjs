@@ -1571,7 +1571,8 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  const nativeFirst = primaryExecution !== PRIMARY_EXECUTION_REQUIRED
+  const nativeFirst = operation === 'spawn'
+    && primaryExecution !== PRIMARY_EXECUTION_REQUIRED
     && EXECUTION_WORK_ROLES.includes(modelResolution.workRole);
   if (!nativeFirst && visibleResult.safe) {
     const routeEvidence = buildRouteEvidence({

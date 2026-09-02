@@ -217,6 +217,40 @@ test('non-spawn visible operations require an exact authenticated requested work
   }
 });
 
+test('default execution keeps an identity-matched visible worker for lifecycle operations', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: { workRole: 'coding', complexity: 'high' }
+  };
+  for (const operation of ['continue', 'status', 'interrupt', 'collect']) {
+    const result = resolveGenericHostOperation({
+      operation,
+      requestedWorkerId: 'visible-execution-worker',
+      assignmentPacket: packet,
+      observation: {
+        authenticated: true,
+        evidenceRef: `visible-default-${operation}`,
+        workerId: 'visible-execution-worker',
+        status: 'idle',
+        actualModel: 'opencode-go/deepseek-v4-flash',
+        actualEffort: 'high',
+        visibleWorker: {
+          visible: true,
+          operations: { [operation]: true },
+          requestedModelEffortControls: true,
+          permissionBinding: true,
+          pathBinding: true
+        }
+      },
+      permissionEnvelope: { permissions: ['workspace'], operations: [operation], externalEffects: [] },
+      pathEnvelope: { mutablePaths: [] }
+    });
+    assert.equal(result.routeEvidence.routeKind, 'visible_worker', operation);
+    assert.equal(result.routeEvidence.workerId, 'visible-execution-worker', operation);
+    assert.equal(result.routeEvidence.status, 'idle', operation);
+  }
+});
+
 test('generic host adapter fails closed to a bounded manual pending descriptor', () => {
   const result = resolveGenericHostOperation({
     operation: 'spawn',
@@ -1731,6 +1765,16 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   assert.deepEqual(handoff.packet, packet);
   assert.equal(handoff.packetDigest, 'a'.repeat(64));
   assert.equal(handoff.executed, false);
+
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn',
+      packet,
+      packetDigest: 'd'.repeat(64),
+      workerIdentity: allocateCorleoneCallsign({ tier: 'don', ordinal: 1 })
+    }),
+    /spawn.*workerIdentity|workerIdentity.*spawn/i
+  );
 
   const frozenCapo = allocateCorleoneCallsign({ tier: 'capo', ordinal: 3 });
   const resumed = renderCodexHandoffRequest({
