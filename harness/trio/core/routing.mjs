@@ -348,6 +348,18 @@ export function resolveModelEffort(input = {}) {
   return resolveEconomicPolicy(input, taskClass);
 }
 
+export function resolveAssignmentPacketModelPolicy(assignmentPacket, { isChild = false } = {}) {
+  if (!assignmentPacket || typeof assignmentPacket !== 'object' || Array.isArray(assignmentPacket)) {
+    throw new Error('Assignment packet model policy requires an Assignment Packet.');
+  }
+  const capability = assignmentPacket.capability;
+  return resolveEconomicPolicy({
+    ...capability,
+    isChild,
+    evidence: { authenticated: false }
+  }, null);
+}
+
 function assertNonEmptyStringArray(values, label) {
   if (!Array.isArray(values) || values.length === 0) {
     throw new Error(`${label} must be a non-empty array of non-empty strings.`);
@@ -1559,7 +1571,10 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  if (visibleResult.safe) {
+  const nativeFirst = operation === 'spawn'
+    && primaryExecution !== PRIMARY_EXECUTION_REQUIRED
+    && EXECUTION_WORK_ROLES.includes(modelResolution.workRole);
+  if (!nativeFirst && visibleResult.safe) {
     const routeEvidence = buildRouteEvidence({
       routeKind: 'visible_worker',
       requestedModel: modelResolution.requestedModel,
@@ -1584,8 +1599,32 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-
   if (primaryExecution === PRIMARY_EXECUTION_REQUIRED) {
+    if (visibleResult.safe) {
+      const routeEvidence = buildRouteEvidence({
+        routeKind: 'visible_worker',
+        requestedModel: modelResolution.requestedModel,
+        requestedEffort: modelResolution.requestedEffort,
+        actual: operation === 'spawn' ? unknownActual() : authenticatedActual(observation, packetDigest),
+        workerId: operation === 'spawn' ? null : observation.workerId,
+        capability: visibleEvidence,
+        permissionEnvelope: parentEnvelope,
+        pathEnvelope: parentEnvelope,
+        fallbackReason: null,
+        status: routeStatus(observation, 'visible_worker', operation)
+      });
+      return {
+        operation,
+        routeEvidence,
+        descriptor: buildOperationDescriptor({
+          operation,
+          routeKind: 'visible_worker',
+          childEnvelope: null,
+          assignmentPacket,
+          packetDigest
+        })
+      };
+    }
     const fallbackReason = `visible_worker_required_unavailable:${visibleResult.reason}`;
     const routeEvidence = buildRouteEvidence({
       routeKind: 'manual_pending',
@@ -1672,7 +1711,7 @@ export function resolveHostOperation(input = {}) {
       capability: nativeEvidence,
       permissionEnvelope: childEnvelope,
       pathEnvelope: childEnvelope,
-      fallbackReason: visibleResult.reason,
+      fallbackReason: nativeFirst ? null : visibleResult.reason,
       status: routeStatus(observation, 'native_subagent', operation)
     });
     return {
@@ -1686,7 +1725,9 @@ export function resolveHostOperation(input = {}) {
     };
   }
 
-  const fallbackReason = `${visibleResult.reason};${nativeResult.reason}`;
+  const fallbackReason = nativeFirst
+    ? nativeResult.reason
+    : `${visibleResult.reason};${nativeResult.reason}`;
   const routeEvidence = buildRouteEvidence({
     routeKind: 'manual_pending',
     requestedModel: modelResolution.requestedModel,

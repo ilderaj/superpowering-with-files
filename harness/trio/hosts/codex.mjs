@@ -1,5 +1,11 @@
 export { resolveHostOperation as resolveCodexHostOperation } from '../core/routing.mjs';
-import { adjudicatePermission, packetDigestOf } from '../core/routing.mjs';
+import {
+  adjudicatePermission,
+  buildAssignmentPacket,
+  HOST_OPERATIONS,
+  packetDigestOf,
+  resolveAssignmentPacketModelPolicy
+} from '../core/routing.mjs';
 
 export const APPROVAL_POLICY_KINDS = Object.freeze(['never', 'on-request']);
 
@@ -7,43 +13,193 @@ function normalizedString(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
-const SWF_EXECUTOR_BASE = Object.freeze({
-  name: 'swf_executor',
-  model: 'opencode-go/deepseek-v4-flash',
-  fallbackModel: null,
-  description: 'SWF execution worker: executes an already accepted SWF plan without redesigning scope, architecture, interfaces, or acceptance criteria.',
-  nicknameCandidates: ['SWF Executor'],
-  instructions: [
-    'You are the swf_executor execution worker. You execute an already accepted SWF plan',
-    'and do not redesign its scope, architecture, interfaces, or acceptance criteria.',
-    'Return blocked when a material decision is missing or when the pinned execution',
-    'model is unavailable. Any nested delegation must use the swf_executor role again.'
-  ].join(' ')
+export const CORLEONE_ROSTER = Object.freeze({
+  don: Object.freeze([
+    Object.freeze({ agentType: 'don_michael', displayName: 'Don Michael Corleone' })
+  ]),
+  underboss: Object.freeze([
+    Object.freeze({ agentType: 'underboss_sonny', displayName: 'Underboss Sonny Corleone' })
+  ]),
+  consigliere: Object.freeze([
+    Object.freeze({ agentType: 'consigliere_tom', displayName: 'Consigliere Tom Hagen' })
+  ]),
+  capo: Object.freeze([
+    Object.freeze({ agentType: 'capo_clemenza', displayName: 'Capo Peter Clemenza' }),
+    Object.freeze({ agentType: 'capo_lampone', displayName: 'Capo Rocco Lampone' })
+  ]),
+  buttonman: Object.freeze([
+    Object.freeze({ agentType: 'buttonman_neri', displayName: 'Button Man Al Neri' }),
+    Object.freeze({ agentType: 'buttonman_brasi', displayName: 'Button Man Luca Brasi' })
+  ]),
+  soldato: Object.freeze([
+    Object.freeze({ agentType: 'soldato_cicci', displayName: 'Soldato Willie Cicci' })
+  ])
 });
 
-const SWF_EXECUTOR_EFFORTS = Object.freeze(['high', 'xhigh', 'max']);
+export const CORLEONE_AGENT_TYPES = Object.freeze([
+  ...Object.values(CORLEONE_ROSTER).flat().map(({ agentType }) => agentType),
+  ...Object.keys(CORLEONE_ROSTER)
+]);
 
-export const SWF_EXECUTOR_PROFILES = Object.freeze(
-  Object.fromEntries(SWF_EXECUTOR_EFFORTS.map((effort) => [
-    effort,
-    Object.freeze({ ...SWF_EXECUTOR_BASE, modelReasoningEffort: effort })
-  ]))
-);
+const CORLEONE_TIER_LABELS = Object.freeze({
+  don: 'Don',
+  underboss: 'Underboss',
+  consigliere: 'Consigliere',
+  capo: 'Capo',
+  buttonman: 'Button Man',
+  soldato: 'Soldato'
+});
 
-export const SWF_EXECUTOR_ROLE = SWF_EXECUTOR_PROFILES.xhigh;
+const CORLEONE_EXECUTION_WORK_ROLES = Object.freeze([
+  'executing',
+  'searching',
+  'researching',
+  'coding',
+  'exploring',
+  'repetitive_execution'
+]);
 
-export function resolveSwfExecutorProfile(effort = 'xhigh') {
-  if (typeof effort !== 'string' || !Object.hasOwn(SWF_EXECUTOR_PROFILES, effort)) {
-    throw new TypeError(`Unsupported swf_executor profile effort: ${String(effort)}; use high, xhigh, or max.`);
+function ordinalSuffix(ordinal) {
+  const finalTwoDigits = ordinal % 100;
+  if (finalTwoDigits >= 11 && finalTwoDigits <= 13) return 'th';
+  switch (ordinal % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
   }
-  return SWF_EXECUTOR_PROFILES[effort];
 }
 
-export function renderSwfExecutorAgentEntry(configFilePath, effort = 'xhigh') {
-  if (typeof configFilePath !== 'string' || configFilePath.length === 0) {
-    throw new TypeError('swf_executor agent entry requires a role config file path.');
+function selectedCorleoneTier({ workRole, complexity, primaryExecution }) {
+  if (primaryExecution === 'visible_worker_required') {
+    if (!CORLEONE_EXECUTION_WORK_ROLES.includes(workRole)) {
+      throw new TypeError('Corleone strict selection requires a supported execution workRole.');
+    }
+    return 'don';
   }
-  const role = resolveSwfExecutorProfile(effort);
+  if (['searching', 'researching', 'exploring'].includes(workRole)) return 'consigliere';
+  if (workRole === 'repetitive_execution') return 'soldato';
+  if (['coding', 'executing'].includes(workRole)) {
+    if (complexity === 'high') return 'buttonman';
+    if (complexity === 'xhigh') return 'capo';
+    if (complexity === 'max') return 'underboss';
+  }
+  throw new TypeError('Corleone role selection requires a supported execution workRole and complexity.');
+}
+
+export function allocateCorleoneCallsign(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new TypeError('Corleone callsign input must be an object.');
+  }
+  const tier = normalizedString(input.tier);
+  const ordinal = input.ordinal ?? 1;
+  if (tier === null || !Object.hasOwn(CORLEONE_ROSTER, tier)) {
+    throw new TypeError(`Unknown Corleone tier: ${String(input.tier)}.`);
+  }
+  if (!Number.isSafeInteger(ordinal) || ordinal < 1) {
+    throw new TypeError('Corleone callsign ordinal must be a positive safe integer.');
+  }
+  const member = CORLEONE_ROSTER[tier][ordinal - 1];
+  if (member) return { ...member, tier, ordinal };
+  return {
+    agentType: tier,
+    displayName: `${CORLEONE_TIER_LABELS[tier]} ${ordinal}${ordinalSuffix(ordinal)}`,
+    tier,
+    ordinal
+  };
+}
+
+function frozenCorleoneIdentity(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('Corleone workerIdentity must be an object.');
+  }
+  const expected = allocateCorleoneCallsign({ tier: value.tier, ordinal: value.ordinal });
+  if (value.agentType !== expected.agentType || value.displayName !== expected.displayName) {
+    throw new TypeError('Corleone workerIdentity does not match its frozen callsign.');
+  }
+  return expected;
+}
+
+export function selectCorleoneRole(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new TypeError('Corleone role selection input must be an object.');
+  }
+  if (input.workerIdentity !== undefined) return frozenCorleoneIdentity(input.workerIdentity);
+  const tier = selectedCorleoneTier(input);
+  if (tier === 'don' && input.ordinal !== undefined && input.ordinal !== 1) {
+    throw new TypeError('Corleone strict selection reserves Don Michael at ordinal 1.');
+  }
+  return allocateCorleoneCallsign({ tier, ordinal: input.ordinal ?? 1 });
+}
+
+const CORLEONE_EFFORTS = Object.freeze(['high', 'xhigh', 'max']);
+
+const CORLEONE_DEFAULT_EFFORTS = Object.freeze({
+  don: 'xhigh',
+  underboss: 'max',
+  consigliere: 'xhigh',
+  capo: 'xhigh',
+  buttonman: 'high',
+  soldato: 'high'
+});
+
+function corleoneProfileIdentity(agentType) {
+  const normalizedAgentType = normalizedString(agentType);
+  for (const [tier, members] of Object.entries(CORLEONE_ROSTER)) {
+    const member = members.find((candidate) => candidate.agentType === normalizedAgentType);
+    if (member) return { ...member, tier };
+  }
+  if (normalizedAgentType !== null && Object.hasOwn(CORLEONE_TIER_LABELS, normalizedAgentType)) {
+    return {
+      agentType: normalizedAgentType,
+      displayName: CORLEONE_TIER_LABELS[normalizedAgentType],
+      tier: normalizedAgentType
+    };
+  }
+  throw new TypeError(`Unknown Corleone agent type: ${String(agentType)}.`);
+}
+
+function corleoneInstructions(identity) {
+  const roleSpecific = {
+    don: 'You are the highest-level visible execution candidate for one frozen slice.',
+    underboss: 'You lead one bounded complex execution slice and return evidence to the Chief.',
+    consigliere: 'You perform bounded research, review, and evidence synthesis; source writes require an explicit envelope.',
+    capo: 'You execute one bounded multi-file implementation slice with a fixed path envelope.',
+    buttonman: 'You execute one narrow implementation or verification slice with a fixed path envelope.',
+    soldato: 'You perform repetitive verification or evidence collection; source writes require an explicit envelope.'
+  };
+  return [
+    `You are ${identity.displayName}.`,
+    roleSpecific[identity.tier],
+    'Execute an already accepted plan and do not redesign scope, architecture, interfaces, or acceptance criteria.',
+    'Return blocked when a material decision is missing or the requested execution model is unavailable.',
+    'Your title grants no permissions, acceptance authority, model claim, or human-gate bypass.',
+    'Any local child work must remain within the exact assignment packet and Host-provided envelope.'
+  ].join(' ');
+}
+
+export function resolveCorleoneProfile(agentType, effort) {
+  const identity = corleoneProfileIdentity(agentType);
+  const effectiveEffort = effort ?? CORLEONE_DEFAULT_EFFORTS[identity.tier];
+  if (typeof effectiveEffort !== 'string' || !CORLEONE_EFFORTS.includes(effectiveEffort)) {
+    throw new TypeError(`Unsupported Corleone profile effort: ${String(effectiveEffort)}; use high, xhigh, or max.`);
+  }
+  return Object.freeze({
+    name: identity.agentType,
+    model: 'opencode-go/deepseek-v4-flash',
+    fallbackModel: null,
+    description: `${identity.displayName}: bounded Corleone execution identity.`,
+    nicknameCandidates: [identity.displayName],
+    instructions: corleoneInstructions(identity),
+    modelReasoningEffort: effectiveEffort
+  });
+}
+
+export function renderCorleoneAgentEntry(agentType, configFilePath, effort) {
+  if (typeof configFilePath !== 'string' || configFilePath.length === 0) {
+    throw new TypeError('Corleone agent entry requires a role config file path.');
+  }
+  const role = resolveCorleoneProfile(agentType, effort);
   return [
     `[agents.${role.name}]`,
     `description = "${role.description}"`,
@@ -51,8 +207,8 @@ export function renderSwfExecutorAgentEntry(configFilePath, effort = 'xhigh') {
   ].join('\n') + '\n';
 }
 
-export function renderSwfExecutorRoleFile(effort = 'xhigh') {
-  const role = resolveSwfExecutorProfile(effort);
+export function renderCorleoneRoleFile(agentType, effort) {
+  const role = resolveCorleoneProfile(agentType, effort);
   return [
     `name = "${role.name}"`,
     `description = "${role.description}"`,
@@ -63,6 +219,23 @@ export function renderSwfExecutorRoleFile(effort = 'xhigh') {
   ].join('\n') + '\n';
 }
 
+export function renderCorleoneRosterConfig(configDirectory, effort) {
+  if (typeof configDirectory !== 'string' || configDirectory.length === 0) {
+    throw new TypeError('Corleone roster config requires a config directory.');
+  }
+  const directory = configDirectory.replace(/\/$/u, '');
+  return Object.freeze(CORLEONE_AGENT_TYPES.map((agentType) => {
+    const identity = corleoneProfileIdentity(agentType);
+    const configFilePath = `${directory}/${agentType}.toml`;
+    return Object.freeze({
+      ...identity,
+      configFilePath,
+      agentEntry: renderCorleoneAgentEntry(agentType, configFilePath, effort),
+      roleFile: renderCorleoneRoleFile(agentType, effort)
+    });
+  }));
+}
+
 export const ADAPTER_VOCABULARY = Object.freeze(['codex', 'claude_code', 'pi']);
 
 export function adapterStatus(adapter) {
@@ -71,22 +244,54 @@ export function adapterStatus(adapter) {
   throw new Error(`Unknown Host adapter: ${String(adapter)}`);
 }
 
-export function renderCodexHandoffRequest({ operation, packet, packetDigest, effort = 'xhigh' }) {
-  if (typeof operation !== 'string' || operation.length === 0) {
-    throw new TypeError('Codex handoff request requires a lifecycle operation.');
+export function renderCodexHandoffRequest({
+  operation,
+  packet,
+  packetDigest,
+  effort,
+  workerIdentity,
+  ordinal = 1
+}) {
+  if (!HOST_OPERATIONS.includes(operation)) {
+    throw new TypeError('Codex handoff request requires a supported lifecycle operation.');
   }
   if (!packet || typeof packet !== 'object') {
     throw new TypeError('Codex handoff request requires an immutable Assignment Packet.');
   }
+  const assignmentPacket = buildAssignmentPacket(packet);
   if (typeof packetDigest !== 'string' || !/^[0-9a-f]{64}$/u.test(packetDigest)) {
     throw new TypeError('Codex handoff request requires a stable packet digest.');
   }
+  const expectedPacketDigest = packetDigestOf(assignmentPacket);
+  if (packetDigest !== expectedPacketDigest) {
+    throw new Error('Codex handoff packet digest must match the immutable Assignment Packet.');
+  }
+  const capability = assignmentPacket.capability;
+  const modelPolicy = resolveAssignmentPacketModelPolicy(assignmentPacket);
+  const outerEffort = normalizedString(effort);
+  if (outerEffort !== null && outerEffort !== modelPolicy.requestedEffort) {
+    throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${modelPolicy.requestedEffort}.`);
+  }
+  if (operation === 'spawn' && workerIdentity !== undefined) {
+    throw new TypeError('Codex spawn selects its Corleone workerIdentity from the Assignment Packet; frozen workerIdentity is only valid for a non-spawn lifecycle operation.');
+  }
+  if (operation !== 'spawn' && workerIdentity === undefined) {
+    throw new TypeError('Codex non-spawn lifecycle operations require the frozen Corleone workerIdentity.');
+  }
+  const identity = selectCorleoneRole({
+    workerIdentity: operation === 'spawn' ? undefined : workerIdentity,
+    workRole: capability?.workRole,
+    complexity: capability?.complexity,
+    primaryExecution: capability?.primaryExecution,
+    ordinal
+  });
   return {
     provider: 'codex',
-    role: 'swf_executor',
-    profile: resolveSwfExecutorProfile(effort),
+    role: identity.agentType,
+    workerIdentity: identity,
+    profile: resolveCorleoneProfile(identity.agentType, modelPolicy.requestedEffort),
     operation,
-    packet,
+    packet: assignmentPacket,
     packetDigest,
     executed: false
   };

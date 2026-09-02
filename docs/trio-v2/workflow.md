@@ -82,13 +82,13 @@ sequenceDiagram
 ## 贯穿注记
 
 - **权限三层门禁 `adjudicatePermission`**：scope（`allowedOperations.files` 唯一授权；越界/物化输出 `generated_target` → blocked）→ sandbox（需 authenticated + packetDigest；writableRoots 覆盖目标）→ approval（绝不扩大 allowed paths；Full Access/审批/auto-review 不扩权）。
-- **`manual_pending` 处置三选一**：① 人工提供/操作合规可见 worker（精确 packet 手动 bind）② 显式释放 strict 拓扑（改回 default legacy 链）③ 等待/判定 blocked。
+- **`manual_pending` 处置三选一**：① 人工提供/操作合规可见的 Don Michael worker（精确 packet 手动 bind）② 显式释放 strict 拓扑（改回 native-first default 路由）③ 等待/判定 blocked。
 - **Host 生命周期桥未实现**：authenticated role/packet/actual、spawn/continue/status/interrupt/collect、动态 child 拒绝缺失时，`manual_pending` 是设计内诚实出口，不本地模拟、不绕过。
 
 ## 实现溯源
 
 - 本地 fail-closed 路由契约：`harness/trio/core/routing.mjs`（Assignment Packet 八字段、`childDelegation`/`executionMode` 门禁、`adjudicatePermission` 三层权限、workRole/经济路由）。
-- `swf_executor` 请求角色：`harness/trio/hosts/codex.mjs`（`SWF_EXECUTOR_ROLE`，Flash high/xhigh/max）。
+- Corleone 请求角色：`harness/trio/hosts/codex.mjs`（`CORLEONE_ROSTER`、`selectCorleoneRole` 与 `renderCorleoneRosterConfig`；Flash high/xhigh/max）。默认执行路由为 native-first；`visible_worker_required` 只选择 Don Michael。
 - 绑定校验与 ChiefOps 治理：`harness/trio/governance/chiefops/SKILL.md`。
 - 人类操作面与边界：`docs/trio-v2/human-usage.md`。
 

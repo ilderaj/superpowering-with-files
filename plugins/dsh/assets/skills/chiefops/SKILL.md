@@ -30,9 +30,11 @@ Classify the current slice, not the durable route. Chief/high-density roles are 
 
 Before reading further, testing, or editing, recompute the sha256 of each authority file from the assignment packet and compare it to the frozen binding. Stop with `binding_mismatch` or `blocked` on any difference, a dirty baseline, or a scope contradiction.
 
-## Flash-Only Execution Profiles
+## Corleone Execution Roster
 
-Execution work uses the `swf_executor` role with one of the three calibrated Flash profiles. A requested profile is intent; actual model and effort remain `unknown` unless the Host authenticates the exact packet digest and worker identity. Never claim an actual model without that evidence.
+The Corleone roster is a Host-side identity descriptor, not a source of authority. Default execution routes native-first: Consigliere Tom for `searching` / `researching` / `exploring`, Soldato Cicci for `repetitive_execution`, Button Man Neri or Brasi for `high` `coding` / `executing`, Capo Clemenza or Lampone for `xhigh`, and Underboss Sonny for `max`. `visible_worker_required` selects Don Michael only; if no compliant visible Don is available, return `manual_pending` and never fall back to native or Chief inline execution. Freeze the first allocated identity and reuse it on continue or resume; after named members are exhausted, use the tier with a stable ordinal such as `Capo 3rd`.
+
+Each role requests one of the calibrated Flash profiles. A requested profile is intent; actual role, model, and effort remain `unknown` unless the Host authenticates the exact packet digest and worker identity. Names never grant model selection, permissions, acceptance authority, or a human-gate bypass.
 
 ## Proper-Subset Flash Children
 
