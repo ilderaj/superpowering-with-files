@@ -124,8 +124,17 @@ export function selectCorleoneRole(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new TypeError('Corleone role selection input must be an object.');
   }
-  if (input.workerIdentity !== undefined) return frozenCorleoneIdentity(input.workerIdentity);
   const tier = selectedCorleoneTier(input);
+  if (input.workerIdentity !== undefined) {
+    const identity = frozenCorleoneIdentity(input.workerIdentity);
+    if (identity.tier !== tier) {
+      throw new TypeError(`Corleone frozen workerIdentity tier ${identity.tier} does not match packet-selected tier ${tier}.`);
+    }
+    if (tier === 'don' && identity.ordinal !== 1) {
+      throw new TypeError('Corleone strict selection reserves Don Michael at ordinal 1.');
+    }
+    return identity;
+  }
   if (tier === 'don' && input.ordinal !== undefined && input.ordinal !== 1) {
     throw new TypeError('Corleone strict selection reserves Don Michael at ordinal 1.');
   }

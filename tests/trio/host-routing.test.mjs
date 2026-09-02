@@ -114,7 +114,7 @@ test('Corleone callsigns exhaust named capos before using a stable ordinal role 
   assert.deepEqual(
     selectCorleoneRole({
       workRole: 'coding',
-      complexity: 'high',
+      complexity: 'xhigh',
       workerIdentity: thirdCapo
     }),
     thirdCapo
@@ -340,17 +340,18 @@ test('Host routing falls back from visible worker to native subagent and then ma
 });
 
 test('default execution selects a safe native subagent even when a visible worker is available', () => {
+  const assignmentPacket = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'default',
+      childDelegation: 'worker_discretion'
+    }
+  };
   const result = resolveGenericHostOperation({
     operation: 'spawn',
-    assignmentPacket: {
-      ...createAssignmentPacket(),
-      capability: {
-        workRole: 'coding',
-        complexity: 'high',
-        primaryExecution: 'default',
-        childDelegation: 'worker_discretion'
-      }
-    },
+    assignmentPacket,
     parentEnvelope: {
       permissions: ['workspace'],
       mutablePaths: ['src'],
@@ -383,6 +384,8 @@ test('default execution selects a safe native subagent even when a visible worke
 
   assert.equal(result.routeEvidence.routeKind, 'native_subagent');
   assert.equal(result.routeEvidence.fallbackReason, null);
+  assert.deepEqual(result.descriptor.assignmentPacket, assignmentPacket);
+  assert.equal(result.descriptor.packetDigest, routing.packetDigestOf(assignmentPacket));
 });
 
 test('spawn routes do not inherit an old visible worker identity, status, or actual model evidence', () => {
@@ -1808,6 +1811,31 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   assert.equal(strict.role, 'don_michael');
   assert.equal(strict.workerIdentity.displayName, 'Don Michael Corleone');
   assert.equal(strict.profile.modelReasoningEffort, 'high');
+  const resumedStrict = renderCodexHandoffRequest({
+    operation: 'continue',
+    packet: strictPacket,
+    packetDigest: routing.packetDigestOf(strictPacket),
+    workerIdentity: strict.workerIdentity
+  });
+  assert.deepEqual(resumedStrict.workerIdentity, strict.workerIdentity);
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'continue',
+      packet: strictPacket,
+      packetDigest: routing.packetDigestOf(strictPacket),
+      workerIdentity: frozenCapo
+    }),
+    /frozen.*tier|tier.*frozen/i
+  );
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'continue',
+      packet: strictPacket,
+      packetDigest: routing.packetDigestOf(strictPacket),
+      workerIdentity: allocateCorleoneCallsign({ tier: 'don', ordinal: 2 })
+    }),
+    /strict.*Don Michael|Don Michael.*ordinal/i
+  );
   assert.throws(
     () => renderCodexHandoffRequest({
       operation: 'spawn',

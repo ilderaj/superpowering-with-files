@@ -1002,7 +1002,7 @@ function buildOperationDescriptor({
     operations: [...childEnvelope.operations],
     externalEffects: [...childEnvelope.externalEffects]
   };
-  if (routeKind === 'visible_worker' && assignmentPacket) {
+  if ((routeKind === 'visible_worker' || routeKind === 'native_subagent') && assignmentPacket) {
     descriptor.assignmentPacket = assignmentPacket;
     descriptor.packetDigest = packetDigest;
   }
@@ -1720,7 +1720,9 @@ export function resolveHostOperation(input = {}) {
       descriptor: buildOperationDescriptor({
         operation,
         routeKind: 'native_subagent',
-        childEnvelope
+        childEnvelope,
+        assignmentPacket,
+        packetDigest
       })
     };
   }
