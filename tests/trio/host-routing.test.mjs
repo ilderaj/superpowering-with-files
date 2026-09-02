@@ -107,6 +107,10 @@ test('Corleone callsigns exhaust named capos before using a stable ordinal role 
     ordinal: 3
   });
   assert.equal(allocateCorleoneCallsign({ tier: 'capo', ordinal: 4 }).displayName, 'Capo 4th');
+  assert.throws(
+    () => allocateCorleoneCallsign({ tier: 'capo', ordinal: Number.MAX_SAFE_INTEGER + 1 }),
+    /positive safe integer/i
+  );
   assert.deepEqual(
     selectCorleoneRole({
       workRole: 'coding',
@@ -1748,7 +1752,7 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   const handoff = renderCodexHandoffRequest({
     operation: 'spawn',
     packet,
-    packetDigest: 'a'.repeat(64)
+    packetDigest: routing.packetDigestOf(packet)
   });
 
   assert.equal(handoff.provider, 'codex');
@@ -1763,14 +1767,14 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   assert.equal(handoff.profile.model, 'opencode-go/deepseek-v4-flash');
   assert.equal(handoff.operation, 'spawn');
   assert.deepEqual(handoff.packet, packet);
-  assert.equal(handoff.packetDigest, 'a'.repeat(64));
+  assert.equal(handoff.packetDigest, routing.packetDigestOf(packet));
   assert.equal(handoff.executed, false);
 
   assert.throws(
     () => renderCodexHandoffRequest({
       operation: 'spawn',
       packet,
-      packetDigest: 'd'.repeat(64),
+      packetDigest: routing.packetDigestOf(packet),
       workerIdentity: allocateCorleoneCallsign({ tier: 'don', ordinal: 1 })
     }),
     /spawn.*workerIdentity|workerIdentity.*spawn/i
@@ -1780,25 +1784,26 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   const resumed = renderCodexHandoffRequest({
     operation: 'continue',
     packet,
-    packetDigest: 'b'.repeat(64),
+    packetDigest: routing.packetDigestOf(packet),
     workerIdentity: frozenCapo
   });
   assert.equal(resumed.role, 'capo');
   assert.deepEqual(resumed.workerIdentity, frozenCapo);
   assert.equal(resumed.profile.modelReasoningEffort, 'xhigh');
 
+  const strictPacket = {
+    ...packet,
+    capability: {
+      ...packet.capability,
+      complexity: 'high',
+      requestedEffort: 'high',
+      primaryExecution: 'visible_worker_required'
+    }
+  };
   const strict = renderCodexHandoffRequest({
     operation: 'spawn',
-    packet: {
-      ...packet,
-      capability: {
-        ...packet.capability,
-        complexity: 'high',
-        requestedEffort: 'high',
-        primaryExecution: 'visible_worker_required'
-      }
-    },
-    packetDigest: 'c'.repeat(64)
+    packet: strictPacket,
+    packetDigest: routing.packetDigestOf(strictPacket)
   });
   assert.equal(strict.role, 'don_michael');
   assert.equal(strict.workerIdentity.displayName, 'Don Michael Corleone');
@@ -1809,24 +1814,75 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   assert.throws(() => adapterStatus('unknown-adapter'), /adapter/i);
 });
 
+test('Codex handoffs bind the canonical packet digest and reject unknown lifecycle operations', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: { workRole: 'coding', complexity: 'high' }
+  };
+  const frozenIdentity = allocateCorleoneCallsign({ tier: 'capo', ordinal: 1 });
+
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn',
+      packet,
+      packetDigest: 'a'.repeat(64)
+    }),
+    /packet digest.*match/i
+  );
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn ',
+      packet,
+      packetDigest: routing.packetDigestOf(packet),
+      workerIdentity: frozenIdentity
+    }),
+    /supported.*lifecycle operation/i
+  );
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'unknown',
+      packet,
+      packetDigest: routing.packetDigestOf(packet),
+      workerIdentity: frozenIdentity
+    }),
+    /supported.*lifecycle operation/i
+  );
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'continue',
+      packet,
+      packetDigest: routing.packetDigestOf(packet)
+    }),
+    /non-spawn.*workerIdentity/i
+  );
+});
+
 test('Corleone handoffs bind Flash effort to the execution packet economic policy', () => {
   const packet = (capability) => ({
     ...createAssignmentPacket(),
     capability
   });
+  const researchPacket = packet({ workRole: 'searching', complexity: 'high' });
+  const repetitivePacket = packet({ workRole: 'repetitive_execution', complexity: 'max' });
+  const highCodingPacket = packet({ workRole: 'coding', complexity: 'high' });
+  const mismatchedEffortPacket = packet({
+    workRole: 'coding',
+    complexity: 'high',
+    requestedEffort: 'xhigh'
+  });
 
   const research = renderCodexHandoffRequest({
     operation: 'spawn',
-    packet: packet({ workRole: 'searching', complexity: 'high' }),
-    packetDigest: 'd'.repeat(64)
+    packet: researchPacket,
+    packetDigest: routing.packetDigestOf(researchPacket)
   });
   assert.equal(research.role, 'consigliere_tom');
   assert.equal(research.profile.modelReasoningEffort, 'high');
 
   const repetitive = renderCodexHandoffRequest({
     operation: 'spawn',
-    packet: packet({ workRole: 'repetitive_execution', complexity: 'max' }),
-    packetDigest: 'e'.repeat(64)
+    packet: repetitivePacket,
+    packetDigest: routing.packetDigestOf(repetitivePacket)
   });
   assert.equal(repetitive.role, 'soldato_cicci');
   assert.equal(repetitive.profile.modelReasoningEffort, 'max');
@@ -1834,8 +1890,8 @@ test('Corleone handoffs bind Flash effort to the execution packet economic polic
   assert.throws(
     () => renderCodexHandoffRequest({
       operation: 'spawn',
-      packet: packet({ workRole: 'coding', complexity: 'high' }),
-      packetDigest: 'f'.repeat(64),
+      packet: highCodingPacket,
+      packetDigest: routing.packetDigestOf(highCodingPacket),
       effort: 'xhigh'
     }),
     /conflicts with the validated packet policy/i
@@ -1843,12 +1899,8 @@ test('Corleone handoffs bind Flash effort to the execution packet economic polic
   assert.throws(
     () => renderCodexHandoffRequest({
       operation: 'spawn',
-      packet: packet({
-        workRole: 'coding',
-        complexity: 'high',
-        requestedEffort: 'xhigh'
-      }),
-      packetDigest: '0'.repeat(64)
+      packet: mismatchedEffortPacket,
+      packetDigest: routing.packetDigestOf(mismatchedEffortPacket)
     }),
     /with complexity high requests effort high/i
   );

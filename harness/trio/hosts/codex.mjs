@@ -1,6 +1,8 @@
 export { resolveHostOperation as resolveCodexHostOperation } from '../core/routing.mjs';
 import {
   adjudicatePermission,
+  buildAssignmentPacket,
+  HOST_OPERATIONS,
   packetDigestOf,
   resolveAssignmentPacketModelPolicy
 } from '../core/routing.mjs';
@@ -94,8 +96,8 @@ export function allocateCorleoneCallsign(input = {}) {
   if (tier === null || !Object.hasOwn(CORLEONE_ROSTER, tier)) {
     throw new TypeError(`Unknown Corleone tier: ${String(input.tier)}.`);
   }
-  if (!Number.isInteger(ordinal) || ordinal < 1) {
-    throw new TypeError('Corleone callsign ordinal must be a positive integer.');
+  if (!Number.isSafeInteger(ordinal) || ordinal < 1) {
+    throw new TypeError('Corleone callsign ordinal must be a positive safe integer.');
   }
   const member = CORLEONE_ROSTER[tier][ordinal - 1];
   if (member) return { ...member, tier, ordinal };
@@ -247,23 +249,31 @@ export function renderCodexHandoffRequest({
   workerIdentity,
   ordinal = 1
 }) {
-  if (typeof operation !== 'string' || operation.length === 0) {
-    throw new TypeError('Codex handoff request requires a lifecycle operation.');
+  if (!HOST_OPERATIONS.includes(operation)) {
+    throw new TypeError('Codex handoff request requires a supported lifecycle operation.');
   }
   if (!packet || typeof packet !== 'object') {
     throw new TypeError('Codex handoff request requires an immutable Assignment Packet.');
   }
+  const assignmentPacket = buildAssignmentPacket(packet);
   if (typeof packetDigest !== 'string' || !/^[0-9a-f]{64}$/u.test(packetDigest)) {
     throw new TypeError('Codex handoff request requires a stable packet digest.');
   }
-  const capability = packet.capability;
-  const modelPolicy = resolveAssignmentPacketModelPolicy(packet);
+  const expectedPacketDigest = packetDigestOf(assignmentPacket);
+  if (packetDigest !== expectedPacketDigest) {
+    throw new Error('Codex handoff packet digest must match the immutable Assignment Packet.');
+  }
+  const capability = assignmentPacket.capability;
+  const modelPolicy = resolveAssignmentPacketModelPolicy(assignmentPacket);
   const outerEffort = normalizedString(effort);
   if (outerEffort !== null && outerEffort !== modelPolicy.requestedEffort) {
     throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${modelPolicy.requestedEffort}.`);
   }
   if (operation === 'spawn' && workerIdentity !== undefined) {
     throw new TypeError('Codex spawn selects its Corleone workerIdentity from the Assignment Packet; frozen workerIdentity is only valid for a non-spawn lifecycle operation.');
+  }
+  if (operation !== 'spawn' && workerIdentity === undefined) {
+    throw new TypeError('Codex non-spawn lifecycle operations require the frozen Corleone workerIdentity.');
   }
   const identity = selectCorleoneRole({
     workerIdentity: operation === 'spawn' ? undefined : workerIdentity,
@@ -278,7 +288,7 @@ export function renderCodexHandoffRequest({
     workerIdentity: identity,
     profile: resolveCorleoneProfile(identity.agentType, modelPolicy.requestedEffort),
     operation,
-    packet,
+    packet: assignmentPacket,
     packetDigest,
     executed: false
   };
