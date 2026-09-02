@@ -126,6 +126,9 @@ export function selectCorleoneRole(input = {}) {
   }
   if (input.workerIdentity !== undefined) return frozenCorleoneIdentity(input.workerIdentity);
   const tier = selectedCorleoneTier(input);
+  if (tier === 'don' && input.ordinal !== undefined && input.ordinal !== 1) {
+    throw new TypeError('Corleone strict selection reserves Don Michael at ordinal 1.');
+  }
   return allocateCorleoneCallsign({ tier, ordinal: input.ordinal ?? 1 });
 }
 

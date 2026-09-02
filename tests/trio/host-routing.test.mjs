@@ -1808,6 +1808,15 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   assert.equal(strict.role, 'don_michael');
   assert.equal(strict.workerIdentity.displayName, 'Don Michael Corleone');
   assert.equal(strict.profile.modelReasoningEffort, 'high');
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn',
+      packet: strictPacket,
+      packetDigest: routing.packetDigestOf(strictPacket),
+      ordinal: 2
+    }),
+    /strict.*Don Michael|Don Michael.*ordinal/i
+  );
   assert.equal(adapterStatus('codex'), 'implemented');
   assert.equal(adapterStatus('claude_code'), 'unimplemented');
   assert.equal(adapterStatus('pi'), 'unimplemented');
