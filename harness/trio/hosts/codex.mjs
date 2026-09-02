@@ -277,7 +277,10 @@ export function renderCodexHandoffRequest({
   }
   const capability = assignmentPacket.capability;
   const modelPolicy = resolveAssignmentPacketModelPolicy(assignmentPacket);
-  const outerEffort = normalizedString(effort);
+  if (effort !== undefined && (typeof effort !== 'string' || !CORLEONE_EFFORTS.includes(effort))) {
+    throw new TypeError('Codex handoff effort must be omitted or one of: high, xhigh, max.');
+  }
+  const outerEffort = effort ?? null;
   if (outerEffort !== null && outerEffort !== modelPolicy.requestedEffort) {
     throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${modelPolicy.requestedEffort}.`);
   }

@@ -388,6 +388,55 @@ test('default execution selects a safe native subagent even when a visible worke
   assert.equal(result.descriptor.packetDigest, routing.packetDigestOf(assignmentPacket));
 });
 
+test('native descriptors snapshot the validated packet before binding its digest', () => {
+  const assignmentPacket = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'default',
+      childDelegation: 'worker_discretion'
+    }
+  };
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket,
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/feature'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'native-packet-snapshot-1',
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+  const descriptorPacket = result.descriptor.assignmentPacket;
+  const descriptorDigest = result.descriptor.packetDigest;
+
+  assignmentPacket.currentSlice.name = 'mutated-after-routing';
+  assignmentPacket.capability.complexity = 'max';
+  assignmentPacket.allowedOperations.files.push('harness/trio/core/routing.mjs');
+
+  assert.notEqual(descriptorPacket, assignmentPacket);
+  assert.equal(descriptorPacket.currentSlice.name, 'wave-4-host-routing');
+  assert.equal(descriptorPacket.capability.complexity, 'high');
+  assert.deepEqual(descriptorPacket.allowedOperations.files, ['harness/trio/hosts/generic.mjs']);
+  assert.equal(descriptorDigest, routing.packetDigestOf(descriptorPacket));
+});
+
 test('spawn routes do not inherit an old visible worker identity, status, or actual model evidence', () => {
   const parentEnvelope = {
     permissions: ['workspace'],
@@ -1936,10 +1985,32 @@ test('Corleone handoffs bind Flash effort to the execution packet economic polic
   assert.throws(
     () => renderCodexHandoffRequest({
       operation: 'spawn',
+      packet: highCodingPacket,
+      packetDigest: routing.packetDigestOf(highCodingPacket),
+      effort: 123
+    }),
+    /effort.*high.*xhigh.*max/i
+  );
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn',
       packet: mismatchedEffortPacket,
       packetDigest: routing.packetDigestOf(mismatchedEffortPacket)
     }),
     /with complexity high requests effort high/i
+  );
+});
+
+test('Corleone lifecycle handoffs reject a Chief packet even with a frozen roster identity', () => {
+  const chiefPacket = createAssignmentPacket();
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'continue',
+      packet: chiefPacket,
+      packetDigest: routing.packetDigestOf(chiefPacket),
+      workerIdentity: allocateCorleoneCallsign({ tier: 'capo', ordinal: 1 })
+    }),
+    /supported execution workRole|supported execution workRole and complexity/i
   );
 });
 

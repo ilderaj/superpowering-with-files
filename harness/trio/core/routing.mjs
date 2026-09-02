@@ -447,7 +447,7 @@ export function buildAssignmentPacket(input = {}) {
   }
   assertAuthorityBinding(input.authority);
   assertCapabilityPolicy(input.capability);
-  return Object.fromEntries(ASSIGNMENT_PACKET_FIELDS.map((field) => [field, input[field]]));
+  return structuredClone(Object.fromEntries(ASSIGNMENT_PACKET_FIELDS.map((field) => [field, input[field]])));
 }
 
 export function calculateNextAction(input = {}) {
