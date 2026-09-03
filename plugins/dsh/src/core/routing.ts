@@ -320,7 +320,7 @@ export function buildAssignmentPacket(input: Input = {}): Record<string, unknown
   }
   assertAuthorityBinding(input.authority);
   assertCapabilityPolicy(input.capability);
-  return Object.fromEntries(ASSIGNMENT_PACKET_FIELDS.map((field) => [field, input[field]]));
+  return structuredClone(Object.fromEntries(ASSIGNMENT_PACKET_FIELDS.map((field) => [field, input[field]])));
 }
 
 export function calculateNextAction(input: Input = {}): Record<string, unknown> {
@@ -924,7 +924,7 @@ function buildOperationDescriptor({
       externalEffects: [...childEnvelope.externalEffects]
     };
   }
-  if (routeKind === 'visible_worker' && assignmentPacket) {
+  if ((routeKind === 'visible_worker' || routeKind === 'native_subagent') && assignmentPacket) {
     descriptor.assignmentPacket = assignmentPacket;
     descriptor.packetDigest = packetDigest;
   }
@@ -1472,8 +1472,7 @@ export function resolveHostOperation(input: Input = {}): { operation: string; ro
     requestedEffort: normalizedString(input.requestedEffort) ?? (modelResolution.requestedEffort as string),
     lanes
   });
-  const packetSource = objectRecord(input.assignmentPacket);
-  const capabilitySource = objectRecord(packetSource.capability);
+  const capabilitySource = objectRecord(assignmentPacket?.capability);
   const childPolicy = childDelegationPolicy(capabilitySource, primaryExecution);
   const modePolicy = executionModePolicy(capabilitySource);
   const policyBlocker = !childPolicy.valid
@@ -1517,7 +1516,10 @@ export function resolveHostOperation(input: Input = {}): { operation: string; ro
       })
     };
   }
-  if (visibleResult.safe) {
+  const nativeFirst = operation === 'spawn'
+    && primaryExecution !== PRIMARY_EXECUTION_REQUIRED
+    && EXECUTION_WORK_ROLES.includes(modelResolution.workRole as string);
+  if (!nativeFirst && visibleResult.safe) {
     const routeEvidence = buildRouteEvidence({
       routeKind: 'visible_worker',
       requestedModel: modelResolution.requestedModel as string,
@@ -1630,7 +1632,7 @@ export function resolveHostOperation(input: Input = {}): { operation: string; ro
       capability: nativeEvidence,
       permissionEnvelope: childEnvelope ?? parentEnvelope,
       pathEnvelope: childEnvelope ?? parentEnvelope,
-      fallbackReason: visibleResult.reason,
+      fallbackReason: nativeFirst ? null : visibleResult.reason,
       status: routeStatus(observation, 'native_subagent', operation)
     });
     return {
@@ -1639,12 +1641,16 @@ export function resolveHostOperation(input: Input = {}): { operation: string; ro
       descriptor: buildOperationDescriptor({
         operation,
         routeKind: 'native_subagent',
-        childEnvelope
+        childEnvelope,
+        assignmentPacket,
+        packetDigest
       })
     };
   }
 
-  const fallbackReason = `${visibleResult.reason};${nativeResult.reason}`;
+  const fallbackReason = nativeFirst
+    ? nativeResult.reason as string
+    : `${visibleResult.reason};${nativeResult.reason}`;
   const routeEvidence = buildRouteEvidence({
     routeKind: 'manual_pending',
     requestedModel: modelResolution.requestedModel as string,

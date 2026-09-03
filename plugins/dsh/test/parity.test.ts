@@ -233,6 +233,53 @@ describe('golden parity: fail-closed host operation routing', () => {
     expect(ported.resolveHostOperation(input).routeEvidence.routeKind).toBe('visible_worker');
   });
 
+  it('native routes bind an owned packet snapshot and its digest', () => {
+    const packet = makePacket({ childDelegation: 'worker_discretion' });
+    const input = {
+      operation: 'spawn',
+      assignmentPacket: packet,
+      parentEnvelope: {
+        permissions: ['workspace'],
+        mutablePaths: ['plugins/dsh'],
+        operations: ['spawn'],
+        externalEffects: []
+      },
+      childEnvelope: {
+        permissions: ['workspace'],
+        mutablePaths: ['plugins/dsh/src'],
+        operations: ['spawn'],
+        externalEffects: []
+      },
+      observation: {
+        authenticated: true,
+        evidenceRef: 'native-parity-1',
+        visibleWorker: {
+          visible: true,
+          operations: { spawn: true },
+          requestedModelEffortControls: false,
+          permissionBinding: true,
+          pathBinding: true
+        },
+        nativeSubagent: {
+          supported: true,
+          visible: false,
+          operations: { spawn: true }
+        }
+      }
+    };
+
+    const portedResult = ported.resolveHostOperation(input);
+    const originalResult = original.resolveHostOperation(input);
+    expect(portedResult).toEqual(originalResult);
+    expect(portedResult.routeEvidence.routeKind).toBe('native_subagent');
+    expect(portedResult.descriptor.assignmentPacket).toEqual(packet);
+    expect(portedResult.descriptor.packetDigest).toBe(packetDigest(packet));
+
+    (packet.currentSlice as { name: string }).name = 'caller-mutated-slice';
+    expect((portedResult.descriptor.assignmentPacket as { currentSlice: { name: string } }).currentSlice.name)
+      .toBe('slice-0');
+  });
+
   it('resolveHostOperation throws identical messages', () => {
     const cases = [
       { operation: 'explode' },
