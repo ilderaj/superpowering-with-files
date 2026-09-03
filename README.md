@@ -1,12 +1,12 @@
 # superpowering-with-files
 
-A lightweight Trio workflow for local coding-agent work: planning-trio task state, one capability pack at a time, tracked execution via a visible `swf_executor` worker, Codex as managed native host (others: generic/manual fallback). It is a harness, not an IDE — it classifies requests, applies rules, picks the executor, decides when a result is done, and keeps human gates. Agents: [AGENTS.md](AGENTS.md) is the binding policy; humans: use the intake table.
+A lightweight Trio workflow for local coding-agent work: planning-trio task state, one capability pack at a time, and tracked execution through a Corleone roster. Codex is the managed native host (others: generic/manual fallback). It is a harness, not an IDE — it classifies requests, applies rules, selects a bounded worker identity, decides when a result is done, and keeps human gates. Agents: [AGENTS.md](AGENTS.md) is the binding policy; humans: use the intake table.
 
 ## What the harness does
 
 - Routes `quick` / `tracked` / `deep` (deep: per-round reasoning); picks one pack: `dev` / `office` / `safety`.
 - Keeps the planning trio as the only durable task authority for tracked work.
-- Routes tracked changes to the visible `swf_executor` role with a requested economic profile (Flash, high/xhigh/max); never silent fallback — no compliant worker means `manual_pending` (`blocker` + `resumeCondition`).
+- Routes execution roles native-first: research/exploration uses Consigliere Tom, repetitive work uses Soldato Cicci, and code/execution uses Button Man (high), Capo (xhigh), or Underboss Sonny (max). Strict visible execution uses Don Michael only; no compliant route means `manual_pending` (`blocker` + `resumeCondition`).
 - Enforces three-layer permission governance (scope → sandbox → approval); approval never expands allowed paths.
 - Retains human gates (merge, push, publish, release, send, credentials, destructive) and a command surface (list below).
 
@@ -18,7 +18,7 @@ A lightweight Trio workflow for local coding-agent work: planning-trio task stat
 | Skills | [`.agents/skills/trio/`](.agents/skills/trio/SKILL.md) | Quality contracts: `dev` / `office` / `safety` + `chiefops`. |
 | Durable record | `planning/active/<task-id>/` | Only authority for task outcome, scope, evidence. |
 | Decision core | [`harness/trio/core/routing.mjs`](harness/trio/core/routing.mjs) | Pure logic: assignment packet, sha256 binding, permission adjudication, `manual_pending`. |
-| Host adapters | [`harness/trio/hosts/codex.mjs`](harness/trio/hosts/codex.mjs), `generic.mjs` | Translate the contract into host form (`swf_executor` for Codex); generic fallback. |
+| Host adapters | [`harness/trio/hosts/codex.mjs`](harness/trio/hosts/codex.mjs), `generic.mjs` | Translate the contract into host form (the Corleone roster for Codex); generic fallback. |
 | Command surface | [`scripts/harness`](scripts/harness) | Operator CLI (see below). |
 | Runtime logs | `.harness/runtime-hooks/*.jsonl` | Per-host session logs; audit evidence, not rules. |
 | Human gates | every layer | Merge, push, publish, release, send, credentials, destructive — always require a human. |
@@ -58,7 +58,7 @@ Plain language, no ceremony; add goal, affected surfaces, constraints, proof, an
 |---|---|---|
 | Quick (Q&A / small edit) | One line | Direct answer or small edit; no trio, no worker |
 | Tracked (default) | One paragraph: goal, surfaces, constraints, proof, gate | Trio → slice plan → candidate → your acceptance → you decide merge |
-| Strict (visible worker) | Add: "visible swf_executor role, no hidden subagent" | `visible_worker_required` packet; if unavailable → `manual_pending`, never silent fallback |
+| Strict (visible worker) | Add: "visible Don Michael worker, no hidden subagent" | `visible_worker_required` packet; if unavailable → `manual_pending`, never falls back to native or Chief inline execution |
 | Deep (analyze first) | "Analyze first with evidence; I approve before touching code" | Evidence-backed analysis; execution only after your approval |
 | Human gate | State the stop: "stop at draft PR" / "no push" / "confirm before release" | Stops at the gate; confirmation always retained |
 | After `manual_pending` | Don't repeat the request; pick one of the three resolutions | Continues via `blocker` + `resumeCondition` |

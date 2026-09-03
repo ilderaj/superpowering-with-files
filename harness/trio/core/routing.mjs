@@ -348,6 +348,18 @@ export function resolveModelEffort(input = {}) {
   return resolveEconomicPolicy(input, taskClass);
 }
 
+export function resolveAssignmentPacketModelPolicy(assignmentPacket, { isChild = false } = {}) {
+  if (!assignmentPacket || typeof assignmentPacket !== 'object' || Array.isArray(assignmentPacket)) {
+    throw new Error('Assignment packet model policy requires an Assignment Packet.');
+  }
+  const capability = assignmentPacket.capability;
+  return resolveEconomicPolicy({
+    ...capability,
+    isChild,
+    evidence: { authenticated: false }
+  }, null);
+}
+
 function assertNonEmptyStringArray(values, label) {
   if (!Array.isArray(values) || values.length === 0) {
     throw new Error(`${label} must be a non-empty array of non-empty strings.`);
@@ -435,7 +447,18 @@ export function buildAssignmentPacket(input = {}) {
   }
   assertAuthorityBinding(input.authority);
   assertCapabilityPolicy(input.capability);
-  return Object.fromEntries(ASSIGNMENT_PACKET_FIELDS.map((field) => [field, input[field]]));
+  return structuredClone(Object.fromEntries(ASSIGNMENT_PACKET_FIELDS.map((field) => [field, input[field]])));
+}
+
+function deepFreeze(value, seen = new WeakSet()) {
+  if (!value || typeof value !== 'object' || seen.has(value)) return value;
+  seen.add(value);
+  for (const nested of Object.values(value)) deepFreeze(nested, seen);
+  return Object.freeze(value);
+}
+
+export function freezeAssignmentPacket(input = {}) {
+  return deepFreeze(buildAssignmentPacket(input));
 }
 
 export function calculateNextAction(input = {}) {
@@ -977,6 +1000,7 @@ function buildOperationDescriptor({
   resumeCondition,
   reservedLane
 }) {
+  const descriptorPacket = assignmentPacket === null ? null : freezeAssignmentPacket(assignmentPacket);
   const descriptor = {
     kind: 'host_operation',
     operation,
@@ -990,13 +1014,13 @@ function buildOperationDescriptor({
     operations: [...childEnvelope.operations],
     externalEffects: [...childEnvelope.externalEffects]
   };
-  if (routeKind === 'visible_worker' && assignmentPacket) {
-    descriptor.assignmentPacket = assignmentPacket;
+  if ((routeKind === 'visible_worker' || routeKind === 'native_subagent') && assignmentPacket) {
+    descriptor.assignmentPacket = descriptorPacket;
     descriptor.packetDigest = packetDigest;
   }
   if (routeKind === 'manual_pending') {
     descriptor.kind = 'manual_pending';
-    descriptor.assignmentPacket = assignmentPacket;
+    descriptor.assignmentPacket = descriptorPacket;
     descriptor.packetDigest = packetDigest;
     descriptor.blocker = blocker;
     descriptor.resumeCondition = resumeCondition;
@@ -1025,8 +1049,8 @@ export function packetDigestOf(packet) {
   return createHash('sha256').update(stableStringify(packet)).digest('hex');
 }
 
-function primaryExecutionKind(input) {
-  const capability = objectRecord(input.assignmentPacket?.capability);
+function primaryExecutionKind(assignmentPacket) {
+  const capability = objectRecord(assignmentPacket?.capability);
   const value = capability.primaryExecution ?? 'default';
   if (!PRIMARY_EXECUTION_KINDS.includes(value)) {
     throw new Error(`Unknown primaryExecution kind: ${String(value)}`);
@@ -1361,7 +1385,7 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  const primaryExecution = primaryExecutionKind(input);
+  const primaryExecution = primaryExecutionKind(assignmentPacket);
   validateObservedStatus(observation.status);
   const requestedWorkerId = normalizedString(input.requestedWorkerId);
   const parentEnvelope = normalizeEnvelope(
@@ -1515,7 +1539,7 @@ export function resolveHostOperation(input = {}) {
     requestedEffort: normalizedString(input.requestedEffort) ?? modelResolution.requestedEffort,
     lanes
   });
-  const capabilitySource = objectRecord(input.assignmentPacket?.capability);
+  const capabilitySource = objectRecord(assignmentPacket?.capability);
   const childPolicy = childDelegationPolicy(capabilitySource, primaryExecution);
   const modePolicy = executionModePolicy(capabilitySource);
   const policyBlocker = !childPolicy.valid
@@ -1559,7 +1583,10 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  if (visibleResult.safe) {
+  const nativeFirst = operation === 'spawn'
+    && primaryExecution !== PRIMARY_EXECUTION_REQUIRED
+    && EXECUTION_WORK_ROLES.includes(modelResolution.workRole);
+  if (!nativeFirst && visibleResult.safe) {
     const routeEvidence = buildRouteEvidence({
       routeKind: 'visible_worker',
       requestedModel: modelResolution.requestedModel,
@@ -1584,8 +1611,32 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-
   if (primaryExecution === PRIMARY_EXECUTION_REQUIRED) {
+    if (visibleResult.safe) {
+      const routeEvidence = buildRouteEvidence({
+        routeKind: 'visible_worker',
+        requestedModel: modelResolution.requestedModel,
+        requestedEffort: modelResolution.requestedEffort,
+        actual: operation === 'spawn' ? unknownActual() : authenticatedActual(observation, packetDigest),
+        workerId: operation === 'spawn' ? null : observation.workerId,
+        capability: visibleEvidence,
+        permissionEnvelope: parentEnvelope,
+        pathEnvelope: parentEnvelope,
+        fallbackReason: null,
+        status: routeStatus(observation, 'visible_worker', operation)
+      });
+      return {
+        operation,
+        routeEvidence,
+        descriptor: buildOperationDescriptor({
+          operation,
+          routeKind: 'visible_worker',
+          childEnvelope: null,
+          assignmentPacket,
+          packetDigest
+        })
+      };
+    }
     const fallbackReason = `visible_worker_required_unavailable:${visibleResult.reason}`;
     const routeEvidence = buildRouteEvidence({
       routeKind: 'manual_pending',
@@ -1672,7 +1723,7 @@ export function resolveHostOperation(input = {}) {
       capability: nativeEvidence,
       permissionEnvelope: childEnvelope,
       pathEnvelope: childEnvelope,
-      fallbackReason: visibleResult.reason,
+      fallbackReason: nativeFirst ? null : visibleResult.reason,
       status: routeStatus(observation, 'native_subagent', operation)
     });
     return {
@@ -1681,12 +1732,16 @@ export function resolveHostOperation(input = {}) {
       descriptor: buildOperationDescriptor({
         operation,
         routeKind: 'native_subagent',
-        childEnvelope
+        childEnvelope,
+        assignmentPacket,
+        packetDigest
       })
     };
   }
 
-  const fallbackReason = `${visibleResult.reason};${nativeResult.reason}`;
+  const fallbackReason = nativeFirst
+    ? nativeResult.reason
+    : `${visibleResult.reason};${nativeResult.reason}`;
   const routeEvidence = buildRouteEvidence({
     routeKind: 'manual_pending',
     requestedModel: modelResolution.requestedModel,

@@ -6,7 +6,7 @@
 
 `planning/active/<task-id>/` 下的三件套(`task_plan.md`、`findings.md`、`progress.md`)是唯一任务权威;Chief 负责接需求、路由、规划、派单、review、验收;执行 worker 的生产变更结果只是 candidate,Chief 验收回写后才算数;merge/push/release/发布/发送/凭据/破坏性操作永远需要人类 gate。
 
-`swf_executor`、DeepSeek Flash、xhigh、无 fallback 是**请求/静态角色事实**(定义于 `harness/trio/hosts/codex.mjs` 的 `SWF_EXECUTOR_ROLE`,并由 `renderSwfExecutorAgentEntry` 渲染成 `[agents.swf_executor]` TOML)。**实际** role/model/effort 在 Host 提供 authenticated 证据之前一律视为 `unknown`;一个可见任务本身也不是完整的 Host 生命周期证据。
+Corleone 名册、DeepSeek Flash、请求 effort 与无 fallback 是**请求/静态角色事实**（定义于 `harness/trio/hosts/codex.mjs` 的 `CORLEONE_ROSTER`，并由 `renderCorleoneRosterConfig` 生成对应的 `[agents.<agentType>]` TOML）。名册只描述 Host 侧 worker identity；不授予模型、权限、验收权或人类 gate。**实际** role/model/effort 在 Host 提供 authenticated 证据之前一律视为 `unknown`；一个可见任务本身也不是完整的 Host 生命周期证据。
 
 ## 本地契约与 Host 桥的边界(重要)
 
@@ -39,7 +39,12 @@
 |---|---|---|
 | 人类(你) | 提需求、做人类 gate、最终验收(accept)、决定 merge/release | 不代替模型写代码细节(除非亲自改) |
 | Chief | intake、路由(quick/tracked)、规划三件套、构造 Assignment Packet、派单、review、验收回写 | 在"需要可见 worker"时不得 inline 生产变更、不得用 native subagent 顶替主执行 |
-| swf_executor(请求角色) | 按已接受计划执行生产变更 + 主验证,返回 candidate 证据 | 不重新设计 scope/架构/接口/验收标准;缺决策或模型不可用时返回 blocked;默认(及 `childDelegation=prohibited`)下不得嵌套委托——仅当 packet 显式允许(`worker_discretion`/`encouraged`)时,worker 本地子委托才可使用 swf_executor,且必须携带机械 proper-subset envelope 并返回主 worker |
+| Don Michael（`don_michael`） | 仅 `visible_worker_required` 的可见主执行候选 | 不担任 Chief；可见 worker 不可用时返回 `manual_pending`，绝不降级为 native 或 Chief inline |
+| Underboss Sonny（`underboss_sonny`） | `max` 的复杂原生执行；仅在 packet 明确允许时做本地子委托 | 不重新设计 scope/架构/接口/验收标准；返回 candidate，不验收 |
+| Consigliere Tom（`consigliere_tom`） | 搜索、研究、方案审阅和证据复核 | 默认不写源码；写入必须受 packet 与权限 envelope 约束 |
+| Capo Clemenza / Lampone（`capo_*`） | `xhigh` 的明确边界多文件实现 | 名册耗尽后使用 `Capo 3rd`、`Capo 4th` 等冻结 identity |
+| Button Man Neri / Brasi（`buttonman_*`） | `high` 的窄范围修复、测试和机械执行 | 名称不授予权限或嵌套委托；本地子委托仍须 packet 明确允许 |
+| Soldato Cicci（`soldato_cicci`） | 重复性验证、检索和证据收集 | 默认不写源码；返回局部 candidate 证据 |
 | Host(Codex 本体) | 管理 worker/子任务生命周期、提供 authenticated role/identity/packet/actual model-effort 证据 | 无 authenticated 证据时 actual 就是 `unknown`,任何人不得伪称 |
 
 ## 路由对照表(核心)
@@ -47,8 +52,8 @@
 | 路由 | 你怎么输入 | 你会得到 |
 |---|---|---|
 | **quick(问答/小改动)** | 一句话直接问,零仪式 | 直接回答/小改动,无 Trio |
-| **tracked / default(常规开发)** | 一段话按五要素:"实现 X…影响面…约束…验收 verify:trio 全绿 + RED→GREEN 证据…完成后出 draft PR 不要 merge" | Chief 建三件套→切片计划→派 swf_executor→candidate→你验收→你决定 merge |
-| **strict(必须可见 worker)** | 加一句:"必须由可见执行角色 swf_executor 完成,不要用隐式子代理" | packet 设 `primaryExecution = visible_worker_required`,且必须显式声明 `capability.childDelegation`;缺策略/未知策略 → 本地 `manual_pending` |
+| **tracked / default（常规开发）** | 一段话按五要素:"实现 X…影响面…约束…验收 verify:trio 全绿 + RED→GREEN 证据…完成后出 draft PR 不要 merge" | Chief 建三件套→切片计划→原生路由：Tom（搜索/研究/探索）、Cicci（重复执行）、Neri/Brasi（high）、Clemenza/Lampone（xhigh）、Sonny（max）→candidate→你验收→你决定 merge |
+| **strict（必须可见 worker）** | 加一句:"必须由可见 Don Michael worker 完成，不要用隐式子代理" | packet 设 `primaryExecution = visible_worker_required`，且必须显式声明 `capability.childDelegation`；缺策略/未知策略或 Don 不可用 → 本地 `manual_pending` |
 | **deep(先分析再动手)** | "这个问题需要深入分析再决定…先给证据-backed 分析,我 approve 后再动手" | 先出分析报告等你 approve,再进执行 |
 | **涉及人类 gate** | 明说停靠点:"停在 draft PR 等我看"/"不要 push"/"发布前必须我确认" | 停在 gate 前(默认也永远保留你的确认权) |
 | **manual_pending 后** | 别重说需求,看 blocker/resumeCondition 三选一(见下) | 按对应处置继续 |
@@ -70,11 +75,11 @@
   - `prohibited`:禁止任何 native 子路由(即使 child envelope 本身合法);本地路由返回 `manual_pending`(blocker `child_delegation_prohibited`)。
   - `worker_discretion` / `encouraged`:仅当明确写出时才考虑 child 路由。
   - 缺失(strict 必填)或未知值:本地 `manual_pending`(blocker `child_delegation_missing` / `child_delegation_unknown:<value>`),不会选择 visible 或 native 路由。
-- legacy 非 strict packet(没有这些字段)保持既有兼容:visible→native→manual 链不变。
+- default 执行角色按 native-first 路由：Tom（`searching` / `researching` / `exploring`）、Cicci（`repetitive_execution`），以及 Neri/Brasi（`high`）、Clemenza/Lampone（`xhigh`）、Sonny（`max`）对应 `coding` / `executing`。native route 未获安全绑定时返回 `manual_pending`，不静默改派可见 worker 或 Chief。
 - `capability.executionMode` 只接受 `bounded_slice`(有界切片)或 `worker_self_goal`(worker 自身可见会话内的长目标);未知值本地 `manual_pending`(blocker `execution_mode_unknown:<value>`)。worker self-goal 只存在于其自身可见会话;没有 authenticated Host 操作时,Chief 不得声称跨线程 goal 控制或任何生命周期控制。
 - `manual_pending` descriptor 携带三件套:`assignmentPacket`(原封不动)、`blocker`(失败原因)、`resumeCondition`(恢复条件)。收到后三选一:
   1. **人工提供/操作可见 worker**:用精确 packet 手动开一个可见 worker 继续——这只携带 requested 事实,不自动证明 actual model/role;
-  2. **显式释放 strict 拓扑**:明确改回 default(接受 legacy visible→native→manual 链),再重派;
+  2. **显式释放 strict 拓扑**:明确改回 native-first default 路由，再重派;
   3. **等待/判定 blocked**:等待合规 Host 能力,或记录真实外部阻塞(模型不可用、缺权限、缺决策)后 blocked,等条件变化再恢复。
   没有任何一个选项会自动证明 actual model/role;这些都只是处置选择。
 
@@ -122,7 +127,7 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 - **手动 handoff**:把未完成的切片与证据连同 packet 交回 Chief 或另一个可见 worker 时,必须原样传递 `assignmentPacket`、`blocker`、`resumeCondition` 与已记录的 hash 证据;handoff 不自动证明 actual model/role。
 - **`manual_pending` 恢复三选一**(重复请求不会改变结果):
   1. **提供/操作合规可见 worker**:用精确 packet 手动 bind 一个可见 worker 继续——只携带 requested 事实,不自动证明 actual;
-  2. **显式释放 strict 拓扑**:明确改回 default(接受 legacy visible→native→manual 链)后重派;
+  2. **显式释放 strict 拓扑**:明确改回 native-first default 路由后重派;
   3. **等待/判定 blocked**:等待合规 Host 能力,或记录真实外部阻塞后 blocked,条件变化再恢复。
 
   任何选项都不自动证明 actual model/role;这些都只是处置选择。
