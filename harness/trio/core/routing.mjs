@@ -1037,8 +1037,8 @@ export function packetDigestOf(packet) {
   return createHash('sha256').update(stableStringify(packet)).digest('hex');
 }
 
-function primaryExecutionKind(input) {
-  const capability = objectRecord(input.assignmentPacket?.capability);
+function primaryExecutionKind(assignmentPacket) {
+  const capability = objectRecord(assignmentPacket?.capability);
   const value = capability.primaryExecution ?? 'default';
   if (!PRIMARY_EXECUTION_KINDS.includes(value)) {
     throw new Error(`Unknown primaryExecution kind: ${String(value)}`);
@@ -1373,7 +1373,7 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  const primaryExecution = primaryExecutionKind(input);
+  const primaryExecution = primaryExecutionKind(assignmentPacket);
   validateObservedStatus(observation.status);
   const requestedWorkerId = normalizedString(input.requestedWorkerId);
   const parentEnvelope = normalizeEnvelope(
@@ -1527,7 +1527,7 @@ export function resolveHostOperation(input = {}) {
     requestedEffort: normalizedString(input.requestedEffort) ?? modelResolution.requestedEffort,
     lanes
   });
-  const capabilitySource = objectRecord(input.assignmentPacket?.capability);
+  const capabilitySource = objectRecord(assignmentPacket?.capability);
   const childPolicy = childDelegationPolicy(capabilitySource, primaryExecution);
   const modePolicy = executionModePolicy(capabilitySource);
   const policyBlocker = !childPolicy.valid

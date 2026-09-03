@@ -437,6 +437,86 @@ test('native descriptors snapshot the validated packet before binding its digest
   assert.equal(descriptorDigest, routing.packetDigestOf(descriptorPacket));
 });
 
+test('packet aliases retain their native delegation policy', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'default',
+      childDelegation: 'prohibited'
+    }
+  };
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    packet,
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/feature'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'native-packet-alias-1',
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.fallbackReason, 'child_delegation_prohibited');
+});
+
+test('packet aliases retain their strict visible-only topology', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'visible_worker_required',
+      childDelegation: 'worker_discretion'
+    }
+  };
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    packet,
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/feature'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'strict-packet-alias-1',
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.fallbackReason, 'visible_worker_required_unavailable:visible_unknown');
+});
+
 test('spawn routes do not inherit an old visible worker identity, status, or actual model evidence', () => {
   const parentEnvelope = {
     permissions: ['workspace'],

@@ -959,9 +959,8 @@ export function packetDigestOf(packet: unknown): string | null {
   return createHash('sha256').update(stableStringify(packet)).digest('hex');
 }
 
-function primaryExecutionKind(input: Input): string {
-  const packet = objectRecord(input.assignmentPacket);
-  const capability = objectRecord(packet.capability);
+function primaryExecutionKind(assignmentPacket: Record<string, unknown> | null): string {
+  const capability = objectRecord(assignmentPacket?.capability);
   const value = capability.primaryExecution ?? 'default';
   if (typeof value !== 'string' || !PRIMARY_EXECUTION_KINDS.includes(value)) {
     throw new Error(`Unknown primaryExecution kind: ${String(value)}`);
@@ -1318,7 +1317,7 @@ export function resolveHostOperation(input: Input = {}): { operation: string; ro
       })
     };
   }
-  const primaryExecution = primaryExecutionKind(input);
+  const primaryExecution = primaryExecutionKind(assignmentPacket);
   validateObservedStatus(observation.status as string | null);
   const requestedWorkerId = normalizedString(input.requestedWorkerId);
   const parentEnvelope = normalizeEnvelope(
