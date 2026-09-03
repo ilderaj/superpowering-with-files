@@ -278,6 +278,10 @@ describe('golden parity: fail-closed host operation routing', () => {
     expect(portedResult.routeEvidence.routeKind).toBe('native_subagent');
     expect(portedResult.descriptor.assignmentPacket).toEqual(packet);
     expect(portedResult.descriptor.packetDigest).toBe(packetDigest(packet));
+    expect(Object.isFrozen(portedResult.descriptor.assignmentPacket)).toBe(true);
+    expect(Object.isFrozen((portedResult.descriptor.assignmentPacket as { currentSlice: unknown }).currentSlice)).toBe(true);
+    expect(Object.isFrozen((portedResult.descriptor.assignmentPacket as { allowedOperations: { files: unknown } }).allowedOperations.files)).toBe(true);
+    expect(Object.isFrozen(originalResult.descriptor.assignmentPacket)).toBe(true);
 
     (packet.currentSlice as { name: string }).name = 'caller-mutated-slice';
     expect((portedResult.descriptor.assignmentPacket as { currentSlice: { name: string } }).currentSlice.name)

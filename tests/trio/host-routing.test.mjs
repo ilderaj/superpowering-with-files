@@ -434,6 +434,9 @@ test('native descriptors snapshot the validated packet before binding its digest
   assert.equal(descriptorPacket.currentSlice.name, 'wave-4-host-routing');
   assert.equal(descriptorPacket.capability.complexity, 'high');
   assert.deepEqual(descriptorPacket.allowedOperations.files, ['harness/trio/hosts/generic.mjs']);
+  assert.equal(Object.isFrozen(descriptorPacket), true);
+  assert.equal(Object.isFrozen(descriptorPacket.currentSlice), true);
+  assert.equal(Object.isFrozen(descriptorPacket.allowedOperations.files), true);
   assert.equal(descriptorDigest, routing.packetDigestOf(descriptorPacket));
 });
 
@@ -1940,6 +1943,9 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   assert.equal(strict.role, 'don_michael');
   assert.equal(strict.workerIdentity.displayName, 'Don Michael Corleone');
   assert.equal(strict.profile.modelReasoningEffort, 'high');
+  assert.equal(Object.isFrozen(strict.packet), true);
+  assert.equal(Object.isFrozen(strict.packet.capability), true);
+  assert.equal(strict.packetDigest, routing.packetDigestOf(strict.packet));
   const resumedStrict = renderCodexHandoffRequest({
     operation: 'continue',
     packet: strictPacket,

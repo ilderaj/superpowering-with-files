@@ -450,6 +450,17 @@ export function buildAssignmentPacket(input = {}) {
   return structuredClone(Object.fromEntries(ASSIGNMENT_PACKET_FIELDS.map((field) => [field, input[field]])));
 }
 
+function deepFreeze(value, seen = new WeakSet()) {
+  if (!value || typeof value !== 'object' || seen.has(value)) return value;
+  seen.add(value);
+  for (const nested of Object.values(value)) deepFreeze(nested, seen);
+  return Object.freeze(value);
+}
+
+export function freezeAssignmentPacket(input = {}) {
+  return deepFreeze(buildAssignmentPacket(input));
+}
+
 export function calculateNextAction(input = {}) {
   if (input.dryRun !== true) {
     throw new Error('calculateNextAction is read-only only with --dry-run.');
@@ -989,6 +1000,7 @@ function buildOperationDescriptor({
   resumeCondition,
   reservedLane
 }) {
+  const descriptorPacket = assignmentPacket === null ? null : freezeAssignmentPacket(assignmentPacket);
   const descriptor = {
     kind: 'host_operation',
     operation,
@@ -1003,12 +1015,12 @@ function buildOperationDescriptor({
     externalEffects: [...childEnvelope.externalEffects]
   };
   if ((routeKind === 'visible_worker' || routeKind === 'native_subagent') && assignmentPacket) {
-    descriptor.assignmentPacket = assignmentPacket;
+    descriptor.assignmentPacket = descriptorPacket;
     descriptor.packetDigest = packetDigest;
   }
   if (routeKind === 'manual_pending') {
     descriptor.kind = 'manual_pending';
-    descriptor.assignmentPacket = assignmentPacket;
+    descriptor.assignmentPacket = descriptorPacket;
     descriptor.packetDigest = packetDigest;
     descriptor.blocker = blocker;
     descriptor.resumeCondition = resumeCondition;

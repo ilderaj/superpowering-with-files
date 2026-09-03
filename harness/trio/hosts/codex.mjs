@@ -1,7 +1,7 @@
 export { resolveHostOperation as resolveCodexHostOperation } from '../core/routing.mjs';
 import {
   adjudicatePermission,
-  buildAssignmentPacket,
+  freezeAssignmentPacket,
   HOST_OPERATIONS,
   packetDigestOf,
   resolveAssignmentPacketModelPolicy
@@ -267,7 +267,7 @@ export function renderCodexHandoffRequest({
   if (!packet || typeof packet !== 'object') {
     throw new TypeError('Codex handoff request requires an immutable Assignment Packet.');
   }
-  const assignmentPacket = buildAssignmentPacket(packet);
+  const assignmentPacket = freezeAssignmentPacket(packet);
   if (typeof packetDigest !== 'string' || !/^[0-9a-f]{64}$/u.test(packetDigest)) {
     throw new TypeError('Codex handoff request requires a stable packet digest.');
   }
