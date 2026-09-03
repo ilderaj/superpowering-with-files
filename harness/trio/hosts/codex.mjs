@@ -1,7 +1,7 @@
 export { resolveHostOperation as resolveCodexHostOperation } from '../core/routing.mjs';
 import {
   adjudicatePermission,
-  buildAssignmentPacket,
+  freezeAssignmentPacket,
   HOST_OPERATIONS,
   packetDigestOf,
   resolveAssignmentPacketModelPolicy
@@ -124,8 +124,17 @@ export function selectCorleoneRole(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new TypeError('Corleone role selection input must be an object.');
   }
-  if (input.workerIdentity !== undefined) return frozenCorleoneIdentity(input.workerIdentity);
   const tier = selectedCorleoneTier(input);
+  if (input.workerIdentity !== undefined) {
+    const identity = frozenCorleoneIdentity(input.workerIdentity);
+    if (identity.tier !== tier) {
+      throw new TypeError(`Corleone frozen workerIdentity tier ${identity.tier} does not match packet-selected tier ${tier}.`);
+    }
+    if (tier === 'don' && identity.ordinal !== 1) {
+      throw new TypeError('Corleone strict selection reserves Don Michael at ordinal 1.');
+    }
+    return identity;
+  }
   if (tier === 'don' && input.ordinal !== undefined && input.ordinal !== 1) {
     throw new TypeError('Corleone strict selection reserves Don Michael at ordinal 1.');
   }
@@ -258,7 +267,7 @@ export function renderCodexHandoffRequest({
   if (!packet || typeof packet !== 'object') {
     throw new TypeError('Codex handoff request requires an immutable Assignment Packet.');
   }
-  const assignmentPacket = buildAssignmentPacket(packet);
+  const assignmentPacket = freezeAssignmentPacket(packet);
   if (typeof packetDigest !== 'string' || !/^[0-9a-f]{64}$/u.test(packetDigest)) {
     throw new TypeError('Codex handoff request requires a stable packet digest.');
   }
@@ -268,7 +277,10 @@ export function renderCodexHandoffRequest({
   }
   const capability = assignmentPacket.capability;
   const modelPolicy = resolveAssignmentPacketModelPolicy(assignmentPacket);
-  const outerEffort = normalizedString(effort);
+  if (effort !== undefined && (typeof effort !== 'string' || !CORLEONE_EFFORTS.includes(effort))) {
+    throw new TypeError('Codex handoff effort must be omitted or one of: high, xhigh, max.');
+  }
+  const outerEffort = effort ?? null;
   if (outerEffort !== null && outerEffort !== modelPolicy.requestedEffort) {
     throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${modelPolicy.requestedEffort}.`);
   }

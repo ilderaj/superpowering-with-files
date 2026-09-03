@@ -24,6 +24,41 @@ function throwsMessage(fn: () => unknown): string {
   return '<no throw>';
 }
 
+function nativeSpawnInput(packet: Record<string, unknown>): Record<string, unknown> {
+  return {
+    operation: 'spawn',
+    assignmentPacket: packet,
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['plugins/dsh'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['plugins/dsh/src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'native-parity-1',
+      visibleWorker: {
+        visible: true,
+        operations: { spawn: true },
+        requestedModelEffortControls: false,
+        permissionBinding: true,
+        pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  };
+}
+
 const classifyInputs = [
   {},
   { taskClass: 'quick' },
@@ -231,6 +266,56 @@ describe('golden parity: fail-closed host operation routing', () => {
     expect(JSON.stringify(ported.resolveHostOperation(input)))
       .toBe(JSON.stringify(original.resolveHostOperation(input)));
     expect(ported.resolveHostOperation(input).routeEvidence.routeKind).toBe('visible_worker');
+  });
+
+  it('native routes bind an owned packet snapshot and its digest', () => {
+    const packet = makePacket({ childDelegation: 'worker_discretion' });
+    const input = nativeSpawnInput(packet);
+
+    const portedResult = ported.resolveHostOperation(input);
+    const originalResult = original.resolveHostOperation(input);
+    expect(portedResult).toEqual(originalResult);
+    expect(portedResult.routeEvidence.routeKind).toBe('native_subagent');
+    expect(portedResult.descriptor.assignmentPacket).toEqual(packet);
+    expect(portedResult.descriptor.packetDigest).toBe(packetDigest(packet));
+    expect(Object.isFrozen(portedResult.descriptor.assignmentPacket)).toBe(true);
+    expect(Object.isFrozen((portedResult.descriptor.assignmentPacket as { currentSlice: unknown }).currentSlice)).toBe(true);
+    expect(Object.isFrozen((portedResult.descriptor.assignmentPacket as { allowedOperations: { files: unknown } }).allowedOperations.files)).toBe(true);
+    expect(Object.isFrozen(originalResult.descriptor.assignmentPacket)).toBe(true);
+
+    (packet.currentSlice as { name: string }).name = 'caller-mutated-slice';
+    expect((portedResult.descriptor.assignmentPacket as { currentSlice: { name: string } }).currentSlice.name)
+      .toBe('slice-0');
+  });
+
+  it('packet aliases retain their delegation policy in both cores', () => {
+    const packet = makePacket({ childDelegation: 'prohibited' });
+    const input = nativeSpawnInput(packet);
+    input.packet = packet;
+    delete input.assignmentPacket;
+
+    const portedResult = ported.resolveHostOperation(input);
+    const originalResult = original.resolveHostOperation(input);
+    expect(portedResult).toEqual(originalResult);
+    expect(portedResult.routeEvidence.routeKind).toBe('manual_pending');
+    expect(portedResult.routeEvidence.fallbackReason).toBe('child_delegation_prohibited');
+  });
+
+  it('packet aliases retain strict visible-only topology in both cores', () => {
+    const packet = makePacket({
+      primaryExecution: 'visible_worker_required',
+      childDelegation: 'worker_discretion'
+    });
+    const input = nativeSpawnInput(packet);
+    input.packet = packet;
+    delete input.assignmentPacket;
+
+    const portedResult = ported.resolveHostOperation(input);
+    const originalResult = original.resolveHostOperation(input);
+    expect(portedResult).toEqual(originalResult);
+    expect(portedResult.routeEvidence.routeKind).toBe('manual_pending');
+    expect(portedResult.routeEvidence.fallbackReason)
+      .toBe('visible_worker_required_unavailable:visible_model_controls_unbound');
   });
 
   it('resolveHostOperation throws identical messages', () => {

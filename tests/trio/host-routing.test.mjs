@@ -114,7 +114,7 @@ test('Corleone callsigns exhaust named capos before using a stable ordinal role 
   assert.deepEqual(
     selectCorleoneRole({
       workRole: 'coding',
-      complexity: 'high',
+      complexity: 'xhigh',
       workerIdentity: thirdCapo
     }),
     thirdCapo
@@ -340,17 +340,18 @@ test('Host routing falls back from visible worker to native subagent and then ma
 });
 
 test('default execution selects a safe native subagent even when a visible worker is available', () => {
+  const assignmentPacket = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'default',
+      childDelegation: 'worker_discretion'
+    }
+  };
   const result = resolveGenericHostOperation({
     operation: 'spawn',
-    assignmentPacket: {
-      ...createAssignmentPacket(),
-      capability: {
-        workRole: 'coding',
-        complexity: 'high',
-        primaryExecution: 'default',
-        childDelegation: 'worker_discretion'
-      }
-    },
+    assignmentPacket,
     parentEnvelope: {
       permissions: ['workspace'],
       mutablePaths: ['src'],
@@ -383,6 +384,140 @@ test('default execution selects a safe native subagent even when a visible worke
 
   assert.equal(result.routeEvidence.routeKind, 'native_subagent');
   assert.equal(result.routeEvidence.fallbackReason, null);
+  assert.deepEqual(result.descriptor.assignmentPacket, assignmentPacket);
+  assert.equal(result.descriptor.packetDigest, routing.packetDigestOf(assignmentPacket));
+});
+
+test('native descriptors snapshot the validated packet before binding its digest', () => {
+  const assignmentPacket = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'default',
+      childDelegation: 'worker_discretion'
+    }
+  };
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket,
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/feature'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'native-packet-snapshot-1',
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+  const descriptorPacket = result.descriptor.assignmentPacket;
+  const descriptorDigest = result.descriptor.packetDigest;
+
+  assignmentPacket.currentSlice.name = 'mutated-after-routing';
+  assignmentPacket.capability.complexity = 'max';
+  assignmentPacket.allowedOperations.files.push('harness/trio/core/routing.mjs');
+
+  assert.notEqual(descriptorPacket, assignmentPacket);
+  assert.equal(descriptorPacket.currentSlice.name, 'wave-4-host-routing');
+  assert.equal(descriptorPacket.capability.complexity, 'high');
+  assert.deepEqual(descriptorPacket.allowedOperations.files, ['harness/trio/hosts/generic.mjs']);
+  assert.equal(Object.isFrozen(descriptorPacket), true);
+  assert.equal(Object.isFrozen(descriptorPacket.currentSlice), true);
+  assert.equal(Object.isFrozen(descriptorPacket.allowedOperations.files), true);
+  assert.equal(descriptorDigest, routing.packetDigestOf(descriptorPacket));
+});
+
+test('packet aliases retain their native delegation policy', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'default',
+      childDelegation: 'prohibited'
+    }
+  };
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    packet,
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/feature'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'native-packet-alias-1',
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.fallbackReason, 'child_delegation_prohibited');
+});
+
+test('packet aliases retain their strict visible-only topology', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'visible_worker_required',
+      childDelegation: 'worker_discretion'
+    }
+  };
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    packet,
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/feature'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    observation: {
+      authenticated: true,
+      evidenceRef: 'strict-packet-alias-1',
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true }
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.fallbackReason, 'visible_worker_required_unavailable:visible_unknown');
 });
 
 test('spawn routes do not inherit an old visible worker identity, status, or actual model evidence', () => {
@@ -1808,6 +1943,34 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
   assert.equal(strict.role, 'don_michael');
   assert.equal(strict.workerIdentity.displayName, 'Don Michael Corleone');
   assert.equal(strict.profile.modelReasoningEffort, 'high');
+  assert.equal(Object.isFrozen(strict.packet), true);
+  assert.equal(Object.isFrozen(strict.packet.capability), true);
+  assert.equal(strict.packetDigest, routing.packetDigestOf(strict.packet));
+  const resumedStrict = renderCodexHandoffRequest({
+    operation: 'continue',
+    packet: strictPacket,
+    packetDigest: routing.packetDigestOf(strictPacket),
+    workerIdentity: strict.workerIdentity
+  });
+  assert.deepEqual(resumedStrict.workerIdentity, strict.workerIdentity);
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'continue',
+      packet: strictPacket,
+      packetDigest: routing.packetDigestOf(strictPacket),
+      workerIdentity: frozenCapo
+    }),
+    /frozen.*tier|tier.*frozen/i
+  );
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'continue',
+      packet: strictPacket,
+      packetDigest: routing.packetDigestOf(strictPacket),
+      workerIdentity: allocateCorleoneCallsign({ tier: 'don', ordinal: 2 })
+    }),
+    /strict.*Don Michael|Don Michael.*ordinal/i
+  );
   assert.throws(
     () => renderCodexHandoffRequest({
       operation: 'spawn',
@@ -1908,10 +2071,32 @@ test('Corleone handoffs bind Flash effort to the execution packet economic polic
   assert.throws(
     () => renderCodexHandoffRequest({
       operation: 'spawn',
+      packet: highCodingPacket,
+      packetDigest: routing.packetDigestOf(highCodingPacket),
+      effort: 123
+    }),
+    /effort.*high.*xhigh.*max/i
+  );
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn',
       packet: mismatchedEffortPacket,
       packetDigest: routing.packetDigestOf(mismatchedEffortPacket)
     }),
     /with complexity high requests effort high/i
+  );
+});
+
+test('Corleone lifecycle handoffs reject a Chief packet even with a frozen roster identity', () => {
+  const chiefPacket = createAssignmentPacket();
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'continue',
+      packet: chiefPacket,
+      packetDigest: routing.packetDigestOf(chiefPacket),
+      workerIdentity: allocateCorleoneCallsign({ tier: 'capo', ordinal: 1 })
+    }),
+    /supported execution workRole|supported execution workRole and complexity/i
   );
 });
 
