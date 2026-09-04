@@ -8,9 +8,9 @@
       "fallbackUsed": false,
       "resolved": {
         "kind": "latest-release",
-        "version": "v3.9.0",
-        "ref": "v3.9.0",
-        "commitSha": "0e2b00ce4e8d1789cbcb16a41f7c9510b212b942"
+        "version": "v3.12.1",
+        "ref": "v3.12.1",
+        "commitSha": "f21d94bbcb68e3e1ef321b34a839a950cf62f49c"
       },
       "refreshedAt": "2026-08-08T13:07:20.342Z"
     }

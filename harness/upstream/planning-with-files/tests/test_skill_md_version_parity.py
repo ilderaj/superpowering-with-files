@@ -1,14 +1,15 @@
 """Regression test: parity-locked SKILL.md and plugin manifests must share a version (v2.37.0+).
 
-Background — the repo ships 14 SKILL.md variants plus plugin.json, marketplace.json
+Background: the repo ships 14 SKILL.md variants plus plugin.json, marketplace.json
 and CITATION.cff. Past releases (v2.34.1, v2.36.0, v2.36.2, v2.36.3) repeatedly
 shipped with one or more variants stuck on the old version because the bump was
 done by hand across 19 files. This test fails the build the moment that drifts.
 
 Source of truth = canonical English SKILL.md. Every file in PARITY_FILES below
 must report the same `metadata.version` (or `version` for JSON/CFF). Lagging
-variants (.continue, .gemini, .pi, .kiro) are intentionally on different schemes
-and excluded from the lock.
+SKILL.md variants (.continue, .gemini, .pi, .kiro) are intentionally on
+different schemes and excluded from the lock; the Pi channel's npm package.json
+IS locked (see PARITY_JSON_LIKE).
 
 Use `python scripts/bump-version.py X.Y.Z` to bump the entire parity set in one
 shot, which is what the release protocol expects.
@@ -27,11 +28,11 @@ CANONICAL_SKILL = REPO_ROOT / "skills" / "planning-with-files" / "SKILL.md"
 
 PARITY_SKILL_MD = [
     "skills/planning-with-files/SKILL.md",
-    "skills/planning-with-files-ar/SKILL.md",
-    "skills/planning-with-files-de/SKILL.md",
-    "skills/planning-with-files-es/SKILL.md",
-    "skills/planning-with-files-zh/SKILL.md",
-    "skills/planning-with-files-zht/SKILL.md",
+    "skills/i18n/planning-with-files-ar/SKILL.md",
+    "skills/i18n/planning-with-files-de/SKILL.md",
+    "skills/i18n/planning-with-files-es/SKILL.md",
+    "skills/i18n/planning-with-files-zh/SKILL.md",
+    "skills/i18n/planning-with-files-zht/SKILL.md",
     ".codebuddy/skills/planning-with-files/SKILL.md",
     ".codex/skills/planning-with-files/SKILL.md",
     ".cursor/skills/planning-with-files/SKILL.md",
@@ -47,6 +48,10 @@ PARITY_SKILL_MD = [
 PARITY_JSON_LIKE = [
     ".claude-plugin/plugin.json",
     ".claude-plugin/marketplace.json",
+    ".codex-plugin/plugin.json",
+    # npm package for the Pi channel (issue #213: stayed at a third-party
+    # 1.1.0 for 15 releases because no test locked it to the release version)
+    ".pi/skills/planning-with-files/package.json",
 ]
 
 CITATION_CFF = "CITATION.cff"

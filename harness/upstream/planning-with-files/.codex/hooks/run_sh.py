@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""planning-with-files: Windows front-door for the pure-shell Codex hooks.
+"""planning-with-files: cross-platform front door for shell-backed Codex hooks.
 
 The three shell-only hooks (session-start, user-prompt-submit, pre-compact) are
-invoked directly as ``sh <script>.sh`` on macOS/Linux. On Windows their
-``commandWindows`` routes here:
+routed here by both the POSIX ``command`` and Windows ``commandWindows``
+manifest entries. For example, Windows invokes:
 
     cmd /c .codex\\hooks\\pwf-hook.cmd run_sh.py session-start.sh
 
-We reuse the adapter's shell resolver, which locates the git-for-windows
-``sh.exe`` and puts its coreutils on PATH, then run the same ``.sh`` the unix
-hook runs and print its stdout. Never used on unix. Always exits 0.
+The shared adapter runs the same ``.sh`` producer everywhere. On Windows it
+locates Git for Windows ``sh.exe`` and puts its coreutils on PATH; on POSIX it
+uses ``sh``. This wrapper serializes producer output as event-appropriate Codex
+JSON and always exits 0.
 """
 from __future__ import annotations
 
@@ -24,8 +25,17 @@ def main() -> None:
         return
     script_name = sys.argv[1]
     payload = adapter.load_payload()
-    root = adapter.cwd_from_payload(payload)
-    stdout, _ = adapter.run_shell_script(script_name, root)
+    root = adapter.effective_plan_root(adapter.cwd_from_payload(payload))
+    if root is None:
+        return
+    session_id = adapter.session_id_from_payload(payload)
+    if not adapter.is_session_attached(root, session_id):
+        return
+    stdout, _ = adapter.run_shell_script(
+        script_name,
+        root,
+        session_id=session_id,
+    )
     if not stdout:
         return
 

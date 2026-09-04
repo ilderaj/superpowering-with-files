@@ -11,18 +11,21 @@ Run before tagging a release:
     python scripts/bump-version.py 2.37.0
     python scripts/bump-version.py 2.37.0 --dry-run
 
-Files touched (parity set, 18 entries):
+Maintained targets (20 entries: 19 tracked files plus optional local staging):
     skills/planning-with-files/SKILL.md            (canonical)
-    skills/planning-with-files-{ar,de,es,zh,zht}/SKILL.md
+    skills/i18n/planning-with-files-{ar,de,es,zh,zht}/SKILL.md
     .{codebuddy,codex,cursor,factory,hermes,mastracode,opencode}/skills/planning-with-files/SKILL.md
     .agents/skills/planning-with-files/SKILL.md    (Agent Skills standard layout)
-    clawhub-upload/SKILL.md
+    clawhub-upload/SKILL.md                        (gitignored; bumped when present)
     .claude-plugin/plugin.json
     .claude-plugin/marketplace.json
+    .codex-plugin/plugin.json
     CITATION.cff
+    .pi/skills/planning-with-files/package.json    (npm package "planning-with-files"; publish after tagging)
 
 Files intentionally left behind (see LAGGING_FILES; do not bump automatically):
-    .continue and .gemini (intentionally behind), .pi (npm scheme),
+    .continue and .gemini (intentionally behind),
+    .pi SKILL.md (no version field; the Pi version lives in its package.json above),
     .kiro (-kiro-suffixed scheme)
 """
 from __future__ import annotations
@@ -40,11 +43,11 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 # kind: "skill_md", "plugin_json", "marketplace_json", "citation_cff"
 PARITY_FILES = [
     ("skills/planning-with-files/SKILL.md", "skill_md"),
-    ("skills/planning-with-files-ar/SKILL.md", "skill_md"),
-    ("skills/planning-with-files-de/SKILL.md", "skill_md"),
-    ("skills/planning-with-files-es/SKILL.md", "skill_md"),
-    ("skills/planning-with-files-zh/SKILL.md", "skill_md"),
-    ("skills/planning-with-files-zht/SKILL.md", "skill_md"),
+    ("skills/i18n/planning-with-files-ar/SKILL.md", "skill_md"),
+    ("skills/i18n/planning-with-files-de/SKILL.md", "skill_md"),
+    ("skills/i18n/planning-with-files-es/SKILL.md", "skill_md"),
+    ("skills/i18n/planning-with-files-zh/SKILL.md", "skill_md"),
+    ("skills/i18n/planning-with-files-zht/SKILL.md", "skill_md"),
     (".codebuddy/skills/planning-with-files/SKILL.md", "skill_md"),
     (".codex/skills/planning-with-files/SKILL.md", "skill_md"),
     (".cursor/skills/planning-with-files/SKILL.md", "skill_md"),
@@ -56,14 +59,29 @@ PARITY_FILES = [
     ("clawhub-upload/SKILL.md", "skill_md"),
     (".claude-plugin/plugin.json", "plugin_json"),
     (".claude-plugin/marketplace.json", "marketplace_json"),
+    (".codex-plugin/plugin.json", "plugin_json"),
     ("CITATION.cff", "citation_cff"),
+    # npm package for the Pi channel (issue #213: it sat at a third-party 1.1.0
+    # for 15 releases because nothing bumped it). Same single-"version" JSON
+    # shape as plugin.json, so the handler is shared. Remember: bumping only
+    # changes the file; `npm publish` from .pi/skills/planning-with-files/ is a
+    # manual per-release step, like the ClawHub upload.
+    (".pi/skills/planning-with-files/package.json", "plugin_json"),
 ]
+
+# Publish staging that remains parity-locked whenever it exists, but is
+# intentionally absent from clean clones because the directory is gitignored.
+# Keep these paths in PARITY_FILES so maintainer worktrees still bump and
+# validate them as part of the canonical 20-entry release set.
+OPTIONAL_PARITY_FILES = {
+    "clawhub-upload/SKILL.md": "optional gitignored ClawHub publish staging",
+}
 
 # Files left behind on purpose. Documented to make the omission explicit.
 LAGGING_FILES = [
     ".continue/skills/planning-with-files/SKILL.md",
     ".gemini/skills/planning-with-files/SKILL.md",
-    ".pi/skills/planning-with-files/SKILL.md",       # npm scheme (1.0.x)
+    ".pi/skills/planning-with-files/SKILL.md",       # no version field; npm version lives in its package.json (parity set)
     ".kiro/skills/planning-with-files/SKILL.md",     # kiro scheme (2.32.0-kiro)
 ]
 
@@ -150,10 +168,16 @@ def main(argv=None) -> int:
     failures: list[str] = []
     changed = 0
     skipped = 0
+    optional_missing = 0
 
     for rel, kind in PARITY_FILES:
         path = REPO_ROOT / rel
         if not path.exists():
+            optional_reason = OPTIONAL_PARITY_FILES.get(rel)
+            if optional_reason:
+                optional_missing += 1
+                print(f"  OPTIONAL:  {rel}  (missing; {optional_reason})")
+                continue
             failures.append(f"missing: {rel}")
             print(f"  MISSING:   {rel}")
             continue
@@ -171,6 +195,7 @@ def main(argv=None) -> int:
             print(f"  bumped:    {rel}  {old} -> {new}")
 
     print(f"\nChanged: {changed}  Unchanged: {skipped}  Errors: {len(failures)}")
+    print(f"Optional gitignored publish staging absent: {optional_missing}")
     print(f"Lagging (not auto-bumped): {len(LAGGING_FILES)}")
     for rel in LAGGING_FILES:
         print(f"  -> {rel}")

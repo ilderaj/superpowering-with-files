@@ -1,11 +1,13 @@
 #!/bin/bash
 # planning-with-files: Session start hook for GitHub Copilot
-# When task_plan.md exists: runs session-catchup or reads plan header.
+# When task_plan.md exists: uses zero-history catchup, then reads the plan header.
 # When task_plan.md doesn't exist: injects SKILL.md so Copilot knows the planning workflow.
 # Always exits 0 — outputs JSON to stdout.
 
 # Read stdin (required — Copilot pipes JSON to stdin)
 INPUT=$(cat)
+
+[ "${PLANNING_DISABLED:-}" = "1" ] && { echo '{}'; exit 0; }
 
 PLAN_FILE="task_plan.md"
 SKILL_DIR=".github/skills/planning-with-files"
@@ -16,10 +18,10 @@ done
 [ -z "$PYTHON" ] && PYTHON=$(command -v python3 2>/dev/null || command -v python 2>/dev/null)
 
 if [ -f "$PLAN_FILE" ]; then
-    # Plan exists — try session catchup, fall back to reading plan header
+    # Plan exists: keep catchup zero-history, then read the plan header.
     CATCHUP=""
     if [ -n "$PYTHON" ] && [ -f "$SKILL_DIR/scripts/session-catchup.py" ]; then
-        CATCHUP=$($PYTHON "$SKILL_DIR/scripts/session-catchup.py" "$(pwd)" 2>/dev/null | head -100)
+        CATCHUP=$($PYTHON "$SKILL_DIR/scripts/session-catchup.py" --no-history "$(pwd)" 2>/dev/null | head -100)
     fi
 
     if [ -n "$CATCHUP" ]; then
@@ -43,5 +45,5 @@ fi
 # Escape context for JSON
 ESCAPED=$(echo "$CONTEXT" | $PYTHON -c "import sys,json; print(json.dumps(sys.stdin.read(), ensure_ascii=False))" 2>/dev/null || echo "\"\"")
 
-echo "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":$ESCAPED}}"
+printf '%s\n' "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":$ESCAPED}}"
 exit 0
