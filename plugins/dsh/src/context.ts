@@ -79,6 +79,7 @@ export interface SwfDshContext extends Context {
 export function subagentsServiceOf(ctx: Context): SubagentRuntime | undefined {
   const candidate = (ctx as { subagents?: SubagentRuntime }).subagents;
   return candidate && typeof candidate.start === 'function' && typeof candidate.list === 'function'
+    && typeof candidate.getProvider === 'function'
     ? candidate
     : undefined;
 }
