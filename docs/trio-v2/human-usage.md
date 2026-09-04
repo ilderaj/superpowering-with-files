@@ -58,6 +58,8 @@ Corleone 名册、DeepSeek Flash、请求 effort 与无 fallback 是**请求/静
 | **涉及人类 gate** | 明说停靠点:"停在 draft PR 等我看"/"不要 push"/"发布前必须我确认" | 停在 gate 前(默认也永远保留你的确认权) |
 | **manual_pending 后** | 别重说需求,看 blocker/resumeCondition 三选一(见下) | 按对应处置继续 |
 
+**Direct tracked 与 Chief-governed 的区别**：tracked direct 车道由执行者自证技术验证，不需要独立的 Chief 验收；只有可见/委派 worker 作为主执行、或所选治理车道明确要求时，才需要 Chief 独立验收。strict 可见 worker 规则不变：可见 worker 不可用时只能 `manual_pending`，绝不降级为 native 或 Chief inline 执行；worker 结果一律先当 candidate。
+
 ## 需求输入五要素
 
 1. **目标**: 要达成什么。
@@ -86,6 +88,8 @@ Corleone 名册、DeepSeek Flash、请求 effort 与无 fallback 是**请求/静
 ## 人类 gate 清单(任何时候都保留)
 
 merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR merge gate)、发送消息/邮件/对外回复、凭据/token/密钥处理、破坏性/不可逆操作(删除、格式化、清空、迁移)。路由、角色配置或本地路由契约都不构成对这些动作的授权。
+
+跨越 commit / push / PR / candidate acceptance / close 前，先准备 evidence packet 并运行只读 `npm run verify:pr-quality -- <packet.json>`；它只输出 `accepted` 或带结构化错误的 `rejected` JSON，不执行 Git、PR、review 或后台动作。通过 gate 不等于获得上述人类 gate 的授权。
 
 ## 并行执行与 worktree-preflight(2026-08-09)
 

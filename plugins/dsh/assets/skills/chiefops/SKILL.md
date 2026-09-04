@@ -56,6 +56,8 @@ Check in after each completed slice and immediately on stop. Record concrete evi
 
 Worker completion is only a candidate. Chief acceptance and Trio writeback are required before durable completion. Do not self-approve content that carries a human gate, and record the exact resume condition when you stop.
 
+The acceptance gate applies when ChiefOps governs a delegated or Chief lane. It is never a mandatory runner for direct tracked work; a direct executor that establishes its own technical verification does not need ChiefOps check-in. ChiefOps remains governance-only and is not a runner, scheduler, registry, or fourth task-state surface.
+
 ## Permission Ordering
 
 Plan the exact permission scope before creating or spawning any worker: the assignment packet and its allowed paths are settled before any visible worker exists. Apply least privilege with task-specific writable roots that never exceed the frozen slice. Full Access is an explicit exception, never a default or an escalation path. Recheck the frozen scope before any escalation or review: an out-of-scope operation is blocked before escalation eligibility. Approval only resolves Host restriction and never expands allowed paths. Generated or materialized surfaces are never direct-written through escalation; change source-owned policy and projection proof instead.

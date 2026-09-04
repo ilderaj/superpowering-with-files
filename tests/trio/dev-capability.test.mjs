@@ -532,3 +532,135 @@ test('dev review and verification block incomplete evidence', async () => {
     assert.ok(normalized.includes(phrase), `Missing review safeguard: ${phrase}`);
   }
 });
+
+function assertDevMethodSelectionContract(markdown) {
+  const { body } = parseHeader(markdown);
+  const selection = sectionBody(body, 'Method Selection').toLowerCase();
+
+  for (const method of [
+    'domain-modeling',
+    'codebase-design',
+    'diagnosing-bugs',
+    'code-review'
+  ]) {
+    assert.ok(selection.includes(method), 'Missing method: ' + method);
+  }
+  for (const trigger of [
+    'new, renamed, overloaded, or contradictory',
+    'materially expanded interface',
+    'reported broken, throwing, failing, or slow behavior',
+    'fixed non-empty diff'
+  ]) {
+    assert.ok(selection.includes(trigger), 'Missing method trigger: ' + trigger);
+  }
+  for (const evidence of [
+    'existing terminology',
+    'module, interface, seam, and depth',
+    'falsifiable hypotheses',
+    'standards and spec'
+  ]) {
+    assert.ok(selection.includes(evidence), 'Missing method evidence: ' + evidence);
+  }
+  for (const safeguard of [
+    'context.md',
+    'adr',
+    'no speculative patch',
+    'human acceptance'
+  ]) {
+    assert.ok(selection.includes(safeguard), 'Missing method safeguard: ' + safeguard);
+  }
+  for (const priority of [
+    'route and safety first',
+    'domain modeling before design',
+    'diagnosis before',
+    'tdd inside',
+    'review after the fixed diff'
+  ]) {
+    assert.ok(selection.includes(priority), 'Missing method priority: ' + priority);
+  }
+
+  const gates = sectionBody(body, 'Integration Gates').toLowerCase();
+  for (const protocol of [
+    'change-quality-gate',
+    'pr-feedback-loop'
+  ]) {
+    assert.ok(gates.includes(protocol), 'Missing protocol: ' + protocol);
+  }
+  for (const requirement of [
+    'bound base, spec, and head',
+    'integration boundary',
+    'risk-relevant test matrix',
+    'real red to green',
+    'fresh verification',
+    'git diff --check',
+    'fixed-point standards and spec review',
+    'five-minute heartbeat',
+    'repair_required',
+    'awaiting_human',
+    'eligible_for_native_auto_merge',
+    'human approved',
+    'quiet interval'
+  ]) {
+    assert.ok(gates.includes(requirement), 'Missing gate requirement: ' + requirement);
+  }
+ for (const nonEffect of [
+   'never implies',
+   'new capability family',
+   'mandatory runner',
+   'local hook alone proved quality'
+ ]) {
+   assert.ok(gates.includes(nonEffect), 'Missing gate non-effect: ' + nonEffect);
+ }
+  assert.ok(
+    gates.includes('never create a new capability family'),
+    'Missing gate guard: gates must never create a capability family.'
+  );
+
+ const normalized = body.toLowerCase();
+  for (const phrase of [
+    'optional acceleration',
+    'not a new projected inventory entry',
+    'implicit dispatch permission',
+    'claim of authenticated host execution',
+    'migrate in green batches'
+  ]) {
+    assert.ok(normalized.includes(phrase), 'Missing method-routing behavior: ' + phrase);
+  }
+}
+
+test('dev capability exposes the automatic four-method selection matrix and integration protocols', async () => {
+  assertDevMethodSelectionContract(await readFile(devSkillPath, 'utf8'));
+});
+
+test('dev method validator rejects a Host skill that grants dispatch authority', async () => {
+  const markdown = await readFile(devSkillPath, 'utf8');
+  const mutated = replaceExactlyOnce(
+   markdown,
+    'a matching installed Host skill is optional acceleration under the same Trio scope and not a new projected inventory entry, an implicit dispatch permission, a model choice, or a claim of authenticated Host execution.',
+   'a matching installed Host skill grants dispatch permission, model authority, and a new projected inventory entry.'
+ );
+
+  assert.throws(() => assertDevMethodSelectionContract(mutated));
+});
+
+test('dev validator rejects integration gates that create a capability family or runner', async () => {
+  const markdown = await readFile(devSkillPath, 'utf8');
+  const mutated = replaceExactlyOnce(
+    markdown,
+    'They compose the methods above and never create a new capability family, a mandatory runner, a background worker, task state, or permission.',
+    'They compose the methods above and create a new capability family and a mandatory runner for every task.'
+  );
+
+  assert.throws(() => assertDevMethodSelectionContract(mutated));
+});
+
+test('dev validator rejects unbound PR feedback monitoring', async () => {
+  const markdown = await readFile(devSkillPath, 'utf8');
+  const mutated = replaceExactlyOnce(
+    markdown,
+    'A user explicitly binds one open PR, its Trio, a five-minute heartbeat, a severity policy, and the allowed external actions.',
+    'Any open PR triggers automatic five-minute monitoring even when it is not bound to a Trio or a severity policy.'
+  );
+
+  assert.throws(() => assertDevMethodSelectionContract(mutated));
+});
