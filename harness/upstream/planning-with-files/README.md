@@ -5,11 +5,16 @@
 <h1 align="center">Planning with Files</h1>
 
 <p align="center">
-  <strong>Your agent's context window dies. The plan does not.</strong>
+  <strong>The planning skill your agent cannot ignore.</strong><br>
+  Not a prompt it might follow. A hook that fires every turn, a plan on disk that survives <code>/clear</code>, and 3 out of 3 blind A/B wins to show it works.
 </p>
 
 <p align="center">
-Persistent file-based planning for AI coding agents and long-running agent tasks: the skill keeps <code>task_plan.md</code>, <code>findings.md</code>, and <code>progress.md</code> on disk and re-injects them every turn, so the plan survives context loss, <code>/clear</code>, crashes, and compaction. Manus-style working memory on disk, with an opt-in completion gate. Installs across 60+ agents via the Agent Skills standard.
+  <em>Your agent's context window dies. The plan does not.</em>
+</p>
+
+<p align="center">
+Persistent file-based planning for AI coding agents and long-running agent tasks: the skill keeps <code>task_plan.md</code>, <code>findings.md</code>, and <code>progress.md</code> on disk. Activated lifecycle hooks inject selected project planning context, so the plan survives context loss, <code>/clear</code>, crashes, and compaction. Automatic recovery reads project files only. Reading same-project local agent session records for aggregate counts or bounded replay requires an explicit catchup mode. Installs across 60+ agents via the Agent Skills standard.
 </p>
 
 <p align="center">
@@ -26,13 +31,15 @@ Persistent file-based planning for AI coding agents and long-running agent tasks
 </p>
 
 <p align="center">
-  <a href="#before-and-after-clear">Before/After</a> ·
-  <a href="#the-solution-3-file-pattern">The 3 Files</a> ·
-  <a href="#quick-install">Install</a> ·
-  <a href="#benchmark-results">Benchmarks</a> ·
-  <a href="#works-across-18-platforms">Platforms</a> ·
-  <a href="#faq">FAQ</a> ·
-  <a href="docs/installation.md">Full install guide</a>
+  <a href="#before-and-after-clear"><strong>See it survive /clear</strong></a> ·
+  <a href="#the-solution-3-file-pattern">The 3 files</a> ·
+  <a href="#why-this-skill">Why it works</a> ·
+  <a href="#benchmark-results">The numbers</a> ·
+  <a href="#quick-install"><strong>Install</strong></a>
+</p>
+
+<p align="center">
+  <sub>Everything technical is <a href="#reference">further down</a> · <a href="docs/installation.md">Full install guide</a></sub>
 </p>
 
 ---
@@ -41,53 +48,27 @@ Persistent file-based planning for AI coding agents and long-running agent tasks
 
 Every coding agent loses its working memory when the context window resets. The plan does not have to die with it.
 
-<table>
-<tr>
-<td width="50%" valign="top">
+### Without planning files
 
-**Without planning files**
-
-> **you:** continue
->
-> **agent:** I don't have context from an earlier session. Can you describe the task and where you left off?
+<img src="media/terminal-without-plan.svg" alt="Terminal after /clear without planning files: the user types continue, the agent replies that it has no context from an earlier session and asks the user to describe the task and where they left off" width="560">
 
 The agent re-reads the repo, asks you to restate the goal, and rediscovers work it already finished.
 
-</td>
-<td width="50%" valign="top">
+---
 
-**With planning-with-files**
+### With planning-with-files
 
-```text
-===BEGIN PLAN DATA===
-# Task Plan: auth middleware refactor
-### Phase 2: Patch token expiry check
-- [x] Reproduce the bug
-- [x] Fix expiry comparison
-- **Status:** complete
-### Phase 3: Regression tests
-- [ ] Add expiry edge-case tests
-- **Status:** in_progress
-===END PLAN DATA===
-```
+<img src="media/terminal-with-plan.svg" alt="Terminal after /clear with planning-with-files: the hook injects a plan data block showing Phase 2 complete and Phase 3 in progress, and the agent resumes Phase 3 by adding the expiry edge-case tests" width="560">
 
-> **agent:** Resuming Phase 3: adding the expiry edge-case tests.
+The transcript is illustrative; the `===BEGIN PLAN DATA===` block is the skill's real injection format, written into context by the `UserPromptSubmit` hook from `task_plan.md` on disk. In the project's internal recovery benchmark, a fresh session with the files on disk resumed in 5.0 turns on average against 13.3 for a raw agent (internal v1, author-run; method and limits in [docs/evals.md](docs/evals.md)). That benchmark used the earlier default transcript-catchup behavior. Current automatic recovery uses project files only, so the figure is historical evidence rather than a fresh measurement of the current default.
 
-</td>
-</tr>
-</table>
-
-The transcript is illustrative; the `===BEGIN PLAN DATA===` block is the skill's real injection format, written into context by the `UserPromptSubmit` hook from `task_plan.md` on disk. In the project's internal recovery benchmark, a fresh session with the files on disk resumed in 5.0 turns on average against 13.3 for a raw agent (internal v1, author-run; method and limits in [docs/evals.md](docs/evals.md)).
-
-```
-┌──────────────────────────────────────────────┐
-│  PLAN FILES                               3  │
-│  AGENTS COVERED                         60+  │
-│  PASS RATE (with skill)               96.7%  │
-│  TEST SUITE                       411 green  │
-│  SURVIVES /clear                        yes  │
-└──────────────────────────────────────────────┘
-```
+| At a glance | |
+|---|---:|
+| Plan files | **3** |
+| Agents covered | **60+** |
+| Pass rate (with skill) | **96.7%** |
+| Test suite | **417 green** |
+| Survives `/clear` | **yes** |
 
 ## The Problem
 
@@ -128,45 +109,55 @@ your-project/
 
 Parallel tasks get isolated directories instead: `.planning/YYYY-MM-DD-slug/` with the same three files, selected via `.active_plan` (v2.36.0+). Plain markdown, gitignored by default, no runtime state anywhere else.
 
-## How It Works
+## Why This Skill?
 
-The agent stops at the first rung that applies:
+On December 29, 2025, [Meta acquired Manus for $2 billion](https://techcrunch.com/2025/12/29/meta-just-bought-manus-an-ai-startup-everyone-has-been-talking-about/). In just 8 months, Manus went from launch to $100M+ revenue. Their secret? **Context engineering.**
 
-```
-1. Task needs 3+ steps or 5+ tool calls?  → create the three files first
-2. Learned something?                     → append it to findings.md
-3. Did something?                         → log it in progress.md
-4. Phase done?                            → check it off in task_plan.md
-5. Context died (/clear, crash)?          → session catchup re-reads all three
-6. Every phase complete?                  → only then does the Stop gate release (gated mode)
-```
+> "Markdown is my 'working memory' on disk. Since I process information iteratively and my active context has limits, Markdown files serve as scratch pads for notes, checkpoints for progress, building blocks for final deliverables."
+> — Manus AI
 
-Hooks make steps 2 to 6 mechanical rather than optional: 5 lifecycle hooks on Claude Code, 7 on Codex, 8 on Pi re-inject the plan each turn, remind after writes, and check completion before stopping.
+This skill packages that exact pattern for your coding agent.
 
-```mermaid
-flowchart LR
-    A["agent works"] -->|"writes decisions, findings, errors"| F["task_plan.md<br/>findings.md<br/>progress.md"]
-    F -->|"hooks re-inject the plan<br/>at the start of each turn"| A
-    K["/clear · crash · compaction"] -.->|"wipes the context window"| A
-    F ==>|"session catchup re-reads the files"| R["fresh session resumes<br/>at the current phase"]
-```
+### The Manus Principles
 
-### Session Recovery
+| Principle | Implementation |
+|-----------|----------------|
+| Filesystem as memory | Store in files, not context |
+| Plan recitation | Re-read plan before decisions (hooks) |
+| Error persistence | Log failures in plan file |
+| Goal tracking | Checkboxes show progress |
+| Completion verification | Stop hook checks all phases |
 
-When your context fills up and you run `/clear`, the skill recovers the previous session automatically:
+## Benchmark Results
 
-1. Checks the active IDE's session store for previous session data (`~/.claude/projects/` for Claude Code, `~/.codex/sessions/` for Codex)
-2. Finds when the planning files were last updated
-3. Extracts the conversation that happened after (potentially lost context)
-4. Shows a catchup report so you can sync
+> **Methodology note:** the 96.7% figure comes from the v2.21.0 evaluation run on `claude-sonnet-4-6` (2026-03-06). It measures file-pattern fidelity (does the agent create and maintain the 3-file structure), not goal-drift over long autonomous runs. Newer models and the autonomous-mode work are not yet covered by this number. Full methodology, dataset, and assertion list: [docs/evals.md](docs/evals.md).
 
-**Pro tip:** disable auto-compact to maximize context before clearing:
+Evaluated with Anthropic's [skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) framework: skill v2.21.0, model `claude-sonnet-4-6`, 2026-03-06. 10 parallel subagents, 5 task types, 30 objectively verifiable assertions, 3 blind A/B comparisons.
 
-```json
-{ "autoCompact": false }
-```
+<p align="center">
+  <img src="media/benchmark-skill-vs-baseline.svg" width="860" alt="Eval results, with skill vs without: assertions passed 29 of 30 vs 2 of 30, 3-file pattern followed 5 of 5 vs 0 of 5, blind A/B wins 3 of 3 vs 0 of 3, average rubric score 10.0 vs 6.8">
+</p>
 
-Maintainer depth (hook architecture, dispatcher layout, parity tooling) lives in [AGENTS.md](AGENTS.md) and [docs/](docs/).
+| Test | with_skill | without_skill |
+|------|-----------|---------------|
+| Pass rate (30 assertions) | **96.7%** (29/30) | 6.7% (2/30) |
+| 3-file pattern followed | 5/5 evals | 0/5 evals |
+| Blind A/B wins | **3/3 (100%)** | 0/3 |
+| Avg rubric score | **10.0/10** | 6.8/10 |
+
+### Recovery after a context wipe
+
+> **Internal benchmark, v1 (2026-07-06).** Author-run against v3.4.0, harness-authored tasks, deterministic grading, no LLM grades anything. Treat it as the project's own measurement, not an independent comparison. Full method, arms, disclosed limits, and grader validation: [docs/evals.md](docs/evals.md#test-5-competitive-benchmark-v1-seven-planning-methods-head-to-head-2026-07-06-internal).
+
+Protocol: the session is hard-stopped at roughly half done, and a fresh session is told only "Continue the work in this directory." Every graded run across every arm ended pytest-green (77/77), so the difference is re-orientation cost, not correctness.
+
+<p align="center">
+  <img src="media/recovery-turns.svg" width="860" alt="Turns to resume after a context wipe, internal benchmark v1: 5.0 with planning-with-files, 13.3 for a raw agent with no planning method">
+</p>
+
+**With the planning files on disk, a resume took 5.0 turns on average; a raw agent took 13.3.** Planning-file recovery plus hook injection put phase state in front of the model before its first tool call, and the same run found no correctness penalty anywhere. This internal v1 used the earlier default transcript catchup; current automatic recovery is file-only and has not been re-benchmarked under the same protocol. An animated summary lives at [docs/benchmark/index.html](docs/benchmark/index.html) ([rendered view](https://htmlpreview.github.io/?https://github.com/OthmanAdi/planning-with-files/blob/master/docs/benchmark/index.html)).
+
+[Full methodology and results](docs/evals.md) · [Technical write-up](docs/article.md)
 
 ## Quick Install
 
@@ -183,6 +174,20 @@ Maintainer depth (hook architecture, dispatcher layout, parity tooling) lives in
 npx skills add OthmanAdi/planning-with-files --skill planning-with-files -g
 ```
 
+**npm**, to pin an exact version into a project or vendor it:
+
+```bash
+npm install planning-with-files
+```
+
+The package carries `SKILL.md`, `scripts/` and `templates/`, so this is the route for locking a version into a repo's dependencies or copying the skill in yourself. It does not register hooks on its own.
+
+**Pi Coding Agent**, same npm package, wired up for you (skill, extension, status bar):
+
+```bash
+pi install npm:planning-with-files
+```
+
 Under a minute. Safe to re-run. Trigger it by typing `/plan` (plugin) or asking the agent to "plan this task"; the skill also self-triggers on multi-step tasks.
 
 What each route actually ships:
@@ -191,6 +196,8 @@ What each route actually ships:
 |---|---|---|---|
 | Claude Code plugin | yes | **yes** | **yes** |
 | `npx skills add` | yes | no | frontmatter hooks, see note |
+| `npm install` | yes, under `node_modules/` | no | no, copy the skill in yourself |
+| `pi install npm:` | yes | **yes**, Pi commands | **yes**, via the Pi extension |
 | ClawHub / manual copy | yes | no | frontmatter hooks, see note |
 
 Skill-route installs can end up silently hook-less (project trust not accepted, or frontmatter hooks not registering on project-level installs). The hooks are the differentiating mechanism, so if they matter to you, use the plugin route, then verify with `/plan-doctor`. Full matrix and the two silent killers: [docs/installation.md](docs/installation.md#what-each-install-route-actually-ships).
@@ -225,6 +232,12 @@ npx skills add OthmanAdi/planning-with-files --skill planning-with-files-zh -g
 npx skills add OthmanAdi/planning-with-files --skill planning-with-files-zht -g
 ```
 
+These are real translations, not an English body with a translated description: the SKILL.md prose, the templates, and the user-facing output of `check-complete`, `init-session` and `session-catchup` are all localized. The status tokens stay literal English (`**Status:** complete`) on purpose, because `check-complete.sh` matches them with `grep -F`, so translating them would disable the completion gate.
+
+Since v3.10.0 the variants also ship the full script surface: attestation, the Stop gate, the ledger, phase status and plan-doctor used to be canonical-only, which quietly made every non-English install a subset install. Full details, including what changed on the plugin route in v3.11.0, are in [docs/languages.md](docs/languages.md).
+
+They live under `skills/i18n/`, one directory deeper than the canonical skill. The install commands above are unchanged, because `npx skills add` resolves `--skill` by skill name across the whole repository. The Claude Code plugin scan reads `skills/*/SKILL.md` without recursing, so the plugin route registers the canonical skill alone and no longer carries five extra descriptions in every session's system prompt. On that route the `/plan-ar`, `/plan-de`, `/plan-es`, `/plan-zh` and `/plan-zht` commands read the translated skill from disk instead of invoking it by name.
+
 </details>
 
 <details>
@@ -246,6 +259,66 @@ Copy-Item -Recurse -Path "$env:USERPROFILE\.claude\plugins\cache\planning-with-f
 
 All install methods: [docs/installation.md](docs/installation.md).
 
+
+---
+
+<a id="reference"></a>
+
+## Reference
+
+Everything below is the technical half: how the hooks fire, every command, every supported platform, and the release history.
+
+| | |
+|---|---|
+| [How It Works](#how-it-works) | The hook loop, injection, and session recovery |
+| [Commands](#commands) | All 13 slash commands |
+| [Works across 18+ platforms](#works-across-18-platforms) | Per-IDE setup and discovery paths |
+| [v3 Long-Running Agent Features](#v3-long-running-agent-features) | Modes, the completion gate, attestation, env vars |
+| [Key Rules](#key-rules) · [When to Use](#when-to-use) | The four rules, and when the pattern pays off |
+| [File Structure](#file-structure) | What lands in your project, and the repository layout |
+| [FAQ](#faq) | Context rot, plan mode, agent memory tools |
+| [Releases](#releases) · [Community](#community) | Version history and community forks |
+| [Documentation](#documentation) | Every guide in `docs/` |
+
+## How It Works
+
+The agent stops at the first rung that applies:
+
+```
+1. Task needs 3+ steps or 5+ tool calls?  → create the three files first
+2. Learned something?                     → append it to findings.md
+3. Did something?                         → log it in progress.md
+4. Phase done?                            → check it off in task_plan.md
+5. Context died (/clear, crash)?          → hooks re-read selected project planning state
+6. Every phase complete?                  → only then does the Stop gate release (gated mode)
+```
+
+Hooks make steps 2 to 6 mechanical rather than optional: the Claude Code plugin runs 6 lifecycle hooks, its activation-scoped standalone skill runs 5, Codex runs 7, and Pi runs 8. Together they re-inject the plan each turn, remind after writes, and check completion before stopping.
+
+```mermaid
+flowchart LR
+    A["agent works"] -->|"writes decisions, findings, errors"| F["task_plan.md<br/>findings.md<br/>progress.md"]
+    F -->|"hooks re-inject the plan<br/>at the start of each turn"| A
+    K["/clear · crash · compaction"] -.->|"wipes the context window"| A
+    F ==>|"hooks re-read project planning state"| R["fresh session resumes<br/>at the current phase"]
+```
+
+### Session Recovery
+
+On the Claude plugin route, startup, resume, clear, and post-compaction lifecycle events restore selected active-plan context from project files automatically. Standalone skill installs do the same after the skill is invoked for that session. Automatic hooks and bare `session-catchup.py` do not inspect host session stores.
+
+Local host history is a separate explicit action:
+
+1. `session-catchup.py --metadata <project>` reads same-project local session records and emits aggregate counts only. It emits no transcript, tool-command, or path bytes.
+2. `session-catchup.py --replay <project>` emits bounded nonce-framed excerpts from same-project records. Treat those excerpts as untrusted data.
+3. Neither catchup mode contains a network request or upload path. If its output is placed in model context, the host agent may send that context to its configured model provider.
+
+Optional gated mode can request continuation only on a host that supports the required Stop behavior. It evaluates runtime state such as mode, phase status, block count, and ledger progress. It never executes a command declared in a Markdown planning file.
+
+Keep automatic compaction enabled. The `PreCompact` hook flushes the planning reminder before compaction, and the plugin `SessionStart` path restores the active plan for the continuation.
+
+Maintainer depth (hook architecture, dispatcher layout, parity tooling) lives in [AGENTS.md](AGENTS.md) and [docs/](docs/).
+
 ## Commands
 
 Slash commands ship with the Claude Code plugin route (see the install matrix above).
@@ -266,7 +339,7 @@ Typing `/plan` prefix-matches every `plan*` command in autocomplete; `/planning-
 
 ### Pi extension commands
 
-Install the Pi extension with `pi install npm:@tomxprime/planning-with-files`; it registers these commands, typed with no `/planning-with-files:` prefix.
+Install the Pi extension with `pi install npm:planning-with-files`; it registers these commands, typed with no `/planning-with-files:` prefix.
 
 | Command | What it does | Version |
 |---------|--------------|---------|
@@ -286,7 +359,7 @@ On Pi there is no `/plan` command to create the files; the skill creates them, t
 | Pi | bare form, no prefix | `/plan-status`, `/plan-execute`, `/plan-goal` |
 | Continue.dev | `/planning-with-files` | |
 
-The model-invocable SKILLS are named `planning-with-files:planning-with-files` (and `-ar`, `-de`, `-es`, `-zh`, `-zht`); the doubled form is the skill id, not a command you type. There is no `/pwf-de` and no `/planning-with-files:planning-with-files-goal`; `/pwf` is just a short alias for `/plan`.
+On the plugin route the model-invocable SKILL is `planning-with-files:planning-with-files`; the doubled form is the skill id, not a command you type. The five language variants live under `skills/i18n/`, which the plugin scan does not reach, so there is no `planning-with-files:planning-with-files-de` to invoke by name — reach a translation through its `/plan-ar`, `/plan-de`, `/plan-es`, `/plan-zh` or `/plan-zht` command, or install it as its own skill with `npx skills add OthmanAdi/planning-with-files --skill planning-with-files-de -g`, which registers it under its own name. There is no `/pwf-de` and no `/planning-with-files:planning-with-files-goal`; `/pwf` is just a short alias for `/plan`.
 
 ## Works across 18+ platforms
 
@@ -345,56 +418,6 @@ One skill, three integration tiers. Know what your agent gets before you install
 
 </details>
 
-## Why This Skill?
-
-On December 29, 2025, [Meta acquired Manus for $2 billion](https://techcrunch.com/2025/12/29/meta-just-bought-manus-an-ai-startup-everyone-has-been-talking-about/). In just 8 months, Manus went from launch to $100M+ revenue. Their secret? **Context engineering.**
-
-> "Markdown is my 'working memory' on disk. Since I process information iteratively and my active context has limits, Markdown files serve as scratch pads for notes, checkpoints for progress, building blocks for final deliverables."
-> — Manus AI
-
-This skill packages that exact pattern for your coding agent.
-
-### The Manus Principles
-
-| Principle | Implementation |
-|-----------|----------------|
-| Filesystem as memory | Store in files, not context |
-| Attention manipulation | Re-read plan before decisions (hooks) |
-| Error persistence | Log failures in plan file |
-| Goal tracking | Checkboxes show progress |
-| Completion verification | Stop hook checks all phases |
-
-## Benchmark Results
-
-> **Methodology note:** the 96.7% figure comes from the v2.21.0 evaluation run on `claude-sonnet-4-6` (2026-03-06). It measures file-pattern fidelity (does the agent create and maintain the 3-file structure), not goal-drift over long autonomous runs. Newer models and the autonomous-mode work are not yet covered by this number. Full methodology, dataset, and assertion list: [docs/evals.md](docs/evals.md).
-
-Evaluated with Anthropic's [skill-creator](https://github.com/anthropics/skills/tree/main/skills/skill-creator) framework: skill v2.21.0, model `claude-sonnet-4-6`, 2026-03-06. 10 parallel subagents, 5 task types, 30 objectively verifiable assertions, 3 blind A/B comparisons.
-
-<p align="center">
-  <img src="media/benchmark-skill-vs-baseline.svg" width="860" alt="Eval results, with skill vs without: assertions passed 29 of 30 vs 2 of 30, 3-file pattern followed 5 of 5 vs 0 of 5, blind A/B wins 3 of 3 vs 0 of 3, average rubric score 10.0 vs 6.8">
-</p>
-
-| Test | with_skill | without_skill |
-|------|-----------|---------------|
-| Pass rate (30 assertions) | **96.7%** (29/30) | 6.7% (2/30) |
-| 3-file pattern followed | 5/5 evals | 0/5 evals |
-| Blind A/B wins | **3/3 (100%)** | 0/3 |
-| Avg rubric score | **10.0/10** | 6.8/10 |
-
-### Recovery after a context wipe
-
-> **Internal benchmark, v1 (2026-07-06).** Author-run against v3.4.0, harness-authored tasks, deterministic grading, no LLM grades anything. Treat it as the project's own measurement, not an independent comparison. Full method, arms, disclosed limits, and grader validation: [docs/evals.md](docs/evals.md#test-5-competitive-benchmark-v1-seven-planning-methods-head-to-head-2026-07-06-internal).
-
-Protocol: the session is hard-stopped at roughly half done, and a fresh session is told only "Continue the work in this directory." Every graded run across every arm ended pytest-green (77/77), so the difference is re-orientation cost, not correctness.
-
-<p align="center">
-  <img src="media/recovery-turns.svg" width="860" alt="Turns to resume after a context wipe, internal benchmark v1: 5.0 with planning-with-files, 13.3 for a raw agent with no planning method">
-</p>
-
-**With the planning files on disk, a resume took 5.0 turns on average; a raw agent took 13.3.** Session catchup plus hook injection put phase state in front of the model before its first tool call, and the same run found no correctness penalty anywhere. An animated summary lives at [docs/benchmark/index.html](docs/benchmark/index.html) ([rendered view](https://htmlpreview.github.io/?https://github.com/OthmanAdi/planning-with-files/blob/master/docs/benchmark/index.html)).
-
-[Full methodology and results](docs/evals.md) · [Technical write-up](docs/article.md)
-
 ## v3 Long-Running Agent Features
 
 The v3 line adds features aimed at long-running agentic runs. Each one is listed with the command or flag that turns it on. With no mode marker set, the hooks produce the same output as v2.43, so nothing changes for existing setups.
@@ -403,12 +426,12 @@ The v3 line adds features aimed at long-running agentic runs. Each one is listed
 - **Gated mode** (`--gated`): adds a Stop completion gate that blocks only when all completion conditions hold at once, so an incomplete plan alone never traps a session.
 - **Auto-continue on Pi** (`agent_end` handler): re-prompts the agent up to a limit of 3 to keep an unfinished plan moving, plus an optional `/plan-goal` string appended to the prompt.
 - **Pi approval gate** (`/plan-execute`): Pi hooks stay passive with a status line until you approve the active plan for the current session.
-- **Session-catchup**: resumes work after `/clear` by re-reading the planning files from the active IDE's session store.
+- **Session-catchup**: automatic recovery uses project planning files only. Explicit `--metadata` reads same-project local session records and emits aggregate counts only; explicit `--replay` may emit bounded nonce-framed excerpts.
 - **PreCompact progress flush** (`PreCompact` hook): surfaces a reminder to flush progress before compaction completes, and prints the active Plan-SHA256 when attested.
 - **SHA-256 plan attestation** (`/plan-attest`): locks `task_plan.md`; a tampered plan body is refused at injection.
 - **Run ledger**: an append-only JSONL record of phase transitions that replaces the raw `progress.md` tail in v3 modes with a fixed-shape summary.
 - **Host capability tiers**: hard block on Claude Code, Codex, and Continue; follow-up injection on Cursor, Pi, and Kiro; notify-only elsewhere.
-- **Per-invocation opt-out** (`PLANNING_DISABLED=1`, v3.4.0): a one-shot session that merely shares a cwd with an incomplete plan skips all plan reading at every hook entry point.
+- **Per-invocation opt-out** (`PLANNING_DISABLED=1`, v3.4.0): a one-shot session that merely shares a cwd with an incomplete plan skips all plan reading at every hook entry point. Covers the Copilot and Cursor routes since v3.10.2; `.gemini` is deliberately behind and does not honour it.
 - **Absolute plan-root pin** (`PWF_PLAN_ROOT`, v3.9.0): binds a thread to a project root by absolute path, for agent threads whose cwd is a shared parent of the project they are actually working in. Ambiguous cwds refuse to inject rather than guessing.
 
 ### Environment variables
@@ -420,6 +443,7 @@ The v3 line adds features aimed at long-running agentic runs. Each one is listed
 | `PWF_PLAN_ROOT=<abs path>` | v3.9.0 | Pins the thread to a project root by absolute path, which `PLAN_ID` cannot express. Use it when the agent's cwd is a shared parent such as `/workspace` while the work lives in `/workspace/project`. A pin that does not resolve stops injection instead of falling back. |
 | `PWF_SESSION_ID=<id>` | v2.36.0 | Identifies the session for plan attachment. Only consulted when `.planning/sessions/` exists, in which case a session sees plan context only if `.planning/sessions/<id>.attached` exists. Delete that directory to turn session isolation off. |
 | `PWF_INJECT=smart` | v3.8.0 | Replaces the fixed `head -50` injection window with the goal, next step, current phase, the full in-progress phase, and the last three decisions. |
+| `PWF_PLAN_GUARD=0` | v3.10.0 | Turns off the parallel-write guard, which is on by default. The guard compares checked items and completed phases against the previous hook fire and prints one advisory line when they go DOWN, meaning a second session overwrote work. A `plan-guard-off` token in `.mode` does the same. |
 | `PWF_MODE` | v2.39.0 | Pi extension runtime mode: `auto`, `parity`, `cache-safe`, `notify`. Also settable in `.pi/settings.json` under `planningWithFiles.mode`. |
 | `PWF_GATE_CAP` | v3.0.0 | Maximum consecutive Stop-gate blocks in gated mode. Default 20. |
 
@@ -427,8 +451,8 @@ The v3 line adds features aimed at long-running agentic runs. Each one is listed
 
 | Platform | Lifecycle hooks | Where registered |
 |----------|-----------------|------------------|
-| Claude Code | 5: UserPromptSubmit, PreToolUse, PostToolUse, Stop, PreCompact | The skill's `SKILL.md` frontmatter (not `plugin.json`), so they ship with the bundled skill |
-| Codex CLI | 7: SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PreCompact, Stop | `.codex/hooks.json`, Windows-safe via `commandWindows` since v3.4.1 |
+| Claude Code | 6: SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PreCompact, Stop | Plugin installs use `hooks/hooks.json` with cache-safe `${CLAUDE_PLUGIN_ROOT}` paths. Standalone skill hooks are activation-scoped and have no SessionStart. |
+| Codex CLI | 7: SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PreCompact, Stop | Workspace installs use `.codex/hooks.json`; the Codex plugin selects `hooks/codex-hooks.json` and resolves through `${PLUGIN_ROOT}`. Both routes use `commandWindows` on Windows. |
 | Pi | 8 lifecycle handlers in the bundled extension | The injection and recitation handlers stay passive until `/plan-execute` |
 
 Pi runtime modes:
@@ -466,7 +490,7 @@ What the skill writes into your project is three markdown files (see [the 3-file
 ```
 planning-with-files/
 ├── skills/planning-with-files/   # canonical skill: SKILL.md, scripts/, templates/, reference.md, examples.md
-│   └── ...-ar / -de / -es / -zh / -zht    # 5 translated variants
+├── skills/i18n/                  # 5 translated variants: -ar / -de / -es / -zh / -zht
 ├── .agents/skills/planning-with-files/   # Agent Skills standard path, full surface (v3.7.0+)
 ├── commands/                     # 13 slash commands (plugin route only)
 ├── scripts/ · templates/        # root-level copies for CLAUDE_PLUGIN_ROOT
@@ -474,21 +498,25 @@ planning-with-files/
 ├── .codex/ .cursor/ .github/ .gemini/ .kiro/ .continue/ .pi/
 ├── .codebuddy/ .factory/ .hermes/ .mastracode/ .opencode/   # per-IDE mirrors, parity-locked
 ├── docs/                         # 25+ guides incl. per-platform setup, evals.md, benchmark/
-├── tests/                        # 217-test suite (pytest), green on Windows and Linux CI
+├── tests/                        # cross-platform pytest suite, green on Windows, Linux, and macOS CI
 ├── CHANGELOG.md · MIGRATION.md · SECURITY.md · CONTRIBUTING.md · CONTRIBUTORS.md
 ├── CITATION.cff · llms.txt · LICENSE
 └── README.md
 ```
 
-Every release bumps 18 parity-locked copies via `scripts/bump-version.py`; a test fails if any variant lags.
+Every release maintains 18 tracked parity targets plus the gitignored ClawHub upload stage when it is present. `scripts/bump-version.py` updates every available target, and CI fails if a tracked variant lags.
 
 </details>
 
-## FAQ
+<a id="faq"></a>
+
+<details>
+<summary><strong>❓ FAQ</strong></summary>
+
 
 ### How do I stop my coding agent from losing its plan after /clear or a crash?
 
-The plan lives on disk in `task_plan.md`, `findings.md`, and `progress.md`, not only in the context window. At the start of each turn the `UserPromptSubmit` hook re-injects the active plan, and after a `/clear` or a new session the skill re-reads the files from disk (session recovery), so the agent recovers its goals and progress automatically.
+The plan lives on disk in `task_plan.md`, `findings.md`, and `progress.md`, not only in the context window. At the start of each turn the `UserPromptSubmit` hook re-injects selected active-plan context, and after a `/clear` or a new session the skill re-reads project files from disk. This automatic path does not inspect agent transcript stores.
 
 ### What is the difference between planning-with-files and an agent memory tool?
 
@@ -514,11 +542,23 @@ They are working memory, not a tracked deliverable. `task_plan.md`, `findings.md
 
 One hook fire measures 289ms wall-clock since the v3.6.0 optimization, down from 2.0 to 2.4 seconds before it, and the injected plan block is KV-cache stable by construction. The plan stays in the attention window every turn, and `/clear` stops being fatal.
 
+</details>
+
+<a id="releases"></a>
+
 <details>
 <summary><strong>📦 Releases</strong></summary>
 
 | Version | Highlights |
 |---------|------------|
+| **v3.12.1** | **Attestation now stays in slug mode when the helper runs inside `.planning/<slug>/`** (fixes #234, reported by @sortakool). The shell and PowerShell helpers update the slug's `.attestation` instead of creating a legacy `.plan-attestation`, and invalid explicit selectors stop without falling back to another local plan. PowerShell regression coverage exercises attest, show, and clear from the nested directory. The release also restores macOS system-alias handling for the Codex and Hermes context readers and keeps unsafe active-plan pointers from falling back to an unrelated legacy plan. |
+| **v3.12.0** | **Session recovery is now consent-bound and the published planning surface is fully auditable.** Automatic hooks read project planning files only. Same-project session metadata and bounded replay require explicit CLI modes, cross-project records remain quarantined, and phase-status writers fail closed when their shared lock is unavailable. Hidden template instructions were replaced with visible guidance, capability descriptions now disclose actual context and gate behavior, and the complete 29-file ClawHub stage is rebuilt and verified from canonical tracked source. |
+| **v3.11.2** | **Skills-only manual installs now copy one skill at the documented depth** (PR #229 by @dylanpulver). The Unix and PowerShell commands name `skills/planning-with-files` instead of copying `skills/*`, so the `skills/i18n/` subtree no longer lands below the loader path. Both instructions create `~/.claude/skills` first, which keeps a fresh install from placing `SKILL.md` directly under `skills/`. A tracked-Markdown test rejects the old whole-directory copy shape and locks the destination-creation step. |
+| **v3.11.1** | **The Copilot error hook could not be parsed by a POSIX shell** (PR #228 by @dylanpulver). `error-occurred.sh` fed its two Python helpers with `<<<`, a bash here-string that dash does not implement, and the suite invokes the shell hooks as `sh script`, so the `#!/bin/bash` shebang never applied. On ubuntu runners the file died at line 32 with `Syntax error: redirection unexpected`, and master CI had failed on that leg for five consecutive runs. Both call sites now pipe with `printf '%s\n'`. The sibling `echo` form was deliberately not copied: dash expands backslash escapes, which would have traded a loud syntax error for silent JSON corruption. No user was affected, because Copilot invokes the hook under a `bash` key that bypasses the shebang. |
+| **v3.11.0** | **The plugin registers one skill instead of six** (closes #130, reported by @sean3808; implemented by @dylanpulver in PR #226). The five language variants moved from `skills/planning-with-files-<lang>/` to `skills/i18n/planning-with-files-<lang>/`. Nothing deleted, nothing renamed, every `npx skills add --skill` command unchanged: Claude Code scans `skills/*/SKILL.md` one level without recursing, while the skills CLI resolves `--skill` by name across a recursive scan. Measured against the real loader, not inferred: 6 registered skills to 1, 19 components to 14, always-on cost roughly 2,254 to 1,042 tokens per session, with all thirteen slash commands intact. `/plan-de` and its four siblings read their translated skill from disk and state that the status tokens stay literal English, because `check-complete.sh` matches them with `grep -F`. Also fixes seven shell hooks that could emit JSON with a raw control character when run under a POSIX-mode shell on macOS. |
+| **v3.10.2** | **`PLANNING_DISABLED=1` had never reached the GitHub Copilot or Cursor hooks** (PRs #223, #222 and #224, by @Whxuan0701). Both routes read `task_plan.md` directly instead of dispatching to the script that carries the #195 guard, so eighteen hook entry points ignored the opt-out entirely: a one-shot task sharing a working directory with an unrelated plan had no way to detach from it. Auditing the merge found three more: the disabled `PreToolUse` branch answered `permissionDecision: allow`, so turning the skill off widened Copilot's permissions instead of staying neutral; `.cursor/hooks/stop.ps1` was the last copy the #191 zero-phase guard never reached, still auto-continuing on `0/0 phases done`; and `error-occurred.ps1` had never logged an error on Windows because it read stdin into `$input`, PowerShell's automatic pipeline variable, which does not hold the assignment under `-File`. The opt-out tests now run every hook with the variable unset as well as set, because the disabled-only versions stayed green against a fleet gutted to emit `{}`. Suite 424 to 430. |
+| **v3.10.1** | **Codex context hooks now emit valid event JSON on Linux and macOS** (fixes #220, reported by @mfehlhaber). `SessionStart`, `UserPromptSubmit`, and `PreCompact` use the same adapter as Windows, so planning output beginning with `[` is no longer misread as malformed JSON. This release also aligns the tracked npm payload with the published 20-script package, corrects the release reference, and makes the version bumper safe to run without the gitignored ClawHub stage in a fresh clone. |
+| **v3.10.0** | **Two sessions sharing one plan directory could silently destroy each other's work** (closes #217, reported by @dubes394). Both read `task_plan.md`, both write it back, and the later write discards the earlier one's phases while injection, `plan-doctor` and the Stop gate all read the result as an ordinary edit. Attestation could not cover it: it compares against a baseline a human approved once, not against what the hooks last observed, and it is a read side gate that cannot stop the stale write. The guard compares progress rather than hashes, because a hash comparison flags a single agent's own edit on its very next fire; checked items and completed phases only go up during normal work, so a decrease means work is gone. Verifying #130 alongside it exposed that every non-English install was a subset install, missing attestation, the Stop gate, the ledger, phase status and plan-doctor entirely, plus a Windows UTF-8 crash fix that never left the canonical skill. Closed additively, 60 files created and 0 overwritten, with the translator-owned scripts pinned so no future sync can English them. Also fixes a README top that showed five labels and no numbers on a phone. Suite 411 to 417. |
 | **v3.9.0** | **A Codex thread whose cwd was a shared parent injected an unrelated project's plan on every hook fire** (closes #212, reported by @webwww123). Resolution was cwd relative with no notion of a thread, so the shared parent's pointer was the only one the hook could see. Adds `PWF_PLAN_ROOT` for an absolute plan root binding, which a cwd relative `PLAN_ID` slug structurally could not express, and refuses to inject when the cwd is ambiguous rather than guessing. Verifying the report exposed that `PLANNING_DISABLED=1` was inoperative on eleven of thirteen install routes, that the Stop hook could never find its script on six hosts, and that eight shipped PowerShell scripts could not be parsed by Windows PowerShell 5.1 at all, leaving Cursor injection and both Chinese variants' `init-session` dead on Windows. Also closes #211 (a provider error queued another request into the same failing provider, and the Pi status bar stopped tracking the plan after approval) and #210 (injection determinism now asserted, five routes normalized). Suite 311 to 411. |
 | **v3.8.2** | **Session recovery silently found nothing for any project path containing a dot, a space, or any other non-alphanumeric character** (closes #209, reported by @seathatflowsinourveins). Three copies of `session-catchup.py` still folded only `/`, `\` and `:`, and one of them is the copy every `/plugin install` runs on Linux, macOS and Git Bash. Against a real store holding 89 sessions the shipped resolver produced 0 bytes where the fix produces 11336 and recovers 166 messages. Folding now counts UTF-16 code units, so emoji folder names resolve too, and a per-session `cwd` filter stops two projects that fold to one directory name from reading each other's transcripts. One vector table now runs across every copy, so this drift cannot come back. Suite at 311. |
 | **v3.8.1** | **Pi extension: plan resolution no longer depends on the live shell cwd** (closes #208, reported by @fd44fdg). An agent that cd'd into a subdirectory lost the plan, recitation went dark, and the "No task_plan.md found" warning fired on every write. Resolution now anchors on the nearest ancestor with planning state, bounded by the `.git` repository boundary, with slug-validation and containment parity with the sh resolver; every injection states which plan it resolved (`plan: <id>`), making slug-over-root shadowing visible. Also: `init-session` heredocs never carried the v3.8.0 Next Step section; all copies fixed with an output-level regression test. Gated by an Opus adversarial pass plus a five-lens Sonnet reliability fleet. |
@@ -583,6 +623,8 @@ One hook fire measures 289ms wall-clock since the v3.6.0 optimization, down from
 > Parallel plan isolation (`.planning/YYYY-MM-DD-slug/` directories) and Codex session isolation shipped in v2.36.0. The `experimental/isolated-planning` branch was the earlier prototype; master is now the canonical location.
 
 </details>
+
+<a id="community"></a>
 
 <details>
 <summary><strong>🌍 What the community shipped</strong></summary>

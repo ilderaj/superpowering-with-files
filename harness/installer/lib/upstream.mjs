@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { cp, mkdir, readFile, readdir, rm } from 'node:fs/promises';
+import { cp, mkdir, readFile, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { loadSourceLock, loadUpstreamSourceConfig, normalizeUpstreamSource } from './upstream-config.mjs';
 import { buildFetchPlan } from '../../../scripts/ci/lib/upstream-resolver.mjs';
@@ -18,6 +18,18 @@ const PLANNING_WITH_FILES_LANGUAGE_REMOVALS = [
   'planning-with-files-de',
   'planning-with-files-es'
 ];
+
+// PWF v3.12.1+ ships language variants nested under skills/i18n/. Only the
+// shipped zh/zht/ar/de/es set is known; anything else fails closed before any
+// candidate mutation.
+const PLANNING_WITH_FILES_I18N_KNOWN = new Set([
+  'planning-with-files-ar',
+  'planning-with-files-de',
+  'planning-with-files-es',
+  'planning-with-files-zh',
+  'planning-with-files-zht'
+]);
+
 function normalizeInside(rootDir, relativePath) {
   const resolved = path.resolve(rootDir, relativePath);
   const root = path.resolve(rootDir);
@@ -184,6 +196,39 @@ export async function curatePlanningWithFilesCandidate(candidatePath, overlayPat
   }
 
   const directories = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+
+  const i18nDir = path.join(skillsDir, 'i18n');
+  let i18nEntries;
+  try {
+    i18nEntries = await readdir(i18nDir, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      i18nEntries = null;
+    } else {
+      throw error;
+    }
+  }
+
+  if (i18nEntries) {
+    const nestedVariants = i18nEntries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    for (const name of nestedVariants) {
+      if (!PLANNING_WITH_FILES_I18N_KNOWN.has(name)) {
+        throw new Error(`Unsupported planning-with-files language variant: ${name}`);
+      }
+    }
+    for (const name of ['planning-with-files-zh', 'planning-with-files-zht']) {
+      try {
+        await rename(path.join(i18nDir, name), path.join(skillsDir, name));
+      } catch (error) {
+        if (error?.code === 'ENOENT') {
+          continue;
+        }
+        throw new Error(`Unsupported planning-with-files language variant: ${name}`);
+      }
+    }
+    await rm(i18nDir, { recursive: true, force: true });
+  }
+
   for (const name of directories) {
     if (PLANNING_WITH_FILES_LANGUAGE_REMOVALS.includes(name)) {
       await rm(path.join(skillsDir, name), { recursive: true, force: true });

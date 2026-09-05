@@ -13,12 +13,16 @@ import type { Agent } from '@deepseek-ai/dsh-agent';
 
 import { createDispatcher } from '../src/dispatch.js';
 import { readEvidence, readPacket } from '../src/packet.js';
+import { resolveCorleoneRole } from '../src/core/index.js';
 import {
   createSwfCommands,
   parseSwfCommand
 } from '../src/commands.js';
 import { createSessionTracker } from '../src/detect.js';
 import { makeMockCtx, makePacketInputFor, runCommand, withTmpRoot } from './helpers.js';
+// Harness parity fixture: the dsh Corleone resolver must behave exactly like
+// the harness selector (same convention as test/parity.test.ts).
+import { selectCorleoneRole as harnessSelectCorleoneRole } from '../../harness/trio/hosts/codex.mjs';
 
 // The parent agent carries its live session so dispatch() exercises the real
 // ctx.tokenMeter.measure path (the mock meter ignores the session argument).
@@ -71,6 +75,19 @@ describe('dispatchWorker over mock ctx.subagents (Slice 2)', () => {
       expect(budget).not.toBeNull();
       const packet = await readPacket(root, 'alpha-task');
       expect(packet!.budget).toBeDefined();
+      expect(worker!.extra).toEqual({
+        runId: 'run-1',
+        registryProvider: 'subagent-dsh-sdk',
+        tier: 'standard',
+        requestedRole: 'buttonman_neri',
+        requestedPersona: 'buttonman_neri',
+        requestedDisplayName: 'Button Man Al Neri',
+        requestedTokens: 32_000,
+        packetDigest: packet!.packetDigest,
+        startEventObserved: true,
+        observedRegistryProvider: 'subagent-dsh-sdk',
+        registryMismatch: false
+      });
     });
   });
 
@@ -162,6 +179,24 @@ describe('dispatchWorker over mock ctx.subagents (Slice 2)', () => {
       });
       expect(result.status).toBe('manual_pending');
       expect(result.blocker).toBe('provider_unavailable');
+      expect(harness.subagents.started).toHaveLength(0);
+    });
+  });
+
+  it('fails closed when the subagents service omits getProvider', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'no-get-provider-task');
+      const harness = makeMockCtx();
+      delete (harness.ctx.subagents as unknown as { getProvider?: unknown }).getProvider;
+      const dispatcher = createDispatcher(harness.ctx);
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'no-get-provider-task',
+        parent: PARENT,
+        prompt: 'execute'
+      });
+      expect(result.status).toBe('manual_pending');
+      expect(result.blocker).toBe('subagents_service_unavailable');
       expect(harness.subagents.started).toHaveLength(0);
     });
   });
@@ -526,6 +561,200 @@ describe('dispatchWorker over mock ctx.subagents (Slice 2)', () => {
         await chmod(evidenceDir, 0o755);
       }
     });
+  });
+});
+
+describe('dispatchWorker Corleone persona binding (bridge repair)', () => {
+  it('passes the packet-derived Corleone persona to subagents.start and records it in evidence extras', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'persona-task');
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'persona-task',
+        parent: PARENT,
+        prompt: 'execute'
+      });
+      expect(result.status).toBe('dispatched');
+      expect(harness.subagents.started).toHaveLength(1);
+      const start = harness.subagents.started[0]!;
+      expect(start.name).toBe('subagent-dsh-sdk');
+      // executing/high selects Button Man Al Neri; the persona is a top-level
+      // start field, not an agentOption.
+      expect(start.request.persona).toBe('buttonman_neri');
+      const worker = await readEvidence(root, 'persona-task', 'worker');
+      const extra = worker!.extra as {
+        requestedRole: string;
+        requestedPersona: string;
+        requestedDisplayName: string;
+      };
+      expect(extra.requestedRole).toBe('buttonman_neri');
+      expect(extra.requestedPersona).toBe('buttonman_neri');
+      expect(extra.requestedDisplayName).toBe('Button Man Al Neri');
+    });
+  });
+
+  it('derives Don Michael persona for a visible-worker-required slice', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'strict-persona-task', { primaryExecution: 'visible_worker_required' });
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'strict-persona-task',
+        parent: PARENT,
+        prompt: 'execute'
+      });
+      expect(result.status).toBe('dispatched');
+      expect(harness.subagents.started[0]!.request.persona).toBe('don_michael');
+    });
+  });
+
+  it('fails closed before start when the provider lacks the persona capability', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'nopersona-task');
+      const harness = makeMockCtx({ subagents: { personaCapability: false } });
+      const dispatcher = createDispatcher(harness.ctx);
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'nopersona-task',
+        parent: PARENT,
+        prompt: 'execute'
+      });
+      expect(result.status).toBe('manual_pending');
+      expect(result.blocker).toBe('persona_capability_unavailable');
+      expect(harness.subagents.started).toHaveLength(0);
+    });
+  });
+
+  it('fails closed before start when the packet capability cannot resolve a Corleone role', async () => {
+    await withTmpRoot(async (root) => {
+      // Chief slices pass the bind-time capability policy (a Chief role
+      // carries no complexity) but can never resolve to a Corleone execution
+      // role, so dispatch must fail closed before any start attempt.
+      await boundTask(root, 'norole-task', { workRole: 'chief', complexity: undefined });
+      const harness = makeMockCtx();
+      const dispatcher = createDispatcher(harness.ctx);
+      const result = await dispatcher.dispatch({
+        authorityRoot: root,
+        taskId: 'norole-task',
+        parent: PARENT,
+        prompt: 'execute'
+      });
+      expect(result.status).toBe('manual_pending');
+      expect(result.blocker).toBe('corleone_role_unavailable');
+      expect(harness.subagents.started).toHaveLength(0);
+    });
+  });
+
+  it('maps packet capabilities to Corleone roles exactly like the harness selector', () => {
+    const matrix = [
+      { workRole: 'executing', complexity: 'high' },
+      { workRole: 'executing', complexity: 'xhigh' },
+      { workRole: 'executing', complexity: 'max' },
+      { workRole: 'coding', complexity: 'high' },
+      { workRole: 'coding', complexity: 'xhigh' },
+      { workRole: 'coding', complexity: 'max' },
+      { workRole: 'searching', complexity: 'high' },
+      { workRole: 'researching', complexity: 'xhigh' },
+      { workRole: 'exploring', complexity: 'max' },
+      { workRole: 'repetitive_execution', complexity: 'max' },
+      { workRole: 'coding', complexity: 'high', primaryExecution: 'visible_worker_required' },
+      { workRole: 'repetitive_execution', complexity: 'high', primaryExecution: 'visible_worker_required' }
+    ];
+    for (const capability of matrix) {
+      const ported = resolveCorleoneRole(capability);
+      const harness = harnessSelectCorleoneRole(capability);
+      expect({ agentType: ported.agentType, tier: ported.tier, ordinal: ported.ordinal }).toEqual({
+        agentType: harness.agentType,
+        tier: harness.tier,
+        ordinal: harness.ordinal
+      });
+      expect(ported.persona).toBe(ported.agentType);
+    }
+    const invalid = [
+      { workRole: 'chief' },
+      { workRole: 'chief', primaryExecution: 'visible_worker_required' },
+      { workRole: 'coding' },
+      {}
+    ];
+    for (const capability of invalid) {
+      expect(() => resolveCorleoneRole(capability)).toThrow();
+      expect(() => harnessSelectCorleoneRole(capability)).toThrow();
+    }
+  });
+
+  it('fails closed on explicitly invalid ordinals exactly like the harness selector', () => {
+    // An explicitly provided ordinal that is not a positive safe integer must
+    // NEVER silently fall back to 1: the resolver throws the same error as
+    // the harness allocateCorleoneCallsign path.
+    const invalidOrdinals = ['bad', 0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1] as Array<string | number>;
+    const base = { workRole: 'coding', complexity: 'high' };
+    for (const ordinal of invalidOrdinals) {
+      const capability = { ...base, ordinal };
+      expect(() => resolveCorleoneRole(capability)).toThrow(/positive safe integer/i);
+      expect(() => harnessSelectCorleoneRole(capability)).toThrow(/positive safe integer/i);
+    }
+    // Don Michael is reserved at ordinal 1 for strict visible-worker slices,
+    // even when the supplied ordinal is a valid positive integer.
+    const donOrdinalTwo = {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'visible_worker_required',
+      ordinal: 2
+    };
+    expect(() => resolveCorleoneRole(donOrdinalTwo)).toThrow(/Don Michael|ordinal/i);
+    expect(() => harnessSelectCorleoneRole(donOrdinalTwo)).toThrow(/Don Michael|ordinal/i);
+    // visible_worker_required/Don treats an EXPLICIT null ordinal exactly
+    // like any other non-1 ordinal and fails closed: explicit null never
+    // means "default" on the strict Don lane.
+    const donOrdinalNull = {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'visible_worker_required',
+      ordinal: null
+    };
+    expect(() => resolveCorleoneRole(donOrdinalNull)).toThrow(/Don Michael|ordinal/i);
+    expect(() => harnessSelectCorleoneRole(donOrdinalNull)).toThrow(/Don Michael|ordinal/i);
+    // Don + a non-numeric explicit ordinal also uses the harness strict-Don
+    // error: the tier-1 reservation is checked before the positive-safe-
+    // integer validation, exactly like selectCorleoneRole.
+    const donOrdinalBad = {
+      workRole: 'coding',
+      complexity: 'high',
+      primaryExecution: 'visible_worker_required',
+      ordinal: 'bad'
+    };
+    expect(() => resolveCorleoneRole(donOrdinalBad)).toThrow(/Don Michael|ordinal/i);
+    expect(() => harnessSelectCorleoneRole(donOrdinalBad)).toThrow(/Don Michael|ordinal/i);
+  });
+
+  it('resolves legal ordinals and the default ordinal exactly like the harness selector', () => {
+    const cases = [
+      { workRole: 'coding', complexity: 'high', ordinal: 2 },
+      { workRole: 'coding', complexity: 'high' },
+      { workRole: 'coding', complexity: 'high', ordinal: null },
+      { workRole: 'executing', complexity: 'xhigh', ordinal: 2 }
+    ];
+    for (const capability of cases) {
+      const ported = resolveCorleoneRole(capability);
+      const harness = harnessSelectCorleoneRole(capability);
+      expect({ agentType: ported.agentType, tier: ported.tier, ordinal: ported.ordinal }).toEqual({
+        agentType: harness.agentType,
+        tier: harness.tier,
+        ordinal: harness.ordinal
+      });
+      expect(ported.persona).toBe(ported.agentType);
+    }
+    // Default ordinal 1 picks the named first member: buttonman_neri for
+    // coding/high, buttonman_brasi for ordinal 2, capo_lampone for capo 2.
+    expect(resolveCorleoneRole({ workRole: 'coding', complexity: 'high' }).agentType).toBe('buttonman_neri');
+    expect(resolveCorleoneRole({ workRole: 'coding', complexity: 'high', ordinal: 2 }).agentType).toBe('buttonman_brasi');
+    // On non-Don tiers explicit null still means the default ordinal 1
+    // (harness 'input.ordinal ?? 1'), so the first named member is selected.
+    expect(resolveCorleoneRole({ workRole: 'coding', complexity: 'high', ordinal: null }).agentType).toBe('buttonman_neri');
+    expect(resolveCorleoneRole({ workRole: 'executing', complexity: 'xhigh', ordinal: 2 }).agentType).toBe('capo_lampone');
   });
 });
 

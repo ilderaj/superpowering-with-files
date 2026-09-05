@@ -287,9 +287,11 @@ export function renderCodexHandoffRequest({
   if (operation === 'spawn' && workerIdentity !== undefined) {
     throw new TypeError('Codex spawn selects its Corleone workerIdentity from the Assignment Packet; frozen workerIdentity is only valid for a non-spawn lifecycle operation.');
   }
-  if (operation !== 'spawn' && workerIdentity === undefined) {
-    throw new TypeError('Codex non-spawn lifecycle operations require the frozen Corleone workerIdentity.');
-  }
+  // Non-spawn lifecycle operations follow the packet-first protocol: a
+  // caller that omits workerIdentity derives and freezes the Corleone
+  // identity from the Assignment Packet capability below. An explicitly
+  // passed frozen identity remains authoritative and is validated by
+  // selectCorleoneRole (tier match, Don Michael ordinal 1).
   const identity = selectCorleoneRole({
     workerIdentity: operation === 'spawn' ? undefined : workerIdentity,
     workRole: capability?.workRole,

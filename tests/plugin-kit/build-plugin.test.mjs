@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { access, readFile, readdir } from 'node:fs/promises';
+import { access, cp, mkdir, readFile, readdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { buildPlugin } from '../../packages/plugin-kit/src/build-plugin.mjs';
@@ -57,6 +57,42 @@ test('buildPlugin creates a Codex root with the Trio skills, ChiefOps companion,
   for (const forbiddenPath of ['skills/harness', 'hooks', '.mcp.json', 'mcp', 'runtime', 'node_modules']) {
     await assert.rejects(access(path.join(build.pluginRoot, forbiddenPath)), /ENOENT/);
   }
+});
+
+test('buildPlugin copies harness skills from a .codex-ancestor root while excluding source descendants', async () => {
+  const fixtureRoot = path.join(await fsMkdtemp('harness-build-worktree-'), '.codex', 'worktree');
+  const fixtureEntries = [
+    'plugins/agent-plugins/plugin.harness.json',
+    'harness/trio/skill/SKILL.md',
+    'harness/trio/capabilities/dev/SKILL.md',
+    'harness/trio/capabilities/office/SKILL.md',
+    'harness/trio/capabilities/safety/SKILL.md',
+    'harness/trio/governance/chiefops/SKILL.md',
+    'harness/core/upstream-overlays/planning-with-files',
+    'harness/core/skills/overengineering-review',
+    'harness/core/skills/simplification-ledger'
+  ];
+
+  for (const relativePath of fixtureEntries) {
+    const destination = path.join(fixtureRoot, relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await cp(path.join(process.cwd(), relativePath), destination, { recursive: true });
+  }
+
+  const outDir = path.join(await fsMkdtemp('harness-build-worktree-output-'), 'plugins');
+  const build = await buildPlugin({
+    target: 'agent-plugins',
+    version: '1.1.0',
+    outDir,
+    rootDir: fixtureRoot
+  });
+  const planningRoot = path.join(build.pluginRoot, 'skills/planning-with-files');
+
+  await access(path.join(planningRoot, 'SKILL.md'));
+  await assert.rejects(
+    access(path.join(planningRoot, '.codex/hooks/permission_request.py')),
+    /ENOENT/
+  );
 });
 
 test('buildPlugin creates an Agent Plugins root with eight flat skills and a portable manifest', async () => {

@@ -2,6 +2,204 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [3.12.1] - 2026-08-31
+
+### Fixed
+- **Running an attestation helper from inside `.planning/<slug>/` wrote a legacy `.plan-attestation` file and left the slug's real `.attestation` stale (fixes #234, reported by @sortakool).** The shell and PowerShell helpers now recognize a valid direct slug directory, update its `.attestation`, and preserve the same target for show and clear operations. An explicit `PLAN_ID` or `PWF_PLAN_ROOT` that does not resolve now stops without attesting another local plan through the current-directory fallback.
+- **Cross-platform hook and resolver checks failed on macOS and Windows.** The Codex and Hermes context readers now admit only verified macOS system aliases (`/var`, `/tmp`, and `/etc`) to their fixed `/private/...` targets, while other links remain rejected. The PowerShell attester now refuses to run on Unix where its safe no-follow operation is unavailable, and malformed or dangling `.planning/.active_plan` entries stop resolution instead of selecting a legacy plan. When native canonicalization tools are unavailable, the shell resolver now uses only an explicitly trusted absolute Python path instead of selecting Python or Perl from `PATH`. The injector's containment fallback now accepts only an explicitly supplied, validated interpreter and defers PATH discovery until containment succeeds, so a BSD environment that supplies only `PWF_TRUSTED_PYTHON` does not silently suppress plan context.
+
+### Verification
+- The v3.12.0 failure was reproduced from both invocation locations: the first call from the project root created the slug attestation, while the second call from inside the slug directory exited successfully, created the legacy file, and left the real attestation stale.
+- The clean issue regression and mirror-sync suite passed with 24 tests, 5 platform skips, and 13 subtests. Focused resolver, containment, hook integration, command contract, and line-ending suites passed with 74 tests and 6 platform skips.
+- All 15 maintained shell copies passed syntax checks, and the 15 shell copies and 15 PowerShell copies are byte-identical within their respective sets.
+- The exact detached v3.12.1 candidate passed the complete Python 3.12 suite with 598 tests, 29 platform skips, and 785 subtests.
+- After the first remote matrix exposed a BSD-harness injection mismatch, the corrected full flow passed all 3 BSD-userland tests in a Linux container with Python absent from `PATH`.
+- The final post-correction Python 3.12 candidate passed the complete suite with 598 tests, 31 platform skips, and 785 subtests in 2732.99 seconds.
+
+### Thanks
+- Raymond Manaloto (@sortakool) supplied a minimal reproduction, identified the split between the resolver and attestation path, and explained why the next root invocation reports a false tamper event in issue #234.
+
+## [3.12.0] - 2026-08-30
+
+### Security
+- **Automatic catchup no longer reads host transcript or session stores.** SessionStart and other automatic callers now pass `--no-history` explicitly. A user must select `--metadata` to obtain same-project aggregate counts or `--replay` to obtain bounded same-project excerpts. Metadata output excludes transcript text, tool commands, errors, raw paths, and raw session identifiers. Replay remains nonce-framed as untrusted data and quarantines records that cannot be bound to the current project.
+- **Phase status updates no longer proceed after lock acquisition fails.** Shell and PowerShell writers use the same stable directory lock, retry for a bounded interval, perform phase checks while holding the lock, and return nonzero without reading or writing status when the lock remains unavailable. Lock cleanup is limited to the owner that created it.
+- Project context resolution preserves direct-hook compatibility while refusing cross-project recovery data and ambiguous project identity. These protections now apply across the Claude, Codex, Copilot, Gemini, Pi, Agent Skills, custom-adapter, and translated catchup paths.
+- Install-facing planning templates contain no hidden HTML instructions. Operational guidance is visible, and Markdown content is treated as user-controlled project data rather than executable authority.
+
+### Added
+- First-class Claude and Codex plugin lifecycle surfaces, including cache-safe hook activation and complete Codex plugin operations.
+- `scripts/build-clawhub-upload.py` rebuilds the complete gitignored ClawHub stage from the tracked canonical inventory and verifies exact file, byte, line-ending, and containment parity before manual upload.
+
+### Fixed
+- The Codex plugin manifest is now part of the release version parity set, bringing the maintained set to 19 tracked targets plus the optional local ClawHub stage.
+- **Direct `-h` and `--help` queries created and activated plans (PR #233 by @lowmiaq-gmail, fixes #232).** `init-session.sh` had no help branch, so both flags fell through to `PROJECT_NAME`, enabled slug mode, created three planning files, and replaced `.planning/.active_plan`. Both direct flags now print usage and return successfully before any filesystem initialization.
+- **The npm release path could pack CRLF shell scripts from a stale Windows working tree (fixes #231, reported by @mfehlhaber).** Source attributes and repository tests protected Git bytes but did not inspect the tarball that npm actually publishes. The package now runs a dependency-free `prepack` verifier that fails on any carriage-return byte instead of rewriting files, and a regression builds the real archive and checks the complete shell-script inventory. The current npm `3.11.2` artifact is LF-clean; the new gate prevents the `3.10.2` failure from recurring.
+
+### Changed
+- Capability descriptions now disclose selected project-context injection, explicit same-project local-record modes, optional completion gating where the host supports it, and the absence of a network upload path. Adapter-specific descriptions do not claim capabilities their host does not provide.
+- Planning templates use visible guidance and describe the executable gate accurately. The gate reads mode, phase state, stop state, and ledger progress; it does not execute commands or treat `AcceptanceCheck`, `DependsOn`, ownership, or model-routing fields as runtime authority.
+- The bundled Pi extension moves to 1.2.4, the Kiro adapter moves to 3.0.1-kiro, and the Hermes plugin moves to 0.1.1 for their changed runtime or distribution surfaces.
+- `docs/quickstart.md` now shows how to inspect the initialization options without creating files or changing the active plan.
+- The npm archive includes the verifier referenced by its own `prepack` lifecycle, so repacking an installed package retains the same fail-closed check.
+
+### Verification
+- Full Python suite: 592 passed, 24 skipped, and 766 subtests passed.
+- Security and distribution integration suite: 210 passed, 4 skipped, and 656 subtests passed.
+- Pi extension 1.2.4: 48 Vitest tests passed across 3 files.
+- Version parity, frontmatter, and ClawHub builder suite: 24 tests passed. The complete ClawHub stage contains 29 canonical files with no hidden HTML instructions, stale scanner phrases, cache artifacts, or carriage-return bytes in shipped scripts.
+- `sync-ide-folders.py --verify`, `build-clawhub-upload.py --verify`, `bump-version.py 3.12.0 --dry-run`, the npm package dry run, and repository diff checks passed.
+
+### Thanks
+- @lowmiaq-gmail supplied the minimal state-mutation reproduction, the direct POSIX-shell fix, and regression coverage for both help flags in PR #233.
+- @mfehlhaber separated clean repository source from the broken npm artifact, identified the exact six CRLF scripts, and traced Pi's generic attestation failure back to the swallowed shell error in issue #231.
+
+## [3.11.2] - 2026-08-22
+
+### Fixed
+- **The two manual skills-only install commands copied the whole `skills/` directory after the language variants moved under `skills/i18n/` (PR #229 by @dylanpulver).** The Unix and PowerShell instructions now copy only `skills/planning-with-files`, so an English install no longer creates an unusable `~/.claude/skills/i18n/` entry or places the five translations one directory below the paths their commands probe.
+- **A fresh manual install could flatten the canonical skill into `~/.claude/skills/`.** With one source directory and no existing destination, `cp` and `Copy-Item` can create the destination from the source contents, leaving `SKILL.md` directly under `skills/`. Both instructions now create `~/.claude/skills` before copying the canonical skill directory into it.
+
+### Changed
+- `tests/test_plugin_skill_surface.py` now scans tracked Markdown for `cp` or `Copy-Item` commands that copy `skills/*` wholesale. It also locks the destination-creation step before both manual copies and falls back to a filesystem scan when Git is unavailable.
+
+### Verification
+- Required baseline before integration: 434 passed, 10 skipped, and 497 subtests passed.
+- Exact contributor head before the maintainer hardening: 435 passed, 10 skipped, and 497 subtests passed.
+- Amended release candidate: 436 passed, 10 skipped, and 499 subtests passed. GitHub Actions passed on Ubuntu, macOS, and Windows, and the Pi extension Vitest job passed.
+- `sync-ide-folders.py --verify` reports every maintained mirror in sync. `bump-version.py 3.11.2 --dry-run` resolves all 19 present parity targets with zero errors.
+
+### Thanks
+- Dylan traced the regression to the v3.11.0 language-directory move, found the only two whole-directory copy commands in tracked documentation, and added the guard that keeps that install shape out of future docs (PR #229).
+
+## [3.11.1] - 2026-08-21
+
+### Fixed
+- **The Copilot error hook could not be parsed by a POSIX shell (PR #228 by @dylanpulver).** `error-occurred.sh` fed both of its Python helpers with `<<<`, a bash here-string that dash does not implement. `tests/test_planning_disabled_optout.py` invokes the shell hooks as `["sh", script]`, so the `#!/bin/bash` shebang never applied, and on ubuntu runners, where `/bin/sh` is dash, the file died at line 32 with `Syntax error: redirection unexpected`. Master CI had failed on the ubuntu leg for five consecutive runs. Both call sites now pipe with `printf '%s\n'`. The four sibling hooks pipe with `echo`, and that form was deliberately not copied: dash's builtin `echo` expands backslash escapes, so an escaped newline inside an error message would come back as a real control character and `json.load` would reject it, trading a loud parse failure for a silent one. No user was affected, because `.github/hooks/planning-with-files.json` invokes the hook under a `bash` key, which bypasses both the shebang and the exec bit. This is a CI and portability fix.
+- The v3.11.0 changelog entry warning that shell hooks must not emit JSON with `echo` contained two raw newlines of its own, inside the code spans for `\n` and `printf '%s\n'`. The escapes were expanded when the entry was written, which broke both spans across lines.
+
+### Verification
+- The failure was reproduced locally against real dash rather than taken from the report: the pre-fix hook exits 2 with `Syntax error: redirection unexpected` at line 32, matching the ubuntu log verbatim, and the post-fix hook exits 0 and emits valid JSON with the newline escaped as two characters.
+- All five scripts in `.github/hooks/scripts/` were parsed under a POSIX shell. Before the change `error-occurred.sh` was the only one that failed, and after it none do.
+- The reasoning for avoiding `echo` was checked directly. Under dash, `echo` on the raw payload produces a literal newline and `json.load` rejects it with `Invalid control character`, while `printf '%s\n'` round trips.
+- Full Python suite on Windows: 434 passed, 10 skipped, 497 subtests passed.
+
+### Known limitations
+- The four `.gemini/hooks/*.sh` still carry `<<<`. Nothing runs them through `sh`, and `.gemini/settings.json` invokes them by path so their shebang applies, so they are out of scope here. `.gemini` is on the intentionally lagging list and moving it needs its own scope decision.
+
+### Thanks
+- Dylan found this in CI rather than in a bug report, reproduced the ubuntu condition locally instead of guessing at it, and confirmed the suite actually exercises the path by reverting his own change. He also declined the obvious fix: copying the `echo` form used by the four sibling hooks would have made the syntax error disappear while introducing a silent JSON corruption, and he said so in the pull request instead of leaving it to review. The scope note on `.gemini` is accurate on every point (PR #228).
+
+## [3.11.0] - 2026-08-20
+
+### Changed
+- **The plugin registers one skill instead of six (closes #130, reported by @sean3808; implemented by @dylanpulver in PR #226).** The five language variants moved from `skills/planning-with-files-<lang>/` to `skills/i18n/planning-with-files-<lang>/`. Nothing was deleted, renamed or merged. All five skill names, all five `npx skills add --skill` commands, and all five install destinations are exactly what they were. One directory of depth is the whole mechanism: Claude Code discovers a plugin's skills by scanning `skills/*/SKILL.md` at a single level without recursing, so a variant one level down is not registered on the plugin route, while `npx skills add` resolves `--skill` by skill name across a recursive scan and does not care about depth.
+- **The five language commands read their translated skill from disk.** `/plan-ar`, `/plan-de`, `/plan-es`, `/plan-zh` and `/plan-zht` now read `$HOME/.claude/skills/planning-with-files-<lang>/SKILL.md` first, then `${CLAUDE_PLUGIN_ROOT}/skills/i18n/planning-with-files-<lang>/SKILL.md`, and fall back to the canonical skill with an explicit instruction to keep working in that language. Each one also states that the status tokens stay literal English, because `check-complete.sh` matches them with `grep -F` and a translated token silently disables the completion gate.
+
+### Fixed
+- The second candidate path in the five language commands pointed at the marketplace clone rather than the running plugin. That clone tracks the default branch while an installed plugin is version-pinned, and it does not exist at all under `CLAUDE_CONFIG_DIR` or the zip-cache route. `${CLAUDE_PLUGIN_ROOT}` is substituted by the loader and is what the repository already uses in command prose.
+- `README.md` still advertised the five variant skill ids as model-invocable, which stops being true once the plugin no longer registers them.
+- **Seven shell hooks could emit JSON with a raw control character on macOS (reported by @dylanpulver).** They build their payload by interpolating a `json.dumps` result and emitting it with `echo`. Under their own `#!/bin/bash` shebang that is correct, but run with `sh` on macOS, where `/bin/sh` is bash in POSIX mode with `xpg_echo` set, `echo` turns the escaped `\n` inside the string back into a real newline and every parser rejects the result. All seven now use `printf '%s\n'`, which never interprets backslashes. Found while rebasing #226, with the one-line repro supplied.
+
+### Added
+- **`docs/languages.md`.** The five translations had no documentation page of their own: `docs/` carried a setup guide for every supported IDE and nothing for languages, and `docs/installation.md` did not mention them at all. Six lines in the README were the entire discovery path, which mattered less while the plugin auto-registered the variants and is now the only way in. The new page covers the table of names and commands, the install command per language, the repository layout, how the language commands behave on the plugin route, and why the status tokens stay literal English. Linked from the README and from `docs/installation.md`.
+
+### Verification
+- Measured against the real Claude Code loader rather than inferred. Debug output on the merged tree: `Loaded 1 skills from plugin ... default directory`, down from 6. Component inventory 19 to 14, projected always-on cost roughly 2,254 to 1,042 tokens per session. All thirteen slash commands survive, including the five language ones.
+- The skills CLI still discovers all seven skills in the moved layout by name. `npx skills add . --skill planning-with-files-de` in an isolated home installs to the same destination as before, with the translated SKILL.md and the full 20-script surface, and pulls in nothing else.
+- The German template writes literal `**Status:** in_progress` and the German `check-complete.sh` matches that exact string, so the completion gate is intact for non-English users.
+- Full Python suite: 434 passed, 10 skipped, 497 subtests passed. `sync-ide-folders.py --verify` clean. `bump-version.py` resolves the parity set at the new paths.
+- All 120 moved files are pure renames. No translated content was altered.
+
+### Known limitations
+- An existing variant install records the old path in its skills lock file, so `npx skills update` cannot resolve it until the skill is reinstalled. The installed skill keeps working and a fresh install always works. No change to this PR can avoid it; it is inherent to moving a directory.
+
+### Thanks
+
+This one took four attempts across seven months of the issue tracker to answer, so credit goes to everyone who pushed on it.
+
+- Sean opened #130 in April with the analysis that framed the whole problem: the scripts and templates were identical, only the prose differed, and the six skills were costing every session five descriptions it did not need. Every later attempt is a variation on that report.
+- Dylan wrote the answer that shipped (#226). He found the one-level plugin scan, checked the install route rather than assuming it, and carried the literal English status-token warning into all five commands where a previous attempt had not. He also named the one cost he could not remove, which is what made the change reviewable.
+- Som audited the five variants against the canonical skill in #216 and proved the drift #130 predicted: twelve missing scripts, a missing Windows UTF-8 fix, and sync tooling that covered only three dispatch targets. That analysis shipped as v3.10.0 and had to land before this change was safe.
+- Abdullah asked in #151 for a single canonical source with a CI parity gate. The gate shipped in v2.37.0 and is the reason this move could be verified rather than hoped at.
+- The earliest two reports were about the same duplication from the other direction: #53 by @back1ply proposed collapsing the eight client folders into one source, and #47 by @tiptinker asked for the Anthropic skills layout. Both are why `sync-ide-folders.py` exists.
+
+**On why this took so long.** The obvious fix was to delete the five directories, and it was proposed more than once. It could not be taken. Skill listings on a public directory cannot be retracted once published, so deleting the folders would not have removed the entries; it would have left five permanent listings whose install command had started to fail, which is worse for the people using them than either keeping or removing them. The variants also have real users who chose them deliberately, and a breaking change to a working install is not a reasonable price for a packaging problem. What was needed was a route that changes nothing anyone depends on, and it took until #226 to find one. The delay was not indecision about whether the problem was real. It was refusing to fix it by breaking installs.
+
+## [3.10.2] - 2026-08-19
+
+### Fixed
+- **`PLANNING_DISABLED=1` did nothing on the GitHub Copilot route (PR #223, by @Whxuan0701).** The per-invocation opt-out from #195 reached the canonical, `.agents` and Codex routes in v3.9.0, but all ten Copilot entry points under `.github/hooks/scripts/` still read `task_plan.md` and emitted planning context whatever the variable said. That is the failure #195 was filed about: a one-shot task that merely shares a working directory with an unrelated plan gets that plan attached on every session start, matched tool call, error and stop, with no way to turn it off. All five shell and five PowerShell hooks now exit before touching the plan file.
+- **The same opt-out was inoperative on all eight Cursor hooks.** The Cursor route reads `task_plan.md` directly rather than dispatching to `scripts/inject-plan.sh`, which is where the #195 guard lives, so `PLANNING_DISABLED=1` never reached `pre-tool-use`, `post-tool-use`, `stop` or `user-prompt-submit` in either shell or PowerShell. Each guard reproduces its own hook's no-plan-file output, so the Cursor protocol shape is unchanged: `PreToolUse` still answers `{"decision": "allow"}` because that is what it emits unconditionally today, and the other three stay silent. `.gemini` is deliberately behind and is not covered.
+- **Disabling the skill made Copilot's `PreToolUse` more permissive than leaving it on.** The merged guard answered `permissionDecision: allow` on the disabled path, so a user who set the variable to make planning inert also handed every tool call a blanket approval it would not otherwise have had. Both the shell and PowerShell hooks now emit `{}`, matching their own no-plan-file path, which returns the decision to Copilot.
+- **The Copilot PowerShell stop hook reported "Task incomplete (0/0 phases done)" for a plan with no phase headings (PR #222, by @Whxuan0701).** The #191 guard shipped to `agent-stop.sh` and to the canonical scripts and never reached `agent-stop.ps1`, so Windows Copilot users kept getting the false nag the fix was written to remove.
+- **`.cursor/hooks/stop.ps1` was the last copy the #191 fix never reached.** It answered `0/0 phases done` and auto-continued on a plan that was never phase-structured. A repository-wide sweep of every script that emits a `(N/M phases done)` message now finds no unguarded copy left.
+- **The Copilot PowerShell error hook had never logged an error on Windows.** `error-occurred.ps1` read stdin into `$input`, which is PowerShell's automatic pipeline variable: under `-File` the assignment does not stick, so the JSON parse always saw an empty string and the hook emitted `{}` every time. Reproduced under both pwsh 7 and Windows PowerShell 5.1 before the rename.
+- **The Hermes determinism probe could not run on a host without a `python` alias (PR #224, by @Whxuan0701).** `tests/test_injection_determinism.py` spawned a hardcoded `python`, which does not exist on a default macOS setup or on any host that ships only `python3`, so the probe raised `FileNotFoundError` instead of testing anything. It now reuses `sys.executable`.
+
+### Changed
+- The opt-out tests run every hook twice, once with the variable unset and once with it set, and fail if the unset run is already inert. The merged versions asserted only the disabled run, which a fleet of hooks that emit `{}` unconditionally would also have passed: gutting all ten Copilot hooks left the suite green. That is the silent-death class behind the v3.6.0 realpath failure and the v3.8.0 Stop hook, and it is now the one thing these tests cannot miss. The `error-occurred.ps1` `$input` bug is what the new baseline caught first.
+
+### Verification
+- Full Python suite: 430 passed, 11 skipped, 492 subtests passed. Baseline before the three merges was 424 passed, 11 skipped, 474 subtests.
+- Each fix was mutation-tested rather than assumed: stripping all ten Copilot guards fails 9 assertions, gutting the hook fleet to unconditional `{}` fails 6, restoring `$input` in the error hook fails the anti-vacuity baseline by name, and stripping the eight Cursor guards plus the `stop.ps1` phase guard fails 9.
+- `#222` and `#223` both edit `agent-stop.ps1`. The combined tree was tested after both landed, not only in isolation.
+- All four `.ps1` files that carry non-ASCII keep their UTF-8 BOM, every touched script is pure LF, and `sh -n` parses all nine shell hooks.
+- `scripts/sync-ide-folders.py --verify` clean; `scripts/bump-version.py 3.10.2` reports 19 changed, 0 errors.
+
+### Thanks
+- Haoxuan sent three single-commit PRs rather than one bundle: the Copilot opt-out gap (#223), the missing zero-phase guard on the Copilot PowerShell stop hook (#222), and the hardcoded interpreter in the Hermes probe (#224). Each arrived with a test that executes the real script. Auditing them is what surfaced the Cursor route, the `PreToolUse` permission widening and the `$input` bug.
+
+## [3.10.1] - 2026-08-14
+
+### Fixed
+- **Codex on Linux and macOS rejected active planning context from `SessionStart` and `UserPromptSubmit` as invalid JSON (fixes #220, reported by @mfehlhaber).** The POSIX hook commands called shell producers whose output begins `[planning-with-files]`; Codex treats output beginning with `[` as JSON and rejected it. All three shell-backed context events now route through `run_sh.py`, which emits event-appropriate JSON for `SessionStart`, `UserPromptSubmit`, and `PreCompact`.
+- **The tracked npm package source and the published tarball had different provenance.** `planning-with-files@3.10.0` already contained all 20 shared scripts, but its recorded `gitHead` preceded the commit that added eight of those files to the repository. The tracked npm payload and sync manifest now match the published surface, so the next tag, source tree, and package are aligned.
+- **The release reference listed the wrong version-parity files.** `AGENTS.md` included the independently versioned Kiro and Pi skill files and omitted the npm package manifest. It now matches `scripts/bump-version.py` and the parity test.
+- **The version bumper failed in fresh clones that correctly lacked the gitignored ClawHub upload stage.** The parity test had treated this manual staging file as optional since v3.0.0, but `scripts/bump-version.py` still reported it as a fatal missing target. The bumper now reports an absent stage explicitly without failing, while continuing to update and validate it whenever it exists.
+
+### Changed
+- The installation docs now distinguish direct npm vendoring from Pi's automatically wired route. The npm listing describes `planning-with-files` as the cross-agent package while retaining its bundled Pi extension.
+- The README's `/clear` comparison now uses committed terminal-style SVG illustrations, the statistics table has an explicit "At a glance" heading, and the repository layout no longer hard-codes a stale test count.
+- The Codex guide now documents the shared POSIX and Windows hook adapter, the `python3` requirement on macOS and Linux, and the need to review changed hook definitions with `/hooks` after upgrading.
+
+### Verification
+- Full Python suite: 424 passed, 11 skipped, and 474 subtests passed.
+- Focused Codex hook suite: 19 passed, including routing, event JSON, no-context silence, and `PLANNING_DISABLED=1` silence for all three shell-backed events.
+- Version-bumper regression and version-parity tests: 9 passed.
+- Version, frontmatter, hook-dispatch, and mirror parity gate: 40 passed, 10 skipped, and 131 subtests passed.
+- Pi extension: 48 Vitest tests passed. The npm dry-run tarball contains the expected 40 files and all 20 shared scripts.
+- ClawHub staging bundle: all 29 canonical files match by SHA-256, with no cache or credential artifacts.
+
+### Thanks
+- @mfehlhaber reported that the Codex POSIX `SessionStart` and `UserPromptSubmit` routes bypassed the event JSON adapter (#220).
+
+## [3.10.0] - 2026-08-09
+
+### Fixed
+- **Two sessions sharing one plan directory could silently destroy each other's work (closes #217, reported by @dubes394).** Both agents read `task_plan.md`, both write it back, and the later write discards the earlier one's phases. Nothing noticed: injection emitted the clobbered file as an ordinary edit, `plan-doctor` reported PASS, and the Stop gate read the reverted status as current. Attestation was the nearest mechanism and did not cover it: it is opt-in in legacy mode, it compares against a baseline a human approved once rather than against what the hooks last observed, it reports a collaborator's edit with the same `[PLAN TAMPERED]` wording as a hostile rewrite, and it is a read-side gate that cannot stop the stale write from landing. The new guard compares progress between turn-start fires instead of hashes, because a hash comparison would flag a single agent's own edit on its very next fire. Checked items and completed phases only go up during normal work, so a decrease means work that was on disk is gone, and forward motion stays silent (tests/test_plan_regression_guard.py).
+- **Every non-English install was a subset install (#130).** The five language variants shipped 8 of the 20 scripts the canonical skill ships. `attest-plan`, `gate-stop`, `ledger-append`, `ledger-summary.ps1`, `phase-status`, `plan-doctor`, `resolve-plan-dir.ps1` and `set-active-plan` had never reached them, so attestation, the completion gate, the ledger, phase status and plan-doctor were absent for the 39.8K installs those five listings carry. `sync-ide-folders.py` covered only the three hook dispatch targets from #212, so the gap was structural and every future feature would have kept missing them. Closed additively: 60 files created, 0 overwritten.
+- **A non-ASCII session log still crashed session recovery on a Windows legacy code page in all five language variants.** `configure_utf8_stdio()` shipped in v3.2.0 but only to the canonical skill, leaving the failure live for exactly the users most likely to have non-ASCII content. Backported by insertion so the translated prose in those files is untouched.
+- **The top of the README was unreadable on a phone.** The before/after comparison used `width="50%"` cells, which GitHub honors directly, so the two columns locked to a 50/50 split of a roughly 340px container instead of scrolling as one unit, crushing the `<pre>` block that shows the actual injection payload into a strip with a nested scrollbar. The stats panel was a 48-column box-drawing block needing about 375px, with every value right-flushed, so a first-time mobile visitor saw five labels and no numbers. Both restructured, all content preserved.
+
+### Added
+- `PWF_PLAN_GUARD=0`, and a `plan-guard-off` token in `.mode`, to turn the parallel-write guard off. The guard is on by default in every mode, which is a deliberate narrow exception to the legacy byte-identical-output invariant: arming it only in a v3 mode would arm it where it is redundant, since a v3 mode refuses to inject an unattested plan and an attested one already reports outside edits as tampered. The unprotected population is legacy, which is also the default.
+
+### Changed
+- The pinned `tesslio/skill-review-and-optimize` SHA moves to the current release commit (PR #215, by @popey). The old pin predated the vendor's migration to Tessl Review, so skill reviews had stopped running correctly. The range it moves across also restricts trusted optimization comments to `user.type == 'Bot'`, closing a hole in the pinned commit where any human commenter could spoof the bot's marker.
+- `sync-ide-folders.py` now records which variant scripts are translator-owned. Its previous comment claimed variant scripts were language-neutral, which is false: `-de/session-catchup.py` contains German prose and five `-ar` scripts contain Arabic. `check-complete`, `init-session` and `session-catchup` are pinned as never-synced so a future full sync cannot overwrite real translations with the English canonical.
+
+### Verification
+- Suite 411 to 417. The new guard is exercised end to end through the real hook: legacy silence, forward progress silence, a regression warning with exact loss counts, no repeat once observed, both off switches, and pretool silence.
+- The guard's marker lives in its own `pwf-prog` cache directory rather than `pwf-sha`, because `test_pinned_plan_shares_one_cache_slot_across_cwds` asserts one slot per plan there to catch the per-cwd-key bug from #212. The key derivation is deliberately identical, so the marker inherits the same cwd-invariance.
+
+### Thanks
+- Kunal reported the parallel-write clobber with a clear agent-interleaving diagram and offered both a revision-header design and a simpler reread rule; the simpler one is what shipped (#217).
+- Alan found that the pinned Tessl action SHA predated their migration and sent the bump as a pinned SHA rather than a tag, matching how this repo pins actions (#215).
+- Som audited the five language variants against the canonical skill and proved the drift #130 predicted, naming the exact 12 missing scripts and the missing UTF-8 fix. That analysis drove this release's variant work, though the variants themselves stay: they carry 39.8K of the project's 89.3K installs, and skills.sh has no pruning job, so deleting the directories would leave five permanent listings advertising an install that fails rather than removing them (#216).
+
 ## [3.9.0] - 2026-08-01
 
 ### Fixed

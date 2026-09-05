@@ -45,8 +45,10 @@ skills/planning-with-files/
 Language variants live under directories that follow this pattern:
 
 ```text
-skills/planning-with-files-<lang>/
+skills/i18n/planning-with-files-<lang>/
 ```
+
+Keep them one directory below `skills/`. The Claude Code plugin scan reads `skills/*/SKILL.md` and does not recurse, so a variant placed directly under `skills/` is registered for every plugin user and its description is added to every session's system prompt. `tests/test_plugin_skill_surface.py` fails if that happens.
 
 IDE adapter variants live under these directories:
 
@@ -61,7 +63,7 @@ IDE adapter variants live under these directories:
 .pi/
 ```
 
-The `clawhub-upload/` directory is gitignored and handled manually. Do not rely on it as the source of truth for repository changes.
+The `clawhub-upload/` directory is gitignored and handled manually. Do not rely on it as the source of truth for repository changes. For a release, run `python scripts/build-clawhub-upload.py`, then run `python scripts/build-clawhub-upload.py --verify` and require the complete folder to match the canonical tracked inventory. Manually upload the entire `clawhub-upload/` folder at clawhub.io.
 
 ## Submitting a PR
 

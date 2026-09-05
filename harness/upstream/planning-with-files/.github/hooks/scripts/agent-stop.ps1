@@ -8,6 +8,11 @@ $OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
 $InputData = [Console]::In.ReadToEnd()
 
+if ($env:PLANNING_DISABLED -eq '1') {
+    Write-Output '{}'
+    exit 0
+}
+
 $PlanFile = "task_plan.md"
 
 if (-not (Test-Path $PlanFile)) {
@@ -30,6 +35,11 @@ if ($COMPLETE -eq 0 -and $IN_PROGRESS -eq 0 -and $PENDING -eq 0) {
     $COMPLETE = ([regex]::Matches($content, "\[complete\]")).Count
     $IN_PROGRESS = ([regex]::Matches($content, "\[in_progress\]")).Count
     $PENDING = ([regex]::Matches($content, "\[pending\]")).Count
+}
+
+if ($TOTAL -eq 0) {
+    Write-Output '{}'
+    exit 0
 }
 
 if ($COMPLETE -eq $TOTAL -and $TOTAL -gt 0) {

@@ -198,6 +198,12 @@ function assertEntryPolicyContract(markdown) {
   assert.match(gates, /applicable Host and human gate/i);
   assert.match(gates, /Routing never grants permission/i);
   assert.match(gates, /worker completion remains a candidate until Chief acceptance and Trio writeback/i);
+
+  const boundary = markdownSection(markdown, 'Plan and Execute Boundary');
+  assert.match(boundary, /Direct tracked execution can establish technical verification/i);
+  assert.match(boundary, /Chief independent acceptance is required only when/i);
+  assert.match(boundary, /visible or delegated worker is the primary executor/i);
+  assert.match(boundary, /worker result remains a candidate until Chief acceptance and Trio writeback/i);
 }
 
 test('V2 config and projection expose pure public seams', () => {

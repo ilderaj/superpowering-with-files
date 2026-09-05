@@ -239,3 +239,27 @@ test('PWF hook-plane docs are retired and Host hooks remain non-authoritative', 
   assert.doesNotMatch(matrix, /task-scoped planning hook output|tests\/hooks\/task-scoped-hook\.test\.mjs/);
   assert.match(matrix, /native Trio planning files and main-session round start/);
 });
+
+test('operator docs expose the coding-harness SOP and the direct tracked lane without retired surfaces', async () => {
+  const [workflows, sop, humanUsage] = await Promise.all([
+    readFile('docs/workflows.md', 'utf8'),
+    readFile('docs/coding-harness-sop.md', 'utf8'),
+    readFile('docs/trio-v2/human-usage.md', 'utf8')
+  ]);
+
+  assert.match(workflows, /\[Coding Harness SOP\]\(coding-harness-sop\.md\)/);
+  assert.match(workflows, /Tracked direct/i);
+  assert.match(workflows, /Chief-governed/i);
+  assert.match(sop, /becomes normative only after/i);
+  assert.match(sop, /change-quality-gate/);
+  assert.match(sop, /pr-feedback-loop/);
+  assert.match(workflows, /npm run verify:pr-quality/);
+  assert.match(sop, /swf\/change-quality-gate-packet/);
+  assert.match(sop, /machine-readable/i);
+  assert.match(sop, /does not write files|read-only command/i);
+  assert.match(humanUsage, /verify:pr-quality/);
+  assert.match(humanUsage, /read-only|只读/i);
+
+  assertNoLegacyOperatorClaims(workflows, { name: 'workflows' });
+  assertNoLegacyOperatorClaims(sop, { name: 'sop' });
+});
