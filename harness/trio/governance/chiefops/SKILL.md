@@ -58,6 +58,14 @@ Worker completion is only a candidate. Chief acceptance and Trio writeback are r
 
 The acceptance gate applies when ChiefOps governs a delegated or Chief lane. It is never a mandatory runner for direct tracked work; a direct executor that establishes its own technical verification does not need ChiefOps check-in. ChiefOps remains governance-only and is not a runner, scheduler, registry, or fourth task-state surface.
 
+## Read-only PR Feedback Loop
+
+ChiefOps may bind observation only to one open PR and the current Trio with the exact repository, number/URL, base ref/SHA, current head SHA, fixed spec reference, and complete machine policy contract: non-empty `requiredChecks`, `humanReviewPolicy: current_head_human_approved_required`, `mergeabilityPolicy: current_head_mergeable_required`, `severityPolicy: critical_major_repair_minor_follow_up`, `repairPushPolicy: disabled`, `threadWritePolicy: read_only`, `followUpIssuePolicy: draft_only`, and `autoMergePolicy: disabled` by default. The observer may read only the current PR, paginated review threads/reviews, and status checks through `gh`/GraphQL; it is not a GitHub action executor.
+
+Unchanged observations remain quiet. A changed head invalidates prior head-specific review, check, and gate evidence, and deduplication uses PR + current head + thread/comment + update time + verdict. Classify changed findings as `real`, `already_fixed`, `stale`, `false_positive`, or `needs_user_decision`; route Critical/Major to `repair_required`, Minor to `follow_up`, and informational or uncertain evidence to `awaiting_human`.
+
+The only conditional native-auto-merge status requires explicit per-PR opt-in, current required CI, mergeable current state, no actionable Critical/Major finding, and a required human `APPROVED` review for the same current head. No observer or ChiefOps path may reply, resolve, create an issue/review, label, close, merge, auto-merge, push, commit, approve as a human, or change credentials; all remain disabled external actions unless a separate human-gated policy authorizes them.
+
 ## Permission Ordering
 
 Plan the exact permission scope before creating or spawning any worker: the assignment packet and its allowed paths are settled before any visible worker exists. Apply least privilege with task-specific writable roots that never exceed the frozen slice. Full Access is an explicit exception, never a default or an escalation path. Recheck the frozen scope before any escalation or review: an out-of-scope operation is blocked before escalation eligibility. Approval only resolves Host restriction and never expands allowed paths. Generated or materialized surfaces are never direct-written through escalation; change source-owned policy and projection proof instead.

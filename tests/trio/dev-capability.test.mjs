@@ -7,6 +7,8 @@ import test from 'node:test';
 const testDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(testDirectory, '..', '..');
 const devSkillPath = path.join(repositoryRoot, 'harness', 'trio', 'capabilities', 'dev', 'SKILL.md');
+const chiefopsSkillPath = path.join(repositoryRoot, 'harness', 'trio', 'governance', 'chiefops', 'SKILL.md');
+const sopPath = path.join(repositoryRoot, 'docs', 'coding-harness-sop.md');
 const entrySkillPath = path.join(repositoryRoot, 'harness', 'trio', 'skill', 'SKILL.md');
 
 function parseHeader(markdown) {
@@ -238,6 +240,40 @@ function assertEntrySkillContract(markdown) {
 
 test('dev capability exposes an independent development-quality contract', async () => {
   assertDevSkillContract(await readFile(devSkillPath, 'utf8'));
+});
+
+test('dev, ChiefOps, and SOP bind a read-only current-head PR feedback loop', async () => {
+  const sources = await Promise.all([
+    readFile(devSkillPath, 'utf8'),
+    readFile(chiefopsSkillPath, 'utf8'),
+    readFile(sopPath, 'utf8')
+  ]);
+  const normalized = sources.join('\n').toLowerCase();
+  for (const phrase of [
+    'repository, number',
+    'base ref',
+    'current head sha',
+    'fixed spec reference',
+    'threadwritepolicy: read_only',
+    'followupissuepolicy: draft_only',
+    'paginated review threads',
+    'status checks',
+    'stays quiet',
+    'invalidates prior head-specific',
+    'already_fixed',
+    'false_positive',
+    'needs_user_decision',
+    'repair_required',
+    'follow_up',
+    'awaiting_human',
+    'human `approved`',
+    'same current head',
+    'thread replies',
+    'credential changes',
+    'disabled external actions'
+  ]) {
+    assert.ok(normalized.includes(phrase), `Missing PR feedback contract: ${phrase}`);
+  }
 });
 
 test('dev validator rejects unconditional discovery design', async () => {

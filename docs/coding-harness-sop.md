@@ -167,15 +167,17 @@ Record these fields in the task plan before configuring the Heartbeat:
 | Field | Required policy/value |
 |---|---|
 | PR | Repository, number/URL, base ref, current head SHA, and fixed diff/spec reference. |
-| Check contract | Required CI/status checks, review requirement, mergeability requirement, and any repository-specific branch rule. |
-| Severity | Use the rubric below; identify any project-specific blocker. |
+| Check contract | `requiredChecks` must be a non-empty list of non-empty names; bind `humanReviewPolicy=current_head_human_approved_required`, `mergeabilityPolicy=current_head_mergeable_required`, and any repository-specific branch rule. |
+| Severity | `severityPolicy=critical_major_repair_minor_follow_up`; use the rubric below and identify any project-specific blocker. |
 | Thread writes | `read_only` by default; separately opt in to replies/resolutions only with evidence text. |
 | Follow-up issues | `draft_only` by default; allow GitHub issue creation only if you explicitly enable it for this PR. |
-| Repair pushes | Off by default; an authorized repair still uses the bound Chief/worker and quality-gate path. |
-| Auto-merge | Off by default; if enabled, allow only GitHub-native auto-merge after a required human `APPROVED` review on the current head. |
+| Repair pushes | `repairPushPolicy=disabled` by default; an authorized repair still uses the bound Chief/worker and quality-gate path. |
+| Auto-merge | `autoMergePolicy=disabled` by default; if enabled, allow only GitHub-native auto-merge after a required human `APPROVED` review on the current head. |
 | Stop | Merge/close, explicit cancellation, inaccessible PR, task/binding change, or an unresolved repair/human decision. |
 
 The Heartbeat remains silent when every observed field is unchanged. On a changed head, review/thread, check, review decision, mergeability, or severity it records a compact observation in the existing Trio. The observation key is PR + current head SHA + thread/comment ID + update time + verdict; this prevents duplicate alerts, repeated issue creation, and re-triaging a resolved/outdated comment.
+
+The source observer is read-only by construction: it may fetch the bound PR, paginated review threads/reviews, and current status checks through `gh` and GraphQL, then pass that snapshot to the pure reducer. It rejects an absent or incomplete binding and absent credentials before any read. Thread replies/resolution, issue/review/label/close actions, repair pushes, commits, merges, native auto-merge, approvals, and credential changes are disabled external actions for the observer.
 
 ### Each changed observation follows this loop
 
