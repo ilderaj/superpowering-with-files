@@ -179,6 +179,8 @@ The Heartbeat remains silent when every observed field is unchanged. On a change
 
 The source observer is read-only by construction: it may fetch the bound PR, paginated review threads/reviews, and current status checks through `gh` and GraphQL, then pass that snapshot to the pure reducer. It rejects an absent or incomplete binding and absent credentials before any read. Thread replies/resolution, issue/review/label/close actions, repair pushes, commits, merges, native auto-merge, approvals, and credential changes are disabled external actions for the observer.
 
+The reducer emits a fail-closed lifecycle decision. Treat approval as effective only when the current PR `reviewDecision` is `APPROVED` and an `APPROVED` review targeting the exact current head carries authenticated `author.__typename: User` evidence; bot or missing actor type fails closed. `CHANGES_REQUESTED` or `REVIEW_REQUIRED` defeats older approval. Compare the complete normalized PR, check, review, mergeability, and thread/comment snapshot for quietness. Keep review, thread/comment, and check pagination cursors independently monotonic. Continue only for a bounded genuinely pending machine state. Stop for `repair_required`, `deferred_follow_up_recording` after deduplicating accepted nonblocking findings into draft issues, `awaiting_human_gate`, `landing_eligibility` with exact-current-head and human-gate evidence, `stale_binding`, `rejected_binding`, `terminal_pr`, or unreadable observation.
+
 ### Each changed observation follows this loop
 
 1. Confirm repository, PR, base, current head, and bound spec. Fetch all review threads with pagination plus status checks, review decision, and mergeability.

@@ -21,6 +21,20 @@ function error(code, reason, field) {
   return { code, reason, field };
 }
 
+function rejectedResult(errors, lifecycleReason = 'rejected_binding') {
+  return {
+    schema: RESULT_SCHEMA,
+    version: VERSION,
+    status: 'rejected',
+    readOnly: true,
+    errors,
+    observations: [],
+    actions: [],
+    mergeExecuted: false,
+    lifecycle: { decision: 'stop', reason: lifecycleReason }
+  };
+}
+
 function pageNodes(page) {
   if (Array.isArray(page)) return page;
   if (Array.isArray(page?.nodes)) return page.nodes;
@@ -81,6 +95,25 @@ function normalizeThreads(pages) {
     }
   }
   return [...threads.values()];
+}
+
+function stableValue(value) {
+  if (Array.isArray(value)) return `[${value.map(stableValue).join(',')}]`;
+  if (isRecord(value)) {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableValue(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function normalizedStoredSnapshot(value) {
+  if (!isRecord(value)) return null;
+  const snapshot = isRecord(value.normalizedSnapshot) ? value.normalizedSnapshot : value;
+  return normalizePrReviewSnapshot({
+    pullRequest: snapshot.pullRequest ?? {},
+    reviewThreadPages: [snapshot.reviewThreads ?? snapshot.reviewThreadPages ?? []],
+    reviewPages: [snapshot.reviews ?? snapshot.reviewPages ?? []],
+    checkPages: [snapshot.checks ?? snapshot.checkPages ?? []]
+  });
 }
 
 export function normalizePrReviewSnapshot({
@@ -215,7 +248,13 @@ function checkPassed(check, headSha) {
 
 function approvalIsCurrent(review, headSha) {
   const reviewHead = review?.headSha ?? review?.commitOid ?? review?.commit?.oid ?? null;
-  return String(review?.state ?? '').toUpperCase() === 'APPROVED' && reviewHead === headSha;
+  return String(review?.state ?? '').toUpperCase() === 'APPROVED'
+    && reviewHead === headSha
+    && review?.author?.__typename === 'User';
+}
+
+function isTerminalPullRequest(pullRequest) {
+  return ['CLOSED', 'MERGED'].includes(String(pullRequest?.state ?? '').toUpperCase());
 }
 
 function pullRequestBindingErrors(binding, pullRequest) {
@@ -245,6 +284,8 @@ function pullRequestBindingErrors(binding, pullRequest) {
   }
   if (!text(pullRequest.state)) {
     errors.push(error('missing_pr_state', 'Observed PR state is required.', 'pullRequest.state'));
+  } else if (isTerminalPullRequest(pullRequest)) {
+    errors.push(error('terminal_pr', 'The observed PR is terminal.', 'pullRequest.state'));
   } else if (String(pullRequest.state).toUpperCase() !== 'OPEN') {
     errors.push(error('pr_not_open', 'The bound PR must remain open for observation.', 'pullRequest.state'));
   }
@@ -280,7 +321,8 @@ function summarizeStatus(observations, { pullRequest, reviews, checks, requiredC
   if (actionable.some((entry) => entry.route === 'repair_required')) return 'repair_required';
   if (actionable.some((entry) => entry.route === 'follow_up')) return 'follow_up';
 
-  const currentApprover = reviews.some((review) => approvalIsCurrent(review, binding.headSha));
+  const currentApprover = String(pullRequest?.reviewDecision ?? '').toUpperCase() === 'APPROVED'
+    && reviews.some((review) => approvalIsCurrent(review, binding.headSha));
   const required = requiredChecks.length > 0
     ? requiredChecks.every((name) => checks.some((check) => check.name === name && checkPassed(check, binding.headSha)))
     : checks.length > 0 && checks.every((check) => checkPassed(check, binding.headSha));
@@ -294,6 +336,60 @@ function summarizeStatus(observations, { pullRequest, reviews, checks, requiredC
   return readyForConditionalNativeStatus ? 'eligible_for_native_auto_merge' : 'awaiting_human';
 }
 
+function pendingMachineState({ pullRequest, checks, requiredChecks, headSha }) {
+  if (['CHANGES_REQUESTED', 'REVIEW_REQUIRED'].includes(String(pullRequest?.reviewDecision ?? '').toUpperCase())) {
+    return false;
+  }
+  return requiredChecks.some((name) => checks.some((check) => {
+    if (check.name !== name || currentHeadForCheck(check) && currentHeadForCheck(check) !== headSha) return false;
+    const status = String(check?.status ?? '').toUpperCase();
+    const conclusion = String(check?.conclusion ?? check?.state ?? '').toUpperCase();
+    return ['QUEUED', 'IN_PROGRESS', 'PENDING', 'WAITING', 'EXPECTED'].includes(status)
+      || ['QUEUED', 'IN_PROGRESS', 'PENDING', 'WAITING', 'EXPECTED'].includes(conclusion);
+  }));
+}
+
+function lifecycleFor({ status, pullRequest, checks, requiredChecks, binding }) {
+  if (isTerminalPullRequest(pullRequest)) {
+    return { decision: 'stop', reason: 'terminal_pr' };
+  }
+  if (status === 'repair_required') {
+    return { decision: 'stop', reason: 'repair_required' };
+  }
+  if (status === 'follow_up') {
+    return {
+      decision: 'stop',
+      reason: 'deferred_follow_up_recording',
+      deduplicateIssuesBeforeStop: true
+    };
+  }
+  if (status === 'eligible_for_native_auto_merge') {
+    return {
+      decision: 'stop',
+      reason: 'landing_eligibility',
+      exactCurrentHead: true,
+      humanGateRequired: true
+    };
+  }
+  if (status === 'awaiting_human' && pendingMachineState({
+    pullRequest,
+    checks,
+    requiredChecks,
+    headSha: binding.headSha
+  })) {
+    return {
+      decision: 'continue',
+      reason: 'bounded_pending_machine',
+      bounded: true,
+      maxAdditionalObservations: 1
+    };
+  }
+  if (status === 'awaiting_human') {
+    return { decision: 'stop', reason: 'awaiting_human_gate', humanGateRequired: true };
+  }
+  return { decision: 'stop', reason: 'rejected_binding' };
+}
+
 export function reducePrReviewFeedback({
   binding,
   pullRequest = {},
@@ -301,20 +397,12 @@ export function reducePrReviewFeedback({
   reviews = [],
   checks = [],
   requiredChecks = [],
-  previousObservations = []
+  previousObservations = [],
+  previousSnapshot
 } = {}) {
   const bindingErrors = validatePrBinding(binding);
   if (bindingErrors.length > 0) {
-    return {
-      schema: RESULT_SCHEMA,
-      version: VERSION,
-      status: 'rejected',
-      readOnly: true,
-      errors: bindingErrors,
-      observations: [],
-      actions: [],
-      mergeExecuted: false
-    };
+    return rejectedResult(bindingErrors);
   }
 
   const snapshot = normalizePrReviewSnapshot({
@@ -325,16 +413,12 @@ export function reducePrReviewFeedback({
   });
   const snapshotErrors = pullRequestBindingErrors(binding, snapshot.pullRequest);
   if (snapshotErrors.length > 0) {
-    return {
-      schema: RESULT_SCHEMA,
-      version: VERSION,
-      status: 'rejected',
-      readOnly: true,
-      errors: snapshotErrors,
-      observations: [],
-      actions: [],
-      mergeExecuted: false
-    };
+    const lifecycleReason = snapshotErrors.some((entry) => entry.code === 'terminal_pr')
+      ? 'terminal_pr'
+      : snapshotErrors.some((entry) => entry.code === 'head_mismatch')
+        ? 'stale_binding'
+        : 'rejected_binding';
+    return rejectedResult(snapshotErrors, lifecycleReason);
   }
 
   const observations = [];
@@ -350,9 +434,22 @@ export function reducePrReviewFeedback({
     .map((entry) => entry.key)
     .filter(Boolean);
   const effectiveRequiredChecks = requiredChecks.length > 0 ? requiredChecks : binding.requiredChecks;
+  const normalizedPreviousSnapshot = previousSnapshot === undefined
+    ? null
+    : normalizedStoredSnapshot(previousSnapshot);
+  const snapshotFingerprint = stableValue(snapshot);
+  const snapshotChanged = previousSnapshot !== undefined
+    && snapshotFingerprint !== stableValue(normalizedPreviousSnapshot);
   const status = summarizeStatus(uniqueObservations, {
     pullRequest: snapshot.pullRequest,
     reviews: snapshot.reviews,
+    checks: snapshot.checks,
+    requiredChecks: effectiveRequiredChecks,
+    binding
+  });
+  const lifecycle = lifecycleFor({
+    status,
+    pullRequest: snapshot.pullRequest,
     checks: snapshot.checks,
     requiredChecks: effectiveRequiredChecks,
     binding
@@ -369,9 +466,15 @@ export function reducePrReviewFeedback({
     newObservations,
     newObservationCount: newObservations.length,
     invalidatedObservationKeys,
-    quiet: previousObservations.length > 0 && newObservations.length === 0 && invalidatedObservationKeys.length === 0,
+    quiet: previousSnapshot !== undefined
+      && newObservations.length === 0
+      && invalidatedObservationKeys.length === 0
+      && !snapshotChanged,
     actions: [],
     mergeExecuted: false,
+    lifecycle,
+    normalizedSnapshot: snapshot,
+    snapshotFingerprint,
     snapshot: {
       pullRequest: snapshot.pullRequest,
       reviewCount: snapshot.reviews.length,

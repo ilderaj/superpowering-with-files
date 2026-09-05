@@ -172,6 +172,155 @@ test('reducePrReviewFeedback deduplicates repeated observations and invalidates 
   assert.deepEqual(moved.invalidatedObservationKeys, [first.observations[0].key]);
 });
 
+test('effective current review decision gates historical approval', () => {
+  for (const reviewDecision of ['CHANGES_REQUESTED', 'REVIEW_REQUIRED']) {
+    const result = reducePrReviewFeedback({
+      binding: { ...binding, autoMergePolicy: 'enabled' },
+      pullRequest: {
+        ...pullRequest,
+        reviewDecision,
+        mergeable: 'MERGEABLE',
+        mergeStateStatus: 'CLEAN'
+      },
+      reviewThreads: [],
+      reviews: [{
+        id: `historical-${reviewDecision}`,
+        state: 'APPROVED',
+        commitOid: binding.headSha,
+        submittedAt: '2026-09-01T00:00:00Z'
+      }],
+      checks: [{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }],
+      requiredChecks: ['repo-verify']
+    });
+
+    assert.equal(result.status, 'awaiting_human');
+    assert.equal(result.lifecycle.decision, 'stop');
+    assert.equal(result.lifecycle.reason, 'awaiting_human_gate');
+  }
+});
+
+test('only a current-head User approval can satisfy native landing eligibility', () => {
+  for (const author of [
+    { __typename: 'User', login: 'human-reviewer' },
+    { __typename: 'Bot', login: 'automation-bot' },
+    undefined
+  ]) {
+    const result = reducePrReviewFeedback({
+      binding: { ...binding, autoMergePolicy: 'enabled' },
+      pullRequest: {
+        ...pullRequest,
+        reviewDecision: 'APPROVED',
+        mergeable: 'MERGEABLE',
+        mergeStateStatus: 'CLEAN'
+      },
+      reviews: [{
+        id: `approval-${author?.__typename ?? 'missing'}`,
+        state: 'APPROVED',
+        commitOid: binding.headSha,
+        author
+      }],
+      checks: [{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }],
+      requiredChecks: ['repo-verify']
+    });
+
+    if (author?.__typename === 'User') {
+      assert.equal(result.status, 'eligible_for_native_auto_merge');
+      assert.equal(result.lifecycle.reason, 'landing_eligibility');
+    } else {
+      assert.equal(result.status, 'awaiting_human');
+      assert.equal(result.lifecycle.reason, 'awaiting_human_gate');
+    }
+  }
+});
+
+test('quietness compares the complete normalized PR, check, review, and thread snapshot', () => {
+  const stablePullRequest = { ...pullRequest, mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN' };
+  const stableThread = {
+    id: 'resolved-thread',
+    isResolved: true,
+    comments: [{ databaseId: 1, body: 'resolved', updatedAt: '2026-09-05T00:00:00Z' }]
+  };
+  const stableReview = { id: 'review', state: 'COMMENTED', commitOid: binding.headSha };
+  const stableCheck = { name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha };
+  const previousSnapshot = normalizePrReviewSnapshot({
+    pullRequest: stablePullRequest,
+    reviewThreadPages: [[stableThread]],
+    reviewPages: [[stableReview]],
+    checkPages: [[stableCheck]]
+  });
+  const first = reducePrReviewFeedback({
+    binding,
+    pullRequest: stablePullRequest,
+    reviewThreads: [stableThread],
+    reviews: [stableReview],
+    checks: [stableCheck]
+  });
+  const unchanged = reducePrReviewFeedback({
+    binding,
+    pullRequest: stablePullRequest,
+    reviewThreads: [stableThread],
+    reviews: [stableReview],
+    checks: [stableCheck],
+    previousObservations: first.observations,
+    previousSnapshot
+  });
+  assert.equal(unchanged.quiet, true);
+
+  for (const changed of [
+    { pullRequest: { ...stablePullRequest, mergeStateStatus: 'BLOCKED' }, reviewThreads: [stableThread], reviews: [stableReview], checks: [stableCheck] },
+    { pullRequest: stablePullRequest, reviewThreads: [stableThread], reviews: [stableReview], checks: [{ ...stableCheck, conclusion: 'FAILURE' }] },
+    { pullRequest: stablePullRequest, reviewThreads: [stableThread], reviews: [{ ...stableReview, state: 'APPROVED' }], checks: [stableCheck] },
+    { pullRequest: stablePullRequest, reviewThreads: [{ ...stableThread, comments: [{ ...stableThread.comments[0], body: 'changed' }] }], reviews: [stableReview], checks: [stableCheck] }
+  ]) {
+    const result = reducePrReviewFeedback({
+      binding,
+      ...changed,
+      previousObservations: first.observations,
+      previousSnapshot
+    });
+    assert.equal(result.quiet, false);
+  }
+});
+
+test('stable complete snapshots with zero thread observations become quiet only with prior state', () => {
+  const stablePullRequest = { ...pullRequest, mergeStateStatus: 'BLOCKED' };
+  const previousSnapshot = normalizePrReviewSnapshot({
+    pullRequest: stablePullRequest,
+    reviewThreadPages: [[]],
+    reviewPages: [[{ id: 'review', state: 'COMMENTED', commitOid: binding.headSha }]],
+    checkPages: [[{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }]]
+  });
+  const first = reducePrReviewFeedback({
+    binding,
+    pullRequest: stablePullRequest,
+    reviewThreads: [],
+    reviews: [{ id: 'review', state: 'COMMENTED', commitOid: binding.headSha }],
+    checks: [{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }]
+  });
+  assert.deepEqual(first.observations, []);
+
+  const unchanged = reducePrReviewFeedback({
+    binding,
+    pullRequest: stablePullRequest,
+    reviewThreads: [],
+    reviews: [{ id: 'review', state: 'COMMENTED', commitOid: binding.headSha }],
+    checks: [{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }],
+    previousObservations: [],
+    previousSnapshot
+  });
+  assert.equal(unchanged.quiet, true);
+
+  const firstWithoutSnapshot = reducePrReviewFeedback({
+    binding,
+    pullRequest: stablePullRequest,
+    reviewThreads: [],
+    reviews: [{ id: 'review', state: 'COMMENTED', commitOid: binding.headSha }],
+    checks: [{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }],
+    previousObservations: []
+  });
+  assert.equal(firstWithoutSnapshot.quiet, false);
+});
+
 test('reducer classifies resolved, stale, already-fixed, false-positive, and user-decision threads', () => {
   const result = reducePrReviewFeedback({
     binding,
@@ -192,6 +341,83 @@ test('reducer classifies resolved, stale, already-fixed, false-positive, and use
     ['resolved', 'stale', 'already_fixed', 'false_positive', 'needs_user_decision']
   );
   assert.equal(result.status, 'awaiting_human');
+});
+
+test('reducer emits a fail-closed monitor lifecycle decision', () => {
+  const common = { binding, pullRequest, reviewThreads: [], reviews: [], checks: [] };
+  const routes = [
+    {
+      name: 'repair',
+      input: { reviewThreads: [{ id: 'major', severity: 'major', comments: [{ databaseId: 1 }] }] },
+      reason: 'repair_required',
+      decision: 'stop'
+    },
+    {
+      name: 'follow-up',
+      input: { reviewThreads: [{ id: 'minor', severity: 'minor', comments: [{ databaseId: 2 }] }] },
+      reason: 'deferred_follow_up_recording',
+      decision: 'stop'
+    },
+    {
+      name: 'human',
+      input: {},
+      reason: 'awaiting_human_gate',
+      decision: 'stop'
+    },
+    {
+      name: 'landing',
+      input: {
+        binding: { ...binding, autoMergePolicy: 'enabled' },
+        pullRequest: { ...pullRequest, reviewDecision: 'APPROVED', mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN' },
+        reviews: [{ id: 'current-approval', state: 'APPROVED', commitOid: binding.headSha, author: { __typename: 'User', login: 'human-reviewer' } }],
+        checks: [{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }],
+        requiredChecks: ['repo-verify']
+      },
+      reason: 'landing_eligibility',
+      decision: 'stop'
+    },
+    {
+      name: 'pending-machine',
+      input: {
+        pullRequest: { ...pullRequest, reviewDecision: 'APPROVED' },
+        checks: [{ name: 'repo-verify', status: 'IN_PROGRESS', headSha: binding.headSha }]
+      },
+      reason: 'bounded_pending_machine',
+      decision: 'continue'
+    },
+    {
+      name: 'terminal',
+      input: { pullRequest: { ...pullRequest, state: 'CLOSED' } },
+      reason: 'terminal_pr',
+      decision: 'stop'
+    }
+  ];
+
+  for (const route of routes) {
+    const result = reducePrReviewFeedback({ ...common, ...route.input });
+    assert.equal(result.lifecycle.decision, route.decision, route.name);
+    assert.equal(result.lifecycle.reason, route.reason, route.name);
+    assert.deepEqual(result.actions, [], route.name);
+    if (route.name === 'follow-up') assert.equal(result.lifecycle.deduplicateIssuesBeforeStop, true);
+    if (route.name === 'landing') {
+      assert.equal(result.lifecycle.exactCurrentHead, true);
+      assert.equal(result.lifecycle.humanGateRequired, true);
+    }
+    if (route.name === 'pending-machine') assert.equal(result.lifecycle.bounded, true);
+  }
+
+  const stale = reducePrReviewFeedback({
+    ...common,
+    binding: { ...binding, headSha: 'new-head' },
+    pullRequest: { ...pullRequest }
+  });
+  assert.equal(stale.lifecycle.reason, 'stale_binding');
+
+  const rejected = reducePrReviewFeedback({
+    ...common,
+    pullRequest: { ...pullRequest, baseRefName: 'other' }
+  });
+  assert.equal(rejected.lifecycle.reason, 'rejected_binding');
 });
 
 test('reducer routes a realistic P2-badged review comment as a Minor follow-up', () => {
@@ -287,9 +513,9 @@ test('current-head mismatch rejects head-specific evidence', () => {
 test('native auto-merge is only a conditional status and never an executed action', () => {
   const result = reducePrReviewFeedback({
     binding: { ...binding, autoMergePolicy: 'enabled' },
-    pullRequest: { ...pullRequest, mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN' },
+    pullRequest: { ...pullRequest, reviewDecision: 'APPROVED', mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN' },
     reviewThreads: [],
-    reviews: [{ id: 'approval', state: 'APPROVED', commitOid: binding.headSha }],
+    reviews: [{ id: 'approval', state: 'APPROVED', commitOid: binding.headSha, author: { __typename: 'User', login: 'human-reviewer' } }],
     checks: [{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }],
     requiredChecks: ['repo-verify']
   });
@@ -299,9 +525,9 @@ test('native auto-merge is only a conditional status and never an executed actio
 
   const disabled = reducePrReviewFeedback({
     binding,
-    pullRequest: { ...pullRequest, mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN' },
+    pullRequest: { ...pullRequest, reviewDecision: 'APPROVED', mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN' },
     reviewThreads: [],
-    reviews: [{ id: 'approval', state: 'APPROVED', commitOid: binding.headSha }],
+    reviews: [{ id: 'approval', state: 'APPROVED', commitOid: binding.headSha, author: { __typename: 'User', login: 'human-reviewer' } }],
     checks: [{ name: 'repo-verify', conclusion: 'SUCCESS', headSha: binding.headSha }],
     requiredChecks: ['repo-verify']
   });
@@ -318,9 +544,11 @@ test('runner rejects absent binding or credentials without calling GitHub', asyn
   const missingBinding = await runPrReviewObservation({ input: {}, env: { GH_TOKEN: 'test' }, runCommand });
   assert.equal(missingBinding.status, 'rejected');
   assert.equal(missingBinding.errors[0].code, 'missing_binding');
+  assert.deepEqual(missingBinding.lifecycle, { decision: 'stop', reason: 'rejected_binding' });
   const missingCredentials = await runPrReviewObservation({ input: binding, env: {}, runCommand });
   assert.equal(missingCredentials.status, 'rejected');
   assert.equal(missingCredentials.errors[0].code, 'credentials_missing');
+  assert.deepEqual(missingCredentials.lifecycle, { decision: 'stop', reason: 'rejected_observation' });
   assert.deepEqual(calls, [['gh', ['auth', 'status', '--hostname', 'github.com']]]);
 });
 
@@ -370,6 +598,8 @@ test('runner gathers only read-only gh PR and GraphQL snapshots and reduces them
   assert.ok(calls.length >= 2);
   assert.ok(calls.every(({ command }) => command === 'gh'));
   assert.ok(calls.every(({ args }) => !args.includes('merge') && !args.includes('push')));
+  const graphQlQuery = calls.find(({ args }) => args[0] === 'api').args.find((value) => value.startsWith('query='));
+  assert.match(graphQlQuery, /author\{login __typename\}/);
 });
 
 test('runner addresses the bound PR with a numeric selector and explicit repository', async () => {
@@ -444,6 +674,71 @@ test('runner normalizes nested status checks and paginates review and check conn
   assert.equal(calls.length, 4);
   assert.ok(calls[3].args.includes('threadCursor=thread-2'));
   assert.ok(calls[3].args.includes('checkCursor=check-2'));
+});
+
+test('runner keeps exhausted top-level cursors independent and monotonic', async () => {
+  const calls = [];
+  const runCommand = async (command, args) => {
+    calls.push({ command, args });
+    if (args[0] === 'auth') return { stdout: '', stderr: '', exitCode: 0 };
+    if (args[0] === 'pr') return { stdout: JSON.stringify(pullRequest), stderr: '', exitCode: 0 };
+    const threadCursor = args.find((value) => value.startsWith('threadCursor='));
+    const reviewCursor = args.find((value) => value.startsWith('reviewCursor='));
+    const graphQlPullRequest = !threadCursor ? {
+      reviewThreads: { nodes: [{ id: 'thread-1', isResolved: true, comments: { nodes: [] } }], pageInfo: { hasNextPage: true, endCursor: 'thread-2' } },
+      reviews: { nodes: [{ id: 'review-1', state: 'COMMENTED' }], pageInfo: { hasNextPage: true, endCursor: 'review-2' } },
+      commits: { nodes: [{ commit: { oid: binding.headSha, statusCheckRollup: { contexts: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } } }] }
+    } : reviewCursor ? {
+      reviewThreads: { nodes: [{ id: 'thread-2', isResolved: true, comments: { nodes: [] } }], pageInfo: { hasNextPage: true, endCursor: 'thread-3' } },
+      reviews: { nodes: [{ id: 'review-2', state: 'COMMENTED' }], pageInfo: { hasNextPage: false, endCursor: null } },
+      commits: { nodes: [{ commit: { oid: binding.headSha, statusCheckRollup: { contexts: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } } }] }
+    } : {
+      reviewThreads: { nodes: [{ id: 'thread-3', isResolved: true, comments: { nodes: [] } }], pageInfo: { hasNextPage: false, endCursor: null } },
+      reviews: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+      commits: { nodes: [{ commit: { oid: binding.headSha, statusCheckRollup: { contexts: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } } }] }
+    };
+    return { stdout: JSON.stringify({ data: { repository: { pullRequest: graphQlPullRequest } } }), stderr: '', exitCode: 0 };
+  };
+
+  const result = await runPrReviewObservation({ input: binding, env: {}, runCommand });
+  const graphQlCalls = calls.filter(({ args }) => args[0] === 'api');
+  assert.equal(result.snapshot.threadCount, 3);
+  assert.equal(graphQlCalls.length, 3);
+  assert.ok(graphQlCalls[1].args.includes('threadCursor=thread-2'));
+  assert.ok(graphQlCalls[1].args.includes('reviewCursor=review-2'));
+  assert.ok(graphQlCalls[2].args.includes('threadCursor=thread-3'));
+  assert.ok(!graphQlCalls[2].args.includes('reviewCursor=review-2'));
+  assert.ok(graphQlCalls[2].args.includes('includeThreads=true'));
+  assert.ok(graphQlCalls[2].args.includes('includeReviews=false'));
+  assert.ok(graphQlCalls[2].args.includes('includeChecks=false'));
+});
+
+test('runner paginates each review-thread comment connection independently', async () => {
+  const calls = [];
+  const runCommand = async (command, args) => {
+    calls.push({ command, args });
+    if (args[0] === 'auth') return { stdout: '', stderr: '', exitCode: 0 };
+    if (args[0] === 'pr') return { stdout: JSON.stringify(pullRequest), stderr: '', exitCode: 0 };
+    if (args.includes('threadId=thread-comments')) {
+      const secondPage = args.includes('commentCursor=comment-2');
+      const comments = secondPage
+        ? { nodes: [{ databaseId: 2, body: 'second comment', updatedAt: '2026-09-05T00:00:02Z' }], pageInfo: { hasNextPage: false, endCursor: null } }
+        : { nodes: [{ databaseId: 1, body: 'first comment', updatedAt: '2026-09-05T00:00:01Z' }], pageInfo: { hasNextPage: true, endCursor: 'comment-2' } };
+      return { stdout: JSON.stringify({ data: { node: { comments } } }), stderr: '', exitCode: 0 };
+    }
+    return { stdout: JSON.stringify({ data: { repository: { pullRequest: {
+      reviewThreads: { nodes: [{ id: 'thread-comments', isResolved: false, isOutdated: false }], pageInfo: { hasNextPage: false, endCursor: null } },
+      reviews: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } },
+      commits: { nodes: [{ commit: { oid: binding.headSha, statusCheckRollup: { contexts: { nodes: [], pageInfo: { hasNextPage: false, endCursor: null } } } } }] }
+    } } } }), stderr: '', exitCode: 0 };
+  };
+
+  const result = await runPrReviewObservation({ input: binding, env: {}, runCommand });
+  assert.deepEqual(result.observations.map((entry) => entry.commentId), ['1', '2']);
+  assert.deepEqual(result.observations.map((entry) => entry.body), ['first comment', 'second comment']);
+  const commentCalls = calls.filter(({ args }) => args.includes('threadId=thread-comments'));
+  assert.equal(commentCalls.length, 2);
+  assert.ok(commentCalls[1].args.includes('commentCursor=comment-2'));
 });
 
 test('pure reducer and observer contain no direct mutation executor', async () => {

@@ -268,6 +268,13 @@ test('dev, ChiefOps, and SOP bind a read-only current-head PR feedback loop', as
     'awaiting_human',
     'human `approved`',
     'same current head',
+    'fail-closed',
+    'complete normalized pr',
+    'bounded genuinely pending machine',
+    'deferred_follow_up_recording',
+    'terminal_pr',
+    'author.__typename',
+    'bot or missing actor type',
     'thread replies',
     'credential changes',
     'disabled external actions'

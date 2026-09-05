@@ -21,7 +21,8 @@ const PR_JSON_FIELDS = [
   'mergeStateStatus'
 ].join(',');
 
-export const REVIEW_SNAPSHOT_QUERY = `query($owner:String!,$name:String!,$number:Int!,$reviewCursor:String,$threadCursor:String,$checkCursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100,after:$threadCursor){nodes{id isResolved isOutdated path line comments(first:100){nodes{databaseId body updatedAt createdAt path line author{login}}}} pageInfo{hasNextPage endCursor}} reviews(first:100,after:$reviewCursor){nodes{id state submittedAt commit{oid} author{login}} pageInfo{hasNextPage endCursor}} commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100,after:$checkCursor){nodes{__typename ... on CheckRun{name status conclusion completedAt detailsUrl} ... on StatusContext{context state createdAt targetUrl}} pageInfo{hasNextPage endCursor}}}}}}}}}`;
+export const REVIEW_SNAPSHOT_QUERY = `query($owner:String!,$name:String!,$number:Int!,$reviewCursor:String,$threadCursor:String,$checkCursor:String,$includeThreads:Boolean!,$includeReviews:Boolean!,$includeChecks:Boolean!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100,after:$threadCursor) @include(if:$includeThreads){nodes{id isResolved isOutdated path line} pageInfo{hasNextPage endCursor}} reviews(first:100,after:$reviewCursor) @include(if:$includeReviews){nodes{id state submittedAt commit{oid} author{login __typename}} pageInfo{hasNextPage endCursor}} commits(last:1) @include(if:$includeChecks){nodes{commit{oid statusCheckRollup{contexts(first:100,after:$checkCursor){nodes{__typename ... on CheckRun{name status conclusion completedAt detailsUrl} ... on StatusContext{context state createdAt targetUrl}} pageInfo{hasNextPage endCursor}}}}}}}}}`;
+export const REVIEW_THREAD_COMMENTS_QUERY = `query($threadId:ID!,$commentCursor:String){node(id:$threadId){... on PullRequestReviewThread{comments(first:100,after:$commentCursor){nodes{databaseId body updatedAt createdAt path line author{login}} pageInfo{hasNextPage endCursor}}}}}`;
 
 function resultForError(code, reason, field = 'input') {
   return {
@@ -32,7 +33,13 @@ function resultForError(code, reason, field = 'input') {
     errors: [{ code, reason, field }],
     observations: [],
     actions: [],
-    mergeExecuted: false
+    mergeExecuted: false,
+    lifecycle: {
+      decision: 'stop',
+      reason: ['credentials_missing', 'github_read_failed'].includes(code)
+        ? 'rejected_observation'
+        : 'rejected_binding'
+    }
   };
 }
 
@@ -77,7 +84,18 @@ function graphQlPullRequest(payload) {
   return pullRequest;
 }
 
-function graphQlArgs(binding, owner, name, reviewCursor, threadCursor, checkCursor) {
+function graphQlCommentConnection(payload) {
+  if (Array.isArray(payload?.errors) && payload.errors.length > 0) {
+    throw new Error('gh api graphql returned GraphQL errors');
+  }
+  const comments = payload?.data?.node?.comments;
+  if (!comments || typeof comments !== 'object') {
+    throw new Error('gh api graphql returned no review-thread comments');
+  }
+  return comments;
+}
+
+function graphQlArgs(binding, owner, name, reviewCursor, threadCursor, checkCursor, includeReviews, includeThreads, includeChecks) {
   const args = [
     'api',
     'graphql',
@@ -90,9 +108,18 @@ function graphQlArgs(binding, owner, name, reviewCursor, threadCursor, checkCurs
     '-F',
     `number=${binding.number}`
   ];
+  args.push('-F', `includeReviews=${includeReviews}`);
+  args.push('-F', `includeThreads=${includeThreads}`);
+  args.push('-F', `includeChecks=${includeChecks}`);
   if (reviewCursor) args.push('-f', `reviewCursor=${reviewCursor}`);
   if (threadCursor) args.push('-f', `threadCursor=${threadCursor}`);
   if (checkCursor) args.push('-f', `checkCursor=${checkCursor}`);
+  return args;
+}
+
+function graphQlCommentArgs(threadId, commentCursor) {
+  const args = ['api', 'graphql', '-f', `query=${REVIEW_THREAD_COMMENTS_QUERY}`, '-f', `threadId=${threadId}`];
+  if (commentCursor) args.push('-f', `commentCursor=${commentCursor}`);
   return args;
 }
 
@@ -153,6 +180,47 @@ function nextCursor(connection, previousCursor, kind) {
   return info.endCursor;
 }
 
+function connectionNodes(connection) {
+  return Array.isArray(connection?.nodes) ? connection.nodes : [];
+}
+
+async function collectThreadComments({ threadId, runCommand }) {
+  const pages = [];
+  let commentCursor = null;
+  let hasNextCommentPage = true;
+  while (hasNextCommentPage) {
+    const result = await runCommand('gh', graphQlCommentArgs(threadId, commentCursor));
+    const connection = graphQlCommentConnection(parseCommandJson(result, 'gh api graphql'));
+    pages.push(connection);
+    const nextCommentCursor = nextCursor(connection, commentCursor, 'Review-thread comment');
+    hasNextCommentPage = nextCommentCursor !== null;
+    commentCursor = nextCommentCursor;
+  }
+  return pages.flatMap(connectionNodes);
+}
+
+async function attachThreadComments(reviewThreadPages, { runCommand }) {
+  const commentsByThread = new Map();
+  for (const page of reviewThreadPages) {
+    for (const thread of connectionNodes(page)) {
+      const threadId = thread?.id ?? thread?.databaseId;
+      if (threadId === undefined || threadId === null) continue;
+      const key = String(threadId);
+      let comments = commentsByThread.get(key);
+      if (comments === undefined) {
+        const existingComments = thread.comments;
+        if (existingComments && pageInfo(existingComments).hasNextPage !== true) {
+          comments = connectionNodes(existingComments);
+        } else {
+          comments = await collectThreadComments({ threadId: key, runCommand });
+        }
+        commentsByThread.set(key, comments);
+      }
+      thread.comments = { nodes: comments };
+    }
+  }
+}
+
 async function collectGraphQlSnapshot({ binding, owner, name, runCommand }) {
   const reviewThreadPages = [];
   const reviewPages = [];
@@ -165,14 +233,33 @@ async function collectGraphQlSnapshot({ binding, owner, name, runCommand }) {
   let hasNextCheckPage = true;
 
   while (hasNextReviewPage || hasNextThreadPage || hasNextCheckPage) {
-    const result = await runCommand('gh', graphQlArgs(binding, owner, name, reviewCursor, threadCursor, checkCursor));
+    const result = await runCommand('gh', graphQlArgs(
+      binding,
+      owner,
+      name,
+      reviewCursor,
+      threadCursor,
+      checkCursor,
+      hasNextReviewPage,
+      hasNextThreadPage,
+      hasNextCheckPage
+    ));
     const pullRequest = graphQlPullRequest(parseCommandJson(result, 'gh api graphql'));
-    const threadConnection = pullRequest.reviewThreads ?? { nodes: [], pageInfo: { hasNextPage: false } };
-    const reviewConnection = pullRequest.reviews ?? { nodes: [], pageInfo: { hasNextPage: false } };
-    const checkConnection = graphQlCheckConnection(pullRequest);
+    const threadConnection = hasNextThreadPage
+      ? (pullRequest.reviewThreads ?? { nodes: [], pageInfo: { hasNextPage: false } })
+      : { nodes: [], pageInfo: { hasNextPage: false } };
+    const reviewConnection = hasNextReviewPage
+      ? (pullRequest.reviews ?? { nodes: [], pageInfo: { hasNextPage: false } })
+      : { nodes: [], pageInfo: { hasNextPage: false } };
+    const checkConnection = hasNextCheckPage
+      ? graphQlCheckConnection(pullRequest)
+      : { nodes: [], pageInfo: { hasNextPage: false } };
     reviewThreadPages.push(threadConnection);
     reviewPages.push(reviewConnection);
-    checkPages.push({ nodes: graphQlChecks(pullRequest), pageInfo: pageInfo(checkConnection) });
+    checkPages.push({
+      nodes: hasNextCheckPage ? graphQlChecks(pullRequest) : [],
+      pageInfo: pageInfo(checkConnection)
+    });
 
     const nextThreadCursor = nextCursor(threadConnection, threadCursor, 'Review-thread');
     const nextReviewCursor = nextCursor(reviewConnection, reviewCursor, 'Review');
@@ -185,6 +272,7 @@ async function collectGraphQlSnapshot({ binding, owner, name, runCommand }) {
     checkCursor = nextCheckCursor;
   }
 
+  await attachThreadComments(reviewThreadPages, { runCommand });
   return { reviewThreadPages, reviewPages, checkPages };
 }
 
@@ -194,6 +282,7 @@ export async function runPrReviewObservation({
   env = process.env,
   runCommand = runGhCommand,
   previousObservations = [],
+  previousSnapshot,
   requiredChecks = []
 } = {}) {
   let binding;
@@ -237,7 +326,8 @@ export async function runPrReviewObservation({
       reviews: normalized.reviews,
       checks: normalized.checks,
       requiredChecks: effectiveRequiredChecks,
-      previousObservations
+      previousObservations,
+      previousSnapshot
     });
   } catch (cause) {
     return resultForError('github_read_failed', cause instanceof Error ? cause.message : String(cause), 'observation');
