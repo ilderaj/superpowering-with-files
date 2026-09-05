@@ -212,6 +212,8 @@ export interface MockSubagentsOptions {
   runs?: MockSubagentRun[];
   emitStartEvent?: boolean;
   startThrows?: Error;
+  /** Provider persona capability advertised by every registered provider (default true). */
+  personaCapability?: boolean;
 }
 
 export interface MockSubagentsState {
@@ -280,7 +282,16 @@ export function makeMockCtx(options: {
       list: (): string[] => [...subagentsState.providers],
       getProvider: (name: string) =>
         subagentsState.providers.includes(name)
-          ? { name, capabilities: { outputSchema: false, depthLimit: false, toolFilter: false, persona: false }, inheritsParentContext: true }
+          ? {
+              name,
+              capabilities: {
+                outputSchema: false,
+                depthLimit: false,
+                toolFilter: false,
+                persona: options.subagents?.personaCapability ?? true
+              },
+              inheritsParentContext: true
+            }
           : undefined,
       start: async (name: string, request: Record<string, unknown>) => {
         if (options.subagents?.startThrows) throw options.subagents.startThrows;

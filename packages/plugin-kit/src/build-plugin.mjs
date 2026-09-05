@@ -104,16 +104,17 @@ async function writeHarnessSkills({ pluginRoot, rootDir, contract }) {
   for (const { name, source, directory } of [...trioSkillSourceMap, ...harnessSkillSourceMap]) {
     const destination = contract.skillDestinations[name];
     const outputPath = path.join(pluginRoot, destination);
+    const sourceRoot = path.join(rootDir, source);
     if (directory) {
       const outputDir = path.dirname(outputPath);
       await mkdir(outputDir, { recursive: true });
-      await cp(path.join(rootDir, source), outputDir, {
+      await cp(sourceRoot, outputDir, {
         recursive: true,
-        filter: (candidate) => !isExcludedSkillCopyEntry(candidate)
+        filter: (candidate) => !isExcludedSkillCopyEntry(path.relative(sourceRoot, candidate))
       });
     } else {
       await mkdir(path.dirname(outputPath), { recursive: true });
-      await cp(path.join(rootDir, source), outputPath);
+      await cp(sourceRoot, outputPath);
     }
   }
 }

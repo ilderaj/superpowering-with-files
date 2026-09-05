@@ -11,9 +11,10 @@
 // disposed: never a silent dispatch, never an unrecorded visible worker.
 //
 // Gate order per plan: (1) packet + Trio binding, (2) provider resolution,
-// (3) deep-tier confirmation, (4) Trio gate registry + dsh approval channel,
-// (5) subagents service/provider availability, (6) budget cap, (7) dispatch
-// with mandatory evidence write.
+// (3) deep-tier confirmation, (4) Corleone persona resolution from the packet
+// capability, (5) Trio gate registry + dsh approval channel, (6) subagents
+// service/provider availability + persona capability, (7) budget cap,
+// (8) dispatch with mandatory evidence write.
 
 import type { Agent } from '@deepseek-ai/dsh-agent';
 import type { ContentBlock } from '@deepseek-ai/dsh-llm';
@@ -36,6 +37,8 @@ import {
 import {
   evidenceRecord,
   packetDigestOf,
+  resolveCorleoneRole,
+  type CorleoneRoleSelection,
   type TrioBinding,
   type WorkerEvidenceRecord
 } from './core/index.js';
@@ -81,6 +84,39 @@ export interface SettleOptions {
   taskId: string;
   runId: string;
   stopReason: string;
+}
+
+interface WorkerEvidenceExtraInput {
+  runId: string | null;
+  registryProvider: string;
+  tier: DispatchTier;
+  corleoneRole: CorleoneRoleSelection;
+  requestedTokens: number;
+  packetDigest: string | null;
+  startEventObserved: boolean;
+  observedRegistryProvider: string | null;
+}
+
+/**
+ * Format the existing worker evidence extras without owning dispatch policy.
+ * This seam is deliberately local and pure: all inputs are already-resolved
+ * values, and the function performs no I/O, context access, or gate work.
+ */
+function workerEvidenceExtra(input: WorkerEvidenceExtraInput): Record<string, unknown> {
+  return {
+    runId: input.runId,
+    registryProvider: input.registryProvider,
+    tier: input.tier,
+    requestedRole: input.corleoneRole.agentType,
+    requestedPersona: input.corleoneRole.persona,
+    requestedDisplayName: input.corleoneRole.displayName,
+    requestedTokens: input.requestedTokens,
+    packetDigest: input.packetDigest,
+    startEventObserved: input.startEventObserved,
+    observedRegistryProvider: input.observedRegistryProvider,
+    registryMismatch: input.observedRegistryProvider !== null
+      && input.observedRegistryProvider !== input.registryProvider
+  };
 }
 
 export interface WorkerDispatcher {
@@ -202,6 +238,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       return pending(ledger, 'unsupported_provider', (error as Error).message);
     }
     const registryProvider = DISPATCH_PROVIDER_REGISTRY_NAMES[resolution.provider] ?? '';
+    const capability = packetFile.packet.capability as { maxTokens?: unknown } | undefined;
 
     // 4. Tier classification + deep-tier explicit confirmation.
     const tier = dispatchTierOf(packetFile.packet.capability);
@@ -210,7 +247,20 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       return pending(ledger, tierGate.reason ?? 'deep_tier_confirmation_required', 'Confirm the deep tier explicitly before dispatching.');
     }
 
-    // 5. Dual-layer gate: Trio gate registry decides, dsh approval is the
+    // 5. Corleone persona/role resolution: the visible worker identity is
+    // derived from the packet capability (workRole / complexity /
+    // primaryExecution) exactly like the harness Corleone selector. A packet
+    // that cannot resolve to a Corleone execution role fails closed BEFORE
+    // any approval request or start attempt — an unbound dispatch is never
+    // admissible.
+    let corleoneRole: CorleoneRoleSelection;
+    try {
+      corleoneRole = resolveCorleoneRole(capability);
+    } catch (error) {
+      return pending(ledger, 'corleone_role_unavailable', 'The packet capability does not resolve to a Corleone execution role: ' + (error as Error).message);
+    }
+
+    // 6. Dual-layer gate: Trio gate registry decides, dsh approval is the
     // interactive channel. Gated categories without a grant stop here.
     const gateCategories = classifyGateCategories(packetFile.packet);
     if (gateCategories.length > 0) {
@@ -232,8 +282,9 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       }
     }
 
-    // 6. The ctx.subagents seam must be mounted and the registry provider
-    // resolvable. Fail closed before any dispatch attempt.
+    // 7. The ctx.subagents seam must be mounted and the registry provider
+    // resolvable AND persona-capable. Fail closed before any dispatch
+    // attempt: a Corleone-bound worker must never start without its persona.
     const subagents: SubagentRuntime | undefined = subagentsServiceOf(ctx);
     if (!subagents) {
       return pending(ledger, 'subagents_service_unavailable', 'The dsh host did not mount the ctx.subagents service.');
@@ -241,8 +292,12 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     if (!subagents.list().includes(registryProvider)) {
       return pending(ledger, 'provider_unavailable', 'Registry provider ' + registryProvider + ' is not resolvable on this dsh host.');
     }
+    const subagentProvider = subagents.getProvider(registryProvider);
+    if (!subagentProvider || subagentProvider.capabilities.persona !== true) {
+      return pending(ledger, 'persona_capability_unavailable', 'Registry provider ' + registryProvider + ' does not advertise persona support; the Corleone visible worker cannot start unbound.');
+    }
 
-    // 7. Budget cap: reconcile the tokenMeter measurement, claim a parallel
+    // 8. Budget cap: reconcile the tokenMeter measurement, claim a parallel
     // slot, then reserve tokens. Over-limit or over-cap => manual_pending.
     let measured = options.measuredTokens;
     if (measured === undefined) {
@@ -263,7 +318,6 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       await writePacketBudget(authorityRoot, taskId, ledger.snapshot());
       return pending(ledger, 'parallel_worker_cap_exceeded', 'Wait for an active worker to settle before dispatching another.');
     }
-    const capability = packetFile.packet.capability as { maxTokens?: unknown } | undefined;
     let requestedTokens: number;
     try {
       requestedTokens = validateMaxTokens(options.maxTokens ?? capability?.maxTokens);
@@ -281,18 +335,21 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       return pending(ledger, reserve.reason ?? 'budget_blocked', 'Raise the task budget cap or reduce spent context before dispatching.');
     }
 
-    // 8. Observe subagent/start BEFORE starting so the mandatory
+    // 9. Observe subagent/start BEFORE starting so the mandatory
     // {SessionId, provider} record can be formed from the host event.
     const startInfos: SubagentRunInfo[] = [];
     const disposeObserver = ctx.on('subagent/start', (info: SubagentRunInfo) => {
       startInfos.push(info);
     });
 
-    // 9. Dispatch through ctx.subagents (the visible worker seam).
+    // 10. Dispatch through ctx.subagents (the visible worker seam). The
+    // resolved Corleone persona is passed as a top-level start field so the
+    // child shadows the deployment persona with the frozen worker identity.
     let run;
     try {
       run = await subagents.start(registryProvider, {
         label: options.label ?? 'SWF task ' + taskId,
+        persona: corleoneRole.persona,
         prompt: [{ type: 'text', text: prompt }] as ContentBlock[],
         parent,
         signal: options.signal ?? new AbortController().signal,
@@ -312,7 +369,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     }
     disposeObserver();
 
-    // 10. Mandatory visible-worker record: {SessionId, provider, declared
+    // 11. Mandatory visible-worker record: {SessionId, provider, declared
     // model}. Without all three the dispatch fails closed and the run is
     // disposed — never a silent dispatch.
     const sessionId = run.id ? String(run.id) : null;
@@ -343,7 +400,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       return pending(ledger, 'dispatch_record_unavailable', 'A visible worker requires a recorded {SessionId, provider, declared model}; the run was disposed and the dispatch failed closed.');
     }
 
-    // 11. Attach host-owned completion IMMEDIATELY after the record is
+    // 12. Attach host-owned completion IMMEDIATELY after the record is
     // formed — before any persistence — so a persistence failure can never
     // orphan a running worker: whenever the run settles, its slot is
     // released, the worker-result is reported, and the run is disposed.
@@ -358,7 +415,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
           .then(() => run.dispose().catch(() => undefined))
       );
 
-    // 12. Persist the three-state worker evidence (host-claimed: dsh records
+    // 13. Persist the three-state worker evidence (host-claimed: dsh records
     // the visible dispatch but provides no authenticated evidence ref) and
     // the budget status. Any failure here ends the slot and disposes the
     // run — the worker must never keep running without its mandatory
@@ -371,16 +428,16 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
         taskId,
         kind: 'worker',
         record,
-        extra: {
+        extra: workerEvidenceExtra({
           runId: startInfos[0]?.runId ? String(startInfos[0].runId) : null,
           registryProvider,
           tier,
+          corleoneRole,
           requestedTokens,
           packetDigest: packetDigestOf(packetFile.packet),
           startEventObserved: startInfos.length > 0,
-          observedRegistryProvider,
-          registryMismatch: observedRegistryProvider !== null && observedRegistryProvider !== registryProvider
-        }
+          observedRegistryProvider
+        })
       });
       const budget = ledger.snapshot();
       await writeBudgetEvidence(authorityRoot, taskId, budget);

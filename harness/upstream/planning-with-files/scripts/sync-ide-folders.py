@@ -172,11 +172,27 @@ IDE_MANIFESTS = {
     # .openclaw, .kilocode, .adal, .agent removed in v2.24.0 (IDE audit)
     # These IDEs use the standard Agent Skills spec — install via npx skills add
 
+    # .pi is not just another IDE mirror: this directory IS the root of the
+    # npm package `planning-with-files`, so whatever it contains is what
+    # `npm install planning-with-files` delivers. It shipped 12 of the 20
+    # canonical scripts, missing inject-plan.sh itself, which meant the npm
+    # channel carried a skill that could not inject a plan at all. Everything
+    # language-neutral is synced here for that reason.
+    # package.json and README.md stay npm-specific and are not synced.
     ".pi": _build_manifest(
         ".pi/skills/planning-with-files",
         ref_style="flat",
         include_scripts=True,
-        # package.json and README.md are IDE-specific, not synced
+        extra_scripts=[
+            "scripts/inject-plan.sh",
+            "scripts/gate-stop.sh",
+            "scripts/ledger-append.sh",
+            "scripts/ledger-append.ps1",
+            "scripts/ledger-summary.sh",
+            "scripts/ledger-summary.ps1",
+            "scripts/phase-status.sh",
+            "scripts/phase-status.ps1",
+        ],
     ),
 
     ".continue": _build_manifest(
@@ -222,18 +238,54 @@ IDE_MANIFESTS = {
     ".kiro": {},
 }
 
-# Language variants (skills/planning-with-files-<lang>/): SKILL.md, templates
+# Scripts the language variants ship in TRANSLATED form: check-complete and
+# init-session carry localized user-facing output, and session-catchup.py
+# carries localized recovery prose (verified: -de/session-catchup.py contains
+# German text, five -ar scripts contain Arabic). include_scripts=True would
+# overwrite all of them with the English canonical, so these are never synced
+# and stay owned by their translators.
+LANG_TRANSLATED_SCRIPTS = [
+    "scripts/check-complete.sh",
+    "scripts/check-complete.ps1",
+    "scripts/init-session.sh",
+    "scripts/init-session.ps1",
+    "scripts/session-catchup.py",
+]
+
+# Everything else the canonical skill ships. These 12 never existed in any
+# variant, so delivering them is purely additive: non-English users were
+# missing the completion gate, the ledger, phase-status, plan-doctor and
+# attestation entirely, which is the drift issue #130 describes. Their few
+# user-facing strings are English until a translator PR localizes them; a
+# missing script is a silently dead feature, an English string is not.
+LANG_EXTRA_SCRIPTS = HOOK_DISPATCH_SCRIPTS + [
+    "scripts/attest-plan.sh",
+    "scripts/attest-plan.ps1",
+    "scripts/gate-stop.sh",
+    "scripts/ledger-append.sh",
+    "scripts/ledger-append.ps1",
+    "scripts/ledger-summary.ps1",
+    "scripts/phase-status.sh",
+    "scripts/phase-status.ps1",
+    "scripts/plan-doctor.sh",
+    "scripts/resolve-plan-dir.ps1",
+    "scripts/set-active-plan.sh",
+    "scripts/set-active-plan.ps1",
+]
+
+# Language variants (skills/i18n/planning-with-files-<lang>/): SKILL.md, templates
 # and references are real translations and must NEVER be overwritten with the
-# English canonical. Scripts are language-neutral; the hook dispatch targets
-# are synced so the dispatcher scalars can resolve (issue #212).
+# English canonical. Same for LANG_TRANSLATED_SCRIPTS above. The rest of the
+# canonical script surface is synced so non-English installs get the same
+# features, not a subset (issue #212 covered only the 3 dispatch targets).
 for _lang in ("ar", "de", "es", "zh", "zht"):
-    _base = f"skills/planning-with-files-{_lang}"
+    _base = f"skills/i18n/planning-with-files-{_lang}"
     IDE_MANIFESTS[_base] = _build_manifest(
         _base,
         ref_style="skip",
         template_dirs=[],
         include_scripts=False,
-        extra_scripts=HOOK_DISPATCH_SCRIPTS,
+        extra_scripts=LANG_EXTRA_SCRIPTS,
     )
 
 

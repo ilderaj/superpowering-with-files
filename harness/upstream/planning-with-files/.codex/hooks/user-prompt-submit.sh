@@ -5,6 +5,43 @@
 # that share a cwd with a plan but never opted into it.
 [ "${PLANNING_DISABLED:-}" = "1" ] && exit 0
 
+HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
+
+validate_python_candidate() {
+    _tp_candidate="$1"
+    case "$_tp_candidate" in
+        //*) return 1 ;;
+        [A-Za-z]:[\\/]*)
+            command -v cygpath >/dev/null 2>&1 || return 1
+            _tp_candidate=$(cygpath -u -- "$_tp_candidate" 2>/dev/null) || return 1
+            ;;
+        /*) ;;
+        *) return 1 ;;
+    esac
+    [ -f "$_tp_candidate" ] || return 1
+    _tp_lower=$(printf '%s' "$_tp_candidate" | tr '[:upper:]' '[:lower:]')
+    case "$_tp_lower" in
+        */microsoft/windowsapps/*) return 1 ;;
+    esac
+    "$_tp_candidate" -c 'import sys' >/dev/null 2>&1 || return 1
+    printf '%s\n' "$_tp_candidate"
+}
+
+trusted_python() {
+    _tp_explicit="${PWF_TRUSTED_PYTHON:-${PYTHON_BIN:-}}"
+    if [ -n "$_tp_explicit" ]; then
+        validate_python_candidate "$_tp_explicit"
+        return $?
+    fi
+    [ "${1:-}" = "explicit" ] && return 1
+    for _tp_name in python3 python; do
+        _tp_found=$(command -v "$_tp_name" 2>/dev/null) || _tp_found=""
+        [ -n "$_tp_found" ] || continue
+        validate_python_candidate "$_tp_found" && return 0
+    done
+    return 1
+}
+
 # --- PWF_PLAN_ROOT: absolute plan-root binding (issue #212). ---
 # A thread whose cwd is a shared PARENT of the real project (e.g. /workspace
 # holding /workspace/project with its own .planning/.active_plan) used to
@@ -18,13 +55,35 @@
 # plan the caller was escaping. Wording matches scripts/inject-plan.sh.
 PLAN_PREFIX=""
 if [ -n "${PWF_PLAN_ROOT:-}" ]; then
-    if [ -d "${PWF_PLAN_ROOT}" ]; then
-        PLAN_PREFIX="${PWF_PLAN_ROOT}/"
+    case "${PWF_PLAN_ROOT}" in
+        /*|[A-Za-z]:[\\/]*) ;;
+        *) echo "[planning-with-files] PWF_PLAN_ROOT must be an absolute local path; nothing injected."; exit 0 ;;
+    esac
+    PIN_PYTHON="$(trusted_python explicit 2>/dev/null)" || PIN_PYTHON=""
+    [ -n "$PIN_PYTHON" ] || { echo "[planning-with-files] PWF_PLAN_ROOT could not be validated; nothing injected."; exit 0; }
+    PIN_REAL=$("$PIN_PYTHON" -c 'import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); import codex_hook_adapter as a; root=a.effective_plan_root(Path.cwd()); print(root or "")' "$HOOK_DIR" 2>/dev/null) || PIN_REAL=""
+    [ -n "$PIN_REAL" ] || { echo "[planning-with-files] PWF_PLAN_ROOT must stay within the current workspace; nothing injected."; exit 0; }
+    if [ -n "$PIN_REAL" ] && [ -d "$PIN_REAL" ]; then
+        PWF_PLAN_ROOT="$PIN_REAL"
+        export PWF_PLAN_ROOT
+        PLAN_PREFIX="${PIN_REAL}/"
     else
-        echo "[planning-with-files] PWF_PLAN_ROOT is not a directory: ${PWF_PLAN_ROOT} — nothing injected."
+        echo "[planning-with-files] PWF_PLAN_ROOT is not a directory; nothing injected."
         exit 0
     fi
 fi
+
+# Resolve and confirm a contained plan before probing or executing any Python
+# candidate. No-plan hook fires remain shell-only and silent.
+PLAN_DIR="$(sh "${HOOK_DIR}/resolve-plan-dir.sh" 2>/dev/null)"
+if [ -n "$PLAN_DIR" ]; then
+    PLAN_FILE="${PLAN_DIR}/task_plan.md"
+    PROGRESS_FILE="${PLAN_DIR}/progress.md"
+else
+    PLAN_FILE="${PLAN_PREFIX}task_plan.md"
+    PROGRESS_FILE="${PLAN_PREFIX}progress.md"
+fi
+[ -f "$PLAN_FILE" ] || exit 0
 
 # Session isolation: if .planning/sessions/ exists, only attached sessions see
 # plan context. Absence of the sessions dir means legacy single-session mode —
@@ -34,26 +93,32 @@ fi
 # adapter's guard) stay silent. Wording matches scripts/inject-plan.sh so all
 # three routes say the same thing.
 SESSION_ATTACHED=0
-if [ -d "${PLAN_PREFIX}.planning/sessions" ]; then
-    SESSION_ID="${PWF_SESSION_ID:-}"
-    if [ -z "$SESSION_ID" ] || [ ! -f "${PLAN_PREFIX}.planning/sessions/${SESSION_ID}.attached" ]; then
-        echo "[planning-with-files] Session isolation is armed (${PLAN_PREFIX}.planning/sessions/ exists) and this session is not attached, so no plan was injected. Attach it with PWF_SESSION_ID=<id> plus ${PLAN_PREFIX}.planning/sessions/<id>.attached, or delete that sessions directory to turn isolation off."
-        exit 0
-    fi
-    SESSION_ATTACHED=1
-fi
-
-HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
-PLAN_DIR="$(sh "${HOOK_DIR}/resolve-plan-dir.sh" 2>/dev/null)"
-if [ -n "$PLAN_DIR" ]; then
-    PLAN_FILE="${PLAN_DIR}/task_plan.md"
-    PROGRESS_FILE="${PLAN_DIR}/progress.md"
+SESSION_ID="${PWF_SESSION_ID:-}"
+if [ ! -e "${PLAN_PREFIX}.planning/sessions" ] && [ ! -L "${PLAN_PREFIX}.planning/sessions" ]; then
+    PWF_SESSION_ADMISSION="legacy"
 else
-    # ${PLAN_PREFIX} is empty in the legacy case, so these strings stay
-    # byte-identical to the historical relative shape ("task_plan.md").
-    PLAN_FILE="${PLAN_PREFIX}task_plan.md"
-    PROGRESS_FILE="${PLAN_PREFIX}progress.md"
+    PWF_PYTHON="$(trusted_python 2>/dev/null)" || PWF_PYTHON=""
+    if [ -z "$PWF_PYTHON" ]; then
+        PWF_SESSION_ADMISSION="refused"
+    else
+        PWF_SESSION_ADMISSION=$("$PWF_PYTHON" -c 'import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); import codex_hook_adapter as a; root=a.effective_plan_root(Path.cwd());
+if root is None: print("refused")
+else:
+    try: (root / ".planning" / "sessions").lstat(); armed=True
+    except FileNotFoundError: armed=False
+    except OSError: armed=True
+    admitted=a.is_session_attached(root, sys.argv[2] or None)
+    print("attached" if admitted and armed else ("legacy" if admitted else "refused"))' "$HOOK_DIR" "$SESSION_ID" 2>/dev/null) || PWF_SESSION_ADMISSION="refused"
+    fi
 fi
+case "$PWF_SESSION_ADMISSION" in
+    attached) SESSION_ATTACHED=1 ;;
+    legacy) ;;
+    *)
+        echo "[planning-with-files] Session isolation is armed (${PLAN_PREFIX}.planning/sessions/ exists) and this session is not attached, so no plan was injected. Attachment sentinels use a fixed-width digest of host, canonical project, and PWF_SESSION_ID; delete the sessions directory to return to legacy single-session mode."
+        exit 0
+        ;;
+esac
 
 # Plan-id safe-identifier check. Pure-sh case patterns; shared shape with
 # resolve-plan-dir.sh, needed below to decide whether PLAN_ID named the plan.
@@ -114,12 +179,19 @@ if [ -f "$PLAN_FILE" ]; then
         fi
     fi
 
+    PWF_PYTHON="$(trusted_python 2>/dev/null)" || PWF_PYTHON=""
+    if [ -z "$PWF_PYTHON" ] || [ ! -f "${HOOK_DIR}/context_frame.py" ]; then exit 0; fi
+    if [ -n "$PLAN_DIR" ]; then ATTEST_FILE="${PLAN_DIR}/.attestation"; else ATTEST_FILE="${PLAN_PREFIX}.plan-attestation"; fi
+    if [ -n "$PLAN_DIR" ]; then MODE_FILE="${PLAN_DIR}/.mode"; else MODE_FILE="${PLAN_PREFIX}.mode"; fi
+    PLAN_CONTEXT=$("$PWF_PYTHON" "${HOOK_DIR}/context_frame.py" plan "$PLAN_FILE" --head 50 --attestation "$ATTEST_FILE" --mode "$MODE_FILE" 2>&1)
+    if [ $? -ne 0 ]; then printf '%s\n' "$PLAN_CONTEXT"; exit 0; fi
     echo "[planning-with-files] ACTIVE PLAN — current state:"
-    head -50 "$PLAN_FILE"
+    printf '%s\n' "$PLAN_CONTEXT"
     echo ""
-    echo "=== recent progress ==="
-    # Timestamp normalization matches scripts/inject-plan.sh (KV-cache stability, v2.40).
-    tail -20 "$PROGRESS_FILE" 2>/dev/null | sed -E 's/T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z/T00:00:00Z/g; s/T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([+-][0-9]{2}:[0-9]{2})/T00:00:00\2/g'
+    if [ -f "$PROGRESS_FILE" ]; then
+        PROGRESS_CONTEXT=$("$PWF_PYTHON" "${HOOK_DIR}/context_frame.py" progress "$PROGRESS_FILE" --tail 20 2>&1)
+        [ $? -eq 0 ] && printf '%s\n' "$PROGRESS_CONTEXT"
+    fi
     echo ""
     echo "[planning-with-files] Read findings.md for research context. Continue from the current phase."
 fi

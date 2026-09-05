@@ -32,18 +32,17 @@ Plain markdown, gitignored by default, no runtime state anywhere else. Parallel 
 
 ## The re-injection loop
 
-Files on disk only help if the model actually reads them, so that step is mechanical rather than left to model discipline. A `UserPromptSubmit` hook re-injects the active plan from disk at the start of every turn, wrapped in `===BEGIN PLAN DATA===` and `===END PLAN DATA===` markers. Companion hooks remind the agent to update `progress.md` after writes and check phase completion before stopping. On Claude Code that is 5 lifecycle hooks; Codex runs 7 and Pi runs 8.
+Files on disk only help if the model actually reads them, so that step is mechanical rather than left to model discipline. A `UserPromptSubmit` hook re-injects the active plan from disk at the start of every turn, wrapped in `===BEGIN PLAN DATA===` and `===END PLAN DATA===` markers. Companion hooks remind the agent to update `progress.md` after writes and check phase completion before stopping. The Claude Code plugin runs 6 lifecycle hooks, while its activation-scoped standalone skill runs 5. Codex runs 7 and Pi runs 8.
 
 The loop means the plan is in front of the model by construction, not by hoping the model remembers to re-read it.
 
 ## What recovery looks like after /clear
 
-1. The skill checks the active IDE's session store for the previous session (`~/.claude/projects/` for Claude Code, `~/.codex/sessions/` for Codex).
-2. It finds when the planning files were last updated.
-3. It extracts the conversation that happened after that point, the potentially lost context.
-4. It shows a catchup report; the agent then reads the three files, runs `git diff --stat`, and resumes at the current phase.
+1. The lifecycle hook restores selected context from the project planning files. It does not inspect host agent session stores.
+2. The agent reads the three files, runs `git diff --stat`, and resumes at the current phase.
+3. If the user explicitly requests local-history inspection, `session-catchup.py --metadata` reads same-project records and emits aggregate counts only. `--replay` may emit bounded nonce-framed excerpts.
 
-A resumed session can answer the reboot questions from the files alone: where am I (current phase in `task_plan.md`), what is the goal (goal statement in the plan), what have I learned (`findings.md`), what have I done (`progress.md`). In the project's internal recovery benchmark (v1, author-run), a fresh session with the files on disk resumed in 5.0 turns on average against 13.3 for a raw agent; method and limits in [docs/evals.md](evals.md).
+A resumed session can answer the reboot questions from the files alone: where am I (current phase in `task_plan.md`), what is the goal (goal statement in the plan), what have I learned (`findings.md`), what have I done (`progress.md`). In the project's internal recovery benchmark (v1, author-run), a fresh session with the files on disk resumed in 5.0 turns on average against 13.3 for a raw agent; method and limits in [docs/evals.md](evals.md). That benchmark measured the earlier default transcript-catchup behavior, so it is historical evidence rather than a current file-only benchmark.
 
 ## Does this work outside Claude Code?
 

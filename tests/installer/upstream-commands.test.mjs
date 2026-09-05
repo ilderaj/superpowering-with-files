@@ -64,6 +64,27 @@ async function createLanguageVariantGitSource(root, variantNames) {
   return stdout.trim();
 }
 
+async function createNestedLanguageVariantGitSource(root, nestedVariantNames) {
+  await mkdir(path.join(root, 'skills', 'planning-with-files'), { recursive: true });
+  await writeFile(path.join(root, 'skills', 'planning-with-files', 'SKILL.md'), '# Planning With Files\n');
+  const i18nDir = path.join(root, 'skills', 'i18n');
+  await mkdir(i18nDir, { recursive: true });
+  for (const variant of nestedVariantNames) {
+    await mkdir(path.join(i18nDir, variant), { recursive: true });
+    await writeFile(path.join(i18nDir, variant, 'SKILL.md'), '# ' + variant + '\n');
+  }
+  await writeFile(path.join(root, 'SKILL.md'), '# Planning With Files\n');
+  await execFileAsync('git', ['init'], { cwd: root });
+  await execFileAsync('git', ['add', '.'], { cwd: root });
+  await execFileAsync(
+    'git',
+    ['-c', 'user.name=Harness Test', '-c', 'user.email=harness@example.invalid', 'commit', '-m', 'initial'],
+    { cwd: root }
+  );
+  const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: root });
+  return stdout.trim();
+}
+
 async function languageVariantNames(root) {
   const entries = await readdir(path.join(root, 'harness/upstream/planning-with-files/skills'), {
     withFileTypes: true
@@ -561,6 +582,73 @@ test('updateCommand rejects unknown language variants and leaves the current tar
       await assert.rejects(
         updateCommand(['--source=planning-with-files']),
         /Unsupported planning-with-files language variant/
+      );
+    });
+
+    assert.equal(
+      await readFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'utf8'),
+      'old skill'
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});
+
+test('updateCommand promotes known nested i18n variants, prunes retired ones, and drops the i18n directory', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-i18n-promote-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-i18n-source-'));
+  try {
+    await writeSources(root, source);
+    await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
+    await writeFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'old skill');
+    const commitSha = await createNestedLanguageVariantGitSource(source, [
+      'planning-with-files-ar',
+      'planning-with-files-de',
+      'planning-with-files-es',
+      'planning-with-files-zh',
+      'planning-with-files-zht'
+    ]);
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
+
+    await withCwd(root, async () => {
+      await fetchCommand(['--source=planning-with-files']);
+      await updateCommand(['--source=planning-with-files']);
+    });
+
+    assert.deepEqual(await languageVariantNames(root), [
+      'planning-with-files',
+      'planning-with-files-zh',
+      'planning-with-files-zht'
+    ]);
+    await assert.rejects(
+      readdir(path.join(root, 'harness/upstream/planning-with-files/skills', 'i18n')),
+      { code: 'ENOENT' }
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+    await rm(source, { recursive: true, force: true });
+  }
+});
+
+test('updateCommand rejects unknown nested i18n variants and leaves the current target unchanged', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'harness-update-i18n-guard-'));
+  const source = await mkdtemp(path.join(os.tmpdir(), 'harness-local-i18n-guard-source-'));
+  try {
+    await writeSources(root, source);
+    await mkdir(path.join(root, 'harness/upstream/planning-with-files'), { recursive: true });
+    await writeFile(path.join(root, 'harness/upstream/planning-with-files/SKILL.md'), 'old skill');
+    const commitSha = await createNestedLanguageVariantGitSource(source, [
+      'planning-with-files-zh',
+      'planning-with-files-fr'
+    ]);
+    await writeBranchHeadLock(root, 'planning-with-files', commitSha);
+
+    await withCwd(root, async () => {
+      await fetchCommand(['--source=planning-with-files']);
+      await assert.rejects(
+        updateCommand(['--source=planning-with-files']),
+        /Unsupported planning-with-files language variant: planning-with-files-fr/
       );
     });
 

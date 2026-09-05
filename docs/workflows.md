@@ -48,6 +48,12 @@ The public command surface is `install`, `sync`, `doctor`, `trio`, `verify`, `ch
 
 Inspect the relevant artifact before changing it, use a focused proof first, and preserve the command exit and evidence before reporting completion. Run broader verification in proportion to risk. Destructive, external, credential, security-sensitive, merge, push, publish, release, deploy, send, and data-loss actions retain their applicable human gate.
 
+## Coding Harness
+
+The [Coding Harness SOP](coding-harness-sop.md) is the human-facing procedure. Routes are **Quick direct**, **Tracked direct**, and **Chief-governed**. `dev` selects `domain-modeling`, `codebase-design`, `diagnosing-bugs`, and `code-review` from task evidence; `change-quality-gate` runs at integration boundaries; `pr-feedback-loop` is opt-in on a bound PR. Tracked direct execution establishes its own technical verification; Chief independent acceptance applies when a visible or delegated worker is primary or the chosen governance lane requires it.
+
+The read-only change-quality convenience is `npm run verify:pr-quality -- <packet.json>` (use npm's `--silent` option when stdout must contain JSON only). It validates a supplied `swf/change-quality-gate-packet` and emits machine-readable JSON; it does not create task state or perform Git, PR, review, or background actions.
+
 ## Optional Contracts
 
 When a Host provides browser or evaluation capabilities, keep their inputs, evidence, and safety boundary explicit. Optional capabilities supplement repository verification; they do not become task authority or replace the Host gate.

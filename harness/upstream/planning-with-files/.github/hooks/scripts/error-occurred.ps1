@@ -1,6 +1,11 @@
 # planning-with-files: Error hook for GitHub Copilot (Windows PowerShell)
 # Logs errors to task_plan.md when the agent encounters an error.
 
+if ($env:PLANNING_DISABLED -eq '1') {
+    Write-Output '{}'
+    exit 0
+}
+
 $planFile = "task_plan.md"
 
 if (-not (Test-Path $planFile)) {
@@ -8,11 +13,13 @@ if (-not (Test-Path $planFile)) {
     exit 0
 }
 
-# Read stdin
-$input = [Console]::In.ReadToEnd()
+# Read stdin. Do not name this $input: that is PowerShell's automatic pipeline
+# variable, and under `-File` the assignment does not stick, so the hook read an
+# empty string and never logged an error on Windows.
+$InputData = [Console]::In.ReadToEnd()
 
 try {
-    $data = $input | ConvertFrom-Json
+    $data = $InputData | ConvertFrom-Json
     $errorMsg = ""
     if ($data.error -is [PSCustomObject]) {
         $errorMsg = $data.error.message
