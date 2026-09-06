@@ -1,7 +1,8 @@
 import { before, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { mkdtemp, readdir } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -92,6 +93,7 @@ test('companion archives exclude trio, hooks, mcp, runtime, credential paths', a
 });
 
 test('companion archives carry truthful overlay provenance', async () => {
+  const overlay = await readFile(new URL('../../harness/core/upstream-overlays/mattpocock/grilling/SKILL.md', import.meta.url), 'utf8');
   for (const name of COMPANION_ARTIFACTS) {
     const { stdout } = await execFileAsync('tar', ['-xOf', path.join(releaseDir, name), 'OVERLAYS.json']);
     const provenance = JSON.parse(stdout);
@@ -106,7 +108,10 @@ test('companion archives carry truthful overlay provenance', async () => {
     );
     assert.equal(
       grilling.overlaySha256,
-      '3cce5d19fba086a5084c38f199818a7d90978487e41d10e802ae33e971bad858',
+      createHash('sha256').update(overlay).digest('hex'),
     );
+    const { stdout: packagedBody } = await execFileAsync('tar', ['-xOf', path.join(releaseDir, name), 'skills/grilling/SKILL.md']);
+    assert.equal(packagedBody, overlay, `${name} must contain the authoritative overlay`);
+    assert.notEqual(grilling.overlaySha256, grilling.corpusSha256);
   }
 });

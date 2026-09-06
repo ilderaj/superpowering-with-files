@@ -103,6 +103,7 @@ test('native child routing requires strict envelope narrowing and forbids Ultra'
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -130,9 +131,7 @@ test('native child routing requires strict envelope narrowing and forbids Ultra'
   assert.equal(equal.routeEvidence.routeKind, 'manual_pending');
   assert.match(equal.routeEvidence.fallbackReason, /child_envelope_not_narrower/);
 
-  const ultra = resolveGenericHostOperation({ ...base, requestedEffort: 'ultra' });
-  assert.equal(ultra.routeEvidence.routeKind, 'manual_pending');
-  assert.match(ultra.routeEvidence.fallbackReason, /native_ultra_forbidden/);
+  assert.throws(() => resolveGenericHostOperation({ ...base, requestedEffort: 'ultra' }), /conflicts with the validated packet policy/);
 });
 
 test('all mutable lane statuses remain reserved and invalid lane records fail closed', () => {

@@ -164,3 +164,36 @@ describe('Trio gate registry classification (plan item 4)', () => {
     expect(categories).toEqual(['security', 'send']);
   });
 });
+
+describe('explicit modern dispatch selections', () => {
+  for (const model of ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna']) {
+    for (const prefix of ['', 'main/', 'p646e20/']) {
+      it(`routes ${prefix}${model} through openai with API model and exact effort`, () => {
+        const resolution = resolveDispatchProvider({ capability: { requestedModel: prefix + model, requestedEffort: 'medium' } });
+        expect(resolution).toMatchObject({ provider: 'openai', model, requestedModel: prefix + model, effort: 'medium' });
+        const codex = resolveDispatchProvider({ capability: { provider: 'codex', requestedModel: prefix + model, requestedEffort: 'low' } });
+        expect(codex).toMatchObject({ provider: 'codex', model: prefix + model, effort: 'low' });
+      });
+    }
+  }
+  it('accepts bare OpenAI provider, rejects invalid efforts, aliases and incompatible providers', () => {
+    expect(resolveDispatchProvider({ capability: { provider: 'openai', model: 'main/gpt-6-astra', effort: 'max' } })).toMatchObject({ provider: 'openai', model: 'gpt-6-astra', effort: 'max' });
+    for (const effort of ['ultra', 'none', 'minimal']) {
+      expect(() => resolveDispatchProvider({ capability: { requestedModel: 'gpt-6-astra', requestedEffort: effort } })).toThrow(/effort/);
+    }
+    expect(() => resolveDispatchProvider({ capability: { requestedModel: 'gpt-6-astra', model: 'gpt-5.6-luna' } })).toThrow(/Conflicting/);
+    expect(() => resolveDispatchProvider({ capability: { requestedModel: 'gpt-6-astra', requestedEffort: 'high', effort: 'low' } })).toThrow(/Conflicting/);
+    expect(() => resolveDispatchProvider({ capability: { provider: 'claude-code', requestedModel: 'gpt-6-astra' } })).toThrow(/cannot/);
+  });
+});
+
+it('dispatch preserves legacy omitted Chief effort and honors explicit new effort', () => {
+  for (const requestedModel of ['gpt-5.6-sol', 'gpt-5.6-terra']) {
+    for (const workRole of ['chief', 'planning', 'high_density_judgment']) {
+      const capability = Object.freeze({ workRole, requestedModel });
+      expect(resolveDispatchProvider({ capability }).effort).toBe('max');
+      expect(resolveDispatchProvider({ capability: { ...capability, requestedEffort: 'medium' } }).effort).toBe('medium');
+      expect(capability).toEqual({ workRole, requestedModel });
+    }
+  }
+});

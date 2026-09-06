@@ -101,7 +101,7 @@ async function writePortableManifest({ pluginRoot, config, version }) {
 }
 
 async function writeHarnessSkills({ pluginRoot, rootDir, contract }) {
-  for (const { name, source, directory } of [...trioSkillSourceMap, ...harnessSkillSourceMap]) {
+  for (const { name, source, directory, support = [] } of [...trioSkillSourceMap, ...harnessSkillSourceMap]) {
     const destination = contract.skillDestinations[name];
     const outputPath = path.join(pluginRoot, destination);
     const sourceRoot = path.join(rootDir, source);
@@ -115,6 +115,11 @@ async function writeHarnessSkills({ pluginRoot, rootDir, contract }) {
     } else {
       await mkdir(path.dirname(outputPath), { recursive: true });
       await cp(sourceRoot, outputPath);
+      for (const reference of support) {
+        const referenceOutput = path.join(path.dirname(outputPath), reference.relativePath);
+        await mkdir(path.dirname(referenceOutput), { recursive: true });
+        await cp(path.join(rootDir, reference.source), referenceOutput);
+      }
     }
   }
 }

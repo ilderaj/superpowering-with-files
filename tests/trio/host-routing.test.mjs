@@ -307,6 +307,7 @@ test('Host routing falls back from visible worker to native subagent and then ma
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -375,6 +376,7 @@ test('default execution selects a safe native subagent even when a visible worke
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -417,6 +419,7 @@ test('native descriptors snapshot the validated packet before binding its digest
       authenticated: true,
       evidenceRef: 'native-packet-snapshot-1',
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -469,6 +472,7 @@ test('packet aliases retain their native delegation policy', () => {
       authenticated: true,
       evidenceRef: 'native-packet-alias-1',
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -509,6 +513,7 @@ test('packet aliases retain their strict visible-only topology', () => {
       authenticated: true,
       evidenceRef: 'strict-packet-alias-1',
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -548,6 +553,7 @@ test('spawn routes do not inherit an old visible worker identity, status, or act
       pathBinding: true
     },
     nativeSubagent: {
+        requestedModelEffortControls: true,
       supported: true,
       visible: false,
       operations: { spawn: true }
@@ -632,6 +638,7 @@ test('native subagents cannot be selected for non-spawn operations without a nat
           pathBinding: true
         },
         nativeSubagent: {
+        requestedModelEffortControls: true,
           supported: true,
           visible: false,
           operations: { [operation]: true }
@@ -666,6 +673,7 @@ test('manual capability evidence preserves observed native support when safety i
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -926,6 +934,7 @@ test('strict primary execution never falls back to a native subagent', () => {
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -964,6 +973,7 @@ test('strict primary execution fails closed when no visible worker capability is
       authenticated: true,
       evidenceRef: 'strict-missing-visible-1',
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -1011,6 +1021,7 @@ test('non-strict primary execution keeps the visible to native to manual chain u
       pathBinding: true
     },
     nativeSubagent: {
+        requestedModelEffortControls: true,
       supported: true,
       visible: false,
       operations: { spawn: true }
@@ -1126,6 +1137,7 @@ test('capability.childDelegation = prohibited denies any native child route even
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -1242,6 +1254,7 @@ test('legacy non-strict packets without childDelegation preserve native subagent
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -1288,6 +1301,7 @@ test('unknown childDelegation values fail closed before native child acceptance'
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -1335,6 +1349,7 @@ test('unknown capability.executionMode values fail closed before native child ac
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -1415,6 +1430,7 @@ test('static role configuration alone grants no dynamic child permission', () =>
         pathBinding: true
       },
       nativeSubagent: {
+        requestedModelEffortControls: true,
         supported: true,
         visible: false,
         operations: { spawn: true }
@@ -1683,11 +1699,12 @@ test('packet digest authentication gates actual worker facts while identity bind
   assert.equal(bound.routeEvidence.actualEffort, 'max');
 });
 
-test('child requests must carry a bound Flash profile no wider than the parent', () => {
+test('child requests must carry a bound model and effort no wider than the parent', () => {
   const visibleObservation = {
     authenticated: true,
     evidenceRef: 'child-visible-1',
     nativeSubagent: {
+        requestedModelEffortControls: true,
       supported: true,
       visible: false,
       operations: { spawn: true }
@@ -1719,6 +1736,7 @@ test('child requests must carry a bound Flash profile no wider than the parent',
   const nonFlash = resolveGenericHostOperation({
     operation: 'spawn',
     isChild: true,
+    parentModel: 'opencode-go/deepseek-v4-flash',
     parentEffort: 'xhigh',
     assignmentPacket: childPacket({
       workRole: 'chief',
@@ -1729,7 +1747,7 @@ test('child requests must carry a bound Flash profile no wider than the parent',
     ...envelopes
   });
   assert.equal(nonFlash.routeEvidence.routeKind, 'manual_pending');
-  assert.match(nonFlash.routeEvidence.fallbackReason, /child_profile_unbound:model/);
+  assert.match(nonFlash.routeEvidence.fallbackReason, /child_cross_model_allowance_required/);
   assert.equal(nonFlash.routeEvidence.actualModel, 'unknown');
   assert.equal(nonFlash.descriptor.executed, false);
   assert.deepEqual(nonFlash.descriptor.assignmentPacket, nonFlash.descriptor.assignmentPacket);
@@ -1737,6 +1755,7 @@ test('child requests must carry a bound Flash profile no wider than the parent',
   const widened = resolveGenericHostOperation({
     operation: 'spawn',
     isChild: true,
+    parentModel: 'opencode-go/deepseek-v4-flash',
     parentEffort: 'xhigh',
     assignmentPacket: childPacket({ workRole: 'coding', complexity: 'max' }),
     observation: visibleObservation,
@@ -1748,6 +1767,7 @@ test('child requests must carry a bound Flash profile no wider than the parent',
   const unbound = resolveGenericHostOperation({
     operation: 'spawn',
     isChild: true,
+    parentModel: 'opencode-go/deepseek-v4-flash',
     assignmentPacket: childPacket({ workRole: 'coding', complexity: 'xhigh' }),
     observation: visibleObservation,
     ...envelopes
@@ -1758,6 +1778,7 @@ test('child requests must carry a bound Flash profile no wider than the parent',
   const admissible = resolveGenericHostOperation({
     operation: 'spawn',
     isChild: true,
+    parentModel: 'opencode-go/deepseek-v4-flash',
     parentEffort: 'xhigh',
     assignmentPacket: childPacket({
       workRole: 'coding',
@@ -2019,30 +2040,8 @@ test('Codex handoffs bind the canonical packet digest and reject unknown lifecyc
     }),
     /supported.*lifecycle operation/i
   );
-  // Non-spawn lifecycle operations derive the frozen Corleone identity from
-  // the Assignment Packet when the caller omits workerIdentity (packet-first
-  // protocol). coding/high selects Button Man Al Neri at ordinal 1.
-  const packetDerived = renderCodexHandoffRequest({
-    operation: 'continue',
-    packet,
-    packetDigest: routing.packetDigestOf(packet)
-  });
-  assert.equal(packetDerived.role, 'buttonman_neri');
-  assert.deepEqual(packetDerived.workerIdentity, {
-    agentType: 'buttonman_neri',
-    displayName: 'Button Man Al Neri',
-    tier: 'buttonman',
-    ordinal: 1
-  });
-  assert.equal(packetDerived.profile.modelReasoningEffort, 'high');
-  assert.equal(packetDerived.operation, 'continue');
-  for (const operation of ['status', 'interrupt', 'collect']) {
-    const derived = renderCodexHandoffRequest({
-      operation,
-      packet,
-      packetDigest: routing.packetDigestOf(packet)
-    });
-    assert.equal(derived.role, 'buttonman_neri', operation);
+  for (const operation of ['continue', 'status', 'interrupt', 'collect']) {
+    assert.throws(() => renderCodexHandoffRequest({ operation, packet, packetDigest: routing.packetDigestOf(packet) }), /frozen workerIdentity/);
   }
   // An explicitly frozen identity remains authoritative for non-spawn calls.
   const frozenButtonman = allocateCorleoneCallsign({ tier: 'buttonman', ordinal: 1 });
@@ -2103,14 +2102,10 @@ test('Corleone handoffs bind Flash effort to the execution packet economic polic
     }),
     /effort.*high.*xhigh.*max/i
   );
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'spawn',
-      packet: mismatchedEffortPacket,
-      packetDigest: routing.packetDigestOf(mismatchedEffortPacket)
-    }),
-    /with complexity high requests effort high/i
-  );
+  assert.equal(renderCodexHandoffRequest({
+    operation: 'spawn', packet: mismatchedEffortPacket,
+    packetDigest: routing.packetDigestOf(mismatchedEffortPacket)
+  }).profile.modelReasoningEffort, 'xhigh');
 });
 
 test('Corleone lifecycle handoffs reject a Chief packet even with a frozen roster identity', () => {
@@ -2132,7 +2127,7 @@ test('Corleone lifecycle handoffs reject a Chief packet even with a frozen roste
       packet: chiefPacket,
       packetDigest: routing.packetDigestOf(chiefPacket)
     }),
-    /supported execution workRole|supported execution workRole and complexity/i
+    /frozen workerIdentity/i
   );
 });
 
@@ -2870,4 +2865,48 @@ test('Codex adapter keeps the requested approval policy separate from authentica
   assert.equal(bound.actual.approvalPolicy, 'never');
   assert.equal(bound.expression.applied, false);
   assert.equal(bound.expression.requestedApprovalPolicy, 'never');
+});
+
+test('Corleone handoffs and role files preserve modern model and effort independently of persona', () => {
+  for (const requestedModel of ['gpt-6-astra', 'main/gpt-5.6-sol', 'p646e20/gpt-5.6-terra', 'gpt-5.6-luna']) {
+    const packet = { ...createAssignmentPacket(), capability: { workRole: 'coding', complexity: 'xhigh', requestedModel, requestedEffort: 'low' } };
+    const result = renderCodexHandoffRequest({ operation: 'spawn', packet, packetDigest: routing.packetDigestOf(packet), ordinal: 3 });
+    assert.equal(result.profile.model, requestedModel);
+    assert.equal(result.profile.modelReasoningEffort, 'low');
+    assert.equal(result.workerIdentity.displayName, 'Capo 3rd');
+    const continued = renderCodexHandoffRequest({ operation: 'continue', packet, packetDigest: routing.packetDigestOf(packet), workerIdentity: result.workerIdentity });
+    assert.deepEqual(continued.workerIdentity, result.workerIdentity);
+    assert.equal(continued.profile.model, requestedModel);
+    assert.match(renderCorleoneRoleFile('capo', 'low', requestedModel), new RegExp(`model = "${requestedModel}"`));
+  }
+});
+
+for (const agentType of CORLEONE_AGENT_TYPES) {
+  test(`inherited Corleone role ${agentType} leaves model and effort to the caller and Host`, () => {
+    const output = codexAdapter.renderInheritedCorleoneRoleFile(agentType);
+    const fields = Object.fromEntries(output.trim().split('\n').map((line) => {
+      const separator = line.indexOf(' = ');
+      return [line.slice(0, separator), JSON.parse(line.slice(separator + 3))];
+    }));
+    assert.deepEqual(Object.keys(fields), ['name', 'description', 'nickname_candidates', 'developer_instructions']);
+    assert.equal(fields.name, agentType);
+    assert.deepEqual(fields.nickname_candidates, resolveCorleoneProfile(agentType).nicknameCandidates);
+    assert.match(fields.developer_instructions, /model and effort selected by the caller or inherited from the Host/);
+    assert.match(fields.developer_instructions, /bounded parallel helpers when permitted by the user and Host/);
+    assert.match(fields.developer_instructions, /proper subset/);
+    assert.match(fields.developer_instructions, /When the assignment requires visible_worker_required/);
+    assert.match(fields.developer_instructions, /unknown unless authenticated Host evidence/);
+    assert.doesNotMatch(output, /^(?:model|model_reasoning_effort|model_provider|fallback_model)\s*=/m);
+    assert.doesNotMatch(fields.developer_instructions, /deepseek|flash|gpt-|ultra|only worker.local|worker.local only|already accepted plan|highest.level visible execution/i);
+    // The existing renderer remains the explicit fixed-profile compatibility path.
+    const legacy = renderCorleoneRoleFile(agentType);
+    assert.match(legacy, /^model = "opencode-go\/deepseek-v4-flash"$/m);
+    assert.match(legacy, /^model_reasoning_effort = "(?:high|xhigh|max)"$/m);
+  });
+}
+
+test('inherited Corleone role rejects unknown identities without emitting configuration', () => {
+  for (const invalid of ['', 'gpt-6-astra', 'capo\nmodel = "override"', null]) {
+    assert.throws(() => codexAdapter.renderInheritedCorleoneRoleFile(invalid), /Unknown Corleone agent type/);
+  }
 });

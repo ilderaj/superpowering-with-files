@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import { SURFACES, SUPPORT_SURFACES, PROJECTION_SURFACES } from '../../trio/projection.mjs';
 import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import { withTrioPublicationLock } from '../../trio/core/store.mjs';
 import {
@@ -423,13 +424,17 @@ function assertTrioChiefOpsShapeEligible({ state, environment }) {
 
 async function assertTrioChiefOpsTakeoverEligible({ state, prepared }) {
   const managed = prepared.descriptors.filter((descriptor) => descriptor.management === 'managed');
-  if (managed.length !== 6) {
-    throw trioTakeoverError('Trio --takeover-chiefops requires exactly six managed user-global Trio surfaces.');
+  if (managed.length !== PROJECTION_SURFACES.length) {
+    throw trioTakeoverError('Trio --takeover-chiefops requires the complete static managed user-global Trio inventory.');
   }
   const chiefops = managed.find((descriptor) => descriptor.surface === 'chiefops');
-  const owned = managed.filter((descriptor) => descriptor.surface !== 'chiefops');
-  if (!chiefops || owned.length !== 5) {
-    throw trioTakeoverError('Trio --takeover-chiefops requires the six managed user-global Trio surfaces.');
+  const primaryIds = new Set(SURFACES.map((surface) => surface.id));
+  const supportIds = new Set(SUPPORT_SURFACES.map((surface) => surface.id));
+  const primaryOwned = managed.filter((descriptor) => primaryIds.has(descriptor.surface) && descriptor.surface !== 'chiefops');
+  const support = managed.filter((descriptor) => supportIds.has(descriptor.surface));
+  if (!chiefops || primaryOwned.length !== 5 || support.some((descriptor) =>
+    !['create', 'update'].includes(descriptor.action) || descriptor.execution !== 'managed')) {
+    throw trioTakeoverError('Trio --takeover-chiefops requires five owned primary surfaces, unowned ChiefOps, and only absent or owned support.');
   }
   if (state.ownership.entries.some((entry) =>
     entry.targetId === 'codex' && path.resolve(entry.path) === path.resolve(chiefops.destination)
@@ -437,9 +442,10 @@ async function assertTrioChiefOpsTakeoverEligible({ state, prepared }) {
     throw trioTakeoverError('Trio --takeover-chiefops refuses an already-owned ChiefOps surface.');
   }
   const ownedByPath = new Map(state.ownership.entries.map((entry) => [path.resolve(entry.path), entry]));
+  const owned = [...primaryOwned, ...support.filter((descriptor) => ownedByPath.has(path.resolve(descriptor.destination)))];
   if (state.ownership.entries.length !== owned.length
     || owned.some((descriptor) => !ownedByPath.has(path.resolve(descriptor.destination)))) {
-    throw trioTakeoverError('Trio --takeover-chiefops requires ownership of exactly the five existing Trio surfaces.');
+    throw trioTakeoverError('Trio --takeover-chiefops requires ownership of the five primary Trio surfaces and only declared support files.');
   }
   for (const descriptor of owned) {
     const entry = ownedByPath.get(path.resolve(descriptor.destination));
@@ -449,6 +455,7 @@ async function assertTrioChiefOpsTakeoverEligible({ state, prepared }) {
   }
   for (const descriptor of owned) {
     const entry = ownedByPath.get(path.resolve(descriptor.destination));
+    if (supportIds.has(descriptor.surface) && descriptor.action === 'create') continue;
     const actual = sha256(await readFile(descriptor.destination));
     if (entry.identity !== `sha256:${actual}`) {
       throw trioTakeoverError(`Trio --takeover-chiefops rejects owned-surface content mismatch: ${descriptor.destination}.`);

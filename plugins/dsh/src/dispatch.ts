@@ -23,7 +23,7 @@ import type { SubagentRunInfo, SubagentRuntime } from '@deepseek-ai/dsh-subagent
 
 import { BudgetTracker, writeBudgetEvidence, type BudgetSnapshot } from './budget.js';
 import type { SwfDshContext } from './context.js';
-import { subagentsServiceOf } from './context.js';
+import { subagentsServiceOf, modelSelectionStartOf } from './context.js';
 import {
   classifyGateCategories,
   deepTierGate,
@@ -71,6 +71,7 @@ export interface DispatchResult {
   resumeCondition?: string;
   provider: string;
   model: string;
+  effort?: string;
   registryProvider: string;
   tier: DispatchTier;
   runId?: string;
@@ -92,6 +93,8 @@ interface WorkerEvidenceExtraInput {
   tier: DispatchTier;
   corleoneRole: CorleoneRoleSelection;
   requestedTokens: number;
+  requestedEffort?: string;
+  requestedModel?: string;
   packetDigest: string | null;
   startEventObserved: boolean;
   observedRegistryProvider: string | null;
@@ -111,6 +114,7 @@ function workerEvidenceExtra(input: WorkerEvidenceExtraInput): Record<string, un
     requestedPersona: input.corleoneRole.persona,
     requestedDisplayName: input.corleoneRole.displayName,
     requestedTokens: input.requestedTokens,
+    ...(input.requestedEffort ? { requestedEffort: input.requestedEffort, requestedModel: input.requestedModel } : {}),
     packetDigest: input.packetDigest,
     startEventObserved: input.startEventObserved,
     observedRegistryProvider: input.observedRegistryProvider,
@@ -297,6 +301,12 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       return pending(ledger, 'persona_capability_unavailable', 'Registry provider ' + registryProvider + ' does not advertise persona support; the Corleone visible worker cannot start unbound.');
     }
 
+    const selectionStart = resolution.effort ? modelSelectionStartOf(ctx) : undefined;
+    if (resolution.effort && !selectionStart) {
+      return pending(ledger, 'model_effort_controls_unavailable',
+        'This Host must implement subagents.startWithModelSelection to bind the requested model and effort before the first child request; no default-effort fallback is allowed.');
+    }
+
     // 8. Budget cap: reconcile the tokenMeter measurement, claim a parallel
     // slot, then reserve tokens. Over-limit or over-cap => manual_pending.
     let measured = options.measuredTokens;
@@ -347,7 +357,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     // child shadows the deployment persona with the frozen worker identity.
     let run;
     try {
-      run = await subagents.start(registryProvider, {
+      const request = {
         label: options.label ?? 'SWF task ' + taskId,
         persona: corleoneRole.persona,
         prompt: [{ type: 'text', text: prompt }] as ContentBlock[],
@@ -358,7 +368,12 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
           model: resolution.model,
           maxTokens: requestedTokens
         }
-      });
+      };
+      run = selectionStart && resolution.effort
+        ? await selectionStart(registryProvider, request, {
+          provider: resolution.provider, model: resolution.model, reasoningEffort: resolution.effort
+        })
+        : await subagents.start(registryProvider, request);
     } catch (error) {
       disposeObserver();
       ledger.endWorker();
@@ -434,6 +449,8 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
           tier,
           corleoneRole,
           requestedTokens,
+          requestedEffort: resolution.effort,
+          requestedModel: resolution.requestedModel,
           packetDigest: packetDigestOf(packetFile.packet),
           startEventObserved: startInfos.length > 0,
           observedRegistryProvider
@@ -453,6 +470,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       status: 'dispatched',
       provider: resolution.provider,
       model: resolution.model,
+      ...(resolution.effort ? { effort: resolution.effort } : {}),
       registryProvider,
       tier,
       runId: sessionId,

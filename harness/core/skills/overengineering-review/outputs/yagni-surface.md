@@ -8,4 +8,4 @@ change: remove the speculative plugin registry and keep the single in-scope exec
 why: the extra extension surface increases branching and maintenance before any real use case exists
 
 ## Summary
-net: -31 lines possible.
+Verify the bounded cut preserves the required behavior; no line estimate is asserted.

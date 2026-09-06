@@ -1,709 +1,182 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { evaluateOutput } from '../../harness/core/skills/overengineering-review/lib/evaluate-overengineering-review.mjs';
 
-const testDirectory = path.dirname(fileURLToPath(import.meta.url));
-const repositoryRoot = path.resolve(testDirectory, '..', '..');
-const devSkillPath = path.join(repositoryRoot, 'harness', 'trio', 'capabilities', 'dev', 'SKILL.md');
-const chiefopsSkillPath = path.join(repositoryRoot, 'harness', 'trio', 'governance', 'chiefops', 'SKILL.md');
-const sopPath = path.join(repositoryRoot, 'docs', 'coding-harness-sop.md');
-const entrySkillPath = path.join(repositoryRoot, 'harness', 'trio', 'skill', 'SKILL.md');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const read = (file) => readFile(path.join(root, file), 'utf8');
+const dev = 'harness/trio/capabilities/dev/SKILL.md';
+const entry = 'harness/trio/skill/SKILL.md';
+const chief = 'harness/trio/governance/chiefops/SKILL.md';
 
-function parseHeader(markdown) {
-  const lines = markdown.split(/\r?\n/);
-  assert.equal(lines[0], '---', 'The skill must begin with a YAML header.');
-  const closingIndex = lines.indexOf('---', 1);
-  assert.ok(closingIndex > 1, 'The skill must close its YAML header.');
-  const fields = {};
-  for (const line of lines.slice(1, closingIndex)) {
-    const match = line.match(/^([A-Za-z][A-Za-z0-9_-]*):\s*(.*)$/);
-    assert.ok(match, `Invalid header line: ${line}`);
-    const key = match[1];
-    assert.equal(Object.prototype.hasOwnProperty.call(fields, key), false, `Duplicate header key: ${key}`);
-    fields[key] = match[2].replace(/^['"]|['"]$/g, '');
+// Follow source-owned support documents: prose may move without losing the contract.
+async function contract(file, seen = new Set()) {
+  if (seen.has(file)) return '';
+  seen.add(file);
+  const text = await read(file);
+  const links = [...text.matchAll(/\]\(([^)]+\.md)\)/g)].map((m) => m[1]);
+  const support = [];
+  for (const link of links) {
+    assert.ok(!link.includes('://'), 'contract support must be local');
+    const target = path.normalize(path.join(path.dirname(file), link));
+    assert.ok(target.startsWith(path.dirname(file) + '/'), 'support stays under its skill');
+    support.push(await contract(target, seen));
   }
-  return { fields, body: lines.slice(closingIndex + 1).join('\n') };
+  return [text, ...support].join('\n');
 }
 
-function replaceExactlyOnce(source, before, after) {
-  const occurrences = source.split(before).length - 1;
-  assert.equal(occurrences, 1, `Expected one source occurrence for: ${before}`);
-  return source.replace(before, after);
+function has(text, clauses) {
+  for (const [decision, pattern] of Object.entries(clauses)) assert.match(text, pattern, decision);
 }
 
-function sectionBody(body, heading) {
-  const lines = body.split(/\r?\n/);
-  const headingIndex = lines.indexOf(`## ${heading}`);
-  assert.ok(headingIndex >= 0, `Missing section: ${heading}`);
-  const nextHeadingOffset = lines.slice(headingIndex + 1).findIndex((line) => /^##\s+/.test(line));
-  const endIndex = nextHeadingOffset < 0 ? lines.length : headingIndex + 1 + nextHeadingOffset;
-  return lines.slice(headingIndex + 1, endIndex).join('\n');
-}
+const proofRules = {
+  behavior: /behavior[\s\S]*real RED[\s\S]*smallest GREEN/i,
+  publicProof: /public seam/i,
+  meaningful: /reject[^\n]*(implementation-coupled|tautological)[^\n]*mock-only/i,
+  typo: /(?:typo|wording)[^\n]*(?:no|do not|skip)[^\n]*test/i,
+  reuse: /unchanged[^\n]*evidence[^\n]*(?:reuse|valid)/i,
+  invalidate: /(?:change|failure|uncertainty)[^\n]*(?:rerun|repeat|new verification)/i,
+  review: /Standards[^\n]*Spec/,
+  rootCause: /root.cause/i,
+  ownership: /preserve[^\n]*(?:others|other people|unrelated)/i,
+  fallback: /fallback[^\n]*contract/i,
+};
 
-function assertDevSkillContract(markdown) {
-  const { fields, body } = parseHeader(markdown);
-  const headings = new Set(
-    [...body.matchAll(/^##\s+(.+)$/gm)].map((match) => match[1].trim())
-  );
-
-  assert.equal(fields.name, 'dev');
-  assert.match(fields.description ?? '', /\S/);
-  for (const heading of [
-    'Quality Loop',
-    'Implementation Discipline',
-    'Planning Contract',
-    'Debugging Contract',
-    'Review Contract',
-    'Verification Contract',
-    'Isolation and Closure',
-    'Return Contract'
-  ]) {
-    assert.ok(headings.has(heading), `Missing dev contract section: ${heading}`);
-  }
-
-  const qualityLoop = sectionBody(body, 'Quality Loop').toLowerCase();
-  assert.match(qualityLoop, /clarify or design only when[\s\S]*material uncertainty/);
-  assert.match(qualityLoop, /when judgment is material[\s\S]*compare bounded alternatives/);
-  assert.match(qualityLoop, /write one behavior at a time[\s\S]*observe a real red[\s\S]*write the smallest green[\s\S]*refactor only while green/);
-  const discipline = sectionBody(body, 'Implementation Discipline').toLowerCase();
-  for (const constraint of [
-    'simplest bounded solution',
-    'smallest root-cause diff',
-    'reuse an existing public surface before creating a new one',
-    'no speculative complexity',
-    'preserve working behavior and architectural ownership',
-    'explicitly requires or permits',
-    'never invent an unexpected fallback',
-    'obsolete code only within the bound slice',
-    'out-of-scope findings',
-    'without mutating'
-  ]) {
-    assert.ok(discipline.includes(constraint), `Missing implementation discipline: ${constraint}`);
-  }
-  const isolation = sectionBody(body, 'Isolation and Closure').toLowerCase();
-  for (const safeguard of [
-    'detect existing isolation and ownership before creating a workspace',
-    'prefer native host isolation',
-    'avoid concurrent writes to shared mutable paths',
-    'verify a clean baseline',
-    'provenance authorizes cleanup',
-    'branch closure verifies first',
-    'never auto-merges',
-    'never removes a host-owned workspace'
-  ]) {
-    assert.ok(isolation.includes(safeguard), `Missing isolation safeguard: ${safeguard}`);
-  }
-  const debugging = sectionBody(body, 'Debugging Contract').toLowerCase();
-  assert.match(debugging, /start with a fast, deterministic, red-capable feedback loop/);
-  assert.match(debugging, /reproduce exactly[\s\S]*minimize the case[\s\S]*relevant public seams/);
-  assert.match(debugging, /trace the bad value backward to its root cause/);
-  assert.match(debugging, /one falsifiable hypothesis[\s\S]*one variable at a time/);
-  assert.match(debugging, /fix the source[\s\S]*regression test/);
-  assert.match(debugging, /after three failed attempts[\s\S]*stop and question the plan or architecture/);
-  const review = sectionBody(body, 'Review Contract').toLowerCase();
-  assert.match(review, /review a fixed work product on independent standards and spec axes/);
-  assert.match(review, /repository reality[\s\S]*bound requirements/);
-  assert.match(review, /verify every finding technically/);
-  assert.match(review, /important findings block acceptance until addressed/);
-  const verification = sectionBody(body, 'Verification Contract').toLowerCase();
-  assert.match(verification, /before completion, commit, or phase advance, run fresh verification completely/);
-  assert.match(verification, /read command exits, test counts, and failure details[\s\S]*preserve the evidence before making a claim/);
-  assert.match(verification, /a worker report, previous run, partial run, or adjacent green test is not proof/);
-  assert.match(verification, /without authenticated host evidence, actual model and effort remain unknown/);
-  const planning = sectionBody(body, 'Planning Contract').toLowerCase();
-  for (const field of [
-    'objective',
-    'exact affected surfaces',
-    'verified baseline',
-    'required behavior',
-    'non-goals',
-    'dependencies',
-    'red proof',
-    'smallest green',
-    'verification command',
-    'backstop verification',
-    'evidence sink',
-    'stop or block conditions',
-    'expected return contract'
-  ]) {
-    assert.ok(planning.includes(field), `Missing execution-handoff field: ${field}`);
-  }
-
-  const normalized = body.toLowerCase();
-  for (const phrase of [
-    'public seam',
-    'red before green',
-    'one vertical slice',
-    'root cause',
-    'falsifiable hypothesis',
-    'three failed attempts',
-    'standards',
-    'spec',
-    'fresh verification',
-    'actual',
-    'unknown',
-    'candidate'
-  ]) {
-    assert.ok(normalized.includes(phrase), `Missing normative behavior: ${phrase}`);
-  }
-}
-
-function assertEntrySkillContract(markdown) {
-  const { fields, body } = parseHeader(markdown);
-  const headings = new Set(
-    [...body.matchAll(/^##\s+(.+)$/gm)].map((match) => match[1].trim())
-  );
-
-  assert.equal(fields.name, 'trio');
-  assert.match(fields.description ?? '', /\S/);
-  for (const heading of [
-    'Route First',
-    'Task Classes',
-    'Capability Selection',
-    'Plan and Execute Boundary',
-    'Authority and Host Boundary',
-    'Human Gates'
-  ]) {
-    assert.ok(headings.has(heading), `Missing entry contract section: ${heading}`);
-  }
-
-  const routeFirst = sectionBody(body, 'Route First').toLowerCase();
-  assert.match(routeFirst, /route before choosing effort or execution topology/);
-  assert.match(routeFirst, /only after the route is known[\s\S]*select an effort intent or execution topology/);
-  const capabilitySelection = sectionBody(body, 'Capability Selection').toLowerCase();
-  assert.match(capabilitySelection, /after routing, choose exactly one capability family/);
-  const taskClasses = sectionBody(body, 'Task Classes').toLowerCase();
-  assert.match(taskClasses, /quick work is direct and lightweight: no trio creation and no mandatory worker or fan-out/);
-  assert.match(taskClasses, /tracked work creates or restores only the bound task's three planning files/);
-  assert.match(taskClasses, /no fourth task-state file is introduced/);
-  assert.match(taskClasses, /deep is a current-round reasoning decision/);
-  assert.match(taskClasses, /it is not a durable task type and does not create another authority/);
-  const humanGates = sectionBody(body, 'Human Gates').toLowerCase();
-  assert.match(humanGates, /retain the applicable human gate/);
-  assert.match(humanGates, /route or capability selection never grants permission/);
-  const authorityBoundary = sectionBody(body, 'Authority and Host Boundary').toLowerCase();
-  assert.match(authorityBoundary, /trio remains the sole durable task authority/);
-  assert.match(authorityBoundary, /host owns worker and subtask lifecycle/);
-  assert.match(authorityBoundary, /requested and actual model evidence/);
-  assert.match(authorityBoundary, /permissions/);
-  assert.match(authorityBoundary, /continuation/);
-  assert.match(authorityBoundary, /external or human gates/);
-  assert.match(authorityBoundary, /host-native goal and continuation are the long-task runtime/);
-  assert.match(authorityBoundary, /not a scheduler, daemon, poller, or runner/);
-  assert.match(authorityBoundary, /without authenticated host evidence, actual remains unknown/);
-  assert.match(authorityBoundary, /worker done is only a candidate/);
-  assert.match(authorityBoundary, /chief performs acceptance and trio writeback/);
-  const planExecute = sectionBody(body, 'Plan and Execute Boundary').toLowerCase();
-  assert.match(planExecute, /chief: intake, route, planning, authority, assignment, gates, review, and acceptance/);
-  assert.match(planExecute, /execution worker: production changes and primary verification/);
-  assert.match(planExecute, /worker result is a candidate only/);
-  assert.match(planExecute, /chief acceptance is required before durable completion/);
-  assert.match(planExecute, /primary execution requires a visible worker/);
-  assert.match(planExecute, /chief never performs production mutations inline/);
-  assert.match(planExecute, /never substitutes a native subagent/);
-  assert.match(planExecute, /manual_pending.{0,4}or.{0,4}blocked/);
-
-  const normalized = body.toLowerCase();
-  for (const phrase of [
-    'route before choosing effort',
-    'quick',
-    'tracked',
-    'deep',
-    'dev',
-    'office',
-    'safety',
-    'planning/active/<task-id>/task_plan.md',
-    'findings.md',
-    'progress.md',
-    'host-native goal',
-    'actual remains unknown',
-    'worker done is only a candidate',
-    'chief performs acceptance',
-    'plan and execute boundary',
-    'visible worker',
-    'destructive',
-    'external',
-    'credential',
-    'merge',
-    'push',
-    'publish',
-    'release',
-    'deploy',
-    'send',
-    'data-loss'
-  ]) {
-    assert.ok(normalized.includes(phrase), `Missing entry behavior: ${phrase}`);
-  }
-}
-
-test('dev capability exposes an independent development-quality contract', async () => {
-  assertDevSkillContract(await readFile(devSkillPath, 'utf8'));
-});
-
-test('dev, ChiefOps, and SOP bind a read-only current-head PR feedback loop', async () => {
-  const sources = await Promise.all([
-    readFile(devSkillPath, 'utf8'),
-    readFile(chiefopsSkillPath, 'utf8'),
-    readFile(sopPath, 'utf8')
-  ]);
-  const normalized = sources.join('\n').toLowerCase();
-  for (const phrase of [
-    'repository, number',
-    'base ref',
-    'current head sha',
-    'fixed spec reference',
-    'threadwritepolicy: read_only',
-    'followupissuepolicy: draft_only',
-    'paginated review threads',
-    'status checks',
-    'stays quiet',
-    'invalidates prior head-specific',
-    'already_fixed',
-    'false_positive',
-    'needs_user_decision',
-    'repair_required',
-    'follow_up',
-    'awaiting_human',
-    'human `approved`',
-    'same current head',
-    'fail-closed',
-    'complete normalized pr',
-    'bounded genuinely pending machine',
-    'deferred_follow_up_recording',
-    'terminal_pr',
-    'author.__typename',
-    'bot or missing actor type',
-    'thread replies',
-    'credential changes',
-    'disabled external actions'
-  ]) {
-    assert.ok(normalized.includes(phrase), `Missing PR feedback contract: ${phrase}`);
+test('five shared skill identities survive extraction and local support resolves', async () => {
+  for (const [name, file] of Object.entries({ trio: entry, dev, chiefops: chief,
+    office: 'harness/trio/capabilities/office/SKILL.md', safety: 'harness/trio/capabilities/safety/SKILL.md' })) {
+    assert.match(await read(file), new RegExp(`^name: ${name}$`, 'm'));
+    const text = await contract(file);
+    assert.doesNotMatch(text, /deepseek|Flash|Sol\/Terra|Corleone|only.*(?:gpt-|opencode-)/i);
   }
 });
 
-test('dev validator rejects unconditional discovery design', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Clarify or design only when material uncertainty, unclear architecture, a non-obvious root cause, or high-risk judgment makes it necessary.',
-    'Clarify or design whenever work is present, including material uncertainty, unclear architecture, a non-obvious root cause, or high-risk judgment.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
+test('dev routes risk-relevant proof and preserves existing evidence', async () => {
+  has(await contract(dev), proofRules);
 });
 
-test('dev validator rejects unconditional alternative comparison', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'When judgment is material, compare bounded alternatives and record the selected trade-off.',
-    'Compare bounded alternatives and record the selected trade-off whenever work is present, even when judgment is not material.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('dev validator rejects GREEN-before-RED and early refactoring', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Keep the rule red before green: write one behavior at a time, observe a real RED before production text or code, write the smallest GREEN change, and refactor only while GREEN.',
-    'Keep the rule red before green: write one behavior at a time, write the smallest GREEN change, refactor before GREEN or while GREEN, and observe a real RED before production text or code.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('dev validator rejects weakened isolation and closure safeguards', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Detect existing isolation and ownership before creating a workspace. Prefer native Host isolation, avoid concurrent writes to shared mutable paths, and verify a clean baseline. Clean only a workspace whose provenance authorizes cleanup. Branch closure verifies first, preserves human gates, never auto-merges, pushes, discards, releases, deploys, publishes, or sends, and never removes a Host-owned workspace.',
-    'Detect existing isolation and ownership before creating a workspace. Use any available workspace, allow concurrent writes to shared mutable paths, and skip baseline checks. Clean any workspace after the task. Branch closure may automatically merge, push, discard, release, deploy, publish, or send, and may remove any workspace.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('dev validator rejects continued patching after repeated failures', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'After three failed attempts, stop and question the plan or architecture instead of adding another patch.',
-    'After three failed attempts, add another patch and continue without questioning the plan or architecture.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('dev validator rejects speculative abstraction beyond the slice', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Add no speculative complexity: no speculative abstractions, configurable branches, or machinery the slice does not need.',
-    'Add speculative abstractions, configurable branches, and future-proofing machinery freely.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('dev validator rejects an unexpected fallback without a governing contract', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Fallbacks are explicit-contract-only: add a fallback only when the governing contract explicitly requires or permits one; never invent an unexpected fallback.',
-    'Add any fallback the implementation finds useful, even without a governing contract.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('dev validator rejects delayed review blocking', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Verify every finding technically; important findings block acceptance until addressed.',
-    'Verify every finding technically; important findings block acceptance only after acceptance is granted.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('dev validator rejects verification after claiming completion', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Read command exits, test counts, and failure details; preserve the evidence before making a claim.',
-    'Read command exits, test counts, and failure details after making a claim; preserve the evidence later.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('Trio entry skill routes tasks and selects one capability family', async () => {
-  assertEntrySkillContract(await readFile(entrySkillPath, 'utf8'));
-});
-
-test('Trio entry validator rejects effort selection before routing', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Only after the route is known may the Host and caller select an effort intent or execution topology.',
-    'Before the route is known, the Host and caller may select an effort intent or execution topology.'
-  );
-
-  assert.throws(() => assertEntrySkillContract(mutated));
-});
-
-test('Trio entry validator rejects multiple capability families', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'After routing, choose exactly one capability family: `dev`, `office`, or `safety`.',
-    'After routing, choose one or more capability families: `dev`, `office`, or `safety`.'
-  );
-
-  assert.throws(() => assertEntrySkillContract(mutated));
-});
-
-test('Trio entry validator rejects durable Deep authority', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'It is not a durable task type and does not create another authority.',
-    'It is a durable task type and creates another authority.'
-  );
-
-  assert.throws(() => assertEntrySkillContract(mutated));
-});
-
-test('Trio entry validator rejects automatic gated actions', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Destructive, external, credential or security-sensitive, merge, push, publish, release, deploy, send, and data-loss actions retain the applicable human gate. A route or capability selection never grants permission for those actions.',
-    'Destructive, external, credential or security-sensitive, merge, push, publish, release, deploy, send, and data-loss actions are automatically allowed after routing. A route or capability selection never grants permission for those actions.'
-  );
-
-  assert.throws(() => assertEntrySkillContract(mutated));
-});
-
-test('Trio entry validator rejects durable or mandatory Quick execution', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Quick work is direct and lightweight: no Trio creation and no mandatory worker or fan-out.',
-    'Quick work is direct and lightweight: Trio creation and a mandatory worker or fan-out are allowed.'
-  );
-
-  assert.throws(() => assertEntrySkillContract(mutated));
-});
-
-test('Trio entry validator rejects a fourth tracked state file', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    "The Trio is the only durable task authority; no fourth task-state file is introduced.",
-    'The Trio is the only durable task authority; a fourth task-state file may be introduced.'
-  );
-
-  assert.throws(() => assertEntrySkillContract(mutated));
-});
-
-test('Trio entry validator rejects a second durable task authority', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'The Trio remains the sole durable task authority.',
-    'The Trio shares durable task authority with other task-state surfaces.'
-  );
-
-  assert.throws(() => assertEntrySkillContract(mutated));
-});
-
-test('Trio entry validator rejects Chief inline production mutation for delegated tasks', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'When primary execution requires a visible worker, the Chief never performs production mutations inline and never substitutes a native subagent for that execution worker.',
-    'When primary execution requires a visible worker, the Chief may perform production mutations inline or substitute a native subagent for that execution worker.'
-  );
-
-  assert.throws(() => assertEntrySkillContract(mutated));
-});
-
-test('dev validator rejects an execution handoff that is not decision-complete', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'Every execution handoff must be decision-complete for the executor: objective, exact affected surfaces when known, verified baseline, required behavior, non-goals, dependencies and order, RED proof, smallest GREEN implementation, verification command, backstop verification, evidence sink, stop or block conditions, and expected return contract.',
-    'Every execution handoff may omit the objective, verified baseline, required behavior, RED proof, or evidence sink when the executor is expected to decide them.'
-  );
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('skill header parser rejects duplicate keys', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(markdown, 'name: dev', 'name: dev\nname: dev');
-
-  assert.throws(() => assertDevSkillContract(mutated));
-});
-
-test('Trio entry keeps quick work lightweight without durable task creation', async () => {
-  const markdown = await readFile(entrySkillPath, 'utf8');
-  const { body } = parseHeader(markdown);
-  const normalized = body.toLowerCase();
-
-  assert.ok(normalized.includes('quick work is direct and lightweight'));
-  assert.ok(normalized.includes('no trio creation'));
-  assert.ok(normalized.includes('no mandatory worker or fan-out'));
-});
-
-test('dev planning names concrete slice evidence and boundaries', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const { body } = parseHeader(markdown);
-  const normalized = body.toLowerCase();
-
-  for (const phrase of [
-    'exact files',
-    'non-goals',
-    'dependencies',
-    'proof command',
-    'evidence sink',
-    'stop conditions',
-    'return contract',
-    'no placeholders'
-  ]) {
-    assert.ok(normalized.includes(phrase), `Missing planning boundary: ${phrase}`);
+test('semantic proof safeguards cannot be removed while wording can change', async () => {
+  const text = await contract(dev);
+  for (const pattern of Object.values(proofRules)) {
+    assert.throws(() => has(text.replace(new RegExp(pattern.source, pattern.flags + 'g'), ''), proofRules));
   }
+  has(text.replace(/smallest GREEN/g, 'smallest GREEN implementation'), proofRules);
 });
 
-test('dev inspects reality before scaling design to uncertainty', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const { body } = parseHeader(markdown);
-  const normalized = body.toLowerCase();
-
-  for (const phrase of [
-    'inspect the current code or artifact first',
-    'material uncertainty',
-    'goal',
-    'constraints',
-    'success criteria',
-    'bounded alternatives'
-  ]) {
-    assert.ok(normalized.includes(phrase), `Missing discovery behavior: ${phrase}`);
-  }
+test('routing distinguishes direct completion from delegated acceptance', async () => {
+  const text = await contract(entry);
+  has(text, {
+    route: /route[^\n]*before[^\n]*(?:effort|topology)/i,
+    quick: /quick[^\n]*no Trio/i,
+    tracked: /tracked[^\n]*three[^\n]*planning/i,
+    deep: /deep[^\n]*current.round[^\n]*not[^\n]*durable/i,
+    family: /exactly one[^\n]*dev[^\n]*office[^\n]*safety/i,
+    direct: /direct[^\n]*(?:complete|completion)[^\n]*without[^\n]*Chief/i,
+    delegated: /delegated[^\n]*candidate[^\n]*Chief[^\n]*acceptance/i,
+    auth: /(?:reuse|honor)[^\n]*existing authorization|existing authorization[^\n]*applies/i,
+    freeze: /freeze[^\n]*(?:exact|scope)/i,
+    visible: /visible_worker_required[^\n]*(?:strict|required)/i,
+    noSubstitution: /no[^\n]*Chief inline[^\n]*native.subagent[^\n]*substitut/i,
+    pending: /manual_pending[^\n]*blocked/,
+    parallel: /parallel[^\n]*benefi[^\n]*Host[^\n]*user/i,
+    actual: /actual[^\n]*unknown[^\n]*authenticated Host/i,
+  });
 });
 
-test('dev proof rejects coupled tests and multi-variable debugging', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const { body } = parseHeader(markdown);
-  const normalized = body.toLowerCase();
-
-  for (const phrase of [
-    'implementation-coupled',
-    'tautological',
-    'bulk horizontal',
-    'mock-only proof',
-    'one variable at a time'
-  ]) {
-    assert.ok(normalized.includes(phrase), `Missing proof safeguard: ${phrase}`);
-  }
+test('entry template delegates detail and retains only routing and authority boundaries', async () => {
+  const text = await read('harness/trio/templates/entry-policy.md');
+  assert.match(text, /trio\/SKILL\.md/);
+  assert.match(text, /task_plan\.md[\s\S]*findings\.md[\s\S]*progress\.md/);
+  assert.match(text, /existing authorization/i);
+  assert.match(text, /direct[\s\S]*delegated/i);
+  assert.doesNotMatch(text, /Execution worker:|Corleone|worker_self_goal|sha256/i);
 });
 
-test('dev review and verification block incomplete evidence', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const { body } = parseHeader(markdown);
-  const normalized = body.toLowerCase();
-
-  for (const phrase of [
-    'fixed work product',
-    'independent standards and spec axes',
-    'verify every finding',
-    'important findings block acceptance',
-    'fresh verification completely',
-    'command exits',
-    'test counts',
-    'failure details',
-    'previous run',
-    'partial run',
-    'not proof'
-  ]) {
-    assert.ok(normalized.includes(phrase), `Missing review safeguard: ${phrase}`);
-  }
+test('ChiefOps selected delegation preserves frozen scope and Host lifecycle safeguards', async () => {
+  const text = await contract(chief);
+  has(text, {
+    router: /governance.only/i,
+    digest: /sha256[^\n]*authority[^\n]*frozen/i,
+    mismatch: /binding_mismatch/,
+    subset: /child[^\n]*proper.subset/i,
+    reservation: /task[^\n]*currentSlice[^\n]*reserv/i,
+    policy: /Full Access[^\n]*approval_policy=never/,
+    approval: /approval[^\n]*never expands[^\n]*scope/i,
+    sameWorker: /awaiting_approval[^\n]*same worker/i,
+    release: /release[^\n]*replacement/i,
+    pendingSetup: /clientThreadId[^\n]*pending/,
+    freeze: /(?:Trio|authority)[^\n]*frozen[^\n]*writeback/i,
+    PR: /dev[^\n]*references\/pr-feedback\.md/,
+  });
 });
 
-function assertDevMethodSelectionContract(markdown) {
-  const { body } = parseHeader(markdown);
-  const selection = sectionBody(body, 'Method Selection').toLowerCase();
-
-  for (const method of [
-    'domain-modeling',
-    'codebase-design',
-    'diagnosing-bugs',
-    'code-review'
-  ]) {
-    assert.ok(selection.includes(method), 'Missing method: ' + method);
-  }
-  for (const trigger of [
-    'new, renamed, overloaded, or contradictory',
-    'materially expanded interface',
-    'reported broken, throwing, failing, or slow behavior',
-    'fixed non-empty diff'
-  ]) {
-    assert.ok(selection.includes(trigger), 'Missing method trigger: ' + trigger);
-  }
-  for (const evidence of [
-    'existing terminology',
-    'module, interface, seam, and depth',
-    'falsifiable hypotheses',
-    'standards and spec'
-  ]) {
-    assert.ok(selection.includes(evidence), 'Missing method evidence: ' + evidence);
-  }
-  for (const safeguard of [
-    'context.md',
-    'adr',
-    'no speculative patch',
-    'human acceptance'
-  ]) {
-    assert.ok(selection.includes(safeguard), 'Missing method safeguard: ' + safeguard);
-  }
-  for (const priority of [
-    'route and safety first',
-    'domain modeling before design',
-    'diagnosis before',
-    'tdd inside',
-    'review after the fixed diff'
-  ]) {
-    assert.ok(selection.includes(priority), 'Missing method priority: ' + priority);
-  }
-
-  const gates = sectionBody(body, 'Integration Gates').toLowerCase();
-  for (const protocol of [
-    'change-quality-gate',
-    'pr-feedback-loop'
-  ]) {
-    assert.ok(gates.includes(protocol), 'Missing protocol: ' + protocol);
-  }
-  for (const requirement of [
-    'bound base, spec, and head',
-    'integration boundary',
-    'risk-relevant test matrix',
-    'real red to green',
-    'fresh verification',
-    'git diff --check',
-    'fixed-point standards and spec review',
-    'five-minute heartbeat',
-    'repair_required',
-    'awaiting_human',
-    'eligible_for_native_auto_merge',
-    'human approved',
-    'quiet interval'
-  ]) {
-    assert.ok(gates.includes(requirement), 'Missing gate requirement: ' + requirement);
-  }
- for (const nonEffect of [
-   'never implies',
-   'new capability family',
-   'mandatory runner',
-   'local hook alone proved quality'
- ]) {
-   assert.ok(gates.includes(nonEffect), 'Missing gate non-effect: ' + nonEffect);
- }
-  assert.ok(
-    gates.includes('never create a new capability family'),
-    'Missing gate guard: gates must never create a capability family.'
-  );
-
- const normalized = body.toLowerCase();
-  for (const phrase of [
-    'optional acceleration',
-    'not a new projected inventory entry',
-    'implicit dispatch permission',
-    'claim of authenticated host execution',
-    'migrate in green batches'
-  ]) {
-    assert.ok(normalized.includes(phrase), 'Missing method-routing behavior: ' + phrase);
-  }
-}
-
-test('dev capability exposes the automatic four-method selection matrix and integration protocols', async () => {
-  assertDevMethodSelectionContract(await readFile(devSkillPath, 'utf8'));
+test('accepted PR feedback refinements retain all current-head and terminal gates', async () => {
+  const text = await contract(dev);
+  has(text, {
+    binding: /requiredChecks[\s\S]*current_head_human_approved_required[\s\S]*current_head_mergeable_required/,
+    disabledWrites: /repairPushPolicy: disabled[\s\S]*threadWritePolicy: read_only[\s\S]*followUpIssuePolicy: draft_only[\s\S]*autoMergePolicy: disabled/,
+    actor: /reviewDecision[^\n]*APPROVED[^\n]*APPROVED[^\n]*current head[^\n]*author\.__typename[^\n]*User/,
+    revoked: /CHANGES_REQUESTED[^\n]*REVIEW_REQUIRED[^\n]*invalidates/i,
+    quiet: /complete normalized PR[^\n]*check[^\n]*review[^\n]*mergeability[^\n]*thread/i,
+    pagination: /pagination[^\n]*independent[^\n]*monotonic/i,
+    onlyPending: /continue only[^\n]*bounded[^\n]*pending machine check/i,
+    stop: /repair_required[^\n]*deferred_follow_up_recording[^\n]*awaiting_human_gate[^\n]*landing_eligibility[^\n]*stale_binding[^\n]*rejected_binding[^\n]*terminal_pr[^\n]*unreadable/,
+    draft: /deduplicat[^\n]*accepted nonblocking[^\n]*draft issues[^\n]*stopping/i,
+    optIn: /explicit[^\n]*opt.in[^\n]*PR/i,
+    observer: /observer never replies[^\n]*merges[^\n]*pushes/i,
+    headChange: /changed head invalidates/i,
+  });
 });
 
-test('dev method validator rejects a Host skill that grants dispatch authority', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-   markdown,
-    'a matching installed Host skill is optional acceleration under the same Trio scope and not a new projected inventory entry, an implicit dispatch permission, a model choice, or a claim of authenticated Host execution.',
-   'a matching installed Host skill grants dispatch permission, model authority, and a new projected inventory entry.'
- );
-
-  assert.throws(() => assertDevMethodSelectionContract(mutated));
+test('PWF recovery is event driven and retains exactly three durable files', async () => {
+  const text = await contract('harness/core/upstream-overlays/planning-with-files/SKILL.md');
+  has(text, {
+    state: /task_plan\.md[\s\S]*findings\.md[\s\S]*progress\.md/,
+    recovery: /(?:resume|recovery|compaction)[^\n]*read[^\n]*three/i,
+    events: /(?:milestone|decision)[^\n]*(?:write|update|record)/i,
+    reorient: /(?:stale|scope change)[^\n]*(?:read|refresh)/i,
+    helper: /session-catchup\.py/,
+    companion: /companion[^\n]*optional/i,
+    external: /external content[^\n]*untrusted/i,
+  });
+  assert.doesNotMatch(text, /2.Action Rule|3.Strike|AFTER 3 FAILURES|harness record|ONE tool call per turn|before (?:ANY|every) action/i);
 });
 
-test('dev validator rejects integration gates that create a capability family or runner', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'They compose the methods above and never create a new capability family, a mandatory runner, a background worker, task state, or permission.',
-    'They compose the methods above and create a new capability family and a mandatory runner for every task.'
-  );
-
-  assert.throws(() => assertDevMethodSelectionContract(mutated));
+test('overengineering review accepts evidence without fabricated line savings', () => {
+  const fixture = { id: 'bounded', requiredTag: 'delete' };
+  const output = '## Scenario\nUnused wrapper.\n## Findings\ntag: delete\nsurface: src/wrapper.js\nchange: remove unused wrapper\nwhy: all callers use the native API\n## Summary\nOne bounded cut; verify callers.';
+  assert.equal(evaluateOutput(fixture, output).pass, true);
+  assert.equal(evaluateOutput(fixture, output).netLines, null);
+  assert.equal(evaluateOutput(fixture, output.replace('surface:', 'location:')).pass, false);
 });
 
-test('dev validator rejects unbound PR feedback monitoring', async () => {
-  const markdown = await readFile(devSkillPath, 'utf8');
-  const mutated = replaceExactlyOnce(
-    markdown,
-    'A user explicitly binds one open PR, its Trio, a five-minute heartbeat, a severity policy, and the allowed external actions.',
-    'Any open PR triggers automatic five-minute monitoring even when it is not bound to a Trio or a severity policy.'
-  );
 
-  assert.throws(() => assertDevMethodSelectionContract(mutated));
+test('PWF templates initialize three files and resume without overwriting state or requiring a companion', async () => {
+  const workspace = await mkdtemp(path.join(os.tmpdir(), 'swf-lean-pwf-'));
+  const run = promisify(execFile);
+  const scripts = path.join(root, 'harness/core/upstream-overlays/planning-with-files/scripts');
+  const task = path.join(workspace, 'planning/active/lean-proof');
+  try {
+    await run('bash', [path.join(scripts, 'init-session.sh'), workspace, 'lean-proof']);
+    assert.deepEqual((await readdir(task)).sort(), ['findings.md', 'progress.md', 'task_plan.md']);
+    assert.match(await readFile(path.join(task, 'progress.md'), 'utf8'), /^## Session: \d{4}-\d\d-\d\d \d\d:\d\d:\d\d UTC\+8$/m);
+    const plan = await readFile(path.join(task, 'task_plan.md'), 'utf8');
+    assert.match(plan, /^Reconcile: open$/m);
+    const preserved = plan + '\n## Decision\nPreserve verified state on resume.\n';
+    await writeFile(path.join(task, 'task_plan.md'), preserved);
+    await run('bash', [path.join(scripts, 'init-session.sh'), workspace, 'lean-proof']);
+    assert.equal(await readFile(path.join(task, 'task_plan.md'), 'utf8'), preserved);
+    const { stdout } = await run('python3', [path.join(scripts, 'task-status.py'), workspace, 'lean-proof', '--json', '--require-companion-synced']);
+    const status = JSON.parse(stdout);
+    assert.equal(status.status, 'active');
+    assert.equal(status.safe_to_archive, false);
+    assert.equal(status.companion.has_companion, false);
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+  }
 });

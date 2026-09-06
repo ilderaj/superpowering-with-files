@@ -4,7 +4,9 @@ import {
   freezeAssignmentPacket,
   HOST_OPERATIONS,
   packetDigestOf,
-  resolveAssignmentPacketModelPolicy
+  resolveAssignmentPacketModelPolicy,
+  validateModelEffort,
+  recommendedEffortOf
 } from '../core/routing.mjs';
 
 export const APPROVAL_POLICY_KINDS = Object.freeze(['never', 'on-request']);
@@ -141,7 +143,6 @@ export function selectCorleoneRole(input = {}) {
   return allocateCorleoneCallsign({ tier, ordinal: input.ordinal ?? 1 });
 }
 
-const CORLEONE_EFFORTS = Object.freeze(['high', 'xhigh', 'max']);
 
 const CORLEONE_DEFAULT_EFFORTS = Object.freeze({
   don: 'xhigh',
@@ -187,15 +188,17 @@ function corleoneInstructions(identity) {
   ].join(' ');
 }
 
-export function resolveCorleoneProfile(agentType, effort) {
+export function resolveCorleoneProfile(agentType, effort, model = 'opencode-go/deepseek-v4-flash') {
   const identity = corleoneProfileIdentity(agentType);
-  const effectiveEffort = effort ?? CORLEONE_DEFAULT_EFFORTS[identity.tier];
-  if (typeof effectiveEffort !== 'string' || !CORLEONE_EFFORTS.includes(effectiveEffort)) {
-    throw new TypeError(`Unsupported Corleone profile effort: ${String(effectiveEffort)}; use high, xhigh, or max.`);
+  const effectiveEffort = effort ?? recommendedEffortOf(model) ?? CORLEONE_DEFAULT_EFFORTS[identity.tier];
+  try {
+    validateModelEffort(model, effectiveEffort, { isChild: true });
+  } catch (error) {
+    throw new TypeError(`Unsupported Corleone profile: ${error.message}`);
   }
   return Object.freeze({
     name: identity.agentType,
-    model: 'opencode-go/deepseek-v4-flash',
+    model,
     fallbackModel: null,
     description: `${identity.displayName}: bounded Corleone execution identity.`,
     nicknameCandidates: [identity.displayName],
@@ -204,11 +207,11 @@ export function resolveCorleoneProfile(agentType, effort) {
   });
 }
 
-export function renderCorleoneAgentEntry(agentType, configFilePath, effort) {
+export function renderCorleoneAgentEntry(agentType, configFilePath, effort, model) {
   if (typeof configFilePath !== 'string' || configFilePath.length === 0) {
     throw new TypeError('Corleone agent entry requires a role config file path.');
   }
-  const role = resolveCorleoneProfile(agentType, effort);
+  const role = resolveCorleoneProfile(agentType, effort, model);
   return [
     `[agents.${role.name}]`,
     `description = "${role.description}"`,
@@ -216,8 +219,8 @@ export function renderCorleoneAgentEntry(agentType, configFilePath, effort) {
   ].join('\n') + '\n';
 }
 
-export function renderCorleoneRoleFile(agentType, effort) {
-  const role = resolveCorleoneProfile(agentType, effort);
+export function renderCorleoneRoleFile(agentType, effort, model) {
+  const role = resolveCorleoneProfile(agentType, effort, model);
   return [
     `name = "${role.name}"`,
     `description = "${role.description}"`,
@@ -228,7 +231,34 @@ export function renderCorleoneRoleFile(agentType, effort) {
   ].join('\n') + '\n';
 }
 
-export function renderCorleoneRosterConfig(configDirectory, effort) {
+/**
+ * Optional model-inheriting Codex role configuration for flexible collaboration.
+ * Omitting model/provider/effort keys leaves selection to the caller and Host;
+ * the persona supplies identity and bounded instructions only. This renderer
+ * performs no installation and makes no claim about actual Host execution.
+ * renderCorleoneRoleFile / renderCorleoneRosterConfig remain the explicit
+ * fixed-profile legacy compatibility path; adoption must choose this renderer.
+ */
+export function renderInheritedCorleoneRoleFile(agentType) {
+  const identity = corleoneProfileIdentity(agentType);
+  const instructions = [
+    `You are ${identity.displayName}.`,
+    'Follow the current assignment and authorized scope; do not widen paths, permissions, or acceptance criteria.',
+    'Use the model and effort selected by the caller or inherited from the Host; your callsign does not select either.',
+    'Use bounded parallel helpers when permitted by the user and Host; keep each child scope a proper subset and avoid conflicting writes.',
+    'When the assignment requires visible_worker_required, preserve that topology and return blocked if the compliant visible worker is unavailable; otherwise use the supported collaboration path selected for the assignment.',
+    'Honor applicable Host controls and human gates; your title grants no permissions or acceptance authority.',
+    'Report results, verification, and limits; actual model and effort remain unknown unless authenticated Host evidence establishes them.'
+  ].join(' ');
+  return [
+    `name = ${JSON.stringify(identity.agentType)}`,
+    `description = ${JSON.stringify(`${identity.displayName}: bounded Corleone collaboration identity.`)}`,
+    `nickname_candidates = [${JSON.stringify(identity.displayName)}]`,
+    `developer_instructions = ${JSON.stringify(instructions)}`
+  ].join('\n') + '\n';
+}
+
+export function renderCorleoneRosterConfig(configDirectory, effort, model) {
   if (typeof configDirectory !== 'string' || configDirectory.length === 0) {
     throw new TypeError('Corleone roster config requires a config directory.');
   }
@@ -239,8 +269,8 @@ export function renderCorleoneRosterConfig(configDirectory, effort) {
     return Object.freeze({
       ...identity,
       configFilePath,
-      agentEntry: renderCorleoneAgentEntry(agentType, configFilePath, effort),
-      roleFile: renderCorleoneRoleFile(agentType, effort)
+      agentEntry: renderCorleoneAgentEntry(agentType, configFilePath, effort, model),
+      roleFile: renderCorleoneRoleFile(agentType, effort, model)
     });
   }));
 }
@@ -277,9 +307,7 @@ export function renderCodexHandoffRequest({
   }
   const capability = assignmentPacket.capability;
   const modelPolicy = resolveAssignmentPacketModelPolicy(assignmentPacket);
-  if (effort !== undefined && (typeof effort !== 'string' || !CORLEONE_EFFORTS.includes(effort))) {
-    throw new TypeError('Codex handoff effort must be omitted or one of: high, xhigh, max.');
-  }
+  if (effort !== undefined) validateModelEffort(modelPolicy.requestedModel, effort, { isChild: true });
   const outerEffort = effort ?? null;
   if (outerEffort !== null && outerEffort !== modelPolicy.requestedEffort) {
     throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${modelPolicy.requestedEffort}.`);
@@ -287,11 +315,9 @@ export function renderCodexHandoffRequest({
   if (operation === 'spawn' && workerIdentity !== undefined) {
     throw new TypeError('Codex spawn selects its Corleone workerIdentity from the Assignment Packet; frozen workerIdentity is only valid for a non-spawn lifecycle operation.');
   }
-  // Non-spawn lifecycle operations follow the packet-first protocol: a
-  // caller that omits workerIdentity derives and freezes the Corleone
-  // identity from the Assignment Packet capability below. An explicitly
-  // passed frozen identity remains authoritative and is validated by
-  // selectCorleoneRole (tier match, Don Michael ordinal 1).
+  if (operation !== 'spawn' && workerIdentity === undefined) {
+    throw new TypeError('Non-spawn Codex handoff requires the frozen workerIdentity from the original spawn.');
+  }
   const identity = selectCorleoneRole({
     workerIdentity: operation === 'spawn' ? undefined : workerIdentity,
     workRole: capability?.workRole,
@@ -303,7 +329,7 @@ export function renderCodexHandoffRequest({
     provider: 'codex',
     role: identity.agentType,
     workerIdentity: identity,
-    profile: resolveCorleoneProfile(identity.agentType, modelPolicy.requestedEffort),
+    profile: resolveCorleoneProfile(identity.agentType, modelPolicy.requestedEffort, modelPolicy.requestedModel),
     operation,
     packet: assignmentPacket,
     packetDigest,

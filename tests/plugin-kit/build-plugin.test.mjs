@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { access, cp, mkdir, readFile, readdir } from 'node:fs/promises';
+import { access, cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { buildPlugin } from '../../packages/plugin-kit/src/build-plugin.mjs';
-import { platformContracts, supportedPluginTargets } from '../../packages/plugin-kit/src/platform-contracts.mjs';
+import { platformContracts, supportedPluginTargets, trioSkillSourceMap } from '../../packages/plugin-kit/src/platform-contracts.mjs';
 
 test('plugin source config exists for the Codex and Agent Plugins targets', async () => {
   assert.deepEqual(supportedPluginTargets, ['codex', 'agent-plugins']);
@@ -34,17 +34,19 @@ test('buildPlugin creates a Codex root with the Trio skills, ChiefOps companion,
     'SKILL.md',
     'dev',
     'office',
+    'references',
     'safety'
   ]);
   assert.deepEqual((await readdir(path.join(build.pluginRoot, 'skills/chiefops'))).sort(), [
-    'SKILL.md'
+    'SKILL.md',
+    'references'
   ]);
   await assertFileMatches(build.pluginRoot, 'skills/trio/SKILL.md', /name: trio/);
   await assertFileMatches(build.pluginRoot, 'skills/trio/dev/SKILL.md', /name: dev/);
   await assertFileMatches(build.pluginRoot, 'skills/trio/office/SKILL.md', /name: office/);
   await assertFileMatches(build.pluginRoot, 'skills/trio/safety/SKILL.md', /name: safety/);
   await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /name: chiefops/);
-  await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /governance companion/i);
+  await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /governance.only/i);
   await assertFileMatches(build.pluginRoot, 'skills/chiefops/SKILL.md', /not a runner|no runner/i);
 
   await access(path.join(build.pluginRoot, 'skills/planning-with-files/SKILL.md'));
@@ -63,11 +65,7 @@ test('buildPlugin copies harness skills from a .codex-ancestor root while exclud
   const fixtureRoot = path.join(await fsMkdtemp('harness-build-worktree-'), '.codex', 'worktree');
   const fixtureEntries = [
     'plugins/agent-plugins/plugin.harness.json',
-    'harness/trio/skill/SKILL.md',
-    'harness/trio/capabilities/dev/SKILL.md',
-    'harness/trio/capabilities/office/SKILL.md',
-    'harness/trio/capabilities/safety/SKILL.md',
-    'harness/trio/governance/chiefops/SKILL.md',
+    ...trioSkillSourceMap.flatMap(({ source, support }) => [source, ...support.map((reference) => reference.source)]),
     'harness/core/upstream-overlays/planning-with-files',
     'harness/core/skills/overengineering-review',
     'harness/core/skills/simplification-ledger'
@@ -79,6 +77,9 @@ test('buildPlugin copies harness skills from a .codex-ancestor root while exclud
     await cp(path.join(process.cwd(), relativePath), destination, { recursive: true });
   }
 
+  const undeclaredReference = 'harness/trio/skill/references/undeclared.md';
+  await writeFile(path.join(fixtureRoot, undeclaredReference), 'not declared support');
+
   const outDir = path.join(await fsMkdtemp('harness-build-worktree-output-'), 'plugins');
   const build = await buildPlugin({
     target: 'agent-plugins',
@@ -86,6 +87,7 @@ test('buildPlugin copies harness skills from a .codex-ancestor root while exclud
     outDir,
     rootDir: fixtureRoot
   });
+  await assert.rejects(access(path.join(build.pluginRoot, 'skills/trio/references/undeclared.md')), /ENOENT/);
   const planningRoot = path.join(build.pluginRoot, 'skills/planning-with-files');
 
   await access(path.join(planningRoot, 'SKILL.md'));
@@ -120,7 +122,8 @@ test('buildPlugin creates an Agent Plugins root with eight flat skills and a por
   ]);
 
   for (const name of ['trio', 'dev', 'office', 'safety', 'chiefops']) {
-    assert.deepEqual(await readdir(path.join(build.pluginRoot, 'skills', name)), ['SKILL.md']);
+    const skill = trioSkillSourceMap.find((skill) => skill.name === name);
+    assert.deepEqual((await readdir(path.join(build.pluginRoot, 'skills', name))).sort(), skill.support.length ? ['SKILL.md', 'references'] : ['SKILL.md']);
     await assertFileMatches(build.pluginRoot, `skills/${name}/SKILL.md`, new RegExp(`name: ${name}`));
   }
 
@@ -199,3 +202,23 @@ async function fsMkdtemp(prefix) {
   const { mkdtemp } = await import('node:fs/promises');
   return mkdtemp(path.join(os.tmpdir(), prefix));
 }
+
+
+test('both package layouts preserve every declared reference and local SKILL link', async () => {
+  for (const target of supportedPluginTargets) {
+    const outDir = await fsMkdtemp('harness-reference-package-');
+    const build = await buildPlugin({ target, version: '1.2.0', outDir });
+    const contract = platformContracts[target];
+    for (const skill of trioSkillSourceMap) {
+      const destination = contract.skillDestinations[skill.name];
+      const markdown = await readFile(path.join(build.pluginRoot, destination), 'utf8');
+      const links = [...markdown.matchAll(/\]\((references\/[^)]+\.md)\)/g)].map((match) => match[1]);
+      assert.deepEqual([...links].sort(), skill.support.map((reference) => reference.relativePath).sort());
+      for (const reference of skill.support) {
+        const output = path.posix.join(path.posix.dirname(destination), reference.relativePath);
+        assert.ok(contract.requiredFiles.includes(output));
+        assert.deepEqual(await readFile(path.join(build.pluginRoot, output)), await readFile(reference.source));
+      }
+    }
+  }
+});

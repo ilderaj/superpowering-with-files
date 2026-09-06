@@ -890,3 +890,40 @@ describe('/swf accept with Trio hash verification (plan item 5)', () => {
     });
   });
 });
+
+describe('modern model and effort Host controls', () => {
+  it('fails closed before start when the pinned one-shot Host cannot bind effort', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'explicit-effort', { requestedModel: 'main/gpt-6-astra', requestedEffort: 'medium' });
+      const host = makeMockCtx();
+      const result = await createDispatcher(host.ctx).dispatch({ authorityRoot: root, taskId: 'explicit-effort', parent: PARENT, prompt: 'bounded slice' });
+      expect(result.status).toBe('manual_pending');
+      expect(result.blocker).toBe('model_effort_controls_unavailable');
+      expect(host.subagents.started).toHaveLength(0);
+      expect(result.resumeCondition).toContain('startWithModelSelection');
+    });
+  });
+
+  it('passes exact model and effort to a Host control seam and records only requested evidence', async () => {
+    await withTmpRoot(async (root) => {
+      await boundTask(root, 'explicit-effort', { requestedModel: 'p646e20/gpt-6-astra', requestedEffort: 'medium' });
+      const host = makeMockCtx();
+      const selections: unknown[] = [];
+      Object.assign(host.ctx.subagents, {
+        startWithModelSelection: async (provider: string, request: Parameters<typeof host.ctx.subagents.start>[1], selection: unknown) => {
+          selections.push(selection);
+          return host.ctx.subagents.start(provider, request);
+        }
+      });
+      const result = await createDispatcher(host.ctx).dispatch({ authorityRoot: root, taskId: 'explicit-effort', parent: PARENT, prompt: 'bounded slice' });
+      expect(result.status).toBe('dispatched');
+      expect(result.effort).toBe('medium');
+      expect(selections).toEqual([{ provider: 'openai', model: 'gpt-6-astra', reasoningEffort: 'medium' }]);
+      expect(host.subagents.started[0]!.request.agentOptions).toMatchObject({ provider: 'openai', model: 'gpt-6-astra' });
+      const evidence = await readEvidence(root, 'explicit-effort', 'worker');
+      expect(evidence!.authenticated).toBe(false);
+      expect(evidence!.extra).toMatchObject({ requestedModel: 'p646e20/gpt-6-astra', requestedEffort: 'medium' });
+      await host.completeRun(0);
+    });
+  });
+});

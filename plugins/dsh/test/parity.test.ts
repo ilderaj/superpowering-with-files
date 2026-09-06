@@ -165,7 +165,9 @@ describe('golden parity: model/effort policy', () => {
       { workRole: 'executing', complexity: 'high' },
       { workRole: 'coding', complexity: 'max' },
       { workRole: 'chief' },
-      { workRole: 'planning', requestedModel: 'gpt-5.6-terra', requestedEffort: 'ultra' },
+      { workRole: 'planning', requestedModel: 'gpt-5.6-terra', requestedEffort: 'medium' },
+      { workRole: 'coding', complexity: 'high', requestedModel: 'main/gpt-6-astra', requestedEffort: 'max' },
+      { workRole: 'chief', requestedModel: 'p646e20/gpt-5.6-luna', requestedEffort: 'low' },
       { workRole: 'executing', complexity: 'high', isChild: true }
     ];
     for (const input of cases) {
@@ -179,11 +181,10 @@ describe('golden parity: model/effort policy', () => {
       { workRole: 'wizard' },
       { workRole: 'executing' },
       { workRole: 'executing', complexity: 'high', override: { reason: 'x', provenance: 'y' } },
-      { workRole: 'executing', complexity: 'high', requestedModel: 'gpt-5.6-sol' },
       { workRole: 'chief', complexity: 'high' },
       { workRole: 'chief', requestedModel: 'deepseek-v4-flash' },
-      { workRole: 'chief', requestedEffort: 'high' },
-      { workRole: 'chief', isChild: true, requestedEffort: 'ultra' }
+      { workRole: 'chief', isChild: true, requestedEffort: 'ultra' },
+      { workRole: 'planning', requestedModel: 'gpt-5.6-terra', requestedEffort: 'ultra' },
     ];
     for (const input of cases) {
       expect(throwsMessage(() => ported.resolveModelEffort(input)))

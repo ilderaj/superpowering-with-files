@@ -4,7 +4,7 @@
 - Every actionable fixture output contains `## Scenario`, `## Findings`, and `## Summary`
 - Every actionable fixture output uses exactly one supported tag: `delete`, `stdlib`, `native`, `yagni`, or `shrink`
 - Every actionable finding contains `surface`, `change`, and `why`
-- Every output ends with `net: -<N> lines possible.`
+- Line-saving counts are optional; any estimate needs a bounded diff or stated calculation, not fabricated precision.
 - The correctness-only fixture stays out of scope and does not fabricate an overengineering tag
 
 ## What Good Looks Like

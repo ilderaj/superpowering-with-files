@@ -8,4 +8,4 @@ change: remove the forwarding wrapper and call `runTask()` directly from the cal
 why: the wrapper adds another layer to read and test without changing behavior
 
 ## Summary
-net: -18 lines possible.
+Verify the bounded cut preserves the required behavior; no line estimate is asserted.

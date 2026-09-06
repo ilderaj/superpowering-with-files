@@ -281,41 +281,14 @@ test('execution complexity classifiers map bounded, multi-file, and long-running
   assert.equal(explicit.complexity, 'max');
 });
 
-test('chief roles may request only Sol or Terra and remain the sole premium-model path', () => {
+test('chief roles respect explicit modern models and supported effort', () => {
   for (const workRole of CHIEF_WORK_ROLES) {
-    const sol = resolveModelEffort({
-      taskClass: 'tracked',
-      workRole,
-      requestedModel: 'gpt-5.6-sol',
-      requestedEffort: 'max'
-    });
-    assert.equal(sol.requestedModel, 'gpt-5.6-sol');
-    assert.equal(sol.requestedEffort, 'max');
-    assert.equal(sol.requestedProvider, 'gpt-5.6');
-    assert.equal(sol.workRole, workRole);
-    assert.equal(sol.complexity, null);
-
-    const terra = resolveModelEffort({
-      taskClass: 'tracked',
-      workRole,
-      requestedModel: 'gpt-5.6-terra',
-      requestedEffort: 'ultra'
-    });
-    assert.equal(terra.requestedModel, 'gpt-5.6-terra');
-    assert.equal(terra.requestedEffort, 'ultra');
-
-    assert.throws(
-      () => resolveModelEffort({ taskClass: 'tracked', workRole, requestedModel: 'gpt-5.6-luna' }),
-      /only gpt-5\.6-sol or gpt-5\.6-terra/i
-    );
-    assert.throws(
-      () => resolveModelEffort({ taskClass: 'tracked', workRole, requestedModel: 'opencode-go/deepseek-v4-flash' }),
-      /only gpt-5\.6-sol or gpt-5\.6-terra/i
-    );
-    assert.throws(
-      () => resolveModelEffort({ taskClass: 'tracked', workRole, requestedEffort: 'xhigh' }),
-      /max or ultra/i
-    );
+    for (const requestedModel of ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna']) {
+      const result = resolveModelEffort({ workRole, requestedModel, requestedEffort: 'medium' });
+      assert.equal(result.requestedProvider, 'openai');
+      assert.equal(result.requestedModel, requestedModel);
+      assert.equal(result.requestedEffort, 'medium');
+    }
   }
 });
 
@@ -342,35 +315,15 @@ test('unknown work roles and unknown or ambiguous complexity fail closed instead
   );
 });
 
-test('caller-supplied model or effort cannot bypass or upgrade an execution slice', () => {
-  assert.throws(
-    () => resolveModelEffort({
-      taskClass: 'tracked',
-      workRole: 'coding',
-      complexity: 'xhigh',
-      requestedModel: 'gpt-5.6-sol'
-    }),
-    /may only request opencode-go\/deepseek-v4-flash/i
-  );
-  assert.throws(
-    () => resolveModelEffort({
-      taskClass: 'tracked',
-      workRole: 'coding',
-      complexity: 'xhigh',
-      requestedEffort: 'max'
-    }),
-    /requests effort xhigh/i
-  );
-
-  const consistent = resolveModelEffort({
-    taskClass: 'tracked',
-    workRole: 'coding',
-    complexity: 'xhigh',
-    requestedModel: 'opencode-go/deepseek-v4-flash',
-    requestedEffort: 'xhigh'
-  });
-  assert.equal(consistent.requestedModel, 'opencode-go/deepseek-v4-flash');
-  assert.equal(consistent.requestedEffort, 'xhigh');
+test('explicit execution model and effort override legacy defaults without changing role or complexity', () => {
+  const result = resolveModelEffort({ workRole: 'coding', complexity: 'xhigh', requestedModel: 'gpt-6-astra', requestedEffort: 'low' });
+  assert.equal(result.requestedModel, 'gpt-6-astra');
+  assert.equal(result.requestedEffort, 'low');
+  assert.equal(result.complexity, 'xhigh');
+  assert.equal(result.workRole, 'coding');
+  const legacy = resolveModelEffort({ workRole: 'coding', complexity: 'xhigh', requestedEffort: 'max' });
+  assert.equal(legacy.requestedModel, 'opencode-go/deepseek-v4-flash');
+  assert.equal(legacy.requestedEffort, 'max');
 });
 
 test('structured human overrides classify only Chief slices and carry provenance', () => {
@@ -382,12 +335,12 @@ test('structured human overrides classify only Chief slices and carry provenance
     taskClass: 'tracked',
     workRole: 'planning',
     requestedModel: 'gpt-5.6-sol',
-    requestedEffort: 'ultra',
+    requestedEffort: 'max',
     override
   });
   assert.deepEqual(result.override, override);
   assert.equal(result.requestedModel, 'gpt-5.6-sol');
-  assert.equal(result.requestedEffort, 'ultra');
+  assert.equal(result.requestedEffort, 'max');
 
   assert.throws(
     () => resolveModelEffort({
@@ -610,9 +563,7 @@ test('assignment packets fail closed without a declared work role or execution c
   }
 });
 
-test('economic routing can never produce a requested Luna model and no unclassified path exists', async () => {
-  const source = await readFile(new URL('../../harness/trio/core/routing.mjs', import.meta.url), 'utf8');
-  assert.doesNotMatch(source, /gpt-5\.6-luna/i);
+test('legacy packets keep their defaults while explicit Luna selection is admitted', async () => {
 
   const allowedRequestedModels = new Set([
     'opencode-go/deepseek-v4-flash',
@@ -623,7 +574,7 @@ test('economic routing can never produce a requested Luna model and no unclassif
     ...CHIEF_WORK_ROLES.flatMap((workRole) => [
       { workRole },
       { workRole, requestedModel: 'gpt-5.6-sol', requestedEffort: 'max' },
-      { workRole, requestedModel: 'gpt-5.6-terra', requestedEffort: 'ultra' }
+      { workRole, requestedModel: 'gpt-5.6-terra', requestedEffort: 'max' }
     ]),
     ...EXECUTION_WORK_ROLES.flatMap((workRole) => [
       { workRole, complexity: 'high' },
@@ -646,42 +597,22 @@ test('economic routing can never produce a requested Luna model and no unclassif
   assert.equal(execution.requestedModel, 'opencode-go/deepseek-v4-flash');
 });
 
-test('entry skill and materialized policy distinguish direct tracked from Chief lanes without weakening the visible-worker rule', async () => {
-  const [skill, entry, chiefops] = await Promise.all([
+test('entry policy keeps direct completion distinct from delegated acceptance and strict visibility', async () => {
+  const [skill, entry, chiefops, execution] = await Promise.all([
     readFile(path.join(REPO_ROOT, 'harness/trio/skill/SKILL.md'), 'utf8'),
     readFile(path.join(REPO_ROOT, 'harness/trio/templates/entry-policy.md'), 'utf8'),
-    readFile(path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'), 'utf8')
+    readFile(path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'), 'utf8'),
+    readFile(path.join(REPO_ROOT, 'harness/trio/skill/references/execution.md'), 'utf8')
   ]);
-
-  const skillBoundary = laneSection(skill, 'Plan and Execute Boundary').toLowerCase();
-  assert.match(skillBoundary, /direct tracked execution[\s\S]*establish technical verification/);
-  assert.match(skillBoundary, /chief independent acceptance is required only when[\s\S]*visible or delegated worker[\s\S]*governance lane/);
-  assert.match(skillBoundary, /when a visible worker is primary[\s\S]*never substitutes a native subagent/);
-  assert.match(skillBoundary, /worker result[\s\S]*candidate[\s\S]*chief acceptance and trio writeback/);
-
-  const entryBoundary = laneSection(entry, 'Plan and Execute Boundary').toLowerCase();
-  assert.match(entryBoundary, /direct tracked execution can establish technical verification/);
-  assert.match(entryBoundary, /chief independent acceptance is required only when/);
-  assert.match(entryBoundary, /visible or delegated worker is the primary executor/);
-  assert.match(entryBoundary, /worker result remains a candidate until chief acceptance and trio writeback/);
-
-  const chiefOpsLower = chiefops.toLowerCase();
-  assert.match(chiefOpsLower, /acceptance gate[\s\S]*delegated or chief lane/);
-  assert.match(chiefOpsLower, /never a mandatory runner for direct/);
-  assert.match(chiefOpsLower, /not a runner/);
-
-  for (const document of [skill, entry]) {
-    const normalized = document.toLowerCase();
-    for (const invariant of [
-      'sole durable task authority',
-      'fourth task-state',
-      'manual_pending',
-      'blocked',
-      'host',
-      'human gate',
-      'visible worker'
-    ]) {
-      assert.ok(normalized.includes(invariant), 'Missing routing invariant: ' + invariant);
-    }
-  }
+  assert.match(skill, /Direct work may complete after relevant verification without Chief acceptance/);
+  assert.match(skill, /Delegated primary work returns a candidate[\s\S]*Chief acceptance plus Trio writeback/);
+  assert.match(entry, /Direct work can complete on its own verification; delegated primary execution requires Chief acceptance/);
+  assert.match(chiefops, /direct tracked work needs no ChiefOps check-in/);
+  assert.match(chiefops, /not a runner/);
+  assert.match(execution, /visible_worker_required[\s\S]*no Chief inline execution or native-subagent substitution/);
+  assert.match(execution, /manual_pending[\s\S]*blocked[\s\S]*do not silently change topology/);
+  assert.match(execution, /proper-subset scope/);
+  assert.match(skill, /sole durable task authority/);
+  assert.match(skill, /actual remains unknown without authenticated Host evidence/);
+  assert.match(entry, /Host and human gates remain binding/);
 });

@@ -1,0 +1,246 @@
+{
+  "sourceDate": "2026-09-06",
+  "promptSha256": "5b932a4b8159421dc60f9c8ffe46a0772ea39b9cc5734a914f893db39ca95c72",
+  "results": [
+    {
+      "requestedModel": "main/gpt-6-astra",
+      "requestedEffort": "medium",
+      "exitCode": 0,
+      "elapsedSeconds": 20.35,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "cases": [
+        {
+          "id": "bounded-comparison",
+          "pass": true,
+          "decision": "quick:answer_directly"
+        },
+        {
+          "id": "readme-typo",
+          "pass": true,
+          "decision": "inspect_changed_text_and_diff"
+        },
+        {
+          "id": "authorized-landing",
+          "pass": true,
+          "decision": "perform_authorized_merge"
+        },
+        {
+          "id": "strict-visible",
+          "pass": true,
+          "decision": "manual_pending_with_resume_condition"
+        },
+        {
+          "id": "direct-completion",
+          "pass": true,
+          "decision": "yes_direct_completion"
+        },
+        {
+          "id": "candidate-acceptance",
+          "pass": true,
+          "decision": "no_review_and_revalidate_current_revision"
+        },
+        {
+          "id": "model-intent",
+          "pass": true,
+          "decision": "request_astra_medium_actual_unknown"
+        },
+        {
+          "id": "independent-helpers",
+          "pass": true,
+          "decision": "yes_bounded_native_helpers"
+        }
+      ],
+      "passed": 8,
+      "usage": {
+        "input_tokens": 17253,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 248,
+        "reasoning_output_tokens": 0
+      },
+      "runKind": "decision-replay-with-options",
+      "evidenceBoundary": "Requested local-proxy model; no authenticated underlying-model attestation. Not a coding or performance benchmark."
+    },
+    {
+      "requestedModel": "main/gpt-5.6-sol",
+      "requestedEffort": "medium",
+      "exitCode": 0,
+      "elapsedSeconds": 17.45,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "cases": [
+        {
+          "id": "bounded-comparison",
+          "pass": true,
+          "decision": "quick:answer_directly"
+        },
+        {
+          "id": "readme-typo",
+          "pass": true,
+          "decision": "inspect_changed_text_and_diff"
+        },
+        {
+          "id": "authorized-landing",
+          "pass": true,
+          "decision": "perform_authorized_merge"
+        },
+        {
+          "id": "strict-visible",
+          "pass": true,
+          "decision": "manual_pending_with_resume_condition"
+        },
+        {
+          "id": "direct-completion",
+          "pass": true,
+          "decision": "yes_direct_completion"
+        },
+        {
+          "id": "candidate-acceptance",
+          "pass": true,
+          "decision": "no_review_and_revalidate_current_revision"
+        },
+        {
+          "id": "model-intent",
+          "pass": true,
+          "decision": "request_astra_medium_actual_unknown"
+        },
+        {
+          "id": "independent-helpers",
+          "pass": true,
+          "decision": "yes_bounded_native_helpers"
+        }
+      ],
+      "passed": 8,
+      "usage": {
+        "input_tokens": 16402,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 308,
+        "reasoning_output_tokens": 69
+      },
+      "runKind": "decision-replay-with-options",
+      "evidenceBoundary": "Requested local-proxy model; no authenticated underlying-model attestation. Not a coding or performance benchmark."
+    },
+    {
+      "requestedModel": "main/gpt-5.6-terra",
+      "requestedEffort": "medium",
+      "exitCode": 0,
+      "elapsedSeconds": 13.44,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "cases": [
+        {
+          "id": "bounded-comparison",
+          "pass": true,
+          "decision": "quick:answer_directly"
+        },
+        {
+          "id": "readme-typo",
+          "pass": true,
+          "decision": "inspect_changed_text_and_diff"
+        },
+        {
+          "id": "authorized-landing",
+          "pass": true,
+          "decision": "perform_authorized_merge"
+        },
+        {
+          "id": "strict-visible",
+          "pass": true,
+          "decision": "manual_pending_with_resume_condition"
+        },
+        {
+          "id": "direct-completion",
+          "pass": true,
+          "decision": "yes_direct_completion"
+        },
+        {
+          "id": "candidate-acceptance",
+          "pass": true,
+          "decision": "no_review_and_revalidate_current_revision"
+        },
+        {
+          "id": "model-intent",
+          "pass": true,
+          "decision": "request_astra_medium_actual_unknown"
+        },
+        {
+          "id": "independent-helpers",
+          "pass": true,
+          "decision": "yes_bounded_native_helpers"
+        }
+      ],
+      "passed": 8,
+      "usage": {
+        "input_tokens": 15235,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 240,
+        "reasoning_output_tokens": 0
+      },
+      "runKind": "decision-replay-with-options",
+      "evidenceBoundary": "Requested local-proxy model; no authenticated underlying-model attestation. Not a coding or performance benchmark."
+    },
+    {
+      "requestedModel": "main/gpt-5.6-luna",
+      "requestedEffort": "medium",
+      "exitCode": 0,
+      "elapsedSeconds": 15.56,
+      "actualModel": "unknown",
+      "actualEffort": "unknown",
+      "cases": [
+        {
+          "id": "bounded-comparison",
+          "pass": true,
+          "decision": "quick:answer_directly"
+        },
+        {
+          "id": "readme-typo",
+          "pass": true,
+          "decision": "inspect_changed_text_and_diff"
+        },
+        {
+          "id": "authorized-landing",
+          "pass": true,
+          "decision": "perform_authorized_merge"
+        },
+        {
+          "id": "strict-visible",
+          "pass": true,
+          "decision": "manual_pending_with_resume_condition"
+        },
+        {
+          "id": "direct-completion",
+          "pass": true,
+          "decision": "yes_direct_completion"
+        },
+        {
+          "id": "candidate-acceptance",
+          "pass": true,
+          "decision": "no_review_and_revalidate_current_revision"
+        },
+        {
+          "id": "model-intent",
+          "pass": true,
+          "decision": "request_astra_medium_actual_unknown"
+        },
+        {
+          "id": "independent-helpers",
+          "pass": true,
+          "decision": "yes_bounded_native_helpers"
+        }
+      ],
+      "passed": 8,
+      "usage": {
+        "input_tokens": 15235,
+        "cached_input_tokens": 0,
+        "cache_write_input_tokens": 0,
+        "output_tokens": 390,
+        "reasoning_output_tokens": 154
+      },
+      "runKind": "decision-replay-with-options",
+      "evidenceBoundary": "Requested local-proxy model; no authenticated underlying-model attestation. Not a coding or performance benchmark."
+    }
+  ]
+}

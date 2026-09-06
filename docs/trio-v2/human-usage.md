@@ -2,11 +2,13 @@
 
 > 本文是 Trio v2 Plan→Execute 机制的人类操作面:路由、strict 拓扑、`childDelegation` / `executionMode` 策略、`manual_pending` 处置与人类 gate。
 
-## 一句话模型
+## 当前工作方式
 
-`planning/active/<task-id>/` 下的三件套(`task_plan.md`、`findings.md`、`progress.md`)是唯一任务权威;Chief 负责接需求、路由、规划、派单、review、验收;执行 worker 的生产变更结果只是 candidate,Chief 验收回写后才算数;merge/push/release/发布/发送/凭据/破坏性操作永远需要人类 gate。
+先说明目标、约束和已有授权，再按需要选择流程。范围明确的问答、比较、审查和小修改可以直接完成；需要持续恢复或多人协作的工作才绑定三件套。直接执行通过相关验证即可完成；委派结果由主会话整合验收并回写。已有授权在原范围内持续有效，新范围或新外部动作再单独判断。
 
-Corleone 名册、DeepSeek Flash、请求 effort 与无 fallback 是**请求/静态角色事实**（定义于 `harness/trio/hosts/codex.mjs` 的 `CORLEONE_ROSTER`，并由 `renderCorleoneRosterConfig` 生成对应的 `[agents.<agentType>]` TOML）。名册只描述 Host 侧 worker identity；不授予模型、权限、验收权或人类 gate。**实际** role/model/effort 在 Host 提供 authenticated 证据之前一律视为 `unknown`；一个可见任务本身也不是完整的 Host 生命周期证据。
+模型、reasoning effort 和执行拓扑分别选择。Astra、Sol、Terra、Luna 均可参与执行；Corleone 名册保留历史兼容默认值，但角色名称不决定必须使用哪个模型。优先使用当前模型完成小任务；独立子任务有实际收益时才分派。明确要求 `visible_worker_required` 时，不能用 native subagent 替代。普通委派可使用 native subagents。
+
+实际 model/effort 只有 Host 的 authenticated 证据能够证明；静态配置或请求参数不能冒充运行证据。完整架构和选择建议见 [README](../../README.md)。以下为选择严格治理流程后的底层契约。
 
 ## 本地契约与 Host 桥的边界(重要)
 

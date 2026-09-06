@@ -9,6 +9,8 @@ Use it when you need to answer:
 - which artifact is authoritative
 - how projection, distribution, and upstream baselines fit together
 
+For the current model-selection recommendations and decision diagrams, see [README](../README.md) and [Astra migration](astra-harness-upgrade.md). Thin entry files load detailed skill references only when relevant. Model choice, reasoning effort, and topology are independent decisions. Existing authorization remains applicable within scope.
+
 ## Implementation Layers
 
 superpowering-with-files uses four implementation layers plus one distribution package:
@@ -34,7 +36,7 @@ Codex is the only managed native target. The portable package is a vendor-neutra
 
 ## Trio v2 Operating Boundary
 
-The planning Trio is the sole durable task authority: `planning/active/<task-id>/task_plan.md`, `planning/active/<task-id>/findings.md`, and `planning/active/<task-id>/progress.md`. Documentation and Host state do not replace it.
+For tracked work, the planning Trio is the sole durable task authority: `planning/active/<task-id>/task_plan.md`, `planning/active/<task-id>/findings.md`, and `planning/active/<task-id>/progress.md`. Documentation and Host state do not replace it.
 
 Route work first, then select one capability family: `dev`, `office`, or `safety`. The Host owns worker and subtask lifecycle, permissions, continuation, and external or human gates.
 
@@ -60,3 +62,9 @@ Browser and eval are therefore architecture extension points, not baseline insta
 ## Source-Of-Truth And Reconciliation
 
 `docs/reconciliation.md` defines how Harness resolves drift between intended behavior, actual code, verification evidence, active planning, roadmap, backlog, and companion artifacts. Architecture policy should not treat old specs as automatically more authoritative than verified implementation facts, and verified implementation facts should not be treated as accepted product intent without an owner decision.
+
+## Supporting assets and optional methods
+
+Six governance entries remain the logical inventory: the entry policy and five skills. Their bounded reference-file manifest is projected with the same ownership, physical-path, backup, and readback checks. Both plugin layouts include the references under their owning skills. The installer creates missing references when upgrading an existing six-entry installation.
+
+Optional TDD, review, design, debugging, and domain-modeling methods live under `harness/optional-skills/methods/`. `scripts/adopt-global-skills.mjs` adopts these and the three core auxiliary skills through an explicit dry run, ownership checks, reversible backup, and a separate installation receipt. That receipt tracks installed bytes only; it is not task authority. Raw upstream baselines remain pinned; adapted instructions live in overlays.

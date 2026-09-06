@@ -82,31 +82,28 @@ test('planning_record.py renders canonical progress and findings headings', asyn
   assert.match(taskPlanHeading.trim(), new RegExp(`^## Plan Record: ${utc8TimestampPattern.source}$`));
 });
 
-test('planning-with-files source and overlay keep chronology guidance aligned', async () => {
-  const upstreamSkill = await readFile(
-    path.join(process.cwd(), 'harness/upstream/planning-with-files/SKILL.md'),
-    'utf8'
-  );
-  const overlaySkill = await readFile(
-    path.join(process.cwd(), 'harness/core/upstream-overlays/planning-with-files/SKILL.md'),
-    'utf8'
-  );
-  const upstreamProgressTemplate = await readFile(
-    path.join(process.cwd(), 'harness/upstream/planning-with-files/templates/progress.md'),
-    'utf8'
-  );
-  const overlayProgressTemplate = await readFile(
-    path.join(process.cwd(), 'harness/core/upstream-overlays/planning-with-files/templates/progress.md'),
-    'utf8'
-  );
-
-  for (const skill of [upstreamSkill, overlaySkill]) {
-    assert.match(skill, /top-to-bottom chronological/);
-    assert.match(skill, /Append new dated blocks/);
-    assert.match(skill, /Never hand-write a timestamp that is later than the real current tool-derived\s+time/);
+test('planning chronology remains available through the overlay reference and templates', async () => {
+  const upstream = path.join(process.cwd(), 'harness/upstream/planning-with-files');
+  const overlay = path.join(process.cwd(), 'harness/core/upstream-overlays/planning-with-files');
+  const skill = await readFile(path.join(overlay, 'SKILL.md'), 'utf8');
+  const referenceLink = [...skill.matchAll(/\]\(([^)]+\.md)\)/g)]
+    .map((match) => match[1]).find((target) => target === 'reference.md');
+  assert.ok(referenceLink, 'the short entry must expose its chronology and recovery reference');
+  const [original, reference, originalProgress, overlayProgress] = await Promise.all([
+    readFile(path.join(upstream, 'SKILL.md'), 'utf8'),
+    readFile(path.join(overlay, referenceLink), 'utf8'),
+    readFile(path.join(upstream, 'templates/progress.md'), 'utf8'),
+    readFile(path.join(overlay, 'templates/progress.md'), 'utf8'),
+  ]);
+  for (const document of [original, reference]) {
+    const guidance = document.replace(/\s+/g, ' ');
+    assert.match(guidance, /YYYY-MM-DD HH:mm:ss UTC\+8/, 'records retain explicit time and offset');
+    assert.match(guidance, /(?:get|fetch)[^\n]*time[^\n]*tool/i, 'time comes from tooling');
+    assert.match(guidance, /(?:append|keep)[^\n]*chronological/i, 'record ordering is explicit');
+    assert.match(guidance, /(?:never|do not)[^\n]*(?:guess|invent)/i, 'timestamps cannot be fabricated');
   }
-
-  for (const progressTemplate of [upstreamProgressTemplate, overlayProgressTemplate]) {
-    assert.match(progressTemplate, /top-to-bottom chronological/);
+  for (const template of [originalProgress, overlayProgress]) {
+    assert.match(template, /chronological/i);
+    assert.match(template, /YYYY-MM-DD HH:mm:ss UTC\+8/);
   }
 });

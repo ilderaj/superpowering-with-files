@@ -1,34 +1,14 @@
 ---
 name: trio-v2-entry
-description: Minimal V2 entry policy for route-first task classification and capability selection.
+description: Shared entry for task routing, authority, and capability selection.
 ---
 
-# Trio V2 Entry Policy
+# Trio Entry Policy
 
-## Route First
+Follow user intent and honor existing authorization within its scope. Route before choosing effort or topology; load `trio/SKILL.md` for the decision. Select exactly one capability: `dev`, `office`, or `safety`.
 
-Route first, then choose effort or execution topology. A route is known before a worker, fan-out, or effort intent is selected.
+Quick work needs no Trio. Tracked work uses only `task_plan.md`, `findings.md`, and `progress.md` as durable task authority. Direct work can complete on its own verification; delegated primary execution requires Chief acceptance. Preserve the selected topology and frozen scope.
 
-## Durable Authority
+The Host owns lifecycle, continuation, permissions, and authenticated model evidence. Actual model and effort remain unknown without that evidence. Applicable Host and human gates remain binding; routing grants no permission.
 
-The Trio planning files are the sole durable task authority: `task_plan.md`, `findings.md`, and `progress.md`. The Host owns worker lifecycle, continuation, permissions, and authenticated model evidence. Actual model and effort remain unknown without authenticated Host evidence.
-
-## Capability Selection
-
-Each task selects exactly one capability family: `dev`, `office`, or `safety`. Deep is a current-round reasoning decision for material uncertainty; it is not a durable task type and creates no authority.
-
-## Plan and Execute Boundary
-
-Delegated execution separates planning from production mutation. Chief: intake, route, planning, authority, assignment, gates, review, and acceptance. Execution worker: production changes and primary verification. The worker result is a candidate only; Chief acceptance is required before durable completion.
-
-Direct tracked execution can establish technical verification. Chief independent acceptance is required only when a visible or delegated worker is the primary executor, or when the chosen governance lane explicitly requires it. When a visible worker is primary, the Chief never substitutes a native subagent or performs Chief inline execution, and the worker result remains a candidate until Chief acceptance and Trio writeback.
-
-When primary execution requires a visible worker, the Chief never performs production mutations inline and never substitutes a native subagent for that execution worker. If a compliant visible worker is unavailable, the Host returns `manual_pending` or `blocked`; it never falls back to Chief inline execution. Native subagents remain allowed only as worker-local bounded delegation.
-
-## Projected Inventory
-
-The projected inventory is exactly this entry policy plus `trio/SKILL.md`, `trio/dev/SKILL.md`, `trio/office/SKILL.md`, `trio/safety/SKILL.md`, and one companion `chiefops/SKILL.md`. The entry policy is routing policy, not a fifth capability pack. The ChiefOps companion is a governance companion outside the three capability families; it is not a runner, scheduler, registry, or fourth task-state surface.
-
-## Human Gates
-
-Destructive, external, credential, security-sensitive, merge, push, publish, release, deploy, send, and data-loss actions retain the applicable Host and human gate. Routing never grants permission, and worker completion remains a candidate until Chief acceptance and Trio writeback.
+The projected governance inventory is this entry plus `trio/SKILL.md`, `trio/dev/SKILL.md`, `trio/office/SKILL.md`, `trio/safety/SKILL.md`, and `chiefops/SKILL.md`. Supporting references add detail, not skill identities or task-state authority.

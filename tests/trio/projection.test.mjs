@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseV2Config } from '../../harness/trio/config.mjs';
-import { projectConfig } from '../../harness/trio/projection.mjs';
+import { projectConfig, SURFACES, SUPPORT_SURFACES, PROJECTION_SURFACES } from '../../harness/trio/projection.mjs';
 import { readState, writeState } from '../../harness/installer/lib/state.mjs';
 import { adjudicatePermission } from '../../harness/trio/core/routing.mjs';
 
@@ -36,13 +36,7 @@ const RUNTIME_TARGET_CONTRACT = JSON.parse(await readFile(
   path.join(REPO_ROOT, 'harness/trio/runtime-targets.json'),
   'utf8'
 ));
-const MATERIALIZED_TRIO_OUTPUTS = Object.freeze([
-  ['harness/trio/templates/entry-policy.md', 'AGENTS.md'],
-  ['harness/trio/skill/SKILL.md', '.agents/skills/trio/SKILL.md'],
-  ['harness/trio/capabilities/dev/SKILL.md', '.agents/skills/trio/dev/SKILL.md'],
-  ['harness/trio/capabilities/office/SKILL.md', '.agents/skills/trio/office/SKILL.md'],
-  ['harness/trio/capabilities/safety/SKILL.md', '.agents/skills/trio/safety/SKILL.md']
-]);
+const MATERIALIZED_TRIO_OUTPUTS = Object.freeze(PROJECTION_SURFACES.map((surface) => [surface.source, surface.id === 'entry' ? 'AGENTS.md' : `.agents/skills/${surface.relativePath}`]));
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -114,27 +108,15 @@ function withObjectPrototypeValues(values, callback) {
 }
 
 function codexDestinations(root, scope = 'user-global') {
-  const entry = scope === 'workspace' ? `${root}/AGENTS.md` : `${root}/.codex/AGENTS.md`;
-  return [
-    entry,
-    `${root}/.agents/skills/trio/SKILL.md`,
-    `${root}/.agents/skills/trio/dev/SKILL.md`,
-    `${root}/.agents/skills/trio/office/SKILL.md`,
-    `${root}/.agents/skills/trio/safety/SKILL.md`,
-    `${root}/.agents/skills/chiefops/SKILL.md`
-  ];
+  return PROJECTION_SURFACES.map((surface) => surface.id === 'entry'
+    ? `${root}/${scope === 'workspace' ? 'AGENTS.md' : '.codex/AGENTS.md'}`
+    : `${root}/.agents/skills/${surface.relativePath}`);
 }
 
 function genericDestinations(root, targetId) {
   const base = `${root}/manual/${targetId}`;
-  return [
-    `${base}/entry-policy.md`,
-    `${base}/skills/trio/SKILL.md`,
-    `${base}/skills/trio/dev/SKILL.md`,
-    `${base}/skills/trio/office/SKILL.md`,
-    `${base}/skills/trio/safety/SKILL.md`,
-    `${base}/skills/chiefops/SKILL.md`
-  ];
+  return PROJECTION_SURFACES.map((surface) => surface.id === 'entry'
+    ? `${base}/entry-policy.md` : `${base}/skills/${surface.relativePath}`);
 }
 
 function placement(targetId, targetPath, scope = 'user-global', root = '/fixture/home') {
@@ -160,50 +142,25 @@ function projectWithAbsent(config, placements, contract = targetContract()) {
   });
 }
 
-function markdownSection(markdown, heading) {
-  const start = markdown.indexOf(`## ${heading}`);
-  assert.notEqual(start, -1, `Missing section: ${heading}`);
-  const rest = markdown.slice(start + heading.length + 3);
-  const next = rest.indexOf('\n## ');
-  return next === -1 ? rest : rest.slice(0, next);
-}
-
 function assertEntryPolicyContract(markdown) {
-  const route = markdownSection(markdown, 'Route First');
-  assert.match(route, /Route first, then choose effort or execution topology\./i);
-  assert.match(route, /before a worker, fan-out, or effort intent is selected/i);
-
-  const authority = markdownSection(markdown, 'Durable Authority');
-  assert.match(authority, /sole durable task authority/i);
-  assert.match(authority, /Host owns worker lifecycle, continuation, permissions/i);
-  assert.match(authority, /Actual model and effort remain unknown without authenticated Host evidence/i);
-
-  const capability = markdownSection(markdown, 'Capability Selection');
-  assert.match(capability, /Each task selects exactly one capability family: `dev`, `office`, or `safety`/i);
-  assert.match(capability, /not a durable task type/i);
-  assert.match(capability, /creates no authority/i);
-
-  const inventory = markdownSection(markdown, 'Projected Inventory');
-  assert.match(inventory, /entry policy/i);
-  assert.match(inventory, /trio\/SKILL\.md/i);
-  assert.match(inventory, /trio\/dev\/SKILL\.md/i);
-  assert.match(inventory, /trio\/office\/SKILL\.md/i);
-  assert.match(inventory, /trio\/safety\/SKILL\.md/i);
-  assert.match(inventory, /chiefops\/SKILL\.md/i);
-  assert.match(inventory, /governance companion/i);
-  assert.match(inventory, /not a fifth capability pack/i);
-  assert.match(inventory, /not a runner/i);
-
-  const gates = markdownSection(markdown, 'Human Gates');
-  assert.match(gates, /applicable Host and human gate/i);
-  assert.match(gates, /Routing never grants permission/i);
-  assert.match(gates, /worker completion remains a candidate until Chief acceptance and Trio writeback/i);
-
-  const boundary = markdownSection(markdown, 'Plan and Execute Boundary');
-  assert.match(boundary, /Direct tracked execution can establish technical verification/i);
-  assert.match(boundary, /Chief independent acceptance is required only when/i);
-  assert.match(boundary, /visible or delegated worker is the primary executor/i);
-  assert.match(boundary, /worker result remains a candidate until Chief acceptance and Trio writeback/i);
+  for (const clause of [
+    /honor existing authorization within its scope/i,
+    /route before choosing effort or topology/i,
+    /exactly one capability: `dev`, `office`, or `safety`/i,
+    /Quick work needs no Trio/i,
+    /only `task_plan\.md`, `findings\.md`, and `progress\.md` as durable task authority/i,
+    /Direct work can complete on its own verification/i,
+    /delegated primary execution requires Chief acceptance/i,
+    /selected topology and frozen scope/i,
+    /Host owns lifecycle, continuation, permissions/i,
+    /model and effort remain unknown without that evidence/i,
+    /Host and human gates remain binding/i,
+    /routing grants no permission/i,
+    /Supporting references add detail, not skill identities or task-state authority/i
+  ]) assert.match(markdown, clause);
+  for (const surface of SURFACES.filter((surface) => surface.id !== 'entry')) {
+    assert.ok(markdown.includes('`' + surface.relativePath + '`'));
+  }
 }
 
 test('V2 config and projection expose pure public seams', () => {
@@ -222,15 +179,8 @@ test('V2 config and projection expose pure public seams', () => {
     'recovery'
   ]);
   assert.equal(config.targets[0].paths[0], '/fixture/home/.codex/AGENTS.md');
-  assert.equal(result.descriptors.length, 6);
-  assert.deepEqual(result.descriptors.map((descriptor) => descriptor.action), [
-    'create',
-    'create',
-    'create',
-    'create',
-    'create',
-    'create'
-  ]);
+  assert.equal(result.descriptors.length, PROJECTION_SURFACES.length);
+  assert.ok(result.descriptors.every((descriptor) => descriptor.action === 'create'));
   assert.deepEqual(result.descriptors.map((descriptor) => descriptor.destination), codexDestinations('/fixture/home'));
 });
 
@@ -250,8 +200,8 @@ test('projection wrapper requires exactly four own fields', () => {
     pathObservations: {}
   };
 
-  assert.equal(projectConfig(wrapper).descriptors.length, 12);
-  assert.equal(projectConfig(JSON.parse(JSON.stringify(wrapper))).descriptors.length, 12);
+  assert.equal(projectConfig(wrapper).descriptors.length, PROJECTION_SURFACES.length * 2);
+  assert.equal(projectConfig(JSON.parse(JSON.stringify(wrapper))).descriptors.length, PROJECTION_SURFACES.length * 2);
   withObjectPrototypeValues(wrapper, () => {
     assert.throws(
       () => projectConfig({}),
@@ -289,6 +239,7 @@ test('projection preserves evidence paths while using caller placements for Host
     targetContract: targetContract(),
     placements: [placement('codex', '/fixture/home/.codex/AGENTS.md')],
     pathObservations: {
+      ...absentObservations(destinations),
       [destinations[0]]: { state: 'absent' },
       [destinations[1]]: { state: 'managed', identity: identity('trio') },
       [destinations[2]]: { state: 'unmanaged' },
@@ -304,7 +255,8 @@ test('projection preserves evidence paths while using caller placements for Host
     'preserve',
     'preserve',
     'preserve',
-    'create'
+    'create',
+    ...SUPPORT_SURFACES.map(() => 'create')
   ]);
   assert.equal(result.descriptors[1].retainedTargetPath, '/fixture/home/.codex/AGENTS.md');
   assert.equal(result.descriptors[1].destination, '/fixture/home/.agents/skills/trio/SKILL.md');
@@ -371,7 +323,7 @@ test('managed Codex scope cardinality is exact and two-sided', () => {
     placement('codex', workspacePath, 'workspace', '/fixture/workspace'),
     placement('codex', globalPath, 'user-global', '/fixture/home')
   ]);
-  assert.equal(bothResult.descriptors.length, 12);
+  assert.equal(bothResult.descriptors.length, PROJECTION_SURFACES.length * 2);
   assert.deepEqual(
     [...new Set(bothResult.descriptors.map((descriptor) => descriptor.destination))].sort(),
     [...codexDestinations('/fixture/workspace', 'workspace'), ...codexDestinations('/fixture/home')].sort()
@@ -722,72 +674,20 @@ test('materialized Trio entry and capability outputs match their authoritative s
   assert.deepEqual(mismatches, []);
 });
 
-test('entry policy validator rejects route-before-effort inversion', async () => {
-  const entryPolicy = await readFile(
-    path.join(REPO_ROOT, 'harness/trio/templates/entry-policy.md'),
-    'utf8'
-  );
-  const mutation = entryPolicy.replace(
-    'Route first, then choose effort or execution topology.',
-    'Choose effort or execution topology, then route the task.'
-  );
-  assert.notEqual(mutation, entryPolicy);
-  assert.throws(() => assertEntryPolicyContract(mutation), /route|before/i);
-});
-
-test('entry policy validator rejects weakened authority, capability, inventory, and human gate clauses', async () => {
-  const entryPolicy = await readFile(
-    path.join(REPO_ROOT, 'harness/trio/templates/entry-policy.md'),
-    'utf8'
-  );
-  const mutations = [
-    [
-      'The Trio planning files are the sole durable task authority',
-      'The Trio planning files are one durable task authority'
-    ],
-    [
-      'Each task selects exactly one capability family',
-      'Each task selects one or more capability families'
-    ],
-    [
-      'not a durable task type and creates no authority',
-      'a durable task type and creates another authority'
-    ],
-    [
-      'not a fifth capability pack',
-      'is an additional capability pack'
-    ],
-    [
-      'Routing never grants permission',
-      'Routing grants permission'
-    ]
-  ];
-  for (const [from, to] of mutations) {
-    const mutation = entryPolicy.replace(from, to);
-    assert.notEqual(mutation, entryPolicy);
-    assert.throws(() => assertEntryPolicyContract(mutation), /authority|capability|durable|fifth|permission/i);
-  }
-});
-
-test('entry policy validator rejects a ChiefOps capability or runner weakening', async () => {
-  const entryPolicy = await readFile(
-    path.join(REPO_ROOT, 'harness/trio/templates/entry-policy.md'),
-    'utf8'
-  );
-  const mutations = [
-    [
-      'The ChiefOps companion is a governance companion outside the three capability families',
-      'The ChiefOps companion is a fifth capability family alongside dev, office, and safety'
-    ],
-    [
-      'not a runner, scheduler, registry, or fourth task-state surface',
-      'and may act as a runner when the Chief is busy'
-    ]
-  ];
-  for (const [from, to] of mutations) {
-    const mutation = entryPolicy.replace(from, to);
-    assert.notEqual(mutation, entryPolicy);
-    assert.throws(() => assertEntryPolicyContract(mutation), /fifth|runner|capability|governance/i);
+test('entry contract rejects removed authority, permission, topology and completion safeguards', async () => {
+  const entry = await readFile(path.join(REPO_ROOT, 'harness/trio/templates/entry-policy.md'), 'utf8');
+  for (const clause of [
+    /Route before choosing effort or topology/i,
+    /exactly one capability/i,
+    /only `task_plan.md`, `findings.md`, and `progress.md`/i,
+    /Direct work can complete on its own verification/i,
+    /delegated primary execution requires Chief acceptance/i,
+    /selected topology and frozen scope/i,
+    /routing grants no permission/i,
+    /not skill identities or task-state authority/i
+  ]) {
+    assert.match(entry, clause);
+    assert.throws(() => assertEntryPolicyContract(entry.replace(clause, 'removed')));
   }
 });
 
@@ -833,7 +733,7 @@ test('materialized Codex outputs stay blocked by the scope gate even when allow-
     expectedReturn: { status: ['candidate_done', 'blocked'] }
   };
 
-  assert.equal(materialized.length, 6);
+  assert.equal(materialized.length, PROJECTION_SURFACES.length);
   for (const target of materialized) {
     const result = adjudicatePermission({
       assignmentPacket: packet,
@@ -857,16 +757,13 @@ test('materialized Codex outputs stay blocked by the scope gate even when allow-
 });
 
 test('ChiefOps source carries the six operative permission-ordering clauses', async () => {
-  const chiefOps = await readFile(
-    path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'),
-    'utf8'
-  );
+  const chiefOps = await chiefOpsContract();
   const clauses = [
-    /permission scope before creating or spawning any worker/i,
+    /permission scope before dispatch/i,
     /least privilege.{0,160}task-specific writable roots/i,
     /Full Access is an explicit exception/i,
     /recheck the frozen scope before any escalation or review/i,
-    /approval only resolves host restriction and never expands allowed paths/i,
+    /approval only resolves Host restriction and never expands frozen scope or allowed paths/i,
     /(generated|materialized) surfaces are never direct-written through escalation/i
   ];
   for (const clause of clauses) {
@@ -876,7 +773,7 @@ test('ChiefOps source carries the six operative permission-ordering clauses', as
 
 test('ChiefOps and human usage carry approval-policy, recovery-ladder, and non-destructive workspace clauses', async () => {
   const [chiefOps, humanUsage] = await Promise.all([
-    readFile(path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'), 'utf8'),
+    chiefOpsContract(),
     readFile(path.join(REPO_ROOT, 'docs/trio-v2/human-usage.md'), 'utf8')
   ]);
   const chiefOpsClauses = [
@@ -905,7 +802,7 @@ test('ChiefOps and human usage carry approval-policy, recovery-ladder, and non-d
 
 test('ChiefOps and human usage bind semantic reservation to task plus frozen slice identity', async () => {
   const [chiefOps, humanUsage] = await Promise.all([
-    readFile(path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'), 'utf8'),
+    chiefOpsContract(),
     readFile(path.join(REPO_ROOT, 'docs/trio-v2/human-usage.md'), 'utf8')
   ]);
   const chiefOpsClauses = [
@@ -933,5 +830,54 @@ test('ChiefOps and human usage bind semantic reservation to task plus frozen sli
   ];
   for (const clause of humanUsageClauses) {
     assert.match(humanUsage, clause);
+  }
+});
+
+
+test('projection carries bounded static support without adding logical skills', () => {
+  const result = projectWithAbsent(parseV2Config(validConfig()), [placement('codex', '/fixture/home/.codex/AGENTS.md')]);
+  const primary = result.descriptors.filter((d) => !d.supportFor);
+  const support = result.descriptors.filter((d) => d.supportFor);
+  assert.deepEqual(primary.map((d) => d.surface), ['entry', 'trio', 'dev', 'office', 'safety', 'chiefops']);
+  assert.ok(support.length > 0, 'progressive disclosure references must project');
+  for (const d of support) {
+    const owner = primary.find((p) => p.surface === d.supportFor);
+    assert.ok(owner);
+    assert.ok(d.destination.startsWith(path.posix.dirname(owner.destination) + '/references/'));
+    assert.equal(d.action, 'create');
+    assert.equal(d.execution, 'managed');
+  }
+});
+
+async function chiefOpsContract() {
+  return (await Promise.all(PROJECTION_SURFACES.filter((surface) => surface.id === 'chiefops' || surface.supportFor === 'chiefops')
+    .map((surface) => readFile(path.join(REPO_ROOT, surface.source), 'utf8')))).join('\n');
+}
+
+
+test('support descriptors enforce ownership and conflict rules exactly like primary surfaces', () => {
+  const config = validConfig();
+  const placements = [placement('codex', '/fixture/home/.codex/AGENTS.md')];
+  const initial = projectWithAbsent(config, placements);
+  const support = initial.descriptors.filter((descriptor) => descriptor.supportFor);
+  for (const descriptor of support) {
+    for (const [state, owned, actual, action] of [
+      ['absent', false, null, 'create'],
+      ['managed', true, identity('owned'), 'update'],
+      ['managed', false, identity('owned'), 'preserve'],
+      ['managed', true, identity('drift'), 'preserve'],
+      ['unmanaged', true, null, 'preserve'],
+      ['unknown', true, null, 'preserve']
+    ]) {
+      const candidate = structuredClone(config);
+      if (owned) candidate.ownership.entries = [{ targetId: 'codex', path: descriptor.destination, identity: identity('owned') }];
+      const observations = absentObservations(initial.descriptors.map((descriptor) => descriptor.destination));
+      observations[descriptor.destination] = state === 'managed' ? { state, identity: actual } : { state };
+      const result = projectConfig({ config: candidate, placements, targetContract: targetContract(), pathObservations: observations });
+      const projected = result.descriptors.find((result) => result.destination === descriptor.destination);
+      assert.equal(projected.action, action, `${descriptor.surface}: ${state}/${owned}`);
+      assert.equal(projected.execution, action === 'preserve' ? 'manual' : 'managed');
+      assert.equal(result.conflicts.length, action === 'preserve' ? 1 : 0);
+    }
   }
 });

@@ -42,15 +42,15 @@ export const EXECUTION_WORK_ROLES = Object.freeze([
 ]);
 export const COMPLEXITY_KINDS = Object.freeze(['high', 'xhigh', 'max']);
 export const FLASH_EXECUTION_MODEL = 'opencode-go/deepseek-v4-flash';
-export const CHIEF_REQUESTED_MODELS = Object.freeze(['gpt-5.6-sol', 'gpt-5.6-terra']);
-export const CHIEF_REQUESTED_EFFORTS = Object.freeze(['max', 'ultra']);
+export const CHIEF_REQUESTED_MODELS = Object.freeze(['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna']);
+export const CHIEF_REQUESTED_EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
 
 const COMPLEXITY_SIGNALS = Object.freeze({
   high: Object.freeze(['bounded', 'routine']),
   xhigh: Object.freeze(['multiFile', 'verificationHeavy', 'research', 'iterative']),
   max: Object.freeze(['longRunning', 'repeatedRepair', 'broadIntegration', 'highComplexity'])
 });
-const EFFORT_RANK = Object.freeze({ high: 1, xhigh: 2, max: 3 });
+const EFFORT_RANK = Object.freeze({ low: 1, medium: 2, high: 3, xhigh: 4, max: 5 });
 const GOAL_CONTRACT_FIELDS = Object.freeze([
   'objective',
   'successCriteria',
@@ -122,11 +122,6 @@ const HOST_WORKER_STATUSES = new Set([
 function hasTrackedSignal(input) {
   return [
     input.multiplePhases,
-    input.requiresResearch,
-    input.research,
-    input.comparison,
-    input.requiresSubagents,
-    input.subagents,
     input.worktree,
     input.crossSession,
     input.durableResearch,
@@ -178,8 +173,54 @@ function normalizeOverride(override) {
   return { reason, provenance };
 }
 
+// Host routing aliases are transport identifiers; only apiModel goes to OpenAI.
+export function modelIdentity(model) {
+  const match = /^(main|p646e20)\/(.+)$/u.exec(model);
+  const apiModel = match ? match[2] : model;
+  if (CHIEF_REQUESTED_MODELS.includes(apiModel)) {
+    return { provider: 'openai', apiModel, hostPrefix: match ? match[1] : null };
+  }
+  return { provider: model.includes('/') ? model.split('/')[0] : 'openai', apiModel, hostPrefix: null };
+}
+
+// Recommendations are opt-in for new explicit packets. Existing packets keep
+// their legacy defaults, so resolving them never rewrites frozen bindings.
+export const RECOMMENDED_MODEL_SELECTIONS = Object.freeze({
+  demanding: Object.freeze({ requestedModel: 'gpt-6-astra', requestedEffort: 'high' }),
+  complex: Object.freeze({ requestedModel: 'gpt-5.6-sol', requestedEffort: 'high' }),
+  balanced: Object.freeze({ requestedModel: 'gpt-5.6-terra', requestedEffort: 'medium' }),
+  fast: Object.freeze({ requestedModel: 'gpt-5.6-luna', requestedEffort: 'medium' })
+});
+
+export function recommendedEffortOf(model) {
+  const apiModel = modelIdentity(model).apiModel;
+  return Object.values(RECOMMENDED_MODEL_SELECTIONS).find((selection) => selection.requestedModel === apiModel)?.requestedEffort;
+}
+
+export function validateModelEffort(model, effort, { workRole = null, isChild = false, hostEvidence = undefined } = {}) {
+  const identity = modelIdentity(model);
+  const openai = CHIEF_REQUESTED_MODELS.includes(identity.apiModel);
+  if (!openai && model !== FLASH_EXECUTION_MODEL) {
+    throw new Error(`Unsupported requested model: ${model}; select gpt-6-astra, gpt-5.6-sol/terra/luna, or the legacy Flash model.`);
+  }
+  if (isChild && effort === 'ultra') throw new Error('Child model requests may not use ultra effort.');
+  if (openai && effort === 'ultra') {
+    const evidence = objectRecord(hostEvidence);
+    const supported = objectRecord(evidence.supportedModelEfforts)[model];
+    if (CHIEF_WORK_ROLES.includes(workRole)
+      && (identity.apiModel !== 'gpt-6-astra' || identity.hostPrefix !== null)
+      && evidence.authenticated === true && normalizedString(evidence.evidenceRef)
+      && Array.isArray(supported) && supported.includes('ultra')) return;
+    throw new Error(`Effort ultra for ${model} requires authenticated Host supportedModelEfforts evidence for this exact Chief selection; use max or a supported OpenAI effort instead.`);
+  }
+  const efforts = openai ? CHIEF_REQUESTED_EFFORTS : COMPLEXITY_KINDS;
+  if (!efforts.includes(effort)) {
+    throw new Error(`Unsupported effort ${effort} for ${model}; use ${efforts.join(', ')}.`);
+  }
+}
+
 function requestedProviderOf(model) {
-  return model.includes('/') ? model.split('/')[0] : 'gpt-5.6';
+  return modelIdentity(model).provider;
 }
 
 function topologyOf(input) {
@@ -189,7 +230,22 @@ function topologyOf(input) {
   return Object.keys(topology).length > 0 ? topology : null;
 }
 
+function normalizeModelEffortInput(input) {
+  for (const [primary, alias] of [['requestedModel', 'model'], ['requestedEffort', 'effort']]) {
+    for (const key of [primary, alias]) {
+      if (input[key] !== undefined && normalizedString(input[key]) === null) {
+        throw new Error(`Explicit ${key} must be non-empty text.`);
+      }
+    }
+    if (input[primary] !== undefined && input[alias] !== undefined && input[primary] !== input[alias]) {
+      throw new Error(`Conflicting ${primary} and ${alias}; bind one explicit selection.`);
+    }
+  }
+  return { ...input, requestedModel: input.requestedModel ?? input.model, requestedEffort: input.requestedEffort ?? input.effort };
+}
+
 function resolveEconomicPolicy(input, taskClass) {
+  input = normalizeModelEffortInput(input);
   const workRole = classifyWorkRole(input);
   const override = normalizeOverride(input.override);
   const complexity = classifyComplexity(input);
@@ -205,16 +261,10 @@ function resolveEconomicPolicy(input, taskClass) {
       throw new Error('Unknown complexity is a blocker for execution work; no implicit model escalation.');
     }
     resolvedComplexity = complexity;
-    requestedModel = FLASH_EXECUTION_MODEL;
-    requestedEffort = complexity;
-    const callerModel = normalizedString(input.requestedModel);
-    const callerEffort = normalizedString(input.requestedEffort);
-    if (callerModel !== null && callerModel !== requestedModel) {
-      throw new Error(`Execution work role ${workRole} may only request ${requestedModel}; caller supplied ${callerModel}.`);
-    }
-    if (callerEffort !== null && callerEffort !== requestedEffort) {
-      throw new Error(`Execution work role ${workRole} with complexity ${complexity} requests effort ${requestedEffort}; caller supplied ${callerEffort}.`);
-    }
+    requestedModel = normalizedString(input.requestedModel) ?? FLASH_EXECUTION_MODEL;
+    requestedEffort = normalizedString(input.requestedEffort)
+      ?? (normalizedString(input.requestedModel) ? recommendedEffortOf(requestedModel) : undefined)
+      ?? complexity;
   } else if (CHIEF_WORK_ROLES.includes(workRole)) {
     if (complexity !== null) {
       throw new Error(`Complexity is execution-scoped and cannot classify Chief work role ${workRole}.`);
@@ -222,20 +272,16 @@ function resolveEconomicPolicy(input, taskClass) {
     const callerModel = normalizedString(input.requestedModel);
     const callerEffort = normalizedString(input.requestedEffort);
     requestedModel = callerModel ?? 'gpt-5.6-sol';
-    if (!CHIEF_REQUESTED_MODELS.includes(requestedModel)) {
-      throw new Error(`Chief work role ${workRole} may request only gpt-5.6-sol or gpt-5.6-terra; got ${requestedModel}.`);
-    }
+    // Omitted Chief effort means max in legacy frozen Sol/Terra packets.
+    // Recommendations must be chosen explicitly before freezing a new packet.
     requestedEffort = callerEffort ?? 'max';
-    if (!CHIEF_REQUESTED_EFFORTS.includes(requestedEffort)) {
-      throw new Error(`Chief work role ${workRole} may request only max or ultra effort; got ${requestedEffort}.`);
-    }
   } else {
     throw new Error(`Unknown work role: ${String(input.workRole)}`);
   }
 
-  if (input.isChild === true && requestedEffort === 'ultra') {
-    throw new Error('Child model requests may not use ultra effort.');
-  }
+  validateModelEffort(requestedModel, requestedEffort, {
+    workRole, isChild: input.isChild === true, hostEvidence: input.hostEvidence
+  });
 
   const authenticatedEvidence = input.evidence?.authenticated === true ? input.evidence : null;
   const actualModel = normalizedString(authenticatedEvidence?.actualModel) ?? 'unknown';
@@ -348,7 +394,7 @@ export function resolveModelEffort(input = {}) {
   return resolveEconomicPolicy(input, taskClass);
 }
 
-export function resolveAssignmentPacketModelPolicy(assignmentPacket, { isChild = false } = {}) {
+export function resolveAssignmentPacketModelPolicy(assignmentPacket, { isChild = false, hostEvidence } = {}) {
   if (!assignmentPacket || typeof assignmentPacket !== 'object' || Array.isArray(assignmentPacket)) {
     throw new Error('Assignment packet model policy requires an Assignment Packet.');
   }
@@ -356,6 +402,7 @@ export function resolveAssignmentPacketModelPolicy(assignmentPacket, { isChild =
   return resolveEconomicPolicy({
     ...capability,
     isChild,
+    hostEvidence,
     evidence: { authenticated: false }
   }, null);
 }
@@ -1058,18 +1105,42 @@ function primaryExecutionKind(assignmentPacket) {
   return value;
 }
 
-function childProfileBlocker(resolution, parentEffort) {
-  if (resolution.requestedModel !== FLASH_EXECUTION_MODEL) {
-    return `child_profile_unbound:model:${resolution.requestedModel}`;
-  }
-  if (!Object.hasOwn(EFFORT_RANK, resolution.requestedEffort)) {
-    return `child_profile_unbound:effort:${resolution.requestedEffort}`;
-  }
+function childScopeBlocker(input) {
+  const parent = normalizeEnvelope(input.parentEnvelope ?? {
+    permissionEnvelope: input.permissionEnvelope, pathEnvelope: input.pathEnvelope
+  }, 'parent envelope');
+  if (!input.childEnvelope) return 'child_envelope_missing';
+  const child = normalizeEnvelope(input.childEnvelope, 'child envelope');
+  if (!envelopeIsSubset(child, parent)) return 'child_envelope_widened';
+  if (!envelopeIsProperSubset(child, parent)) return 'child_envelope_not_narrower';
+  return null;
+}
+
+function childProfileBlocker(resolution, input) {
+  const effort = resolution.requestedEffort;
+  const model = resolution.requestedModel;
+  const parentEffort = normalizedString(input.parentEffort);
+  const parentModel = normalizedString(input.parentModel);
+  if (!Object.hasOwn(EFFORT_RANK, effort)) return `child_profile_unbound:effort:${effort}`;
   if (!parentEffort || !Object.hasOwn(EFFORT_RANK, parentEffort)) {
     return `child_profile_unbound:parent_effort:${parentEffort ?? 'missing'}`;
   }
-  if (EFFORT_RANK[resolution.requestedEffort] > EFFORT_RANK[parentEffort]) {
-    return `child_profile_widened:${resolution.requestedEffort}_over_${parentEffort}`;
+  if (!parentModel) return 'child_profile_unbound:parent_model:missing';
+  // Equal effort words are not equal budgets across models. Aliases of the
+  // same OpenAI API model are comparable, but different models need allowance.
+  const parent = modelIdentity(parentModel);
+  const child = modelIdentity(model);
+  if (parent.provider !== child.provider || parent.apiModel !== child.apiModel) {
+    const allowance = objectRecord(input.childModelAllowance);
+    const cap = normalizedString(allowance.maxEffort);
+    if (allowance.model !== model || !cap || !Object.hasOwn(EFFORT_RANK, cap)
+      || !normalizedString(allowance.reason) || !normalizedString(allowance.provenance)) {
+      return `child_cross_model_allowance_required:${parentModel}_to_${model}`;
+    }
+    return EFFORT_RANK[effort] <= EFFORT_RANK[cap] ? null : `child_profile_widened:${effort}_over_${cap}`;
+  }
+  if (EFFORT_RANK[effort] > EFFORT_RANK[parentEffort]) {
+    return `child_profile_widened:${effort}_over_${parentEffort}`;
   }
   return null;
 }
@@ -1077,18 +1148,18 @@ function childProfileBlocker(resolution, parentEffort) {
 function resolveHostModelPolicy(input, assignmentPacket) {
   const capability = objectRecord(assignmentPacket?.capability);
   const taskClass = capability.taskClass ?? classifyTask(input);
+  const rawHost = objectRecord(input.observation ?? input.hostObservation);
+  const hostEvidence = !assignmentPacket || rawHost.packetDigest === packetDigestOf(assignmentPacket)
+    ? rawHost : undefined;
   let resolution;
   if (assignmentPacket) {
-    resolution = resolveEconomicPolicy({ ...capability, taskClass, isChild: input.isChild === true, evidence: { authenticated: false } }, taskClass);
+    resolution = resolveEconomicPolicy({ ...capability, taskClass, isChild: input.isChild === true, hostEvidence, evidence: { authenticated: false } }, taskClass);
     const outerModel = normalizedString(input.requestedModel);
     const outerEffort = normalizedString(input.requestedEffort);
     if (outerModel !== null && outerModel !== resolution.requestedModel) {
       throw new Error(`Outer requested model ${outerModel} conflicts with the validated packet policy ${resolution.requestedModel}.`);
     }
-    // The outer 'ultra' value is reserved as a native-safety probe and can
-    // never become the requested decision; it must not conflict-check the
-    // packet-bound policy.
-    if (outerEffort !== null && outerEffort !== resolution.requestedEffort && outerEffort !== 'ultra') {
+    if (outerEffort !== null && outerEffort !== resolution.requestedEffort) {
       throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${resolution.requestedEffort}.`);
     }
   } else {
@@ -1102,7 +1173,7 @@ function resolveHostModelPolicy(input, assignmentPacket) {
       primaryExecution: input.primaryExecution,
       executionMode: input.executionMode,
       isChild: input.isChild === true,
-      evidence: { authenticated: false }
+      hostEvidence, evidence: { authenticated: false }
     });
   }
   return resolution;
@@ -1330,6 +1401,7 @@ export function resolveHostOperation(input = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new Error('Host operation input must be an object.');
   }
+  input = normalizeModelEffortInput(input);
   const operation = assertHostOperation(input.operation);
   const packetInput = input.assignmentPacket ?? input.packet;
   const assignmentPacket = packetInput === undefined ? null : buildAssignmentPacket(packetInput);
@@ -1337,7 +1409,7 @@ export function resolveHostOperation(input = {}) {
   const modelResolution = resolveHostModelPolicy(input, assignmentPacket);
   const observation = normalizeObservationRecord(input.observation ?? input.hostObservation);
   const childBlocker = input.isChild === true
-    ? childProfileBlocker(modelResolution, normalizedString(input.parentEffort))
+    ? childProfileBlocker(modelResolution, input) ?? childScopeBlocker(input)
     : null;
   if (childBlocker) {
     const routeEvidence = buildRouteEvidence({
@@ -1381,7 +1453,7 @@ export function resolveHostOperation(input = {}) {
         assignmentPacket,
         packetDigest,
         blocker: childBlocker,
-        resumeCondition: 'A child request must carry a Flash execution profile with effort no greater than its parent and a Host that can bind that requested profile.'
+        resumeCondition: 'Bind the parent model and effort; keep same-model child effort within that budget, or supply an explicit childModelAllowance with model, maxEffort, reason and provenance for a cross-model child.'
       })
     };
   }
@@ -1521,7 +1593,7 @@ export function resolveHostOperation(input = {}) {
     capability: visibleCapability,
     observation,
     requestedWorkerId,
-    parentEnvelope,
+    parentEnvelope: input.isChild === true ? childEnvelope : parentEnvelope,
     lanes
   });
   const visibleEvidence = capabilityEvidence(
@@ -1539,6 +1611,12 @@ export function resolveHostOperation(input = {}) {
     requestedEffort: normalizedString(input.requestedEffort) ?? modelResolution.requestedEffort,
     lanes
   });
+  if (nativeResult.safe && modelIdentity(modelResolution.requestedModel).provider === 'openai'
+    && nativeCapability.requestedModelEffortControls !== true) {
+    nativeResult.safe = false;
+    nativeResult.reason = 'native_model_controls_unbound';
+  }
+
   const capabilitySource = objectRecord(assignmentPacket?.capability);
   const childPolicy = childDelegationPolicy(capabilitySource, primaryExecution);
   const modePolicy = executionModePolicy(capabilitySource);
@@ -1594,8 +1672,8 @@ export function resolveHostOperation(input = {}) {
       actual: operation === 'spawn' ? unknownActual() : authenticatedActual(observation, packetDigest),
       workerId: operation === 'spawn' ? null : observation.workerId,
       capability: visibleEvidence,
-      permissionEnvelope: parentEnvelope,
-      pathEnvelope: parentEnvelope,
+      permissionEnvelope: input.isChild === true ? childEnvelope : parentEnvelope,
+      pathEnvelope: input.isChild === true ? childEnvelope : parentEnvelope,
       fallbackReason: null,
       status: routeStatus(observation, 'visible_worker', operation)
     });
@@ -1605,7 +1683,7 @@ export function resolveHostOperation(input = {}) {
       descriptor: buildOperationDescriptor({
         operation,
         routeKind: 'visible_worker',
-        childEnvelope: null,
+        childEnvelope: input.isChild === true ? childEnvelope : null,
         assignmentPacket,
         packetDigest
       })
