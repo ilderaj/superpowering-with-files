@@ -80,6 +80,7 @@ export const PRIMARY_EXECUTION_KINDS = Object.freeze([
   'visible_worker_required'
 ]);
 export const PRIMARY_EXECUTION_REQUIRED = 'visible_worker_required';
+export const LEGACY_VISIBLE_WORKER_REQUIRED_BLOCKER = 'legacy_visible_worker_required_retired';
 export const CHILD_DELEGATION_KINDS = Object.freeze([
   'prohibited',
   'worker_discretion',
@@ -716,19 +717,6 @@ function normalizeObservationRecord(input) {
   };
 }
 
-function authenticatedActual(observation, packetDigest) {
-  if (observation.authenticated !== true || !observation.evidenceRef) {
-    return { actualModel: 'unknown', actualEffort: 'unknown' };
-  }
-  if (packetDigest !== null && observation.packetDigest !== packetDigest) {
-    return { actualModel: 'unknown', actualEffort: 'unknown' };
-  }
-  return {
-    actualModel: normalizedString(observation.actualModel) ?? 'unknown',
-    actualEffort: normalizedString(observation.actualEffort) ?? 'unknown'
-  };
-}
-
 function unknownActual() {
   return { actualModel: 'unknown', actualEffort: 'unknown' };
 }
@@ -749,13 +737,13 @@ function operationSupport(capability, operation) {
   return 'unknown';
 }
 
-function capabilityEvidence(capability, operation, kind, observation) {
+function nativeCapabilityEvidence(capability, operation, observation) {
   const source = objectRecord(capability);
   return {
-    kind,
+    kind: 'native_subagent',
     authenticated: observation.authenticated,
     evidenceRef: observation.evidenceRef ?? null,
-    visible: kind === 'native_subagent' ? false : source.visible === true,
+    visible: false,
     operation,
     operationSupport: operationSupport(source, operation),
     requestedModelEffortControls: source.requestedModelEffortControls === true,
@@ -823,13 +811,6 @@ function laneConflicts(lanes, candidatePaths, workerId, operation) {
     if (!laneIsReserved(lane) || (operation !== 'spawn' && workerId && lane.workerId === workerId)) return false;
     return hasMutablePathConflict(candidatePaths, lane.mutablePaths);
   });
-}
-
-function executingVisibleLaneCount(lanes, workerId, operation) {
-  return lanes.filter((lane) => laneIsReserved(lane)
-    && lane.status === 'executing'
-    && lane.routeKind === 'visible_worker'
-    && !(operation !== 'spawn' && workerId && lane.workerId === workerId)).length;
 }
 
 // ---------------------------------------------------------------------------
@@ -931,42 +912,6 @@ function validateObservedStatus(status) {
   }
 }
 
-function visibleSafety({ operation, capability, observation, requestedWorkerId, parentEnvelope, lanes }) {
-  const support = operationSupport(capability, operation);
-  if (observation.authenticated !== true || !observation.evidenceRef) {
-    return { safe: false, reason: 'visible_observation_unknown', support };
-  }
-  if (capability.visible !== true) {
-    return { safe: false, reason: capability.visible === false ? 'visible_unsupported' : 'visible_unknown', support };
-  }
-  if (support !== 'supported') {
-    return { safe: false, reason: `visible_operation_${support}`, support };
-  }
-  if (capability.requestedModelEffortControls !== true) {
-    return { safe: false, reason: 'visible_model_controls_unbound', support };
-  }
-  if (capability.permissionBinding !== true || !parentEnvelope.operations.includes(operation)) {
-    return { safe: false, reason: 'visible_permission_unbound', support };
-  }
-  if (capability.pathBinding !== true) {
-    return { safe: false, reason: 'visible_path_unbound', support };
-  }
-  const workerId = observation.workerId;
-  if (operation !== 'spawn'
-    && (!requestedWorkerId || !workerId || requestedWorkerId !== workerId)) {
-    return { safe: false, reason: 'visible_target_unbound', support };
-  }
-  if (laneConflicts(lanes, parentEnvelope.mutablePaths, workerId, operation)) {
-    return { safe: false, reason: 'mutable_path_conflict', support };
-  }
-  if (operation === 'spawn'
-    && parentEnvelope.mutablePaths.length > 0
-    && executingVisibleLaneCount(lanes, workerId, operation) >= 2) {
-    return { safe: false, reason: 'visible_lane_capacity', support };
-  }
-  return { safe: true, reason: null, support };
-}
-
 function nativeSafety({ operation, capability, observation, parentEnvelope, childEnvelope, requestedEffort, lanes }) {
   const support = operationSupport(capability, operation);
   if (operation !== 'spawn') {
@@ -1000,14 +945,6 @@ function nativeSafety({ operation, capability, observation, parentEnvelope, chil
     return { safe: false, reason: 'mutable_path_conflict', support };
   }
   return { safe: true, reason: null, support };
-}
-
-function routeStatus(observation, routeKind, operation) {
-  if (routeKind === 'manual_pending') return 'manual_pending';
-  if (routeKind === 'visible_worker' && operation !== 'spawn') {
-    return observation.status ?? 'observed';
-  }
-  return 'planned';
 }
 
 function buildRouteEvidence({
@@ -1205,7 +1142,7 @@ function executionModePolicy(capability) {
   return { valid: true, mode: declared };
 }
 
-function manualCapabilityEvidence({ operation, observation, visibleCapability, nativeCapability, visibleResult, nativeResult }) {
+function manualCapabilityEvidence({ operation, observation, visibleCapability, nativeCapability, nativeResult }) {
   const visibleSource = objectRecord(visibleCapability);
   const nativeSource = objectRecord(nativeCapability);
   return {
@@ -1214,7 +1151,7 @@ function manualCapabilityEvidence({ operation, observation, visibleCapability, n
     evidenceRef: observation.evidenceRef ?? null,
     visible: visibleSource.visible === true,
     operation,
-    visibleOperationSupport: visibleResult.support,
+    visibleOperationSupport: operationSupport(visibleSource, operation),
     requestedModelEffortControls: visibleSource.requestedModelEffortControls === true,
     permissionBinding: visibleSource.permissionBinding === true,
     pathBinding: visibleSource.pathBinding === true,
@@ -1408,6 +1345,52 @@ export function resolveHostOperation(input = {}) {
   const packetDigest = packetDigestOf(assignmentPacket);
   const modelResolution = resolveHostModelPolicy(input, assignmentPacket);
   const observation = normalizeObservationRecord(input.observation ?? input.hostObservation);
+  const primaryExecution = primaryExecutionKind(assignmentPacket);
+  validateObservedStatus(observation.status);
+  const parentEnvelope = normalizeEnvelope(
+    input.parentEnvelope ?? {
+      permissionEnvelope: input.permissionEnvelope,
+      pathEnvelope: input.pathEnvelope
+    },
+    'parent envelope'
+  );
+  const childEnvelope = input.childEnvelope === undefined
+    ? null
+    : normalizeEnvelope(input.childEnvelope, 'child envelope');
+  if (primaryExecution === PRIMARY_EXECUTION_REQUIRED) {
+    const blocker = LEGACY_VISIBLE_WORKER_REQUIRED_BLOCKER;
+    const routeEvidence = buildRouteEvidence({
+      routeKind: 'manual_pending',
+      requestedModel: modelResolution.requestedModel,
+      requestedEffort: modelResolution.requestedEffort,
+      actual: unknownActual(),
+      workerId: null,
+      capability: manualCapabilityEvidence({
+        operation,
+        observation,
+        visibleCapability: observation.visibleWorker,
+        nativeCapability: observation.nativeSubagent,
+        nativeResult: { support: 'unknown' }
+      }),
+      permissionEnvelope: parentEnvelope,
+      pathEnvelope: parentEnvelope,
+      fallbackReason: blocker,
+      status: 'manual_pending'
+    });
+    return {
+      operation,
+      routeEvidence,
+      descriptor: buildOperationDescriptor({
+        operation,
+        routeKind: 'manual_pending',
+        childEnvelope: null,
+        assignmentPacket,
+        packetDigest,
+        blocker,
+        resumeCondition: 'Rebind capability.primaryExecution to default under the current Trio authority before requesting Host execution; no silent fallback is allowed.'
+      })
+    };
+  }
   const childBlocker = input.isChild === true
     ? childProfileBlocker(modelResolution, input) ?? childScopeBlocker(input)
     : null;
@@ -1423,7 +1406,6 @@ export function resolveHostOperation(input = {}) {
         observation,
         visibleCapability: observation.visibleWorker,
         nativeCapability: observation.nativeSubagent,
-        visibleResult: { support: 'unknown' },
         nativeResult: { support: 'unknown' }
       }),
       permissionEnvelope: normalizeEnvelope(
@@ -1457,19 +1439,6 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  const primaryExecution = primaryExecutionKind(assignmentPacket);
-  validateObservedStatus(observation.status);
-  const requestedWorkerId = normalizedString(input.requestedWorkerId);
-  const parentEnvelope = normalizeEnvelope(
-    input.parentEnvelope ?? {
-      permissionEnvelope: input.permissionEnvelope,
-      pathEnvelope: input.pathEnvelope
-    },
-    'parent envelope'
-  );
-  const childEnvelope = input.childEnvelope === undefined
-    ? null
-    : normalizeEnvelope(input.childEnvelope, 'child envelope');
   const lanes = normalizeLanes(input, observation);
   if (operation === 'spawn') {
     const worktreeBlock = worktreePendingBlocker(observation);
@@ -1485,7 +1454,6 @@ export function resolveHostOperation(input = {}) {
           observation,
           visibleCapability: observation.visibleWorker,
           nativeCapability: observation.nativeSubagent,
-          visibleResult: { support: 'unknown' },
           nativeResult: { support: 'unknown' }
         }),
         permissionEnvelope: parentEnvelope,
@@ -1520,7 +1488,6 @@ export function resolveHostOperation(input = {}) {
           observation,
           visibleCapability: observation.visibleWorker,
           nativeCapability: observation.nativeSubagent,
-          visibleResult: { support: 'unknown' },
           nativeResult: { support: 'unknown' }
         }),
         permissionEnvelope: parentEnvelope,
@@ -1559,7 +1526,6 @@ export function resolveHostOperation(input = {}) {
           observation,
           visibleCapability: observation.visibleWorker,
           nativeCapability: observation.nativeSubagent,
-          visibleResult: { support: 'unknown' },
           nativeResult: { support: 'unknown' }
         }),
         permissionEnvelope: parentEnvelope,
@@ -1588,20 +1554,6 @@ export function resolveHostOperation(input = {}) {
   }
   const visibleCapability = observation.visibleWorker;
   const nativeCapability = observation.nativeSubagent;
-  const visibleResult = visibleSafety({
-    operation,
-    capability: visibleCapability,
-    observation,
-    requestedWorkerId,
-    parentEnvelope: input.isChild === true ? childEnvelope : parentEnvelope,
-    lanes
-  });
-  const visibleEvidence = capabilityEvidence(
-    visibleCapability,
-    operation,
-    'visible_worker',
-    observation
-  );
   const nativeResult = nativeSafety({
     operation,
     capability: nativeCapability,
@@ -1635,7 +1587,6 @@ export function resolveHostOperation(input = {}) {
         observation,
         visibleCapability,
         nativeCapability,
-        visibleResult,
         nativeResult
       }),
       permissionEnvelope: parentEnvelope,
@@ -1661,95 +1612,6 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  const nativeFirst = operation === 'spawn'
-    && primaryExecution !== PRIMARY_EXECUTION_REQUIRED
-    && EXECUTION_WORK_ROLES.includes(modelResolution.workRole);
-  if (!nativeFirst && visibleResult.safe) {
-    const routeEvidence = buildRouteEvidence({
-      routeKind: 'visible_worker',
-      requestedModel: modelResolution.requestedModel,
-      requestedEffort: modelResolution.requestedEffort,
-      actual: operation === 'spawn' ? unknownActual() : authenticatedActual(observation, packetDigest),
-      workerId: operation === 'spawn' ? null : observation.workerId,
-      capability: visibleEvidence,
-      permissionEnvelope: input.isChild === true ? childEnvelope : parentEnvelope,
-      pathEnvelope: input.isChild === true ? childEnvelope : parentEnvelope,
-      fallbackReason: null,
-      status: routeStatus(observation, 'visible_worker', operation)
-    });
-    return {
-      operation,
-      routeEvidence,
-      descriptor: buildOperationDescriptor({
-        operation,
-        routeKind: 'visible_worker',
-        childEnvelope: input.isChild === true ? childEnvelope : null,
-        assignmentPacket,
-        packetDigest
-      })
-    };
-  }
-  if (primaryExecution === PRIMARY_EXECUTION_REQUIRED) {
-    if (visibleResult.safe) {
-      const routeEvidence = buildRouteEvidence({
-        routeKind: 'visible_worker',
-        requestedModel: modelResolution.requestedModel,
-        requestedEffort: modelResolution.requestedEffort,
-        actual: operation === 'spawn' ? unknownActual() : authenticatedActual(observation, packetDigest),
-        workerId: operation === 'spawn' ? null : observation.workerId,
-        capability: visibleEvidence,
-        permissionEnvelope: parentEnvelope,
-        pathEnvelope: parentEnvelope,
-        fallbackReason: null,
-        status: routeStatus(observation, 'visible_worker', operation)
-      });
-      return {
-        operation,
-        routeEvidence,
-        descriptor: buildOperationDescriptor({
-          operation,
-          routeKind: 'visible_worker',
-          childEnvelope: null,
-          assignmentPacket,
-          packetDigest
-        })
-      };
-    }
-    const fallbackReason = `visible_worker_required_unavailable:${visibleResult.reason}`;
-    const routeEvidence = buildRouteEvidence({
-      routeKind: 'manual_pending',
-      requestedModel: modelResolution.requestedModel,
-      requestedEffort: modelResolution.requestedEffort,
-      actual: unknownActual(),
-      workerId: null,
-      capability: manualCapabilityEvidence({
-        operation,
-        observation,
-        visibleCapability,
-        nativeCapability,
-        visibleResult,
-        nativeResult
-      }),
-      permissionEnvelope: parentEnvelope,
-      pathEnvelope: parentEnvelope,
-      fallbackReason,
-      status: 'manual_pending'
-    });
-    return {
-      operation,
-      routeEvidence,
-      descriptor: buildOperationDescriptor({
-        operation,
-        routeKind: 'manual_pending',
-        childEnvelope: null,
-        assignmentPacket,
-        packetDigest,
-        blocker: fallbackReason,
-        resumeCondition: `Provide an authenticated Host visible worker with bound model, effort, permission, and path controls, or release the ${PRIMARY_EXECUTION_REQUIRED} topology.`
-      })
-    };
-  }
-
   if (childPolicy.policy === 'prohibited') {
     const blocker = 'child_delegation_prohibited';
     const routeEvidence = buildRouteEvidence({
@@ -1763,7 +1625,6 @@ export function resolveHostOperation(input = {}) {
         observation,
         visibleCapability,
         nativeCapability,
-        visibleResult,
         nativeResult
       }),
       permissionEnvelope: parentEnvelope,
@@ -1785,12 +1646,7 @@ export function resolveHostOperation(input = {}) {
       })
     };
   }
-  const nativeEvidence = capabilityEvidence(
-    nativeCapability,
-    operation,
-    'native_subagent',
-    observation
-  );
+  const nativeEvidence = nativeCapabilityEvidence(nativeCapability, operation, observation);
   if (nativeResult.safe) {
     const routeEvidence = buildRouteEvidence({
       routeKind: 'native_subagent',
@@ -1801,8 +1657,8 @@ export function resolveHostOperation(input = {}) {
       capability: nativeEvidence,
       permissionEnvelope: childEnvelope,
       pathEnvelope: childEnvelope,
-      fallbackReason: nativeFirst ? null : visibleResult.reason,
-      status: routeStatus(observation, 'native_subagent', operation)
+      fallbackReason: null,
+      status: 'planned'
     });
     return {
       operation,
@@ -1817,9 +1673,7 @@ export function resolveHostOperation(input = {}) {
     };
   }
 
-  const fallbackReason = nativeFirst
-    ? nativeResult.reason
-    : `${visibleResult.reason};${nativeResult.reason}`;
+  const fallbackReason = nativeResult.reason;
   const routeEvidence = buildRouteEvidence({
     routeKind: 'manual_pending',
     requestedModel: modelResolution.requestedModel,
@@ -1831,7 +1685,6 @@ export function resolveHostOperation(input = {}) {
       observation,
       visibleCapability,
       nativeCapability,
-      visibleResult,
       nativeResult
     }),
     permissionEnvelope: parentEnvelope,

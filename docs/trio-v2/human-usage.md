@@ -1,19 +1,22 @@
-# 人工使用指引: Plan → Execute 路由与可见 worker 输入方式
+# 人工使用指引: Plan → Execute 路由与 legacy 输入方式
 
-> 本文是 Trio v2 Plan→Execute 机制的人类操作面:路由、strict 拓扑、`childDelegation` / `executionMode` 策略、`manual_pending` 处置与人类 gate。
+> 本文是 Trio v2 Plan→Execute 机制的人类操作面:路由、legacy 输入迁移、`childDelegation` / `executionMode` 策略、`manual_pending` 处置与人类 gate。
 
 ## 当前工作方式
 
 先说明目标、约束和已有授权，再按需要选择流程。范围明确的问答、比较、审查和小修改可以直接完成；需要持续恢复或多人协作的工作才绑定三件套。直接执行通过相关验证即可完成；委派结果由主会话整合验收并回写。已有授权在原范围内持续有效，新范围或新外部动作再单独判断。
 
-模型、reasoning effort 和执行拓扑分别选择。Astra、Sol、Terra、Luna 均可参与执行；Corleone 名册保留历史兼容默认值，但角色名称不决定必须使用哪个模型。优先使用当前模型完成小任务；独立子任务有实际收益时才分派。明确要求 `visible_worker_required` 时，不能用 native subagent 替代。普通委派可使用 native subagents。
+模型、reasoning effort 和执行拓扑分别选择。Astra、Sol、Terra、Luna 均可参与执行；Corleone 名册保留静态/历史兼容，不构成 active execution contract。优先使用当前模型完成小任务；独立子任务有实际收益时才分派。Root active routing 只有 direct/native-first 与 `manual_pending`。`visible_worker_required` 仅作为 legacy input：任一 Host operation 都返回 `manual_pending` 与 blocker `legacy_visible_worker_required_retired`，不恢复 Host bridge、不做 native fallback，并要求在当前 Trio authority 下显式 rebind `primaryExecution=default`。用户明确要求独立可见任务时，使用 Host 的 user-owned task workflow，该流程不属于内部 routing。
+
+tracked 任务中断后，先按明确 task id 读取三份 Trio 文件，再按需使用只读 `trio status --summary --task <id>` 导航。摘要只展示已记录内容，不创建状态、授权或验收；缺失或歧义必须回源。完成和交付也要分开记录：文件生成、Host 打开、范围渲染、具名接受和用户可见交付互不自动推出。详见 [Trio 恢复与完成语义](../trio-recovery.md)。
 
 实际 model/effort 只有 Host 的 authenticated 证据能够证明；静态配置或请求参数不能冒充运行证据。完整架构和选择建议见 [README](../../README.md)。以下为选择严格治理流程后的底层契约。
 
 ## 本地契约与 Host 桥的边界(重要)
 
-- **本地 fail-closed 路由契约(已实现,仅本仓库代码)**:`harness/trio/core/routing.mjs` 校验 Assignment Packet 的八字段并拒绝第九个顶层字段;`capability.childDelegation` 只接受 `prohibited | worker_discretion | encouraged`,`capability.executionMode` 只接受 `bounded_slice | worker_self_goal`。未知值、strict 缺策略、`prohibited` 下的 native 子路由全部返回非执行的 `manual_pending`。静态角色配置不构成动态 child 权限。
-- **Host 桥(未实现)**:当前 Host 可能支持"人工可见的任务移交/观察",但没有完整的可注入 authenticated 契约来证明 role、精确 packet、actual model/effort、spawn/continue/status/interrupt/collect 与动态 child 拒绝。缺少任何一项时,诚实出口是 `manual_pending`,而不是本地模拟或绕过。
+- **本地 fail-closed 路由契约(已实现,仅本仓库代码)**:`harness/trio/core/routing.mjs` 校验 Assignment Packet 的八字段并拒绝第九个顶层字段;对 default/native 路径，`capability.childDelegation` 只接受 `prohibited | worker_discretion | encouraged`,`capability.executionMode` 只接受 `bounded_slice | worker_self_goal`。未知值、缺少 child 策略、`prohibited` 下的 native 子路由全部返回非执行的 `manual_pending`。静态角色配置不构成动态 child 权限。
+- **Root active routing**:内部路由只产生 direct/native-first 或 `manual_pending`。合法 packet 中的 legacy `visible_worker_required` 输入对所有 Host operation 固定返回 `manual_pending` 与 `legacy_visible_worker_required_retired`；基础 packet/operation/model/authority/envelope 校验仍优先，恢复条件是当前 Trio authority 下显式 rebind `primaryExecution=default`。
+- **Root 内部 Host bridge(已退役)**:当前内部路由不再追求人工可见 worker 的 spawn/continue/status/interrupt/collect 契约，也不把静态 role、请求参数或 Host capability 声明当成执行证据。用户明确要求独立可见任务时，由 Host 的 user-owned task workflow 管理；它不进入 Root internal routing。
 
 ## 权限治理:范围 → Host 沙箱 → 审批
 
@@ -40,8 +43,8 @@
 | 角色 | 做什么 | 不做什么 |
 |---|---|---|
 | 人类(你) | 提需求、做人类 gate、最终验收(accept)、决定 merge/release | 不代替模型写代码细节(除非亲自改) |
-| Chief | intake、路由(quick/tracked)、规划三件套、构造 Assignment Packet、派单、review、验收回写 | 在"需要可见 worker"时不得 inline 生产变更、不得用 native subagent 顶替主执行 |
-| Don Michael（`don_michael`） | 仅 `visible_worker_required` 的可见主执行候选 | 不担任 Chief；可见 worker 不可用时返回 `manual_pending`，绝不降级为 native 或 Chief inline |
+| Chief | intake、路由(quick/tracked)、规划三件套、构造 Assignment Packet、派单、review、验收回写 | 不把 legacy visible input 当作 active execution contract，也不以本地模拟代替 Host 的 user-owned task workflow |
+| Don Michael（`don_michael`） | Corleone 静态/历史兼容名册中的角色名 | 不构成 active execution contract；独立可见任务由 Host 的 user-owned task workflow 承担，不进入 Root internal routing |
 | Underboss Sonny（`underboss_sonny`） | `max` 的复杂原生执行；仅在 packet 明确允许时做本地子委托 | 不重新设计 scope/架构/接口/验收标准；返回 candidate，不验收 |
 | Consigliere Tom（`consigliere_tom`） | 搜索、研究、方案审阅和证据复核 | 默认不写源码；写入必须受 packet 与权限 envelope 约束 |
 | Capo Clemenza / Lampone（`capo_*`） | `xhigh` 的明确边界多文件实现 | 名册耗尽后使用 `Capo 3rd`、`Capo 4th` 等冻结 identity |
@@ -55,12 +58,12 @@
 |---|---|---|
 | **quick(问答/小改动)** | 一句话直接问,零仪式 | 直接回答/小改动,无 Trio |
 | **tracked / default（常规开发）** | 一段话按五要素:"实现 X…影响面…约束…验收 verify:trio 全绿 + RED→GREEN 证据…完成后出 draft PR 不要 merge" | Chief 建三件套→切片计划→原生路由：Tom（搜索/研究/探索）、Cicci（重复执行）、Neri/Brasi（high）、Clemenza/Lampone（xhigh）、Sonny（max）→candidate→你验收→你决定 merge |
-| **strict（必须可见 worker）** | 加一句:"必须由可见 Don Michael worker 完成，不要用隐式子代理" | packet 设 `primaryExecution = visible_worker_required`，且必须显式声明 `capability.childDelegation`；缺策略/未知策略或 Don 不可用 → 本地 `manual_pending` |
+| **legacy visible input** | 历史 packet 可能带有旧拓扑值 | 对合法输入的任一 Host operation 返回 `manual_pending`，blocker 为 `legacy_visible_worker_required_retired`；不 fallback，须在当前 Trio authority 下显式 rebind `primaryExecution=default` |
 | **deep(先分析再动手)** | "这个问题需要深入分析再决定…先给证据-backed 分析,我 approve 后再动手" | 先出分析报告等你 approve,再进执行 |
 | **涉及人类 gate** | 明说停靠点:"停在 draft PR 等我看"/"不要 push"/"发布前必须我确认" | 停在 gate 前(默认也永远保留你的确认权) |
 | **manual_pending 后** | 别重说需求,看 blocker/resumeCondition 三选一(见下) | 按对应处置继续 |
 
-**Direct tracked 与 Chief-governed 的区别**：tracked direct 车道由执行者自证技术验证，不需要独立的 Chief 验收；只有可见/委派 worker 作为主执行、或所选治理车道明确要求时，才需要 Chief 独立验收。strict 可见 worker 规则不变：可见 worker 不可用时只能 `manual_pending`，绝不降级为 native 或 Chief inline 执行；worker 结果一律先当 candidate。
+**Direct tracked 与 Chief-governed 的区别**：tracked direct 车道由执行者自证技术验证，不需要独立的 Chief 验收；只有委派 worker 作为主执行、或所选治理车道明确要求时，才需要 Chief 独立验收。用户单独要求的可见任务属于 Host 的 user-owned task workflow；它的结果不能反向证明 Root internal routing 已具备可见 worker 能力。
 
 ## 需求输入五要素
 
@@ -72,19 +75,20 @@
 
 不需要调用任何 skill、不需要念固定格式、不需要自己建任务——入口策略(AGENTS.md)自动生效,代理自动扮演 Chief 完成路由、规划、派单。
 
-## strict 拓扑、childDelegation 与 manual_pending 处置
+## legacy 输入、childDelegation 与 manual_pending 处置
 
-- strict = `capability.primaryExecution = "visible_worker_required"`:主执行必须由可见 worker 完成;visible 不可用时**只能** `manual_pending`(reason `visible_worker_required_unavailable:<detail>`),绝不落到 native subagent。
-- 新 strict packet 必须显式声明 `capability.childDelegation`:
-  - `prohibited`:禁止任何 native 子路由(即使 child envelope 本身合法);本地路由返回 `manual_pending`(blocker `child_delegation_prohibited`)。
+- legacy input = `capability.primaryExecution = "visible_worker_required"`。对基础字段校验通过的 packet，任一 Host operation 都只能返回 `manual_pending`(blocker `legacy_visible_worker_required_retired`)，不恢复 visible bridge，也不落到 native subagent。
+- `manual_pending` 的恢复条件是：在当前 Trio authority 下显式 rebind `primaryExecution=default`，然后按 direct/native-first 重新派发。用户明确要求独立可见任务时，改走 Host 的 user-owned task workflow，不把它当作 Root internal route。
+- `capability.childDelegation` 仍只接受 `prohibited | worker_discretion | encouraged`:
+  - `prohibited`:禁止 native 子路由;本地路由返回 `manual_pending`(blocker `child_delegation_prohibited`)。
   - `worker_discretion` / `encouraged`:仅当明确写出时才考虑 child 路由。
-  - 缺失(strict 必填)或未知值:本地 `manual_pending`(blocker `child_delegation_missing` / `child_delegation_unknown:<value>`),不会选择 visible 或 native 路由。
-- default 执行角色按 native-first 路由：Tom（`searching` / `researching` / `exploring`）、Cicci（`repetitive_execution`），以及 Neri/Brasi（`high`）、Clemenza/Lampone（`xhigh`）、Sonny（`max`）对应 `coding` / `executing`。native route 未获安全绑定时返回 `manual_pending`，不静默改派可见 worker 或 Chief。
-- `capability.executionMode` 只接受 `bounded_slice`(有界切片)或 `worker_self_goal`(worker 自身可见会话内的长目标);未知值本地 `manual_pending`(blocker `execution_mode_unknown:<value>`)。worker self-goal 只存在于其自身可见会话;没有 authenticated Host 操作时,Chief 不得声称跨线程 goal 控制或任何生命周期控制。
-- `manual_pending` descriptor 携带三件套:`assignmentPacket`(原封不动)、`blocker`(失败原因)、`resumeCondition`(恢复条件)。收到后三选一:
-  1. **人工提供/操作可见 worker**:用精确 packet 手动开一个可见 worker 继续——这只携带 requested 事实,不自动证明 actual model/role;
-  2. **显式释放 strict 拓扑**:明确改回 native-first default 路由，再重派;
-  3. **等待/判定 blocked**:等待合规 Host 能力,或记录真实外部阻塞(模型不可用、缺权限、缺决策)后 blocked,等条件变化再恢复。
+  - 缺失或未知值:default/native 路径返回本地 `manual_pending`(blocker `child_delegation_missing` / `child_delegation_unknown:<value>`)；legacy strict 输入在基础 packet/operation/model/authority/envelope 校验通过后先命中 retired blocker，不进入 child 策略判定。
+- default 执行角色按 native-first 路由：Tom（`searching` / `researching` / `exploring`）、Cicci（`repetitive_execution`），以及 Neri/Brasi（`high`）、Clemenza/Lampone（`xhigh`）、Sonny（`max`）对应 `coding` / `executing`。native route 未获安全绑定时返回 `manual_pending`，不静默启动或改派 user-owned visible task 或 Chief inline。
+- `capability.executionMode` 只接受 `bounded_slice`(有界切片)或 `worker_self_goal`(worker-local 会话内的长目标);未知值本地 `manual_pending`(blocker `execution_mode_unknown:<value>`)。worker self-goal 只存在于其 worker-local 会话;没有 authenticated Host 操作时,Chief 不得声称跨线程 goal 控制或任何生命周期控制。
+- `manual_pending` descriptor 携带三件套:`assignmentPacket`(原封不动)、`blocker`(失败原因)、`resumeCondition`(恢复条件)。legacy retired blocker 的恢复方式有三种:
+  1. **显式 rebind default**:在当前 Trio authority 下将 `primaryExecution` 改为 `default`，再按 direct/native-first 重新派发;
+  2. **启动独立可见任务**:只有用户明确需要独立可见上下文时，使用 Host 的 user-owned task workflow；该任务不进入 Root internal routing;
+  3. **等待/判定 blocked**:保留 `manual_pending`，或记录真实外部阻塞(模型不可用、缺权限、缺决策)后 blocked，等条件变化再恢复。
   没有任何一个选项会自动证明 actual model/role;这些都只是处置选择。
 
 ## 人类 gate 清单(任何时候都保留)
@@ -114,11 +118,11 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 **做**: 输入用自然语言讲清目标/影响面/约束/验收;任务开始前确认三件套存在且 hash 一致;packet 永远随派单一起给 worker;worker 结果一律先当 candidate;验收证据要"命令 + 退出码 + 计数 + 变更路径";全局投影用 `./scripts/harness sync --check` / `doctor --check-only` 自检。
 
-**不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 strict 模式下让 Chief inline 改生产代码或让 native 顶包;不把静态角色配置当成动态 child 权限;不声称 actual model/role/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口;不把本地 fail-closed 路由契约当成已实现的 Host 生命周期桥;不以 Full Access / 用户审批 / auto-review / 可写沙箱为扩权手段(范围先决,越界一律 blocked 在 scope 层);不直接写物化输出(`AGENTS.md`、`.agents/**`)——改源 + 投影 proof 是唯一受支持的工作流。
+**不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 legacy input 路径下让 Chief inline 改生产代码或让 native 顶包;不把静态角色配置当成动态 child 权限;不声称 actual model/role/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口;不把 Host 的 user-owned 独立任务冒充 Root internal route 或 bridge;不以 Full Access / 用户审批 / auto-review / 可写沙箱为扩权手段(范围先决,越界一律 blocked 在 scope 层);不直接写物化输出(`AGENTS.md`、`.agents/**`)——改源 + 投影 proof 是唯一受支持的工作流。
 
 ## worker 本地 goal 契约(`worker_self_goal`)
 
-`executionMode = worker_self_goal` 只在 worker 自身可见会话内成立,不是跨线程或 Host 级 goal 控制。该契约是闭合的七个字段:
+`executionMode = worker_self_goal` 只在 worker-local 会话内成立,不是跨线程或 Host 级 goal 控制。该契约是闭合的七个字段:
 
 - `objective`(目标)、`successCriteria`(可验证成功条件)、`stopConditions`(必须停止的条件)、`expectedEvidence`(交付必须附带的证据)、`maxIterations`(1–100 的安全整数上限)、`milestoneCheckIn`(每个切片/里程碑后汇报)、`returnCondition`(只允许 `candidate_done` / `blocked` 等契约允许的结果)。
 - 字段缺失、类型不符或越界时,本地路由在派单前拒绝(`assertGoalContract`);worker 不发明新的返回状态,也不把候选结果冒充已验收。
@@ -129,12 +133,12 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 ## 手动 bind / handoff 与 `manual_pending` 恢复
 
-- **手动 bind**:在可见 worker 会话中显式绑定 `planning/active/<task-id>/` 三件套与派单 packet;绑定后任何 re-read/测试/编辑之前先复核三件套 hash 与工作区基线,不一致即 `binding_mismatch` 停止。
-- **手动 handoff**:把未完成的切片与证据连同 packet 交回 Chief 或另一个可见 worker 时,必须原样传递 `assignmentPacket`、`blocker`、`resumeCondition` 与已记录的 hash 证据;handoff 不自动证明 actual model/role。
+- **手动 bind**:在当前 Trio authority 下显式 rebind `primaryExecution=default` 并绑定 `planning/active/<task-id>/` 三件套与派单 packet;绑定后任何 re-read/测试/编辑之前先复核三件套 hash 与工作区基线,不一致即 `binding_mismatch` 停止。
+- **手动 handoff**:把未完成的切片与证据连同 packet 交回 Chief 或 native/delegated executor 时,必须原样传递 `assignmentPacket`、`blocker`、`resumeCondition` 与已记录的 hash 证据;handoff 不自动证明 actual model/role。
 - **`manual_pending` 恢复三选一**(重复请求不会改变结果):
-  1. **提供/操作合规可见 worker**:用精确 packet 手动 bind 一个可见 worker 继续——只携带 requested 事实,不自动证明 actual;
-  2. **显式释放 strict 拓扑**:明确改回 native-first default 路由后重派;
-  3. **等待/判定 blocked**:等待合规 Host 能力,或记录真实外部阻塞后 blocked,条件变化再恢复。
+  1. **显式 rebind default**:在当前 Trio authority 下将 `primaryExecution` 改为 `default`，再按 direct/native-first 重新派发;
+  2. **启动独立可见任务**:只有用户明确需要独立可见上下文时，使用 Host 的 user-owned task workflow；该任务不进入 Root internal routing;
+  3. **等待/判定 blocked**:保留 `manual_pending`，或记录真实外部阻塞后 blocked，条件变化再恢复。
 
   任何选项都不自动证明 actual model/role;这些都只是处置选择。
 

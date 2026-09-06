@@ -81,6 +81,9 @@ function assertOfficeSkillContract(markdown) {
     /delegated[^\n]*candidate[^\n]*Chief/i,
     /(?:reuse|honor)[^\n]*existing authorization|existing authorization[^\n]*applies/i,
     /Host[^\n]*(?:permissions|gates)/i,
+    /recovering[^\n]*Trio[^\n]*scope/i,
+    /generated[^\n]*opened[^\n]*rendered[^\n]*accepted[^\n]*delivered/i,
+    /queued[^\n]*not proof[^\n]*visible delivery/i,
   ]) assert.match(markdown, rule);
 }
 

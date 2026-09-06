@@ -29,10 +29,10 @@ flowchart TD
     Methods --> Choice[Choose model, effort, and useful topology]
     Choice --> Inline[Direct executor]
     Choice --> Native[Bounded native subagents]
-    Choice --> Visible[Visible worker when useful or required]
+    Choice --> Pending[manual_pending when a Host condition or legacy input needs rebind]
     Inline --> Host[Host: tools, permissions, lifecycle, actual evidence]
     Native --> Host
-    Visible --> Host
+    Pending --> Resume[Explicit rebind or wait under the current Trio authority]
     Host --> Verify[Verify outcome and integrate candidates]
     Verify --> Done[Accept, deliver, and update bound Trio if present]
     Source[Repository sources and overlays] --> Projection[Owned projection and plugin packaging]
@@ -64,7 +64,7 @@ flowchart TD
     Assess --> Select[Use current model or select a supported model and effort]
     Select --> Parallel{Independent work with a useful payoff?}
     Parallel -->|No| Execute[Execute directly]
-    Parallel -->|Yes| Delegate[Delegate bounded scopes; honor explicit visible requirement]
+    Parallel -->|Yes| Delegate[Delegate bounded native scopes]
     Delegate --> Integrate[Review and integrate candidate results]
     Execute --> Check[Run relevant verification]
     Integrate --> Check
@@ -74,7 +74,7 @@ flowchart TD
     Complete -->|Yes| Deliver[Deliver and record completion]
 ```
 
-A strict `visible_worker_required` request remains visible-only. If the Host cannot provide it, return an actionable `manual_pending` or blocker; do not pretend a native subagent satisfied that requirement. Ordinary delegation can use native subagents. A descriptor or role preset is not evidence that execution occurred.
+Root active routing has only direct/native-first and `manual_pending`. A `visible_worker_required` value is legacy input: for every Host operation, return `manual_pending` with blocker `legacy_visible_worker_required_retired`, never restore a Host bridge or fall back to native, and require an explicit `primaryExecution=default` rebind under the current Trio authority before resuming. An explicit request for an independent visible task uses the Host's user-owned task workflow outside internal routing. Historical descriptors and role presets are evidence vocabulary only, not execution evidence.
 
 ## Model and reasoning choices
 
@@ -88,7 +88,7 @@ These are starting recommendations, not a benchmark or a forced role roster. Pre
 | Difficult architecture, reasoning, or cross-domain integration | Astra, medium or high | A specific unresolved issue justifies xhigh or max |
 | Independent review | A supported model appropriate to the failure mode | Another perspective can change the decision |
 
-For new assignments, record model and effort explicitly; omitted values retain legacy compatibility defaults. Corleone role files may use `renderInheritedCorleoneRoleFile` to inherit the caller's selection without locking a persona to Flash. Existing fixed-profile renderers remain available for intentional legacy use.
+For new assignments, record model and effort explicitly; omitted values retain legacy compatibility defaults. Corleone roster and role files are static/historical compatibility and do not form an active execution contract. They may use `renderInheritedCorleoneRoleFile` to inherit the caller's selection without locking a persona to Flash. Existing fixed-profile renderers remain available for intentional legacy use.
 
 Choose effort independently from model and persona. `xhigh` and `max` are selective tools, not defaults. Astra API requests use `low`, `medium`, `high`, `xhigh`, or `max`; a Host-only `ultra` label must have an explicit supported contract. Do not infer an API mapping. Models accept bare IDs or supported `main/` and `p646e20/` Host prefixes; prefixes are not proof of the underlying model. Authenticated Host evidence is required for `actual` model and effort.
 
@@ -114,6 +114,8 @@ For an existing managed installation, review `./scripts/harness sync --dry-run`,
 
 Optional methods and redundant legacy wrappers have a separate, explicit adoption command:
 
+The optional SWF [`show-me`](harness/optional-skills/show-me/SKILL.md) explains code, architecture, changes and unfamiliar concepts through a suitable small visual. It adapts HumanLayer's approach with beginner-friendly language, source evidence and host-aware delivery; it is separate from the Matt companion and core governance. See the [adoption comparison](docs/research/show-me-adoption-20260906.md). Invoke `$show-me` with the topic, audience and preferred format when relevant.
+
 ```sh
 node scripts/adopt-global-skills.mjs --home /absolute/home
 node scripts/adopt-global-skills.mjs --home /absolute/home --apply
@@ -131,3 +133,5 @@ npm run plugin:smoke
 ```
 
 The [detailed architecture](docs/architecture.md) and [human usage guide](docs/trio-v2/human-usage.md) describe the remaining contracts. Historical audit reports and diagrams are dated evidence; this README describes the current decision path.
+
+For tracked-task recovery, use the explicit read-only summary only as navigation: [Trio recovery](docs/trio-recovery.md). It derives from the three authority files and does not prove acceptance or user-visible delivery.

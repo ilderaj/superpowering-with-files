@@ -12,7 +12,7 @@ Request
   │                                            no
   ├─ one owner, durable record needed, no delegated/high-risk work? ── yes → Tracked direct
   │                                                                    no
-  └─ visible worker, material risk/uncertainty, coordination, or a human gate → Chief-governed
+  └─ delegated execution, material risk/uncertainty, coordination, or a human gate → Chief-governed
 ```
 
 **Deep** is not a fourth route. It is a temporary reasoning setting for material uncertainty and may occur inside either a direct or Chief-governed task.
@@ -22,8 +22,8 @@ Request
 | Lane | Choose it when every condition holds | Do not choose it when |
 |---|---|---|
 | **Quick direct intake** | One obvious outcome; one local/reversible change or answer; known surface; one focused proof; no durable research/recovery need; no external or integration effect. | The request needs several slices, repository research that must survive the session, a non-obvious diagnosis/design decision, or a human/safety gate. |
-| **Tracked direct execution** | A durable record or more than one slice is useful; one executor can own the bounded scope; no visible worker is required; no concurrent writer; no external, merge, push, release, security, credential, or destructive operation. | Work needs a delegated/visible worker, cross-cutting architecture judgment, materially uncertain root cause, shared/concurrent changes, or independent governance acceptance. |
-| **Chief-governed execution** | Any visible/delegated worker; strict execution request; multi-slice coordination; high blast radius; material architecture/requirements uncertainty; security/safety risk; untrusted multi-source evidence; merge/conflict work; or any human-gated action. | Never skip this lane merely because the code diff looks small. Topology and risk, not line count, decide it. |
+| **Tracked direct execution** | A durable record or more than one slice is useful; one executor can own the bounded scope; no delegated worker is required; no concurrent writer; no external, merge, push, release, security, credential, or destructive operation. | Work needs delegated execution, cross-cutting architecture judgment, materially uncertain root cause, shared/concurrent changes, or independent governance acceptance. |
+| **Chief-governed execution** | Any delegated worker; explicit legacy-input migration; multi-slice coordination; high blast radius; material architecture/requirements uncertainty; security/safety risk; untrusted multi-source evidence; merge/conflict work; or any human-gated action. | Never skip this lane merely because the code diff looks small. Topology and risk, not line count, decide it. |
 
 When unsure, start **tracked** and spend one bounded intake slice on evidence. Escalate to Chief before production mutation if the uncertainty, scope, or safety condition proves material.
 
@@ -40,7 +40,7 @@ Technical verification and Chief acceptance are different:
 | Chief acceptance | Chief in a delegated/Chief-governed lane | A worker candidate is in scope, sufficiently proven, and may be written back as accepted. |
 | Human gate | You | Permission for merge, push, release, publish, deploy, send, credentials, destructive actions, or other external effects. |
 
-A self-contained direct task can be verified without Chief. A visible worker result cannot: it remains `candidate_done` until Chief acceptance and Trio writeback.
+A self-contained direct task can be verified without Chief. A delegated worker result cannot: it remains `candidate_done` until Chief acceptance and Trio writeback. An independent visible task requested by the user follows the Host's user-owned task workflow and is outside Root internal routing.
 
 ## Give a good intake
 
@@ -59,7 +59,7 @@ Quick: 修正 <file> 的文案拼写；只改这一处；跑相关检查后告�
 
 Tracked direct: 跟踪实现 <feature>；先建 Trio；不委派；不改公共 API；每个切片要有 RED→GREEN 和完整验证。
 
-Chief: 这个改动涉及多个模块和迁移；请用 Chief 先做证据和切片计划，再由可见 worker 执行；停在 draft，绝不 merge。
+Chief: 这个改动涉及多个模块和迁移；请用 Chief 先做证据和切片计划，再由 delegated worker 执行；停在 draft，绝不 merge。
 ```
 
 ## Automatic method selection
@@ -114,8 +114,8 @@ The Trio is a task record, not a ticket tracker. Do not create separate project 
 
 1. **Chief intake:** restore one Trio, route the work, select `dev`/`office`/`safety`, and identify gates.
 2. **Plan one slice:** freeze objective, exact allowed files/operations, non-goals, dependency order, proof, evidence sink, stop conditions, return contract, and any triggered methods.
-3. **Bind before dispatch:** establish the authority hashes, clean/isolation evidence, requested permissions, and worker packet. If the visible-worker route is unavailable, return `manual_pending` or `blocked`; do not silently perform the worker's production changes inline.
-4. **Worker execution:** the worker performs the scoped change and primary verification, then returns changed paths, selected-method evidence, RED/GREEN evidence, full verification output, limitations, and `candidate_done` or `blocked`.
+3. **Bind before dispatch:** establish the authority hashes, clean/isolation evidence, requested permissions, and worker packet. If a legacy `visible_worker_required` input is present, return `manual_pending` with `legacy_visible_worker_required_retired`; do not restore a Host bridge, fall back to native, or perform the requested task inline. Resume only after an explicit `primaryExecution=default` rebind under the current Trio authority.
+4. **Worker execution:** the delegated worker performs the scoped change and primary verification, then returns changed paths, selected-method evidence, RED/GREEN evidence, full verification output, limitations, and `candidate_done` or `blocked`.
 5. **Integration gate when needed:** before committing, pushing, opening/updating a PR, or accepting a candidate, check the `change-quality-gate` packet against the current head. A changed head invalidates the affected review and verification evidence.
 6. **Chief gate:** independently check binding, scope, requirements, fresh proof, required review evidence, and human-gate status. Accept and write back only if all are satisfied; otherwise request changes or block.
 7. **Human gate and closure:** stop before merge/push/release/publish/destructive action unless you explicitly authorize it. A PR monitor may use platform-native auto-merge only under the dedicated policy below, after an observed human approval. Closure records the accepted evidence but never substitutes for your external permission.
@@ -195,7 +195,7 @@ The reducer emits a fail-closed lifecycle decision. Treat approval as effective 
 | **Minor** | Low-risk maintainability, naming, narrow non-behavioral documentation, or test clarity. | Leave merge eligible after evidence triage. Create one deduplicated external issue only under `follow-up issues=allowed`; otherwise leave an issue draft in the Trio. |
 | **Informational / uncertain** | Stale comment, insufficient evidence, or a suggestion that conflicts with the approved spec. | Record the verdict; ask you for a product/spec decision when needed. Do not patch mechanically. |
 
-`repair_required` returns to the normal engineering loop: bind one narrow repair slice, prove a regression RED, fix the root cause, scan siblings, run the quality gate, then resume Heartbeat observation at the new head. The monitor must not edit source inline or silently substitute itself for a required visible worker.
+`repair_required` returns to the normal engineering loop: bind one narrow repair slice, prove a regression RED, fix the root cause, scan siblings, run the quality gate, then resume Heartbeat observation at the new head. The monitor must not edit source inline or silently substitute itself for a required delegated worker.
 
 ### Human approval and native auto-merge
 
@@ -213,7 +213,7 @@ Only then may the integration lane enable **native platform auto-merge**. It mus
 
 Escalate from direct intake to Chief before production mutation when any condition becomes true:
 
-- a visible/delegated worker becomes the primary executor;
+- a delegated worker becomes the primary executor, or the user explicitly requests an independent Host task;
 - more than one active slice or concurrent writer needs coordination;
 - a design, architecture, domain, or root-cause choice is materially uncertain;
 - the change has broad shared-library, schema, migration, authorization, data, or compatibility impact;

@@ -16,11 +16,13 @@ function hasFlag(args, ...names) {
 
 function usage() {
   return [
-    'Usage: ./scripts/harness verify [--output=stdout|<directory>]',
+    'Usage: ./scripts/harness verify [--output=stdout]',
     '',
     'Options:',
-    '  --output=stdout|<directory>  Print the report to stdout or write latest.{json,md} into a directory',
-    '  --help, -h                   Show this help message'
+    '  --output=stdout              Print the projection sync and structure report to stdout',
+    '  --help, -h                   Show this help message',
+    '',
+    'Reports projection synchronization and structure; it is not a test suite or rendering proof.'
   ].join('\n');
 }
 

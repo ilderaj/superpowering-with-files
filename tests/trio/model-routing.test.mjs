@@ -69,7 +69,8 @@ test('Chief ultra requires exact authenticated Host support and never supplies a
   const bound = packet({ ...input, complexity: undefined });
   assert.throws(() => spawn({ assignmentPacket: bound, observation: { ...observation, ...support } }), /authenticated Host/);
   const routed = spawn({ assignmentPacket: bound, observation: { ...observation, ...support, packetDigest: packetDigestOf(bound) } });
-  assert.equal(routed.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(routed.routeEvidence.routeKind, 'manual_pending');
+  assert.match(routed.routeEvidence.fallbackReason, /native_ultra_forbidden/);
   assert.equal(routed.routeEvidence.actualEffort, 'unknown');
 });
 
@@ -89,15 +90,20 @@ test('cross-model child ranks require a bounded explicit allowance', () => {
   assert.match(spawn({ ...input, childModelAllowance: { ...childModelAllowance, provenance: '' } }).routeEvidence.fallbackReason, /cross_model/);
 });
 
-test('visible and native child paths both reject scope and permission widening', () => {
-  for (const primaryExecution of ['default', 'visible_worker_required']) {
-    const input = { isChild: true, parentModel: 'gpt-6-astra', parentEffort: 'medium', assignmentPacket: packet({ primaryExecution, childDelegation: 'worker_discretion' }) };
-    for (const widened of [{ ...childEnvelope, mutablePaths: ['other'] }, { ...childEnvelope, permissions: ['admin'] }, parentEnvelope]) {
-      assert.match(spawn({ ...input, childEnvelope: widened }).routeEvidence.fallbackReason, /child_envelope/);
-    }
-    const result = spawn(input);
-    assert.deepEqual(result.routeEvidence.pathEnvelope.mutablePaths, ['src/app']);
+test('native child paths reject scope and permission widening before dispatch', () => {
+  const input = { isChild: true, parentModel: 'gpt-6-astra', parentEffort: 'medium', assignmentPacket: packet({ childDelegation: 'worker_discretion' }) };
+  for (const widened of [{ ...childEnvelope, mutablePaths: ['other'] }, { ...childEnvelope, permissions: ['admin'] }, parentEnvelope]) {
+    assert.match(spawn({ ...input, childEnvelope: widened }).routeEvidence.fallbackReason, /child_envelope/);
   }
+  const result = spawn(input);
+  assert.deepEqual(result.routeEvidence.pathEnvelope.mutablePaths, ['src/app']);
+
+  const retired = spawn({
+    ...input,
+    assignmentPacket: packet({ primaryExecution: 'visible_worker_required', childDelegation: 'worker_discretion' }),
+    childEnvelope: { ...childEnvelope, permissions: ['admin'] }
+  });
+  assert.equal(retired.routeEvidence.fallbackReason, 'legacy_visible_worker_required_retired');
 });
 
 test('strict visible requests never silently route native, and missing native model controls block', () => {
@@ -133,14 +139,15 @@ test('explicit execution models get recommended effort while omitted Chief effor
   assert.equal(resolveModelEffort({ workRole: 'coding', complexity: 'max' }).requestedEffort, 'max');
 });
 
-test('actual evidence requires authenticated packet-bound Host observation and remains separate from selection', () => {
+test('retired strict routing never promotes claimed Host actual evidence', () => {
   const bound = packet({ primaryExecution: 'visible_worker_required', childDelegation: 'prohibited' });
   const input = { operation: 'status', assignmentPacket: bound, parentEnvelope, requestedWorkerId: 'worker-1' };
   const actual = { ...observation, workerId: 'worker-1', status: 'executing', actualModel: 'gpt-5.6-luna', actualEffort: 'low', packetDigest: packetDigestOf(bound) };
   const read = resolveHostOperation({ ...input, observation: actual });
   assert.equal(read.routeEvidence.requestedModel, 'gpt-6-astra');
-  assert.equal(read.routeEvidence.actualModel, 'gpt-5.6-luna');
-  assert.equal(read.routeEvidence.actualEffort, 'low');
+  assert.equal(read.routeEvidence.fallbackReason, 'legacy_visible_worker_required_retired');
+  assert.equal(read.routeEvidence.actualModel, 'unknown');
+  assert.equal(read.routeEvidence.actualEffort, 'unknown');
   for (const bad of [{ ...actual, authenticated: false }, { ...actual, evidenceRef: '' }, { ...actual, packetDigest: 'b'.repeat(64) }]) {
     assert.equal(resolveHostOperation({ ...input, observation: bad }).routeEvidence.actualModel, 'unknown');
   }

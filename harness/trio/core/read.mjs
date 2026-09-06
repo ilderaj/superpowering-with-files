@@ -393,6 +393,194 @@ export async function readTrioTask(rootDir, options = {}) {
   };
 }
 
+const SUMMARY_FIELD_KEYS = Object.freeze({
+  goal: { file: 'taskPlan', kind: 'goal' },
+  decisions: { file: 'findings', title: 'Current Decisions' },
+  deliverables: { file: 'findings', title: 'Deliverables' },
+  remainingWork: { file: 'taskPlan', title: 'Remaining Work' },
+  resumeConditions: { file: 'taskPlan', title: 'Resume Conditions' }
+});
+const SUMMARY_MAX_CODE_POINTS = 2000;
+const FENCE_OPEN_PATTERN = new RegExp(
+  '^ {0,3}(' + String.fromCodePoint(0x60) + '{3,}|~{3,})(.*)$',
+  'u'
+);
+const ATX_LEVEL_ONE_OR_TWO_PATTERN = /^ {0,3}#{1,2}(?:[ \t]+|$)/u;
+
+function isRecord(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function assertSummarySnapshot(trio) {
+  if (!isRecord(trio)) throw new TypeError('Trio snapshot must be an object.');
+  if (typeof trio.taskId !== 'string' || typeof trio.status !== 'string' || typeof trio.terminal !== 'boolean') {
+    throw new TypeError('Trio snapshot has invalid task metadata.');
+  }
+  if (!isRecord(trio.files) || !isRecord(trio.paths)) {
+    throw new TypeError('Trio snapshot must include files and paths objects.');
+  }
+
+  try {
+    assertTrioBinding(trio.binding);
+  } catch (error) {
+    if (error instanceof TypeError) throw error;
+    const typeError = new TypeError(error instanceof Error ? error.message : String(error));
+    if (error?.code !== undefined) typeError.code = error.code;
+    typeError.cause = error;
+    throw typeError;
+  }
+  if (trio.binding.taskId !== trio.taskId) {
+    throw new TypeError('Trio snapshot taskId does not match its binding.');
+  }
+  for (const key of Object.values(TRIO_FILE_KEYS)) {
+    if (typeof trio.files[key] !== 'string' || typeof trio.paths[key] !== 'string') {
+      throw new TypeError(`Trio snapshot has invalid ${key} file or path.`);
+    }
+  }
+  return trio;
+}
+
+function splitSummaryLines(contents) {
+  return contents.split(/\r\n|\n/u);
+}
+
+function visibleSummaryLines(lines) {
+  const visible = Array(lines.length).fill(true);
+  let fence = null;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (fence) {
+      visible[index] = false;
+      const closingPattern = new RegExp(
+        '^ {0,3}' + fence.character + '{' + fence.length + ',}[ \\t]*$',
+        'u'
+      );
+      if (closingPattern.test(line)) fence = null;
+      continue;
+    }
+
+    const opening = line.match(FENCE_OPEN_PATTERN);
+    if (opening) {
+      visible[index] = false;
+      fence = { character: opening[1][0], length: opening[1].length };
+    }
+  }
+
+  return visible;
+}
+
+function trimSummaryBody(lines, startIndex, endIndex) {
+  let first = startIndex;
+  let last = endIndex - 1;
+  while (first <= last && lines[first].trim() === '') first += 1;
+  while (last >= first && lines[last].trim() === '') last -= 1;
+  if (first > last) return null;
+  return {
+    text: lines.slice(first, last + 1).join('\n'),
+    startLine: first + 1,
+    endLine: last + 1
+  };
+}
+
+function truncateSummaryText(text) {
+  const codePoints = Array.from(text);
+  if (codePoints.length <= SUMMARY_MAX_CODE_POINTS) {
+    return { text, truncated: false };
+  }
+  return {
+    text: codePoints.slice(0, SUMMARY_MAX_CODE_POINTS).join(''),
+    truncated: true
+  };
+}
+
+function missingSummaryField(state = 'missing') {
+  return { state, text: null, source: null, truncated: false };
+}
+
+function recordedSummaryField({ fileName, pathName, sha256, body }) {
+  const truncated = truncateSummaryText(body.text);
+  return {
+    state: 'recorded',
+    text: truncated.text,
+    source: {
+      file: fileName,
+      path: pathName,
+      startLine: body.startLine,
+      endLine: body.endLine,
+      sha256
+    },
+    truncated: truncated.truncated
+  };
+}
+
+function summarizeGoal(trio, lines, visible, source) {
+  const matches = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!visible[index]) continue;
+    const match = lines[index].match(/^Goal:(.*)$/u);
+    if (match) matches.push({ index, text: match[1].trim() });
+  }
+  if (matches.length > 1) return missingSummaryField('ambiguous');
+  if (matches.length === 0 || matches[0].text === '') return missingSummaryField();
+
+  return recordedSummaryField({
+    fileName: 'task_plan.md',
+    pathName: trio.paths[source.file],
+    sha256: trio.binding.files[source.file].sha256,
+    body: { text: matches[0].text, startLine: matches[0].index + 1, endLine: matches[0].index + 1 }
+  });
+}
+
+function summarizeSection(trio, lines, visible, source) {
+  const headerPattern = new RegExp('^ {0,3}##[ \\t]+' + source.title + '[ \\t]*$', 'u');
+  const matches = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    if (!visible[index] || !headerPattern.test(lines[index])) continue;
+    let endIndex = index + 1;
+    while (endIndex < lines.length && (!visible[endIndex] || !ATX_LEVEL_ONE_OR_TWO_PATTERN.test(lines[endIndex]))) {
+      endIndex += 1;
+    }
+    matches.push({ index, endIndex, body: trimSummaryBody(lines, index + 1, endIndex) });
+  }
+  if (matches.length > 1) return missingSummaryField('ambiguous');
+  if (matches.length === 0 || !matches[0].body) return missingSummaryField();
+
+  return recordedSummaryField({
+    fileName: source.file === 'findings' ? 'findings.md' : 'task_plan.md',
+    pathName: trio.paths[source.file],
+    sha256: trio.binding.files[source.file].sha256,
+    body: matches[0].body
+  });
+}
+
+export function summarizeTrioTask(trio) {
+  const snapshot = assertSummarySnapshot(trio);
+  const parsed = {};
+  const lineCache = new Map();
+
+  for (const [key, source] of Object.entries(SUMMARY_FIELD_KEYS)) {
+    if (!lineCache.has(source.file)) {
+      const lines = splitSummaryLines(snapshot.files[source.file]);
+      lineCache.set(source.file, { lines, visible: visibleSummaryLines(lines) });
+    }
+    const { lines, visible } = lineCache.get(source.file);
+    parsed[key] = source.kind === 'goal'
+      ? summarizeGoal(snapshot, lines, visible, source)
+      : summarizeSection(snapshot, lines, visible, source);
+  }
+
+  return {
+    schemaVersion: 1,
+    kind: 'recorded-trio-summary',
+    taskId: snapshot.taskId,
+    status: snapshot.status,
+    terminal: snapshot.terminal,
+    requiresSourceReview: true,
+    fields: parsed
+  };
+}
+
 export function assertTrioBinding(binding) {
   if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
     throw trioError('Trio binding must be an object.', 'ERR_TRIO_INVALID_BINDING');

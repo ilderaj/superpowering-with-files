@@ -38,6 +38,8 @@ Codex is the only managed native target. The portable package is a vendor-neutra
 
 For tracked work, the planning Trio is the sole durable task authority: `planning/active/<task-id>/task_plan.md`, `planning/active/<task-id>/findings.md`, and `planning/active/<task-id>/progress.md`. Documentation and Host state do not replace it.
 
+The optional read-only `trio status --summary --task <id>` view is derived from those same three files for recovery navigation. It is evidence and presentation only; it does not add task state, authorization, acceptance, or Host delivery proof. See [Trio recovery](trio-recovery.md).
+
 Route work first, then select one capability family: `dev`, `office`, or `safety`. The Host owns worker and subtask lifecycle, permissions, continuation, and external or human gates.
 
 Codex is the only managed native target. Other Host environments use a generic/manual fallback rather than a managed projection.

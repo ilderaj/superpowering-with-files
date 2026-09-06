@@ -3,7 +3,7 @@ import { chmod, cp, mkdtemp, mkdir, readFile, realpath, rename, rm, symlink, wri
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { adoptGlobalSkills, INSTALLS, treeDigest } from '../../scripts/adopt-global-skills.mjs';
+import { adoptGlobalSkills, INSTALLS, RETIRED, treeDigest } from '../../scripts/adopt-global-skills.mjs';
 
 async function fixture(t) {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'swf-adopt-')));
@@ -108,9 +108,24 @@ test('matching first adoption records ownership and executable mode changes are 
   }
   assert.equal((await adoptGlobalSkills({ ...f, apply: true })).changed, 0);
   const receipt = JSON.parse(await readFile(path.join(f.homeDir, '.agents', 'swf-adoption', 'receipt.json'), 'utf8'));
-  assert.equal(receipt.entries.length, 11);
+  assert.deepEqual(receipt.entries.map(e => e.name).sort(), [...INSTALLS.map(([name]) => name), ...RETIRED].sort());
   const [name, source] = INSTALLS[0];
   await chmod(path.join(f.rootDir, source, 'SKILL.md'), 0o755);
   assert.equal((await adoptGlobalSkills({ ...f, apply: true })).changed, 1);
   assert.equal(await treeDigest(path.join(f.rootDir, source)), await treeDigest(path.join(f.homeDir, '.agents', 'skills', name)));
+});
+
+test('show-me is adopted from the real source with its provenance and license, then is unchanged on repeat', async t => {
+  const homeDir = await realpath(await mkdtemp(path.join(os.tmpdir(), 'swf-show-me-')));
+  t.after(() => rm(homeDir, { recursive: true, force: true }));
+  const source = new URL('../../harness/optional-skills/show-me/', import.meta.url);
+  const plan = await adoptGlobalSkills({ homeDir });
+  assert.equal(plan.entries.find(e => e.name === 'show-me')?.action, 'install');
+  const destination = path.join(homeDir, '.agents', 'skills', 'show-me');
+  assert.equal(await treeDigest(destination), null, 'dry run must not install');
+  await adoptGlobalSkills({ homeDir, apply: true });
+  for (const file of ['SKILL.md', 'PROVENANCE.json', 'LICENSE']) {
+    assert.deepEqual(await readFile(path.join(destination, file)), await readFile(new URL(file, source)));
+  }
+  assert.equal((await adoptGlobalSkills({ homeDir, apply: true })).changed, 0);
 });

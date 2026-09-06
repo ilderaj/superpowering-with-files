@@ -35,8 +35,8 @@ function usage() {
     '  install  Configure Harness projections',
     '  sync     Reproject core into installed targets',
     '  doctor   Check Harness installation health',
-    '  trio     Read or plan the next Trio action without writing',
-    '  verify   Print or write verification reports',
+    '  trio     Inspect a Trio, plan its next action, or explicitly write its lifecycle',
+    '  verify   Check projection sync and report structure to stdout',
     '  checkpoint  Create a safety checkpoint',
     '  token-audit  Print a weekly cross-session token audit'
   ].join('\n');
