@@ -2019,14 +2019,40 @@ test('Codex handoffs bind the canonical packet digest and reject unknown lifecyc
     }),
     /supported.*lifecycle operation/i
   );
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'continue',
+  // Non-spawn lifecycle operations derive the frozen Corleone identity from
+  // the Assignment Packet when the caller omits workerIdentity (packet-first
+  // protocol). coding/high selects Button Man Al Neri at ordinal 1.
+  const packetDerived = renderCodexHandoffRequest({
+    operation: 'continue',
+    packet,
+    packetDigest: routing.packetDigestOf(packet)
+  });
+  assert.equal(packetDerived.role, 'buttonman_neri');
+  assert.deepEqual(packetDerived.workerIdentity, {
+    agentType: 'buttonman_neri',
+    displayName: 'Button Man Al Neri',
+    tier: 'buttonman',
+    ordinal: 1
+  });
+  assert.equal(packetDerived.profile.modelReasoningEffort, 'high');
+  assert.equal(packetDerived.operation, 'continue');
+  for (const operation of ['status', 'interrupt', 'collect']) {
+    const derived = renderCodexHandoffRequest({
+      operation,
       packet,
       packetDigest: routing.packetDigestOf(packet)
-    }),
-    /non-spawn.*workerIdentity/i
-  );
+    });
+    assert.equal(derived.role, 'buttonman_neri', operation);
+  }
+  // An explicitly frozen identity remains authoritative for non-spawn calls.
+  const frozenButtonman = allocateCorleoneCallsign({ tier: 'buttonman', ordinal: 1 });
+  const explicit = renderCodexHandoffRequest({
+    operation: 'continue',
+    packet,
+    packetDigest: routing.packetDigestOf(packet),
+    workerIdentity: frozenButtonman
+  });
+  assert.deepEqual(explicit.workerIdentity, frozenButtonman);
 });
 
 test('Corleone handoffs bind Flash effort to the execution packet economic policy', () => {
@@ -2095,6 +2121,16 @@ test('Corleone lifecycle handoffs reject a Chief packet even with a frozen roste
       packet: chiefPacket,
       packetDigest: routing.packetDigestOf(chiefPacket),
       workerIdentity: allocateCorleoneCallsign({ tier: 'capo', ordinal: 1 })
+    }),
+    /supported execution workRole|supported execution workRole and complexity/i
+  );
+  // A non-spawn call without a frozen identity must fail closed when the
+  // packet capability cannot select a Corleone execution role.
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'continue',
+      packet: chiefPacket,
+      packetDigest: routing.packetDigestOf(chiefPacket)
     }),
     /supported execution workRole|supported execution workRole and complexity/i
   );

@@ -12,6 +12,7 @@
     "verify:core": "node --test tests/core/*.test.mjs tests/runtime/*.test.mjs tests/installer/*.test.mjs tests/adapters/*.test.mjs tests/automation/*.test.mjs && node --test tests/plugin-kit/*.test.mjs",
     "verify:trio": "node --test tests/trio/authority-parity.test.mjs tests/trio/command-read.test.mjs tests/trio/dev-capability.test.mjs tests/trio/host-routing.test.mjs tests/trio/install-upgrade.test.mjs tests/trio/lifecycle.test.mjs tests/trio/office-capability.test.mjs tests/trio/permission-routing.test.mjs tests/trio/projection.test.mjs tests/trio/read.test.mjs tests/trio/recovery.test.mjs tests/trio/routing.test.mjs tests/trio/safety-capability.test.mjs tests/trio/store.test.mjs && node tests/trio/import-boundaries.test.mjs --milestone final",
     "verify:upstream-refresh": "node scripts/ci/verify-upstream-refresh.mjs",
+    "verify:pr-quality": "node scripts/ci/run-pr-quality-gate.mjs",
     "preverify:homepage": "node scripts/ensure-homepage-deps.mjs",
     "verify:homepage": "npm run typecheck --prefix homepage && npm test --prefix homepage && npm run build --prefix homepage",
     "verify:all": "npm run verify:trio && npm run verify:core && npm run verify:homepage",

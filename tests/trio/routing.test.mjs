@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import * as trioRead from '../../harness/trio/core/read.mjs';
 
@@ -16,6 +17,16 @@ import {
   resolveModelEffort,
   routeTask
 } from '../../harness/trio/core/routing.mjs';
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+function laneSection(markdown, heading) {
+  const start = markdown.indexOf('## ' + heading);
+  assert.notEqual(start, -1, 'Missing section: ' + heading);
+  const rest = markdown.slice(start + heading.length + 3);
+  const next = rest.indexOf('\n## ');
+  return next === -1 ? rest : rest.slice(0, next);
+}
 
 async function createBoundTrio() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'trio-routing-binding-'));
@@ -633,4 +644,44 @@ test('economic routing can never produce a requested Luna model and no unclassif
   const execution = resolveModelEffort({ taskClass: 'tracked', workRole: 'coding', complexity: 'xhigh' });
   assert.equal(chief.requestedModel, 'gpt-5.6-sol');
   assert.equal(execution.requestedModel, 'opencode-go/deepseek-v4-flash');
+});
+
+test('entry skill and materialized policy distinguish direct tracked from Chief lanes without weakening the visible-worker rule', async () => {
+  const [skill, entry, chiefops] = await Promise.all([
+    readFile(path.join(REPO_ROOT, 'harness/trio/skill/SKILL.md'), 'utf8'),
+    readFile(path.join(REPO_ROOT, 'harness/trio/templates/entry-policy.md'), 'utf8'),
+    readFile(path.join(REPO_ROOT, 'harness/trio/governance/chiefops/SKILL.md'), 'utf8')
+  ]);
+
+  const skillBoundary = laneSection(skill, 'Plan and Execute Boundary').toLowerCase();
+  assert.match(skillBoundary, /direct tracked execution[\s\S]*establish technical verification/);
+  assert.match(skillBoundary, /chief independent acceptance is required only when[\s\S]*visible or delegated worker[\s\S]*governance lane/);
+  assert.match(skillBoundary, /when a visible worker is primary[\s\S]*never substitutes a native subagent/);
+  assert.match(skillBoundary, /worker result[\s\S]*candidate[\s\S]*chief acceptance and trio writeback/);
+
+  const entryBoundary = laneSection(entry, 'Plan and Execute Boundary').toLowerCase();
+  assert.match(entryBoundary, /direct tracked execution can establish technical verification/);
+  assert.match(entryBoundary, /chief independent acceptance is required only when/);
+  assert.match(entryBoundary, /visible or delegated worker is the primary executor/);
+  assert.match(entryBoundary, /worker result remains a candidate until chief acceptance and trio writeback/);
+
+  const chiefOpsLower = chiefops.toLowerCase();
+  assert.match(chiefOpsLower, /acceptance gate[\s\S]*delegated or chief lane/);
+  assert.match(chiefOpsLower, /never a mandatory runner for direct/);
+  assert.match(chiefOpsLower, /not a runner/);
+
+  for (const document of [skill, entry]) {
+    const normalized = document.toLowerCase();
+    for (const invariant of [
+      'sole durable task authority',
+      'fourth task-state',
+      'manual_pending',
+      'blocked',
+      'host',
+      'human gate',
+      'visible worker'
+    ]) {
+      assert.ok(normalized.includes(invariant), 'Missing routing invariant: ' + invariant);
+    }
+  }
 });

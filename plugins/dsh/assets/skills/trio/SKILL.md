@@ -33,6 +33,8 @@ After routing, choose exactly one capability family: `dev`, `office`, or `safety
 
 Delegated execution separates planning from production mutation. Chief: intake, route, planning, authority, assignment, gates, review, and acceptance. Execution worker: production changes and primary verification. The worker result is a candidate only; Chief acceptance is required before durable completion.
 
+Tracked work may be executed directly or governed by Chief. Direct tracked execution performs its own production changes and primary verification and can establish technical verification. Chief independent acceptance is required only when a visible or delegated worker is the primary executor, or when the chosen governance lane explicitly requires it. When a visible worker is primary, the Chief never substitutes a native subagent or performs Chief inline execution, and the worker result remains a candidate until Chief acceptance and Trio writeback.
+
 When primary execution requires a visible worker, the Chief never performs production mutations inline and never substitutes a native subagent for that execution worker. If a compliant visible worker is unavailable, the Host returns `manual_pending` or `blocked`; it never falls back to Chief inline execution. Native subagents remain allowed only as worker-local bounded delegation. Requested model and effort are intent; actual model and effort remain unknown without authenticated Host evidence.
 
 ## Authority and Host Boundary
