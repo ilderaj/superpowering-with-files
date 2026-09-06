@@ -1,0 +1,32 @@
+{
+  "owner": "SWF",
+  "kind": "adaptation",
+  "reviewedOn": "2026-09-06",
+  "sources": [
+    {
+      "repository": "humanlayer/skills",
+      "revision": "3c2629142c5d437428269b1b722b08c0b87f574d",
+      "path": "plugins/show-me/skills/show-me/SKILL.md",
+      "url": "https://github.com/humanlayer/skills/blob/3c2629142c5d437428269b1b722b08c0b87f574d/plugins/show-me/skills/show-me/SKILL.md",
+      "sha256": "bea6da70a58096730b9aeb0bae293ddf4726103a98efc9ce13c481619942a810",
+      "license": "MIT",
+      "licenseSha256": "5f13c18ea00ea5c1384f41745feeca774079164f7f59a92e4ac0899ad217b26f",
+      "use": "Adapted representation selection; bundled upstream license."
+    },
+    {
+      "repository": "anthropics/claude-plugins-community",
+      "revision": "a727be1c7bd6064419b6f60d71993a19198adc17",
+      "path": "eli5/skills/eli5/SKILL.md",
+      "url": "https://github.com/anthropics/claude-plugins-community/blob/a727be1c7bd6064419b6f60d71993a19198adc17/eli5/skills/eli5/SKILL.md",
+      "sha256": "3bb95cd13852051c5a1862e8b94da1de7cfba7415d418ab0ca4d762527d1b9a5",
+      "use": "Conceptual inspiration only; no copied instruction text. Plugin manifest declares MIT; repository root is Apache-2.0."
+    }
+  ],
+  "changes": [
+    "Added source, proposal and runtime evidence distinctions.",
+    "Added audience-sensitive explanation without forcing HTML.",
+    "Replaced platform-specific delivery with capability-based delivery and readback.",
+    "Kept optional method independent of Trio governance and renderer plugins."
+  ],
+  "updates": "Manual review of pinned sources; no automatic upstream replacement."
+}

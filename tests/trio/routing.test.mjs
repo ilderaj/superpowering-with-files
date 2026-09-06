@@ -597,7 +597,7 @@ test('legacy packets keep their defaults while explicit Luna selection is admitt
   assert.equal(execution.requestedModel, 'opencode-go/deepseek-v4-flash');
 });
 
-test('entry policy keeps direct completion distinct from delegated acceptance and strict visibility', async () => {
+test('entry policy keeps direct completion distinct from delegated acceptance and retires strict visibility', async () => {
   const [skill, entry, chiefops, execution] = await Promise.all([
     readFile(path.join(REPO_ROOT, 'harness/trio/skill/SKILL.md'), 'utf8'),
     readFile(path.join(REPO_ROOT, 'harness/trio/templates/entry-policy.md'), 'utf8'),
@@ -609,8 +609,10 @@ test('entry policy keeps direct completion distinct from delegated acceptance an
   assert.match(entry, /Direct work can complete on its own verification; delegated primary execution requires Chief acceptance/);
   assert.match(chiefops, /direct tracked work needs no ChiefOps check-in/);
   assert.match(chiefops, /not a runner/);
-  assert.match(execution, /visible_worker_required[\s\S]*no Chief inline execution or native-subagent substitution/);
-  assert.match(execution, /manual_pending[\s\S]*blocked[\s\S]*do not silently change topology/);
+  assert.match(execution, /visible_worker_required[\s\S]*legacy input only/);
+  assert.match(execution, /legacy_visible_worker_required_retired/);
+  assert.match(execution, /do not restore a Host bridge or fall back to native/);
+  assert.match(execution, /primaryExecution=default[^\n]*rebind/);
   assert.match(execution, /proper-subset scope/);
   assert.match(skill, /sole durable task authority/);
   assert.match(skill, /actual remains unknown without authenticated Host evidence/);

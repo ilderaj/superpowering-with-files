@@ -12,7 +12,7 @@ test('plugin source config exists for the Codex and Agent Plugins targets', asyn
   for (const target of supportedPluginTargets) {
     const config = JSON.parse(await readFile(`plugins/${target}/plugin.harness.json`, 'utf8'));
     assert.equal(config.target, target);
-    assert.equal(config.version, '1.2.0');
+    assert.equal(config.version, '1.3.0');
     assert.equal(config.components, undefined);
   }
 });

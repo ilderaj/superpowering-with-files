@@ -3,6 +3,7 @@ import {
   adjudicatePermission,
   freezeAssignmentPacket,
   HOST_OPERATIONS,
+  LEGACY_VISIBLE_WORKER_REQUIRED_BLOCKER,
   packetDigestOf,
   resolveAssignmentPacketModelPolicy,
   validateModelEffort,
@@ -246,7 +247,7 @@ export function renderInheritedCorleoneRoleFile(agentType) {
     'Follow the current assignment and authorized scope; do not widen paths, permissions, or acceptance criteria.',
     'Use the model and effort selected by the caller or inherited from the Host; your callsign does not select either.',
     'Use bounded parallel helpers when permitted by the user and Host; keep each child scope a proper subset and avoid conflicting writes.',
-    'When the assignment requires visible_worker_required, preserve that topology and return blocked if the compliant visible worker is unavailable; otherwise use the supported collaboration path selected for the assignment.',
+    'Treat visible_worker_required as retired legacy input: return manual_pending with legacy_visible_worker_required_retired, do not restore a Host bridge or fall back to native, and resume only after the current Trio authority explicitly rebinds primaryExecution=default.',
     'Honor applicable Host controls and human gates; your title grants no permissions or acceptance authority.',
     'Report results, verification, and limits; actual model and effort remain unknown unless authenticated Host evidence establishes them.'
   ].join(' ');
@@ -311,6 +312,9 @@ export function renderCodexHandoffRequest({
   const outerEffort = effort ?? null;
   if (outerEffort !== null && outerEffort !== modelPolicy.requestedEffort) {
     throw new Error(`Outer requested effort ${outerEffort} conflicts with the validated packet policy ${modelPolicy.requestedEffort}.`);
+  }
+  if (capability?.primaryExecution === 'visible_worker_required') {
+    throw new Error(LEGACY_VISIBLE_WORKER_REQUIRED_BLOCKER);
   }
   if (operation === 'spawn' && workerIdentity !== undefined) {
     throw new TypeError('Codex spawn selects its Corleone workerIdentity from the Assignment Packet; frozen workerIdentity is only valid for a non-spawn lifecycle operation.');

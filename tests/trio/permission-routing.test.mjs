@@ -137,12 +137,18 @@ test('native child routing requires strict envelope narrowing and forbids Ultra'
 test('all mutable lane statuses remain reserved and invalid lane records fail closed', () => {
   const base = {
     operation: 'spawn',
-    permissionEnvelope: {
+    parentEnvelope: {
       permissions: ['workspace'],
       operations: ['spawn'],
+      mutablePaths: ['src/reserved'],
       externalEffects: []
     },
-    pathEnvelope: { mutablePaths: ['src/reserved/file'] },
+    childEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      mutablePaths: ['src/reserved/file'],
+      externalEffects: []
+    },
     assignmentPacket: createAssignmentPacket(),
     observation: {
       authenticated: true,
@@ -153,6 +159,12 @@ test('all mutable lane statuses remain reserved and invalid lane records fail cl
         requestedModelEffortControls: true,
         permissionBinding: true,
         pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true },
+        requestedModelEffortControls: true
       }
     }
   };
@@ -188,15 +200,21 @@ test('all mutable lane statuses remain reserved and invalid lane records fail cl
   }
 });
 
-test('lane capacity and candidate path reservations require an authenticated matching Chief release', () => {
+test('candidate path reservations require an authenticated matching Chief release', () => {
   const base = {
     operation: 'spawn',
-    permissionEnvelope: {
+    parentEnvelope: {
       permissions: ['workspace'],
       operations: ['spawn'],
+      mutablePaths: ['src'],
       externalEffects: []
     },
-    pathEnvelope: { mutablePaths: ['src/new'] },
+    childEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      mutablePaths: ['src/new'],
+      externalEffects: []
+    },
     assignmentPacket: createAssignmentPacket(),
     observation: {
       authenticated: true,
@@ -207,39 +225,19 @@ test('lane capacity and candidate path reservations require an authenticated mat
         requestedModelEffortControls: true,
         permissionBinding: true,
         pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true },
+        requestedModelEffortControls: true
       }
     }
   };
 
-  const thirdLane = resolveGenericHostOperation({
-    ...base,
-    lanes: [
-      {
-        routeKind: 'visible_worker',
-        status: 'executing',
-        workerId: 'w1',
-        taskId: 'wave4-task',
-        currentSlice: 'capacity-other-slice',
-        mutable: true,
-        mutablePaths: ['src/one']
-      },
-      {
-        routeKind: 'visible_worker',
-        status: 'executing',
-        workerId: 'w2',
-        taskId: 'wave4-task',
-        currentSlice: 'capacity-other-slice',
-        mutable: true,
-        mutablePaths: ['src/two']
-      }
-    ]
-  });
-  assert.equal(thirdLane.routeEvidence.routeKind, 'manual_pending');
-  assert.match(thirdLane.routeEvidence.fallbackReason, /visible_lane_capacity/);
-
   const reservedCandidate = resolveGenericHostOperation({
     ...base,
-    pathEnvelope: { mutablePaths: ['src/reserved/file'] },
+    childEnvelope: { ...base.childEnvelope, mutablePaths: ['src/reserved/file'] },
     lanes: [
       { routeKind: 'visible_worker', status: 'candidate_done', workerId: 'candidate-1', mutable: true, mutablePaths: ['src/reserved'] }
     ]
@@ -272,7 +270,7 @@ test('lane capacity and candidate path reservations require an authenticated mat
   for (const fakeRelease of fakeReleases) {
     const result = resolveGenericHostOperation({
       ...base,
-      pathEnvelope: { mutablePaths: ['src/reserved/file'] },
+      childEnvelope: { ...base.childEnvelope, mutablePaths: ['src/reserved/file'] },
       lanes: [{ ...reservedLane, ...fakeRelease }]
     });
     assert.equal(result.routeEvidence.routeKind, 'manual_pending');
@@ -281,7 +279,7 @@ test('lane capacity and candidate path reservations require an authenticated mat
 
   const releasedCandidate = resolveGenericHostOperation({
     ...base,
-    pathEnvelope: { mutablePaths: ['src/reserved/file'] },
+    childEnvelope: { ...base.childEnvelope, mutablePaths: ['src/reserved/file'] },
     lanes: [{
       ...reservedLane,
       chiefRelease: {
@@ -293,7 +291,7 @@ test('lane capacity and candidate path reservations require an authenticated mat
       }
     }]
   });
-  assert.equal(releasedCandidate.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(releasedCandidate.routeEvidence.routeKind, 'native_subagent');
 });
 
 test('assignment packet rejects a ninth top-level field and keeps delegation inside capability', () => {

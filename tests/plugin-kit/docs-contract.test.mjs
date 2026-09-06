@@ -216,7 +216,9 @@ test('operator docs describe the Trio and omit retired control surfaces', async 
   }
   assert.match(workflows, /Select one capability pack: `dev`, `office`, or `safety`\./);
   assert.match(workflows, /The Host owns worker and subtask lifecycle, permissions, continuation, and external or human gates\./);
-  assert.match(workflows, /manual fallback/i);
+  assert.match(workflows, /direct\/native-first or `manual_pending`/i);
+  assert.match(workflows, /legacy_visible_worker_required_retired/);
+  assert.match(workflows, /explicitly rebind `primaryExecution=default`/i);
   assert.match(workflows, /Worker completion is only a candidate pending Chief acceptance and Trio writeback\./);
   assert.match(workflows, /Requested model and effort are intent\. Without authenticated Host evidence, actual remains `unknown`\./);
   assert.match(workflows, /^## Optional Contracts$/m);

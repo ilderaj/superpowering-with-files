@@ -1,6 +1,8 @@
 # Astra harness 改造与验收说明
 
-本次改造由用户明确批准，实施范围包括源码、skills/AGENTS、测试、README、PR 合并、main/dev 收敛和本地全局采用。既有授权适用于本次范围；仓库保护和 Host 控制仍然有效。
+此前 Astra 改造由用户明确批准，实施范围包括源码、skills/AGENTS、测试、README、PR 合并、main/dev 收敛和本地全局采用。既有授权适用于当时范围；仓库保护和 Host 控制仍然有效。
+
+本轮 Root 路由迁移的文档编辑与验收仅覆盖 Root/Codex；`plugins/dsh/**` 及其测试、投影和发布证据不在本轮范围内。既有 DSH 文字保留为历史/独立能力说明，是否退役另行决定。
 
 ## 依据与目标
 
@@ -13,7 +15,7 @@
 1. **共享核心。** AGENTS 和 Trio 入口只保留目标、路由、授权、完成和证据边界。直接执行通过相关验证即可完成；委派主执行仍需整合验收。快速任务不因工具次数自动建立 Trio。
 2. **渐进披露。** 六个治理入口保持身份不变，增加五个明确列举的参考文件。投影、安装备份、回滚、插件打包、工作区和 DSH assets 都包含这些引用。
 3. **模型与角色解耦。** Astra、Sol、Terra、Luna 可作为 Chief、执行者或有明确范围的 helper；支持 bare ID 以及已支持的 Host 前缀。显式模型与 effort 保留到 handoff。历史未指定请求的 DeepSeek 默认值保持兼容；旧 Chief 包省略 effort 时仍解释为 max。新分派应显式选择 model/effort，再冻结任务包。
-4. **按需要委派。** 普通工作可直接完成或使用有收益的 native helpers。明确选择 strict visible 时保持 fail-closed。子任务不能扩大范围和权限；跨模型 effort 不能用一个虚假的统一排名隐式比较。
+4. **按需要委派。** 普通工作可直接完成或使用有收益的 native helpers。遇到 legacy visible input 时按 Root 迁移契约 fail-closed，并显式 rebind 后再恢复内部派发。子任务不能扩大范围和权限；跨模型 effort 不能用一个虚假的统一排名隐式比较。
 5. **方法与治理分开。** TDD、代码审查、代码设计、debugging、domain modeling 作为可选方法源码纳入仓库。保留真实需求测试、Standards/Spec 两轴和复现证据，去掉无条件追问、并行和文档创建要求。
 6. **规划去仪式化。** PWF 按入口、恢复、决策和里程碑更新，不再强制每两次操作记录、三次失败停工或每步重读。保留三文件权威、时间真实性、外部内容可信边界和恢复信息。
 7. **清理与采用。** 三个旧 wrapper（risk-assessment-before-destructive-changes、safe-bypass-flow、office-work-quality）的职责由 safety/office 承接。采用命令备份后更新八个可选/辅助 skill 目录并退休这三个精确目录；不改动其他用户 skills。Matt 原始 corpus 保持锁定，修改放在 overlay，独立插件通过 Host 管理器采用后再清理重复本地副本。
@@ -27,6 +29,7 @@
 - `requested` 是意图，`actual` 需要 Host authenticated 证据。普通 CLI 返回、静态 persona 或配置文件不会自动升级为实际模型证明。
 - DSH 的 stock `start` 不能承载 reasoning effort。显式 effort-bearing dispatch 需要 Host 提供 `startWithModelSelection`；缺少时返回可恢复的 blocker。声明与 host-claimed 都不等于 authenticated。
 - Corleone 固定模型 renderer 留作历史兼容；全局采用可使用继承模型的 role 文件，避免 persona 在 Host 中锁死 Flash。新会话才会重新加载这些配置。
+- Root 路由迁移：`visible_worker_required` 仅作为 legacy input 保留。Root active routing 只有 direct/native-first 与 `manual_pending`；任一 Host operation 收到该输入都返回 `manual_pending`，blocker 为 `legacy_visible_worker_required_retired`，不恢复 Host bridge，也不做 native fallback。只有在当前 Trio authority 下显式 rebind `primaryExecution=default` 才能重新派发。用户明确要求独立可见任务时，使用 Host 的 user-owned task workflow，该流程不属于内部 routing。
 - 安装 receipt 只证明安装字节，不能替代 Trio、模型证据或用户验收。自动化测试、真实模型请求、GitHub 合并和全局采用分别核验。
 
 ## 验证组成

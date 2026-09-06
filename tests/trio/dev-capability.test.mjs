@@ -60,6 +60,16 @@ test('dev routes risk-relevant proof and preserves existing evidence', async () 
   has(await contract(dev), proofRules);
 });
 
+test('dev recovery and delivery terms preserve scope and evidence boundaries', async () => {
+  const text = await contract(dev);
+  has(text, {
+    recovery: /tracked recovery[\s\S]*bound Trio[\s\S]*recorded goal[\s\S]*resume conditions/i,
+    helper: /helper[\s\S]*edit the frozen Trio[\s\S]*candidate/i,
+    terms: /generated[\s\S]*opened[\s\S]*rendered[\s\S]*accepted[\s\S]*delivered/i,
+    queued: /queued Host action[\s\S]*does not prove/i,
+  });
+});
+
 test('semantic proof safeguards cannot be removed while wording can change', async () => {
   const text = await contract(dev);
   for (const pattern of Object.values(proofRules)) {
@@ -80,9 +90,11 @@ test('routing distinguishes direct completion from delegated acceptance', async 
     delegated: /delegated[^\n]*candidate[^\n]*Chief[^\n]*acceptance/i,
     auth: /(?:reuse|honor)[^\n]*existing authorization|existing authorization[^\n]*applies/i,
     freeze: /freeze[^\n]*(?:exact|scope)/i,
-    visible: /visible_worker_required[^\n]*(?:strict|required)/i,
-    noSubstitution: /no[^\n]*Chief inline[^\n]*native.subagent[^\n]*substitut/i,
-    pending: /manual_pending[^\n]*blocked/,
+    legacyVisible: /visible_worker_required[^\n]*legacy input/i,
+    retired: /visible_worker_required[\s\S]*legacy_visible_worker_required_retired/i,
+    noFallback: /do not restore a Host bridge or fall back to native/i,
+    rebind: /primaryExecution=default[^\n]*rebind/i,
+    pending: /manual_pending/,
     parallel: /parallel[^\n]*benefi[^\n]*Host[^\n]*user/i,
     actual: /actual[^\n]*unknown[^\n]*authenticated Host/i,
   });

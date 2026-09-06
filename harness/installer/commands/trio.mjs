@@ -2,7 +2,8 @@ import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import {
   assertValidTaskId,
   isNoActiveTaskError,
-  isTaskNotFoundError
+  isTaskNotFoundError,
+  summarizeTrioTask
 } from '../../trio/core/read.mjs';
 import {
   acceptTrioTask,
@@ -27,7 +28,7 @@ export const TRIO_USAGE = [
   'Usage: node harness/installer/commands/trio.mjs <status|next|init|progress|accept|stop|close|archive> [options]',
   '',
   'Commands:',
-  '  status                 Read the selected Trio',
+  '  status [--summary]     Read the selected Trio, optionally with a recorded summary',
   '  next --dry-run        Calculate the next action without writing',
   '  init --goal <text>    Create a new Trio',
   '  progress              Append one progress event',
@@ -92,6 +93,7 @@ export function parseTrioArgs(args = []) {
     overrideReason: undefined,
     overrideSource: undefined,
     dryRun: false,
+    summary: false,
     goal: undefined,
     event: undefined,
     actor: undefined,
@@ -104,6 +106,11 @@ export function parseTrioArgs(args = []) {
     if (arg === '--dry-run') {
       if (result.dryRun) throw new Error('Duplicate --dry-run.');
       result.dryRun = true;
+    } else if (arg === '--summary') {
+      if (result.summary) throw new Error('Duplicate --summary.');
+      result.summary = true;
+    } else if (arg.startsWith('--summary=')) {
+      throw new Error('Invalid --summary. Use the flag without a value.');
     } else if (arg === '--root') {
       if (result.root !== undefined) throw new Error('Duplicate --root.');
       result.root = optionValue(args, index, '--root');
@@ -210,6 +217,12 @@ export function parseTrioArgs(args = []) {
     throw new Error('Role, complexity, and override options apply only to trio next.');
   }
   if (command === 'status' && result.dryRun) throw new Error('status does not accept --dry-run.');
+  if (result.summary && command !== 'status') {
+    throw new Error('--summary applies only to status.');
+  }
+  if (result.summary && result.taskId === undefined) {
+    throw new Error('status --summary requires an explicit --task <id>.');
+  }
   if (WRITE_COMMANDS.has(command) && result.dryRun) throw new Error(`${command} does not accept --dry-run.`);
   if (WRITE_COMMANDS.has(command) && result.taskId === undefined) {
     throw new Error(`${command} requires an explicit --task <id>.`);
@@ -373,6 +386,8 @@ export async function trioCommand(args = process.argv.slice(2), options = {}) {
   if (parsed.command === 'next') {
     Object.assign(report, calculateNextAction({ route, hasTrio: trio !== null, dryRun: true }));
   }
+
+  if (parsed.summary) report.summary = summarizeTrioTask(trio);
 
   const reportOutput = jsonSerializable(report);
   if (options.writeOutput !== false) (options.stdout ?? process.stdout).write(`${JSON.stringify(reportOutput)}\n`);

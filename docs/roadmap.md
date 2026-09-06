@@ -2,6 +2,10 @@
 
 This roadmap captures the current mainline for Harness and the work that is intentionally deferred behind stronger proof.
 
+## Current V1.3 Implementation Line
+
+The current implementation line is V1.3 reliable completion: align public descriptions with actual CLI behavior, provide read-only Trio recovery navigation, clarify completion and delivery evidence, and establish a bounded real-task baseline. The detailed implementation and verification packets live in [V1.3 plan](plans/v1.3/README.md). The older 1.0.11–1.0.13 entries below are historical planning inputs; they are not independent execution instructions until their disposition is recorded.
+
 Detailed candidate work lives in [Backlog](backlog.md). Use [State Convergence](state-convergence.md) when roadmap intent must be reconciled against active planning or archive evidence.
 
 ## Current Direction

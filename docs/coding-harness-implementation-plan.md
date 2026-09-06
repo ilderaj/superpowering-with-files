@@ -3,6 +3,8 @@
 **Status:** proposed; this document is a rollout map, not authorization to mutate source, refresh an upstream, commit, or publish.
 **Authoritative task record:** [`planning/active/swf-coding-harness-upstream-implementation-20260903/`](../planning/active/swf-coding-harness-upstream-implementation-20260903/)
 
+**Root routing migration (current):** Root active routing has only direct/native-first and `manual_pending`. `visible_worker_required` is legacy input only; for any Host operation it yields `manual_pending` with blocker `legacy_visible_worker_required_retired`, without Host bridge restoration or native fallback. Under the current Trio authority, resume requires an explicit `primaryExecution=default` rebind. An independent visible task explicitly requested by the user follows the Host's user-owned task workflow outside internal routing. Older plan text that refers to a visible-worker requirement is historical/superseded by this migration note; V1.3 acceptance boundaries remain unchanged.
+
 ## Outcome
 
 Deliver two independently verifiable improvements:
@@ -24,7 +26,7 @@ The result is paired with the operator procedure in [Coding Harness SOP](coding-
 - A review comment is a triage signal, not proof and not an automatic patch command. The feedback loop must bind the current head/base/spec, fetch complete review-thread state, classify the current-code evidence, and deduplicate by PR, head SHA, thread/comment identity, and update time.
 - Critical and major confirmed findings block integration and re-enter the bounded repair → quality-gate → review cycle. Minor/non-blocking findings become an external issue only when the bound PR policy expressly authorizes issue creation; otherwise they remain a draft follow-up in the Trio.
 - Native platform auto-merge is permitted only as a separately implemented, explicit per-PR policy: the user must opt in before it is enabled, a required human review must approve the current head, current required checks and severe-thread gates must pass, and repository/Host support must be observed. The harness never merges directly, self-approves, dismisses reviews, weakens branch protection, or treats a quiet interval as approval.
-- Direct execution can establish technical verification. Chief acceptance is required only when a visible/delegated worker is the primary executor, or when the chosen governance lane explicitly requires independent acceptance.
+- Direct execution can establish technical verification. Chief acceptance is required only when a delegated worker is the primary executor, or when the chosen governance lane explicitly requires independent acceptance. A user-owned visible task is outside Root internal routing.
 - Merge, push, release, publish, deploy, send, credential, destructive, and external actions retain their human/safety gates regardless of lane.
 
 ## Rollout order
@@ -32,7 +34,7 @@ The result is paired with the operator procedure in [Coding Harness SOP](coding-
 | Wave | Deliverable | Execution lane | Depends on | Completion proof |
 |---|---|---|---|---|
 | 0 | This plan and the SOP | Tracked direct documentation | predecessor evidence | docs review and link check |
-| 1 | PWF `i18n` compatibility hardening | Chief-governed tracked execution | clean bound worktree and visible worker | focused RED→GREEN plus targeted installer tests |
+| 1 | PWF `i18n` compatibility hardening | Chief-governed tracked execution | clean bound worktree and bound Host workflow | focused RED→GREEN plus targeted installer tests |
 | 2 | PWF baseline uplift to `v3.12.1` | Chief-governed tracked execution | Wave 1 accepted in the baseline | refresh verification, overlay/projection proof, no Matt/Superpowers change |
 | 3 | Coding-harness core contract and method-selection matrix | Chief-governed tracked execution | Wave 0; approved policy wording | Trio/projection/package tests and fresh docs check |
 | 4 | Four-method pilot | Each task routed by the SOP | Wave 3 accepted | evidence from one feature, defect, bounded refactor, and completed-diff review |
@@ -63,8 +65,8 @@ Waves 1–2 and 3 can be designed in parallel, but they must not write overlappi
 
 ### Gates and proof
 
-- Use the successor task's isolated-worktree and visible-worker requirements; do not reuse or clean the predecessor's preserved dirty worktree.
-- Bind the exact Trio hashes and source scope before mutation. If no compliant visible worker is available, record `manual_pending`/`blocked`; do not substitute inline production edits.
+- Use the successor task's isolated-worktree and bound Host workflow requirements; do not reuse or clean the predecessor's preserved dirty worktree. Any historical visible-worker requirement in this wave is superseded by the Root routing migration note above.
+- Bind the exact Trio hashes and source scope before mutation. If the packet carries legacy `visible_worker_required`, record `manual_pending` with `legacy_visible_worker_required_retired` and rebind `primaryExecution=default` under the current Trio authority before internal dispatch; do not restore a bridge, fall back to native, or substitute an external user-owned task for Root routing.
 - Observe a real RED from the nested-layout test before changing source.
 - Require, at minimum:
 
@@ -152,11 +154,11 @@ The feedback loop may select the installed `gh-review-comment-triage` method for
 | Owner | Intended responsibility |
 |---|---|
 | `harness/trio/capabilities/dev/SKILL.md` | Add compact, testable evidence/specification/slice/TDD/expand-contract clauses plus the automatic method-selection matrix and four owned method contracts; preserve lightweight Quick work. |
-| `harness/trio/skill/SKILL.md` | Clarify the choice between direct tracked execution and Chief-governed delegated execution without weakening the visible-worker rule; keep Host skill lifecycle outside repository control. |
+| `harness/trio/skill/SKILL.md` | Clarify the choice between direct tracked execution and Chief-governed delegated execution; record the Root legacy-input migration and keep Host skill/task lifecycle outside repository control. |
 | `harness/trio/templates/entry-policy.md` | Keep the materialized entry-policy source aligned with the clarified routing language. |
 | `harness/trio/governance/chiefops/SKILL.md` | State that its acceptance gate applies when ChiefOps governs a delegated/Chief lane; it must not become a mandatory runner for direct work. |
 | `docs/workflows.md` | Add a short link and route summary for the SOP. |
-| `docs/trio-v2/human-usage.md` | Keep strict worker guidance, but distinguish it from the new direct tracked lane. |
+| `docs/trio-v2/human-usage.md` | Document the legacy-input migration, direct/native-first route, manual recovery, and the separate user-owned Host task workflow. |
 | `docs/coding-harness-sop.md` | Be the detailed human-facing procedure, not a new source of task state. |
 
 Do not change `packages/plugin-kit/src/platform-contracts.mjs`: the desired result stays inside the existing Trio/ChiefOps source map. Do not directly edit generated `AGENTS.md` or `.agents/**`; update source and prove projections.
@@ -226,7 +228,7 @@ For every defect, preserve three assets when they are useful and within scope: (
 | `scripts/ci/lib/pr-quality.mjs` and `scripts/ci/run-pr-quality-gate.mjs` | Add a pure, fixture-tested preflight evaluator that validates a supplied evidence packet and emits a read-only machine-readable result. It must not stage, commit, push, create a PR, or retain a new task-state file. |
 | `package.json` | Expose the read-only quality-gate command without replacing the existing `verify:*` suites. |
 | `tests/trio/dev-capability.test.mjs`, `tests/automation/pr-quality-lib.test.mjs`, and existing contract tests | Prove triggers, required evidence, no-hook-as-proof semantics, no external mutation commands, and compatibility with Trio/Chief/safety invariants. |
-| `docs/coding-harness-sop.md`, `docs/workflows.md`, and `docs/trio-v2/human-usage.md` | Surface the operator flow without creating a second state or silently changing strict-worker behavior. |
+| `docs/coding-harness-sop.md`, `docs/workflows.md`, and `docs/trio-v2/human-usage.md` | Surface the operator flow without creating a second state or reviving the superseded visible-worker topology. |
 
 ### Acceptance proof
 

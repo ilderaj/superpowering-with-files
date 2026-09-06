@@ -34,7 +34,7 @@ The selected pack governs quality behavior. It does not take ownership of task s
 
 ## Host And Worker Boundary
 
-The Host owns worker and subtask lifecycle, permissions, continuation, and external or human gates. Use native visible workers when the Host exposes them; otherwise use a bounded manual fallback without claiming native control.
+The Host owns worker and subtask lifecycle, permissions, continuation, and external or human gates. Root internal routing uses direct/native-first or `manual_pending`. A legacy `visible_worker_required` input returns `manual_pending` with `legacy_visible_worker_required_retired`; under the current Trio authority, explicitly rebind `primaryExecution=default` before resuming, with no Host bridge restoration or native fallback. A user explicitly requesting an independent visible task uses the Host's user-owned task workflow outside internal routing.
 
 Main session responsibilities are planning, integration, risk judgment, and acceptance. A worker returns changed paths and fresh evidence. Worker completion is only a candidate pending Chief acceptance and Trio writeback.
 
@@ -50,7 +50,7 @@ Inspect the relevant artifact before changing it, use a focused proof first, and
 
 ## Coding Harness
 
-The [Coding Harness SOP](coding-harness-sop.md) is the human-facing procedure. Routes are **Quick direct**, **Tracked direct**, and **Chief-governed**. `dev` selects `domain-modeling`, `codebase-design`, `diagnosing-bugs`, and `code-review` from task evidence; `change-quality-gate` runs at integration boundaries; `pr-feedback-loop` is opt-in on a bound PR. Tracked direct execution establishes its own technical verification; Chief independent acceptance applies when a visible or delegated worker is primary or the chosen governance lane requires it.
+The [Coding Harness SOP](coding-harness-sop.md) is the human-facing procedure. Routes are **Quick direct**, **Tracked direct**, and **Chief-governed**. `dev` selects `domain-modeling`, `codebase-design`, `diagnosing-bugs`, and `code-review` from task evidence; `change-quality-gate` runs at integration boundaries; `pr-feedback-loop` is opt-in on a bound PR. Tracked direct execution establishes its own technical verification; Chief independent acceptance applies when a delegated worker is primary or the chosen governance lane requires it.
 
 The read-only change-quality convenience is `npm run verify:pr-quality -- <packet.json>` (use npm's `--silent` option when stdout must contain JSON only). It validates a supplied `swf/change-quality-gate-packet` and emits machine-readable JSON; it does not create task state or perform Git, PR, review, or background actions.
 

@@ -2,6 +2,10 @@
 
 This backlog turns roadmap direction into scoped work that can become GitHub issues, tracked implementation plans, or explicit "not yet" decisions.
 
+## V1.3 Disposition
+
+For the current V1.3 implementation, KER-001 is deferred, KER-002 is carried into the real-task baseline and replay, GOV-001 is superseded in scope by the current lightweight contract, GOV-002 and REC-003 are carried into the evidence/discovery work, REC-001/002 are replaced in scope by the existing Trio recovery contract, and UPD-001/OFFICE-001/MCP-001/ADOPT-001/CDX expansion items remain deferred. These labels are planning classification only; existing item `Status` values remain unchanged until independently verified.
+
 Status values:
 
 - `proposed`: shaped enough to discuss, not ready to execute

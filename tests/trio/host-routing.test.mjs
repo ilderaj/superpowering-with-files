@@ -57,7 +57,24 @@ function createAssignmentPacket() {
   };
 }
 
-test('Corleone role selection maps ordinary coding to a button man and strict visibility to Don Michael', () => {
+const ROOT_HOST_OPERATIONS = ['spawn', 'continue', 'status', 'interrupt', 'collect'];
+const LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED = 'legacy_visible_worker_required_retired';
+
+function createStrictRootPacket() {
+  return {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max',
+      primaryExecution: 'visible_worker_required',
+      childDelegation: 'worker_discretion'
+    }
+  };
+}
+
+test('Corleone role selection preserves the legacy strict-role mapping as historical vocabulary', () => {
   assert.deepEqual(
     selectCorleoneRole({ workRole: 'coding', complexity: 'high' }),
     {
@@ -137,7 +154,7 @@ test('Corleone role profiles render a named Flash agent with no fallback or dele
   assert.doesNotMatch(`${entry}\n${roleFile}`, /fallback|childDelegation|delegation\s*=\s*"allowed"/i);
 });
 
-test('resolveHostOperation selects a visible worker with exact route evidence', () => {
+test('resolveHostOperation selects a native subagent with exact route evidence', () => {
   assert.equal(typeof routing.resolveHostOperation, 'function');
 
   const result = routing.resolveHostOperation({
@@ -145,6 +162,18 @@ test('resolveHostOperation selects a visible worker with exact route evidence', 
     workRole: 'chief',
     requestedModel: 'gpt-5.6-sol',
     requestedEffort: 'max',
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src/app'] },
+    childEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: [],
+      mutablePaths: ['src/app/child']
+    },
     observation: {
       authenticated: true,
       evidenceRef: 'host-observation-visible-1',
@@ -158,18 +187,18 @@ test('resolveHostOperation selects a visible worker with exact route evidence', 
         requestedModelEffortControls: true,
         permissionBinding: true,
         pathBinding: true
+      },
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true },
+        requestedModelEffortControls: true
       }
-    },
-    permissionEnvelope: {
-      permissions: ['workspace'],
-      operations: ['spawn'],
-      externalEffects: []
-    },
-    pathEnvelope: { mutablePaths: ['src/app'] }
+    }
   });
 
   assert.deepEqual(Object.keys(result.routeEvidence), ROUTE_EVIDENCE_FIELDS);
-  assert.equal(result.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(result.routeEvidence.routeKind, 'native_subagent');
   assert.equal(result.routeEvidence.requestedModel, 'gpt-5.6-sol');
   assert.equal(result.routeEvidence.requestedEffort, 'max');
   assert.equal(result.routeEvidence.actualModel, 'unknown');
@@ -179,7 +208,7 @@ test('resolveHostOperation selects a visible worker with exact route evidence', 
   assert.equal(result.routeEvidence.status, 'planned');
 });
 
-test('non-spawn visible operations require an exact authenticated requested worker identity', () => {
+test('default non-spawn operations remain manual regardless of visible identity claims', () => {
   const operations = ['continue', 'status', 'interrupt', 'collect'];
   const cases = [
     { name: 'missing requested worker', requestedWorkerId: undefined, observedWorkerId: 'observed-worker' },
@@ -221,7 +250,7 @@ test('non-spawn visible operations require an exact authenticated requested work
   }
 });
 
-test('default execution keeps an identity-matched visible worker for lifecycle operations', () => {
+test('default execution keeps lifecycle identity evidence manual when only visible capability exists', () => {
   const packet = {
     ...createAssignmentPacket(),
     capability: { workRole: 'coding', complexity: 'high' }
@@ -249,9 +278,11 @@ test('default execution keeps an identity-matched visible worker for lifecycle o
       permissionEnvelope: { permissions: ['workspace'], operations: [operation], externalEffects: [] },
       pathEnvelope: { mutablePaths: [] }
     });
-    assert.equal(result.routeEvidence.routeKind, 'visible_worker', operation);
-    assert.equal(result.routeEvidence.workerId, 'visible-execution-worker', operation);
-    assert.equal(result.routeEvidence.status, 'idle', operation);
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', operation);
+    assert.equal(result.routeEvidence.workerId, null, operation);
+    assert.equal(result.routeEvidence.status, 'manual_pending', operation);
+    assert.equal(result.routeEvidence.actualModel, 'unknown', operation);
+    assert.equal(result.routeEvidence.actualEffort, 'unknown', operation);
   }
 });
 
@@ -273,11 +304,11 @@ test('generic host adapter fails closed to a bounded manual pending descriptor',
   assert.equal(Object.hasOwn(result.descriptor, 'threadId'), false);
   assert.equal(Object.hasOwn(result.descriptor, 'spawned'), false);
   assert.equal(Object.hasOwn(result.descriptor, 'accepted'), false);
-  assert.match(result.descriptor.blocker, /visible|native|manual/i);
+  assert.match(result.descriptor.blocker, /native|manual/i);
   assert.match(result.descriptor.resumeCondition, /authenticated Host support/i);
 });
 
-test('Host routing falls back from visible worker to native subagent and then manual pending', () => {
+test('Host routing selects a native subagent and then falls back to manual pending', () => {
   const baseInput = {
     operation: 'spawn',
     workRole: 'chief',
@@ -324,7 +355,7 @@ test('Host routing falls back from visible worker to native subagent and then ma
   assert.equal(Object.hasOwn(native.descriptor, 'threadId'), false);
   assert.equal(Object.hasOwn(native.descriptor, 'spawned'), false);
   assert.equal(Object.hasOwn(native.descriptor, 'accepted'), false);
-  assert.match(native.routeEvidence.fallbackReason, /visible_model_controls_unbound/);
+  assert.equal(native.routeEvidence.fallbackReason, null);
 
   const manual = resolveGenericHostOperation({
     ...baseInput,
@@ -484,7 +515,7 @@ test('packet aliases retain their native delegation policy', () => {
   assert.equal(result.routeEvidence.fallbackReason, 'child_delegation_prohibited');
 });
 
-test('packet aliases retain their strict visible-only topology', () => {
+test('packet aliases retain their legacy strict topology', () => {
   const packet = {
     ...createAssignmentPacket(),
     capability: {
@@ -522,7 +553,7 @@ test('packet aliases retain their strict visible-only topology', () => {
   });
 
   assert.equal(result.routeEvidence.routeKind, 'manual_pending');
-  assert.equal(result.routeEvidence.fallbackReason, 'visible_worker_required_unavailable:visible_unknown');
+  assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
 });
 
 test('spawn routes do not inherit an old visible worker identity, status, or actual model evidence', () => {
@@ -560,18 +591,18 @@ test('spawn routes do not inherit an old visible worker identity, status, or act
     }
   };
 
-  const visible = resolveGenericHostOperation({
+  const routed = resolveGenericHostOperation({
     operation: 'spawn',
     assignmentPacket: createAssignmentPacket(),
     parentEnvelope,
     childEnvelope,
     observation
   });
-  assert.equal(visible.routeEvidence.routeKind, 'visible_worker');
-  assert.equal(visible.routeEvidence.workerId, null);
-  assert.equal(visible.routeEvidence.status, 'planned');
-  assert.equal(visible.routeEvidence.actualModel, 'unknown');
-  assert.equal(visible.routeEvidence.actualEffort, 'unknown');
+  assert.equal(routed.routeEvidence.routeKind, 'native_subagent');
+  assert.equal(routed.routeEvidence.workerId, null);
+  assert.equal(routed.routeEvidence.status, 'planned');
+  assert.equal(routed.routeEvidence.actualModel, 'unknown');
+  assert.equal(routed.routeEvidence.actualEffort, 'unknown');
 
   const native = resolveGenericHostOperation({
     operation: 'spawn',
@@ -690,39 +721,53 @@ test('manual capability evidence preserves observed native support when safety i
 });
 
 test('Codex host adapter normalizes explicit observations without executing an operation', () => {
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max',
+      primaryExecution: 'default',
+      childDelegation: 'worker_discretion'
+    }
+  };
   const result = resolveCodexHostOperation({
-    operation: 'status',
-    workRole: 'chief',
-    requestedWorkerId: 'observed-worker-1',
+    operation: 'spawn',
+    assignmentPacket: packet,
+    childEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: [],
+      mutablePaths: ['src/app']
+    },
     observation: {
       authenticated: true,
       evidenceRef: 'codex-observation-1',
       actualModel: 'gpt-5.6-luna',
       actualEffort: 'max',
-      workerId: 'observed-worker-1',
-      status: 'idle',
       capabilities: {
-        visible_worker: {
-          visible: true,
-          operations: { status: true },
-          requestedModelEffortControls: true,
-          permissionBinding: true,
-          pathBinding: true
+        native_subagent: {
+          supported: true,
+          visible: false,
+          operations: { spawn: true },
+          requestedModelEffortControls: true
         }
       }
     },
     permissionEnvelope: {
-      permissions: ['observe'],
-      operations: ['status'],
+      permissions: ['workspace'],
+      operations: ['spawn'],
       externalEffects: []
     },
-    pathEnvelope: { mutablePaths: [] }
+    pathEnvelope: { mutablePaths: ['src'] }
   });
 
-  assert.equal(result.routeEvidence.routeKind, 'visible_worker');
-  assert.equal(result.routeEvidence.workerId, 'observed-worker-1');
-  assert.equal(result.routeEvidence.actualModel, 'gpt-5.6-luna');
-  assert.equal(result.routeEvidence.actualEffort, 'max');
+  assert.equal(result.routeEvidence.routeKind, 'native_subagent');
+  assert.equal(result.routeEvidence.workerId, null);
+  assert.equal(result.routeEvidence.actualModel, 'unknown');
+  assert.equal(result.routeEvidence.actualEffort, 'unknown');
+  assert.deepEqual(result.descriptor.assignmentPacket, packet);
   assert.equal(result.descriptor.executed, false);
   assert.deepEqual(result.descriptor.writes, []);
 });
@@ -753,7 +798,7 @@ test('Host capability support is operation-scoped across supported, unsupported,
     requestedWorkerId: 'operation-scoped-worker',
     permissionEnvelope: { ...base.permissionEnvelope, operations: ['status'] }
   });
-  assert.equal(supported.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(supported.routeEvidence.routeKind, 'manual_pending');
 
   const unsupported = resolveGenericHostOperation({
     ...base,
@@ -762,7 +807,8 @@ test('Host capability support is operation-scoped across supported, unsupported,
     permissionEnvelope: { ...base.permissionEnvelope, operations: ['collect'] }
   });
   assert.equal(unsupported.routeEvidence.routeKind, 'manual_pending');
-  assert.match(unsupported.routeEvidence.fallbackReason, /visible_operation_unsupported/);
+  assert.equal(unsupported.routeEvidence.fallbackReason, 'native_target_unbound');
+  assert.equal(unsupported.routeEvidence.capabilityEvidence.visibleOperationSupport, 'unsupported');
 
   const unknown = resolveGenericHostOperation({
     ...base,
@@ -771,8 +817,10 @@ test('Host capability support is operation-scoped across supported, unsupported,
     permissionEnvelope: { ...base.permissionEnvelope, operations: ['interrupt'] }
   });
   assert.equal(unknown.routeEvidence.routeKind, 'manual_pending');
-  assert.match(unknown.routeEvidence.fallbackReason, /visible_operation_unknown/);
-  assert.equal(supported.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(unknown.routeEvidence.fallbackReason, 'native_target_unbound');
+  assert.equal(unknown.routeEvidence.capabilityEvidence.visibleOperationSupport, 'unknown');
+  assert.equal(supported.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(supported.routeEvidence.capabilityEvidence.visibleOperationSupport, 'supported');
 });
 
 test('Host routing ignores unauthenticated and request-side actual model claims', () => {
@@ -794,7 +842,7 @@ test('Host routing ignores unauthenticated and request-side actual model claims'
   assert.equal(result.routeEvidence.routeKind, 'manual_pending');
 });
 
-test('Host worker candidate status never becomes Chief acceptance', () => {
+test('Host worker candidate status remains manual without a visible route', () => {
   const input = {
     operation: 'status',
     workRole: 'chief',
@@ -817,7 +865,10 @@ test('Host worker candidate status never becomes Chief acceptance', () => {
   };
   const result = resolveGenericHostOperation(input);
 
-  assert.equal(result.routeEvidence.status, 'candidate_done');
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.status, 'manual_pending');
+  assert.equal(result.routeEvidence.actualModel, 'unknown');
+  assert.equal(result.routeEvidence.actualEffort, 'unknown');
   assert.notEqual(result.routeEvidence.status, 'accepted');
   assert.equal(Object.hasOwn(result.descriptor, 'accepted'), false);
   assert.throws(
@@ -829,7 +880,7 @@ test('Host worker candidate status never becomes Chief acceptance', () => {
   );
 });
 
-test('Host operation descriptors support spawn, continue, status, interrupt, and collect', () => {
+test('Host operation descriptors support spawn, continue, status, interrupt, and collect without visible routes', () => {
   const operations = ['spawn', 'continue', 'status', 'interrupt', 'collect'];
   for (const operation of operations) {
     const result = resolveGenericHostOperation({
@@ -853,14 +904,14 @@ test('Host operation descriptors support spawn, continue, status, interrupt, and
       pathEnvelope: { mutablePaths: [] }
     });
 
-    assert.equal(result.routeEvidence.routeKind, 'visible_worker');
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending');
     assert.equal(result.descriptor.operation, operation);
     assert.equal(result.descriptor.executed, false);
     assert.deepEqual(result.descriptor.writes, []);
   }
 });
 
-test('strict primary execution selects a visible worker when one is available', () => {
+test('strict primary execution retires even when a visible worker is available', () => {
   const result = resolveGenericHostOperation({
     operation: 'spawn',
     assignmentPacket: {
@@ -892,9 +943,10 @@ test('strict primary execution selects a visible worker when one is available', 
     pathEnvelope: { mutablePaths: ['src/app'] }
   });
 
-  assert.equal(result.routeEvidence.routeKind, 'visible_worker');
-  assert.equal(result.routeEvidence.status, 'planned');
-  assert.equal(result.routeEvidence.fallbackReason, null);
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(result.routeEvidence.status, 'manual_pending');
+  assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
+  assert.equal(result.descriptor.blocker, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
   assert.equal(result.descriptor.executed, false);
 });
 
@@ -946,7 +998,8 @@ test('strict primary execution never falls back to a native subagent', () => {
   assert.equal(result.routeEvidence.status, 'manual_pending');
   assert.equal(result.routeEvidence.actualModel, 'unknown');
   assert.equal(result.routeEvidence.actualEffort, 'unknown');
-  assert.match(result.routeEvidence.fallbackReason, /visible_worker_required/);
+  assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
+  assert.equal(result.descriptor.blocker, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
   assert.doesNotMatch(result.routeEvidence.fallbackReason, /native_subagent/);
   assert.equal(result.descriptor.executed, false);
   assert.deepEqual(result.descriptor.writes, []);
@@ -990,10 +1043,179 @@ test('strict primary execution fails closed when no visible worker capability is
   assert.equal(result.routeEvidence.routeKind, 'manual_pending');
   assert.equal(result.routeEvidence.status, 'manual_pending');
   assert.match(result.routeEvidence.fallbackReason, /visible_worker_required/);
-  assert.match(result.routeEvidence.fallbackReason, /visible_unknown|visible_unsupported/);
+  assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
+  assert.equal(result.descriptor.blocker, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
 });
 
-test('non-strict primary execution keeps the visible to native to manual chain unchanged', () => {
+test('R2/R3 valid strict input retires all five Host operations without visible or native fallback', () => {
+  for (const operation of ROOT_HOST_OPERATIONS) {
+    const workerId = `strict-legacy-worker-${operation}`;
+    const result = resolveGenericHostOperation({
+      operation,
+      ...(operation === 'spawn' ? {} : { requestedWorkerId: workerId }),
+      assignmentPacket: createStrictRootPacket(),
+      parentEnvelope: {
+        permissions: ['workspace'],
+        mutablePaths: ['src'],
+        operations: [operation],
+        externalEffects: []
+      },
+      childEnvelope: {
+        permissions: ['workspace'],
+        mutablePaths: ['src/app'],
+        operations: ['spawn'],
+        externalEffects: []
+      },
+      observation: {
+        authenticated: true,
+        evidenceRef: `strict-retired-${operation}`,
+        ...(operation === 'spawn' ? {} : { workerId, status: 'idle' }),
+        visibleWorker: {
+          visible: true,
+          operations: { [operation]: true },
+          requestedModelEffortControls: true,
+          permissionBinding: true,
+          pathBinding: true
+        },
+        nativeSubagent: {
+          supported: true,
+          visible: false,
+          operations: { spawn: true },
+          requestedModelEffortControls: true
+        }
+      }
+    });
+
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', operation);
+    assert.equal(result.routeEvidence.status, 'manual_pending', operation);
+    assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED, operation);
+    assert.equal(result.descriptor.blocker, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED, operation);
+    assert.notEqual(result.routeEvidence.routeKind, 'visible_worker', operation);
+    assert.notEqual(result.routeEvidence.routeKind, 'native_subagent', operation);
+    assert.equal(result.descriptor.executed, false, operation);
+  }
+});
+
+test('R4 default operations with only an authenticated visible capability never produce a visible route', () => {
+  const assignmentPacket = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max',
+      primaryExecution: 'default',
+      childDelegation: 'worker_discretion'
+    }
+  };
+
+  for (const operation of ROOT_HOST_OPERATIONS) {
+    const workerId = `default-visible-only-${operation}`;
+    const result = resolveGenericHostOperation({
+      operation,
+      ...(operation === 'spawn' ? {} : { requestedWorkerId: workerId }),
+      assignmentPacket,
+      permissionEnvelope: {
+        permissions: ['workspace'],
+        operations: [operation],
+        externalEffects: []
+      },
+      pathEnvelope: { mutablePaths: operation === 'spawn' ? ['src'] : [] },
+      observation: {
+        authenticated: true,
+        evidenceRef: `default-visible-only-${operation}`,
+        ...(operation === 'spawn' ? {} : { workerId, status: 'idle' }),
+        visibleWorker: {
+          visible: true,
+          operations: { [operation]: true },
+          requestedModelEffortControls: true,
+          permissionBinding: true,
+          pathBinding: true
+        }
+      }
+    });
+
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', operation);
+    assert.notEqual(result.routeEvidence.routeKind, 'visible_worker', operation);
+    assert.notEqual(result.routeEvidence.routeKind, 'native_subagent', operation);
+  }
+});
+
+test('R7 Codex strict handoff rejects the retired topology before role or profile generation', () => {
+  const packet = createStrictRootPacket();
+
+  assert.throws(
+    () => renderCodexHandoffRequest({
+      operation: 'spawn',
+      packet,
+      packetDigest: routing.packetDigestOf(packet)
+    }),
+    new RegExp(LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED)
+  );
+});
+
+test('R12 preserves historical visible_worker vocabulary and parses released legacy lane evidence', () => {
+  assert.ok(routing.HOST_ROUTE_KINDS.includes('visible_worker'));
+  assert.ok(routing.PRIMARY_EXECUTION_KINDS.includes('visible_worker_required'));
+
+  const packet = {
+    ...createAssignmentPacket(),
+    capability: {
+      workRole: 'coding',
+      complexity: 'high',
+      requestedModel: 'gpt-5.6-sol',
+      requestedEffort: 'max',
+      primaryExecution: 'default',
+      childDelegation: 'worker_discretion'
+    }
+  };
+  const result = resolveGenericHostOperation({
+    operation: 'spawn',
+    assignmentPacket: packet,
+    parentEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    childEnvelope: {
+      permissions: ['workspace'],
+      mutablePaths: ['src/app'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    lanes: [{
+      routeKind: 'visible_worker',
+      status: 'idle',
+      workerId: 'historical-visible-worker',
+      taskId: 'historical-task',
+      currentSlice: 'historical-slice',
+      mutablePaths: ['legacy/output'],
+      chiefRelease: {
+        authenticated: true,
+        disposition: 'release',
+        workerId: 'historical-visible-worker',
+        evidenceRef: 'historical-release',
+        mutablePaths: ['legacy/output']
+      }
+    }],
+    observation: {
+      authenticated: true,
+      evidenceRef: 'historical-lane-parser',
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true },
+        requestedModelEffortControls: true
+      }
+    }
+  });
+
+  assert.equal(result.routeEvidence.routeKind, 'native_subagent');
+  assert.notEqual(result.routeEvidence.routeKind, 'visible_worker');
+});
+
+test('non-strict primary execution keeps the native-first to manual chain', () => {
   const base = {
     operation: 'spawn',
     assignmentPacket: createAssignmentPacket(),
@@ -1030,7 +1252,7 @@ test('non-strict primary execution keeps the visible to native to manual chain u
 
   const native = resolveGenericHostOperation({ ...base, observation });
   assert.equal(native.routeEvidence.routeKind, 'native_subagent');
-  assert.match(native.routeEvidence.fallbackReason, /visible_model_controls_unbound/);
+  assert.equal(native.routeEvidence.fallbackReason, null);
 
   const manual = resolveGenericHostOperation({
     ...base,
@@ -1152,7 +1374,7 @@ test('capability.childDelegation = prohibited denies any native child route even
   assert.deepEqual(result.descriptor.writes, []);
 });
 
-test('strict visible-worker-required packet without an explicit childDelegation fails closed', () => {
+test('strict visible-worker-required packet retires before childDelegation policy evaluation', () => {
   const result = resolveGenericHostOperation({
     operation: 'spawn',
     assignmentPacket: {
@@ -1184,12 +1406,13 @@ test('strict visible-worker-required packet without an explicit childDelegation 
   });
 
   assert.equal(result.routeEvidence.routeKind, 'manual_pending');
-  assert.match(result.routeEvidence.fallbackReason, /child_delegation|delegation policy/i);
+  assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
+  assert.equal(result.descriptor.blocker, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
   assert.equal(result.descriptor.executed, false);
   assert.deepEqual(result.descriptor.writes, []);
 });
 
-test('explicit worker_discretion and encouraged delegation are admitted on strict packets', () => {
+test('explicit child delegation policies do not revive retired strict packets', () => {
   for (const childDelegation of ['worker_discretion', 'encouraged']) {
     const result = resolveGenericHostOperation({
       operation: 'spawn',
@@ -1222,7 +1445,9 @@ test('explicit worker_discretion and encouraged delegation are admitted on stric
       pathEnvelope: { mutablePaths: ['src/app'] }
     });
 
-    assert.equal(result.routeEvidence.routeKind, 'visible_worker', childDelegation);
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', childDelegation);
+    assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED, childDelegation);
+    assert.equal(result.descriptor.blocker, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED, childDelegation);
     assert.equal(result.descriptor.executed, false, childDelegation);
   }
 });
@@ -1388,6 +1613,76 @@ test('unknown primary execution mode values fail closed', () => {
   );
 });
 
+test('R11 foundational errors precede strict retirement while topology policy stays retired-first', () => {
+  const strictPacket = createStrictRootPacket();
+  const strictInput = (overrides = {}) => ({
+    operation: 'spawn',
+    assignmentPacket: strictPacket,
+    permissionEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: []
+    },
+    pathEnvelope: { mutablePaths: ['src'] },
+    ...overrides
+  });
+  const assertFoundationalError = (invoke, pattern) => {
+    assert.throws(invoke, (error) => {
+      assert.match(error.message, pattern);
+      assert.doesNotMatch(error.message, new RegExp(LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED));
+      return true;
+    });
+  };
+
+  const malformedPacket = { ...strictPacket };
+  delete malformedPacket.proof;
+  assertFoundationalError(
+    () => resolveGenericHostOperation(strictInput({ assignmentPacket: malformedPacket })),
+    /requires eight fields/i
+  );
+  assertFoundationalError(
+    () => resolveGenericHostOperation(strictInput({ operation: 'reboot' })),
+    /Unsupported Host operation/i
+  );
+  assertFoundationalError(
+    () => resolveGenericHostOperation(strictInput({
+      assignmentPacket: {
+        ...strictPacket,
+        capability: { ...strictPacket.capability, requestedModel: 'unknown-model' }
+      }
+    })),
+    /model/i
+  );
+  assertFoundationalError(
+    () => resolveGenericHostOperation(strictInput({
+      assignmentPacket: { ...strictPacket, authority: null }
+    })),
+    /authority/i
+  );
+  assertFoundationalError(
+    () => resolveGenericHostOperation(strictInput({
+      permissionEnvelope: {
+        permissions: 'workspace',
+        operations: ['spawn'],
+        externalEffects: []
+      }
+    })),
+    /permissions must be an array/i
+  );
+
+  for (const childDelegation of [undefined, 'unknown-policy']) {
+    const capability = { ...strictPacket.capability };
+    if (childDelegation === undefined) delete capability.childDelegation;
+    else capability.childDelegation = childDelegation;
+    const result = resolveGenericHostOperation(strictInput({
+      assignmentPacket: { ...strictPacket, capability }
+    }));
+    assert.equal(result.routeEvidence.routeKind, 'manual_pending', childDelegation ?? 'missing');
+    assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED, childDelegation ?? 'missing');
+    assert.equal(result.descriptor.blocker, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED, childDelegation ?? 'missing');
+  }
+});
+
 test('static role configuration alone grants no dynamic child permission', () => {
   assert.equal(Object.hasOwn(resolveCorleoneProfile('buttonman_neri'), 'childDelegation'), false);
 
@@ -1442,7 +1737,7 @@ test('static role configuration alone grants no dynamic child permission', () =>
   assert.equal(result.descriptor.executed, false);
 });
 
-test('Host routing consumes the validated packet policy and rejects conflicting outer model input', () => {
+test('Host routing validates packet and outer model policy before retiring strict topology', () => {
   const packet = {
     ...createAssignmentPacket(),
     capability: {
@@ -1475,11 +1770,13 @@ test('Host routing consumes the validated packet policy and rejects conflicting 
   };
 
   const result = resolveGenericHostOperation(base);
-  assert.equal(result.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(result.routeEvidence.routeKind, 'manual_pending');
   assert.equal(result.routeEvidence.requestedModel, 'opencode-go/deepseek-v4-flash');
   assert.equal(result.routeEvidence.requestedEffort, 'xhigh');
   assert.equal(result.routeEvidence.actualModel, 'unknown');
   assert.equal(result.routeEvidence.actualEffort, 'unknown');
+  assert.equal(result.routeEvidence.fallbackReason, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
+  assert.equal(result.descriptor.blocker, LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED);
   assert.deepEqual(result.descriptor.assignmentPacket, packet);
   assert.match(result.descriptor.packetDigest, /^[0-9a-f]{64}$/);
   assert.equal(result.descriptor.executed, false);
@@ -1623,7 +1920,7 @@ test('host operations fail closed without a declared work role or execution comp
   );
 });
 
-test('packet digest authentication gates actual worker facts while identity binding stays exact', () => {
+test('packet digest authentication cannot expose actual worker facts without a visible route', () => {
   const packet = createAssignmentPacket();
   const observationBase = {
     authenticated: true,
@@ -1670,8 +1967,8 @@ test('packet digest authentication gates actual worker facts while identity bind
     ...base,
     observation: { ...observationBase, evidenceRef: 'digest-unbound-1' }
   });
-  assert.equal(unbound.routeEvidence.routeKind, 'visible_worker');
-  assert.equal(unbound.routeEvidence.workerId, 'observed-digest-worker');
+  assert.equal(unbound.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(unbound.routeEvidence.workerId, null);
   assert.equal(unbound.routeEvidence.actualModel, 'unknown');
   assert.equal(unbound.routeEvidence.actualEffort, 'unknown');
 
@@ -1694,9 +1991,10 @@ test('packet digest authentication gates actual worker facts while identity bind
       packetDigest: digest
     }
   });
-  assert.equal(bound.routeEvidence.workerId, 'observed-digest-worker');
-  assert.equal(bound.routeEvidence.actualModel, 'gpt-5.6-luna');
-  assert.equal(bound.routeEvidence.actualEffort, 'max');
+  assert.equal(bound.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(bound.routeEvidence.workerId, null);
+  assert.equal(bound.routeEvidence.actualModel, 'unknown');
+  assert.equal(bound.routeEvidence.actualEffort, 'unknown');
 });
 
 test('child requests must carry a bound model and effort no wider than the parent', () => {
@@ -1956,42 +2254,6 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
       primaryExecution: 'visible_worker_required'
     }
   };
-  const strict = renderCodexHandoffRequest({
-    operation: 'spawn',
-    packet: strictPacket,
-    packetDigest: routing.packetDigestOf(strictPacket)
-  });
-  assert.equal(strict.role, 'don_michael');
-  assert.equal(strict.workerIdentity.displayName, 'Don Michael Corleone');
-  assert.equal(strict.profile.modelReasoningEffort, 'high');
-  assert.equal(Object.isFrozen(strict.packet), true);
-  assert.equal(Object.isFrozen(strict.packet.capability), true);
-  assert.equal(strict.packetDigest, routing.packetDigestOf(strict.packet));
-  const resumedStrict = renderCodexHandoffRequest({
-    operation: 'continue',
-    packet: strictPacket,
-    packetDigest: routing.packetDigestOf(strictPacket),
-    workerIdentity: strict.workerIdentity
-  });
-  assert.deepEqual(resumedStrict.workerIdentity, strict.workerIdentity);
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'continue',
-      packet: strictPacket,
-      packetDigest: routing.packetDigestOf(strictPacket),
-      workerIdentity: frozenCapo
-    }),
-    /frozen.*tier|tier.*frozen/i
-  );
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'continue',
-      packet: strictPacket,
-      packetDigest: routing.packetDigestOf(strictPacket),
-      workerIdentity: allocateCorleoneCallsign({ tier: 'don', ordinal: 2 })
-    }),
-    /strict.*Don Michael|Don Michael.*ordinal/i
-  );
   assert.throws(
     () => renderCodexHandoffRequest({
       operation: 'spawn',
@@ -1999,7 +2261,7 @@ test('adapter vocabulary reserves claude_code and pi as unimplemented while Code
       packetDigest: routing.packetDigestOf(strictPacket),
       ordinal: 2
     }),
-    /strict.*Don Michael|Don Michael.*ordinal/i
+    new RegExp(LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED)
   );
   assert.equal(adapterStatus('codex'), 'implemented');
   assert.equal(adapterStatus('claude_code'), 'unimplemented');
@@ -2427,7 +2689,7 @@ function dispatchBase(overrides = {}) {
   };
 }
 
-test('Host awaiting_approval is a recognized non-terminal reserved worker status', () => {
+test('Host awaiting_approval remains recognized while visible lifecycle continuation stays manual', () => {
   const lane = {
     routeKind: 'visible_worker',
     status: 'awaiting_approval',
@@ -2437,6 +2699,20 @@ test('Host awaiting_approval is a recognized non-terminal reserved worker status
   const pathConflict = resolveGenericHostOperation({
     ...dispatchBase(),
     pathEnvelope: { mutablePaths: ['src/deck/rework'] },
+    childEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: [],
+      mutablePaths: ['src/deck/rework/file']
+    },
+    observation: visibleObservation({
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true },
+        requestedModelEffortControls: true
+      }
+    }),
     lanes: [lane]
   });
   assert.equal(pathConflict.routeEvidence.routeKind, 'manual_pending');
@@ -2454,9 +2730,9 @@ test('Host awaiting_approval is a recognized non-terminal reserved worker status
     pathEnvelope: { mutablePaths: ['src/deck'] },
     observation: visibleObservation()
   });
-  assert.equal(resume.routeEvidence.routeKind, 'visible_worker');
-  assert.equal(resume.routeEvidence.workerId, 'deck-worker-1');
-  assert.equal(resume.routeEvidence.status, 'awaiting_approval');
+  assert.equal(resume.routeEvidence.routeKind, 'manual_pending');
+  assert.equal(resume.routeEvidence.workerId, null);
+  assert.equal(resume.routeEvidence.status, 'manual_pending');
 });
 
 test('same semantic lane in awaiting_approval blocks a new spawn even with a different output root', () => {
@@ -2532,7 +2808,8 @@ test('blocked and unaccepted candidate_done lanes keep the semantic lane reserve
         }
       }]
     });
-    assert.equal(released.routeEvidence.routeKind, 'visible_worker', status);
+    assert.equal(released.routeEvidence.routeKind, 'manual_pending', status);
+    assert.doesNotMatch(released.routeEvidence.fallbackReason, /semantic_lane_reserved/, status);
   }
 });
 
@@ -2557,7 +2834,8 @@ test('only an explicitly distinct frozen slice identity admits an independent di
       workerId: 'cards-worker-1'
     }]
   });
-  assert.equal(otherSlice.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(otherSlice.routeEvidence.routeKind, 'manual_pending');
+  assert.doesNotMatch(otherSlice.routeEvidence.fallbackReason, /semantic_lane_reserved/);
 
   const otherTask = resolveGenericHostOperation({
     ...dispatchBase(),
@@ -2568,7 +2846,8 @@ test('only an explicitly distinct frozen slice identity admits an independent di
       workerId: 'cards-worker-2'
     }]
   });
-  assert.equal(otherTask.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(otherTask.routeEvidence.routeKind, 'manual_pending');
+  assert.doesNotMatch(otherTask.routeEvidence.fallbackReason, /semantic_lane_reserved/);
 });
 
 test('a revised packet digest for the same task and frozen slice cannot open a reserved semantic lane', () => {
@@ -2639,11 +2918,26 @@ test('reserved lanes without task or current-slice identity fail closed on non-o
       }
     }]
   });
-  assert.equal(released.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(released.routeEvidence.routeKind, 'manual_pending');
+  assert.doesNotMatch(released.routeEvidence.fallbackReason, /semantic_identity_unbound|semantic_lane_reserved/);
 
   const overlappingPathConflict = resolveGenericHostOperation({
     ...dispatchBase(),
     pathEnvelope: { mutablePaths: ['src/legacy/one/file'] },
+    childEnvelope: {
+      permissions: ['workspace'],
+      operations: ['spawn'],
+      externalEffects: [],
+      mutablePaths: ['src/legacy/one/file/child']
+    },
+    observation: visibleObservation({
+      nativeSubagent: {
+        supported: true,
+        visible: false,
+        operations: { spawn: true },
+        requestedModelEffortControls: true
+      }
+    }),
     lanes: [{
       routeKind: 'visible_worker',
       status: 'awaiting_approval',
@@ -2719,7 +3013,8 @@ test('every unreleased active status reserves the same task and frozen slice sem
       mutablePaths: ['src/deck/one']
     }]
   });
-  assert.equal(stopped.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(stopped.routeEvidence.routeKind, 'manual_pending');
+  assert.doesNotMatch(stopped.routeEvidence.fallbackReason, /semantic_lane_reserved/);
 });
 
 test('a packet-less legacy spawn facing a fully identified active lane is pending, not independent', () => {
@@ -2787,7 +3082,8 @@ test('an unresolved worktree clientThreadId blocks a fallback spawn until that e
     ...dispatchBase(),
     observation: visibleObservation({ worktreeSetup: { clientThreadId: 'wt-ready-1', resolved: true } })
   });
-  assert.equal(resolved.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(resolved.routeEvidence.routeKind, 'manual_pending');
+  assert.doesNotMatch(resolved.routeEvidence.fallbackReason, /worktree_setup_pending/);
 });
 
 test('Host create-attempt accounting allows one bounded correction then manual_pending', () => {
@@ -2795,7 +3091,8 @@ test('Host create-attempt accounting allows one bounded correction then manual_p
     ...dispatchBase(),
     observation: visibleObservation({ createAttempts: 1 })
   });
-  assert.equal(firstCorrection.routeEvidence.routeKind, 'visible_worker');
+  assert.equal(firstCorrection.routeEvidence.routeKind, 'manual_pending');
+  assert.doesNotMatch(firstCorrection.routeEvidence.fallbackReason, /worker_create_attempts_exhausted/);
 
   const exhausted = resolveGenericHostOperation({
     ...dispatchBase(),
@@ -2894,7 +3191,10 @@ for (const agentType of CORLEONE_AGENT_TYPES) {
     assert.match(fields.developer_instructions, /model and effort selected by the caller or inherited from the Host/);
     assert.match(fields.developer_instructions, /bounded parallel helpers when permitted by the user and Host/);
     assert.match(fields.developer_instructions, /proper subset/);
-    assert.match(fields.developer_instructions, /When the assignment requires visible_worker_required/);
+    assert.match(fields.developer_instructions, /Treat visible_worker_required as retired legacy input/);
+    assert.match(fields.developer_instructions, /legacy_visible_worker_required_retired/);
+    assert.match(fields.developer_instructions, /do not restore a Host bridge or fall back to native/);
+    assert.doesNotMatch(fields.developer_instructions, /preserve that topology/);
     assert.match(fields.developer_instructions, /unknown unless authenticated Host evidence/);
     assert.doesNotMatch(output, /^(?:model|model_reasoning_effort|model_provider|fallback_model)\s*=/m);
     assert.doesNotMatch(fields.developer_instructions, /deepseek|flash|gpt-|ultra|only worker.local|worker.local only|already accepted plan|highest.level visible execution/i);

@@ -12,6 +12,8 @@ Primary users are developers, workflow maintainers, and tool builders who alread
 
 superpowering-with-files provides a governance layer for local and cloud coding-agent workflows. It makes planning state durable, projects one policy into multiple agent surfaces, and keeps verification and release lanes explicit. Success means a technically literate visitor understands within the first few sections what the harness is, why it is more reliable than ad hoc scripts, and where to go next for the real implementation.
 
+The current V1.3 direction extends this purpose to the Owner's broader work only where the existing Host and office capability can support it: preserve useful context through interruption, keep scope and authorization explicit, and expose verifiable delivery boundaries. This is a current-workspace direction, not a market-size or universal cross-Host claim.
+
 ## Brand Personality
 
 Precise, durable, opinionated.
