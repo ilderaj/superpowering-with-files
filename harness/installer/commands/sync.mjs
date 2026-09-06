@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomicWriteText, withTrioPublicationLock } from '../../trio/core/store.mjs';
 import { parseV2Config } from '../../trio/config.mjs';
-import { projectConfig } from '../../trio/projection.mjs';
+import { projectConfig, PROJECTION_SURFACES } from '../../trio/projection.mjs';
 import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
 import {
   assertProductionRuntimeSelector,
@@ -20,14 +20,7 @@ import {
 } from '../lib/state.mjs';
 
 const SOURCE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
-const TRIO_SURFACE_SOURCES = Object.freeze({
-  entry: 'harness/trio/templates/entry-policy.md',
-  trio: 'harness/trio/skill/SKILL.md',
-  dev: 'harness/trio/capabilities/dev/SKILL.md',
-  office: 'harness/trio/capabilities/office/SKILL.md',
-  safety: 'harness/trio/capabilities/safety/SKILL.md',
-  chiefops: 'harness/trio/governance/chiefops/SKILL.md'
-});
+const TRIO_SURFACE_SOURCES = new Map(PROJECTION_SURFACES.map(({ id, source }) => [id, source]));
 
 function trioBridgeError(message, code = 'ERR_TRIO_BRIDGE') {
   const error = new Error(message);
@@ -235,7 +228,7 @@ async function readTrioSources(descriptors) {
   const contents = new Map();
   for (const descriptor of descriptors) {
     if (descriptor.management !== 'managed' || !['create', 'update'].includes(descriptor.action)) continue;
-    const relative = TRIO_SURFACE_SOURCES[descriptor.surface];
+    const relative = TRIO_SURFACE_SOURCES.get(descriptor.surface);
     if (!relative || descriptor.source !== relative) {
       throw trioBridgeError(`Unexpected Trio source for ${descriptor.surface}.`, 'ERR_TRIO_BRIDGE');
     }
@@ -339,10 +332,12 @@ function normalizeBoundPreimageSnapshots(value) {
       throw trioBridgeError(`Trio preimage snapshot is invalid: ${resolved}.`, 'ERR_TRIO_BRIDGE');
     }
     if (typeof snapshot.exists !== 'boolean'
-      || typeof snapshot.sha256 !== 'string'
-      || typeof snapshot.dev !== 'bigint'
-      || typeof snapshot.ino !== 'bigint'
-      || typeof snapshot.nlink !== 'bigint'
+      || (snapshot.exists
+        ? typeof snapshot.sha256 !== 'string' || typeof snapshot.dev !== 'bigint'
+          || typeof snapshot.ino !== 'bigint' || typeof snapshot.nlink !== 'bigint'
+        : snapshot.sha256 !== null || snapshot.dev !== null || snapshot.ino !== null || snapshot.nlink !== null
+          || typeof snapshot.parentPath !== 'string' || !path.isAbsolute(snapshot.parentPath)
+          || !isInside(snapshot.parentPath, resolved))
       || !snapshot.parent
       || typeof snapshot.parent !== 'object'
       || typeof snapshot.parent.dev !== 'bigint'
@@ -359,6 +354,7 @@ function normalizeBoundPreimageSnapshots(value) {
     }
     result.set(resolved, Object.freeze({
       exists: snapshot.exists,
+      ...(snapshot.parentPath ? { parentPath: snapshot.parentPath } : {}),
       bytes: snapshot.exists ? snapshot.bytes : null,
       sha256: snapshot.sha256,
       dev: snapshot.dev,
@@ -372,6 +368,15 @@ function normalizeBoundPreimageSnapshots(value) {
     }));
   }
   return result;
+}
+
+async function assertAbsentAncestor(snapshot) {
+  const current = await lstat(snapshot.parentPath, { bigint: true });
+  // Our own directory creation can change nlink; device and inode must survive.
+  if (!current.isDirectory() || current.isSymbolicLink()
+    || current.dev !== snapshot.parent.dev || current.ino !== snapshot.parent.ino) {
+    throw trioBridgeError(`Absent preimage ancestor changed: ${snapshot.parentPath}.`, 'ERR_TRIO_PREIMAGE_DRIFT');
+  }
 }
 
 function settledConfigForWrites(config, writes, sources) {
@@ -677,7 +682,19 @@ export async function applyTrioProjection({
   const attempts = [];
   const writeDesired = async (targetPath, explicitBefore = null) => {
     const boundBefore = boundPreimages?.get(path.resolve(targetPath)) ?? null;
-    const before = boundBefore ?? explicitBefore ?? (await snapshotPaths([targetPath])).get(targetPath);
+    let before = boundBefore ?? explicitBefore ?? (await snapshotPaths([targetPath])).get(targetPath);
+    if (boundBefore && !boundBefore.exists) {
+      await assertAbsentAncestor(boundBefore);
+      if (boundBefore.parentPath !== path.dirname(targetPath)) {
+        const lease = createdDirectories.find((entry) => entry.path === path.dirname(targetPath));
+        if (!lease?.identity) {
+          throw trioBridgeError(`Absent preimage parent was not created by this transaction: ${targetPath}.`, 'ERR_TRIO_PREIMAGE_DRIFT');
+        }
+        // Bind the writer to our created directory, never a fresh observation
+        // that could silently adopt a same-window foreign parent replacement.
+        before = { ...boundBefore, parent: lease.identity };
+      }
+    }
     if (!before) {
       throw trioBridgeError(`Trio write is missing its external precondition snapshot: ${targetPath}.`, 'ERR_TRIO_BRIDGE');
     }
@@ -712,6 +729,8 @@ export async function applyTrioProjection({
   };
   try {
     for (const descriptor of writes) {
+      const boundBefore = boundPreimages?.get(path.resolve(descriptor.destination));
+      if (boundBefore && !boundBefore.exists) await assertAbsentAncestor(boundBefore);
       await ensureContainedParent(runtimeEnvironment, descriptor.destination, descriptor.scope, createdDirectories);
       if (beforeWrite) await beforeWrite(Object.freeze({ targetPath: descriptor.destination, phase: 'target' }));
       await recheckTrioFixturePaths(physicalGateInput(runtimeEnvironment, prepared.managed));

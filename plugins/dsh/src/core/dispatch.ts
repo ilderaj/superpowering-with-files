@@ -6,10 +6,12 @@
 // gate registry classification. No dsh runtime, no fs, no ctx; the fs/ctx
 // orchestration lives in src/dispatch.ts.
 
-import { COMPLEXITY_KINDS } from './constants.js';
+import { CHIEF_REQUESTED_MODELS, CHIEF_WORK_ROLES, COMPLEXITY_KINDS, FLASH_EXECUTION_MODEL } from './constants.js';
+import { modelIdentity, recommendedEffortOf, validateModelEffort } from './routing.js';
 
 export const DISPATCH_PROVIDERS = Object.freeze([
   'dsh-sdk',
+  'openai',
   'codex',
   'claude-code'
 ]) as readonly string[];
@@ -33,6 +35,7 @@ export const MAX_PARALLEL_WORKERS = 2;
 // when the requested registry provider is not resolvable.
 export const DISPATCH_PROVIDER_REGISTRY_NAMES = Object.freeze({
   'dsh-sdk': 'subagent-dsh-sdk',
+  openai: 'subagent-dsh-sdk',
   codex: 'subagent-codex',
   'claude-code': 'subagent-claude-code'
 }) as Readonly<Record<string, string>>;
@@ -42,6 +45,9 @@ export type DispatchTier = 'standard' | 'deep';
 export interface DispatchProviderResolution {
   provider: string;
   model: string;
+  /** Exact packet selection, before translating Host prefixes for an API. */
+  requestedModel?: string;
+  effort?: string;
   declared: boolean;
   source: 'packet' | 'default';
 }
@@ -64,28 +70,57 @@ function normalizedString(value: unknown): string | null {
  */
 export function resolveDispatchProvider(packet: Record<string, unknown> | null | undefined): DispatchProviderResolution {
   const capability = objectRecord(packet?.capability);
-  const declaredProvider = normalizedString(capability.provider);
-  const declaredModel = normalizedString(capability.model);
-
-  if (declaredProvider === null) {
-    return {
-      provider: DEFAULT_DISPATCH_PROVIDER,
-      model: declaredModel ?? DEFAULT_DISPATCH_MODEL,
-      declared: false,
-      source: 'default'
-    };
+  for (const key of ['provider', 'model', 'requestedModel', 'effort', 'requestedEffort']) {
+    if (capability[key] !== undefined && normalizedString(capability[key]) === null) {
+      throw new Error(`Explicit ${key} must be non-empty text.`);
+    }
   }
-  if (!DISPATCH_PROVIDERS.includes(declaredProvider)) {
+  const declaredProvider = normalizedString(capability.provider);
+  const requested = normalizedString(capability.requestedModel);
+  const legacy = normalizedString(capability.model);
+  if (requested && legacy && requested !== legacy) {
+    throw new Error('Conflicting capability.requestedModel and capability.model; bind one explicit selection.');
+  }
+  const declaredModel = requested ?? legacy;
+  const requestedEffort = normalizedString(capability.requestedEffort);
+  const legacyEffort = normalizedString(capability.effort);
+  if (requestedEffort && legacyEffort && requestedEffort !== legacyEffort) {
+    throw new Error('Conflicting capability.requestedEffort and capability.effort.');
+  }
+  const effort = requestedEffort ?? legacyEffort;
+  if (declaredProvider && !DISPATCH_PROVIDERS.includes(declaredProvider)) {
     throw new Error('Unsupported dispatch provider: ' + declaredProvider);
   }
-  if (EXPLICIT_ONLY_PROVIDERS.includes(declaredProvider) && declaredModel === null) {
+  if (declaredProvider && EXPLICIT_ONLY_PROVIDERS.includes(declaredProvider) && !declaredModel) {
     throw new Error('Dispatch provider ' + declaredProvider + ' requires an explicit model.');
   }
+  const identity = declaredModel ? modelIdentity(declaredModel) : null;
+  const openai = identity !== null && CHIEF_REQUESTED_MODELS.includes(identity.apiModel);
+  if (declaredProvider === 'openai' && !openai) {
+    throw new Error('Dispatch provider openai requires an explicit supported OpenAI model.');
+  }
+  if (openai && declaredProvider === 'claude-code') {
+    throw new Error('OpenAI model cannot be dispatched through claude-code.');
+  }
+  const provider = openai && (!declaredProvider || declaredProvider === 'dsh-sdk')
+    ? 'openai' : declaredProvider ?? DEFAULT_DISPATCH_PROVIDER;
+  const resolvedEffort = effort ?? (openai
+    ? CHIEF_WORK_ROLES.includes(normalizedString(capability.workRole) ?? '') ? 'max' : recommendedEffortOf(declaredModel!)
+    : requested ? normalizedString(capability.complexity) ?? 'high' : undefined);
+  if (openai || requested || resolvedEffort) {
+    const policyModel = declaredModel === DEFAULT_DISPATCH_MODEL || !declaredModel ? FLASH_EXECUTION_MODEL : declaredModel;
+    validateModelEffort(policyModel, resolvedEffort ?? 'high', { isChild: true });
+  }
   return {
-    provider: declaredProvider,
-    model: declaredModel ?? DEFAULT_DISPATCH_MODEL,
-    declared: true,
-    source: 'packet'
+    provider,
+    // Codex accepts the Host identifier. OpenAI receives only its API model.
+    model: openai && provider !== 'codex' ? identity!.apiModel
+      : declaredModel === FLASH_EXECUTION_MODEL && provider === 'dsh-sdk' ? DEFAULT_DISPATCH_MODEL
+        : declaredModel ?? DEFAULT_DISPATCH_MODEL,
+    ...(declaredModel ? { requestedModel: declaredModel } : {}),
+    ...(resolvedEffort ? { effort: resolvedEffort } : {}),
+    declared: declaredProvider !== null || declaredModel !== null,
+    source: declaredProvider !== null || declaredModel !== null ? 'packet' : 'default'
   };
 }
 

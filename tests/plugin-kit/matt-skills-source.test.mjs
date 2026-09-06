@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -43,6 +44,8 @@ test('real corpus verifies and loads', async () => {
   const loaded = await loadMattSkillsSource();
   assert.deepEqual(Object.keys(loaded.skills).sort(), ['grill-me', 'grilling', 'to-questionnaire']);
   for (const [name, digest] of Object.entries(LOCKED_BODY_DIGESTS)) {
+    const rawBody = await readFile(join(mattSkillsCorpusRoot(), name, 'SKILL.md'));
+    assert.equal(createHash('sha256').update(rawBody).digest('hex'), digest, `raw pin for ${name}`);
     assert.ok(loaded.skills[name].length > 0, `body for ${name} is empty`);
     assert.equal(loaded.metadata.bodyPatch, false);
   }
@@ -208,8 +211,10 @@ test('overlay replaces grilling body without touching the pinned corpus', async 
   );
   assert.equal(
     grillingProvenance.overlaySha256,
-    '3cce5d19fba086a5084c38f199818a7d90978487e41d10e802ae33e971bad858',
+    createHash('sha256').update(await readFile(new URL('../../harness/core/upstream-overlays/mattpocock/grilling/SKILL.md', import.meta.url))).digest('hex'),
   );
+  assert.equal(loaded.skills.grilling, await readFile(new URL('../../harness/core/upstream-overlays/mattpocock/grilling/SKILL.md', import.meta.url), 'utf8'));
+  assert.notEqual(grillingProvenance.overlaySha256, grillingProvenance.corpusSha256);
   assert.ok(
     loaded.skills.grilling.includes('request_user_input'),
     'overlay body should contain the plan-mode question-card flow',

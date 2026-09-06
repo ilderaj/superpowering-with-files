@@ -96,6 +96,108 @@ rules are enforced in code:
 /swf audit <task-id> <authorityRoot>
                                 — runnable evidence audit (Slice 3; see below)
 
+## Model selection and effort contract
+
+Use `capability.requestedModel` and `capability.requestedEffort` to select a
+model independently of the Chief/execution role or Corleone persona. The
+legacy `model` / `effort` aliases are accepted when they agree with the
+requested fields; conflicting or empty explicit values fail closed. Execution
+packets still declare `complexity` for the work classification and identity.
+An explicit effort takes precedence over complexity.
+
+Recommended starting selections for **new explicit packets** are:
+
+| Workload | Model | Initial effort |
+| --- | --- | --- |
+| Most demanding reasoning | `gpt-6-astra` | `high` |
+| Complex implementation or reasoning | `gpt-5.6-sol` | `high` |
+| Balanced everyday work | `gpt-5.6-terra` | `medium` |
+| Fast bounded work | `gpt-5.6-luna` | `medium` |
+
+These selections are available to both Chief and executor roles. They are
+routing recommendations, not measured quality, cost, or latency guarantees.
+New Chief packets must declare the recommended effort explicitly before
+freezing. Omitted Chief effort always retains legacy `max`, including existing
+Sol/Terra packets with an explicit model. Execution packets selecting a modern
+model while omitting effort use its initial effort above. Explicit OpenAI efforts are `low`, `medium`, `high`, `xhigh`, and `max`.
+The adapter never substitutes `none`, `minimal`, or API `ultra` for Astra.
+
+Model-unspecified execution packets retain
+`opencode-go/deepseek-v4-flash` with effort from complexity; the DSH legacy
+worker provider/model remains `dsh-sdk` / `deepseek-v4-flash`. A model-unspecified
+Chief decision retains `gpt-5.6-sol` / `max`; an explicit Chief model without
+effort also retains `max`. Resolving old packets never edits
+their fields or migrates frozen packet digests. A new recommendation or persona
+change cannot silently replace an existing model selection.
+
+Bare OpenAI models resolve to model provider `openai`. `main/` and `p646e20/`
+are Host routing prefixes: a Codex handoff retains the full identifier, while
+an OpenAI API request receives only the bare model, such as `gpt-6-astra`.
+DSH maps `openai` to its `subagent-dsh-sdk` worker transport; transport identity
+and model provider are different fields. Explicit `codex` / `claude-code`
+worker transports still require a model, and OpenAI models cannot use the
+Claude transport.
+
+Legacy explicit Chief `ultra` is a Host-only compatibility case. The routing
+core requires separate authenticated Host evidence with an `evidenceRef` and
+`supportedModelEfforts` containing `ultra` for the exact requested identifier;
+packet-backed Host routing also requires the matching `packetDigest`. Astra
+requires a Host-prefixed identifier for this case. A packet's own evidence,
+a generic model-control flag, or a human override is insufficient. Unsupported
+requests fail with guidance to use `max` or another supported effort. Child
+requests and OpenAI API dispatch reject `ultra`.
+
+### Host execution and fallback
+
+The generic decision core prefers a supported native subagent for default
+execution work, and a supported visible worker for Chief work. Chief routing
+can admit a native route only when child delegation, a proper-subset envelope,
+and the Host's requested model/effort controls permit it. An unavailable default
+execution native route returns `manual_pending`; it does not silently change
+the chosen topology. `visible_worker_required` always needs an authenticated
+visible-worker capability and bound permissions/paths; no native or inline
+substitute is allowed. Unavailable model control never triggers a cheaper-model
+or higher-effort retry. A caller can explicitly choose and bind another
+supported selection after assessing the workload.
+
+The pinned DSH one-shot `SubagentStartRequest` does **not** expose effort or
+child setup. For effort-bearing dispatch, the Host must implement the optional
+`ctx.subagents.startWithModelSelection(provider, request, selection)` adapter
+contract in `src/context.ts`, binding `{ provider, model, reasoningEffort }`
+before the child's first request. A Host can use the SDK's
+`installModelSelection` during child creation to implement this contract.
+This plugin does not claim that the stock Host already implements it. Without
+that adapter, dispatch stops with `model_effort_controls_unavailable` before
+starting or reserving a worker; it never drops effort into an ignored option.
+Legacy dispatch without a declared selection keeps its existing start path.
+
+Bounded children retain a proper-subset permission/path envelope. Supply
+`parentModel` and `parentEffort` for a child budget check. Effort ordering is
+meaningful only within the same API model (Host aliases are equivalent).
+Changing models requires an explicit `childModelAllowance` with `model`,
+`maxEffort`, `reason`, and `provenance`; the child must stay within that effort
+ceiling. A Luna `max` parent does not automatically authorize Astra `low`.
+Codex non-spawn operations also require the frozen worker identity from the
+original spawn, so continuation cannot select a new callsign.
+
+### Evidence limits
+
+- **Declared/requested:** packet model and effort, translated API model, and
+  adapter arguments express intent. They are not actual execution evidence.
+- **Host-claimed:** a DSH `{SessionId, provider, declared model}` dispatch record
+  proves the Host reported a worker. Requested model/effort extras remain
+  requested fields; the adapter seam does not authenticate actual execution.
+- **Authenticated:** actual model and effort require authenticated Host evidence
+  for the relevant operation and packet. A successful route decision, passing
+  mock test, CLI exit code, or model's own statement cannot supply that proof.
+
+The model matrix is covered by policy, Host-routing, handoff, and mock dispatch
+tests. Live CLI smoke for all four models is a separate integration activity;
+no all-model actual-execution result is asserted here. Older CLI configurations
+may require `--ignore-user-config` and an explicit local proxy provider; those
+invocation details alone do not authenticate which model ran. Vendored markdown
+under `assets/` is regenerated separately from the stabilized source policies.
+
 ## Budget defaults (report decision 14)
 
 - ≤ 2 parallel workers per host; ~100k tokens per task cap

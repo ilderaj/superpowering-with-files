@@ -2,8 +2,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { lstat, mkdir, open, readFile, realpath, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { assertInstallerStateEvidence } from './state.mjs';
+import { PROJECTION_SURFACES } from '../../trio/projection.mjs';
 
-const SURFACE_ORDER = Object.freeze(['entry', 'trio', 'dev', 'office', 'safety', 'chiefops']);
+const SURFACE_ORDER = Object.freeze(PROJECTION_SURFACES.map((surface) => surface.id));
 const STATE_SURFACE = 'state';
 const BACKUP_ANCESTOR_RELATIVES = Object.freeze(['.harness-backup', path.join('.harness-backup', 'trio-takeover')]);
 const BACKUP_REF_PREFIX = 'trio-backup-v1:';
@@ -102,6 +103,41 @@ async function capturePreimage(targetPath) {
   });
 }
 
+// An absent support file has no bytes or inode. Bind it to the nearest real
+// directory without creating directories before the backup is published.
+async function captureAbsentPreimage(targetPath) {
+  const absolute = path.resolve(targetPath);
+  let parentPath = path.dirname(absolute);
+  let parent;
+  for (;;) {
+    try {
+      parent = await lstat(parentPath, { bigint: true });
+      break;
+    } catch (error) {
+      if (error?.code !== 'ENOENT' || path.dirname(parentPath) === parentPath) throw error;
+      parentPath = path.dirname(parentPath);
+    }
+  }
+  if (parent.isSymbolicLink() || !parent.isDirectory() || await realpath(parentPath) !== parentPath) {
+    throw takeoverBackupError(`Unsafe absent preimage ancestor: ${parentPath}.`, 'ERR_TRIO_PHYSICAL_GATE');
+  }
+  try {
+    await lstat(absolute);
+    throw takeoverBackupError(`Absent takeover preimage appeared: ${absolute}.`, 'ERR_TRIO_PREIMAGE_DRIFT');
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+  const after = await lstat(parentPath, { bigint: true });
+  if (parent.dev !== after.dev || parent.ino !== after.ino || parent.nlink !== after.nlink) {
+    throw takeoverBackupError(`Absent preimage ancestor changed: ${parentPath}.`, 'ERR_TRIO_PREIMAGE_DRIFT');
+  }
+  return Object.freeze({
+    path: absolute, exists: false, bytes: null, sha256: null,
+    dev: null, ino: null, nlink: null, parentPath,
+    parent: Object.freeze({ dev: parent.dev, ino: parent.ino, nlink: parent.nlink })
+  });
+}
+
 function samePreimageState(preimage, evidence) {
   return preimage.exists === evidence.exists
     && preimage.sha256 === evidence.sha256
@@ -184,9 +220,9 @@ async function assertTrioBackupRootChain({ authorityRoot, backupRoot, verifyLeaf
 }
 
 /**
- * Capture and revalidate the seven stable preimages of an existing-V2 ChiefOps
- * takeover: the six managed Codex user-global Trio surfaces plus the prior V2
- * state. The caller must hold the authority publication lock.
+ * Capture all primary and support preimages of an existing-V2 ChiefOps
+ * takeover, including explicit absence, plus the prior V2 state. The caller
+ * must hold the authority publication lock.
  */
 export async function captureTrioTakeoverPreimages({ environment, descriptors, statePrecondition } = {}) {
   if (!environment || typeof environment !== 'object') {
@@ -200,19 +236,26 @@ export async function captureTrioTakeoverPreimages({ environment, descriptors, s
   const snapshots = new Map();
   const objects = [];
   for (const descriptor of descriptors) {
-    if (descriptor.management !== 'managed' || !expectedSurfaces.has(descriptor.surface)) {
+    const surface = PROJECTION_SURFACES.find((surface) => surface.id === descriptor.surface);
+    const expectedDestination = surface && path.join(environment.homeDir, surface.id === 'entry'
+      ? '.codex/AGENTS.md' : `.agents/skills/${surface.relativePath}`);
+    if (descriptor.management !== 'managed' || !expectedSurfaces.has(descriptor.surface)
+      || descriptor.targetId !== 'codex' || descriptor.scope !== 'user-global'
+      || descriptor.source !== surface.source || descriptor.destination !== expectedDestination) {
       throw takeoverBackupError(`Unexpected takeover surface: ${descriptor.surface}.`, 'ERR_TRIO_BACKUP');
     }
     if (seenSurfaces.has(descriptor.surface)) {
       throw takeoverBackupError(`Duplicate takeover surface: ${descriptor.surface}.`, 'ERR_TRIO_BACKUP');
     }
     seenSurfaces.add(descriptor.surface);
-    const snapshot = await capturePreimage(descriptor.destination);
+    const snapshot = surface.supportFor && descriptor.action === 'create'
+      ? await captureAbsentPreimage(descriptor.destination)
+      : await capturePreimage(descriptor.destination);
     snapshots.set(snapshot.path, snapshot);
     objects.push(Object.freeze({ path: snapshot.path, surface: descriptor.surface, snapshot }));
   }
   if (seenSurfaces.size !== expectedSurfaces.size) {
-    throw takeoverBackupError('Takeover preimages must cover all six global Trio surfaces.', 'ERR_TRIO_BACKUP');
+    throw takeoverBackupError('Takeover preimages must cover the complete static global Trio inventory.', 'ERR_TRIO_BACKUP');
   }
 
   const stateSnapshot = await capturePreimage(environment.stateFile);
@@ -238,10 +281,11 @@ function manifestObjectValue(object, offset, length) {
     path: snapshot.path,
     surface: object.surface,
     exists: snapshot.exists,
-    sha256: `sha256:${snapshot.sha256}`,
-    dev: String(snapshot.dev),
-    ino: String(snapshot.ino),
-    nlink: String(snapshot.nlink),
+    sha256: snapshot.exists ? `sha256:${snapshot.sha256}` : null,
+    dev: snapshot.exists ? String(snapshot.dev) : null,
+    ino: snapshot.exists ? String(snapshot.ino) : null,
+    nlink: snapshot.exists ? String(snapshot.nlink) : null,
+    ...(snapshot.parentPath ? { parentPath: snapshot.parentPath } : {}),
     parent: Object.freeze({
       dev: String(snapshot.parent.dev),
       ino: String(snapshot.parent.ino),
@@ -273,7 +317,7 @@ async function createExclusiveFile(targetPath, bytes, label) {
 }
 
 /**
- * Publish a unique immutable seven-object backup bundle and manifest outside
+ * Publish a unique immutable complete-inventory backup bundle and manifest outside
  * the projected destinations, then re-read and verify both files. The caller
  * must hold the authority publication lock. The returned rollback reference is
  * a parseable trio-backup-v1 file reference to the manifest (canonical absolute
@@ -295,6 +339,16 @@ export async function publishTrioTakeoverBackup({ environment, preimages, owners
 
   const liveByPath = new Map(preimages.objects.map((object) => [object.snapshot.path, object.snapshot]));
   for (const object of preimages.objects) {
+    if (!object.snapshot.exists) {
+      const live = await captureAbsentPreimage(object.snapshot.path);
+      if (live.parentPath !== object.snapshot.parentPath
+        || live.parent.dev !== object.snapshot.parent.dev
+        || live.parent.ino !== object.snapshot.parent.ino
+        || live.parent.nlink !== object.snapshot.parent.nlink) {
+        throw takeoverBackupError(`Absent preimage drifted before backup: ${object.snapshot.path}.`, 'ERR_TRIO_PREIMAGE_DRIFT');
+      }
+      continue;
+    }
     const live = await readFile(object.snapshot.path);
     if (sha256(live) !== object.snapshot.sha256) {
       throw takeoverBackupError(`Takeover preimage drifted before backup publication: ${object.snapshot.path}.`);
@@ -342,12 +396,13 @@ export async function publishTrioTakeoverBackup({ environment, preimages, owners
     throw error;
   }
 
-  const bundle = Buffer.concat(preimages.objects.map((object) => object.snapshot.bytes));
+  const bundle = Buffer.concat(preimages.objects.map((object) => object.snapshot.bytes ?? Buffer.alloc(0)));
   const manifestObjects = [];
   let offset = 0;
   for (const object of preimages.objects) {
-    manifestObjects.push(manifestObjectValue(object, offset, object.snapshot.bytes.length));
-    offset += object.snapshot.bytes.length;
+    const length = object.snapshot.bytes?.length ?? 0;
+    manifestObjects.push(manifestObjectValue(object, offset, length));
+    offset += length;
   }
   const manifest = {
     schemaVersion: 1,
@@ -409,11 +464,15 @@ export async function publishTrioTakeoverBackup({ environment, preimages, owners
         throw takeoverBackupError('Takeover backup manifest offsets are inconsistent.');
       }
       const slice = readBundle.subarray(object.offset, object.offset + object.length);
-      if (slice.length !== object.length || sha256(slice) !== object.sha256.slice('sha256:'.length)) {
+      const contentMatches = object.exists
+        ? sha256(slice) === object.sha256?.slice('sha256:'.length)
+        : object.length === 0 && object.sha256 === null;
+      if (slice.length !== object.length || !contentMatches) {
         throw takeoverBackupError(`Takeover backup object verification failed: ${object.path}.`);
       }
       const expected = liveByPath.get(object.path);
-      if (!expected || object.sha256 !== `sha256:${expected.sha256}`
+      if (!expected || object.exists !== expected.exists
+        || object.sha256 !== (expected.exists ? `sha256:${expected.sha256}` : null)
         || String(object.dev) !== String(expected.dev)
         || String(object.ino) !== String(expected.ino)
         || String(object.nlink) !== String(expected.nlink)) {

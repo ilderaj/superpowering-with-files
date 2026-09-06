@@ -1,48 +1,24 @@
 ---
 name: trio
-description: Stable Trio entry policy for task routing and capability selection.
+description: Shared routing, authority, and completion contract for Trio tasks.
 ---
 
-# Trio Entry
+# Trio
 
-This entry policy selects a task route and one capability family. It does not become a task authority, execute lifecycle actions, or replace Host controls.
+Follow user intent; honor existing authorization for the same action and scope. Resolve routine choices from available evidence. Ask only for a material missing decision or authorization, and continue independent authorized work while waiting. Host security and tool controls remain binding.
 
-## Route First
+Route before choosing effort or execution topology:
 
-Route before choosing effort or execution topology. First classify the current work from its scope, duration, uncertainty, and durability needs. Only after the route is known may the Host and caller select an effort intent or execution topology.
+- **Quick:** direct, bounded work; no Trio creation or mandatory worker, worktree, design, or review ceremony.
+- **Tracked:** create or restore the bound task's three planning files under `planning/active/<task-id>/`: `task_plan.md`, `findings.md`, and `progress.md`. They are the sole durable task authority; no fourth task-state surface.
+- **Deep:** a current-round reasoning choice for material uncertainty, not a durable task type.
 
-## Task Classes
+Select exactly one capability family: `dev`, `office`, or `safety`. Read its SKILL and only the references needed for the current decision. ChiefOps is an optional governance companion for a selected Chief lane.
 
-### Quick
+Direct work may complete after relevant verification without Chief acceptance. Delegated primary work returns a candidate and needs Chief acceptance plus Trio writeback; an explicitly chosen governance lane may also require independent acceptance. Bounded helpers do not turn a direct executor into a delegated primary worker.
 
-Quick work is direct and lightweight: no Trio creation and no mandatory worker or fan-out. It does not require a worktree, design round, or review round.
+Use bounded parallel delegation when beneficial and permitted by the Host and user. The selected topology and exact scope remain binding. Read [execution boundaries](references/execution.md) when selecting a different model or effort, delegating, freezing a slice, or recovering a worker.
 
-### Tracked
+Human intent constrains model and effort choices; the agent recommends or selects supported intent, and the Host executes and attests. The Host owns worker lifecycle, continuation, permissions, and model evidence. Requested model and effort express intent; actual remains unknown without authenticated Host evidence. The shared contract prescribes no forced model roster.
 
-Tracked work creates or restores only the bound task's three planning files: `planning/active/<task-id>/task_plan.md`, `planning/active/<task-id>/findings.md`, and `planning/active/<task-id>/progress.md`. The Trio is the only durable task authority; no fourth task-state file is introduced.
-
-### Deep
-
-Deep is a current-round reasoning decision for material uncertainty, unclear architecture, a non-obvious root cause, or high-risk judgment. It is not a durable task type and does not create another authority.
-
-## Capability Selection
-
-After routing, choose exactly one capability family: `dev`, `office`, or `safety`. The selected capability may define quality behavior within its own boundary, but it may not take ownership of task state, Host lifecycle, or external gates.
-
-## Plan and Execute Boundary
-
-Delegated execution separates planning from production mutation. Chief: intake, route, planning, authority, assignment, gates, review, and acceptance. Execution worker: production changes and primary verification. The worker result is a candidate only; Chief acceptance is required before durable completion.
-
-Tracked work may be executed directly or governed by Chief. Direct tracked execution performs its own production changes and primary verification and can establish technical verification. Chief independent acceptance is required only when a visible or delegated worker is the primary executor, or when the chosen governance lane explicitly requires it. When a visible worker is primary, the Chief never substitutes a native subagent or performs Chief inline execution, and the worker result remains a candidate until Chief acceptance and Trio writeback.
-
-When primary execution requires a visible worker, the Chief never performs production mutations inline and never substitutes a native subagent for that execution worker. If a compliant visible worker is unavailable, the Host returns `manual_pending` or `blocked`; it never falls back to Chief inline execution. Native subagents remain allowed only as worker-local bounded delegation. Requested model and effort are intent; actual model and effort remain unknown without authenticated Host evidence.
-
-## Authority and Host Boundary
-
-The Trio remains the sole durable task authority. The Host owns worker and subtask lifecycle, requested and actual model evidence, permissions, continuation, and external or human gates. Host-native goal and continuation are the long-task runtime; this entry policy is not a scheduler, daemon, poller, or runner.
-
-Requested model and effort are intent. Without authenticated Host evidence, actual remains unknown. Worker done is only a candidate; the Chief performs acceptance and Trio writeback.
-
-## Human Gates
-
-Destructive, external, credential or security-sensitive, merge, push, publish, release, deploy, send, and data-loss actions retain the applicable human gate. A route or capability selection never grants permission for those actions.
+Return the result, paths, verification evidence and limits. Use direct completion, delegated `candidate_done`, or a bounded blocker as appropriate; never imply an external action or human approval occurred from technical verification alone.

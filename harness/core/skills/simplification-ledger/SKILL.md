@@ -22,11 +22,13 @@ Simplification Ledger scans the repo for deliberate simplification markers and t
 
 ## Canonical Search
 
-Use this exact search shape:
+Use this search as a discovery filter:
 
 ```bash
 rg -n '(#|//) ?swf-simplify:' .
 ```
+
+Inspect matches in source context before reporting; the regex alone cannot distinguish prose or block-comment content. Do not infer missing ceilings or upgrade conditions, and do not turn the ledger into a line-saving quota.
 
 V1 supports hash-style and slash-style line comments only. Do not treat block comments, prose docs, or other marker shapes as in scope for this version.
 

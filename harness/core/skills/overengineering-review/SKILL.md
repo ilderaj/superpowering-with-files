@@ -11,7 +11,7 @@ Overengineering Review is a narrow review lens for places where the implementati
 ## Outcome Contract
 
 - **Outcome:** the user gets a compact list of complexity cuts grouped by what kind of reduction is possible.
-- **Done when:** each finding is tagged with one of `delete`, `stdlib`, `native`, `yagni`, or `shrink`, and the response ends with `net: -<N> lines possible.`
+- **Done when:** each finding is tagged with one of `delete`, `stdlib`, `native`, `yagni`, or `shrink`, and each proposed cut has evidence and a behavior-preservation check
 - **Evidence:** cited files or code locations plus a short rationale for each cut.
 - **Output:** a focused over-engineering review, not a broad correctness report.
 
@@ -46,14 +46,10 @@ change: <what to remove or simplify>
 why: <why the current shape is over-built>
 ```
 
-Finish with:
-
-```text
-net: -<N> lines possible.
-```
+Summarize the concrete reduction and its verification. A line-saving estimate is optional: include one only when measured from a bounded diff or supported by a clear calculation; label estimates and their basis. Do not invent counts or treat fewer lines as proof of better design.
 
 ## Common Mistakes
 - reporting correctness bugs instead of over-building
 - turning every style preference into a finding
 - proposing larger rewrites than the simplification saves
-- omitting the final `net: -<N> lines possible.` line
+- inventing line-saving counts or prioritizing them over preserved behavior

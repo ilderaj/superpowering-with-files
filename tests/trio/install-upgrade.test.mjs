@@ -23,7 +23,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { migrateV1ToV2, parseV2Config } from '../../harness/trio/config.mjs';
-import { projectConfig } from '../../harness/trio/projection.mjs';
+import { projectConfig, SURFACES, SUPPORT_SURFACES, PROJECTION_SURFACES } from '../../harness/trio/projection.mjs';
 import { readLegacyTask } from '../../harness/trio/compatibility/legacy-reader.mjs';
 import { install } from '../../harness/installer/commands/install.mjs';
 import { sync } from '../../harness/installer/commands/sync.mjs';
@@ -32,7 +32,7 @@ import { verify } from '../../harness/installer/commands/verify.mjs';
 import { resolveTrioFixture, resolveTrioProductionEnvironment } from '../../harness/installer/lib/state.mjs';
 import { atomicWriteText } from '../../harness/trio/core/store.mjs';
 import { applyTrioProjection, prepareTrioProjection } from '../../harness/installer/commands/sync.mjs';
-import { parseTrioBackupV1Ref } from '../../harness/installer/lib/trio-takeover-backup.mjs';
+import { parseTrioBackupV1Ref, captureTrioTakeoverPreimages } from '../../harness/installer/lib/trio-takeover-backup.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const FIXTURE_ROOT = path.join(REPO_ROOT, 'tests/fixtures/trio-v2/install');
@@ -52,14 +52,7 @@ const EXPECTED_FILES = [
   'upgrade-v1-unmanaged/recovery.json',
   'upgrade-v1-unmanaged/legacy-task/task_plan.md'
 ];
-const TRIO_MANAGED_SOURCE_PATHS = Object.freeze([
-  'harness/trio/templates/entry-policy.md',
-  'harness/trio/skill/SKILL.md',
-  'harness/trio/capabilities/dev/SKILL.md',
-  'harness/trio/capabilities/office/SKILL.md',
-  'harness/trio/capabilities/safety/SKILL.md',
-  'harness/trio/governance/chiefops/SKILL.md'
-]);
+const TRIO_MANAGED_SOURCE_PATHS = Object.freeze(PROJECTION_SURFACES.map(({ source }) => source));
 
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
@@ -563,26 +556,15 @@ function migrationRequest(inputs) {
 }
 
 function codexDestinations(root, scope = 'user-global') {
-  const entry = scope === 'workspace' ? `${root}/AGENTS.md` : `${root}/.codex/AGENTS.md`;
-  return [
-    entry,
-    `${root}/.agents/skills/trio/SKILL.md`,
-    `${root}/.agents/skills/trio/dev/SKILL.md`,
-    `${root}/.agents/skills/trio/office/SKILL.md`,
-    `${root}/.agents/skills/trio/safety/SKILL.md`,
-    `${root}/.agents/skills/chiefops/SKILL.md`
-  ];
+  return PROJECTION_SURFACES.map((surface) => surface.id === 'entry'
+    ? `${root}/${scope === 'workspace' ? 'AGENTS.md' : '.codex/AGENTS.md'}`
+    : `${root}/.agents/skills/${surface.relativePath}`);
 }
 
 function genericDestinations(root, targetId) {
   const base = `${root}/manual/${targetId}`;
-  return [
-    `${base}/entry-policy.md`,
-    `${base}/skills/trio/SKILL.md`,
-    `${base}/skills/trio/dev/SKILL.md`,
-    `${base}/skills/trio/office/SKILL.md`,
-    `${base}/skills/trio/safety/SKILL.md`
-  ];
+  return PROJECTION_SURFACES.map((surface) => surface.id === 'entry'
+    ? `${base}/entry-policy.md` : `${base}/skills/${surface.relativePath}`);
 }
 
 function absentObservations(descriptors) {
@@ -717,6 +699,7 @@ test('Trio projection passes externally captured target and parent conditions to
       if (Object.hasOwn(options, 'expectedParentIdentity')) {
         captured.options.expectedParentIdentity = { ...options.expectedParentIdentity };
       }
+      captured.parentAtPublication = await captureDirectoryIdentity(path.dirname(targetPath));
       observed.push(captured);
       return atomicWriteText(targetPath, contents, options);
     };
@@ -732,10 +715,12 @@ test('Trio projection passes externally captured target and parent conditions to
       observed.map((entry) => entry.targetPath).sort(),
       [...beforeByPath.keys()].sort()
     );
-    for (const { targetPath, options } of observed) {
+    for (const { targetPath, options, parentAtPublication } of observed) {
       const prior = beforeByPath.get(targetPath);
       assert.equal(Object.hasOwn(options, 'expectedSha256'), true, targetPath);
-      assert.deepEqual(options.expectedParentIdentity, prior.parent, targetPath);
+      assert.deepEqual(options.expectedParentIdentity, parentAtPublication, targetPath);
+      assert.equal(options.expectedParentIdentity.dev, prior.parent.dev, targetPath);
+      assert.equal(options.expectedParentIdentity.ino, prior.parent.ino, targetPath);
       if (prior.target) {
         assert.equal(options.expectedSha256, sha256(prior.target.bytes), targetPath);
         assert.deepEqual(options.expectedTargetIdentity, {
@@ -848,11 +833,11 @@ test('production V2 reinstall preserves recovery and ownership while refusing us
   }
 });
 
-test('production projection settles dynamic zero, six, and twelve managed surface cardinalities', async () => {
+test('production projection settles zero, single-scope, and both-scope managed surface cardinalities', async () => {
   const cases = [
     { label: 'zero', scopeKind: 'workspace', includeCodex: false, count: 0 },
-    { label: 'six', scopeKind: 'workspace', includeCodex: true, count: 6 },
-    { label: 'twelve', scopeKind: 'both', includeCodex: true, count: 12 }
+    { label: 'single-scope', scopeKind: 'workspace', includeCodex: true, count: PROJECTION_SURFACES.length },
+    { label: 'both-scopes', scopeKind: 'both', includeCodex: true, count: PROJECTION_SURFACES.length * 2 }
   ];
   for (const item of cases) {
     const roots = await createProductionRoots(`cardinality-${item.label}`);
@@ -873,7 +858,7 @@ test('production projection settles dynamic zero, six, and twelve managed surfac
       if (item.count === 0) {
         await assertAbsentTrioMaterialization([...workspaceDestinations, ...homeDestinations]);
         await assertExactSettledOwnership(persisted, []);
-      } else if (item.count === 6) {
+      } else if (item.count === PROJECTION_SURFACES.length) {
         await assertExactTrioMaterialization(workspaceDestinations);
         await assertAbsentTrioMaterialization(homeDestinations);
         await assertExactSettledOwnership(persisted, workspaceDestinations);
@@ -925,7 +910,7 @@ test('production doctor and verify fail closed on ownership evidence drift', asy
       await atomicWriteText(statePath, `${JSON.stringify(state, null, 2)}\n`);
     },
     assertAfter: async ({ entryPath }) => {
-      assert.match(await readFile(entryPath, 'utf8'), /Trio V2 Entry Policy/);
+      assert.match(await readFile(entryPath, 'utf8'), /name: trio-v2-entry/);
     }
   });
 });
@@ -1261,7 +1246,7 @@ test('Trio V1 standard upgrade applies only managed Codex surfaces and keeps gen
     await assertExactSettledOwnership(state, codexDestinationsForFixture);
     assert.equal(state.ownership.source, migrationConfig.ownership.source);
     assert.equal(state.ownership.manifestRef, migrationConfig.ownership.manifestRef);
-    assert.match(await readFile(codexEntry, 'utf8'), /Trio V2 Entry Policy/);
+    assert.match(await readFile(codexEntry, 'utf8'), /name: trio-v2-entry/);
     for (const relative of [
       '.agents/skills/trio/SKILL.md',
       '.agents/skills/trio/dev/SKILL.md',
@@ -2034,7 +2019,7 @@ test('install fixtures have exact roots/files and fresh input is strict V2', asy
       scope: 'workspace',
       root: '/fixture/workspace'
     }]);
-    assert.equal(projected.descriptors.length, 6);
+    assert.equal(projected.descriptors.length, PROJECTION_SURFACES.length);
     assert.throws(
       () => migrateV1ToV2({
         persistedState: freshInput,
@@ -2126,8 +2111,8 @@ test('standard V1 migration consumes real raw bytes from a temp copy and preserv
       placements,
       pathObservations: observations
     });
-    assert.equal(projected.descriptors.length, 12);
-    assert.equal(projected.descriptors.filter((descriptor) => descriptor.targetId === 'codex').length, 6);
+    assert.equal(projected.descriptors.length, PROJECTION_SURFACES.length * 2);
+    assert.equal(projected.descriptors.filter((descriptor) => descriptor.targetId === 'codex').length, PROJECTION_SURFACES.length);
     const codexEntry = projected.descriptors.find((descriptor) =>
       descriptor.targetId === 'codex' && descriptor.surface === 'entry'
     );
@@ -2137,13 +2122,13 @@ test('standard V1 migration consumes real raw bytes from a temp copy and preserv
       projected.descriptors
         .filter((descriptor) => descriptor.targetId === 'codex' && descriptor.surface !== 'entry')
         .map((descriptor) => [descriptor.action, descriptor.execution]),
-      Array.from({ length: 5 }, () => ['create', 'managed'])
+      Array.from({ length: PROJECTION_SURFACES.length - 1 }, () => ['create', 'managed'])
     );
     assert.deepEqual(
       projected.descriptors
         .filter((descriptor) => descriptor.targetId === 'cursor')
         .map((descriptor) => [descriptor.action, descriptor.execution]),
-      Array.from({ length: 6 }, () => ['create', 'manual'])
+      Array.from({ length: PROJECTION_SURFACES.length }, () => ['create', 'manual'])
     );
     assert.deepEqual(projected.conflicts, []);
     assert.equal(projected.descriptors.some((descriptor) => descriptor.destination === '/fixture/home/.codex/AGENTS.md'), true);
@@ -2466,16 +2451,8 @@ async function assertTakeoverBackupVerified({ staged, backup, stateBefore }) {
   assert.equal(manifest.kind, 'trio-takeover-backup');
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.id, path.basename(backup.root));
-  assert.deepEqual(manifest.objects.map((object) => object.surface), [
-    'entry',
-    'trio',
-    'dev',
-    'office',
-    'safety',
-    'chiefops',
-    'state'
-  ]);
-  assert.equal(manifest.objects.length, 7);
+  assert.deepEqual(manifest.objects.map((object) => object.surface), [...PROJECTION_SURFACES.map((surface) => surface.id), 'state']);
+  assert.equal(manifest.objects.length, PROJECTION_SURFACES.length + 1);
   assert.equal(manifest.ownership.source, 'existing-v2-user-global');
   assert.equal(manifest.ownership.manifestRef, null);
   assert.deepEqual(manifest.ownership.entries, stateBefore.ownership.entries);
@@ -2497,6 +2474,16 @@ async function assertTakeoverBackupVerified({ staged, backup, stateBefore }) {
   for (const object of manifest.objects) {
     assert.equal(object.offset, cursor);
     const slice = bundle.subarray(object.offset, object.offset + object.length);
+    if (!object.exists) {
+      assert.equal(expectedBytes.has(object.path), false);
+      assert.equal(object.length, 0);
+      assert.equal(object.sha256, null);
+      assert.equal(object.dev, null);
+      assert.equal(object.ino, null);
+      assert.equal(object.nlink, null);
+      assert.ok(path.isAbsolute(object.parentPath));
+      continue;
+    }
     assert.equal(sha256(slice), object.sha256.slice('sha256:'.length));
     assert.deepEqual(slice, expectedBytes.get(object.path));
     assert.equal(typeof object.dev, 'string');
@@ -2509,7 +2496,7 @@ async function assertTakeoverBackupVerified({ staged, backup, stateBefore }) {
   assert.equal(cursor, bundle.length);
 }
 
-test('production install --takeover-chiefops adopts one unowned global ChiefOps with a verified seven-object backup', async () => {
+test('production install --takeover-chiefops adopts one unowned global ChiefOps with a verified complete-inventory backup', async () => {
   const staged = await stageExistingV2UserGlobal('takeover-success');
   try {
     const { environment, destinations, owned, options } = staged;
@@ -2606,7 +2593,7 @@ async function stageExistingV2UserGlobalAt(roots, environment, { chiefopsPresent
   const stateBytes = Buffer.from(`${JSON.stringify(state, null, 2)}\n`, 'utf8');
   await writeTrioStateFile(environment, state);
   const liveBytes = new Map(await Promise.all(
-    [...destinations]
+    [...destinations.slice(0, SURFACES.length)]
       .filter((destination) => destination !== chiefopsDestination || chiefopsPresent)
       .map(async (destination) => [destination, await readFile(destination)])
   ));
@@ -2941,7 +2928,7 @@ test('${label}', async (t) => {
 `;
 }
 
-test('production install --takeover-chiefops fails closed when the seven-object backup cannot be published', async () => {
+test('production install --takeover-chiefops fails closed when the complete-inventory backup cannot be published', async () => {
   const installUrl = new URL('../../harness/installer/commands/install.mjs', import.meta.url).href;
   const backupUrl = new URL('../../harness/installer/lib/trio-takeover-backup.mjs', import.meta.url).href;
   const source = takeoverProbeTest({
@@ -3207,4 +3194,149 @@ test('Trio sync help no longer advertises unavailable takeover or conflict flags
   assert.match(output, /--check/);
   assert.doesNotMatch(output, /--takeover/);
   assert.doesNotMatch(output, /--conflict/);
+});
+
+test('old six-surface V2 installs create absent references and settle their ownership', async () => {
+  const staged = await stageExistingV2UserGlobal('old-six-reference-upgrade');
+  try {
+    const state = structuredClone(staged.state);
+    state.ownership.entries.push({ targetId: 'codex', path: staged.chiefopsDestination, identity: contentIdentity(staged.chiefopsDrifted) });
+    await writeTrioStateFile(staged.environment, state);
+    const plan = await prepareTrioProjection({ environment: staged.environment, config: state });
+    assert.deepEqual(plan.descriptors.filter((d) => d.supportFor && d.management === 'managed').map((d) => d.action), SUPPORT_SURFACES.map(() => 'create'));
+    await install([], staged.options);
+    const settled = JSON.parse(await readFile(staged.environment.stateFile, 'utf8'));
+    await assertExactSettledOwnership(settled, staged.destinations);
+    await assertExactTrioMaterialization(staged.destinations);
+    for (const destination of genericDestinations(staged.environment.homeDir, 'copilot')) {
+      await assert.rejects(access(destination), /ENOENT/);
+    }
+  } finally { await rm(staged.roots.sandbox, { recursive: true, force: true }); }
+});
+
+test('ChiefOps takeover backs up owned support and absence together in shared reference directories', async () => {
+  const staged = await stageExistingV2UserGlobal('mixed-reference-takeover');
+  try {
+    const state = structuredClone(staged.state);
+    // Leave methods absent, but own review: a create precedes an update in the same parent.
+    const surface = SUPPORT_SURFACES.find((surface) => surface.id === 'dev/references/review.md');
+    const destination = path.join(staged.environment.homeDir, '.agents/skills', surface.relativePath);
+    const old = Buffer.from('previous owned reference\n');
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, old);
+    state.ownership.entries.push({ targetId: 'codex', path: destination, identity: contentIdentity(old) });
+    await writeTrioStateFile(staged.environment, state);
+    const result = await install(['--takeover-chiefops'], staged.options);
+    await assertExactTrioMaterialization(staged.destinations);
+    const manifest = JSON.parse(await readFile(result.backup.manifestPath, 'utf8'));
+    const object = manifest.objects.find((object) => object.path === destination);
+    const bundle = await readFile(result.backup.bundlePath);
+    assert.deepEqual(bundle.subarray(object.offset, object.offset + object.length), old);
+    assert.equal(manifest.objects.filter((object) => !object.exists).length, SUPPORT_SURFACES.length - 1);
+    assert.equal(manifest.objects.length, PROJECTION_SURFACES.length + 1);
+  } finally { await rm(staged.roots.sandbox, { recursive: true, force: true }); }
+});
+
+test('ChiefOps takeover refuses an extra unmanaged reference without a backup or target writes', async () => {
+  await runTakeoverRejection('unmanaged-support', async ({ roots }) => {
+    const environment = await resolveTrioProductionEnvironment({ rootDir: roots.rootDir, homeDir: roots.homeDir });
+    await stageExistingV2UserGlobalAt(roots, environment);
+    const destination = path.join(environment.homeDir, '.agents/skills', SUPPORT_SURFACES[0].relativePath);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, 'user-owned reference\n');
+  }, 'ERR_TRIO_TAKEOVER');
+});
+
+
+test('support takeover rollback restores owned reference bytes and removes newly created references', async () => {
+  const staged = await stageExistingV2UserGlobal('support-rollback');
+  try {
+    const state = structuredClone(staged.state);
+    const surface = SUPPORT_SURFACES.find((surface) => surface.id === 'dev/references/review.md');
+    const destination = path.join(staged.environment.homeDir, '.agents/skills', surface.relativePath);
+    const old = Buffer.from('owned support before failed apply\n');
+    await mkdir(path.dirname(destination), { recursive: true });
+    await writeFile(destination, old);
+    state.ownership.entries.push({ targetId: 'codex', path: destination, identity: contentIdentity(old) });
+    await writeTrioStateFile(staged.environment, state);
+    const stateBefore = await readFile(staged.environment.stateFile);
+    const prepared = await prepareTrioProjection({ environment: staged.environment, config: state });
+    const captured = await captureTrioTakeoverPreimages({ environment: staged.environment, descriptors: prepared.descriptors.filter((d) => d.management === 'managed') });
+    state.ownership.entries.push({ targetId: 'codex', path: staged.chiefopsDestination, identity: contentIdentity(staged.chiefopsDrifted) });
+    await assert.rejects(applyTrioProjection({
+      environment: staged.environment, config: state, preimageSnapshots: captured.snapshots,
+      beforeWrite: ({ phase }) => { if (phase === 'state') throw new Error('support-rollback-probe'); }
+    }), /support-rollback-probe/);
+    assert.deepEqual(await readFile(staged.environment.stateFile), stateBefore);
+    assert.deepEqual(await readFile(destination), old);
+    for (const [target, bytes] of staged.liveBytes) assert.deepEqual(await readFile(target), bytes);
+    for (const support of SUPPORT_SURFACES.filter((support) => support !== surface)) {
+      await assert.rejects(access(path.join(staged.environment.homeDir, '.agents/skills', support.relativePath)), /ENOENT/);
+    }
+  } finally { await rm(staged.roots.sandbox, { recursive: true, force: true }); }
+});
+
+test('bound absent support refuses a post-backup foreign create and restores earlier publications', async () => {
+  const staged = await stageExistingV2UserGlobal('support-create-race');
+  try {
+    const prepared = await prepareTrioProjection({ environment: staged.environment, config: staged.state });
+    const captured = await captureTrioTakeoverPreimages({ environment: staged.environment, descriptors: prepared.descriptors.filter((d) => d.management === 'managed') });
+    const state = structuredClone(staged.state);
+    state.ownership.entries.push({ targetId: 'codex', path: staged.chiefopsDestination, identity: contentIdentity(staged.chiefopsDrifted) });
+    const destination = path.join(staged.environment.homeDir, '.agents/skills', SUPPORT_SURFACES[0].relativePath);
+    await assert.rejects(applyTrioProjection({
+      environment: staged.environment, config: state, preimageSnapshots: captured.snapshots,
+      beforeWrite: async ({ targetPath }) => { if (targetPath === destination) await writeFile(destination, 'foreign reference\n'); }
+    }), (error) => error?.code === 'ERR_TRIO_ROLLBACK' || error?.code === 'ERR_TRIO_PREIMAGE_DRIFT');
+    assert.equal(await readFile(destination, 'utf8'), 'foreign reference\n');
+    assert.deepEqual(await readFile(staged.environment.stateFile), staged.stateBytes);
+    for (const [target, bytes] of staged.liveBytes) assert.deepEqual(await readFile(target), bytes);
+  } finally { await rm(staged.roots.sandbox, { recursive: true, force: true }); }
+});
+
+test('support symlink and owned support content drift fail closed before takeover writes', async () => {
+  for (const kind of ['symlink', 'drift']) {
+    const staged = await stageExistingV2UserGlobal(`support-${kind}`);
+    try {
+      const destination = path.join(staged.environment.homeDir, '.agents/skills', SUPPORT_SURFACES[0].relativePath);
+      await mkdir(path.dirname(destination), { recursive: true });
+      if (kind === 'symlink') await symlink(staged.chiefopsDestination, destination);
+      else {
+        const state = structuredClone(staged.state);
+        await writeFile(destination, 'user changed support\n');
+        state.ownership.entries.push({ targetId: 'codex', path: destination, identity: contentIdentity('previous owned support\n') });
+        await writeTrioStateFile(staged.environment, state);
+      }
+      const stateBefore = await readFile(staged.environment.stateFile);
+      await assert.rejects(install(['--takeover-chiefops'], staged.options), (error) => error?.code === (kind === 'symlink' ? 'ERR_TRIO_PHYSICAL_GATE' : 'ERR_TRIO_TAKEOVER'));
+      assert.deepEqual(await readFile(staged.environment.stateFile), stateBefore);
+      for (const [target, bytes] of staged.liveBytes) assert.deepEqual(await readFile(target), bytes);
+      await assert.rejects(access(path.join(staged.environment.authorityRoot, '.harness-backup')), /ENOENT/);
+    } finally { await rm(staged.roots.sandbox, { recursive: true, force: true }); }
+  }
+});
+
+test('bound absent support preserves a replacement of its transaction-created parent', async () => {
+  const staged = await stageExistingV2UserGlobal('support-parent-race');
+  try {
+    const prepared = await prepareTrioProjection({ environment: staged.environment, config: staged.state });
+    const captured = await captureTrioTakeoverPreimages({ environment: staged.environment, descriptors: prepared.descriptors.filter((d) => d.management === 'managed') });
+    const state = structuredClone(staged.state);
+    state.ownership.entries.push({ targetId: 'codex', path: staged.chiefopsDestination, identity: contentIdentity(staged.chiefopsDrifted) });
+    const destination = path.join(staged.environment.homeDir, '.agents/skills', SUPPORT_SURFACES[0].relativePath);
+    const parent = path.dirname(destination);
+    await assert.rejects(applyTrioProjection({
+      environment: staged.environment, config: state, preimageSnapshots: captured.snapshots,
+      beforeWrite: async ({ targetPath }) => {
+        if (targetPath !== destination) return;
+        await rename(parent, parent + '-original');
+        await mkdir(parent);
+        await writeFile(path.join(parent, 'foreign.md'), 'foreign directory sentinel\n');
+      }
+    }), (error) => error?.code === 'ERR_TRIO_ROLLBACK');
+    await assert.rejects(access(destination), /ENOENT/);
+    assert.equal(await readFile(path.join(parent, 'foreign.md'), 'utf8'), 'foreign directory sentinel\n');
+    assert.deepEqual(await readFile(staged.environment.stateFile), staged.stateBytes);
+    for (const [target, bytes] of staged.liveBytes) assert.deepEqual(await readFile(target), bytes);
+  } finally { await rm(staged.roots.sandbox, { recursive: true, force: true }); }
 });

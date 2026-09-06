@@ -1,0 +1,11 @@
+# Model-policy decision replay
+
+`scenarios.json` covers eight representative policy boundaries: bounded read-only work, proportional tests, existing merge authorization, strict visible topology, direct completion, candidate acceptance, model intent versus actual evidence, and native helpers.
+
+`results-20260906.json` records one batch per requested model at medium effort through the local OpenCodex Responses provider. All four requested routes returned decisions; this is **not authenticated attestation of the underlying models**, an end-to-end coding evaluation, or a latency benchmark. Cases use closed decision options, so passing proves only this bounded instruction replay. The CLI also injected its current system/skill context; token differences are not prompt-only measurements. Do not claim improved production accuracy from these results.
+
+To replay, send the contents of the entry, Trio skill, its execution reference, dev skill, and ChiefOps skill, followed by the cases (omit `allowed` from model input). Ask for an `answers` array containing `id`, `decision`, and a short reason. Supply all decision strings plus the competing alternatives: `tracked:create_trio_before_answer`, `request_fresh_merge_approval`, `require_tdd_for_text`, `require_chief_for_all_completion`, `substitute_native_for_visible`, `force_flash_for_worker`, `accept_worker_claim`, and `native_helpers_only_inside_visible_workers`. Compare each returned decision against `allowed`. Keep raw input/output outside task-authority files and record the prompt digest, requested model, effort, actual evidence, exit code, and usage.
+
+The run used `codex exec --ignore-user-config --ephemeral --sandbox read-only --json`, explicit `model_reasoning_effort="medium"`, `model_provider="swf_eval"`, and a local Responses provider at `http://127.0.0.1:10100/v1`. No global configuration was changed. An older CLI rejects the desktop Host's experimental context-management table, which is why this isolated invocation omitted that config. Use your own supported Host/provider configuration when rerunning.
+
+Unit/integration coverage in `tests/trio/model-routing.test.mjs` and `plugins/dsh/test/model-routing.test.ts` separately verifies the executable model/effort contract, aliases, invalid efforts, strict routing, and scope limits.

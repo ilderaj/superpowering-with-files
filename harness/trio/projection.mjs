@@ -11,6 +11,25 @@ const SURFACES = Object.freeze([
   Object.freeze({ id: 'chiefops', relativePath: 'chiefops/SKILL.md', source: 'harness/trio/governance/chiefops/SKILL.md' })
 ]);
 
+// Logical inventory remains entry + five skills. Support is an explicit, bounded
+// static manifest shared by projection, installer validation, backup and packaging.
+const SUPPORT_SURFACES = Object.freeze([
+  ['trio', 'execution.md'],
+  ['dev', 'methods.md'],
+  ['dev', 'review.md'],
+  ['dev', 'pr-feedback.md'],
+  ['chiefops', 'delegated-execution.md']
+].map(([supportFor, filename]) => {
+  const owner = SURFACES.find((surface) => surface.id === supportFor);
+  return Object.freeze({
+    id: `${supportFor}/references/${filename}`,
+    supportFor,
+    relativePath: `${path.posix.dirname(owner.relativePath)}/references/${filename}`,
+    source: `${path.posix.dirname(owner.source)}/references/${filename}`
+  });
+}));
+const PROJECTION_SURFACES = Object.freeze([...SURFACES, ...SUPPORT_SURFACES]);
+
 const APPROVED_TARGET_CONTRACT = Object.freeze({
   codex: Object.freeze({
     kind: 'codex',
@@ -386,7 +405,7 @@ export function projectConfig(input) {
       continue;
     }
     for (const placement of targetPlacements) {
-      for (const surface of SURFACES) {
+      for (const surface of PROJECTION_SURFACES) {
         const destination = destinationFor(target, targetContract, placement, surface);
         const previous = destinationOwners.get(destination);
         if (previous) {
@@ -396,6 +415,7 @@ export function projectConfig(input) {
         descriptors.push({
           targetId: target.id,
           surface: surface.id,
+          ...(surface.supportFor ? { supportFor: surface.supportFor } : {}),
           source: surface.source,
           destination,
           retainedTargetPath: placement.targetPath,
@@ -432,4 +452,4 @@ export function projectConfig(input) {
   return { descriptors, conflicts };
 }
 
-export { SURFACES };
+export { SURFACES, SUPPORT_SURFACES, PROJECTION_SURFACES };

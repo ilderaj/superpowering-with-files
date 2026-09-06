@@ -8,4 +8,4 @@ change: keep the behavior in the existing file and remove the extra helper split
 why: the split expands the diff and file surface without paying back in reuse or clarity
 
 ## Summary
-net: -9 lines possible.
+Verify the bounded cut preserves the required behavior; no line estimate is asserted.

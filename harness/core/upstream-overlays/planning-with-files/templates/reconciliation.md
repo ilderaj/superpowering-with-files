@@ -1,5 +1,7 @@
 # Reconciliation: [task-id]
 
+<!-- Optional review artifact when requested. Durable conclusions belong in the three planning files; this is not a fourth task-state authority or mandatory companion. -->
+
 ## Planned Intent
 - [Summarize the task intent, source spec, issue, or plan.]
 

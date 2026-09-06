@@ -1,0 +1,70 @@
+{
+  "source": "~/.agents/skills",
+  "sourceKind": "local skill snapshot",
+  "capturedOn": "2026-09-06",
+  "note": "Locally curated copies. Input digests identify the pre-edit local files, not an authenticated upstream release. Adopt each complete skill directory; ownership backups and installation are managed by the caller.",
+  "inputs": [
+    {
+      "path": "code-review/SKILL.md",
+      "sha256": "8618b770aa3a2ceccf6316ee8c0c1b1e9e31b73e54b957a6c321d1a23dbab73b"
+    },
+    {
+      "path": "codebase-design/DEEPENING.md",
+      "sha256": "125e6b77413ad2bc7cf7a772bc74336d580a50f9e797db2178ed133d62333d06"
+    },
+    {
+      "path": "codebase-design/DESIGN-IT-TWICE.md",
+      "sha256": "1bce76489fbd37556f3fe1545ce39ac9533026eafe531ab2ae12faaf927ef852"
+    },
+    {
+      "path": "codebase-design/SKILL.md",
+      "sha256": "e689e9cf334b3a59e0e4cdc25c5b6242091ce117626dd01fb36b0deed131772a"
+    },
+    {
+      "path": "diagnosing-bugs/SKILL.md",
+      "sha256": "07b139cb08d35dae0142e543e43a2130b421b0e54c087327366d5ffa9a993568"
+    },
+    {
+      "path": "diagnosing-bugs/scripts/hitl-loop.template.sh",
+      "sha256": "b2932630950e5210075bcd6f850e5accf30c101c5367b29eac3a29b4dd8084c8"
+    },
+    {
+      "path": "domain-modeling/ADR-FORMAT.md",
+      "sha256": "f1f36cd3f8d3b6474ddd5855da4e233bfc4ae1a1c5024909ccf11871819a41b2"
+    },
+    {
+      "path": "domain-modeling/CONTEXT-FORMAT.md",
+      "sha256": "b8cc318f2a4285b530e908b6bc43901c3c5cd11100362636bbc4216639bef597"
+    },
+    {
+      "path": "domain-modeling/SKILL.md",
+      "sha256": "53f86f7065f4680f94e26d6b856235a6bd8f59c5daabbb45b34676e35758ef9b"
+    },
+    {
+      "path": "tdd/SKILL.md",
+      "sha256": "6e2a6c1c6f417b7d401ce4cf2d94befd93cbf7a01e1281065fe91d383fd3367c"
+    },
+    {
+      "path": "tdd/mocking.md",
+      "sha256": "3ceb807fdf4a47d6a93d4d9a891e5ba6d362a6247bd08adc451feebfc17361ef"
+    },
+    {
+      "path": "tdd/tests.md",
+      "sha256": "859f9e592c188fda4fc7277dd180e4ce9c7a2e13f6efe1f6f29eccc9d28c106a"
+    }
+  ],
+  "derivedReferences": {
+    "code-review/DIFF-SCOPES.md": [
+      "code-review/SKILL.md"
+    ],
+    "code-review/REVIEW-AXES.md": [
+      "code-review/SKILL.md"
+    ],
+    "codebase-design/DESIGN-PRINCIPLES.md": [
+      "codebase-design/SKILL.md"
+    ],
+    "diagnosing-bugs/FEEDBACK-LOOPS.md": [
+      "diagnosing-bugs/SKILL.md"
+    ]
+  }
+}

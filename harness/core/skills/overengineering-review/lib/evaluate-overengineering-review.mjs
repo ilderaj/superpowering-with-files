@@ -26,9 +26,6 @@ export function evaluateOutput(fixture, output) {
   }
 
   const netLines = finalNetLine(output);
-  if (netLines === null) {
-    notes.push('missing final `net: -<N> lines possible.` line');
-  }
 
   const tagMatches = [...output.matchAll(/^tag:\s*(delete|stdlib|native|yagni|shrink)$/gm)].map((match) => match[1]);
   const uniqueTags = [...new Set(tagMatches)];
@@ -59,7 +56,7 @@ export function evaluateOutput(fixture, output) {
     notes.push('actionable fixtures should stay on overengineering, not generic bug review');
   }
 
-  if (typeof fixture.expectedLinesSaved === 'number' && netLines !== fixture.expectedLinesSaved) {
+  if (netLines !== null && typeof fixture.expectedLinesSaved === 'number' && netLines !== fixture.expectedLinesSaved) {
     notes.push(`expected net line savings ${fixture.expectedLinesSaved}, got ${String(netLines)}`);
   }
 

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { SUPPORT_SURFACES } from '../../harness/trio/projection.mjs';
 import {
   harnessSkillSourceMap,
   mattSkillsCompanionFamily,
@@ -40,13 +41,17 @@ const expectedPortableConfig = {
 
 test('core Trio targets and source map remain exact', () => {
   assert.deepEqual(supportedPluginTargets, ['codex', 'agent-plugins']);
-  assert.deepEqual(trioSkillSourceMap, [
+  assert.deepEqual(trioSkillSourceMap.map(({ name, source }) => ({ name, source })), [
     { name: 'trio', source: 'harness/trio/skill/SKILL.md' },
     { name: 'dev', source: 'harness/trio/capabilities/dev/SKILL.md' },
     { name: 'office', source: 'harness/trio/capabilities/office/SKILL.md' },
     { name: 'safety', source: 'harness/trio/capabilities/safety/SKILL.md' },
     { name: 'chiefops', source: 'harness/trio/governance/chiefops/SKILL.md' },
   ]);
+  assert.equal(SUPPORT_SURFACES.length, 5);
+  assert.deepEqual(trioSkillSourceMap.flatMap(({ name, support }) => support.map((file) => ({
+    id: `${name}/${file.relativePath}`, source: file.source
+  }))), SUPPORT_SURFACES.map(({ id, source }) => ({ id, source })));
 });
 
 test('harness skill source map covers the additional SWF skills as directory copies', () => {

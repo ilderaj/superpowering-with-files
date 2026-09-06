@@ -1,6 +1,5 @@
 {
   "id": "native-replacement",
   "title": "Replace a wrapper package with a native platform feature",
-  "requiredTag": "native",
-  "expectedLinesSaved": 22
+  "requiredTag": "native"
 }

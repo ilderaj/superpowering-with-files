@@ -8,4 +8,4 @@ change: replace the custom token split and trim loop with the standard library p
 why: the custom parser is longer, harder to trust, and duplicates built-in behavior
 
 ## Summary
-net: -14 lines possible.
+Verify the bounded cut preserves the required behavior; no line estimate is asserted.

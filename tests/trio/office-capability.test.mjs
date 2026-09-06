@@ -64,79 +64,24 @@ function parseHeader(markdown) {
   return values;
 }
 
-function section(markdown, heading) {
-  const pattern = new RegExp(`^## ${heading.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\s*$`, "m");
-  const match = pattern.exec(markdown);
-  assert.ok(match, `missing section: ${heading}`);
-  const start = match.index + match[0].length;
-  const remainder = markdown.slice(start);
-  const next = remainder.search(/^##? /m);
-  return remainder.slice(0, next === -1 ? remainder.length : next);
-}
-
-function requireClause(text, clause, label) {
-  assert.match(text.toLowerCase(), new RegExp(clause.toLowerCase().replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")), label);
-}
-
 function assertOfficeSkillContract(markdown) {
   const header = parseHeader(markdown);
-  assert.equal(header.name, "office");
-  assert.ok(header.description);
-
-  const route = section(markdown, "Route");
-  for (const [routeName, clause] of [
-    ["documents", "- documents: Host-native document creation and inspection"],
-    ["spreadsheets", "- spreadsheets: Host-native spreadsheet creation, formula inspection, and recalculation"],
-    ["presentations", "- presentations: Host-native presentation creation, speaker-note/source inspection, and slide rendering"],
-    ["PDF", "- PDF: Host-native PDF creation, text extraction, and page rendering"],
-  ]) {
-    requireClause(route, clause, `missing ${routeName} route`);
-  }
-  requireClause(route, "source-backed work", "route must be source-backed");
-  requireClause(route, "Host-native", "route must use Host-native capabilities");
-
-  const quality = section(markdown, "Quality Loop");
-  const sourceBasis = "Establish the source or data basis before drafting";
-  const traceableMarkers = "preserve traceable source markers";
-  const nativeCheck = "run the matching Host-native open or parse check";
-  requireClause(quality, sourceBasis, "source/data basis must precede drafting");
-  requireClause(quality, traceableMarkers, "source markers must remain traceable");
-  requireClause(quality, nativeCheck, "source markers must be checked through the matching native seam");
-  assert.ok(
-    quality.indexOf(sourceBasis) < quality.indexOf(traceableMarkers)
-      && quality.indexOf(traceableMarkers) < quality.indexOf(nativeCheck),
-    "source basis, traceability, and native verification must remain ordered",
-  );
-  for (const clause of [
-    "source/data/content inspection",
-    "formula or citation verification",
-    "native open or parse verification",
-    "render verification",
-    "accessibility QA",
-  ]) {
-    requireClause(quality, clause, `missing quality clause: ${clause}`);
-  }
-  requireClause(markdown, "artifact generation alone is not completion", "generation is not completion");
-
-  const source = section(markdown, "Source and Accessibility Contract");
-  assert.match(source.toLowerCase(), /source notes or citation markers/, "source provenance is required");
-  requireClause(source, "derived values are formulas", "formula audit is required");
-  requireClause(source, "meaningful alternative text", "image accessibility is required");
-
-  const boundary = section(markdown, "External and Durable Boundaries");
-  requireClause(boundary, "supported Host capability and the applicable human gate", "external actions remain gated");
-  requireClause(boundary, "planning Trio is the sole durable task authority", "Trio is the sole authority");
-  for (const clause of [
-    "owns no worker lifecycle",
-    "requested or actual model evidence",
-    "renderer state",
-    "connector state",
-    "runtime state",
-    "worker completion is a candidate only",
-    "Chief performs acceptance and Trio writeback",
-  ]) {
-    requireClause(boundary, clause, `missing authority boundary: ${clause}`);
-  }
+  assert.equal(header.name, 'office');
+  for (const rule of [
+    /source[^\n]*basis[^\n]*before drafting/i,
+    /documents[^\n]*Host.native/i, /spreadsheets[^\n]*recalculation/i,
+    /presentations[^\n]*render/i, /PDF[^\n]*text extraction/i,
+    /native open or parse/i, /citation[^\n]*(?:trace|verif)/i,
+    /derived values are formulas/i, /accessibility[^\n]*headings/i,
+    /new[^\n]*full.layout[^\n]*(?:every|all) page[^\n]*slide/i,
+    /patch[^\n]*affected[^\n]*(?:dependencies|dependent)/i,
+    /(?:pagination|global style)[^\n]*(?:broaden|full|every)/i,
+    /(?:generation|file write)[^\n]*not completion/i,
+    /direct[^\n]*complete[^\n]*verification/i,
+    /delegated[^\n]*candidate[^\n]*Chief/i,
+    /(?:reuse|honor)[^\n]*existing authorization|existing authorization[^\n]*applies/i,
+    /Host[^\n]*(?:permissions|gates)/i,
+  ]) assert.match(markdown, rule);
 }
 
 function mutateOnce(markdown, original, replacement) {
@@ -211,43 +156,13 @@ test("legacy office-work-quality owner is physically retired", async () => {
   );
 });
 
-test("office contract rejects weakened source and delivery policy", async () => {
-  const skill = await readFile(officeSkillPath, "utf8");
-  const mutations = [
-    ["source provenance", "route source-backed work", "route work"],
-    ["PDF route", "- PDF: Host-native PDF creation, text extraction, and page rendering", "- archives: generic text export"],
-    ["formula verification", "formula or citation verification", "content review"],
-    ["native open verification", "native open or parse verification", "manual review"],
-    ["render verification", "render verification for every page or slide, with every sheet or range visually inspected for spreadsheets", "layout review"],
-    ["accessibility QA", "accessibility QA", "formatting QA"],
-    ["generation is not completion", "Artifact generation alone is not completion.", "Artifact generation is completion."],
-    ["external human gate", "requires both supported Host capability and the applicable human gate.", "is allowed after routing."],
-    ["Trio authority", "The planning Trio is the sole durable task authority.", "The office capability is the durable task authority."],
-    ["worker acceptance", "Worker completion is a candidate only; Chief performs acceptance and Trio writeback.", "Worker completion is accepted automatically."],
-  ];
-  for (const [name, original, replacement] of mutations) {
-    const mutated = mutateOnce(skill, original, replacement);
-    assert.throws(() => assertOfficeSkillContract(mutated), { name: "AssertionError" }, name);
+test('office contract protects verification scope and provenance without freezing prose', async () => {
+  const text = await readFile(officeSkillPath, 'utf8');
+  for (const pattern of [/^.*full.layout.*$/mi, /^.*patch.*affected.*$/mi,
+    /^.*derived values are formulas.*$/mi, /^.*existing authorization.*$/mi]) {
+    assert.throws(() => assertOfficeSkillContract(text.replace(pattern, '')));
   }
-});
-
-test("office contract rejects weakened per-format routes and source traceability", async () => {
-  const skill = await readFile(officeSkillPath, "utf8");
-  const mutations = [
-    ["documents route", "- documents: Host-native document creation and inspection", "- documents: generic export"],
-    ["spreadsheets route", "- spreadsheets: Host-native spreadsheet creation, formula inspection, and recalculation", "- spreadsheets: generic export"],
-    ["presentations route", "- presentations: Host-native presentation creation, speaker-note/source inspection, and slide rendering", "- presentations: generic export"],
-    ["PDF route", "- PDF: Host-native PDF creation, text extraction, and page rendering", "- PDF: generic export"],
-    [
-      "source traceability order",
-      "Establish the source or data basis before drafting. For every artifact, preserve traceable source markers and run the matching Host-native open or parse check.",
-      "Draft first; source or data basis and traceable source markers may be added after the Host-native open or parse check.",
-    ],
-  ];
-  for (const [name, original, replacement] of mutations) {
-    const mutated = mutateOnce(skill, original, replacement);
-    assert.throws(() => assertOfficeSkillContract(mutated), { name: "AssertionError" }, name);
-  }
+  assertOfficeSkillContract(text.replace(/every page/g, 'all pages'));
 });
 
 test("office frontmatter rejects duplicate keys", async () => {

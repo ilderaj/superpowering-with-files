@@ -83,3 +83,22 @@ export function subagentsServiceOf(ctx: Context): SubagentRuntime | undefined {
     ? candidate
     : undefined;
 }
+
+/**
+ * Optional Host adapter for binding effort before the child's first request.
+ * The pinned one-shot SubagentStartRequest has no effort/setup field. Hosts
+ * may implement this seam using installModelSelection during child creation;
+ * ordinary start must never silently accept and ignore a requested effort.
+ * This is requested control only, not authenticated actual-model evidence.
+ */
+export type ModelSelectionStart = (
+  provider: string,
+  request: SubagentStartRequest,
+  selection: { provider: string; model: string; reasoningEffort: string }
+) => Promise<SubagentRun>;
+
+export function modelSelectionStartOf(ctx: Context): ModelSelectionStart | undefined {
+  const service = (ctx as { subagents?: SubagentRuntime & { startWithModelSelection?: ModelSelectionStart } }).subagents;
+  return service && typeof service.startWithModelSelection === 'function'
+    ? service.startWithModelSelection.bind(service) : undefined;
+}

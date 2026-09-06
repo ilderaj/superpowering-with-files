@@ -1,14 +1,17 @@
+import { SURFACES, SUPPORT_SURFACES } from '../../../harness/trio/projection.mjs';
+
 export const supportedPluginTargets = ['codex', 'agent-plugins'];
 
 export const agentPluginsSchemaUrl = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json';
 
-export const trioSkillSourceMap = [
-  { name: 'trio', source: 'harness/trio/skill/SKILL.md' },
-  { name: 'dev', source: 'harness/trio/capabilities/dev/SKILL.md' },
-  { name: 'office', source: 'harness/trio/capabilities/office/SKILL.md' },
-  { name: 'safety', source: 'harness/trio/capabilities/safety/SKILL.md' },
-  { name: 'chiefops', source: 'harness/trio/governance/chiefops/SKILL.md' }
-];
+export const trioSkillSourceMap = SURFACES.filter(({ id }) => id !== 'entry').map(({ id, source }) => ({
+  name: id,
+  source,
+  support: SUPPORT_SURFACES.filter(({ supportFor }) => supportFor === id).map((surface) => ({
+    source: surface.source,
+    relativePath: surface.id.slice(id.length + 1)
+  }))
+}));
 
 // Additional SWF skills projected into the packaged plugins. Each entry points
 // at a Harness-owned directory whose contents are copied into skills/<name>/
@@ -134,6 +137,14 @@ export const platformContracts = {
     skillDestinations: portableSkillDestinations
   }
 };
+
+// Required support destinations follow each target's own skill layout.
+for (const contract of Object.values(platformContracts)) {
+  for (const { name, support } of trioSkillSourceMap) {
+    const skillDirectory = contract.skillDestinations[name].slice(0, -'SKILL.md'.length);
+    contract.requiredFiles.push(...support.map(({ relativePath }) => skillDirectory + relativePath));
+  }
+}
 
 export const mattSkillsPlatformContracts = {
   'matt-skills-codex': {

@@ -7,6 +7,8 @@ description: Safety decision contract for Trio v2 destructive, security-sensitiv
 
 This capability makes recommendations only: `deny`, `ask`, or `allow`. It owns no executor, approval lifecycle, Host lifecycle, runtime state, receipt, registry, profile, companion, or reconciliation.
 
+This recommendation policy is not a Host or global permission policy for ordinary development or office work. Its conservative `deny` / `ask` / `allow` vocabulary applies when this safety capability is selected; it does not turn every authorized edit into a safety request. Host security restrictions remain unchanged and binding.
+
 ## Decision Precedence
 
 Credentials, secrets, certificates, payment data, and production configuration are always deny.
@@ -27,7 +29,9 @@ A destructive ask requires risk assessment, checkpoint reference, rollback steps
 
 Never convert an ask to allow because the evidence exists. Evidence explains risk and recovery; it is not permission.
 
-External write, send, merge, release, deploy, publish, or deploy remains gated. A Host observation can show capability, but it cannot replace the applicable human gate.
+External write, send, merge, release, deploy, or publish remains gated. A Host observation can show capability, but it cannot replace the applicable human gate.
+
+Honor existing authorization for the same action, target, and scope. An `ask` recommendation identifies a human gate; it does not require another question when prior explicit authorization already satisfies that gate. Record the authorization and assess remaining evidence or Host restrictions. Missing, changed, or ambiguous scope or authorization requires a bounded clarification; ask only for the unresolved part. Keep the recommendation `ask` for gated operations even when the human gate is satisfied: it is not an execution or approval receipt.
 
 ## Isolation and Worktree
 

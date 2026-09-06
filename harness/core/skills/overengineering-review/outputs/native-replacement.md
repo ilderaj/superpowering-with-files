@@ -8,4 +8,4 @@ change: use the native file watching API instead of the dependency wrapper
 why: the dependency only forwards options to the native API and expands the support surface
 
 ## Summary
-net: -22 lines possible.
+Verify the bounded cut preserves the required behavior; no line estimate is asserted.

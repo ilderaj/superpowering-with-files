@@ -1,50 +1,27 @@
 ---
 name: office
-description: Source-backed office artifact quality for documents, spreadsheets, presentations, and PDF review.
+description: Source-backed office artifacts with verification scaled to change and risk.
 ---
 
-# Office Capability
+# Office
 
-## Purpose
+Inspect intended audience, existing artifact, source/data basis, constraints, and delivery format before drafting. Route through the matching available Host-native capability:
 
-The office capability turns source-backed work into reviewable office artifacts. It owns the artifact quality contract, while the Host owns execution and native tool access. Artifact generation alone is not completion.
+- documents: Host-native document creation, parsing, and layout inspection.
+- spreadsheets: typed inputs, formula inspection, recalculation, and displayed results.
+- presentations: slide construction, source/speaker notes, and rendering.
+- PDF: native creation, searchable text extraction, and page rendering.
 
-## Route
+Keep requested formats and traceable source notes or citation markers; verify claims against their sources. In spreadsheets, derived values are formulas; verify inputs, number formats, calculated/cached results, formula errors, and reconciled totals. A successful file write or generation log is not completion.
 
-Classify the requested artifact before choosing an execution path, and route source-backed work to the matching Host-native capability:
+Run a native open or parse check on the final artifact. Choose visual and content coverage by change:
 
-- documents: Host-native document creation and inspection
-- spreadsheets: Host-native spreadsheet creation, formula inspection, and recalculation
-- presentations: Host-native presentation creation, speaker-note/source inspection, and slide rendering
-- PDF: Host-native PDF creation, text extraction, and page rendering
+- New artifacts or full-layout changes: inspect every page and slide; inspect every populated sheet and relevant output range in spreadsheets.
+- A localized patch: inspect affected pages, slides, sheets or ranges and their dependencies, including dependent formulas and totals; record the coverage and why it is sufficient.
+- Pagination, global styles, master slides, shared formulas, or uncertain downstream effects broaden verification to all potentially affected output; use full coverage when the impact cannot be bounded.
 
-Keep the route explicit when a request combines formats. Do not substitute a generic text export for the requested office format.
+Verify citations and accessibility in that scope: headings, table headers, searchable text, meaningful image descriptions, readable contrast, and unclipped content. Repair failures at the source, then recheck affected output. Reuse unchanged valid evidence; rerender or recalculate when the change or uncertainty invalidates it. Report missing native proof as a bounded blocker or explicit verification limit, never as completed QA.
 
-## Quality Loop
+Direct work can complete after relevant artifact verification. Delegated primary work returns a candidate for Chief acceptance and Trio writeback. For tracked work the three planning files remain the sole durable authority. The Host owns native tools, lifecycle, permissions, and external gates. Honor existing authorization for its scope; sending, publishing, sharing, or uploading still needs supported Host capability and the applicable human gate.
 
-Inspect the current source, data, content, constraints, and intended audience first. Establish the source or data basis before drafting. For every artifact, preserve traceable source markers and run the matching Host-native open or parse check. For every spreadsheet, inspect formulas, typed inputs, number formats, cached or calculated results, and formula errors. For every document, presentation, and PDF, inspect searchable content, citations, page or slide structure, and rendered layout.
-
-The acceptance loop is:
-
-1. source/data/content inspection
-2. bounded artifact construction
-3. formula or citation verification where applicable
-4. native open or parse verification
-5. render verification for every page or slide, with every sheet or range visually inspected for spreadsheets
-6. accessibility QA for headings, table headers, searchable text, meaningful image descriptions, readable contrast, and unclipped content
-
-Record concrete failures and repair them at the artifact source. A successful file write, non-empty file, or generation log is not completion without the relevant open, render, content, formula, citation, and accessibility evidence.
-
-## Source and Accessibility Contract
-
-Use source notes or citation markers that a reviewer can search and trace. Keep formulas auditable: inputs are typed values, derived values are formulas, and displayed results are non-empty and reconciled. Use real heading hierarchy and table headers where the format supports them. Give non-decorative images meaningful alternative text. Keep text searchable in the final PDF and avoid clipped, overlapping, or unreadable content in rendered output.
-
-## External and Durable Boundaries
-
-Sending, publishing, sharing, uploading, or otherwise writing an artifact to an external system requires both supported Host capability and the applicable human gate. This capability never grants that permission.
-
-The planning Trio is the sole durable task authority. The office capability owns no worker lifecycle, worker or subagent identity, requested or actual model evidence, renderer state, connector state, runtime state, cache, registry, receipt, or sidecar. The Host owns worker and subagent lifecycle, requested and actual model evidence, permissions, continuation, and external or human gates. Worker completion is a candidate only; Chief performs acceptance and Trio writeback.
-
-## Return Contract
-
-Return the artifact paths, source or data basis, formula and citation evidence, native open or parse results, render results, accessibility findings, requested and authenticated actual model evidence, unresolved risks, and an explicit candidate or blocker status. If a required native capability or proof surface is unavailable, stop with a bounded blocker rather than claiming completion.
+Return artifact paths, source/data basis, verified coverage, formula/citation/open/render/accessibility results, and unresolved limitations. Do not claim an external delivery from local generation evidence.

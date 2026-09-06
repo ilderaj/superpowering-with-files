@@ -22,7 +22,8 @@ describe('routing selection', () => {
   });
 
   it('classifies tracked from durable/multi-phase signals', () => {
-    expect(classifyTask({ research: true })).toBe('tracked');
+    expect(classifyTask({ research: true })).toBe('quick');
+    expect(classifyTask({ durableResearch: true })).toBe('tracked');
     expect(classifyTask({ worktree: true })).toBe('tracked');
     expect(classifyTask({ phases: ['a', 'b'] })).toBe('tracked');
     expect(classifyTask({ phases: 3 })).toBe('tracked');

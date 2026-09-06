@@ -54,8 +54,8 @@ export const EXECUTION_WORK_ROLES = Object.freeze([
 
 export const COMPLEXITY_KINDS = Object.freeze(['high', 'xhigh', 'max']) as readonly string[];
 export const FLASH_EXECUTION_MODEL = 'opencode-go/deepseek-v4-flash';
-export const CHIEF_REQUESTED_MODELS = Object.freeze(['gpt-5.6-sol', 'gpt-5.6-terra']) as readonly string[];
-export const CHIEF_REQUESTED_EFFORTS = Object.freeze(['max', 'ultra']) as readonly string[];
+export const CHIEF_REQUESTED_MODELS = Object.freeze(['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna']) as readonly string[];
+export const CHIEF_REQUESTED_EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']) as readonly string[];
 
 export const COMPLEXITY_SIGNALS = Object.freeze({
   high: Object.freeze(['bounded', 'routine']),
@@ -63,7 +63,7 @@ export const COMPLEXITY_SIGNALS = Object.freeze({
   max: Object.freeze(['longRunning', 'repeatedRepair', 'broadIntegration', 'highComplexity'])
 }) as Readonly<Record<string, ReadonlyArray<string>>>;
 
-export const EFFORT_RANK = Object.freeze({ high: 1, xhigh: 2, max: 3 }) as Readonly<Record<string, number>>;
+export const EFFORT_RANK = Object.freeze({ low: 1, medium: 2, high: 3, xhigh: 4, max: 5 }) as Readonly<Record<string, number>>;
 
 export const GOAL_CONTRACT_FIELDS = Object.freeze([
   'objective',
