@@ -8,10 +8,10 @@
 
 逐案复制下面对应的一行指令，不要把本 README 或 reviewer.md 全文给执行者：
 
-- A：请完整执行 /Users/jared/SuperpoweringWithFiles/docs/plans/v1.4/acceptance-pack/prompts/A.md 中的任务。
-- B：请完整执行 /Users/jared/SuperpoweringWithFiles/docs/plans/v1.4/acceptance-pack/prompts/B.md 中的任务。
-- C：请完整执行 /Users/jared/SuperpoweringWithFiles/docs/plans/v1.4/acceptance-pack/prompts/C.md 中的任务。
-- D：请完整执行 /Users/jared/SuperpoweringWithFiles/docs/plans/v1.4/acceptance-pack/prompts/D.md 中的任务。
+- A：请完整执行 `docs/plans/v1.4/acceptance-pack/prompts/A.md` 中的任务。
+- B：请完整执行 `docs/plans/v1.4/acceptance-pack/prompts/B.md` 中的任务。
+- C：请完整执行 `docs/plans/v1.4/acceptance-pack/prompts/C.md` 中的任务。
+- D：请完整执行 `docs/plans/v1.4/acceptance-pack/prompts/D.md` 中的任务。
 
 把四个任务链接发给本 Chief，即可开始监督；不用等全部完成。Chief 读取任务并用 wait_threads 查看进展，定点指出失败原因、至多一次修复，然后独立复核输出。本次验收已完成四案执行和独立复核；后续重跑仍必须生成新的 task/run 记录。
 

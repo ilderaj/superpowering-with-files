@@ -1,5 +1,5 @@
 这是 SWF V1.4 的受控验收任务，资料是合成的，实际执行和本任务中的交付是真实的。
-工作区根：/Users/jared/SuperpoweringWithFiles。
+工作区根：项目仓库根目录。
 请只读取当前案例输入、完成任务所需工具技能，以及以下候选契约：
 harness/trio/skill/SKILL.md
 harness/trio/capabilities/office/SKILL.md
