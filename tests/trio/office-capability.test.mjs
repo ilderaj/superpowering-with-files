@@ -10,6 +10,11 @@ import test from "node:test";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const officeSkillPath = path.join(repoRoot, "harness/trio/capabilities/office/SKILL.md");
 const officeCapabilityDir = path.dirname(officeSkillPath);
+const officeReferencesDir = path.join(officeCapabilityDir, "references");
+const officeReferenceFiles = [
+  "artifact-and-delivery.md",
+  "source-backed-work.md",
+];
 const fixtureRoot = path.join(repoRoot, "tests/fixtures/trio-v2/office");
 const verifierPath = path.join(repoRoot, "scripts/verify-trio-office-artifacts.mjs");
 const nodePath = process.execPath;
@@ -147,9 +152,50 @@ function verifierArgs(outputPath, root = fixtureRoot) {
 test("office capability skill is discoverable", async () => {
   await access(officeSkillPath);
   await access(verifierPath);
-  assert.deepEqual((await readdir(officeCapabilityDir)).sort(), ["SKILL.md"]);
+  assert.deepEqual((await readdir(officeCapabilityDir)).sort(), ["SKILL.md", "references"]);
+  assert.deepEqual((await readdir(officeReferencesDir)).sort(), officeReferenceFiles);
   assert.deepEqual((await readdir(fixtureRoot)).sort(), expectedArtifacts);
-  assertOfficeSkillContract(await readFile(officeSkillPath, "utf8"));
+  const skill = await readFile(officeSkillPath, "utf8");
+  assertOfficeSkillContract(skill);
+  for (const filename of ["source-backed-work.md", "artifact-and-delivery.md"]) {
+    assert.ok(skill.includes(`references/${filename}`));
+  }
+});
+
+test("office supporting references preserve their on-demand contracts", async () => {
+  const references = Object.fromEntries(await Promise.all(
+    officeReferenceFiles.map(async (filename) => [filename, await readFile(path.join(officeReferencesDir, filename), "utf8")]),
+  ));
+  const sourceBacked = references["source-backed-work.md"];
+  for (const heading of [
+    "# Source-backed work",
+    "## When to load",
+    "## Input contract",
+    "## Evidence classification",
+    "## Output contract",
+    "## Conflict and pending rules",
+    "## Stop conditions",
+  ]) assert.match(sourceBacked, new RegExp(`^${heading}$`, "m"));
+  for (const term of ["fact", "assumption", "conflict", "recommendation", "pending", "taxonomy", "date", "scope"]) {
+    assert.match(sourceBacked, new RegExp(`\\b${term}\\b`, "i"));
+  }
+  assert.match(sourceBacked, /事实[^\n]*动作[^\n]*负责人[^\n]*输出[^\n]*期限[^\n]*风险[^\n]*来源/);
+  assert.match(sourceBacked, /证据不足，待确认/);
+
+  const artifact = references["artifact-and-delivery.md"];
+  for (const heading of [
+    "# Artifact and delivery",
+    "## When to load",
+    "## Native artifact checks",
+    "## Numeric and formula checks",
+    "## Language, link, and accessibility checks",
+    "## Delivery evidence states",
+    "## O4 live gate",
+    "## Stop and rollback",
+  ]) assert.match(artifact, new RegExp(`^${heading}$`, "m"));
+  for (const term of ["generated", "opened", "rendered", "accepted", "delivered", "O4", "authenticated", "live"]) {
+    assert.match(artifact, new RegExp(`\\b${term}\\b`, "i"));
+  }
 });
 
 test("legacy office-work-quality owner is physically retired", async () => {
