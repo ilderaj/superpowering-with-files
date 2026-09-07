@@ -1,0 +1,29 @@
+[
+  {
+    "workflowId": "W1",
+    "sourceType": "controlled/synthetic",
+    "caseResults": ["O1"],
+    "delivery": "delivered",
+    "review": "accepted",
+    "evidenceRefs": ["results.json", "host-records.json", "scorecard.md"],
+    "limits": "User-task visible delivery; not production business adoption."
+  },
+  {
+    "workflowId": "W2",
+    "sourceType": "controlled summary + real SWF automation",
+    "caseResults": ["O2", "O4"],
+    "delivery": "delivered",
+    "review": "accepted",
+    "evidenceRefs": ["results.json", "host-records.json", "O4-review.md"],
+    "limits": "User-task visible delivery; not production business adoption."
+  },
+  {
+    "workflowId": "W3",
+    "sourceType": "controlled/synthetic",
+    "caseResults": ["D1"],
+    "delivery": "delivered",
+    "review": "accepted",
+    "evidenceRefs": ["results.json", "host-records.json", "scorecard.md"],
+    "limits": "User-task visible delivery; not production business adoption."
+  }
+]

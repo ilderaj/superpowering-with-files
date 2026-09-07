@@ -7,7 +7,7 @@
 
 状态：V1.4 source/package、O1/O2/O3/D1 语义验收、O4 live evidence，以及受控 W1–W3 workflow evidence 均已由 Chief 复核通过；本次发布版本为 1.4.0。受控 workflow 证据只证明 Harness 的可见交付路径，不宣称生产采用、业务批准或对外发送。
 
-本计划服务于 V1.4 的跨域证据、决策、Office 产物和可见交付验收。它既保留 Sol/Luna 可复用的执行契约，也记录本轮候选实现边界；本轮任务状态和验收记录位于 `planning/archive/20260907-002818-swf-v1-4-cross-domain-delivery-20260906/`。
+本计划服务于 V1.4 的跨域证据、决策、Office 产物和可见交付验收。它既保留 Sol/Luna 可复用的执行契约，也记录本轮候选实现边界；实现任务记录位于 `planning/archive/20260907-002818-swf-v1-4-cross-domain-delivery-20260906/`，受控验收与发布闭合记录位于 `planning/archive/20260908-001000-swf-v1-4-release-20260908/`，可移植的结果快照位于 `acceptance-pack/evidence/`。
 
 ## 0. 2026-09-07 实施结果
 

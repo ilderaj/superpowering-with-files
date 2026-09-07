@@ -47,4 +47,4 @@
 
 输入和候选快照见 manifest.json。Chief 若修改候选，只重跑受影响案例；不得覆盖失败输出。执行者不读 reviewer.md，Chief 评分前不向其提供答案；这是程序性隔离，不是安全盲测。
 
-本包是任务材料。唯一状态权威为 planning/active/swf-v14-controlled-acceptance-20260907/{task_plan,findings,progress}.md。
+本包是任务材料。执行阶段的状态权威为 `planning/active/swf-v14-controlled-acceptance-20260907/{task_plan,findings,progress}.md`；发布闭合后归档至 `planning/archive/20260908-001000-swf-v1-4-release-20260908/{task_plan,findings,progress}.md`。可移植的结果与 workflow 快照位于 `evidence/`，不依赖本机 `.harness` 路径。

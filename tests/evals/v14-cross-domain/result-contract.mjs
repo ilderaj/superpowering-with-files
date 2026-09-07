@@ -109,6 +109,9 @@ export function validateResultRecord(record) {
   }
 
   if (record.caseId === 'O4' && record.result === 'pass') {
+    if (record.variant !== 'pilot') {
+      errors.push('O4 pass requires variant=pilot');
+    }
     if (record.delivery?.authorized !== 'yes' || record.delivery?.recipientVisible !== 'yes') {
       errors.push('O4 pass requires authorized=yes and recipientVisible=yes');
     }

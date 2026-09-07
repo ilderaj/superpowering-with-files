@@ -156,6 +156,24 @@ test('the executable result contract rejects malformed evidence and O4 delivery 
   assert.ok(validateResultRecord({
     ...valid,
     caseId: 'O4',
+    variant: 'semantic-replay',
+    result: 'pass',
+    hostRunRef: 'automation-2',
+    hostEvidenceRef: 'automation-2/config',
+    artifactRefs: [{ pathOrHostRef: 'automation-2/output', state: 'delivered' }],
+    delivery: { authorized: 'yes', recipientVisible: 'yes' },
+    liveGateEvidence: {
+      source: { state: 'yes', ref: 'automation-2/prompt' },
+      schedule: { state: 'yes', ref: 'automation-2/rrule' },
+      recipient: { state: 'yes', ref: 'automation-2/target' },
+      authorization: { state: 'yes', ref: 'automation-2/active' },
+      executionEvent: { state: 'yes', ref: 'automation-2/run' },
+      recipientVisible: { state: 'yes', ref: 'automation-2/readback' },
+    },
+  }).includes('O4 pass requires variant=pilot'));
+  assert.ok(validateResultRecord({
+    ...valid,
+    caseId: 'O4',
     variant: 'pilot',
     result: 'pass',
     delivery: { authorized: 'yes', recipientVisible: 'unknown' },
