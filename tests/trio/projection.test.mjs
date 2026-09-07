@@ -163,6 +163,38 @@ function assertEntryPolicyContract(markdown) {
   }
 }
 
+test('projection keeps six primary surfaces and appends Office references in order', () => {
+  assert.equal(SURFACES.length, 6);
+  assert.deepEqual(SURFACES.map(({ id }) => id), [
+    'entry', 'trio', 'dev', 'office', 'safety', 'chiefops',
+  ]);
+  assert.equal(SUPPORT_SURFACES.length, 7);
+  assert.deepEqual(SUPPORT_SURFACES.map(({ id }) => id), [
+    'trio/references/execution.md',
+    'dev/references/methods.md',
+    'dev/references/review.md',
+    'dev/references/pr-feedback.md',
+    'chiefops/references/delegated-execution.md',
+    'office/references/source-backed-work.md',
+    'office/references/artifact-and-delivery.md',
+  ]);
+  assert.deepEqual(SUPPORT_SURFACES.slice(-2).map(({ supportFor, relativePath, source }) => ({
+    supportFor, relativePath, source,
+  })), [
+    {
+      supportFor: 'office',
+      relativePath: 'trio/office/references/source-backed-work.md',
+      source: 'harness/trio/capabilities/office/references/source-backed-work.md',
+    },
+    {
+      supportFor: 'office',
+      relativePath: 'trio/office/references/artifact-and-delivery.md',
+      source: 'harness/trio/capabilities/office/references/artifact-and-delivery.md',
+    },
+  ]);
+  assert.equal(PROJECTION_SURFACES.length, 13);
+});
+
 test('V2 config and projection expose pure public seams', () => {
   const config = parseV2Config(validConfig());
   const result = projectWithAbsent(

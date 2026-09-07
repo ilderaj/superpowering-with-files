@@ -59,6 +59,8 @@ The extracted package must contain `.codex-plugin/plugin.json`, these five Trio 
 skills/trio/SKILL.md
 skills/trio/dev/SKILL.md
 skills/trio/office/SKILL.md
+skills/trio/office/references/source-backed-work.md
+skills/trio/office/references/artifact-and-delivery.md
 skills/trio/safety/SKILL.md
 skills/chiefops/SKILL.md
 skills/planning-with-files/SKILL.md
@@ -91,9 +93,9 @@ Absent state, V1 state, workspace or both scope, a wrong placement, an already-o
 
 ### What the command does
 
-1. Under the authority publication lock, captures and revalidates the full bounded set of stable preimages: six primary entries, five supporting references (including explicit absence), and the prior V2 state file. Each capture is `lstat → read → lstat` and requires the exact file and parent dev/ino/nlink identities (plus a size matching the read) before and after the read; a replacement between the stat and the read fails closed with `ERR_TRIO_PREIMAGE_DRIFT` before any backup or apply write.
+1. Under the authority publication lock, captures and revalidates the full bounded set of stable preimages: six primary entries, seven supporting references (including explicit absence), and the prior V2 state file. Each capture is `lstat → read → lstat` and requires the exact file and parent dev/ino/nlink identities (plus a size matching the read) before and after the read; a replacement between the stat and the read fails closed with `ERR_TRIO_PREIMAGE_DRIFT` before any backup or apply write.
 2. Publishes a unique immutable backup at `<authorityRoot>/.harness-backup/trio-takeover/<id>/` containing `manifest.json` and `bundle.bin`, then re-reads and verifies both. Before any backup write, every existing backup-root ancestor from the authority root through `.harness-backup/trio-takeover` must be a real, non-symlink directory whose physical path is contained under the authority root; a symlinked or escaping ancestor fails closed with `ERR_TRIO_PHYSICAL_GATE` and no state or target change. The manifest records every object's path, sha256, dev/ino/nlink, parent identity, offset, and length, Absent support files use `exists: false`, null bytes/digest/inode, and zero bundle length. The manifest also records the prior `ownership.source`/`manifestRef`/entries and the prior recovery `checkpointRef` **and** `rollbackRef` exactly as they were before the takeover.
-3. Writes the six primary entries, their five supporting references, and the settled state. Ownership keeps its existing `source` and `manifestRef`, adds ownership for ChiefOps and newly created references, keeps `recovery.checkpointRef`, and sets `recovery.rollbackRef` to a parseable `trio-backup-v1:<absolute manifest path>:<sha256>` file reference (see below).
+3. Writes the six primary entries, their seven supporting references, and the settled state. Ownership keeps its existing `source` and `manifestRef`, adds ownership for ChiefOps and newly created references, keeps `recovery.checkpointRef`, and sets `recovery.rollbackRef` to a parseable `trio-backup-v1:<absolute manifest path>:<sha256>` file reference (see below).
 4. Binds every write to the backup preimages (expected sha256, inode, parent), so a same-content inode replacement fails closed, and compensates all prior writes back to the preimages if any later write fails.
 
 ### Recovery evidence

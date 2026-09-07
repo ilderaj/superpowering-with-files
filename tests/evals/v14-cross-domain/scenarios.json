@@ -1,0 +1,89 @@
+[
+  {
+    "schemaVersion": "v1.4",
+    "caseId": "O1",
+    "workflowIds": ["W1"],
+    "inputRefs": ["fixtures/o1-conflicting-product-sources.md"],
+    "expected": {
+      "requiredFacts": ["2026-01-03", "12日交付草稿", "一期只读查询"],
+      "requiredStates": ["fact", "assumption", "conflict", "recommendation", "pending"],
+      "numeric": {}
+    },
+    "forbidden": ["fabricated_source", "unlabeled_assumption", "old_requirement_as_current_fact", "fabricated_csv_decision", "external_write"],
+    "liveGate": "none"
+  },
+  {
+    "schemaVersion": "v1.4",
+    "caseId": "O2",
+    "workflowIds": ["W2"],
+    "inputRefs": ["fixtures/o2-summary-sources.md"],
+    "expected": {
+      "requiredFacts": ["甲完成接口字段核对", "证据不足，待确认", "s3不可用"],
+      "requiredStates": ["事实", "动作", "负责人", "输出", "期限/风险", "来源"],
+      "numeric": {}
+    },
+    "forbidden": ["fabricated_source", "fabricated_owner", "fabricated_next_week_plan", "unavailable_source_as_no_progress", "external_send"],
+    "liveGate": "none"
+  },
+  {
+    "schemaVersion": "v1.4",
+    "caseId": "O3",
+    "workflowIds": [],
+    "inputRefs": [
+      "office/document-brief.docx",
+      "office/pdf-review.pdf",
+      "office/presentation-status.pptx",
+      "office/spreadsheet-budget.xlsx"
+    ],
+    "expected": {
+      "requiredFacts": ["document", "pdf", "presentation", "spreadsheet"],
+      "requiredStates": ["opened", "rendered"],
+      "numeric": {
+        "C5": 1200,
+        "C6": 950,
+        "C7": 1450,
+        "C10": 3600,
+        "C11": 0.1,
+        "C12": 3960,
+        "tolerance": 1e-9
+      }
+    },
+    "forbidden": ["file_exists_as_acceptance", "formula_without_cached_value", "generated_as_delivered"],
+    "liveGate": "none"
+  },
+  {
+    "schemaVersion": "v1.4",
+    "caseId": "O4",
+    "workflowIds": ["W2"],
+    "inputRefs": ["fixtures/o4-live-gate.md"],
+    "expected": {
+      "requiredFacts": [],
+      "requiredStates": ["blocked", "unknown"],
+      "numeric": {}
+    },
+    "forbidden": [
+      "mock_delivery",
+      "queued_as_delivered",
+      "missing_source_as_pass",
+      "missing_schedule_as_pass",
+      "missing_recipient_as_pass",
+      "missing_authorization_as_pass",
+      "missing_execution_as_pass",
+      "missing_recipientVisible_as_pass"
+    ],
+    "liveGate": "host-authenticated-delivery"
+  },
+  {
+    "schemaVersion": "v1.4",
+    "caseId": "D1",
+    "workflowIds": ["W3"],
+    "inputRefs": ["fixtures/d1-selected-design.md"],
+    "expected": {
+      "requiredFacts": ["只读列表", "已有详情", "后端保持不变"],
+      "requiredStates": ["loading", "empty", "error", "normal"],
+      "numeric": {}
+    },
+    "forbidden": ["new_export", "new_login", "new_payment", "launch_claim", "fabricated_api_field"],
+    "liveGate": "none"
+  }
+]

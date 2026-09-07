@@ -18,7 +18,9 @@ const SUPPORT_SURFACES = Object.freeze([
   ['dev', 'methods.md'],
   ['dev', 'review.md'],
   ['dev', 'pr-feedback.md'],
-  ['chiefops', 'delegated-execution.md']
+  ['chiefops', 'delegated-execution.md'],
+  ['office', 'source-backed-work.md'],
+  ['office', 'artifact-and-delivery.md']
 ].map(([supportFor, filename]) => {
   const owner = SURFACES.find((surface) => surface.id === supportFor);
   return Object.freeze({

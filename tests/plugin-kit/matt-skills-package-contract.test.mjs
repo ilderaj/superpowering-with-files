@@ -25,7 +25,7 @@ const expectedCodexConfig = {
   target: 'matt-skills-codex',
   name: 'harness-matt-skills-codex-plugin',
   displayName: 'Matt Pocock Skills for Codex',
-  version: '1.3.0',
+  version: '1.4.0',
   description: 'Optional Matt Pocock skills for Codex.',
 };
 
@@ -33,7 +33,7 @@ const expectedPortableConfig = {
   target: 'matt-skills-agent-plugins',
   name: 'harness-matt-skills-agent-plugins',
   displayName: 'Matt Pocock Skills for Agent Plugins',
-  version: '1.3.0',
+  version: '1.4.0',
   description: 'Optional Matt Pocock skills for Agent Plugins clients.',
   repository: 'https://github.com/ilderaj/superpowering-with-files',
   keywords: ['harness', 'matt-pocock', 'skills', 'grilling', 'questionnaire'],
@@ -48,10 +48,16 @@ test('core Trio targets and source map remain exact', () => {
     { name: 'safety', source: 'harness/trio/capabilities/safety/SKILL.md' },
     { name: 'chiefops', source: 'harness/trio/governance/chiefops/SKILL.md' },
   ]);
-  assert.equal(SUPPORT_SURFACES.length, 5);
-  assert.deepEqual(trioSkillSourceMap.flatMap(({ name, support }) => support.map((file) => ({
-    id: `${name}/${file.relativePath}`, source: file.source
-  }))), SUPPORT_SURFACES.map(({ id, source }) => ({ id, source })));
+  assert.equal(SUPPORT_SURFACES.length, 7);
+  const packagedSupport = new Map(trioSkillSourceMap.flatMap(({ name, support }) => support.map((file) => [
+    `${name}/${file.relativePath}`,
+    file.source,
+  ])));
+  assert.equal(packagedSupport.size, SUPPORT_SURFACES.length);
+  assert.deepEqual(SUPPORT_SURFACES.map(({ id, source }) => ({
+    id,
+    source: packagedSupport.get(id),
+  })), SUPPORT_SURFACES.map(({ id, source }) => ({ id, source })));
 });
 
 test('harness skill source map covers the additional SWF skills as directory copies', () => {

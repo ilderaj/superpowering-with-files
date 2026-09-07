@@ -1,0 +1,14 @@
+{
+  "tasks": [
+    {"caseId": "O1", "threadId": "01a07c6a-a55d-75b2-a3dd-198459bafebf", "turnId": "01a07c6a-ac99-70b0-9278-6dff5c053608", "status": "completed", "recipientVisible": true, "rubricReadObserved": false},
+    {"caseId": "O2", "threadId": "01a07c6a-d856-7392-a2d9-72cdbf4333a8", "turnId": "01a07c6a-e2bb-7e61-9b81-cee345f5a5d8", "status": "completed", "recipientVisible": true, "rubricReadObserved": false},
+    {"caseId": "O3", "threadId": "01a07c6a-fff4-7461-ac61-7736ca8b4847", "turnId": "01a07c6b-05d5-7103-967c-4fa89ad977da", "status": "completed", "recipientVisible": true, "rubricReadObserved": false},
+    {"caseId": "D1", "threadId": "01a07c6b-266f-77d3-ac63-fa352b390853", "turnId": "01a07c6b-2bc8-7a10-bd40-8ba22904cf9b", "status": "completed", "recipientVisible": true, "rubricReadObserved": false},
+    {"caseId": "O4", "threadId": "01a07a4f-473f-7ef2-bf58-66db8bed7a40", "turnId": "01a07a4f-4a5a-77c2-a35f-0c5cb00f8231", "status": "completed", "recipientVisible": true, "rubricReadObserved": false, "automation": "swf-weekly-planning-review"}
+  ],
+  "notes": [
+    "Prompt echoes and path listings were not treated as rubric reads.",
+    "The records preserve task and turn identifiers while omitting execution-machine paths.",
+    "Actual model and effort remain unknown without authenticated Host evidence."
+  ]
+}

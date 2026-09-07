@@ -4,7 +4,7 @@ This roadmap captures the current mainline for Harness and the work that is inte
 
 ## Current V1.3 Implementation Line
 
-The current implementation line is V1.3 reliable completion: align public descriptions with actual CLI behavior, provide read-only Trio recovery navigation, clarify completion and delivery evidence, and establish a bounded real-task baseline. The detailed implementation and verification packets live in [V1.3 plan](plans/v1.3/README.md). The older 1.0.11–1.0.13 entries below are historical planning inputs; they are not independent execution instructions until their disposition is recorded.
+V1.3 reliable completion shipped as 1.3.0: align public descriptions with actual CLI behavior, provide read-only Trio recovery navigation, clarify completion and delivery evidence, and establish a bounded real-task baseline. V1.4 cross-domain delivery is accepted and released as 1.4.0: Office source-backed and artifact-delivery references are projected and packaged, deterministic contracts pass, and the controlled O1–O4/D1 plus W1–W3 acceptance gates have Chief evidence. The detailed V1.4 implementation and acceptance packet lives in [V1.4 plan](plans/v1.4/README.md). [V2.0 economic collaboration](plans/v2.0/README.md) remains planned. The older 1.0.11–1.0.13 entries below are historical planning inputs; they are not independent execution instructions until their disposition is recorded.
 
 Detailed candidate work lives in [Backlog](backlog.md). Use [State Convergence](state-convergence.md) when roadmap intent must be reconciled against active planning or archive evidence.
 
