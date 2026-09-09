@@ -1,0 +1,946 @@
+{
+  "schemaVersion": 1,
+  "cohort": {
+    "id": "synthetic-arithmetic-only",
+    "kind": "method",
+    "caseIds": [
+      "E1",
+      "E2",
+      "E3",
+      "E4"
+    ],
+    "holdoutIds": [
+      "E3",
+      "E4"
+    ],
+    "rounds": [
+      1,
+      2
+    ],
+    "primaryMetric": "freshTokens",
+    "inputHashes": {
+      "E1": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "E2": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "E3": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "E4": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "rubricHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "methodHash": {
+      "baseline": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "swf": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "preregisteredAt": "2026-09-08T00:00:00Z",
+    "timeoutSeconds": 900,
+    "sharedOverhead": {
+      "scopes": [
+        {
+          "scopeId": "shared",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 10,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "reason": "Synthetic common preparation"
+    },
+    "overheadAssessment": {
+      "attribution": "complete",
+      "symmetricExclusion": "yes",
+      "reason": "Synthetic arithmetic fixture only",
+      "reviewer": "fixture-reviewer",
+      "evidenceRef": "fixture:overhead"
+    },
+    "tradeoffReview": null
+  },
+  "runs": [
+    {
+      "runId": "E1-1-baseline",
+      "caseId": "E1",
+      "round": 1,
+      "arm": "baseline",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E1-1-baseline",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 100,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E1-1-swf",
+      "caseId": "E1",
+      "round": 1,
+      "arm": "swf",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E1-1-swf",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 80,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E1-2-baseline",
+      "caseId": "E1",
+      "round": 2,
+      "arm": "baseline",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E1-2-baseline",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 100,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E1-2-swf",
+      "caseId": "E1",
+      "round": 2,
+      "arm": "swf",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E1-2-swf",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 80,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E2-1-baseline",
+      "caseId": "E2",
+      "round": 1,
+      "arm": "baseline",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E2-1-baseline",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 100,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E2-1-swf",
+      "caseId": "E2",
+      "round": 1,
+      "arm": "swf",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E2-1-swf",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 80,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E2-2-baseline",
+      "caseId": "E2",
+      "round": 2,
+      "arm": "baseline",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E2-2-baseline",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 100,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E2-2-swf",
+      "caseId": "E2",
+      "round": 2,
+      "arm": "swf",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E2-2-swf",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 80,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E3-1-baseline",
+      "caseId": "E3",
+      "round": 1,
+      "arm": "baseline",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E3-1-baseline",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 100,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E3-1-swf",
+      "caseId": "E3",
+      "round": 1,
+      "arm": "swf",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E3-1-swf",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 80,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E3-2-baseline",
+      "caseId": "E3",
+      "round": 2,
+      "arm": "baseline",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E3-2-baseline",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 100,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E3-2-swf",
+      "caseId": "E3",
+      "round": 2,
+      "arm": "swf",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E3-2-swf",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 80,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E4-1-baseline",
+      "caseId": "E4",
+      "round": 1,
+      "arm": "baseline",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E4-1-baseline",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 100,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E4-1-swf",
+      "caseId": "E4",
+      "round": 1,
+      "arm": "swf",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E4-1-swf",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 80,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E4-2-baseline",
+      "caseId": "E4",
+      "round": 2,
+      "arm": "baseline",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E4-2-baseline",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 100,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    },
+    {
+      "runId": "E4-2-swf",
+      "caseId": "E4",
+      "round": 2,
+      "arm": "swf",
+      "attempt": 1,
+      "inputHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "instructionHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "toolScopeHash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "requestedModel": "fixture-model",
+      "requestedEffort": "high",
+      "actualModel": "fixture-model",
+      "actualEffort": "high",
+      "actualEvidenceRef": "fixture:model",
+      "topology": "direct",
+      "startedAt": "2026-09-08T01:00:00Z",
+      "endedAt": "2026-09-08T01:00:02Z",
+      "status": "completed",
+      "quality": {
+        "factual": "pass",
+        "scope": "pass",
+        "usable": "pass",
+        "limitations": "pass",
+        "reviewer": "fixture-reviewer",
+        "evidenceRef": "fixture:quality"
+      },
+      "actions": {
+        "repeatConfirmations": 0,
+        "resumeTurns": 0,
+        "unnecessarySteps": 0,
+        "humanInterventions": 0,
+        "reasons": {}
+      },
+      "usageScopes": [
+        {
+          "scopeId": "E4-2-swf",
+          "parentScopeId": null,
+          "accounting": "exclusive",
+          "mode": "delta",
+          "start": null,
+          "end": null,
+          "delta": {
+            "input": 80,
+            "cachedInput": 0,
+            "output": 0,
+            "reasoningOutput": 0
+          },
+          "evidenceRef": "fixture:synthetic"
+        }
+      ],
+      "evidenceRefs": [
+        "fixture:synthetic"
+      ],
+      "reasons": []
+    }
+  ]
+}
