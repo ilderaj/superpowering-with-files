@@ -132,6 +132,6 @@ mkdir "$PLUGIN_ROOT"
 tar -xzf "$ARCHIVE" -C "$PLUGIN_ROOT"
 ```
 
-Create a local marketplace manifest that lists `harness-matt-skills-codex-plugin` at `./plugins/harness-matt-skills-codex-plugin-<version>`, then register that marketplace with `codex plugin marketplace add "$MATT_MARKETPLACE_ROOT"`. Confirm the companion `.codex-plugin/plugin.json`, `LICENSE`, `UPSTREAM.json`, and exactly the three skill files before enabling it. The separate package is opt-in: `grill-me` and `grilling` are explicit opt-in, `to-questionnaire` creates a local Markdown draft, and external delivery remains human-gated.
+Create a local marketplace manifest that lists `harness-matt-skills-codex-plugin` at `./plugins/harness-matt-skills-codex-plugin-<version>`, then register that marketplace with `codex plugin marketplace add "$MATT_MARKETPLACE_ROOT"`. Confirm the companion `.codex-plugin/plugin.json`, `LICENSE`, `UPSTREAM.json`, `OVERLAYS.json`, and all 24 `skills/<name>/SKILL.md` files before enabling it. The separate package is opt-in at the skill level: every Matt skill is independently toggleable in the host, `grill-me` and `grilling` are explicit opt-in, `to-questionnaire` creates a local Markdown draft, and external delivery remains human-gated.
 
 See [plugin package installation](plugin-packages.md) for download, `SHA256SUMS`, and `manifest.json` verification steps.

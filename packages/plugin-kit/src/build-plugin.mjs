@@ -8,7 +8,7 @@ import {
   platformContractFor,
   trioSkillSourceMap
 } from './platform-contracts.mjs';
-import { loadMattSkillsSource } from './matt-skills-source.mjs';
+import { loadMattSkillsSource, mattSkillsCorpusRoot } from './matt-skills-source.mjs';
 
 // Host hook configs and Python bytecode caches are never projected: SWF keeps
 // hooks Host-owned and the plugin ships only skill assets.
@@ -126,12 +126,20 @@ async function writeHarnessSkills({ pluginRoot, rootDir, contract }) {
 
 async function writeMattSkills({ pluginRoot, contract }) {
   const source = await loadMattSkillsSource();
+  const corpusRoot = mattSkillsCorpusRoot();
 
-  await Promise.all(mattSkillsCompanionFamily.skillSourceMap.map(async ({ name }) => {
-    const outputPath = path.join(pluginRoot, contract.skillDestinations[name]);
-    await mkdir(path.dirname(outputPath), { recursive: true });
-    await writeFile(outputPath, source.skills[name]);
-  }));
+  for (const { name } of mattSkillsCompanionFamily.skillSourceMap) {
+    const outputDir = path.join(pluginRoot, contract.skillDestinations[name]);
+    const sourceRoot = path.join(corpusRoot, name);
+    await mkdir(outputDir, { recursive: true });
+    await cp(sourceRoot, outputDir, {
+      recursive: true,
+      filter: (candidate) => !isExcludedSkillCopyEntry(path.relative(sourceRoot, candidate))
+    });
+    if (source.overlays.includes(name)) {
+      await writeFile(path.join(outputDir, 'SKILL.md'), source.skills[name]);
+    }
+  }
   await writeFile(path.join(pluginRoot, 'LICENSE'), source.license);
   await writeFile(
     path.join(pluginRoot, 'UPSTREAM.json'),
@@ -162,8 +170,11 @@ async function writeReadme({ pluginRoot, contract, config, target }) {
         '',
         config.description,
         '',
+        'This package bundles the full official Matt Pocock catalog — 24 skills (17 engineering, 7 productivity) from mattpocock/skills v1.2.3 — as independently toggleable skills.',
+        '',
         'The grilling skills are explicit and opt-in.',
         '`to-questionnaire` only drafts a local Markdown document; any external delivery remains human-gated.',
+        'Provenance: see UPSTREAM.json for the locked upstream commit and digests, and OVERLAYS.json for SWF overlay records.',
         '',
         installLine
       ]

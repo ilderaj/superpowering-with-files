@@ -4,11 +4,12 @@ import { mkdtemp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { buildPlugin } from '../../packages/plugin-kit/src/build-plugin.mjs';
-import { loadMattSkillsSource } from '../../packages/plugin-kit/src/matt-skills-source.mjs';
+import { loadMattSkillsSource, MATT_SKILLS_INVENTORY } from '../../packages/plugin-kit/src/matt-skills-source.mjs';
 import { validateBuiltPlugin } from '../../packages/plugin-kit/src/preflight.mjs';
 import { validatePortablePlugin } from '../../packages/plugin-kit/src/portable-validation.mjs';
 
 const targets = ['matt-skills-codex', 'matt-skills-agent-plugins'];
+const COMPANION_SKILL_NAMES = [...MATT_SKILLS_INVENTORY];
 
 test('Matt companion builds use the verified source loader and pass preflight', async () => {
   const source = await loadMattSkillsSource();
@@ -30,12 +31,12 @@ test('Matt companion builds use the verified source loader and pass preflight', 
   }
 });
 
-test('Matt portable validation permits only the three flat companion skills', async () => {
+test('Matt portable validation permits the full flat companion skill set', async () => {
   const outDir = path.join(await mkdtemp(path.join(os.tmpdir(), 'matt-skills-portable-')), 'plugins');
   const build = await buildPlugin({ target: 'matt-skills-agent-plugins', version: '1.1.0', outDir });
   const valid = await validatePortablePlugin({
     pluginRoot: build.pluginRoot,
-    skillNames: ['grill-me', 'grilling', 'to-questionnaire'],
+    skillNames: COMPANION_SKILL_NAMES,
   });
   assert.equal(valid.ok, true, valid.errors.join('\n'));
 
@@ -43,8 +44,12 @@ test('Matt portable validation permits only the three flat companion skills', as
   await writeFile(path.join(build.pluginRoot, 'skills', 'extra', 'SKILL.md'), '---\nname: extra\ndescription: extra\n---\n');
   const invalid = await validatePortablePlugin({
     pluginRoot: build.pluginRoot,
-    skillNames: ['grill-me', 'grilling', 'to-questionnaire'],
+    skillNames: COMPANION_SKILL_NAMES,
   });
   assert.equal(invalid.ok, false);
-  assert.ok(invalid.errors.some((error) => error.includes('grill-me, grilling, to-questionnaire')));
+  assert.ok(
+    invalid.errors.some((error) => error.includes('must contain exactly these immediate skill directories') && error.includes('extra')),
+    invalid.errors.join('\n'),
+  );
 });
+
