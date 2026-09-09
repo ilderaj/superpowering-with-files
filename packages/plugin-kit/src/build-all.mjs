@@ -110,7 +110,7 @@ function renderReleaseNotes(version) {
   return [
     `# Superpowering With Files ${version}`,
     '',
-    'Trio skills plugin release: a portable Agent Plugins v1 package and a native Codex package, both built from the same skill sources. It also includes two independent, opt-in Matt skills companion packages; they make no change to Trio or its projection.',
+    'Trio skills plugin release: a portable Agent Plugins v1 package and a native Codex package, both built from the same skill sources. It also includes two independent, opt-in Matt skills companion packages covering the full official Matt Pocock catalog (engineering plus productivity); they make no change to Trio or its projection.',
     'The core packages bundle the five Trio surfaces (entry policy, `trio`, `dev`, `office`, `safety`), the ChiefOps governance companion, and the three additional SWF skills: `planning-with-files`, `overengineering-review`, and `simplification-ledger`.',
     '',
     'Artifacts:',
@@ -120,7 +120,7 @@ function renderReleaseNotes(version) {
     `- harness-matt-skills-agent-plugins-${version}.tgz (portable, client-owned Matt companion)`,
     `- harness-matt-skills-codex-plugin-${version}.tgz (native Codex Matt companion)`,
     '',
-    'Use `SHA256SUMS` and `manifest.json` to verify downloaded assets. `grill-me` and `grilling` are explicit opt-in; `to-questionnaire` creates a local Markdown draft, and external delivery remains human-gated. The portable companion follows the client\'s own procedure and makes no remote-install claim.'
+    'Use `SHA256SUMS` and `manifest.json` to verify downloaded assets. Every Matt companion skill is independently toggleable in the host; the grilling skills are explicit opt-in, and `to-questionnaire` only drafts a local Markdown document while any external delivery remains human-gated. The portable companion follows the client\'s own procedure and makes no remote-install claim.'
   ].join('\n');
 }
 

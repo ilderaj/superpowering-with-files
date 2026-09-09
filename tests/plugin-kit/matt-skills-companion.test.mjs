@@ -7,21 +7,23 @@ import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { buildAll } from '../../packages/plugin-kit/src/build-all.mjs';
+import { mattSkillsPackagedFiles, MATT_SKILLS_INVENTORY } from '../../packages/plugin-kit/src/matt-skills-source.mjs';
 
 const execFileAsync = promisify(execFile);
 
-const VERSION = '1.1.0';
-const COMPANION_SKILLS = Object.freeze(['grill-me', 'grilling', 'to-questionnaire']);
+const VERSION = '2.0.0';
+const COMPANION_SKILLS = Object.freeze([...MATT_SKILLS_INVENTORY]);
+const PACKAGED_SKILL_FILES = Object.freeze(mattSkillsPackagedFiles());
 const EXPECTED_RELEASE_ARTIFACTS = Object.freeze([
-  'harness-codex-plugin-1.1.0.tgz',
-  'harness-agent-plugins-1.1.0.tgz',
-  'harness-matt-skills-codex-plugin-1.1.0.tgz',
-  'harness-matt-skills-agent-plugins-1.1.0.tgz',
+  'harness-codex-plugin-2.0.0.tgz',
+  'harness-agent-plugins-2.0.0.tgz',
+  'harness-matt-skills-codex-plugin-2.0.0.tgz',
+  'harness-matt-skills-agent-plugins-2.0.0.tgz',
 ]);
-const CORE_ARTIFACTS = Object.freeze(['harness-codex-plugin-1.1.0.tgz', 'harness-agent-plugins-1.1.0.tgz']);
+const CORE_ARTIFACTS = Object.freeze(['harness-codex-plugin-2.0.0.tgz', 'harness-agent-plugins-2.0.0.tgz']);
 const COMPANION_ARTIFACTS = Object.freeze([
-  'harness-matt-skills-codex-plugin-1.1.0.tgz',
-  'harness-matt-skills-agent-plugins-1.1.0.tgz',
+  'harness-matt-skills-codex-plugin-2.0.0.tgz',
+  'harness-matt-skills-agent-plugins-2.0.0.tgz',
 ]);
 const NATIVE_COMPANION_ENTRIES = Object.freeze([
   '.codex-plugin/plugin.json',
@@ -29,9 +31,7 @@ const NATIVE_COMPANION_ENTRIES = Object.freeze([
   'LICENSE',
   'UPSTREAM.json',
   'OVERLAYS.json',
-  'skills/grill-me/SKILL.md',
-  'skills/grilling/SKILL.md',
-  'skills/to-questionnaire/SKILL.md',
+  ...PACKAGED_SKILL_FILES,
 ]);
 const PORTABLE_COMPANION_ENTRIES = Object.freeze([
   'plugin.json',
@@ -39,9 +39,7 @@ const PORTABLE_COMPANION_ENTRIES = Object.freeze([
   'LICENSE',
   'UPSTREAM.json',
   'OVERLAYS.json',
-  'skills/grill-me/SKILL.md',
-  'skills/grilling/SKILL.md',
-  'skills/to-questionnaire/SKILL.md',
+  ...PACKAGED_SKILL_FILES,
 ]);
 
 let releaseDir;
@@ -60,7 +58,7 @@ async function tarEntries(name) {
     .filter(Boolean);
 }
 
-test('release artifacts are exactly the four 1.1.0 tarballs', async () => {
+test('release artifacts are exactly the four 2.0.0 tarballs', async () => {
   const tarballs = (await readdir(releaseDir)).filter((name) => name.endsWith('.tgz'));
   assert.deepEqual([...tarballs].sort(), [...EXPECTED_RELEASE_ARTIFACTS].sort());
 });
@@ -74,14 +72,16 @@ test('original core archives carry no companion skill paths', async () => {
   }
 });
 
-test('native companion archive contains exactly the approved native surface', async () => {
+test('native companion archive contains exactly the approved native 24-skill surface', async () => {
   const entries = await tarEntries(COMPANION_ARTIFACTS[0]);
   assert.deepEqual(new Set(entries), new Set(NATIVE_COMPANION_ENTRIES));
+  assert.equal(entries.length, NATIVE_COMPANION_ENTRIES.length);
 });
 
-test('portable companion archive contains exactly the approved flat surface', async () => {
+test('portable companion archive contains exactly the approved flat 24-skill surface', async () => {
   const entries = await tarEntries(COMPANION_ARTIFACTS[1]);
   assert.deepEqual(new Set(entries), new Set(PORTABLE_COMPANION_ENTRIES));
+  assert.equal(entries.length, PORTABLE_COMPANION_ENTRIES.length);
 });
 
 test('companion archives exclude trio, hooks, mcp, runtime, credential paths', async () => {
@@ -115,3 +115,4 @@ test('companion archives carry truthful overlay provenance', async () => {
     assert.notEqual(grilling.overlaySha256, grilling.corpusSha256);
   }
 });
+
