@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { SUPPORT_SURFACES } from '../../harness/trio/projection.mjs';
+import { LOCKED_SKILLS } from '../../packages/plugin-kit/src/matt-skills-lock.mjs';
+import { MATT_SKILLS_INVENTORY, mattSkillsPackagedFiles } from '../../packages/plugin-kit/src/matt-skills-source.mjs';
 import {
   harnessSkillSourceMap,
   mattSkillsCompanionFamily,
@@ -14,12 +16,14 @@ import {
 
 const corpusRoot = 'harness/optional-skills/mattpocock/v1.2.3';
 
-const expectedSkillNames = ['grill-me', 'grilling', 'to-questionnaire'];
-
-const expectedSkillSources = expectedSkillNames.map((name) => ({
+const expectedSkillNames = [...MATT_SKILLS_INVENTORY];
+const expectedSkillSources = LOCKED_SKILLS.map(({ name }) => ({
   name,
-  source: `${corpusRoot}/${name}/SKILL.md`,
+  source: `${corpusRoot}/${name}`,
+  directory: true,
 }));
+const expectedPackagedFiles = mattSkillsPackagedFiles();
+const expectedPackagedFileSet = new Set(expectedPackagedFiles);
 
 const expectedCodexConfig = {
   target: 'matt-skills-codex',
@@ -38,6 +42,21 @@ const expectedPortableConfig = {
   repository: 'https://github.com/ilderaj/superpowering-with-files',
   keywords: ['harness', 'matt-pocock', 'skills', 'grilling', 'questionnaire'],
 };
+
+function expectedRequiredFiles(manifestPath, packagedFiles) {
+  return [
+    manifestPath,
+    ...packagedFiles,
+    'LICENSE',
+    'UPSTREAM.json',
+    'OVERLAYS.json',
+    'README.md',
+  ];
+}
+
+function expectedSkillDestinations() {
+  return Object.fromEntries(LOCKED_SKILLS.map(({ name }) => [name, `skills/${name}`]));
+}
 
 test('core Trio targets and source map remain exact', () => {
   assert.deepEqual(supportedPluginTargets, ['codex', 'agent-plugins']);
@@ -80,7 +99,10 @@ test('harness skill source map covers the additional SWF skills as directory cop
   ]);
 });
 
-test('Matt companion family is separate from the core target loop', () => {
+test('Matt companion family covers the full locked 24-skill catalog', () => {
+  assert.equal(LOCKED_SKILLS.length, 24);
+  assert.equal(expectedSkillNames.length, 24);
+  assert.equal(expectedPackagedFiles.length, 67);
   assert.deepEqual(mattSkillsCompanionTargets, [
     'matt-skills-codex',
     'matt-skills-agent-plugins',
@@ -94,36 +116,33 @@ test('Matt companion family is separate from the core target loop', () => {
     targets: mattSkillsCompanionTargets,
     skillSourceMap: expectedSkillSources,
   });
+  for (const { name, files } of LOCKED_SKILLS) {
+    for (const file of files) {
+      assert.ok(
+        expectedPackagedFileSet.has(`skills/${name}/${file.path}`),
+        `missing packaged file for ${name}/${file.path}`,
+      );
+    }
+  }
 });
 
-test('Matt companion contracts provide native and portable layouts', () => {
+test('Matt companion contracts provide native and portable layouts for all skills', () => {
   assert.deepEqual(Object.keys(mattSkillsPlatformContracts).sort(), [
     'matt-skills-agent-plugins',
     'matt-skills-codex',
   ]);
+
+  const destinations = expectedSkillDestinations();
 
   assert.deepEqual(mattSkillsPlatformContracts['matt-skills-codex'], {
     id: 'matt-skills-codex',
     displayName: 'Matt Pocock Skills for Codex',
     packageName: 'harness-matt-skills-codex-plugin',
     manifestPath: '.codex-plugin/plugin.json',
-    requiredFiles: [
-      '.codex-plugin/plugin.json',
-      'skills/grill-me/SKILL.md',
-      'skills/grilling/SKILL.md',
-      'skills/to-questionnaire/SKILL.md',
-      'LICENSE',
-      'UPSTREAM.json',
-      'OVERLAYS.json',
-      'README.md',
-    ],
+    requiredFiles: expectedRequiredFiles('.codex-plugin/plugin.json', expectedPackagedFiles),
     loadsRootInstructionFile: true,
     capabilities: { skills: true },
-    skillDestinations: {
-      'grill-me': 'skills/grill-me/SKILL.md',
-      grilling: 'skills/grilling/SKILL.md',
-      'to-questionnaire': 'skills/to-questionnaire/SKILL.md',
-    },
+    skillDestinations: destinations,
   });
 
   assert.deepEqual(mattSkillsPlatformContracts['matt-skills-agent-plugins'], {
@@ -131,23 +150,10 @@ test('Matt companion contracts provide native and portable layouts', () => {
     displayName: 'Matt Pocock Skills for Agent Plugins',
     packageName: 'harness-matt-skills-agent-plugins',
     manifestPath: 'plugin.json',
-    requiredFiles: [
-      'plugin.json',
-      'skills/grill-me/SKILL.md',
-      'skills/grilling/SKILL.md',
-      'skills/to-questionnaire/SKILL.md',
-      'LICENSE',
-      'UPSTREAM.json',
-      'OVERLAYS.json',
-      'README.md',
-    ],
+    requiredFiles: expectedRequiredFiles('plugin.json', expectedPackagedFiles),
     loadsRootInstructionFile: false,
     capabilities: { skills: true },
-    skillDestinations: {
-      'grill-me': 'skills/grill-me/SKILL.md',
-      grilling: 'skills/grilling/SKILL.md',
-      'to-questionnaire': 'skills/to-questionnaire/SKILL.md',
-    },
+    skillDestinations: destinations,
   });
 
   for (const target of mattSkillsCompanionTargets) {
@@ -164,3 +170,4 @@ test('Matt companion plugin configurations match their package contracts', async
   assert.deepEqual(codexConfig, expectedCodexConfig);
   assert.deepEqual(portableConfig, expectedPortableConfig);
 });
+
