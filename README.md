@@ -116,6 +116,8 @@ Optional methods and redundant legacy wrappers have a separate, explicit adoptio
 
 The optional SWF [`show-me`](harness/optional-skills/show-me/SKILL.md) explains code, architecture, changes and unfamiliar concepts through a suitable small visual. It adapts HumanLayer's approach with beginner-friendly language, source evidence and host-aware delivery; it is separate from the Matt companion and core governance. See the [adoption comparison](docs/research/show-me-adoption-20260906.md). Invoke `$show-me` with the topic, audience and preferred format when relevant.
 
+The optional SWF [`ux-design`](harness/optional-skills/ux-design/SKILL.md) method covers user-facing visual work: screens, pages, dashboards, prototypes, demos, and slide or document layout. It fixes the reader and their task, requires observable design decisions and named anti-patterns before building, and verifies the rendered result instead of the intent; it pairs with a renderer such as `pen-design` when the Host exposes one. See the [adoption comparison](docs/research/ux-design-adoption-20260911.md). Invoke `$ux-design` with the artifact, audience and evidence when relevant.
+
 ```sh
 node scripts/adopt-global-skills.mjs --home /absolute/home
 node scripts/adopt-global-skills.mjs --home /absolute/home --apply
@@ -123,7 +125,7 @@ node scripts/adopt-global-skills.mjs --home /absolute/home --apply
 
 A first takeover of existing, unowned copies requires `--takeover` after reviewing the dry run. The command verifies backups and destination hashes, writes an installation receipt, and preserves unrelated skills. It does not install the Matt companion or modify plugin caches. Install the rebuilt Matt companion through its Host plugin manager and remove duplicate standalone copies only after validating that installation.
 
-Packaged artifacts include the native `harness-codex-plugin-<version>.tgz`, portable `harness-agent-plugins-<version>.tgz`, and two opt-in Matt companion packages. Core packages include five skills (`trio`, `dev`, `office`, `safety`, `chiefops`), their references, and three additional SWF skills (`planning-with-files`, `overengineering-review`, `simplification-ledger`). Optional methods are independently adopted. Codex is the only managed native target; other clients own their generic/manual setup.
+Packaged artifacts include the native `harness-codex-plugin-<version>.tgz`, portable `harness-agent-plugins-<version>.tgz`, and two opt-in Matt companion packages. Core packages include five skills (`trio`, `dev`, `office`, `safety`, `chiefops`), their references, and three additional SWF skills (`planning-with-files`, `overengineering-review`, `simplification-ledger`). Optional methods and the SWF-owned `show-me` and `ux-design` skills are independently adopted. Codex is the only managed native target; other clients own their generic/manual setup.
 
 ```sh
 npm run verify:all
