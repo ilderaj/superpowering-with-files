@@ -1,0 +1,36 @@
+{
+  "owner": "SWF",
+  "kind": "adaptation",
+  "reviewedOn": "2026-09-11",
+  "sources": [
+    {
+      "publisher": "Vercel",
+      "title": "How our agents build on-brand pages with design.md",
+      "author": "John Phamous",
+      "publishedOn": "2026-08-31",
+      "url": "https://vercel.com/blog/how-our-agents-build-on-brand-pages-with-design-md",
+      "companionArtifact": "https://vercel.com/design.md",
+      "retrievedOn": "2026-09-11",
+      "license": "not declared; public web article",
+      "use": "Method basis: judgment prose plus a bounded style vocabulary, named anti-patterns, correction placement by the narrowest enforceable surface, and a frozen-scenario comparison loop. Independently written; no upstream text copied."
+    },
+    {
+      "publisher": "anshu.dev",
+      "title": "Building a beautiful iOS app with 3 Claude Fable prompts",
+      "author": "Anshu",
+      "publishedOn": "2026-06-10",
+      "url": "https://x.com/anshuc/status/2064828802824597584",
+      "retrievedOn": "2026-09-11",
+      "license": "not declared; social post",
+      "use": "Method basis: intent framing with an explicit quality bar, the two-pass build that reopens constraints for a dedicated aesthetics pass, and self-verification of rendered output through successive frames and pixel comparison. Independently written; no upstream text copied."
+    }
+  ],
+  "changes": [
+    "Kept platform-neutral: no simulator, recording, frame-dump, or pixel-diff tool is assumed to exist unless the Host provides it.",
+    "Replaced the source-specific workflows with reader/task intent, observable decisions, and named anti-patterns as the portable core.",
+    "Added the `inspected` evidence state so that looking at the rendered result stays distinct from acceptance and delivery.",
+    "Bound corrections to reusable primitives and the narrowest enforceable placement instead of output hand-tuning.",
+    "Kept the method independent of Trio governance; selection references live in the dev and office capability surfaces."
+  ],
+  "updates": "Manual review of the linked sources; no automatic upstream replacement. No measurable benefit claim is made until paired evidence exists."
+}

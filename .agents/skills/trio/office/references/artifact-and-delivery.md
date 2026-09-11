@@ -16,6 +16,10 @@ For spreadsheets, verify typed inputs, formulas, number formats, recalculated or
 
 Check headings, table headers, language, source links, citation markers, meaningful image descriptions, searchable text, readable contrast, and unclipped content. Repair a failure at the source and rerun the affected native check; broaden coverage when pagination, shared styles, master layouts, or dependencies make the impact uncertain.
 
+## Visual design checks
+
+When visual quality is part of the artifact's acceptance - a deck, one-pager, dashboard, or prototype - apply the `ux-design` method when the Host makes it available: fix the intended reader and the observable layout decisions first, name the failure modes to avoid, then inspect the rendered pages, slides, or screens instead of the source markup. Check hierarchy, alignment, spacing consistency, contrast, clipping, and reachable states where they apply. The evidence states below apply unchanged: an exported preview is `rendered` or `inspected` at best, never `accepted` or `delivered`.
+
 ## Delivery evidence states
 
 Keep these states separate and record evidence for each one: `generated`, `opened`, `rendered`, `accepted`, and `delivered`. A file path, queued open request, local preview, or generated output cannot stand in for a later state. `accepted` requires the stated acceptance check; `delivered` requires evidence that the intended recipient or destination received the artifact.

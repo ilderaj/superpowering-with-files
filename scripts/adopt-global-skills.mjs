@@ -11,6 +11,7 @@ export const INSTALLS = Object.freeze([
   ['overengineering-review', 'harness/core/skills/overengineering-review'],
   ['simplification-ledger', 'harness/core/skills/simplification-ledger'],
   ['show-me', 'harness/optional-skills/show-me'],
+  ['ux-design', 'harness/optional-skills/ux-design'],
   ...['tdd', 'code-review', 'codebase-design', 'diagnosing-bugs', 'domain-modeling']
     .map(name => [name, `harness/optional-skills/methods/${name}`])
 ]);
