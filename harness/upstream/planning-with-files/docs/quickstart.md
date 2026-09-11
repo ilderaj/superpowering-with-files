@@ -92,6 +92,19 @@ its own `task_plan.md`, `findings.md`, and `progress.md`:
 ./scripts/set-active-plan.sh 2026-01-10-backend-refactor
 ```
 
+The active-plan pointer above is shared and suits sequential switching. For
+concurrent sessions, set a different `PLAN_ID` in each host's environment before
+starting it, using the exact ID printed by initialization. In PowerShell use
+`$env:PLAN_ID = 'the-printed-id'`; in a POSIX shell use
+`export PLAN_ID=the-printed-id`. Setting it inside one tool subprocess does not
+change an already-running host. Use separate worktrees if per-task host pins are
+unavailable. `PWF_PLAN_ROOT` chooses a project, not a task within that project.
+
+On recovery, resolve the selected plan first and read all three files from that
+directory. Do not substitute a root `task_plan.md` for a selected named plan.
+When several agents share one task, keep one owner for the plan and summaries;
+workers append to their own ledgers or assigned files.
+
 For a long-running operational topic that shares the same root plan, keep
 `progress.md` concise and move durable details into a topic handoff file:
 

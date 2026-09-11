@@ -12,6 +12,8 @@ def main() -> None:
 
     if not adapter.is_session_attached(root, adapter.session_id_from_payload(payload)):
         return
+    if adapter.session_plan_requires_binding(root):
+        return
 
     stop_args = ("--stop-hook-active",) if payload.get("stop_hook_active") is True else ()
     stdout, _ = adapter.run_shell_script("stop.sh", root, *stop_args)

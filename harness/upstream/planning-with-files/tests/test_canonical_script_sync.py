@@ -45,6 +45,8 @@ SHARED_SCRIPTS = (
     "attest-plan.sh",
     "attest-plan.ps1",
     "inject-plan.sh",
+    "inject-plan.py",
+    "skill-hook.sh",
 )
 
 

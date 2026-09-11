@@ -106,9 +106,23 @@ These amazing people have contributed code, documentation, or significant improv
 
 ### Other Contributors
 
-- **[Raymond Manaloto](https://github.com/sortakool)** - [Issue #234](https://github.com/OthmanAdi/planning-with-files/issues/234)
+- **[@sunznx](https://github.com/sunznx)**, [Issue #240](https://github.com/OthmanAdi/planning-with-files/issues/240), [Issue #241](https://github.com/OthmanAdi/planning-with-files/issues/241)
+  - Reported and reproduced named-plan crossover between Codex sessions sharing a working directory after compaction.
+  - Reported the 13 duplicate Codex command skills, traced the legacy command fallback, and proposed the native manifest setting that disables it.
+
+- **[@hzura](https://github.com/hzura)**, [Issue #50](https://github.com/OthmanAdi/planning-with-files/issues/50)
+  - Raised the same-repository parallel-task workflow that led to explicit plan selection and shared-file ownership guidance.
+
+- **[@wangxiaodong1021](https://github.com/wangxiaodong1021)**, [Issue #50](https://github.com/OthmanAdi/planning-with-files/issues/50)
+  - Reported session crossover during parallel Codex work, prompting reproduction with two attached sessions and separate plan pins.
+
+- **[Raymond Manaloto](https://github.com/sortakool)** - [Issue #234](https://github.com/OthmanAdi/planning-with-files/issues/234), [Issue #236](https://github.com/OthmanAdi/planning-with-files/issues/236), [Issue #237](https://github.com/OthmanAdi/planning-with-files/issues/237), [Issue #238](https://github.com/OthmanAdi/planning-with-files/issues/238), [Issue #239](https://github.com/OthmanAdi/planning-with-files/issues/239)
   - Reproduced the nested attestation failure and traced it to the fallback from slug mode to legacy mode when the helper runs inside `.planning/<slug>/`
-  - **Impact:** The shell and PowerShell helpers now update the slug's `.attestation` from either the project root or the slug directory, so the next root injection does not report a false tamper event
+  - Found that `plan-doctor.sh` matched its control strings against the injected plan body, so a plan quoting one of them reported a false tamper warning, and that a stale literal at `:92` made a fully dark-hooks state report PASS. Supplied the structural alternative that replaced the string matching, and the four test arms
+  - Showed that a `PLAN_ID` of valid slug shape naming no directory fell through to another plan, which then got attested at rc=0, with a control arm proving the probe could return the right plan
+  - Showed that a slug plan with no `.mode` bypassed a project's committed root `.mode`, with a control arm removing the slug directory to prove it was a bypass rather than a mode that was never armed
+  - Traced the PostToolUse progress reminder to `systemMessage`, a field Claude Code delivers to the user, so an instruction written for the model reached the person instead on every matching tool call, and checked the Codex adapter for the same defect before filing
+  - **Impact:** Attestation and injection follow the plan the operator named or refuse; a project's `.mode` is a floor a plan cannot start below; `/plan-doctor` classifies on the data framing, so a reworded banner degrades to a warning instead of a silent PASS; and the progress reminder reaches the model, once per turn, without firing on read-only shell commands
 
 - **[@lowmiaq-gmail](https://github.com/lowmiaq-gmail)** - [PR #233](https://github.com/OthmanAdi/planning-with-files/pull/233) / [Issue #232](https://github.com/OthmanAdi/planning-with-files/issues/232)
   - Reported that direct help flags were parsed as project names, then supplied a focused POSIX-shell fix and regression covering both `-h` and `--help` against an empty working directory
@@ -370,7 +384,7 @@ Thank you to everyone who reported issues, provided feedback, and helped test fi
 - [@tingles2233](https://github.com/tingles2233) - Issue #29 (Plugin update issues)
 - [@st01cs](https://github.com/st01cs) - Issue #28 (Devis fork discussion)
 - [@wqh17101](https://github.com/wqh17101) - Issue #11 testing and confirmation
-- [@luyanfeng](https://github.com/luyanfeng) - Issue #172 (OpenCode install/verify paths doubled the folder segment in docs/opencode.md; fixed in v2.43.0)
+- [@luyanfeng](https://github.com/luyanfeng) - Issue #172 (OpenCode install/verify paths doubled the folder segment in docs/opencode.md; fixed in v2.43.0) and Issue #235 (docs/opencode.md claimed `npx skills add -g` installs to `~/.config/opencode/skills/` while it installs to `~/.agents/skills/`; the report triggered the v3.14.0 OpenCode rewrite with the native plugin)
 - [@mixian939](https://github.com/mixian939) - Issue #191 (Codex hooks reporting a false "0/0 phases complete" status for an unstructured task_plan.md, with a full root-cause diagnosis and suggested fix; the audit this triggered found and fixed the same defect in the canonical scripts and two other IDE adapters, fixed in v3.2.0)
 - [@AvitalAviv](https://github.com/AvitalAviv) - Issue #188 (flagged that the repo had no private vulnerability disclosure channel; private vulnerability reporting is now enabled and documented in SECURITY.md)
 - [@lazyst](https://github.com/lazyst) - Issue #190 (feature request describing the Pi extension activating hooks on a draft plan before user confirmation, with the exact passive-until-confirmed behavior that shipped as `/plan-execute` in v3.3.0)
@@ -411,6 +425,6 @@ If you've contributed and don't see your name here, please open an issue! We wan
 
 ---
 
-**Total Contributors:** 56+ and growing!
+**Total Contributors:** 59+ and growing!
 
-*Last updated: August 31, 2026*
+*Last updated: 2026-09-09*

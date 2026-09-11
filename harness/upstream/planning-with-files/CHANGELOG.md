@@ -4,6 +4,173 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.17.2] - 2026-09-09
+
+### Fixed
+- The native Codex plugin explicitly disables legacy command migration with `"commands": []`. Codex no longer turns the 13 top-level Claude commands into redundant `source-command-*` skills when installing the plugin. The canonical planning skill and Codex hooks remain configured, and Claude retains its commands (#241).
+
+### Thanks
+- @sunznx, for reporting the duplicate skills, tracing the fallback, and proposing the scoped manifest fix in #241.
+
+## [3.17.1] - 2026-09-08
+
+### Fixed
+- Multiple named plans now require `PLAN_ID` even when `.planning/sessions/` does not exist. A shared `.active_plan` pointer or directory modification time can no longer silently redirect a Codex session after compaction (#240).
+- Shell, PowerShell and Python selection paths refuse ambiguous plans. UserPromptSubmit explains the missing pin; per-tool and PreCompact hooks remain quiet, and Stop and attestation do not fall back to an unrelated root plan. Explicit pins, single named plans and legacy root plans remain supported.
+
+### Thanks
+- @sunznx, for the same-cwd Codex regression report and reproduction in #240.
+
+## [3.17.0] - 2026-09-07
+
+Every Claude Code hook fire forked about 130 processes. On Windows that took longer than the hook timeout, so the plan never reached the model. Found on the maintainer's own machine the day after 3.16.1 shipped.
+
+### Fixed
+- **The Claude Code plugin hooks timed out on Windows and Claude Code discarded the plan context.** `hooks/claude-hook.sh` answered every event by running `resolve-plan-dir.sh` and `inject-plan.sh`, and those answer by forking: `realpath`, `stat`, `sha256sum`, `awk`, `tr`, `mktemp`, `head`, `tail`, `sed`, `wc`, four separate Python starts, and a `$(...)` around most of them. One UserPromptSubmit fire forks about 130 times, one PreToolUse fire about 60. On Linux and macOS a fork costs one to three milliseconds and nobody noticed. Under Git Bash on Windows a fork costs about 90 ms, so a prompt paid 7 to 12 seconds against the 10 second hook timeout ("UserPromptSubmit hook timed out after 10s - output discarded"), and every Bash, Read, Grep and Edit call waited 5 more seconds in PreToolUse before it ran. Measured on the reporting machine: UserPromptSubmit 8.1 s, 10.2 s and 7.1 s across three fires, PreToolUse 5.5 s. The Codex route never had this because its Windows launcher starts Python directly.
+- **The events now run in one Python process.** New `scripts/inject-plan.py` is a byte-identical twin of `inject-plan.sh` plus the dispatcher logic of `claude-hook.sh` for session-start, user-prompt-submit, pre-tool-use, post-tool-use and pre-compact. The launcher finds a CPython 3 on PATH with a fork-free walk (absolute entries only, Microsoft Store aliases skipped, `python3` preferred over `python` across the whole PATH) and runs the twin with `python -I -B`. The twin exits 0 only when its stdout is the complete answer; any other status falls through to the unchanged shell chain, so a host without Python, or with a Python 2 `python`, behaves exactly as before. `PWF_FAST_PATH=0` forces the shell chain. The Stop event stays in the shell because it must forward Claude's stdin payload to `gate-stop.sh`. Same machine after the change: UserPromptSubmit 0.33 s, PreToolUse 0.28 to 0.37 s, PostToolUse 0.26 s, SessionStart 0.31 s.
+- **The standalone skill route takes the same fast path once a plan is accepted.** `skill-hook.sh` keeps the preflight and the refusal notices on the shell chain, because that route is pinned never to start an interpreter for a disabled or plan-less state, and runs the four injector calls after eligibility through the twin. Its interpreter discovery is the same fork-free PATH walk instead of two `$(command -v ...)` forks plus a `-c` version probe.
+- **A directory with no planning state answers before any fork.** Both dispatchers exit at once when the cwd has no `task_plan.md`, no `.planning` and no `PLAN_ID` or `PWF_PLAN_ROOT` selector: every route answers with nothing there, and the reference chain took about ten forks to say so. A set selector still gets its refusal notice.
+- **Both routes share one cache slot per plan.** The launchers hand the twin the shell's own `$PWD` spelling (`PWF_SHELL_PWD`, excluded from MSYS path conversion), so a fast-path fire and a fallback fire derive the same turn-marker slot (#239) and the same progress-guard slot (#217). Without that, Git Bash spelled the directory `/tmp/...` and Python `C:\Users\...`, and a switch between routes nudged twice in one turn and lost the guard's baseline.
+- **Characters outside the Basic Multilingual Plane survive the plugin's JSON encoder on Windows.** The `awk` walk in `json_string` used UTF-16 units under a UTF-8 locale and re-emitted an emoji in a plan as a lone surrogate, which is not UTF-8. Both dispatchers now run that walk under `LC_ALL=C`, byte by byte.
+
+### Security
+- **Hook interpreters run in isolated mode.** The `python -` heredocs and `-c` snippets in `inject-plan.sh`, `resolve-plan-dir.sh` and `skill-hook.sh` put the current directory first on `sys.path`, so a repository carrying its own `secrets.py`, `hashlib.py` or `ctypes.py` had that file imported by the hook on every prompt, with the hook's privileges. Every interpreter start in those three scripts and in the new twin now passes `-I`. A parity test plants six such modules in a project and asserts that neither route runs them and both still inject the plan. The Codex, Gemini and GitHub Copilot shell adapters still start their interpreters in default mode; that is the next item.
+
+### Verification
+- `tests/test_inject_plan_python_parity.py` runs the shell reference and the twin over the same fixtures, each with its own cache root, and asserts identical stdout bytes: every injector context, every dispatcher event, notices and refusals, frame digests and truncation flags, the progress-regression guard across three fires, smart extraction on CRLF and inline status markers, attestation, autonomous and gated modes with ledgers, the root `.mode` floor, session isolation with legacy and digest sentinels, and nested-root ambiguity. Launcher tests prove the fast path is the one that runs, that a twin which cannot run falls back to the reference output, that a missing twin falls back, that Stop never takes the fast path, and that Microsoft Store aliases and relative PATH entries are never selected.
+- A second-model review of the twin against the shell chain found five real divergences before release, all fixed and each now pinned by a parity fixture: a NUL byte in `.active_plan` (command substitution drops it, so a UTF-16LE pointer without a BOM still names its plan), the awk quirk that prints `phases: /3 complete` for a plan with no completed phase, the CRLF progress tail under Git for Windows' sed, the cache-slot spelling above, and the surrogate corruption above. Three accepted differences remain and are documented in the twin's header: glob collation order in the nested-ambiguity list, BSD sed appending a newline to a progress file whose last line has none, and the spelling of a `PWF_PLAN_ROOT` pin in notices under Git Bash.
+
+### Changed
+- `scripts/inject-plan.py` ships in every scripts directory that ships `inject-plan.sh` (the sync inventory, the `.agents` mirror, the npm package and the language variants), and the canonical and location parity tests pin it.
+- Version parity advances to 3.17.0.
+
+## [3.16.1] - 2026-09-05
+
+### Fixed
+- The Claude plugin and standalone hook JSON encoders now preserve literal backslashes under POSIX awk, including Windows paths and text containing a literal `\n` sequence.
+- Attached Codex, Hermes and Pi sessions could follow another task's shared `.active_plan` pointer. When session isolation is armed and multiple plans exist, these routes and the shared standalone hooks now require `PLAN_ID`. An attachment no longer bypasses nested-root ambiguity checks.
+- Standalone skill PreToolUse and PostToolUse messages were emitted as plain stdout, which Claude Code does not deliver to the model for those events. A shared helper now reads the native JSON session identity and emits `additionalContext`, respects opt-out and rejected selectors, and throttles the progress reminder per turn with a private cache.
+- The native Codex PostToolUse adapter dropped the session ID before writing its reminder marker, while UserPromptSubmit used the real ID to clear it. Both operations now address the same session entry.
+- Installed packages were missing the advertised loop template, and six IDE bundles lacked the Stop dispatcher. The sync inventory now ships the complete dependency chain. Standalone documentation links resolve outside the repository layout.
+- Recovery instructions now read and initialize files in the selected task directory, preserve existing files, and assign one orchestrator to shared planning summaries across the maintained hook-bearing variants.
+
+### Changed
+- Security guidance describes local hash attestation as a digest check while the saved digest remains trusted, not proof of human approval or protection against a writer replacing both files. The write guard is advisory and does not lock, merge or detect every overwritten summary.
+- PreCompact documentation identifies its output as diagnostic. Claude Code does not support `additionalContext` for that event, so it cannot force a model to flush progress before compaction.
+- Version parity advances to 3.16.1; the native Hermes plugin advances to 0.2.1 and the Pi extension to 1.2.6.
+
+### Thanks
+- @hzura and @wangxiaodong1021, for the parallel-session discussion and crossover reports in #50.
+- @sortakool, for the model-context delivery report in #239 that led to checking the standalone route and native session cache.
+- @oaabahussain, for the plan-content trust-boundary discussion in #150.
+
+## [3.16.0] - 2026-09-03
+
+The PostToolUse progress reminder was addressed to Claude and delivered to the user instead, on every matching tool call, with `Bash` in the matcher. Reported by @sortakool in #239, filed shortly after #236 to #238 and fixed on its own.
+
+### Fixed
+- **The PostToolUse nudge never reached the model (closes #239, reported by @sortakool).** `hooks/claude-hook.sh:110` emitted "Update progress.md with what you just did" as `systemMessage`, which Claude Code documents as a warning shown to the user. So the person saw the instruction after every `Write`, `Edit` and `Bash` call and the model, which the sentence is written for, never saw it once. `emit_session_start` eleven lines above already emitted `hookSpecificOutput.additionalContext` for its own event, so the correct shape was in the same file the whole time. Both the plugin dispatcher and `.codex/hooks/post_tool_use.py` now emit `additionalContext` with `"hookEventName": "PostToolUse"`; the Codex adapter's `pre_tool_use.py` and `run_sh.py` already used that shape for their events.
+- **The nudge is now once per turn rather than once per tool call.** The string is a constant, so every repeat after the first carries no information: it names no tool, no file and no phase. UserPromptSubmit and SessionStart fire once per turn and clear a marker; the first post-tool fire of the turn sets it. The marker lives in the user's private cache under `pwf-turn/`, never in the plan directory, and is keyed on the plan path plus `PWF_SESSION_ID` so two sessions sharing a plan do not silence each other. A cache root that cannot be created skips the throttle rather than the reminder, so a broken cache cannot quietly remove it.
+- **`Bash` came off the PostToolUse matchers.** `ls`, `git status` and `grep` were tripping a "you changed something, record it" reminder. `hooks/hooks.json` goes to `Write|Edit` and both Codex manifests go to `apply_patch|Edit|Write`. PreToolUse keeps `Bash`: a plan reminder before a shell command is a different and wanted behavior. The standalone skill route already used `Write|Edit`, which is further evidence the wider matcher was drift rather than intent.
+- **The plugin dispatcher still had the #237 fallback.** `active_plan_dir()` in `hooks/claude-hook.sh` resolves through the shared resolver and then fell back to the legacy root `task_plan.md`, the fallback v3.15.0 removed from the script and Codex routes but not from this one. Found while fixing #239. A rejected `PLAN_ID` or `PWF_PLAN_ROOT` now stops there too.
+
+### Verification
+- 10 new tests in `tests/test_post_tool_nudge.py`, driving both routes as processes. Coverage includes the field, the once-per-turn behavior through a real re-arm, session-start as a second re-arm, two session ids not silencing each other, a broken cache root still emitting, and every matcher in all three manifests.
+- One test earns its place by proving key agreement through deletion: the two Codex scripts derive the marker key independently and one of them resolves a `PWF_PLAN_ROOT` pin while the other does not. A divergence there would leave the marker uncleared and silently degrade the nudge to once per session, so the re-arm is asserted to remove the exact file the throttle wrote.
+
+### Not changed
+- The standalone skill route emits the same sentence as plain stdout from a YAML frontmatter scalar, with no throttle. It already carries the narrower `Write|Edit` matcher, so the spam this issue is about never applied to it, and giving it the throttle means either embedding cache-key logic in a hook scalar or routing it through a new script context across eleven SKILL.md files. Both are real changes that belong in a release where they can be tested on their own rather than appended to a fix.
+- `FileChanged` was suggested in the issue as a way to catch a `Bash` command that rewrites a file. It is a new event surface with its own behavior and is deliberately left for its own release.
+
+### Thanks
+- Raymond, for tracing all three defects to the line and checking the Codex route before filing, and for confirming there was no user-side workaround rather than leaving it to be guessed at (#239).
+
+## [3.15.0] - 2026-09-02
+
+Three selector and policy defects reported by @sortakool, all reproduced here before any code changed. Two of them let a session work on a plan nobody selected, and the third made the diagnostic that should have caught them report PASS. A minor rather than a patch because two behaviors change on purpose: a `PLAN_ID` that does not resolve now refuses instead of picking another plan, and a slug plan can no longer start below a project's committed `.mode`.
+
+### Security
+- **A `PLAN_ID` that named no directory attested and injected a different plan at rc=0 (closes #237, reported by @sortakool).** `commands/plan-attest.md` has promised since v3.9.0 that an explicit selector which does not resolve exits with an error and never falls back to another plan. The `PWF_PLAN_ROOT` half held. The `PLAN_ID` half did not: `resolve_from_env` returned 1 both when no selector was set and when the selector was rejected, so a one-character typo fell through to `.active_plan`, then to newest-by-mtime, and `attest-plan.sh` locked that other plan without a word. The guard in `attest-plan.sh` written for exactly this case was unreachable, because the resolver never returned empty. A non-empty `PLAN_ID` is now a binding in every resolver: it resolves or it stops, whether it was rejected for slug shape, for naming no directory, or for failing containment. An empty value still means unset. Fixed in `resolve-plan-dir.sh`, `resolve-plan-dir.ps1`, the inline resolver inside `inject-plan.sh`, the three PowerShell helpers that carry their own, and the Hermes, OpenCode and Pi plugin resolvers.
+- **A slug plan with no `.mode` bypassed the project's root `.mode` (closes #238, reported by @sortakool).** A project makes attestation mandatory by committing a root `.mode`, which is a reviewed project setting. `inject-plan.sh` read the slug's `.mode` and never the root's, and `init-session.sh` writes no `.mode` unless `--autonomous` or `--gated` was passed, so `init-session.sh <name>`, which `/plan` runs, produced a plan with no attestation requirement and full injection. The project's policy was a flag the agent chose at plan creation. The root `.mode` is now a floor: strictness-raising tokens count from either file, so a slug may raise but never lower, and the one strictness-lowering token, `plan-guard-off`, needs the root's agreement. The same floor applies to the completion gate in `check-complete.sh` and `check-complete.ps1`, which read `.mode` the same way and had the same bypass. `init-session.sh` also seeds a new slug from the root `.mode` so the effective policy is visible in the plan directory, not only in the resolver.
+- **Every consumer that reads or writes the selected plan now refuses a rejected selector instead of falling back to the cwd.** `check-complete.sh` would have reported the root plan's completion state, which decides whether an autonomous run may stop; `ledger-summary.sh` would have fed the loop another plan's phase counts; `phase-status.sh` and `ledger-append.sh` would have written into a plan the operator never named. Each says which selector refused rather than going quietly dark.
+- **The five Codex hooks had the same fallback.** They call the shared resolver directly rather than `inject-plan.sh`, so they inherited the refusal but then fell through to the legacy root `task_plan.md`: `stop.sh` would have decided whether the run may stop from the wrong plan, and `pre-compact.sh` would have carried the wrong plan through the one moment a session cannot re-read it. All five now stop, and `user-prompt-submit.sh`, which fires once per turn, prints the same notice as `inject-plan.sh` so the session is never dark without a stated cause.
+
+### Fixed
+- **`plan-doctor.sh` reported PASS on a fully dark-hooks state (closes #236, reported by @sortakool).** The injection check substring-matched five control strings against output that carries the plan body verbatim inside the `===BEGIN-PWF-DATA===` fences, which produced two defects. A plan whose phase line read "fix the false PLAN TAMPERED warning in plan-doctor" reported a hash mismatch while correctly attested, and no documentation reserved those phrases. Worse, the `PWF_PLAN_ROOT` arm matched `PWF_PLAN_ROOT is not a directory`, which is not a substring of the text `inject-plan.sh` emits, so the arm was dead code and execution fell through to the success arm: `PWF_PLAN_ROOT=/nonexistent` printed `PASS injection: emits plan context (123 bytes)` while nothing was injected at all, counting the refusal notice's own bytes as plan context. The file's own comment four lines above already warned that reporting a refusal's byte count as PASS tells a dark user their hooks are fine. Classification now branches on the frame: every refusal path exits before `frame_file` runs, so a frame proves injection happened, and unframed output is by construction a notice. The default arm warns, so a future reworded or translated banner degrades noisily instead of silently. The stale literal is corrected against the emitting `echo`.
+- **`attest-plan.sh` reported "No task_plan.md found" when a selector was refused.** True but misleading: the plan exists and the selector was the problem. It now names the selector that refused.
+
+### Changed
+- v3.14.0 made the Hermes and OpenCode resolvers fall through on an unresolvable `PLAN_ID`, to match `resolve-plan-dir.sh`. That parity was correct and the target was wrong. All three plugin resolvers now bind instead, along with the shell.
+- The Hermes and OpenCode plugins apply the root `.mode` floor as well, so `mode_tokens` and `modeTokens` take the project root alongside the plan directory. A malformed root `.mode` on the OpenCode side returns the same "not allowed" signal a malformed slug `.mode` already produced, which fails the plan closed rather than treating an unreadable policy as no policy.
+- Version bumped to 3.15.0 across the tracked parity set and the ClawHub stage. The OpenCode plugin package goes to 1.0.1 and the Pi extension to 1.2.5, since both changed.
+
+### Verification
+- Python suite 653 to 696 tests, plus 28 to 34 in the OpenCode Vitest suite. New files `test_plan_selector_binding.py`, `test_root_mode_floor.py` and `test_plan_doctor_classification.py`; new arms in `test_resolver_parity.py`, `test_resolve_plan_dir.py`, `test_resolver_plan_root_pin.py`, `test_hermes_first_class.py` and the OpenCode suite. Five existing tests asserted the fall-through and were rewritten to assert the refusal, keeping their original security assertion intact.
+- Each suite carries its own control arm, because two of the first drafts passed on fixtures that could not have failed: a completion-gate assertion over a plan with every phase complete, where the gate resolves to advisory whether or not it is armed, and a parallel-write-guard assertion over a plan with nothing checked to lose.
+- The `plan-doctor` suite drives the real `inject-plan.sh` rather than a synthetic string, since literal drift is the actual defect, and adds a stub that emits an unknown banner to pin the drift property itself.
+- All three issues were reproduced on Windows with Git Bash before the fix and re-run after, including @sortakool's control arms.
+
+### Thanks
+- Raymond, for three issues filed separately so each could be fixed and verified on its own, each with a control arm, a traced mechanism, and in #236 both a suggested patch and the more robust alternative that was taken instead (#236, #237, #238).
+
+## [3.14.0] - 2026-09-02
+
+OpenCode becomes a first-class host through its own plugin system, and issue #235 is fixed. Verified against OpenCode 1.18.21: the plugin loaded from a project config directory, `pwf_init`, `pwf_status` and `pwf_check` appeared in the tool list, `/pwf` and `/pwf-status` in the command list, and a real session message received the framed plan as a synthetic part.
+
+### Added
+- **Native OpenCode plugin `opencode-planning-with-files`** (`.opencode/packages/opencode-planning-with-files/`, npm package, TypeScript). Hooks: `chat.message` appends the framed active plan to every user message (plan head, normalized progress tail, findings pointer) or a once-per-turn ambiguity notice; `tool.execute.after` appends the progress reminder to `write`, `edit`, `patch`, `multiedit` and `apply_patch` output; `experimental.session.compacting` keeps the plan pointer and attestation hash in the compaction context; `event` on `session.idle` runs the completion gate in gated mode and re-prompts the session with the gate reason through the SDK. Tools `pwf_init` (root or `.planning/<date>-<slug>/`, `mode: autonomous` or `gated` with the v3 markers and attestation), `pwf_status`, `pwf_check`. Each session is resolved from its own OpenCode directory; child sessions are never re-prompted.
+- **Plan resolution and gate parity in TypeScript.** Same precedence as `resolve-plan-dir.sh` (`PLAN_ID`, BOM-tolerant `.active_plan`, newest slug, legacy root) with slug validation, lstat-based symlink refusal and containment; the `inject-plan.sh` nested-root rule (only a live nested plan competes; a `PWF_PLAN_ROOT` pin or `PLAN_ID` skips it; `PWF_PLAN_ROOT` fails closed); the `check-complete.sh --gate` decision table with per-field maximum status counting and the shared `.stop_blocks` and `.gate_last_ledger` files; `init-session.sh` markers; the same framed injection format with a content-derived nonce, byte bound, SHA-256 and `DATA ONLY` preamble; attestation refusal for tampered or unattested v3 plans.
+- **Commands** `.opencode/commands/pwf.md` and `pwf-status.md` in OpenCode's own Markdown command format, and a dogfood entry `.opencode/plugins/planning-with-files.ts` that loads the plugin from source when this repository is opened in OpenCode (`.opencode/package.json` now tracked with the `@opencode-ai/plugin` dependency).
+- **Vitest suite** (22 tests: resolver, BOM, ambiguity, pin, framing, tampering, gate counters and stall, mixed status formats, init markers, status, plugin hooks against a fake client, tools) and a `vitest (OpenCode plugin)` CI job that typechecks, builds and tests the package.
+
+### Fixed
+- **`docs/opencode.md` named the wrong install location (closes #235, reported by @luyanfeng).** `npx skills add OthmanAdi/planning-with-files --skill planning-with-files -g` installs to `~/.agents/skills/planning-with-files/`, not `~/.config/opencode/skills/`. OpenCode reads `~/.agents/skills/`, `~/.claude/skills/`, `~/.config/opencode/skills/` and the project-local `.agents/skills/`, `.claude/skills/`, `.opencode/skills/`, so the install works; the page, the `.opencode` skill's restore-context snippets and its file-location table now name the real paths and probe every location.
+- **OpenCode was listed as an Enhanced host on the strength of `hooks:` frontmatter OpenCode never runs.** The tier tables, `MIGRATION.md` and the README now say what each install actually gets: skill-only installs stay notify-only, the native plugin is Tier 2 (follow-up inject).
+
+### Changed
+- README: OpenCode install block and matrix row, command table, hooks reference row, and the host tier bullets name the native plugin; `docs/installation.md` gains the OpenCode route.
+- Version bumped to 3.14.0 across the tracked parity set and the ClawHub stage. The OpenCode plugin package carries its own version (1.0.0), like the Pi extension.
+
+### Fixed (Hermes)
+- **A `PLAN_ID` that did not resolve blacked out injection on Hermes.** The Python resolver returned nothing for a stale slug; `resolve-plan-dir.sh` falls through to the pointer, the newest slug and the legacy root. Both the Hermes plugin and the OpenCode plugin now fall through.
+
+### Verification
+- 25 Vitest tests for the OpenCode plugin plus the Python suite; live load in OpenCode 1.18.21.
+- An independent adversarial review by a second model before release found three confirmed divergences in the first build (a failed session lookup was cached and pinned the session to the server directory, the tools bypassed `PWF_PLAN_ROOT` and `PLANNING_DISABLED`, a stale `PLAN_ID` did not fall through) plus a missing idempotency guard, an untested link-escape path, a rootless Windows pin, ledger counting that differed from `grep -c ''`, and a non-unique attestation temp file. All fixed with tests.
+
+### Thanks
+- Luyanfeng reported the install path mismatch in issue #235, the second OpenCode docs bug they caught.
+
+## [3.13.0] - 2026-09-01
+
+Hermes Agent by Nous Research becomes a first-class host, on the CLI and in Hermes Desktop. Every claim in this entry was checked against the Hermes v0.19.1 source and a live install: the plugin was loaded through Hermes' own plugin manager, and the skill bundle was scanned with Hermes' `skills-guard`.
+
+### Added
+- **Hermes plugin 0.2.0: slug-mode plans, the completion gate, real slash commands, a bundled skill.** The native plugin (`.hermes/plugins/planning-with-files/`) now resolves the active plan the way every other host does: `PLAN_ID`, then `.planning/.active_plan`, then the newest `.planning/<slug>/task_plan.md`, then the legacy root file, with the same slug validation and containment rules as `resolve-plan-dir.sh` (including a BOM-tolerant `.active_plan`) and the same nested-root ambiguity rule as `inject-plan.sh`: only a live nested plan (`<child>/.planning/<slug>/task_plan.md`) competes, a `PWF_PLAN_ROOT` pin, an attached session or an explicit `PLAN_ID` skips the check, legacy root plans are guarded too, and the refusal is announced once per turn. Slug plans read their attestation from `<slug>/.attestation` and their mode from `<slug>/.mode`; the injection names the resolved plan. `PWF_PLAN_ROOT` pins the project root and fails closed, and `PLANNING_DISABLED=1` silences every hook. Before this release the adapter only ever saw a root `task_plan.md`, so any plan created with `init-session.sh <name>` was invisible on Hermes.
+- **Completion gate on Hermes.** The plugin registers `pre_verify`, Hermes' verification-loop hook, and answers it with a continuation request while an `in_progress` phase remains in a gated plan. The decision table is the one `check-complete.sh --gate` applies (gate token, in_progress phase, block cap `PWF_GATE_CAP`, ledger stall, per-field maximum of `**Status:**` and inline `[in_progress]` markers so mixed-format plans cannot slip past), implemented in Python so Hermes Desktop on Windows needs no `sh`; both routes share `.stop_blocks` and `.gate_last_ledger`. Hermes fires the hook only on turns that changed files and caps continuations at `agent.max_verify_nudges` (default 3), so Hermes sits in Tier 2 (follow-up inject) next to Cursor, Pi and Kiro.
+- **`/pwf`, `/pwf-status`, `/plan-status`** registered through `ctx.register_command`, so they work in `hermes chat`, gateway sessions and Desktop. `/pwf --gated Night run` creates `.planning/YYYY-MM-DD-night-run/`, writes `.mode`, `.nonce`, resets the gate counter and attests the plan, mirroring `init-session.sh --gated`. `planning_with_files_init` gained `name` and `mode` parameters for the same operations from the model. `/plan` is Hermes' own bundled skill and is deliberately not shadowed.
+- **Bundled skill registration** through `ctx.register_skill`, so `skill_view("planning-with-files:planning-with-files")` works even when the hub install was skipped, and a Python completion check that reports `"route": "python"` when `sh` is absent.
+- **Shell-hook bridge** (`shell_hook.py` in the plugin directory) for users who prefer Hermes' config-file hooks: it runs the canonical `inject-plan.sh` and `gate-stop.sh` and translates their output to the Hermes wire shapes. Documented as a CLI-only advanced route.
+- **`tests/test_hermes_first_class.py`**, 18 tests: resolver precedence, invalid slugs, `PWF_PLAN_ROOT`, the ambiguity rule, `PLANNING_DISABLED`, slug attestation, the gate (block, counter, stall, cap), legacy and autonomous plans never held, `init_plan` markers, the Python completion fallback, registration against a full and a reduced `PluginContext`, the slash commands, the manifest, and the shell-hook bridge end to end.
+- **README sections**: "Built for long-running agent tasks", "Hermes Agent: first-class support (CLI and Desktop)" and "Multi-agent runs: orchestrators, workers and subagents", each grounded in mechanisms that already ship.
+
+### Fixed
+- **The `.hermes` SKILL.md pointed Windows users at `~\.hermes`.** Native Windows Hermes keeps its home under `%LOCALAPPDATA%\hermes` (`hermes_constants._get_platform_default_hermes_home`); both restore-context blocks now fall back to that path.
+- **`.hermes/commands/plan.md` and `plan-status.md` were never loaded.** Hermes has no Markdown command loader; the two commands documented since v2.35.0 did nothing. The plugin registers them now, and the Markdown files stay as documentation of the intent.
+- **`docs/hermes.md` claimed Hermes had no stop-hook equivalent.** Current Hermes exposes `pre_verify`; the page now documents the gate, its limits, the Desktop route, the Windows paths and the `hermes import-agent claude-code` migration, and states that the canonical `skills/planning-with-files` path is refused by Hermes' `skills-guard` scanner (hook frontmatter, command substitution, deep relative links, `os.environ` in the canonical catchup script) while the `.hermes` bundle scans `SAFE`. The bundle is the supported install path: `hermes skills install OthmanAdi/planning-with-files/.hermes/skills/planning-with-files` and `hermes plugins install OthmanAdi/planning-with-files/.hermes/plugins/planning-with-files`.
+
+### Changed
+- README reorganized for readability: install routes, the collapsible platform and FAQ sections, and the new feature sections come first; benchmarks, the repository layout, releases, community and documentation form the reference half at the bottom. No content was removed; the "At a glance" test count now reflects the current suite.
+- Host capability tier tables in the English SKILL.md copies (canonical, `.agents`, `.pi`, ClawHub stage) and `MIGRATION.md` list Hermes Agent under Tier 2. The translated variants keep their own tables.
+- The Hermes SKILL.md frontmatter carries `metadata.hermes.tags` for hub categorization; the description is unchanged.
+- Version bumped to 3.13.0 across the tracked parity set plus the ClawHub stage. `.continue`, `.gemini`, `.pi` SKILL.md and `.kiro` lag intentionally.
+
+### Verification
+- 60 existing Hermes-related tests plus the new ones pass; the full suite is green on this machine.
+- An independent adversarial review by a second model before release found four divergences from the shell route in the first build (an over-broad and silent nested-root rule, a pin that did not clear ambiguity, an unguarded legacy root, and mixed-format plans slipping the gate) plus a BOM in `.active_plan` selecting the wrong plan. All were fixed and are covered by tests, including a differential test that runs `inject-plan.sh` and the Python resolver over the same fixtures.
+- Live load in the Hermes 0.19.1 plugin manager (scratch `HERMES_HOME`): three hooks, three commands and the bundled skill registered; `planning_with_files_init` produced an attested gated slug plan; `pre_llm_call` injected it with its plan id; `pre_verify` returned the continuation through `get_pre_verify_continue_message`; a stale attestation was refused with `context blocked: PLAN TAMPERED`; the write reminder arrived on the next turn.
+- `hermes skills inspect` and `hermes skills install` of the `.hermes` bundle succeed from the hub with a `SAFE` verdict; the canonical path is blocked with a dangerous verdict, which is why the docs name the bundle path.
+
 ## [3.12.1] - 2026-08-31
 
 ### Fixed

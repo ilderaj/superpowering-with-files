@@ -11,6 +11,8 @@
 #   userprompt (default) — full plan head + progress/ledger summary. Once per turn.
 #   pretool              — short plan head only (head -30), no progress.
 #   precompact           — compaction reminder only (no plan body), matches v2.
+#   preflight            — fixed token after cheap selection/containment checks.
+#   validate             — fixed acceptance token after selection guards, no data.
 #
 # v3 behavior keys off explicit opt-in. With no .mode file present the output is
 # byte-equivalent to the v2.43 hook scalars (legacy invariant). Autonomous and
@@ -49,7 +51,7 @@ select_python_candidates() {
         is_windowsapps_path "$_sp_candidate" && continue
         [ -f "$_sp_candidate" ] || continue
         [ -x "$_sp_candidate" ] || continue
-        if "$_sp_candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 8) else 1)' >/dev/null 2>&1; then
+        if "$_sp_candidate" -I -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 8) else 1)' >/dev/null 2>&1; then
             printf '%s\n' "$_sp_candidate"
             return 0
         fi
@@ -76,6 +78,13 @@ select_python() {
 # sessions that share a cwd with a plan but never opted into it.
 [ "${PLANNING_DISABLED:-}" = "1" ] && exit 0
 
+CONTEXT="userprompt"
+for arg in "$@"; do
+    case "$arg" in
+        --context=*) CONTEXT="${arg#--context=}" ;;
+    esac
+done
+
 # --- PWF_PLAN_ROOT: absolute plan-root binding (issue #212). ---
 # A thread whose cwd is a shared PARENT of the real project (e.g. /workspace
 # holding /workspace/project with its own .planning/.active_plan) used to
@@ -98,17 +107,12 @@ if [ -n "${PWF_PLAN_ROOT:-}" ]; then
     if [ "$_pwf_pin_absolute" = "1" ] && [ -d "${PWF_PLAN_ROOT}" ]; then
         PLAN_PREFIX="${PWF_PLAN_ROOT}/"
     else
-        echo "[planning-with-files] PWF_PLAN_ROOT is not a supported absolute local directory: ${PWF_PLAN_ROOT} — nothing injected."
+        if [ "$CONTEXT" != "preflight" ]; then
+            echo "[planning-with-files] PWF_PLAN_ROOT is not a supported absolute local directory: ${PWF_PLAN_ROOT} — nothing injected."
+        fi
         exit 0
     fi
 fi
-
-CONTEXT="userprompt"
-for arg in "$@"; do
-    case "$arg" in
-        --context=*) CONTEXT="${arg#--context=}" ;;
-    esac
-done
 
 # --- Session-attachment guard (issue #212, parity with the Codex adapter). ---
 # Enforcement matches .codex/hooks/user-prompt-submit.sh: when the plan root
@@ -197,7 +201,7 @@ canonicalize() {
             printf "%s\n" "${out}"; return 0; }
     fi
     if [ -n "${PWF_PYTHON:-}" ]; then
-        out="$("${PWF_PYTHON}" -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "${target}" 2>/dev/null)" \
+        out="$("${PWF_PYTHON}" -I -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "${target}" 2>/dev/null)" \
             && [ -n "${out}" ] && { printf "%s\n" "${out}"; return 0; }
     fi
     return 1
@@ -244,18 +248,61 @@ is_within_root() {
 
 # --- Resolution (matches resolve-plan-dir.sh order, kept inline so the hook
 #     dispatch needs only one script on disk to function). ---
-# EXPLICIT tracks WHO chose the plan (issue #212). A valid PLAN_ID, a valid
-# PWF_PLAN_ROOT pin, or an attached session all name the plan deliberately.
+# EXPLICIT tracks who selected the effective project root or plan for the
+# nested-root conflict check. A valid PLAN_ID names a plan deliberately and a
+# valid PWF_PLAN_ROOT chooses the project root deliberately.
 # The .active_plan pointer, the newest-by-mtime fallback, and the legacy root
 # task_plan.md are cwd GUESSES — only guesses are subject to the nested-root
 # conflict check below.
+# Shared .active_plan and directory mtime cannot identify this session's plan.
+# Check before selection or preflight, even when isolation was never armed.
+PLAN_AMBIGUOUS=0
+if [ -z "${PLAN_ID:-}" ]; then
+    PLAN_COUNT=0
+    if [ -d "${PLAN_PREFIX}.planning/sessions" ] && [ -f "${PLAN_PREFIX}task_plan.md" ]; then
+        PLAN_COUNT=1
+    fi
+    for plan_candidate in "${PLAN_PREFIX}".planning/*/task_plan.md; do
+        [ -f "$plan_candidate" ] || continue
+        plan_candidate_dir="${plan_candidate%/task_plan.md}"
+        slug_is_valid "${plan_candidate_dir##*/}" || continue
+        PLAN_COUNT=$((PLAN_COUNT + 1))
+        if [ "$PLAN_COUNT" -gt 1 ]; then PLAN_AMBIGUOUS=1; break; fi
+    done
+fi
+if [ "$PLAN_AMBIGUOUS" = "1" ] && { [ "$CONTEXT" = "preflight" ] || [ ! -d "${PLAN_PREFIX}.planning/sessions" ]; }; then
+    if [ "$CONTEXT" = "userprompt" ]; then
+        echo "[planning-with-files] Multiple plans are available. Set PLAN_ID=<slug> for this session; nothing injected."
+    fi
+    exit 0
+fi
+
 RESOLVED=""
 SCOPE=""
 EXPLICIT=0
 [ -n "$PLAN_PREFIX" ] && EXPLICIT=1
-[ "$SESSION_ATTACHED" = "1" ] && EXPLICIT=1
-if [ -n "${PLAN_ID:-}" ] && slug_is_valid "$PLAN_ID" && [ -d "${PLAN_PREFIX}.planning/${PLAN_ID}" ]; then
-    RESOLVED="${PLAN_PREFIX}.planning/${PLAN_ID}"; SCOPE="scoped"; EXPLICIT=1
+if [ -n "${PLAN_ID:-}" ]; then
+    # A set PLAN_ID is a BINDING, not a hint (issue #237). This inline resolver
+    # is the one the hooks actually run, so it carries the same rule as
+    # resolve-plan-dir.sh: a selector that names no directory, fails slug
+    # validation, or fails containment refuses instead of falling through to
+    # .active_plan and newest-by-mtime. The fall-through is what let a
+    # one-character typo inject a DIFFERENT plan while attest-plan.sh locked
+    # that same wrong plan at rc=0.
+    #
+    # Unlike the PWF_PLAN_ROOT refusal above, the notice is userprompt-only.
+    # pretool fires per tool call and precompact carries no plan body, so
+    # printing on those would spam the transcript with the same line. The
+    # userprompt fire is also the one plan-doctor.sh drives, so /plan-doctor
+    # still sees and reports the state.
+    if slug_is_valid "$PLAN_ID" && [ -d "${PLAN_PREFIX}.planning/${PLAN_ID}" ]; then
+        RESOLVED="${PLAN_PREFIX}.planning/${PLAN_ID}"; SCOPE="scoped"; EXPLICIT=1
+    else
+        if [ "$CONTEXT" = "userprompt" ]; then
+            echo "[planning-with-files] PLAN_ID does not name a plan directory under .planning: ${PLAN_ID} — nothing injected. Fix or unset the pin; a broken pin fails closed rather than selecting another plan."
+        fi
+        exit 0
+    fi
 elif [ -f "${PLAN_PREFIX}.planning/.active_plan" ]; then
     AP=$(tr -d '\r\n[:space:]' < "${PLAN_PREFIX}.planning/.active_plan" 2>/dev/null)
     if [ -n "$AP" ] && slug_is_valid "$AP" && [ -d "${PLAN_PREFIX}.planning/${AP}" ]; then
@@ -289,6 +336,15 @@ fi
 [ -L "$PRECHECK_PLAN_FILE" ] && exit 0
 PWF_PYTHON="$(select_explicit_python 2>/dev/null)" || PWF_PYTHON=""
 is_within_root "$PRECHECK_PLAN_FILE" || exit 0
+
+# Cheap eligibility probe for hook adapters that must reject bad project state
+# before parsing host JSON. It emits no project bytes, does not inspect session
+# identity, and never discovers an interpreter from PATH.
+if [ "$CONTEXT" = "preflight" ]; then
+    echo "PWF_PLAN_ELIGIBLE_V1"
+    exit 0
+fi
+
 [ -n "$PWF_PYTHON" ] || PWF_PYTHON="$(select_python 2>/dev/null)" || PWF_PYTHON=""
 
 # Session attachment is evaluated only after plan existence is proven. A
@@ -301,7 +357,7 @@ if [ -d "${PLAN_PREFIX}.planning/sessions" ]; then
         # A current session ID always determines its own portable digest.
         # Ambient PWF_SESSION_KEY may belong to a previous session and is
         # intentionally ignored. Safe legacy raw sentinels remain compatible.
-        SESSION_ATTACHED=$("$PWF_PYTHON" - "${PWF_PLAN_ROOT:-.}" "$SESSIONS_DIR" "$SESSION_ID" <<'PY' 2>/dev/null
+        SESSION_ATTACHED=$("$PWF_PYTHON" -I - "${PWF_PLAN_ROOT:-.}" "$SESSIONS_DIR" "$SESSION_ID" <<'PY' 2>/dev/null
 import ctypes
 import hashlib
 import os
@@ -408,7 +464,15 @@ PY
         fi
         exit 0
     fi
-    EXPLICIT=1
+
+    # Attachment admits a session but does not select its plan. Preserve the
+    # attachment-first notice above for sessions that never opted in.
+    if [ "$PLAN_AMBIGUOUS" = "1" ]; then
+        if [ "$CONTEXT" = "userprompt" ]; then
+            echo "[planning-with-files] Multiple plans are available while session isolation is armed. Set PLAN_ID=<slug> for this session; nothing injected."
+        fi
+        exit 0
+    fi
 fi
 
 # --- Nested-root conflict detection (issue #212): fail CLOSED on ambiguity. ---
@@ -476,17 +540,29 @@ if [ "$SCOPE" = "root" ]; then
     PROGRESS_FILE="${PLAN_PREFIX}progress.md"
     ATTEST_FILE="${PLAN_PREFIX}.plan-attestation"
     MODE_FILE="${PLAN_PREFIX}.mode"
+    ROOT_MODE_FILE=""
     NONCE_FILE="${PLAN_PREFIX}.nonce"
 else
     PLAN_FILE="${RESOLVED}/task_plan.md"
     PROGRESS_FILE="${RESOLVED}/progress.md"
     ATTEST_FILE="${RESOLVED}/.attestation"
     MODE_FILE="${RESOLVED}/.mode"
+    # The project's own .mode, when it has one (issue #238). In root scope
+    # MODE_FILE already IS that file, so the second source stays empty.
+    ROOT_MODE_FILE="${PLAN_PREFIX}.mode"
     NONCE_FILE="${RESOLVED}/.nonce"
 fi
 [ -f "$PLAN_FILE" ] || exit 0
 [ -L "$PLAN_FILE" ] && exit 0
 is_within_root "$PLAN_FILE" || exit 0
+
+# Selection-only probe for hook adapters. It deliberately emits no project
+# bytes and does not assert attestation integrity; callers compare this exact
+# fixed token before deciding whether to emit their own fixed reminder.
+if [ "$CONTEXT" = "validate" ]; then
+    echo "PWF_PLAN_ACCEPTED_V1"
+    exit 0
+fi
 
 # Read the plan once into a private snapshot. Attestation is checked against
 # these exact bytes and every plan-derived output below reads only this file.
@@ -538,7 +614,7 @@ cleanup_snapshot() {
 # resolved path remains inside the canonical root.
 safe_snapshot() {
     [ -n "$PWF_PYTHON" ] || return 1
-    "$PWF_PYTHON" - "$1" "$2" "${PWF_PLAN_ROOT:-.}" "$3" <<'PY'
+    "$PWF_PYTHON" -I - "$1" "$2" "${PWF_PLAN_ROOT:-.}" "$3" <<'PY'
 import ctypes
 import os
 import stat
@@ -687,7 +763,7 @@ PY
 # content, or non-private cache directories are rejected.
 secure_progress_marker() {
     [ -n "$PWF_PYTHON" ] || return 1
-    "$PWF_PYTHON" - "$1" "$2" "$3" "$4" <<'PY'
+    "$PWF_PYTHON" -I - "$1" "$2" "$3" "$4" <<'PY'
 import os
 import secrets
 import stat
@@ -853,11 +929,52 @@ fi
 # gated mode to legacy behavior (platform-critical: per-tool-call injection not
 # suppressed, oracle re-hash skipped, raw progress tail injected). Use a grep
 # token test, the same pattern check-complete.sh guard 1 uses.
+
+# --- Root .mode is a FLOOR, not a default that slug scope replaces (#238). ---
+# A project makes attestation mandatory by committing a root .mode, which is a
+# reviewed project setting. Slug scope used to read ONLY the slug's .mode, and
+# init-session.sh writes no .mode unless --autonomous or --gated was passed, so
+# `init-session.sh <name>` produced a plan with no mode, no attestation
+# requirement and full injection: one agent-invocable command turned the
+# project's policy off.
+#
+# mode_has answers for a strictness-RAISING token: present in EITHER file. A
+# slug may opt into autonomous/gated where the root left it unset; it can no
+# longer opt out of what the root committed.
+#
+# mode_relax_allowed answers for the one strictness-LOWERING token
+# (plan-guard-off): the slug must carry it AND, when the project committed a
+# root .mode, that file must carry it too. A slug alone cannot switch off a
+# protection the project kept on.
+#
+# With no root .mode present ROOT_MODE_FILE is either empty (root scope) or
+# names a missing file, so the effective token set is exactly the slug's and
+# existing projects are byte-identical.
+mode_has() {
+    _mh_token="$1"
+    if [ -f "$MODE_FILE" ] && grep -q "$_mh_token" "$MODE_FILE" 2>/dev/null; then
+        return 0
+    fi
+    if [ -n "$ROOT_MODE_FILE" ] && [ -f "$ROOT_MODE_FILE" ] \
+        && grep -q "$_mh_token" "$ROOT_MODE_FILE" 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+mode_relax_allowed() {
+    _mr_token="$1"
+    [ -f "$MODE_FILE" ] || return 1
+    grep -q "$_mr_token" "$MODE_FILE" 2>/dev/null || return 1
+    if [ -n "$ROOT_MODE_FILE" ] && [ -f "$ROOT_MODE_FILE" ]; then
+        grep -q "$_mr_token" "$ROOT_MODE_FILE" 2>/dev/null || return 1
+    fi
+    return 0
+}
+
 MODE=""
-if [ -f "$MODE_FILE" ]; then
-    grep -q 'autonomous' "$MODE_FILE" 2>/dev/null && MODE='autonomous'
-    grep -q 'gate' "$MODE_FILE" 2>/dev/null && MODE='gated'
-fi
+mode_has 'autonomous' && MODE='autonomous'
+mode_has 'gate' && MODE='gated'
 
 # In autonomous/gated mode the per-tool-call injection is dropped (recitation
 # policy): strong models do not need the plan re-recited before every tool call,
@@ -881,7 +998,7 @@ fi
 SMART=0
 if [ "${PWF_INJECT:-}" = "smart" ]; then
     SMART=1
-elif [ -f "$MODE_FILE" ] && grep -q 'inject-smart' "$MODE_FILE" 2>/dev/null; then
+elif mode_has 'inject-smart'; then
     SMART=1
 fi
 
@@ -1149,7 +1266,7 @@ esac
 # holding the stale copy. Per-session keying needs PWF_SESSION_ID, which most
 # hosts never set.
 GUARD=1
-[ -f "$MODE_FILE" ] && grep -q 'plan-guard-off' "$MODE_FILE" 2>/dev/null && GUARD=0
+mode_relax_allowed 'plan-guard-off' && GUARD=0
 [ "${PWF_PLAN_GUARD:-}" = "0" ] && GUARD=0
 if [ "$GUARD" = "1" ]; then
     # Same user-private cache root and same absolute-path key as the attestation

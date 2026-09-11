@@ -269,6 +269,52 @@ describe("Pi extension runtime handlers", () => {
 		expect(result).toBeUndefined();
 	});
 
+	it("refuses an attached session's shared-pointer plan until PLAN_ID selects one", async () => {
+		const cwd = makeWorkspace();
+		const secondPlan = join(cwd, ".planning", "second");
+		mkdirSync(secondPlan, { recursive: true });
+		writeFileSync(join(secondPlan, "task_plan.md"), incompletePlan());
+		writeFileSync(join(cwd, ".planning", ".active_plan"), "demo\n");
+		const sessions = join(cwd, ".planning", "sessions");
+		mkdirSync(sessions, { recursive: true });
+		writeFileSync(join(sessions, "session-1.attached"), "");
+		const pi = loadExtension();
+		const ctx = createContext(cwd);
+
+		await approvePlan(pi, ctx);
+		await runCommand(pi, "plan-attest", "", ctx);
+		const first = await emit(pi, "before_agent_start", {}, ctx);
+		const second = await emit(pi, "before_agent_start", {}, ctx);
+		await emit(pi, "agent_end", agentEndEvent("stop"), ctx);
+
+		expect(ctx.ui.notify).toHaveBeenCalledWith(
+			"[planning-with-files] Multiple plans are available while session isolation is armed. Set PLAN_ID=<slug> for this session; nothing injected.",
+			"warning",
+		);
+		expect(first.message.content).toContain("Set PLAN_ID=<slug>");
+		expect(second.message.content).toContain("Set PLAN_ID=<slug>");
+		expect(pi.sendUserMessage).not.toHaveBeenCalled();
+	});
+
+	it("keeps an attached session's explicit PLAN_ID active", async () => {
+		const cwd = makeWorkspace();
+		const secondPlan = join(cwd, ".planning", "second");
+		mkdirSync(secondPlan, { recursive: true });
+		writeFileSync(join(secondPlan, "task_plan.md"), "# Wrong selected plan\n");
+		const sessions = join(cwd, ".planning", "sessions");
+		mkdirSync(sessions, { recursive: true });
+		writeFileSync(join(sessions, "session-1.attached"), "");
+		process.env.PLAN_ID = "demo";
+		const pi = loadExtension();
+		const ctx = createContext(cwd);
+
+		await approvePlan(pi, ctx);
+		const result = await emit(pi, "before_agent_start", {}, ctx);
+
+		expect(result.message.content).toContain("# Test plan");
+		expect(result.message.content).not.toContain("Wrong selected plan");
+	});
+
 	it("tool_call records a pre-tool reminder against the active leaf", async () => {
 		const cwd = makeWorkspace();
 		const pi = loadExtension();

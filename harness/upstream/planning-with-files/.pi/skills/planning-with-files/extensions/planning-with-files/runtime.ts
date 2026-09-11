@@ -28,6 +28,7 @@ import {
 	isPlanIncomplete,
 	isSessionAttached,
 	readPlanStatus,
+	SESSION_PLAN_AMBIGUOUS_NOTICE,
 	type PlanStatus,
 	resolveAnchor,
 } from "./plan.ts";
@@ -139,6 +140,10 @@ function anchorCwd(ctx: ExtensionContext): string {
 
 function isAttachedSession(ctx: ExtensionContext): boolean {
 	return isSessionAttached(anchorCwd(ctx), getSessionId(ctx));
+}
+
+function isAmbiguousSessionPlan(status: PlanStatus): boolean {
+	return status.selectionError === "session-plan-ambiguous";
 }
 
 function runCommand(cmd: string, args: string[], cwd: string): ExecResult {
@@ -353,6 +358,10 @@ function registerCommands(pi: ExtensionAPI, state: RuntimeState): void {
 		description: "Show current planning-with-files plan status",
 		handler: async (_args, ctx) => {
 			const status = readPlanStatus(ctx.cwd);
+			if (isAmbiguousSessionPlan(status)) {
+				ctx.ui.notify(SESSION_PLAN_AMBIGUOUS_NOTICE, "warning");
+				return;
+			}
 			if (!status.exists) {
 				ctx.ui.notify("No active plan (task_plan.md not found)", "warning");
 				return;
@@ -373,6 +382,10 @@ function registerCommands(pi: ExtensionAPI, state: RuntimeState): void {
 	pi.registerCommand("plan-attest", {
 		description: "Run attest-plan helper for the active plan (--show / --clear supported)",
 		handler: async (args, ctx) => {
+			if (isAmbiguousSessionPlan(readPlanStatus(ctx.cwd))) {
+				ctx.ui.notify(SESSION_PLAN_AMBIGUOUS_NOTICE, "warning");
+				return;
+			}
 			const flags = args.trim() ? args.trim().split(/\s+/) : [];
 			const result = runAttestScript(anchorCwd(ctx), flags);
 			if (result.ok) {
@@ -404,6 +417,10 @@ function registerCommands(pi: ExtensionAPI, state: RuntimeState): void {
 		description: "Approve the active plan and enable planning-with-files hook activation",
 		handler: async (args, ctx) => {
 			const status = readPlanStatus(ctx.cwd);
+			if (isAmbiguousSessionPlan(status)) {
+				ctx.ui.notify(SESSION_PLAN_AMBIGUOUS_NOTICE, "warning");
+				return;
+			}
 			if (!status.exists) {
 				ctx.ui.notify("No active plan (task_plan.md not found)", "warning");
 				return;
@@ -455,6 +472,11 @@ function registerCommands(pi: ExtensionAPI, state: RuntimeState): void {
 			const intervalMs = maybeInterval ?? DEFAULT_LOOP_INTERVAL_MS;
 			const prompt = maybeInterval ? parts.slice(1).join(" ").trim() : parts.join(" ").trim();
 			const tickPrompt = prompt || DEFAULT_LOOP_PROMPT;
+			const initialStatus = readPlanStatus(ctx.cwd);
+			if (isAmbiguousSessionPlan(initialStatus)) {
+				ctx.ui.notify(SESSION_PLAN_AMBIGUOUS_NOTICE, "warning");
+				return;
+			}
 
 			const existing = state.loopTimersBySession.get(sessionId);
 			if (existing) clearInterval(existing);
@@ -509,11 +531,15 @@ export default function planningWithFilesExtension(pi: ExtensionAPI): void {
 			return;
 		}
 
+		const status = readPlanStatus(ctx.cwd);
+		if (isAmbiguousSessionPlan(status)) {
+			ctx.ui.setStatus(PKG_NAME, "multiple plans require PLAN_ID");
+			return;
+		}
+
 		if (["startup", "new", "resume", "fork"].includes(event.reason)) {
 			runSessionCatchup(anchorCwd(ctx));
 		}
-
-		const status = readPlanStatus(ctx.cwd);
 		if (status.exists) {
 			setPassivePlanStatus(ctx, status);
 		}
@@ -537,6 +563,15 @@ export default function planningWithFilesExtension(pi: ExtensionAPI): void {
 		if (!isAttachedSession(ctx)) return;
 
 		const status = readPlanStatus(ctx.cwd);
+		if (isAmbiguousSessionPlan(status)) {
+			return {
+				message: {
+					customType: CUSTOM_TYPE,
+					content: SESSION_PLAN_AMBIGUOUS_NOTICE,
+					display: true,
+				},
+			};
+		}
 		if (!status.exists) return;
 
 		if (!isExecutionApproved(state, ctx, status)) {
@@ -622,7 +657,7 @@ export default function planningWithFilesExtension(pi: ExtensionAPI): void {
 			}
 		}
 
-		if (!status.exists && (event.toolName === "write" || event.toolName === "edit")) {
+		if (!isAmbiguousSessionPlan(status) && !status.exists && (event.toolName === "write" || event.toolName === "edit")) {
 			ctx.ui.notify("[planning-with-files] No task_plan.md found. Create planning files first.", "warning");
 		}
 

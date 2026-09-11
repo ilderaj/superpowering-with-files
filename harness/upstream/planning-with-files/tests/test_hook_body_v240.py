@@ -4,8 +4,8 @@ History: through v2.43 the UserPromptSubmit / PreToolUse / PreCompact hook
 bodies were giant inline bash scalars embedded in the SKILL.md frontmatter, and
 this file extracted and ran those scalars directly. v3 (build decision "hooks
 become thin dispatchers") moved the logic into a versioned, testable script,
-`scripts/inject-plan.sh`, and reduced the scalars to a self-discovery dispatch
-pattern: try ``${CLAUDE_SKILL_DIR}/scripts/inject-plan.sh``, fall back to the two
+`scripts/skill-hook.sh`, and reduced the scalars to a self-discovery dispatch
+pattern: try ``${CLAUDE_SKILL_DIR}/scripts/skill-hook.sh``, fall back to the two
 known install paths, run it with a ``--context=`` flag, exit 0 silently if the
 script is absent.
 
@@ -42,6 +42,7 @@ CANONICAL_SKILL = REPO_ROOT / "skills" / "planning-with-files" / "SKILL.md"
 # here so the dispatch + sibling resolution (resolve-plan-dir.sh) both work.
 SKILL_DIR = REPO_ROOT / "skills" / "planning-with-files"
 INJECT_PLAN = SKILL_DIR / "scripts" / "inject-plan.sh"
+SKILL_HOOK = SKILL_DIR / "scripts" / "skill-hook.sh"
 
 # Match a single `command: "<bash>"` value inside the named hook event block.
 HOOK_RE_TEMPLATE = r'{event}:\n(?:.*?\n)*?\s*command: "((?:[^"\\]|\\.)*)"'
@@ -65,47 +66,43 @@ def have_sh() -> bool:
 class DispatcherScalarShapeTests(unittest.TestCase):
     """The inline scalars must be thin dispatchers, not the logic itself."""
 
-    INJECT_EVENTS = ("UserPromptSubmit", "PreToolUse", "PreCompact")
+    HELPER_EVENTS = {
+        "UserPromptSubmit": "--event=userprompt",
+        "PreToolUse": "--event=pretool",
+        "PostToolUse": "--event=posttool",
+        "Stop": "--event=stop",
+        "PreCompact": "--event=precompact",
+    }
 
-    def test_inject_scalars_reference_inject_plan_script(self) -> None:
-        for event in self.INJECT_EVENTS:
+    def test_lifecycle_scalars_reference_skill_hook_script(self) -> None:
+        for event in self.HELPER_EVENTS:
             scalar = extract_hook_scalar(event)
             self.assertIn(
-                "${CLAUDE_SKILL_DIR}/scripts/inject-plan.sh",
+                "${CLAUDE_SKILL_DIR}/scripts/skill-hook.sh",
                 scalar,
-                f"{event} scalar must dispatch to inject-plan.sh via CLAUDE_SKILL_DIR",
+                f"{event} scalar must dispatch to skill-hook.sh via CLAUDE_SKILL_DIR",
             )
 
-    def test_inject_scalars_carry_both_fallback_paths(self) -> None:
+    def test_lifecycle_scalars_carry_both_fallback_paths(self) -> None:
         # Skill-only installs land at ~/.claude/skills/...; plugin installs land
         # at ~/.claude/plugins/marketplaces/.... The dispatcher must probe both.
-        for event in self.INJECT_EVENTS:
+        for event in self.HELPER_EVENTS:
             scalar = extract_hook_scalar(event)
             self.assertIn(
-                "$HOME/.claude/skills/planning-with-files/scripts/inject-plan.sh",
+                "$HOME/.claude/skills/planning-with-files/scripts/skill-hook.sh",
                 scalar,
                 f"{event} scalar missing skill-only fallback path",
             )
             self.assertIn(
-                "$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/inject-plan.sh",
+                "$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/skill-hook.sh",
                 scalar,
                 f"{event} scalar missing plugin marketplace fallback path",
             )
             self.assertIn("head -1", scalar, f"{event} scalar must pick a single path")
 
-    def test_inject_scalars_pass_distinct_context_flags(self) -> None:
-        self.assertIn("--context=userprompt", extract_hook_scalar("UserPromptSubmit"))
-        self.assertIn("--context=pretool", extract_hook_scalar("PreToolUse"))
-        self.assertIn("--context=precompact", extract_hook_scalar("PreCompact"))
-
-    def test_stop_scalar_dispatches_to_gate(self) -> None:
-        # The Stop hook dispatches to the v3 gate (gate-stop.sh / check-complete
-        # --gate), not inject-plan. Assert the same self-discovery shape.
-        scalar = extract_hook_scalar("Stop")
-        self.assertIn("gate-stop.sh", scalar)
-        self.assertIn(
-            "$HOME/.claude/skills/planning-with-files/scripts/gate-stop.sh", scalar
-        )
+    def test_lifecycle_scalars_pass_distinct_helper_events(self) -> None:
+        for event, flag in self.HELPER_EVENTS.items():
+            self.assertIn(flag, extract_hook_scalar(event))
 
     def test_no_triple_dash_literal_in_any_scalar(self) -> None:
         # The YAML-collision class: a literal `---` inside a command scalar can
