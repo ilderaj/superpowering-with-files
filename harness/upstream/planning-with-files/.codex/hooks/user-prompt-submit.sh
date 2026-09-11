@@ -76,14 +76,58 @@ fi
 # Resolve and confirm a contained plan before probing or executing any Python
 # candidate. No-plan hook fires remain shell-only and silent.
 PLAN_DIR="$(sh "${HOOK_DIR}/resolve-plan-dir.sh" 2>/dev/null)"
+PLAN_AMBIGUOUS=0
+if [ -z "$PLAN_DIR" ] && [ "$(sh "${HOOK_DIR}/resolve-plan-dir.sh" --check-ambiguity 2>/dev/null)" = "PWF_PLAN_AMBIGUOUS_V1" ]; then
+    PLAN_AMBIGUOUS=1
+fi
 if [ -n "$PLAN_DIR" ]; then
     PLAN_FILE="${PLAN_DIR}/task_plan.md"
     PROGRESS_FILE="${PLAN_DIR}/progress.md"
+elif [ -n "${PLAN_ID:-}" ]; then
+    # An explicit PLAN_ID is a binding, not a hint (issue #237). The shared
+    # resolver rejected it, so the legacy-root fallback below would inject a
+    # plan the operator never named. This hook fires once per turn, so one
+    # diagnosable line is not spam and the alternative is a dark session with
+    # no stated cause. Wording matches scripts/inject-plan.sh so all routes say
+    # the same thing.
+    echo "[planning-with-files] PLAN_ID does not name a plan directory under .planning: ${PLAN_ID} — nothing injected. Fix or unset the pin; a broken pin fails closed rather than selecting another plan."
+    exit 0
 else
     PLAN_FILE="${PLAN_PREFIX}task_plan.md"
     PROGRESS_FILE="${PLAN_PREFIX}progress.md"
 fi
-[ -f "$PLAN_FILE" ] || exit 0
+[ -f "$PLAN_FILE" ] || [ "$PLAN_AMBIGUOUS" = "1" ] || exit 0
+
+# --- Re-arm the once-per-turn PostToolUse nudge (issue #239). ---
+# One user message is one turn, and this hook fires once per turn, so clearing
+# the marker here is what makes the nudge appear once after the first write
+# instead of after every matching tool call.
+#
+# The key is computed from post-tool-use.sh's OWN plan-file expression, not
+# from $PLAN_FILE above. This hook resolves a PWF_PLAN_ROOT pin and that one
+# does not, so the two spellings diverge under a pin; keying off the shared
+# expression keeps both sides on one marker. A mismatch here would not be
+# loud: the marker would never be cleared and the nudge would fire once per
+# session instead of once per turn.
+TURN_PLAN_FILE="${PLAN_DIR:+${PLAN_DIR}/}task_plan.md"
+if [ -n "${XDG_CACHE_HOME:-}" ]; then
+    TURN_ROOT="${XDG_CACHE_HOME}/pwf-turn"
+elif [ -n "${HOME:-}" ]; then
+    TURN_ROOT="${HOME}/.cache/pwf-turn"
+else
+    TURN_ROOT="${TMPDIR:-/tmp}/pwf-turn"
+fi
+if [ "$PLAN_AMBIGUOUS" = "0" ] && [ -d "$TURN_ROOT" ]; then
+    case "$TURN_PLAN_FILE" in
+        /*|[A-Za-z]:*|\\\\*) TURN_KEY_SRC="$TURN_PLAN_FILE" ;;
+        *) TURN_KEY_SRC="${PWD}/${TURN_PLAN_FILE}" ;;
+    esac
+    TURN_KEY_SRC="${TURN_KEY_SRC}|${PWF_SESSION_ID:-}"
+    TURN_KEY=$(printf '%s' "$TURN_KEY_SRC" \
+        | { sha256sum 2>/dev/null || shasum -a 256 2>/dev/null; } \
+        | awk '{print $1}' | cut -c1-16)
+    [ -n "$TURN_KEY" ] && rm -f -- "${TURN_ROOT}/${TURN_KEY}" 2>/dev/null || :
+fi
 
 # Session isolation: if .planning/sessions/ exists, only attached sessions see
 # plan context. Absence of the sessions dir means legacy single-session mode —
@@ -120,6 +164,11 @@ case "$PWF_SESSION_ADMISSION" in
         ;;
 esac
 
+if [ "$PLAN_AMBIGUOUS" = "1" ]; then
+    echo "[planning-with-files] Multiple plans are available. Set PLAN_ID=<slug> for this session; nothing injected."
+    exit 0
+fi
+
 # Plan-id safe-identifier check. Pure-sh case patterns; shared shape with
 # resolve-plan-dir.sh, needed below to decide whether PLAN_ID named the plan.
 slug_is_valid() {
@@ -131,14 +180,35 @@ slug_is_valid() {
     return 1
 }
 
-# EXPLICIT tracks WHO chose the plan (issue #212). A valid PLAN_ID, a valid
-# PWF_PLAN_ROOT pin, or an attached session all name the plan deliberately.
+# An attachment admits a session but does not select one of several plans.
+# When isolation is armed, require PLAN_ID if more than one live same-root
+# candidate exists. PWF_PLAN_ROOT selects the project root, not a plan within
+# that root.
+if [ "$SESSION_ATTACHED" = "1" ] && [ -z "${PLAN_ID:-}" ]; then
+    SESSION_PLAN_N=0
+    [ -f "${PLAN_PREFIX}task_plan.md" ] && SESSION_PLAN_N=1
+    for candidate in "${PLAN_PREFIX}".planning/*/task_plan.md; do
+        [ -f "$candidate" ] || continue
+        candidate_dir="${candidate%/task_plan.md}"
+        candidate_slug="${candidate_dir##*/}"
+        slug_is_valid "$candidate_slug" || continue
+        SESSION_PLAN_N=$((SESSION_PLAN_N + 1))
+        [ "$SESSION_PLAN_N" -gt 1 ] && break
+    done
+    if [ "$SESSION_PLAN_N" -gt 1 ]; then
+        echo "[planning-with-files] Multiple plans are available while session isolation is armed. Set PLAN_ID=<slug> for this session; nothing injected."
+        exit 0
+    fi
+fi
+
+# EXPLICIT tracks who selected the effective project root or plan for the
+# nested-root conflict check. A valid PLAN_ID names a plan deliberately and a
+# valid PWF_PLAN_ROOT chooses the project root deliberately.
 # The .active_plan pointer, the newest-by-mtime fallback, and the legacy root
 # task_plan.md are cwd GUESSES — only guesses are subject to the nested-root
 # conflict check below. Mirrors scripts/inject-plan.sh.
 EXPLICIT=0
 [ -n "$PLAN_PREFIX" ] && EXPLICIT=1
-[ "$SESSION_ATTACHED" = "1" ] && EXPLICIT=1
 if [ -n "${PLAN_ID:-}" ] && slug_is_valid "$PLAN_ID" && [ -d "${PLAN_PREFIX}.planning/${PLAN_ID}" ]; then
     EXPLICIT=1
 fi

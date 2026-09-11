@@ -18,6 +18,14 @@ COMMANDS_DIR = REPO_ROOT / "commands"
 PLAN_GOAL = COMMANDS_DIR / "plan-goal.md"
 PLAN_LOOP = COMMANDS_DIR / "plan-loop.md"
 LOOP_TEMPLATE = REPO_ROOT / "templates" / "loop.md"
+CANONICAL_LOOP_TEMPLATE = (
+    REPO_ROOT / "skills" / "planning-with-files" / "templates" / "loop.md"
+)
+PACKAGED_LOOP_TEMPLATES = (
+    CANONICAL_LOOP_TEMPLATE,
+    REPO_ROOT / ".agents" / "skills" / "planning-with-files" / "templates" / "loop.md",
+    REPO_ROOT / ".pi" / "skills" / "planning-with-files" / "templates" / "loop.md",
+)
 
 
 def parse_frontmatter(text: str) -> dict:
@@ -44,6 +52,17 @@ class V238CommandFileTests(unittest.TestCase):
 
     def test_loop_template_exists(self) -> None:
         self.assertTrue(LOOP_TEMPLATE.is_file(), LOOP_TEMPLATE)
+
+    def test_loop_template_is_shipped_with_each_documenting_package(self) -> None:
+        self.assertEqual(
+            LOOP_TEMPLATE.read_text(encoding="utf-8"),
+            CANONICAL_LOOP_TEMPLATE.read_text(encoding="utf-8"),
+        )
+        expected = CANONICAL_LOOP_TEMPLATE.read_bytes()
+        for packaged_template in PACKAGED_LOOP_TEMPLATES[1:]:
+            with self.subTest(packaged_template=packaged_template):
+                self.assertTrue(packaged_template.is_file(), packaged_template)
+                self.assertEqual(expected, packaged_template.read_bytes())
 
     def test_plan_goal_frontmatter(self) -> None:
         fm = parse_frontmatter(PLAN_GOAL.read_text(encoding="utf-8"))

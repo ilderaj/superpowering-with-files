@@ -10,6 +10,14 @@ fi
 
 HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 PLAN_DIR="$(sh "${HOOK_DIR}/resolve-plan-dir.sh" 2>/dev/null)"
+if [ -z "$PLAN_DIR" ] && [ "$(sh "${HOOK_DIR}/resolve-plan-dir.sh" --check-ambiguity 2>/dev/null)" = "PWF_PLAN_AMBIGUOUS_V1" ]; then
+    exit 0
+fi
+# An explicit PLAN_ID is a binding, not a hint (issue #237). When the shared
+# resolver rejected one it emits nothing, and the legacy-root fallback below
+# would recite a plan the operator never named on every tool call. Stay silent
+# instead; the once-per-turn user-prompt-submit hook carries the notice.
+[ -z "$PLAN_DIR" ] && [ -n "${PLAN_ID:-}" ] && exit 0
 PLAN_FILE="${PLAN_DIR:+${PLAN_DIR}/}task_plan.md"
 
 if [ -f "$PLAN_FILE" ]; then

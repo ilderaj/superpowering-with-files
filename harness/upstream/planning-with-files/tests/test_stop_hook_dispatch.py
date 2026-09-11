@@ -15,9 +15,9 @@ failure modes that these tests pin forever:
      (exit 127, stderr discarded). The POSIX ``gate-stop.sh`` branch was
      unreachable: the completion gate never fired on macOS or Linux.
 
-The v3.8.0 scalar selects by file existence (``[ -f ] || ls-fallback``, the
-same pattern the other hooks use) and dispatches by platform: PowerShell only
-on native Windows (uname MINGW*/MSYS*/CYGWIN*), ``sh`` elsewhere.
+The scalar now selects the shared standalone helper by file existence. The
+helper owns JSON stdin parsing, platform-neutral gate dispatch, and the
+injector preflight before it delegates to `gate-stop.sh`.
 
 These tests EXECUTE the scalar end-to-end, which the pre-v3.8.0 suite never
 did (it only string-matched the scalar shape).
@@ -128,13 +128,11 @@ class StopScalarShapeTests(unittest.TestCase):
                 "existence-based selection required",
             )
 
-    def test_platform_gated_dispatch(self) -> None:
-        # PowerShell must be chosen only on native Windows shells; POSIX gets
-        # the sh path first.
+    def test_dispatches_stop_to_shared_helper(self) -> None:
         for skill_file in ALL_STOP_SKILL_FILES:
             scalar = extract_stop_scalar(skill_file)
-            self.assertIn("uname", scalar, f"{skill_file}: no platform gate")
-            self.assertIn("MINGW", scalar, f"{skill_file}: no MINGW match")
+            self.assertIn("skill-hook.sh", scalar, f"{skill_file}: no shared helper")
+            self.assertIn("--event=stop", scalar, f"{skill_file}: wrong helper event")
 
     def test_probes_both_install_paths(self) -> None:
         for skill_file in ALL_STOP_SKILL_FILES:
@@ -191,9 +189,11 @@ class StopScalarBehaviorTests(unittest.TestCase):
         stub_scripts = fake_home / ".claude" / "skills" / "planning-with-files" / "scripts"
         stub_scripts.mkdir(parents=True)
         for name in (
+            "skill-hook.sh",
+            "inject-plan.sh",
+            "ledger-summary.sh",
             "gate-stop.sh",
             "check-complete.sh",
-            "check-complete.ps1",
             "resolve-plan-dir.sh",
         ):
             src = SKILL_DIR / "scripts" / name
@@ -221,10 +221,10 @@ class StopScalarBehaviorTests(unittest.TestCase):
             f"install under $HOME (stderr: {result.stderr!r})",
         )
 
-    @unittest.skipIf(IS_WINDOWS, "POSIX-only dispatch preference")
-    def test_posix_prefers_sh_over_powershell(self) -> None:
-        # Even with a powershell.exe on PATH (e.g. PowerShell Core on Linux),
-        # the POSIX branch must dispatch the sh gate, not the ps1.
+    @unittest.skipIf(IS_WINDOWS, "POSIX helper dispatch")
+    def test_posix_helper_does_not_probe_powershell(self) -> None:
+        # The shared helper dispatches gate-stop.sh itself. A POSIX hook must
+        # not reintroduce the obsolete PowerShell-first scalar branch.
         bindir = self.tmp / "bin"
         bindir.mkdir()
         sentinel = self.tmp / "ps1-ran"
@@ -242,7 +242,7 @@ class StopScalarBehaviorTests(unittest.TestCase):
         self.assertIn("[planning-with-files]", result.stdout)
         self.assertFalse(
             sentinel.exists(),
-            "POSIX dispatch ran powershell.exe instead of the sh gate",
+            "POSIX helper dispatch ran powershell.exe",
         )
 
     @unittest.skipIf(IS_WINDOWS, "gate JSON path exercised via sh on POSIX")

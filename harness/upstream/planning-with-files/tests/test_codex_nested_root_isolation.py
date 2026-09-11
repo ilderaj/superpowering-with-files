@@ -216,16 +216,17 @@ class CodexUserPromptSubmitNestedRootTests(NestedTreeMixin):
         self.assertNotIn(PLAN_A_TITLE, result.stdout)
         self.assertIn("Session isolation is armed", result.stdout)
 
-    # -- 6. attached session injects and beats the conflict check ----------
-    def test_attached_session_is_explicit_and_beats_conflict_check(self) -> None:
+    # -- 6. attachment does not choose between competing roots -------------
+    def test_attached_session_does_not_bypass_conflict_check(self) -> None:
         self.build_tree(nested=True)
         sessions = self.workspace / ".planning" / "sessions"
         sessions.mkdir()
         (sessions / f"{session_key(self.workspace, 'sess-1')}.attached").write_text("", encoding="utf-8")
         result = self._run({"PWF_SESSION_ID": "sess-1"})
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn(PLAN_A_TITLE, result.stdout)
-        self.assertNotIn("Ambiguous plan", result.stdout)
+        self.assertNotIn(PLAN_A_TITLE, result.stdout)
+        self.assertNotIn(PLAN_B_TITLE, result.stdout)
+        self.assertIn("Ambiguous plan", result.stdout)
 
     # -- 7. legacy invariant: no nesting = unchanged injection -------------
     def test_no_nested_plan_injects_exactly_as_before(self) -> None:

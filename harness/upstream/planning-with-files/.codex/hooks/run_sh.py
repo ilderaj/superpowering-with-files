@@ -31,6 +31,15 @@ def main() -> None:
     session_id = adapter.session_id_from_payload(payload)
     if not adapter.is_session_attached(root, session_id):
         return
+    if adapter.session_plan_requires_binding(root):
+        if script_name == "user-prompt-submit.sh":
+            adapter.emit_json({
+                "hookSpecificOutput": {
+                    "hookEventName": "UserPromptSubmit",
+                    "additionalContext": adapter.SESSION_PLAN_BINDING_NOTICE,
+                }
+            })
+        return
     stdout, _ = adapter.run_shell_script(
         script_name,
         root,

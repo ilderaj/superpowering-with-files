@@ -28,8 +28,8 @@ Adversarial review found three silent-failure holes in it:
      call) and Stop (carries no plan body) deliberately stay silent.
 
 This test makes those regressions impossible to reintroduce: every tracked
-SKILL.md that declares a hooks: frontmatter block must dispatch its injection
-hooks to inject-plan.sh, must not inline the resolution body, must not
+SKILL.md that declares a hooks: frontmatter block must dispatch all lifecycle
+hooks to skill-hook.sh, must not inline the resolution body, must not
 reference the insecure /tmp SHA cache, must carry the documented per-host
 discovery candidates, and must actually ship (or be scheduled to receive via
 scripts/sync-ide-folders.py) the scripts the dispatch resolves to.
@@ -52,16 +52,17 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SYNC_CONFIG = REPO_ROOT / "scripts" / "sync-ide-folders.py"
 
-# The three injection events and the --context flag each must pass.
-INJECT_EVENTS = {
-    "UserPromptSubmit": "--context=userprompt",
-    "PreToolUse": "--context=pretool",
-    "PreCompact": "--context=precompact",
+# Every lifecycle event and the helper event argument each must pass.
+HELPER_EVENTS = {
+    "UserPromptSubmit": "--event=userprompt",
+    "PreToolUse": "--event=pretool",
+    "PostToolUse": "--event=posttool",
+    "Stop": "--event=stop",
+    "PreCompact": "--event=precompact",
 }
 
-# Events whose scalars discover-and-dispatch a script. PostToolUse is a plain
-# inline echo with no discovery chain and is out of dispatch scope.
-DISPATCH_EVENTS = ("UserPromptSubmit", "PreToolUse", "PreCompact", "Stop")
+# Every lifecycle scalar discovers and dispatches the one trusted helper.
+DISPATCH_EVENTS = tuple(HELPER_EVENTS)
 
 # Stable markers of the pre-v3 inline resolution body. Any of these inside a
 # hook command scalar means the logic is inlined, not dispatched.
@@ -83,12 +84,18 @@ ALLOWED_CANDIDATE_PREFIXES = (
     "${CODEBUDDY_PLUGIN_ROOT}",
 )
 
-# Scripts every hooks-bearing skill directory must ship so the dispatch cannot
-# resolve to nothing or to a liar: inject-plan.sh is the dispatch target, it
-# shells its sibling ledger-summary.sh in autonomous/gated mode, and
-# ledger-summary.sh shells resolve-plan-dir.sh — without the resolver it falls
-# back to plan_dir="." and reports a false "phases: 0/0 complete".
-REQUIRED_SIBLING_SCRIPTS = ("inject-plan.sh", "ledger-summary.sh", "resolve-plan-dir.sh")
+# Scripts every hooks-bearing skill directory must ship so the helper can
+# perform every event's real work. The injector shells ledger-summary.sh,
+# ledger-summary.sh shells resolve-plan-dir.sh, and the Stop route delegates
+# through gate-stop.sh to check-complete.sh.
+REQUIRED_SIBLING_SCRIPTS = (
+    "skill-hook.sh",
+    "inject-plan.sh",
+    "ledger-summary.sh",
+    "resolve-plan-dir.sh",
+    "gate-stop.sh",
+    "check-complete.sh",
+)
 
 # One-line marker of the UserPromptSubmit not-found notice.
 NOT_FOUND_NOTICE = "hook script not found"
@@ -313,25 +320,25 @@ class HookDispatchParityTests(unittest.TestCase):
                             cmd,
                             f"{f}: hook scalar carries the inlined v2.43 "
                             f"resolution body (marker {marker!r}); it must "
-                            "dispatch to inject-plan.sh instead",
+                            "dispatch to skill-hook.sh instead",
                         )
 
-    def test_inject_events_dispatch_with_matching_context(self):
+    def test_lifecycle_events_dispatch_with_matching_helper_event(self):
         for f, data in self.files:
             with self.subTest(file=str(f.relative_to(REPO_ROOT))):
-                for event, flag in INJECT_EVENTS.items():
+                for event, flag in HELPER_EVENTS.items():
                     commands = _event_commands(data["hooks"], event)
                     self.assertTrue(commands, f"{f}: no {event} command scalar")
-                    dispatching = [c for c in commands if "inject-plan.sh" in c]
+                    dispatching = [c for c in commands if "skill-hook.sh" in c]
                     self.assertTrue(
                         dispatching,
-                        f"{f}: {event} scalar does not reference inject-plan.sh",
+                        f"{f}: {event} scalar does not reference skill-hook.sh",
                     )
                     for cmd in dispatching:
                         self.assertIn(
                             flag,
                             cmd,
-                            f"{f}: {event} scalar must pass {flag}",
+                            f"{f}: {event} scalar must pass {flag} to skill-hook.sh",
                         )
 
     def test_no_insecure_tmp_sha_cache(self):
@@ -345,7 +352,7 @@ class HookDispatchParityTests(unittest.TestCase):
                         "cache (moved to $XDG_CACHE_HOME in v3.0.0)",
                     )
 
-    def test_inject_scalars_carry_documented_discovery_candidates(self):
+    def test_helper_scalars_carry_documented_discovery_candidates(self):
         # At least two candidates (CLAUDE_SKILL_DIR plus a $HOME install path),
         # and every documented per-host probe must be present — the canonical
         # two-path fallback never resolves on Codex, Cursor, Factory and the
@@ -354,13 +361,13 @@ class HookDispatchParityTests(unittest.TestCase):
         for f, data in self.files:
             with self.subTest(file=str(f.relative_to(REPO_ROOT))):
                 probes = _expected_probes(f)
-                for event in INJECT_EVENTS:
+                for event in HELPER_EVENTS:
                     for cmd in _event_commands(data["hooks"], event):
-                        candidates = cmd.count("/scripts/inject-plan.sh")
+                        candidates = cmd.count("/scripts/skill-hook.sh")
                         self.assertGreaterEqual(
                             candidates,
                             2,
-                            f"{f}: {event} scalar has {candidates} discovery "
+                            f"{f}: {event} scalar has {candidates} helper discovery "
                             "candidate(s); need CLAUDE_SKILL_DIR plus at least "
                             "one install-path fallback",
                         )
@@ -372,26 +379,6 @@ class HookDispatchParityTests(unittest.TestCase):
                                 f"documented install dir ({probe}) — the "
                                 "dispatch cannot resolve on its host",
                             )
-
-    def test_stop_scalar_probes_documented_install_dirs(self):
-        # Same host-resolution requirement for the Stop hook: before this fix
-        # the Stop scalar looked only at CLAUDE_SKILL_DIR and the two .claude
-        # paths, so on Codex/Cursor/Factory it silently did nothing.
-        for f, data in self.files:
-            probes = _expected_probes(f)
-            if not probes:
-                continue
-            with self.subTest(file=str(f.relative_to(REPO_ROOT))):
-                commands = _event_commands(data["hooks"], "Stop")
-                self.assertTrue(commands, f"{f}: no Stop command scalar")
-                for cmd in commands:
-                    for probe in probes:
-                        self.assertIn(
-                            probe,
-                            cmd,
-                            f"{f}: Stop scalar never probes the documented "
-                            f"install dir ({probe})",
-                        )
 
     def test_loop_dispatch_uses_first_match_wins_not_ls_head(self):
         # ``ls a b c | head -1`` SORTS, so the marketplace copy beat the
@@ -469,7 +456,7 @@ class HookDispatchParityTests(unittest.TestCase):
                         f"{f}: the not-found notice must tell the user about "
                         "the PWF_SCRIPT_DIR escape hatch",
                     )
-                for event in ("PreToolUse", "PreCompact", "Stop"):
+                for event in ("PreToolUse", "PostToolUse", "PreCompact", "Stop"):
                     for cmd in _event_commands(data["hooks"], event):
                         self.assertNotIn(
                             NOT_FOUND_NOTICE,
@@ -488,10 +475,10 @@ class HookDispatchParityTests(unittest.TestCase):
                     self.assertNotIn(NOT_FOUND_NOTICE, cmd)
 
     def test_sibling_scripts_shipped_or_scheduled_by_sync(self):
-        # The dispatch must be able to resolve to something that tells the
-        # truth: the skill's own scripts/ dir must ship the dispatch target,
-        # its ledger sibling, and the plan-dir resolver (without which
-        # ledger-summary.sh reports a false "phases: 0/0 complete").
+        # The dispatch must resolve to the helper plus every script its event
+        # routes use. Without the resolver, ledger-summary.sh reports a false
+        # "phases: 0/0 complete"; without the gate pair Stop silently loses its
+        # completion authority.
         #
         # Source of truth is scripts/sync-ide-folders.py: a variant passes if
         # the file is on disk OR the sync manifest schedules it for that
@@ -500,11 +487,23 @@ class HookDispatchParityTests(unittest.TestCase):
         # variant is neither shipped nor scheduled.
         mod = _load_sync_config()
         self.assertIn(
+            "scripts/skill-hook.sh",
+            mod.HOOK_DISPATCH_SCRIPTS,
+            "sync config no longer lists skill-hook.sh as a hook dispatch "
+            "script; the standalone lifecycle scalars would resolve to nothing",
+        )
+        self.assertIn(
             "scripts/resolve-plan-dir.sh",
             mod.HOOK_DISPATCH_SCRIPTS,
             "sync config no longer lists resolve-plan-dir.sh as a hook "
             "dispatch script; the seven scripts-light variants would ship a "
             "ledger-summary.sh that lies (plan_dir='.', 0/0 complete)",
+        )
+        self.assertIn(
+            "scripts/gate-stop.sh",
+            mod.HOOK_DISPATCH_SCRIPTS,
+            "sync config no longer lists gate-stop.sh as a hook dispatch "
+            "dependency; scripts-light variants would lose Stop gating",
         )
         sync_targets = {
             Path(target).as_posix()

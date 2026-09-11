@@ -4,6 +4,20 @@
 Hooks compare the current file hash with that stored attestation before they
 inject plan content into model context.
 
+## Trust boundary
+
+The saved value is an ordinary local digest, not a keyed signature or proof of
+human approval. It detects a changed plan only while that digest remains trusted.
+A process that can replace both `task_plan.md` and its attestation can make new
+content pass. Automatic attestation during initialization records the generated
+bytes without a separate human review step.
+
+Attestation does not make plan content safe to obey. Treat instructions copied
+from tools, websites, or other external sources as untrusted even when the file
+matches its saved digest. Stronger protection against a writer that controls the
+whole planning directory requires a separate trust boundary, such as permissions
+that protect the approval record from that writer.
+
 ## Write path
 
 When you run `sh scripts/attest-plan.sh`, the script:
