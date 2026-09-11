@@ -1,6 +1,6 @@
 ---
 name: ux-design
-description: Design judgment and verification for user-facing visuals: screens, pages, dashboards, prototypes, demos, mockups, wireframes, and slide or document layout. Fixes the reader and task, requires observable design decisions and named anti-patterns, reuses bounded primitives, and verifies the rendered result; pairs with a renderer such as pen-design when the host exposes one. Not a renderer, a brand-asset source, an implementation approval, or a publishing step.
+description: "Design judgment and verification for user-facing visuals: screens, pages, dashboards, prototypes, demos, mockups, wireframes, and slide or document layout. Fixes the reader and task, requires observable design decisions and named anti-patterns, reuses bounded primitives, and verifies the rendered result; pairs with a renderer such as pen-design when the host exposes one. Not a renderer, a brand-asset source, an implementation approval, or a publishing step."
 ---
 
 # UX Design
