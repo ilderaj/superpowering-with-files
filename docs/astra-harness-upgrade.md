@@ -55,3 +55,21 @@
 - 最终 `npm run verify:all`、DSH `verify` 均以 exit 0 完成；插件 build/smoke 通过，四个请求模型的八场景回放均为 8/8。
 - 独立审查发现并修复了 Host 参数别名丢失、旧冻结包 effort 漂移、全局备份路径逃逸、回滚失败丢失恢复文件，以及安装摘要/首次 ownership 记录问题。修复后复核无剩余阻断项。
 - 原工作区在技术验收时仍与开始时的未提交变更备份一致；GitHub landing 与全局采用在实际发生后另行核验，不能由上述测试代替。
+
+## 2026-09-12 article absorption
+
+Reviewed OpenAI’s [Rethinking skills and prompts for GPT-6 Astra](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra), by Eric Provencher, published September 11, 2026.
+
+The September 6 implementation already covers conditional references, quick tasks, evidence reuse and model-neutral authority. This follow-up adds an explicit completion boundary to the canonical Trio entry and its workspace projection, and adds skill/prompt review criteria to [Maintenance](maintenance.md#skill-and-prompt-maintenance). Existing user review stops and Host controls remain binding.
+
+SWF-specific acceptance cases:
+
+| Request | Expected decision |
+| --- | --- |
+| Fix a typo | Bounded direct edit; inspect the changed text. |
+| Implement and verify a feature | Continue through relevant verification and repair within authorization. |
+| Produce a plan for review | Deliver the plan and stop before implementation. |
+| Prepare a release artifact | Load release guidance; a neighboring README edit does not trigger it. |
+| Adopt repository changes globally | Require that action in authorized scope and verify actual installed bytes. |
+
+The new automated contract check covers persistence, explicit stops, clause-removal regression and source/workspace parity. Existing routing/projection tests cover retained boundaries. These are local contract checks; this follow-up makes no new claim about real-model success rates, cost or latency. Historical September 6 measurements above do not measure this change. Global cleanup, DSH, plugin release and model defaults are outside this follow-up.

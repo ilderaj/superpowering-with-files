@@ -21,4 +21,6 @@ Use bounded parallel delegation when beneficial and permitted by the Host and us
 
 Human intent constrains model and effort choices; the agent recommends or selects supported intent, and the Host executes and attests. The Host owns worker lifecycle, continuation, permissions, and model evidence. Requested model and effort express intent; actual remains unknown without authenticated Host evidence. The shared contract prescribes no forced model roster.
 
+Define completion through the observable outcome, relevant verification, and stop conditions. Continue through authorized implementation, verification, and repair; a first implementation is not completion when agreed work remains. Stop dependent work at a user-requested review, missing authorization, or Host restriction; continue independent work within scope.
+
 Return the result, paths, verification evidence and limits. Use direct completion, delegated `candidate_done`, or a bounded blocker as appropriate; never imply an external action or human approval occurred from technical verification alone.
