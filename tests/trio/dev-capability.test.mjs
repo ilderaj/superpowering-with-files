@@ -100,6 +100,21 @@ test('routing distinguishes direct completion from delegated acceptance', async 
   });
 });
 
+test('completion requires authorized verification and repair while preserving real stops', async () => {
+  const rules = {
+    completion: /completion[^\n]*observable outcome[^\n]*verification[^\n]*stop conditions/i,
+    persistence: /continue[^\n]*authorized[^\n]*verification[^\n]*repair/i,
+    firstPass: /first implementation[^\n]*not[^\n]*completion/i,
+    stops: /stop[^\n]*user.requested review[^\n]*missing authorization[^\n]*Host restriction/i,
+  };
+  const text = await read(entry);
+  has(text, rules);
+  for (const pattern of Object.values(rules)) {
+    assert.throws(() => has(text.replace(new RegExp(pattern.source, pattern.flags + 'g'), ''), rules));
+  }
+  assert.equal(await read('.agents/skills/trio/SKILL.md'), text);
+});
+
 test('entry template delegates detail and retains only routing and authority boundaries', async () => {
   const text = await read('harness/trio/templates/entry-policy.md');
   assert.match(text, /trio\/SKILL\.md/);

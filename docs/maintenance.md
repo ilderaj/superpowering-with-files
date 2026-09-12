@@ -19,6 +19,20 @@ Use the public commands and repository checks that match the scope:
 
 Use a focused test before broader verification. Preserve command exits, changed paths, and evidence in the bound Trio. A clean local check is not an acceptance decision; the main session performs acceptance and writes the result back to the Trio.
 
+## Skill And Prompt Maintenance
+
+Use this review when changing skill triggers, repository instructions, task templates, or upgrading a model. Keep it out of unrelated task prerequisites.
+
+- Write descriptions around the specific task that benefits from the skill. Put the distinguishing trigger early; inspect the Host-visible catalog for ambiguity or truncation. Character counts alone do not establish correct selection.
+- For each changed trigger, review one matching request and one adjacent request that should not load it. For example, a release-packaging skill applies to preparing an artifact release; editing a README link does not trigger packaging.
+- Keep root skills as short routers. Link supporting methods at their decision point; retain exact sequences only for a documented dependency, safety invariant, or reproducible failure.
+- Describe repository-specific facts and completion criteria. Reuse existing verification and authority rules instead of copying them into each skill. Remove stale instructions only after checking the failure they prevented and the models that consume them.
+- For changed decision rules, check both the intended action and the retained stop boundary. Text checks establish contract coverage; representative runs on the intended models establish behavior. Record missing model evidence as unknown.
+
+Maintain canonical source and the affected workspace projection together. Global adoption and plugin release have separate receipts. Compare actual catalog/context measurements before claiming savings; installed file counts and source bytes measure different things.
+
+Background and scope: [Astra absorption notes](astra-harness-upgrade.md#2026-09-12-article-absorption).
+
 ## Upstream Source Contract
 
 `harness/upstream/sources.json` declares the desired source strategies. `harness/upstream/.source-lock.json` is the authoritative resolved source lock that CI and installer fetch consume.
