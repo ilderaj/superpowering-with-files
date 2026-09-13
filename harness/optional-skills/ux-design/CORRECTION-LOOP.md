@@ -17,6 +17,27 @@ For a repeated artifact, freeze a small set of scenarios with fixed inputs - the
 
 Failure counting is only as good as the rubric: it finds known failure classes and teaches nothing about unknown ones. Treat a low count as "no known failure observed", not as "good design".
 
+## Preserve each run
+
+A comparison is reproducible only when each run retains enough context to explain the output. Record:
+
+- the scenario ID and whether the method should apply;
+- the prompt and input references or content hashes, keeping secrets and customer data out of the record;
+- the model or renderer name, version, and relevant configuration when the Host exposes them;
+- the skill or contract version, or a content hash when no version exists;
+- the viewport, scale, page, flow, and state coverage;
+- whether this was the first attempt or a reroll;
+- the generated artifacts, screenshots or frame evidence, deterministic check results, and concrete failure count;
+- the review feedback tied to that exact run and the accepted correction.
+
+Do not compare outputs whose input, model, renderer, viewport, or capture conditions drifted without naming that confounder.
+
+## Guard against overfitting
+
+Keep scenarios where the method **should apply** and where it **should not apply**. Use the latter to detect guidance that activates too broadly. Once the loop is stable enough to justify it, keep a small holdout hidden while editing the guidance, record first attempts without rerolls, and use multiple independent trials before making a reliability claim. At material milestones, compare a full round as well as targeted scenarios; use multiple blind reviewers when the decision warrants that cost, and keep accepted guidance changes human-reviewed.
+
+When real work introduces a recurring artifact or failure class not represented in the set, add it as a new eval scenario. On a stated cadence, group comparable complaints from real use and count whether each complaint becomes less frequent after its correction was encoded. If recurrence does not fall, reconsider the rule's wording, placement, available primitive, or deterministic check instead of declaring success.
+
 ## Starting from corrections
 
 When no rubric exists yet, build it from the corrections already at hand:

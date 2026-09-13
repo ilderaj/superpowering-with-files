@@ -6,12 +6,18 @@ Write a design contract when the design will be built, reviewed, or reproduced m
 
 1. **Scope** - the artifacts this covers, and what it deliberately does not cover.
 2. **Reader and task** - who reads it, what they know, what they must do or conclude, and in which context (device, time, expertise).
-3. **Observable decisions** - layout, hierarchy, content, and interaction decisions stated so a reviewer can confirm them from the rendered result.
-4. **Named anti-patterns** - the specific failure modes this artifact must avoid, taken from real corrections and reviews rather than a generic taste list.
-5. **Available primitives** - the stylesheet, tokens, components, and assets that already exist and must be reused; what may be added, and where.
-6. **Evidence and gates** - what "rendered and inspected" means here (viewport, pages, states) and who accepts the design.
+3. **Fixed constraints** - supplied facts, required behavior, existing assets or tokens, and user- or project-accepted choices. Cite their source where it is not obvious.
+4. **Delegated discretion** - choices the user deliberately left open for the agent or renderer, with any boundary on that freedom.
+5. **Proposals** - agent-suggested preferences that remain provisional. Do not promote a proposal into a fixed constraint without acceptance.
+6. **Observable decisions** - layout, hierarchy, content, and interaction decisions stated so a reviewer can confirm them from the rendered result; identify whether each is fixed, delegated, or proposed.
+7. **Reading depths** - for analytical artifacts, define the decision-first summary for a quick scan and the traceable evidence needed for detailed audit, including where honest caveats stay visible.
+8. **Named anti-patterns** - the specific failure modes this artifact must avoid, taken from real corrections and reviews rather than a generic taste list.
+9. **Available primitives** - the stylesheet, tokens, components, and assets that already exist and must be reused; what may be added, and where.
+10. **Evidence and gates** - what "rendered and inspected" means here (viewport, pages, flows, states) and who accepts the design.
 
 Keep the contract about judgment. Repeatable mechanics - class vocabulary, spacing values, component variants - belong in the stylesheet, tokens, or components that render them, not in prose every generation must re-read. When a repeating artifact has no such primitives yet, create the bounded set first and let the contract point at it.
+
+Preserve the user's own language for fixed constraints. Delegated discretion is permission to decide within the stated boundary, not permission to invent product facts or brand claims. If ownership is unclear, keep the choice in Proposals until evidence or an authorized reviewer resolves it.
 
 ## Where a correction belongs
 

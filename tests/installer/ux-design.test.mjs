@@ -30,16 +30,28 @@ function withoutFences(markdown) {
 async function assertUxDesignContract(markdown) {
   for (const [decision, pattern] of Object.entries({
     reader: /reader and the job/i,
+    constraintOwnership: /fixed constraints[\s\S]*delegated discretion[\s\S]*proposals/i,
     observable: /observable design decisions/i,
     antiPatterns: /anti-patterns this artifact must avoid/i,
+    dualRead: /decision-first[\s\S]*traceable evidence/i,
     twoPasses: /two passes[\s\S]*second pass/i,
     renderedInspection: /render or export the artifact[\s\S]*inspect it/i,
+    motionInspection: /drive the real interaction[\s\S]*record[\s\S]*extract[\s\S]*rerun the same flow/i,
     evidenceStates: /`rendered` is not `inspected`[\s\S]*`accepted`[\s\S]*`delivered`/,
     correctionPlacement: /encode the correction where it keeps working/i,
-    rendererPairing: /`pen-design`[\s\S]*its own contract/i,
+    rendererPairing: /`pen-design`[\s\S]*user's request verbatim[\s\S]*accepted contract[\s\S]*`--in`/i,
     notDelivery: /It is not implementation, deployment, or delivery\./,
     publishingBoundary: /authorizes no publishing, deployment, sharing, or asset purchase/i,
   })) assert.match(markdown, pattern, decision);
+}
+
+function assertOrdered(text, parts, label) {
+  let previous = -1;
+  for (const part of parts) {
+    const index = text.indexOf(part);
+    assert.ok(index > previous, `${label}: expected ${JSON.stringify(part)} after prior step`);
+    previous = index;
+  }
 }
 
 test('ux-design is self-contained, portable, and its referenced resources are reachable', async () => {
@@ -86,6 +98,39 @@ test('removing a design safeguard clause fails the contract', async () => {
   await assertUxDesignContract(text);
 });
 
+test('the design contract distinguishes authority and supports decision-first plus audit reading', async () => {
+  const contract = await read('DESIGN-CONTRACT.md');
+  assertOrdered(contract, ['Fixed constraints', 'Delegated discretion', 'Proposals'], 'constraint ownership');
+  assert.match(contract, /do not promote a proposal into a fixed constraint/i);
+  assert.match(contract, /decision-first summary[\s\S]*traceable evidence[\s\S]*honest caveats/i);
+});
+
+test('rendered verification defines a tool-neutral frame inspection loop', async () => {
+  const verification = await read('RENDERED-VERIFICATION.md');
+  assertOrdered(verification, [
+    'Choose one representative flow',
+    'Drive the real interface',
+    'Record the flow',
+    'Extract key frames',
+    'Inspect the sequence',
+    'Correct and rerun the same flow',
+  ], 'motion verification');
+  assert.match(verification, /pixel differences locate discontinuities[\s\S]*do not score aesthetics/i);
+  assert.match(verification, /cannot drive or record[\s\S]*unverified/i);
+});
+
+test('the correction loop preserves reproducible runs and guards against overfitting', async () => {
+  const loop = await read('CORRECTION-LOOP.md');
+  for (const field of [
+    'scenario ID', 'prompt and input', 'model or renderer', 'skill or contract version',
+    'viewport', 'first attempt', 'artifacts', 'review feedback',
+  ]) assert.match(loop, new RegExp(field, 'i'), `missing run-record field: ${field}`);
+  assert.match(loop, /should apply[\s\S]*should not apply/i);
+  assert.match(loop, /holdout/i);
+  assert.match(loop, /new eval scenario/i);
+  assert.match(loop, /cadence[\s\S]*complaint/i);
+});
+
 test('routing surfaces select ux-design for visual work and keep its boundaries', async () => {
   const [sop, methods, office] = await Promise.all([
     readRepo('docs/coding-harness-sop.md'),
@@ -93,11 +138,14 @@ test('routing surfaces select ux-design for visual work and keep its boundaries'
     readRepo('harness/trio/capabilities/office/references/artifact-and-delivery.md')
   ]);
   assert.match(sop, /screen, page, dashboard, prototype, demo, mockup, wireframe, or slide\/deck layout/);
-  assert.match(sop, /`ux-design`[\s\S]*named anti-patterns[\s\S]*inspect the rendered output at real size/i);
+  assert.match(sop, /`ux-design`[\s\S]*fixed constraints[\s\S]*delegated discretion[\s\S]*named anti-patterns/i);
+  assert.match(sop, /inspect the rendered output at real size[\s\S]*record and inspect successive frames/i);
   assert.match(sop, /Publish, deploy, share, or claim acceptance[\s\S]*not do automatically|Publish, deploy, share, or claim acceptance/);
-  assert.match(methods, /`ux-design`[\s\S]*observable design decisions and named anti-patterns[\s\S]*rendered result at real size/i);
+  assert.match(methods, /`ux-design`[\s\S]*fixed constraints[\s\S]*delegated discretion[\s\S]*observable design decisions/i);
+  assert.match(methods, /rendered result at real size[\s\S]*drive, record, and inspect the real flow/i);
   assert.match(methods, /rendered image is inspection evidence, not acceptance or delivery/i);
   assert.match(office, /visual quality[\s\S]*`ux-design` method when the Host makes it available/i);
+  assert.match(office, /decision-first summary[\s\S]*traceable evidence[\s\S]*honest caveats/i);
   assert.match(office, /exported preview is `rendered` or `inspected` at best, never `accepted` or `delivered`/i);
 });
 

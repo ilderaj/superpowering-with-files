@@ -51,7 +51,22 @@
 | RED 证据 | 改动前 `git show HEAD:<文件>` 在 SOP、dev methods、office artifact、安装器四处均为 0 处 `ux-design` 命中 |
 | 全局 adopt dry-run（`--home /Users/jared`，未 apply） | `ux-design` 动作为 `install`、无冲突、目的目录不存在；其余 12 项 `unchanged`，无写入 |
 
-边界与未验证项：测试锁定的是文本契约、路由接线与安装字节，不证明真实会话中的设计质量或调用效果；本方法不主张任何收益量值。来源自述的数字仅作来源说明。全局安装尚未执行，本机 `~/.agents/skills/ux-design` 目前不存在；安装后技能何时被 Host 发现由 Host 决定。渲染检查依赖 Host 提供的能力，无预览或导出能力时方法要求记录为验证受限而不是通过。
+边界与未验证项：测试锁定的是文本契约、路由接线与安装字节，不证明真实会话中的设计质量或调用效果；本方法不主张任何收益量值。来源自述的数字仅作来源说明。此段的安装状态是 2026-09-11 首轮验证快照；后续 PR #180 合并交付已完成全局安装与 Host 暴露验证。渲染检查依赖 Host 提供的能力，无预览或导出能力时方法要求记录为验证受限而不是通过。
+
+## 2026-09-13 原文 reconcile 与第二轮补强
+
+重新逐项对照两份来源后，判断为“核心方法正确，但落实闭环不完整”。Vercel 的读者任务、具名反模式、判断/原语/评测三层和最窄修正位置已经保留；Anshu 的意图先行、功能遍后单独美学遍和渲染后检查也已经保留。第二轮补齐四个被平台中立化时压缩过度的部分：
+
+| 缺口 | 补强后的契约 |
+| --- | --- |
+| 意图中的固定项与开放项混在一起 | 明确分为 fixed constraints、delegated discretion、proposals；agent 对被委托的开放项自主判断，但不得把自己的偏好提升为用户要求 |
+| 帧级检查只有一句原则 | 给出真实操作 → 录制 → 抽取关键帧与相邻帧 → 接触表/序列检查 → 像素差异定位 → 裁剪放大 → 同场景复跑的工具中立流程；能力不足时明确保留 unverified |
+| 评测循环缺少运行证据和防过拟合 | 每次运行保存 scenario、prompt/input、model/renderer、skill/contract、viewport/state、first-attempt/reroll、artifacts/checks/feedback；加入 should-apply/should-not-apply、holdout、新场景纳入和重复投诉频次 |
+| 与 pen-design 只有职责声明 | 初始 prompt 保持用户原文；只通过 renderer 支持的 reference-file 机制附加项目已有或用户接受的契约；客观违规只能依据既有约束窄修正；用户 steering 原样进入 `--in`；新主观偏好先作为 proposal |
+
+同时补入 Vercel 对报告类工件的双层阅读要求：先给 decision-first summary，随后保留 traceable evidence 和 honest caveats，使高管快速浏览与详细审计不互相争夺层级。
+
+此次仍不照搬来源专属工具或资产：Xcode、idb、ffmpeg、PIL、特定模型、Vercel stylesheet 和品牌规则都只在 Host/项目实际提供且任务授权时使用。设计 skill 规定证据目标和决策边界，不自行安装工具、不购买资产、不发布产物。
 
 ## 使用与维护
 
