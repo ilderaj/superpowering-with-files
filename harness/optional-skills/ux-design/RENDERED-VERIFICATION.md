@@ -20,7 +20,20 @@ Judge the rendered result against the stated intent, not against a personal styl
 - imagery and motion support the task instead of delaying it;
 - the named anti-patterns are actually absent.
 
-Record which viewport, page, and state were looked at. When a check is impossible in the current environment, record it as an explicit verification limit instead of a pass.
+Record which viewport, page, flow, and state were looked at. When a check is impossible in the current environment, record it as an explicit verification limit instead of a pass. For reports, proposals, dashboards, and decks, inspect both the decision-first quick read and whether its supporting claims remain traceable to detailed evidence and honest caveats.
+
+## Inspect motion and interaction
+
+Use this loop when timing, animation, gestures, or transitions affect the experience. The mechanism is platform-neutral; a browser recorder, simulator tooling, renderer export, or another Host capability can supply the evidence.
+
+1. **Choose one representative flow** with a named start state, user action, expected intermediate states, and end state.
+2. **Drive the real interface** through that flow rather than inferring behavior from source or isolated components.
+3. **Record the flow** at the size, scale, and timing the audience will experience. Do not install tools, acquire credentials, or change permissions unless the current task authorizes it.
+4. **Extract key frames** plus adjacent frames around each transition; use a contact sheet, frame sequence, or equivalent view that makes temporal continuity visible.
+5. **Inspect the sequence** for flashes, jumps, stale layers, clipping, inconsistent easing, input lag, and state changes that appear out of order. Pixel differences locate discontinuities and support crop/zoom diagnosis; they do not score aesthetics or prove that motion is good.
+6. **Correct and rerun the same flow** with the same inputs and capture conditions. A changed implementation without a repeated observation is not a verified correction.
+
+If the Host cannot drive or record the interaction, inspect the reachable still states and mark motion and transition behavior unverified. A final screenshot cannot close that gap.
 
 ## Two passes, two inspections
 

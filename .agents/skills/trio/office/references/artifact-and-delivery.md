@@ -18,7 +18,7 @@ Check headings, table headers, language, source links, citation markers, meaning
 
 ## Visual design checks
 
-When visual quality is part of the artifact's acceptance - a deck, one-pager, dashboard, or prototype - apply the `ux-design` method when the Host makes it available: fix the intended reader and the observable layout decisions first, name the failure modes to avoid, then inspect the rendered pages, slides, or screens instead of the source markup. Check hierarchy, alignment, spacing consistency, contrast, clipping, and reachable states where they apply. The evidence states below apply unchanged: an exported preview is `rendered` or `inspected` at best, never `accepted` or `delivered`.
+When visual quality is part of the artifact's acceptance - a deck, one-pager, dashboard, or prototype - apply the `ux-design` method when the Host makes it available: fix the intended reader, separate fixed constraints from delegated discretion, and state the observable layout decisions and failure modes before rendering. For analytical artifacts, provide a decision-first summary backed by traceable evidence and honest caveats. Inspect the rendered pages, slides, or screens instead of the source markup; check hierarchy, alignment, spacing consistency, contrast, clipping, and reachable states where they apply. The evidence states below apply unchanged: an exported preview is `rendered` or `inspected` at best, never `accepted` or `delivered`.
 
 ## Delivery evidence states
 

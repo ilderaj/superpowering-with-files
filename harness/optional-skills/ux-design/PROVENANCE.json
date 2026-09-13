@@ -1,7 +1,7 @@
 {
   "owner": "SWF",
   "kind": "adaptation",
-  "reviewedOn": "2026-09-11",
+  "reviewedOn": "2026-09-13",
   "sources": [
     {
       "publisher": "Vercel",
@@ -30,7 +30,12 @@
     "Replaced the source-specific workflows with reader/task intent, observable decisions, and named anti-patterns as the portable core.",
     "Added the `inspected` evidence state so that looking at the rendered result stays distinct from acceptance and delivery.",
     "Bound corrections to reusable primitives and the narrowest enforceable placement instead of output hand-tuning.",
-    "Kept the method independent of Trio governance; selection references live in the dev and office capability surfaces."
+    "Kept the method independent of Trio governance; selection references live in the dev and office capability surfaces.",
+    "Separated fixed constraints, delegated design discretion, and unaccepted proposals so an agent can act autonomously without inventing authority.",
+    "Expanded rendered verification into a platform-neutral real-interaction, recording, frame-extraction, discontinuity inspection, crop-or-zoom, and same-flow rerun loop.",
+    "Added reproducible run records, apply and non-apply scenarios, holdouts, first-attempt tracking, new-scenario intake, and complaint recurrence checks.",
+    "Added a pen-design handshake that preserves the user's verbatim prompt while allowing accepted project constraints and evidence-backed iteration.",
+    "Added decision-first and traceable-evidence reading depths for reports, proposals, dashboards, and decks."
   ],
   "updates": "Manual review of the linked sources; no automatic upstream replacement. No measurable benefit claim is made until paired evidence exists."
 }
