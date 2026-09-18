@@ -142,6 +142,45 @@ test('ChiefOps selected delegation preserves frozen scope and Host lifecycle saf
   });
 });
 
+test('ChiefOps selective intake keeps quick work direct and Linear optional', async () => {
+  has(await read(chief), {
+    intake: /explicitly invoked[^\n]*intake[^\n]*Trio/i,
+    quick: /quick[^\n]*direct[^\n]*no[^\n]*planning[^\n]*Linear/i,
+    tracked: /tracked[^\n]*restore[^\n]*three[^\n]*planning/i,
+    direct: /direct tracked work[^\n]*no ChiefOps check-in/i,
+    optional: /optional[^\n]*linear-work-control[^\n]*reuse[^\n]*onboard/i,
+    writes: /authorized[^\n]*workspace guard[^\n]*existing issue/i,
+    localOnly: /missing[^\n]*disabled[^\n]*binding[^\n]*local-only/i,
+    metadata: /reports\/linear\/<task-id>\/linear\.json[^\n]*non-authoritative/i,
+    blockers: /authoritative blockers[^\n]*progress\.md/i,
+    legacy: /legacy[^\n]*helper[^\n]*no[^\n]*fourth/i,
+  });
+});
+
+test('ChiefOps day and night handoff preserves readiness and head-bound proof', async () => {
+  has(await read(chief), {
+    readiness: /day\/night[^\n]*local-first[^\n]*readiness[^\n]*authorization[^\n]*dependencies[^\n]*blockers/i,
+    bounded: /bounded[^\n]*ready slice[^\n]*no overlapping/i,
+    handoff: /human handoff[^\n]*completed[^\n]*validation[^\n]*blockers[^\n]*decision[^\n]*next action[^\n]*resume/i,
+    host: /Host owns scheduling[^\n]*configured[^\n]*triggered[^\n]*observed/i,
+    github: /GitHub[^\n]*repository[^\n]*PR[^\n]*head SHA[^\n]*checks[^\n]*review[^\n]*merged/i,
+    invalidation: /changed head invalidates[^\n]*proof/i,
+    delivery: /local validation[^\n]*not[^\n]*merge[^\n]*deployment[^\n]*adoption/i,
+  });
+});
+
+test('ChiefOps closure separates local archive, Linear auto-archive, and Codex archive', async () => {
+  has(await read(chief), {
+    local: /local archive[^\n]*acceptance[^\n]*human[^\n]*delivery[^\n]*Status: closed[^\n]*Archive Eligible: yes[^\n]*Close Reason/i,
+    linear: /Linear[^\n]*Done[^\n]*completion gate[^\n]*auto-archive[^\n]*no manual archive/i,
+    blockers: /unfinished projects[^\n]*parents[^\n]*sub-issues[^\n]*block[^\n]*archive/i,
+    period: /inactive[^\n]*full[^\n]*auto-archive period/i,
+    quota: /never promise immediate[^\n]*quota release/i,
+    codex: /Codex[^\n]*archive[^\n]*separate[^\n]*authorized[^\n]*Host/i,
+    source: /https:\/\/linear\.app\/docs\/delete-archive-issues/,
+  });
+});
+
 test('accepted PR feedback refinements retain all current-head and terminal gates', async () => {
   const text = await contract(dev);
   has(text, {
@@ -206,4 +245,15 @@ test('PWF templates initialize three files and resume without overwriting state 
   } finally {
     await rm(workspace, { recursive: true, force: true });
   }
+});
+
+test('ChiefOps night queue intake is an explicit, evidence-gated human decision', async () => {
+  has(await read(chief), {
+    switch: /nightly[^\n]*only switch[^\n]*absence means not scheduled/i,
+    earn: /bounded[^\n]*acceptance is written[^\n]*no human decision is pending[^\n]*does not overlap/i,
+    decide: /human confirm, decline, or edit the label/i,
+    surface: /structured question[^\n]*otherwise[^\n]*recommendation line/i,
+    timing: /write the label only after[^\n]*silence[^\n]*out of tonight/i,
+    gated: /external or destructive[^\n]*human-gated[^\n]*label/i,
+  });
 });

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "superpoweringwithfiles",
+    "url": "https://linear.app/superpoweringwithfiles"
+  },
+  "team": {
+    "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "name": "SWF"
+  },
+  "project": {
+    "id": "00000000-0000-4000-8000-000000000000",
+    "name": "SWF — Agent Workbench MVP"
+  },
+  "goalIssue": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "identifier": "SWF-1"
+  },
+  "statusComment": {
+    "id": "22222222-2222-4222-8222-222222222222"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "swf-linear-control-plane-mvp-20260917": {
+      "issueId": "33333333-3333-4333-8333-333333333333",
+      "identifier": "SWF-2",
+      "state": "running"
+    }
+  },
+  "sync": {
+    "lastCheckpointAt": "2026-09-17 21:10:00 UTC+8",
+    "lastResult": "ok",
+    "lastError": null,
+    "pendingRetry": false
+  }
+}

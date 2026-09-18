@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "superpoweringwithfiles"
+  },
+  "taskMap": {
+    "task-a": {
+      "issueId": "44444444-4444-4444-8444-444444444444",
+      "state": "in_progress"
+    }
+  }
+}

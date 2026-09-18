@@ -1,0 +1,18 @@
+{
+  "taskId": "swf-linear-control-plane-mvp-20260917",
+  "title": "MVP: Linear × Local Codex Human-Agent Control Plane",
+  "changed": [
+    "added the linear-work-control skill and its helpers"
+  ],
+  "validation": {
+    "summary": "core suite passes",
+    "command": "npm run verify:core"
+  },
+  "artifacts": [
+    "harness/core/skills/linear-work-control/SKILL.md"
+  ],
+  "followUps": [
+    "create the eight attention views in Linear"
+  ],
+  "timestamp": "2026-09-17 21:30:00 UTC+8"
+}
