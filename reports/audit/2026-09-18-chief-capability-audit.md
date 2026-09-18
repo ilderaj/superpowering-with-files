@@ -1,7 +1,7 @@
 # Chief 功能、能力与作用审计报告（2026-09-18）
 
 - 性质：只读审计（不实施、不改生产代码、不改宿主配置、不动 Git/外部系统）
-- 范围：SWF 仓库 `/Users/jared/SuperpoweringWithFiles` 的 Chief / ChiefOps 规范源、代码契约、CLI、投影与安装副本
+- 范围：本仓库（SWF）的 Chief / ChiefOps 规范源、代码契约、CLI、投影与安装副本
 - 证据标注：【source 本仓库规范源】【code 本仓库代码】【docs 本仓库文档】【projection 投影副本】【install 已安装副本】【verified 本日实测】【legacy 历史残留】
 
 ---
