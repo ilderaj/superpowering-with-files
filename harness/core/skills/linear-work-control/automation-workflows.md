@@ -56,8 +56,8 @@ Create them from the Codex app automation surface, or ask a session to create th
 | target | the registered SWF project (not projectless) |
 | cwd | the repository root |
 | execution environment | local |
-| status | paused until the operator confirms the run time |
-| run time | chosen by the operator — this protocol does not invent it |
+| status | paused at creation; activated only after the operator confirms the run time |
+| run time | chosen by the operator — this protocol does not invent it (confirmed for this workspace: 01:30 and 07:30 Asia/Shanghai) |
 
 The night run and the morning handoff must not share a minute, and neither may overlap the existing weekly repository review. After the first successful run, record the automation id, the resolved rrule, and the observed run evidence in the task's planning files.
 
@@ -65,10 +65,10 @@ The night run and the morning handoff must not share a minute, and neither may o
 
 | Workflow | id | kind | status | rrule | model | target | cwd |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Night Executor | `swf-night-executor` | cron | PAUSED | `FREQ=DAILY;BYHOUR=1;BYMINUTE=30` | `opencode-go/deepseek-v4.1-flash` | registered SWF project | repository root |
-| Morning Handoff | `swf-morning-handoff` | cron | PAUSED | `FREQ=DAILY;BYHOUR=7;BYMINUTE=30` | `opencode-go/deepseek-v4.1-flash` | registered SWF project | repository root |
+| Night Executor | `swf-night-executor` | cron | ACTIVE | `FREQ=DAILY;BYHOUR=1;BYMINUTE=30` | `opencode-go/deepseek-v4.1-flash` | registered SWF project | repository root |
+| Morning Handoff | `swf-morning-handoff` | cron | ACTIVE | `FREQ=DAILY;BYHOUR=7;BYMINUTE=30` | `opencode-go/deepseek-v4.1-flash` | registered SWF project | repository root |
 
-Both were created paused. A paused automation schedules nothing, so its rrule is a placeholder that no run depends on; the operator confirms the real run times before activating either one. Never describe a paused automation as scheduled work.
+Both were created paused and were activated by the operator on 2026-09-18 (Asia/Shanghai), so the rrules above are operator-confirmed times rather than placeholders. Activation is a Host-side configuration change: it schedules the next occurrence but proves no run happened. Until a run is observed, describe these two as configured and scheduled, never as triggered or as having run.
 
 The two `text` blocks above are the source prompts. The live copies live at `~/.codex/automations/<id>/automation.toml` and must stay identical; re-check after any edit:
 
