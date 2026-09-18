@@ -83,7 +83,8 @@ done
 
 DATE=$(date +%Y-%m-%d)
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# CDPATH must not redirect the cd that locates the sibling scripts.
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 SKILL_ROOT="$(dirname "$SCRIPT_DIR")"
 TEMPLATE_DIR="$SKILL_ROOT/templates"
 
@@ -152,6 +153,33 @@ gen_nonce() {
 #   $1 = plan dir (absolute or relative); dotfiles live directly inside it.
 #   $2 = plan file path (task_plan.md) used for auto-attestation resolution.
 # No-op when MODE is empty (legacy path stays byte-equivalent to v2.43.0).
+# Raise MODE to the project's committed floor before the side effects run
+# (issue #238). A project that ships a root .mode has made that setting a
+# reviewed part of the repo; a new slug plan must not start below it. Without
+# this, `init-session.sh <name>` created a plan with no .mode at all, and the
+# project's attestation requirement became a flag the agent chose at plan
+# creation time.
+#
+# inject-plan.sh enforces the same floor at read time, so this is not the
+# guard. It exists so the effective policy is VISIBLE in the plan directory
+# rather than only inside the resolver, and so the new plan gets the nonce and
+# the auto-attestation that autonomous mode needs to inject at all.
+#
+# An explicit --autonomous/--gated is never lowered: gated stays gated.
+inherit_root_mode() {
+    _root_mode="${PWD}/.mode"
+    [ -f "${_root_mode}" ] || return 0
+    [ "$MODE" = "gated" ] && return 0
+    if grep -q 'gate' "${_root_mode}" 2>/dev/null; then
+        MODE='gated'
+        return 0
+    fi
+    if grep -q 'autonomous' "${_root_mode}" 2>/dev/null; then
+        MODE='autonomous'
+    fi
+    return 0
+}
+
 apply_v3_mode() {
     _mode_dir="$1"
     _mode_plan="$2"
@@ -355,6 +383,20 @@ if [ "$SLUG_MODE" -eq 1 ]; then
     BASE_ID="${DATE}-${SLUG}"
     PLAN_ID="$BASE_ID"
     PLAN_ROOT="${PWD}/.planning"
+    PLAN_SELECTOR="${SCRIPT_DIR}/set-active-plan.sh"
+    if [ ! -f "${PLAN_SELECTOR}" ]; then
+        echo "Error: set-active-plan.sh is required to create a named plan safely." >&2
+        exit 1
+    fi
+    mkdir -p "${PLAN_ROOT}"
+    # Verify the physical planning root and the existing pointer before
+    # creating anything below it. A symlink or junction that escapes the
+    # project must not redirect init writes, and a linked or non-regular
+    # pointer must be refused before a plan directory exists on disk. The
+    # selector's check is constant time; --list would parse every plan.
+    if ! sh "${PLAN_SELECTOR}" --verify-root; then
+        exit 1
+    fi
     counter=2
     while [ -d "${PLAN_ROOT}/${PLAN_ID}" ]; do
         PLAN_ID="${BASE_ID}-${counter}"
@@ -366,7 +408,14 @@ if [ "$SLUG_MODE" -eq 1 ]; then
     echo "Initializing planning files for: ${PROJECT_NAME:-untitled} (template: $TEMPLATE)"
     echo "PLAN_ID=$PLAN_ID"
     create_files_in "$PLAN_DIR"
-    printf "%s\n" "$PLAN_ID" > "${PLAN_ROOT}/.active_plan"
+    # Reuse the selector's contained, atomic pointer replacement. Direct shell
+    # redirection would truncate a pre-existing hardlink and could overwrite a
+    # different file that shares the same inode.
+    if ! sh "${PLAN_SELECTOR}" "${PLAN_ID}" >/dev/null; then
+        echo "Error: could not safely update ${PLAN_ROOT}/.active_plan." >&2
+        exit 1
+    fi
+    inherit_root_mode
     apply_v3_mode "$PLAN_DIR" "${PLAN_DIR}/task_plan.md"
     echo ""
     echo "Active plan recorded: ${PLAN_ROOT}/.active_plan"

@@ -15,6 +15,13 @@
 
 set -u
 
+# Optional probe distinguishes ambiguity from the empty legacy-root result.
+# Both modes keep stdout data-only and always exit zero.
+CHECK_AMBIGUITY=0
+if [ "${1:-}" = "--check-ambiguity" ]; then
+    CHECK_AMBIGUITY=1
+    shift
+fi
 PLAN_ROOT="${1:-${PWD}/.planning}"
 
 # --- PWF_PLAN_ROOT: absolute plan-root binding (issue #212). ---
@@ -151,7 +158,7 @@ canonicalize() {
     fi
     _canonical_python="$(trusted_python)" || _canonical_python=""
     if [ -n "${_canonical_python}" ]; then
-        out="$("${_canonical_python}" -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "${target}" 2>/dev/null)" \
+        out="$("${_canonical_python}" -I -c "import os,sys;print(os.path.realpath(sys.argv[1]))" "${target}" 2>/dev/null)" \
             && [ -n "${out}" ] && { printf "%s\n" "${out}"; return 0; }
     fi
     return 1
@@ -233,7 +240,7 @@ mtime_of() {
     if [ -n "${out}" ]; then printf "%s\n" "${out}"; return 0; fi
     _mtime_python="$(trusted_python)" || _mtime_python=""
     if [ -n "${_mtime_python}" ]; then
-        out="$("${_mtime_python}" -c "import os,sys;print(int(os.stat(sys.argv[1]).st_mtime))" "${target}" 2>/dev/null)"
+        out="$("${_mtime_python}" -I -c "import os,sys;print(int(os.stat(sys.argv[1]).st_mtime))" "${target}" 2>/dev/null)"
         if [ -n "${out}" ]; then printf "%s\n" "${out}"; return 0; fi
     fi
     printf "0\n"
@@ -297,7 +304,57 @@ resolve_latest_dir() {
     return 1
 }
 
-if resolve_from_env; then exit 0; fi
+# A set PLAN_ID is a BINDING, not a hint (issue #237).
+#
+# resolve_from_env returns 1 both when no selector was set and when the
+# selector was rejected, so continuing the chain after it turned a
+# one-character typo into a silent switch: .active_plan or newest-by-mtime
+# answered instead, attest-plan.sh locked THAT plan at rc=0, and injection
+# followed the attestation onto it. commands/plan-attest.md already promised
+# the opposite ("It never falls back to another plan").
+#
+# Any non-empty PLAN_ID therefore terminates resolution here, whether it was
+# rejected for slug shape (traversal), for naming no directory, or for failing
+# containment. The caller receives an empty result and takes its own
+# fail-closed path rather than a different plan. PWF_PLAN_ROOT, the sibling
+# selector, has failed closed on any bad value since #212; the two selectors
+# now agree.
+#
+# An EMPTY PLAN_ID still means "unset": init-session.sh passes
+# PLAN_ID="${PLAN_ID:-}" into attest-plan.sh on the legacy path and depends on
+# that spelling resolving the root plan.
+#
+# Exit status stays 0 on the refusal (see the header contract). Emptiness is
+# the fail-closed signal on this channel, exactly as the PWF_PLAN_ROOT guard
+# above already does it; a non-zero status would kill callers running under
+# set -e for a condition that is not an internal error.
+# A shared pointer or mtime is not a per-session binding (issue #240).
+# Count conservatively, just like injection: slug-valid live plan files.
+# The legacy root joins the count only when session isolation is armed.
+PLAN_AMBIGUOUS=0
+if [ -z "${PLAN_ID:-}" ]; then
+    PLAN_COUNT=0
+    if [ -d "${PLAN_ROOT}/sessions" ] && [ -f "${PWF_ROOT_PIN:-.}/task_plan.md" ]; then
+        PLAN_COUNT=1
+    fi
+    for plan_candidate in "${PLAN_ROOT}"/*/task_plan.md; do
+        [ -f "$plan_candidate" ] || continue
+        plan_candidate_dir="${plan_candidate%/task_plan.md}"
+        slug_is_valid "${plan_candidate_dir##*/}" || continue
+        PLAN_COUNT=$((PLAN_COUNT + 1))
+        if [ "$PLAN_COUNT" -gt 1 ]; then PLAN_AMBIGUOUS=1; break; fi
+    done
+fi
+if [ "$CHECK_AMBIGUITY" = "1" ]; then
+    [ "$PLAN_AMBIGUOUS" = "1" ] && printf '%s\n' 'PWF_PLAN_AMBIGUOUS_V1'
+    exit 0
+fi
+[ "$PLAN_AMBIGUOUS" = "1" ] && exit 0
+
+if [ -n "${PLAN_ID:-}" ]; then
+    resolve_from_env && exit 0
+    exit 0
+fi
 if resolve_from_active_file; then exit 0; fi
 if resolve_latest_dir; then exit 0; fi
 exit 0

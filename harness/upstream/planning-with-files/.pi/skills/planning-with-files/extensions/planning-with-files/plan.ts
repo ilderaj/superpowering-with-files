@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, join, sep } from "node:path";
 
 export type PlanScope = "scoped" | "root" | "none";
@@ -6,6 +6,7 @@ export type PlanScope = "scoped" | "root" | "none";
 export interface PlanPaths {
 	cwd: string;
 	scope: PlanScope;
+	selectionError?: "session-plan-ambiguous";
 	planPath?: string;
 	progressPath?: string;
 	findingsPath?: string;
@@ -13,6 +14,9 @@ export interface PlanPaths {
 	planId?: string;
 	attestationCandidates: string[];
 }
+
+export const SESSION_PLAN_AMBIGUOUS_NOTICE =
+	"[planning-with-files] Multiple plans are available while session isolation is armed. Set PLAN_ID=<slug> for this session; nothing injected.";
 
 export interface PlanStatus extends PlanPaths {
 	exists: boolean;
@@ -72,6 +76,39 @@ function resolveNewestPlanDir(planRoot: string): string | undefined {
 // and whitespace before any path is built; keeps Pi resolution in lockstep
 // with resolve-plan-dir.sh on the same trees.
 const SLUG_RE = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
+
+type SessionIsolationState = "absent" | "armed" | "invalid";
+
+function sessionIsolationState(cwd: string): SessionIsolationState {
+	try {
+		const sessions = lstatSync(join(cwd, ".planning", "sessions"));
+		return sessions.isDirectory() && !sessions.isSymbolicLink() ? "armed" : "invalid";
+	} catch (error) {
+		return (error as NodeJS.ErrnoException).code === "ENOENT" ? "absent" : "invalid";
+	}
+}
+
+function isSessionIsolationArmed(cwd: string): boolean {
+	return sessionIsolationState(cwd) === "armed";
+}
+
+function hasMultipleLivePlans(cwd: string, planRoot: string): boolean {
+	let count = existsSync(join(cwd, "task_plan.md")) ? 1 : 0;
+
+	try {
+		for (const entry of readdirSync(planRoot, { withFileTypes: true })) {
+			if (!entry.isDirectory() || entry.name.startsWith(".") || !SLUG_RE.test(entry.name)) continue;
+			const candidate = join(planRoot, entry.name);
+			if (!existsSync(join(candidate, "task_plan.md")) || !isWithinRoot(cwd, candidate)) continue;
+			count += 1;
+			if (count > 1) return true;
+		}
+	} catch {
+		return true;
+	}
+
+	return false;
+}
 
 // Containment (security A1.3 parity with the sh resolver): a scoped candidate
 // must canonicalize to a path under the anchor, or a symlinked/junctioned
@@ -144,12 +181,44 @@ export function resolvePlanPaths(sessionCwd: string): PlanPaths {
 		attestationCandidates: [join(cwd, ".plan-attestation")],
 	});
 
+	const makeNone = (selectionError?: PlanPaths["selectionError"]): PlanPaths => ({
+		cwd,
+		scope: "none",
+		selectionError,
+		attestationCandidates: [join(cwd, ".plan-attestation")],
+	});
+
+	// A set PLAN_ID is a BINDING, not a hint (issue #237).
+	//
+	// A slug that resolves to a contained scoped plan wins. One that does NOT
+	// resolve ends resolution right here. Falling through to .active_plan, the
+	// newest slug and the root plan turned a one-character typo into a silent
+	// switch: the operator asked for plan A, the pointer or newest-by-mtime
+	// answered with plan B, and B was what got attested and injected at rc=0.
+	// Every rejection route ends the same way, whether the selector failed
+	// SLUG_RE (traversal shapes included), named no plan directory, or failed
+	// containment. The session gets the "none" scope and takes its own
+	// fail-closed path rather than a plan nobody selected.
+	//
+	// An EMPTY or unset PLAN_ID still means "no selector": resolution continues
+	// below exactly as before, which is what the legacy root path depends on.
 	const planId = process.env.PLAN_ID?.trim();
-	if (planId && SLUG_RE.test(planId)) {
-		const candidate = join(planRoot, planId);
-		if (existsSync(join(candidate, "task_plan.md")) && isWithinRoot(cwd, candidate)) {
-			return makeScoped(candidate);
+	if (planId) {
+		if (SLUG_RE.test(planId)) {
+			const candidate = join(planRoot, planId);
+			if (existsSync(join(candidate, "task_plan.md")) && isWithinRoot(cwd, candidate)) {
+				return makeScoped(candidate);
+			}
 		}
+		return makeNone();
+	}
+
+	// An attachment admits a session to the project, but it does not choose one
+	// of several plans. With isolation armed, the shared pointer and newest-plan
+	// fallback would otherwise cross session boundaries. Match the canonical hook:
+	// an explicit PLAN_ID remains the only task selector in this state.
+	if (isSessionIsolationArmed(cwd) && hasMultipleLivePlans(cwd, planRoot)) {
+		return makeNone("session-plan-ambiguous");
 	}
 
 	const activePlanFile = join(planRoot, ".active_plan");
@@ -176,11 +245,7 @@ export function resolvePlanPaths(sessionCwd: string): PlanPaths {
 		return rootPlan;
 	}
 
-	return {
-		cwd,
-		scope: "none",
-		attestationCandidates: [join(cwd, ".plan-attestation")],
-	};
+	return makeNone();
 }
 
 export function readPlanStatus(cwd: string): PlanStatus {
@@ -257,7 +322,8 @@ export function isPlanIncomplete(status: PlanStatus): boolean {
 
 export function isSessionAttached(cwd: string, sessionId: string | undefined): boolean {
 	const sessionsDir = join(cwd, ".planning", "sessions");
-	if (!existsSync(sessionsDir)) return true;
+	if (sessionIsolationState(cwd) === "absent") return true;
+	if (!isSessionIsolationArmed(cwd)) return false;
 	if (!sessionId) return false;
 	return existsSync(join(sessionsDir, `${sessionId}.attached`));
 }
