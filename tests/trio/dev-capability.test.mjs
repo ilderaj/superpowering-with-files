@@ -252,6 +252,8 @@ test('ChiefOps night queue intake is an explicit, evidence-gated human decision'
     switch: /nightly[^\n]*only switch[^\n]*absence means not scheduled/i,
     earn: /bounded[^\n]*acceptance is written[^\n]*no human decision is pending[^\n]*does not overlap/i,
     decide: /human confirm, decline, or edit the label/i,
+    surface: /structured question[^\n]*otherwise[^\n]*recommendation line/i,
+    timing: /write the label only after[^\n]*silence[^\n]*out of tonight/i,
     gated: /external or destructive[^\n]*human-gated[^\n]*label/i,
   });
 });
