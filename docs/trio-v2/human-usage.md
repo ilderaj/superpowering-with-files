@@ -6,7 +6,7 @@
 
 先说明目标、约束和已有授权，再按需要选择流程。范围明确的问答、比较、审查和小修改可以直接完成；需要持续恢复或多人协作的工作才绑定三件套。直接执行通过相关验证即可完成；委派结果由主会话整合验收并回写。已有授权在原范围内持续有效，新范围或新外部动作再单独判断。
 
-模型、reasoning effort 和执行拓扑分别选择。Astra、Sol、Terra、Luna 均可参与执行；Corleone 名册保留静态/历史兼容，不构成 active execution contract。优先使用当前模型完成小任务；独立子任务有实际收益时才分派。Root active routing 只有 direct/native-first 与 `manual_pending`。`visible_worker_required` 仅作为 legacy input：任一 Host operation 都返回 `manual_pending` 与 blocker `legacy_visible_worker_required_retired`，不恢复 Host bridge、不做 native fallback，并要求在当前 Trio authority 下显式 rebind `primaryExecution=default`。用户明确要求独立可见任务时，使用 Host 的 user-owned task workflow，该流程不属于内部 routing。
+模型、reasoning effort 和执行拓扑分别选择。Astra、Sol、Terra、Luna 均可参与执行。优先使用当前模型完成小任务；独立子任务有实际收益时才分派。Root active routing 只有 direct/native-first 与 `manual_pending`。`visible_worker_required` 仅作为 legacy input：任一 Host operation 都返回 `manual_pending` 与 blocker `legacy_visible_worker_required_retired`，不恢复 Host bridge、不做 native fallback，并要求在当前 Trio authority 下显式 rebind `primaryExecution=default`。用户明确要求独立可见任务时，使用 Host 的 user-owned task workflow，该流程不属于内部 routing。
 
 tracked 任务中断后，先按明确 task id 读取三份 Trio 文件，再按需使用只读 `trio status --summary --task <id>` 导航。摘要只展示已记录内容，不创建状态、授权或验收；缺失或歧义必须回源。完成和交付也要分开记录：文件生成、Host 打开、范围渲染、具名接受和用户可见交付互不自动推出。详见 [Trio 恢复与完成语义](../trio-recovery.md)。
 
@@ -44,12 +44,6 @@ tracked 任务中断后，先按明确 task id 读取三份 Trio 文件，再按
 |---|---|---|
 | 人类(你) | 提需求、做人类 gate、最终验收(accept)、决定 merge/release | 不代替模型写代码细节(除非亲自改) |
 | Chief | intake、路由(quick/tracked)、规划三件套、构造 Assignment Packet、派单、review、验收回写 | 不把 legacy visible input 当作 active execution contract，也不以本地模拟代替 Host 的 user-owned task workflow |
-| Don Michael（`don_michael`） | Corleone 静态/历史兼容名册中的角色名 | 不构成 active execution contract；独立可见任务由 Host 的 user-owned task workflow 承担，不进入 Root internal routing |
-| Underboss Sonny（`underboss_sonny`） | `max` 的复杂原生执行；仅在 packet 明确允许时做本地子委托 | 不重新设计 scope/架构/接口/验收标准；返回 candidate，不验收 |
-| Consigliere Tom（`consigliere_tom`） | 搜索、研究、方案审阅和证据复核 | 默认不写源码；写入必须受 packet 与权限 envelope 约束 |
-| Capo Clemenza / Lampone（`capo_*`） | `xhigh` 的明确边界多文件实现 | 名册耗尽后使用 `Capo 3rd`、`Capo 4th` 等冻结 identity |
-| Button Man Neri / Brasi（`buttonman_*`） | `high` 的窄范围修复、测试和机械执行 | 名称不授予权限或嵌套委托；本地子委托仍须 packet 明确允许 |
-| Soldato Cicci（`soldato_cicci`） | 重复性验证、检索和证据收集 | 默认不写源码；返回局部 candidate 证据 |
 | Host(Codex 本体) | 管理 worker/子任务生命周期、提供 authenticated role/identity/packet/actual model-effort 证据 | 无 authenticated 证据时 actual 就是 `unknown`,任何人不得伪称 |
 
 ## 路由对照表(核心)
@@ -57,7 +51,7 @@ tracked 任务中断后，先按明确 task id 读取三份 Trio 文件，再按
 | 路由 | 你怎么输入 | 你会得到 |
 |---|---|---|
 | **quick(问答/小改动)** | 一句话直接问,零仪式 | 直接回答/小改动,无 Trio |
-| **tracked / default（常规开发）** | 一段话按五要素:"实现 X…影响面…约束…验收 verify:trio 全绿 + RED→GREEN 证据…完成后出 draft PR 不要 merge" | Chief 建三件套→切片计划→原生路由：Tom（搜索/研究/探索）、Cicci（重复执行）、Neri/Brasi（high）、Clemenza/Lampone（xhigh）、Sonny（max）→candidate→你验收→你决定 merge |
+| **tracked / default（常规开发）** | 一段话按五要素:"实现 X…影响面…约束…验收 verify:trio 全绿 + RED→GREEN 证据…完成后出 draft PR 不要 merge" | Chief 建三件套→切片计划→native subagent 路由（workRole/complexity 决定模型与 effort）→candidate→你验收→你决定 merge |
 | **legacy visible input** | 历史 packet 可能带有旧拓扑值 | 对合法输入的任一 Host operation 返回 `manual_pending`，blocker 为 `legacy_visible_worker_required_retired`；不 fallback，须在当前 Trio authority 下显式 rebind `primaryExecution=default` |
 | **deep(先分析再动手)** | "这个问题需要深入分析再决定…先给证据-backed 分析,我 approve 后再动手" | 先出分析报告等你 approve,再进执行 |
 | **涉及人类 gate** | 明说停靠点:"停在 draft PR 等我看"/"不要 push"/"发布前必须我确认" | 停在 gate 前(默认也永远保留你的确认权) |

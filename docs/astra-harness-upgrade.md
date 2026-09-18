@@ -28,7 +28,7 @@
 - Astra API effort 为 low、medium、high、xhigh、max；不默认使用 max。Host 的 ultra 需要显式支持证据，不能自行映射成 API 参数；子任务不允许 ultra。
 - `requested` 是意图，`actual` 需要 Host authenticated 证据。普通 CLI 返回、静态 persona 或配置文件不会自动升级为实际模型证明。
 - DSH 的 stock `start` 不能承载 reasoning effort。显式 effort-bearing dispatch 需要 Host 提供 `startWithModelSelection`；缺少时返回可恢复的 blocker。声明与 host-claimed 都不等于 authenticated。
-- Corleone 固定模型 renderer 留作历史兼容；全局采用可使用继承模型的 role 文件，避免 persona 在 Host 中锁死 Flash。新会话才会重新加载这些配置。
+- Corleone 固定模型 renderer 曾留作历史兼容，现已随 Corleone 名册一并移除；模型与 effort 的选择不再与任何 role/persona 名称绑定。新会话才会重新加载这些配置。
 - Root 路由迁移：`visible_worker_required` 仅作为 legacy input 保留。Root active routing 只有 direct/native-first 与 `manual_pending`；任一 Host operation 收到该输入都返回 `manual_pending`，blocker 为 `legacy_visible_worker_required_retired`，不恢复 Host bridge，也不做 native fallback。只有在当前 Trio authority 下显式 rebind `primaryExecution=default` 才能重新派发。用户明确要求独立可见任务时，使用 Host 的 user-owned task workflow，该流程不属于内部 routing。
 - 安装 receipt 只证明安装字节，不能替代 Trio、模型证据或用户验收。自动化测试、真实模型请求、GitHub 合并和全局采用分别核验。
 
