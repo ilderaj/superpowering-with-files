@@ -246,3 +246,12 @@ test('PWF templates initialize three files and resume without overwriting state 
     await rm(workspace, { recursive: true, force: true });
   }
 });
+
+test('ChiefOps night queue intake is an explicit, evidence-gated human decision', async () => {
+  has(await read(chief), {
+    switch: /nightly[^\n]*only switch[^\n]*absence means not scheduled/i,
+    earn: /bounded[^\n]*acceptance is written[^\n]*no human decision is pending[^\n]*does not overlap/i,
+    decide: /human confirm, decline, or edit the label/i,
+    gated: /external or destructive[^\n]*human-gated[^\n]*label/i,
+  });
+});
