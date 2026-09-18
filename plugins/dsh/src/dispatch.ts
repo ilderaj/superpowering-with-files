@@ -11,10 +11,9 @@
 // disposed: never a silent dispatch, never an unrecorded visible worker.
 //
 // Gate order per plan: (1) packet + Trio binding, (2) provider resolution,
-// (3) deep-tier confirmation, (4) Corleone persona resolution from the packet
-// capability, (5) Trio gate registry + dsh approval channel, (6) subagents
-// service/provider availability + persona capability, (7) budget cap,
-// (8) dispatch with mandatory evidence write.
+// (3) deep-tier confirmation, (4) declared execution work role, (5) Trio gate
+// registry + dsh approval channel, (6) subagents service/provider
+// availability, (7) budget cap, (8) dispatch with mandatory evidence write.
 
 import type { Agent } from '@deepseek-ai/dsh-agent';
 import type { ContentBlock } from '@deepseek-ai/dsh-llm';
@@ -36,9 +35,8 @@ import {
 } from './core/dispatch.js';
 import {
   evidenceRecord,
+  EXECUTION_WORK_ROLES,
   packetDigestOf,
-  resolveCorleoneRole,
-  type CorleoneRoleSelection,
   type TrioBinding,
   type WorkerEvidenceRecord
 } from './core/index.js';
@@ -91,7 +89,6 @@ interface WorkerEvidenceExtraInput {
   runId: string | null;
   registryProvider: string;
   tier: DispatchTier;
-  corleoneRole: CorleoneRoleSelection;
   requestedTokens: number;
   requestedEffort?: string;
   requestedModel?: string;
@@ -110,9 +107,6 @@ function workerEvidenceExtra(input: WorkerEvidenceExtraInput): Record<string, un
     runId: input.runId,
     registryProvider: input.registryProvider,
     tier: input.tier,
-    requestedRole: input.corleoneRole.agentType,
-    requestedPersona: input.corleoneRole.persona,
-    requestedDisplayName: input.corleoneRole.displayName,
     requestedTokens: input.requestedTokens,
     ...(input.requestedEffort ? { requestedEffort: input.requestedEffort, requestedModel: input.requestedModel } : {}),
     packetDigest: input.packetDigest,
@@ -242,7 +236,7 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       return pending(ledger, 'unsupported_provider', (error as Error).message);
     }
     const registryProvider = DISPATCH_PROVIDER_REGISTRY_NAMES[resolution.provider] ?? '';
-    const capability = packetFile.packet.capability as { maxTokens?: unknown } | undefined;
+    const capability = packetFile.packet.capability as { maxTokens?: unknown; workRole?: unknown } | undefined;
 
     // 4. Tier classification + deep-tier explicit confirmation.
     const tier = dispatchTierOf(packetFile.packet.capability);
@@ -251,17 +245,14 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       return pending(ledger, tierGate.reason ?? 'deep_tier_confirmation_required', 'Confirm the deep tier explicitly before dispatching.');
     }
 
-    // 5. Corleone persona/role resolution: the visible worker identity is
-    // derived from the packet capability (workRole / complexity /
-    // primaryExecution) exactly like the harness Corleone selector. A packet
-    // that cannot resolve to a Corleone execution role fails closed BEFORE
-    // any approval request or start attempt — an unbound dispatch is never
-    // admissible.
-    let corleoneRole: CorleoneRoleSelection;
-    try {
-      corleoneRole = resolveCorleoneRole(capability);
-    } catch (error) {
-      return pending(ledger, 'corleone_role_unavailable', 'The packet capability does not resolve to a Corleone execution role: ' + (error as Error).message);
+    // 5. Worker role gate: a dispatched worker must declare a supported
+    // execution work role. A Chief/governance capability (which declares no
+    // execution role) can never be dispatched as a worker, so a packet that
+    // does not name one fails closed BEFORE any approval request or start
+    // attempt — an unbound dispatch is never admissible.
+    const declaredWorkRole = capability?.workRole;
+    if (typeof declaredWorkRole !== 'string' || !EXECUTION_WORK_ROLES.includes(declaredWorkRole)) {
+      return pending(ledger, 'execution_role_unavailable', 'The packet capability does not declare a supported execution work role.');
     }
 
     // 6. Dual-layer gate: Trio gate registry decides, dsh approval is the
@@ -287,18 +278,13 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
     }
 
     // 7. The ctx.subagents seam must be mounted and the registry provider
-    // resolvable AND persona-capable. Fail closed before any dispatch
-    // attempt: a Corleone-bound worker must never start without its persona.
+    // resolvable. Fail closed before any dispatch attempt.
     const subagents: SubagentRuntime | undefined = subagentsServiceOf(ctx);
     if (!subagents) {
       return pending(ledger, 'subagents_service_unavailable', 'The dsh host did not mount the ctx.subagents service.');
     }
     if (!subagents.list().includes(registryProvider)) {
       return pending(ledger, 'provider_unavailable', 'Registry provider ' + registryProvider + ' is not resolvable on this dsh host.');
-    }
-    const subagentProvider = subagents.getProvider(registryProvider);
-    if (!subagentProvider || subagentProvider.capabilities.persona !== true) {
-      return pending(ledger, 'persona_capability_unavailable', 'Registry provider ' + registryProvider + ' does not advertise persona support; the Corleone visible worker cannot start unbound.');
     }
 
     const selectionStart = resolution.effort ? modelSelectionStartOf(ctx) : undefined;
@@ -352,14 +338,11 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
       startInfos.push(info);
     });
 
-    // 10. Dispatch through ctx.subagents (the visible worker seam). The
-    // resolved Corleone persona is passed as a top-level start field so the
-    // child shadows the deployment persona with the frozen worker identity.
+    // 10. Dispatch through ctx.subagents (the visible worker seam).
     let run;
     try {
       const request = {
         label: options.label ?? 'SWF task ' + taskId,
-        persona: corleoneRole.persona,
         prompt: [{ type: 'text', text: prompt }] as ContentBlock[],
         parent,
         signal: options.signal ?? new AbortController().signal,
@@ -447,7 +430,6 @@ export function createDispatcher(ctx: SwfDshContext): WorkerDispatcher {
           runId: startInfos[0]?.runId ? String(startInfos[0].runId) : null,
           registryProvider,
           tier,
-          corleoneRole,
           requestedTokens,
           requestedEffort: resolution.effort,
           requestedModel: resolution.requestedModel,

@@ -18,7 +18,7 @@ for (const model of ['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-lun
     for (const effort of ['low', 'medium', 'high', 'xhigh', 'max']) {
       test(`explicit ${prefix}${model}/${effort} survives Chief and execution routing`, () => {
         for (const workRole of ['chief', 'coding']) {
-          const input = { workRole, ...(workRole === 'coding' ? { complexity: 'high' } : {}), requestedModel: prefix + model, requestedEffort: effort, persona: 'don_michael' };
+          const input = { workRole, ...(workRole === 'coding' ? { complexity: 'high' } : {}), requestedModel: prefix + model, requestedEffort: effort };
           const result = resolveModelEffort(input);
           assert.equal(result.requestedProvider, 'openai');
           assert.equal(result.requestedModel, prefix + model);
@@ -112,13 +112,13 @@ test('packet effort cannot be overridden by an outer ultra probe', () => {
   assert.throws(() => spawn({ requestedEffort: 'ultra' }), /conflicts with the validated packet/);
 });
 
-test('explicit aliases agree or reject, and persona never supplies model selection', () => {
+test('explicit aliases agree or reject and an unspecified model retains the legacy execution default', () => {
   const result = resolveModelEffort({ workRole: 'coding', complexity: 'high', model: 'gpt-5.6-luna', effort: 'low' });
   assert.equal(result.requestedModel, 'gpt-5.6-luna');
   assert.equal(result.requestedEffort, 'low');
   assert.throws(() => resolveModelEffort({ workRole: 'coding', complexity: 'high', model: 'gpt-5.6-luna', requestedModel: 'gpt-6-astra' }), /Conflicting/);
   assert.throws(() => resolveModelEffort({ workRole: 'coding', complexity: 'high', requestedEffort: '' }), /non-empty/);
-  assert.equal(resolveModelEffort({ workRole: 'coding', complexity: 'high', persona: 'gpt-6-astra' }).requestedModel, 'opencode-go/deepseek-v4-flash');
+  assert.equal(resolveModelEffort({ workRole: 'coding', complexity: 'high' }).requestedModel, 'opencode-go/deepseek-v4-flash');
 });
 
 

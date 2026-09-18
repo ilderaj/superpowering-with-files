@@ -85,7 +85,7 @@ sequenceDiagram
 ## 实现溯源
 
 - 本地 fail-closed 路由契约：`harness/trio/core/routing.mjs`（Assignment Packet 八字段、`childDelegation`/`executionMode` 门禁、`adjudicatePermission` 三层权限、workRole/经济路由）。
-- Corleone 请求角色：`harness/trio/hosts/codex.mjs`（`CORLEONE_ROSTER`、`selectCorleoneRole` 与 `renderCorleoneRosterConfig`；Flash high/xhigh/max）仅保留静态/历史兼容。默认执行路由为 native-first；独立可见任务由 Host 的 user-owned task workflow 承担，不属于内部 routing。
+- Host 适配：`harness/trio/hosts/codex.mjs` 只保留 Host operation 重导出、adapter 词表与 permission intent 映射；Corleone 名册与 role-file renderer 已移除。默认执行路由为 native-first；独立可见任务由 Host 的 user-owned task workflow 承担，不属于内部 routing。
 - 绑定校验与 ChiefOps 治理：`harness/trio/governance/chiefops/SKILL.md`。
 - 人类操作面与边界：`docs/trio-v2/human-usage.md`。
 

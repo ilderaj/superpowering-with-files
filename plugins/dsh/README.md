@@ -99,11 +99,11 @@ rules are enforced in code:
 ## Model selection and effort contract
 
 Use `capability.requestedModel` and `capability.requestedEffort` to select a
-model independently of the Chief/execution role or Corleone persona. The
-legacy `model` / `effort` aliases are accepted when they agree with the
-requested fields; conflicting or empty explicit values fail closed. Execution
-packets still declare `complexity` for the work classification and identity.
-An explicit effort takes precedence over complexity.
+model independently of the Chief or execution role. The legacy `model` /
+`effort` aliases are accepted when they agree with the requested fields;
+conflicting or empty explicit values fail closed. Execution packets still
+declare `complexity` for the work classification and identity. An explicit
+effort takes precedence over complexity.
 
 Recommended starting selections for **new explicit packets** are:
 
@@ -127,8 +127,8 @@ Model-unspecified execution packets retain
 worker provider/model remains `dsh-sdk` / `deepseek-v4-flash`. A model-unspecified
 Chief decision retains `gpt-5.6-sol` / `max`; an explicit Chief model without
 effort also retains `max`. Resolving old packets never edits
-their fields or migrates frozen packet digests. A new recommendation or persona
-change cannot silently replace an existing model selection.
+their fields or migrates frozen packet digests. A new recommendation cannot
+silently replace an existing model selection.
 
 Bare OpenAI models resolve to model provider `openai`. `main/` and `p646e20/`
 are Host routing prefixes: a Codex handoff retains the full identifier, while
@@ -311,4 +311,3 @@ rollout gate before durable adoption.
   every blocker path from Slices 0-3.
 - Honest note: the first real human accept on a real dsh session is a rollout
   verification item (item 1 above), not provable in this environment.
-

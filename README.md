@@ -5,7 +5,7 @@ A lean, model-flexible harness for completing work accurately and efficiently. H
 ## What changed for Astra
 
 - **Short entries, details on demand.** `AGENTS.md` and skill descriptions carry routing and completion rules. Detailed methods and governance live in referenced files, installed and checked with their owning skill.
-- **Astra, Sol, Terra, and Luna can execute.** Model identity is independent from a Chief, worker, or Corleone role name. Explicit model and effort selections survive dispatch. Existing DeepSeek packets retain compatibility.
+- **Astra, Sol, Terra, and Luna can execute.** Model identity is independent from a Chief or worker role name. Explicit model and effort selections survive dispatch. Existing DeepSeek packets retain compatibility.
 - **Process follows the task.** Bounded questions, comparisons, reviews, and small changes can finish directly. Durable, resumable work uses the Trio. Delegation is chosen when it reduces uncertainty or elapsed time enough to justify coordination.
 - **Clear completion and authorization.** Direct execution can establish completion through relevant verification. Delegated results need integration and acceptance. Existing user authorization continues to apply within its scope; new effects or scope expansions require a fresh decision.
 - **Risk-based verification.** Test changed behavior and material failure modes. Text edits do not automatically require TDD, screenshots, multiple reviewers, or a worktree.
@@ -88,7 +88,7 @@ These are starting recommendations, not a benchmark or a forced role roster. Pre
 | Difficult architecture, reasoning, or cross-domain integration | Astra, medium or high | A specific unresolved issue justifies xhigh or max |
 | Independent review | A supported model appropriate to the failure mode | Another perspective can change the decision |
 
-For new assignments, record model and effort explicitly; omitted values retain legacy compatibility defaults. Corleone roster and role files are static/historical compatibility and do not form an active execution contract. They may use `renderInheritedCorleoneRoleFile` to inherit the caller's selection without locking a persona to Flash. Existing fixed-profile renderers remain available for intentional legacy use.
+For new assignments, record model and effort explicitly; omitted values retain legacy compatibility defaults. The retired Corleone roster and its role-file renderers have been removed, so no persona name is tied to a model or effort.
 
 Choose effort independently from model and persona. `xhigh` and `max` are selective tools, not defaults. Astra API requests use `low`, `medium`, `high`, `xhigh`, or `max`; a Host-only `ultra` label must have an explicit supported contract. Do not infer an API mapping. Models accept bare IDs or supported `main/` and `p646e20/` Host prefixes; prefixes are not proof of the underlying model. Authenticated Host evidence is required for `actual` model and effort.
 

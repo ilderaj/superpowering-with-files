@@ -3,15 +3,7 @@ import test from 'node:test';
 
 import * as routing from '../../harness/trio/core/routing.mjs';
 import {
-  allocateCorleoneCallsign,
-  CORLEONE_AGENT_TYPES,
-  renderCorleoneAgentEntry,
-  renderCorleoneRosterConfig,
-  renderCorleoneRoleFile,
-  resolveCorleoneProfile,
-  selectCorleoneRole,
   adapterStatus,
-  renderCodexHandoffRequest,
   resolveCodexHostOperation
 } from '../../harness/trio/hosts/codex.mjs';
 import * as codexAdapter from '../../harness/trio/hosts/codex.mjs';
@@ -73,86 +65,6 @@ function createStrictRootPacket() {
     }
   };
 }
-
-test('Corleone role selection preserves the legacy strict-role mapping as historical vocabulary', () => {
-  assert.deepEqual(
-    selectCorleoneRole({ workRole: 'coding', complexity: 'high' }),
-    {
-      agentType: 'buttonman_neri',
-      displayName: 'Button Man Al Neri',
-      tier: 'buttonman',
-      ordinal: 1
-    }
-  );
-  assert.deepEqual(
-    selectCorleoneRole({
-      workRole: 'coding',
-      complexity: 'xhigh',
-      primaryExecution: 'visible_worker_required'
-    }),
-    {
-      agentType: 'don_michael',
-      displayName: 'Don Michael Corleone',
-      tier: 'don',
-      ordinal: 1
-    }
-  );
-  assert.throws(
-    () => selectCorleoneRole({
-      workRole: 'chief',
-      primaryExecution: 'visible_worker_required'
-    }),
-    /supported execution workRole/i
-  );
-});
-
-test('Corleone callsigns exhaust named capos before using a stable ordinal role name', () => {
-  assert.deepEqual(
-    allocateCorleoneCallsign({ tier: 'capo', ordinal: 2 }),
-    {
-      agentType: 'capo_lampone',
-      displayName: 'Capo Rocco Lampone',
-      tier: 'capo',
-      ordinal: 2
-    }
-  );
-  const thirdCapo = allocateCorleoneCallsign({ tier: 'capo', ordinal: 3 });
-  assert.deepEqual(thirdCapo, {
-    agentType: 'capo',
-    displayName: 'Capo 3rd',
-    tier: 'capo',
-    ordinal: 3
-  });
-  assert.equal(allocateCorleoneCallsign({ tier: 'capo', ordinal: 4 }).displayName, 'Capo 4th');
-  assert.throws(
-    () => allocateCorleoneCallsign({ tier: 'capo', ordinal: Number.MAX_SAFE_INTEGER + 1 }),
-    /positive safe integer/i
-  );
-  assert.deepEqual(
-    selectCorleoneRole({
-      workRole: 'coding',
-      complexity: 'xhigh',
-      workerIdentity: thirdCapo
-    }),
-    thirdCapo
-  );
-});
-
-test('Corleone role profiles render a named Flash agent with no fallback or delegated authority', () => {
-  const profile = resolveCorleoneProfile('capo_clemenza', 'xhigh');
-  assert.equal(profile.name, 'capo_clemenza');
-  assert.equal(profile.model, 'opencode-go/deepseek-v4-flash');
-  assert.equal(profile.modelReasoningEffort, 'xhigh');
-  assert.equal(profile.fallbackModel, null);
-
-  const entry = renderCorleoneAgentEntry('capo_clemenza', '/tmp/agents/capo_clemenza.toml', 'xhigh');
-  const roleFile = renderCorleoneRoleFile('capo_clemenza', 'xhigh');
-  assert.match(entry, /\[agents\.capo_clemenza\]/);
-  assert.match(entry, /config_file\s*=\s*"\/tmp\/agents\/capo_clemenza\.toml"/);
-  assert.match(roleFile, /name\s*=\s*"capo_clemenza"/);
-  assert.match(roleFile, /Capo Peter Clemenza/);
-  assert.doesNotMatch(`${entry}\n${roleFile}`, /fallback|childDelegation|delegation\s*=\s*"allowed"/i);
-});
 
 test('resolveHostOperation selects a native subagent with exact route evidence', () => {
   assert.equal(typeof routing.resolveHostOperation, 'function');
@@ -1141,19 +1053,6 @@ test('R4 default operations with only an authenticated visible capability never 
   }
 });
 
-test('R7 Codex strict handoff rejects the retired topology before role or profile generation', () => {
-  const packet = createStrictRootPacket();
-
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'spawn',
-      packet,
-      packetDigest: routing.packetDigestOf(packet)
-    }),
-    new RegExp(LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED)
-  );
-});
-
 test('R12 preserves historical visible_worker vocabulary and parses released legacy lane evidence', () => {
   assert.ok(routing.HOST_ROUTE_KINDS.includes('visible_worker'));
   assert.ok(routing.PRIMARY_EXECUTION_KINDS.includes('visible_worker_required'));
@@ -1286,42 +1185,6 @@ test('assignment packets carry topology intent inside capability without a new t
   });
   assert.deepEqual(Object.keys(packet), routing.ASSIGNMENT_PACKET_FIELDS);
   assert.equal(packet.capability.primaryExecution, 'visible_worker_required');
-});
-
-test('Corleone config renders a named agent with xhigh effort and no fallback model', () => {
-  const profile = resolveCorleoneProfile('capo_clemenza');
-  assert.equal(profile.name, 'capo_clemenza');
-  assert.equal(profile.model, 'opencode-go/deepseek-v4-flash');
-  assert.equal(profile.modelReasoningEffort, 'xhigh');
-  assert.equal(profile.fallbackModel, null);
-
-  const entry = renderCorleoneAgentEntry('capo_clemenza', '/tmp/host/agents/capo_clemenza.toml');
-  assert.match(entry, /\[agents\.capo_clemenza\]/);
-  assert.match(entry, /description\s*=\s*"/);
-  assert.match(entry, /config_file\s*=\s*"\/tmp\/host\/agents\/capo_clemenza\.toml"/);
-
-  const roleFile = renderCorleoneRoleFile('capo_clemenza');
-  assert.match(roleFile, /name\s*=\s*"capo_clemenza"/);
-  assert.match(roleFile, /model\s*=\s*"opencode-go\/deepseek-v4-flash"/);
-  assert.match(roleFile, /model_reasoning_effort\s*=\s*"xhigh"/);
-  assert.match(roleFile, /developer_instructions\s*=\s*"/);
-  assert.doesNotMatch(`${entry}\n${roleFile}`, /fallback/i);
-
-  assert.throws(
-    () => renderCorleoneAgentEntry('capo_clemenza', ''),
-    /requires a role config file path/i
-  );
-});
-
-test('Corleone instructions forbid redesign, require blocked on missing decisions, and limit delegation to the packet', () => {
-  const instructions = resolveCorleoneProfile('underboss_sonny').instructions;
-  assert.match(instructions, /execute an already accepted plan/i);
-  assert.match(instructions, /do not redesign/i);
-  assert.match(instructions, /blocked/i);
-  assert.match(instructions, /material decision/i);
-  assert.match(instructions, /exact assignment packet/i);
-  assert.match(instructions, /grants no permissions/i);
-  assert.match(instructions, /unavailable/i);
 });
 
 test('capability.childDelegation = prohibited denies any native child route even with a valid child envelope', () => {
@@ -1683,12 +1546,7 @@ test('R11 foundational errors precede strict retirement while topology policy st
   }
 });
 
-test('static role configuration alone grants no dynamic child permission', () => {
-  assert.equal(Object.hasOwn(resolveCorleoneProfile('buttonman_neri'), 'childDelegation'), false);
-
-  const entry = renderCorleoneAgentEntry('buttonman_neri', '/tmp/host/agents/buttonman_neri.toml');
-  const roleFile = renderCorleoneRoleFile('buttonman_neri');
-  assert.doesNotMatch(`${entry}\n${roleFile}`, /childDelegation|child_delegation|delegation\s*=\s*"allowed"/i);
+test('static capability configuration alone grants no dynamic child permission', () => {
 
   const result = resolveGenericHostOperation({
     operation: 'spawn',
@@ -2134,263 +1992,11 @@ test('a strict unavailable Host returns manual_pending with the intact packet an
   assert.deepEqual(result.descriptor.writes, []);
 });
 
-test('Corleone roster generates every named and ordinal role config with calibrated Flash profiles', () => {
-  assert.deepEqual(CORLEONE_AGENT_TYPES, [
-    'don_michael',
-    'underboss_sonny',
-    'consigliere_tom',
-    'capo_clemenza',
-    'capo_lampone',
-    'buttonman_neri',
-    'buttonman_brasi',
-    'soldato_cicci',
-    'don',
-    'underboss',
-    'consigliere',
-    'capo',
-    'buttonman',
-    'soldato'
-  ]);
-  for (const effort of ['high', 'xhigh', 'max']) {
-    for (const agentType of CORLEONE_AGENT_TYPES) {
-      const profile = resolveCorleoneProfile(agentType, effort);
-      assert.equal(profile.name, agentType);
-      assert.equal(profile.model, 'opencode-go/deepseek-v4-flash');
-      assert.equal(profile.modelReasoningEffort, effort);
-      assert.equal(profile.fallbackModel, null);
-    }
-  }
-  const rendered = renderCorleoneRosterConfig('/tmp/host/agents');
-  assert.equal(rendered.length, CORLEONE_AGENT_TYPES.length);
-  assert.match(rendered.at(-1).agentEntry, /\[agents\.soldato\]/);
-  assert.match(rendered.at(-1).roleFile, /name\s*=\s*"soldato"/);
-  assert.deepEqual(
-    Object.fromEntries(rendered.map(({ agentType, roleFile }) => [
-      agentType,
-      roleFile.match(/model_reasoning_effort\s*=\s*"(high|xhigh|max)"/)[1]
-    ])),
-    {
-      don_michael: 'xhigh',
-      underboss_sonny: 'max',
-      consigliere_tom: 'xhigh',
-      capo_clemenza: 'xhigh',
-      capo_lampone: 'xhigh',
-      buttonman_neri: 'high',
-      buttonman_brasi: 'high',
-      soldato_cicci: 'high',
-      don: 'xhigh',
-      underboss: 'max',
-      consigliere: 'xhigh',
-      capo: 'xhigh',
-      buttonman: 'high',
-      soldato: 'high'
-    }
-  );
-  assert.doesNotMatch(JSON.stringify(rendered), /fallback/i);
-
-  assert.throws(() => resolveCorleoneProfile('capo_clemenza', 'ultra'), /profile/i);
-  assert.throws(() => renderCorleoneRoleFile('capo_clemenza', 'ultra'), /profile/i);
-  assert.throws(() => renderCorleoneRosterConfig('', 'xhigh'), /config directory/i);
-});
-
-test('adapter vocabulary reserves claude_code and pi as unimplemented while Codex renders a Corleone handoff', () => {
-  const packet = {
-    ...createAssignmentPacket(),
-    capability: {
-      workRole: 'coding',
-      complexity: 'xhigh',
-      requestedModel: 'opencode-go/deepseek-v4-flash',
-      requestedEffort: 'xhigh'
-    }
-  };
-  const handoff = renderCodexHandoffRequest({
-    operation: 'spawn',
-    packet,
-    packetDigest: routing.packetDigestOf(packet)
-  });
-
-  assert.equal(handoff.provider, 'codex');
-  assert.equal(handoff.role, 'capo_clemenza');
-  assert.deepEqual(handoff.workerIdentity, {
-    agentType: 'capo_clemenza',
-    displayName: 'Capo Peter Clemenza',
-    tier: 'capo',
-    ordinal: 1
-  });
-  assert.equal(handoff.profile.modelReasoningEffort, 'xhigh');
-  assert.equal(handoff.profile.model, 'opencode-go/deepseek-v4-flash');
-  assert.equal(handoff.operation, 'spawn');
-  assert.deepEqual(handoff.packet, packet);
-  assert.equal(handoff.packetDigest, routing.packetDigestOf(packet));
-  assert.equal(handoff.executed, false);
-
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'spawn',
-      packet,
-      packetDigest: routing.packetDigestOf(packet),
-      workerIdentity: allocateCorleoneCallsign({ tier: 'don', ordinal: 1 })
-    }),
-    /spawn.*workerIdentity|workerIdentity.*spawn/i
-  );
-
-  const frozenCapo = allocateCorleoneCallsign({ tier: 'capo', ordinal: 3 });
-  const resumed = renderCodexHandoffRequest({
-    operation: 'continue',
-    packet,
-    packetDigest: routing.packetDigestOf(packet),
-    workerIdentity: frozenCapo
-  });
-  assert.equal(resumed.role, 'capo');
-  assert.deepEqual(resumed.workerIdentity, frozenCapo);
-  assert.equal(resumed.profile.modelReasoningEffort, 'xhigh');
-
-  const strictPacket = {
-    ...packet,
-    capability: {
-      ...packet.capability,
-      complexity: 'high',
-      requestedEffort: 'high',
-      primaryExecution: 'visible_worker_required'
-    }
-  };
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'spawn',
-      packet: strictPacket,
-      packetDigest: routing.packetDigestOf(strictPacket),
-      ordinal: 2
-    }),
-    new RegExp(LEGACY_VISIBLE_WORKER_REQUIRED_RETIRED)
-  );
+test('adapter vocabulary reserves claude_code and pi as unimplemented', () => {
   assert.equal(adapterStatus('codex'), 'implemented');
   assert.equal(adapterStatus('claude_code'), 'unimplemented');
   assert.equal(adapterStatus('pi'), 'unimplemented');
   assert.throws(() => adapterStatus('unknown-adapter'), /adapter/i);
-});
-
-test('Codex handoffs bind the canonical packet digest and reject unknown lifecycle operations', () => {
-  const packet = {
-    ...createAssignmentPacket(),
-    capability: { workRole: 'coding', complexity: 'high' }
-  };
-  const frozenIdentity = allocateCorleoneCallsign({ tier: 'capo', ordinal: 1 });
-
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'spawn',
-      packet,
-      packetDigest: 'a'.repeat(64)
-    }),
-    /packet digest.*match/i
-  );
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'spawn ',
-      packet,
-      packetDigest: routing.packetDigestOf(packet),
-      workerIdentity: frozenIdentity
-    }),
-    /supported.*lifecycle operation/i
-  );
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'unknown',
-      packet,
-      packetDigest: routing.packetDigestOf(packet),
-      workerIdentity: frozenIdentity
-    }),
-    /supported.*lifecycle operation/i
-  );
-  for (const operation of ['continue', 'status', 'interrupt', 'collect']) {
-    assert.throws(() => renderCodexHandoffRequest({ operation, packet, packetDigest: routing.packetDigestOf(packet) }), /frozen workerIdentity/);
-  }
-  // An explicitly frozen identity remains authoritative for non-spawn calls.
-  const frozenButtonman = allocateCorleoneCallsign({ tier: 'buttonman', ordinal: 1 });
-  const explicit = renderCodexHandoffRequest({
-    operation: 'continue',
-    packet,
-    packetDigest: routing.packetDigestOf(packet),
-    workerIdentity: frozenButtonman
-  });
-  assert.deepEqual(explicit.workerIdentity, frozenButtonman);
-});
-
-test('Corleone handoffs bind Flash effort to the execution packet economic policy', () => {
-  const packet = (capability) => ({
-    ...createAssignmentPacket(),
-    capability
-  });
-  const researchPacket = packet({ workRole: 'searching', complexity: 'high' });
-  const repetitivePacket = packet({ workRole: 'repetitive_execution', complexity: 'max' });
-  const highCodingPacket = packet({ workRole: 'coding', complexity: 'high' });
-  const mismatchedEffortPacket = packet({
-    workRole: 'coding',
-    complexity: 'high',
-    requestedEffort: 'xhigh'
-  });
-
-  const research = renderCodexHandoffRequest({
-    operation: 'spawn',
-    packet: researchPacket,
-    packetDigest: routing.packetDigestOf(researchPacket)
-  });
-  assert.equal(research.role, 'consigliere_tom');
-  assert.equal(research.profile.modelReasoningEffort, 'high');
-
-  const repetitive = renderCodexHandoffRequest({
-    operation: 'spawn',
-    packet: repetitivePacket,
-    packetDigest: routing.packetDigestOf(repetitivePacket)
-  });
-  assert.equal(repetitive.role, 'soldato_cicci');
-  assert.equal(repetitive.profile.modelReasoningEffort, 'max');
-
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'spawn',
-      packet: highCodingPacket,
-      packetDigest: routing.packetDigestOf(highCodingPacket),
-      effort: 'xhigh'
-    }),
-    /conflicts with the validated packet policy/i
-  );
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'spawn',
-      packet: highCodingPacket,
-      packetDigest: routing.packetDigestOf(highCodingPacket),
-      effort: 123
-    }),
-    /effort.*high.*xhigh.*max/i
-  );
-  assert.equal(renderCodexHandoffRequest({
-    operation: 'spawn', packet: mismatchedEffortPacket,
-    packetDigest: routing.packetDigestOf(mismatchedEffortPacket)
-  }).profile.modelReasoningEffort, 'xhigh');
-});
-
-test('Corleone lifecycle handoffs reject a Chief packet even with a frozen roster identity', () => {
-  const chiefPacket = createAssignmentPacket();
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'continue',
-      packet: chiefPacket,
-      packetDigest: routing.packetDigestOf(chiefPacket),
-      workerIdentity: allocateCorleoneCallsign({ tier: 'capo', ordinal: 1 })
-    }),
-    /supported execution workRole|supported execution workRole and complexity/i
-  );
-  // A non-spawn call without a frozen identity must fail closed when the
-  // packet capability cannot select a Corleone execution role.
-  assert.throws(
-    () => renderCodexHandoffRequest({
-      operation: 'continue',
-      packet: chiefPacket,
-      packetDigest: routing.packetDigestOf(chiefPacket)
-    }),
-    /frozen workerIdentity/i
-  );
 });
 
 // ---------------------------------------------------------------------------
@@ -3164,49 +2770,3 @@ test('Codex adapter keeps the requested approval policy separate from authentica
   assert.equal(bound.expression.requestedApprovalPolicy, 'never');
 });
 
-test('Corleone handoffs and role files preserve modern model and effort independently of persona', () => {
-  for (const requestedModel of ['gpt-6-astra', 'main/gpt-5.6-sol', 'p646e20/gpt-5.6-terra', 'gpt-5.6-luna']) {
-    const packet = { ...createAssignmentPacket(), capability: { workRole: 'coding', complexity: 'xhigh', requestedModel, requestedEffort: 'low' } };
-    const result = renderCodexHandoffRequest({ operation: 'spawn', packet, packetDigest: routing.packetDigestOf(packet), ordinal: 3 });
-    assert.equal(result.profile.model, requestedModel);
-    assert.equal(result.profile.modelReasoningEffort, 'low');
-    assert.equal(result.workerIdentity.displayName, 'Capo 3rd');
-    const continued = renderCodexHandoffRequest({ operation: 'continue', packet, packetDigest: routing.packetDigestOf(packet), workerIdentity: result.workerIdentity });
-    assert.deepEqual(continued.workerIdentity, result.workerIdentity);
-    assert.equal(continued.profile.model, requestedModel);
-    assert.match(renderCorleoneRoleFile('capo', 'low', requestedModel), new RegExp(`model = "${requestedModel}"`));
-  }
-});
-
-for (const agentType of CORLEONE_AGENT_TYPES) {
-  test(`inherited Corleone role ${agentType} leaves model and effort to the caller and Host`, () => {
-    const output = codexAdapter.renderInheritedCorleoneRoleFile(agentType);
-    const fields = Object.fromEntries(output.trim().split('\n').map((line) => {
-      const separator = line.indexOf(' = ');
-      return [line.slice(0, separator), JSON.parse(line.slice(separator + 3))];
-    }));
-    assert.deepEqual(Object.keys(fields), ['name', 'description', 'nickname_candidates', 'developer_instructions']);
-    assert.equal(fields.name, agentType);
-    assert.deepEqual(fields.nickname_candidates, resolveCorleoneProfile(agentType).nicknameCandidates);
-    assert.match(fields.developer_instructions, /model and effort selected by the caller or inherited from the Host/);
-    assert.match(fields.developer_instructions, /bounded parallel helpers when permitted by the user and Host/);
-    assert.match(fields.developer_instructions, /proper subset/);
-    assert.match(fields.developer_instructions, /Treat visible_worker_required as retired legacy input/);
-    assert.match(fields.developer_instructions, /legacy_visible_worker_required_retired/);
-    assert.match(fields.developer_instructions, /do not restore a Host bridge or fall back to native/);
-    assert.doesNotMatch(fields.developer_instructions, /preserve that topology/);
-    assert.match(fields.developer_instructions, /unknown unless authenticated Host evidence/);
-    assert.doesNotMatch(output, /^(?:model|model_reasoning_effort|model_provider|fallback_model)\s*=/m);
-    assert.doesNotMatch(fields.developer_instructions, /deepseek|flash|gpt-|ultra|only worker.local|worker.local only|already accepted plan|highest.level visible execution/i);
-    // The existing renderer remains the explicit fixed-profile compatibility path.
-    const legacy = renderCorleoneRoleFile(agentType);
-    assert.match(legacy, /^model = "opencode-go\/deepseek-v4-flash"$/m);
-    assert.match(legacy, /^model_reasoning_effort = "(?:high|xhigh|max)"$/m);
-  });
-}
-
-test('inherited Corleone role rejects unknown identities without emitting configuration', () => {
-  for (const invalid of ['', 'gpt-6-astra', 'capo\nmodel = "override"', null]) {
-    assert.throws(() => codexAdapter.renderInheritedCorleoneRoleFile(invalid), /Unknown Corleone agent type/);
-  }
-});
