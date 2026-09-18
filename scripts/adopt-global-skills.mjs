@@ -10,6 +10,7 @@ export const INSTALLS = Object.freeze([
   ['planning-with-files', 'harness/core/upstream-overlays/planning-with-files'],
   ['overengineering-review', 'harness/core/skills/overengineering-review'],
   ['simplification-ledger', 'harness/core/skills/simplification-ledger'],
+  ['linear-work-control', 'harness/core/skills/linear-work-control'],
   ['show-me', 'harness/optional-skills/show-me'],
   ['ux-design', 'harness/optional-skills/ux-design'],
   ...['tdd', 'code-review', 'codebase-design', 'diagnosing-bugs', 'domain-modeling']

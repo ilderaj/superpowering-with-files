@@ -1,0 +1,18 @@
+{
+  "taskId": "swf-linear-control-plane-mvp-20260917",
+  "context": "the connected Linear identity belongs to a different workspace",
+  "question": "re-authenticate the Linear connection to superpoweringwithfiles, or rebind to the connected workspace?",
+  "options": [
+    {
+      "label": "Re-authenticate",
+      "detail": "restores the intended target workspace"
+    },
+    {
+      "label": "Rebind",
+      "detail": "accepts the connected workspace as the MVP target"
+    }
+  ],
+  "impact": "no Linear object can be created until this is answered",
+  "resumeCondition": "DECISION is recorded in the local blockers file",
+  "timestamp": "2026-09-17 21:25:00 UTC+8"
+}
