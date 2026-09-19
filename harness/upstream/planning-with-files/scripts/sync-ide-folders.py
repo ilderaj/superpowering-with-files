@@ -33,6 +33,7 @@ TEMPLATES = [
     "templates/findings.md",
     "templates/progress.md",
     "templates/task_plan.md",
+    "templates/loop.md",
     "templates/analytics_task_plan.md",
     "templates/analytics_findings.md",
 ]
@@ -57,18 +58,25 @@ SCRIPTS = [
     "scripts/plan-doctor.sh",
 ]
 
-# Hook dispatch targets (issue #212): every hook-bearing SKILL.md dispatches
-# its UserPromptSubmit/PreToolUse/PreCompact scalars to inject-plan.sh, and
-# inject-plan.sh shells its sibling ledger-summary.sh in autonomous/gated mode.
-# ledger-summary.sh in turn shells its sibling resolve-plan-dir.sh; when the
-# resolver is missing it falls back to plan_dir="." and injects a false
-# "phases: 0/0 complete" into an autonomous loop. All three must ship in every
-# variant's own scripts/ dir or the dispatch resolves to nothing, or to a lying
-# summary, on that host (tests/test_skill_hook_dispatch_parity.py pins this).
+# Standalone plan inventory and selection helpers are also useful in hosts
+# whose adapters do not consume the shared script bundle. Keep this small
+# surface explicit so adding it never replaces their host-specific behavior.
+LISTING_SCRIPTS = [
+    "scripts/set-active-plan.sh",
+    "scripts/set-active-plan.ps1",
+]
+
+# Every hook-bearing SKILL.md dispatches through skill-hook.sh. Its sibling
+# injector needs ledger-summary.sh and resolve-plan-dir.sh; Stop also needs
+# gate-stop.sh and the shared check-complete.sh. Ship the complete dependency
+# chain in every variant's own scripts directory.
 HOOK_DISPATCH_SCRIPTS = [
     "scripts/inject-plan.sh",
+    "scripts/inject-plan.py",
     "scripts/ledger-summary.sh",
     "scripts/resolve-plan-dir.sh",
+    "scripts/skill-hook.sh",
+    "scripts/gate-stop.sh",
 ]
 
 # .agents/ ships the FULL canonical surface (no IDE adapter layer exists to
@@ -76,12 +84,14 @@ HOOK_DISPATCH_SCRIPTS = [
 AGENTS_EXTRA_SCRIPTS = [
     "scripts/gate-stop.sh",
     "scripts/inject-plan.sh",
+    "scripts/inject-plan.py",
     "scripts/ledger-append.sh",
     "scripts/ledger-append.ps1",
     "scripts/ledger-summary.sh",
     "scripts/ledger-summary.ps1",
     "scripts/phase-status.sh",
     "scripts/phase-status.ps1",
+    "scripts/skill-hook.sh",
 ]
 AGENTS_EXTRA_TEMPLATES = [
     "templates/task_plan_autonomous.md",
@@ -185,6 +195,7 @@ IDE_MANIFESTS = {
         include_scripts=True,
         extra_scripts=[
             "scripts/inject-plan.sh",
+            "scripts/inject-plan.py",
             "scripts/gate-stop.sh",
             "scripts/ledger-append.sh",
             "scripts/ledger-append.ps1",
@@ -192,6 +203,7 @@ IDE_MANIFESTS = {
             "scripts/ledger-summary.ps1",
             "scripts/phase-status.sh",
             "scripts/phase-status.ps1",
+            "scripts/skill-hook.sh",
         ],
     ),
 
@@ -221,17 +233,27 @@ IDE_MANIFESTS = {
         ".opencode/skills/planning-with-files",
         ref_style="flat",
         include_scripts=False,
-        extra_scripts=HOOK_DISPATCH_SCRIPTS,
+        extra_scripts=HOOK_DISPATCH_SCRIPTS + LISTING_SCRIPTS,
     ),
 
     # Mastracode: templates/references maintained under .mastracode/; only the
-    # hook dispatch targets are synced from canonical.
+    # hook dispatch targets and standalone plan listing helpers are synced.
     ".mastracode": _build_manifest(
         ".mastracode/skills/planning-with-files",
         ref_style="skip",
         template_dirs=[],
         include_scripts=False,
-        extra_scripts=HOOK_DISPATCH_SCRIPTS,
+        extra_scripts=HOOK_DISPATCH_SCRIPTS + LISTING_SCRIPTS,
+    ),
+
+    # Hermes owns its Python lifecycle adapter and its skill bundle. Only
+    # this standalone helper pair is added to its canonical sync inventory.
+    ".hermes": _build_manifest(
+        ".hermes/skills/planning-with-files",
+        ref_style="skip",
+        template_dirs=[],
+        include_scripts=False,
+        extra_scripts=LISTING_SCRIPTS,
     ),
 
     # Kiro: maintained under .kiro/ (skill + wrappers); not synced from canonical scripts/.
@@ -308,6 +330,16 @@ def _build_agents_manifest():
 
 
 IDE_MANIFESTS[".agents"] = _build_agents_manifest()
+
+# The plugin fallback resolves helpers beside the root injector. Keep the new
+# standalone adapter and its loop asset in the same verified inventory.
+IDE_MANIFESTS["."] = {
+    "scripts/inject-plan.sh": "scripts/inject-plan.sh",
+    "scripts/inject-plan.py": "scripts/inject-plan.py",
+    "scripts/skill-hook.sh": "scripts/skill-hook.sh",
+    "templates/loop.md": "templates/loop.md",
+    **{script: script for script in LISTING_SCRIPTS},
+}
 
 
 # ─── Utility functions ─────────────────────────────────────────────
@@ -401,7 +433,11 @@ def main(argv=None):
                 # Verify mode: just check for drift
                 src_hash = file_hash(src)
                 dst_hash = file_hash(dst)
-                if src_hash and dst_hash and src_hash != dst_hash:
+                if src_hash is None:
+                    print(f"    MISSING SOURCE: {src}")
+                    stats["missing_src"] += 1
+                    ide_changes += 1
+                elif src_hash and dst_hash and src_hash != dst_hash:
                     print(f"    DRIFT: {dst}")
                     stats["drift"] += 1
                     ide_changes += 1
@@ -422,6 +458,11 @@ def main(argv=None):
     # Summary
     print(f"\n{'-' * 50}")
     if verify:
+        if stats["missing_src"] > 0:
+            print(f"MISSING SOURCES: {stats['missing_src']} sync entry/entries "
+                  "have no canonical source.")
+            print("Restore the missing canonical files, then rerun --verify.")
+            sys.exit(1)
         total_drift = stats["drift"]
         if total_drift > 0:
             print(f"DRIFT DETECTED: {total_drift} file(s) out of sync.")

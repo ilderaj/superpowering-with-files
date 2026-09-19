@@ -10,7 +10,8 @@
 #   4. the block counter (<plan-dir>/.stop_blocks) is below cap (PWF_GATE_CAP, default 20)
 #   5. the ledger advanced since the last block (stall -> allow stop)
 # When all hold, emits a single-line block-decision JSON on stdout and exits 0.
-# Otherwise advisory output and exit 0. Without -Gate, byte-equivalent to v2.43.
+# Otherwise reports incomplete plans and exits 0; completed plans stay silent
+# with -Gate, including legacy plans without .mode. Explicit reports are unchanged.
 #
 # Stdin: read only when input is redirected ([Console]::IsInputRedirected), so an
 # interactive console never blocks. Hook-piped JSON is EOF-terminated.
@@ -35,6 +36,7 @@ if ($PlanFile -ne "") {
         try {
             $resolvedDir = (& $resolver 2>$null | Select-Object -First 1)
             if ($null -eq $resolvedDir) { $resolvedDir = "" }
+            if (-not $resolvedDir -and ((& $resolver -CheckAmbiguity) -eq "PWF_PLAN_AMBIGUOUS_V1")) { exit 0 }
         } catch {
             $resolvedDir = ""
         }
@@ -84,9 +86,10 @@ if ($TOTAL -eq 0) {
     exit 0
 }
 
-# advisory_report: the v2.43 status echo.
+# Keep explicit reports, but omit routine success from automatic gate checks.
 function Write-AdvisoryReport {
     if ($COMPLETE -eq $TOTAL -and $TOTAL -gt 0) {
+        if ($Gate) { return }
         Write-Host ('[planning-with-files] ALL PHASES COMPLETE (' + $COMPLETE + '/' + $TOTAL + '). If the user has additional work, add new phases to task_plan.md before starting.')
     } else {
         Write-Host ('[planning-with-files] Task in progress (' + $COMPLETE + '/' + $TOTAL + ' phases complete). Update progress.md before stopping.')
@@ -107,13 +110,27 @@ if (-not $Gate) {
 
 # ---- Gate path (-Gate). Resolves to advisory unless every guard says block. ----
 
-# Guard 1: gated mode. The .mode file must contain "gate".
+# Guard 1: gated mode. A .mode file must contain "gate".
+#
+# The project's root .mode is a FLOOR, not a default that slug scope replaces
+# (issue #238). Reading only <plan-dir>\.mode let a slug plan with no .mode
+# drop a project-committed gate. "gate" from EITHER file arms the gate; a slug
+# may raise strictness, never lower it. In root scope $PlanDir already IS the
+# project root, so the second source is skipped and behavior is unchanged.
 $modeFile = Join-Path $PlanDir ".mode"
+$rootForMode = if ($env:PWF_PLAN_ROOT) { $env:PWF_PLAN_ROOT } else { "." }
+$rootModeFile = $null
+if ($PlanDir -ne $rootForMode -and $PlanDir -ne ".") {
+    $rootModeFile = Join-Path $rootForMode ".mode"
+}
 $gatedMode = $false
-if (Test-Path $modeFile) {
-    $modeContent = Get-Content $modeFile -Raw -ErrorAction SilentlyContinue
+foreach ($candidateMode in @($modeFile, $rootModeFile)) {
+    if (-not $candidateMode) { continue }
+    if (-not (Test-Path $candidateMode)) { continue }
+    $modeContent = Get-Content $candidateMode -Raw -ErrorAction SilentlyContinue
     if ($null -ne $modeContent -and $modeContent -match "gate") {
         $gatedMode = $true
+        break
     }
 }
 if (-not $gatedMode) {
