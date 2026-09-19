@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { LOCKED_SKILLS } from '../../packages/plugin-kit/src/matt-skills-lock.mjs';
 import {
   MATT_SKILLS_INVENTORY,
   mattSkillsCorpusRoot,
@@ -11,11 +12,32 @@ import {
   loadMattSkillsSource,
 } from '../../packages/plugin-kit/src/matt-skills-source.mjs';
 
-const LOCKED_BODY_DIGESTS = Object.freeze({
-  'grill-me': '6189dfceb7304a6e5558f75d87e68fa3bc7fcf7ba120e44f21f8a61fe01eba54',
-  grilling: 'fa5c1e5ee76b1c8f1ae56101f52c9e239de75d5c578adc61227b92d10b7e52ef',
-  'to-questionnaire': '8e7f9ed8d7b2e66babf1a54aee9b94319bf38c32619cffe78819df6518ead5fc',
-});
+const EXPECTED_INVENTORY = Object.freeze([
+  'ask-matt',
+  'code-review',
+  'codebase-design',
+  'diagnosing-bugs',
+  'domain-modeling',
+  'grill-me',
+  'grill-with-docs',
+  'grilling',
+  'handoff',
+  'implement',
+  'improve-codebase-architecture',
+  'prototype',
+  'research',
+  'resolving-merge-conflicts',
+  'tdd',
+  'teach',
+  'to-questionnaire',
+  'to-spec',
+  'to-tickets',
+  'triage',
+  'wait-what',
+  'wayfinder',
+  'wizard',
+  'writing-for-agents',
+]);
 
 async function copyCorpus() {
   const dir = await mkdtemp(join(tmpdir(), 'matt-skills-source-'));
@@ -34,7 +56,8 @@ async function withCorpus(mutate) {
 }
 
 test('approved inventory matches the locked v1.2.3 corpus', () => {
-  assert.deepEqual([...MATT_SKILLS_INVENTORY], ['grill-me', 'grilling', 'to-questionnaire']);
+  assert.deepEqual([...MATT_SKILLS_INVENTORY].sort(), [...EXPECTED_INVENTORY]);
+  assert.equal(LOCKED_SKILLS.length, 24);
 });
 
 test('real corpus verifies and loads', async () => {
@@ -42,18 +65,25 @@ test('real corpus verifies and loads', async () => {
   assert.equal(result.ok, true, result.errors.join('\n'));
 
   const loaded = await loadMattSkillsSource();
-  assert.deepEqual(Object.keys(loaded.skills).sort(), ['grill-me', 'grilling', 'to-questionnaire']);
-  for (const [name, digest] of Object.entries(LOCKED_BODY_DIGESTS)) {
-    const rawBody = await readFile(join(mattSkillsCorpusRoot(), name, 'SKILL.md'));
-    assert.equal(createHash('sha256').update(rawBody).digest('hex'), digest, `raw pin for ${name}`);
-    assert.ok(loaded.skills[name].length > 0, `body for ${name} is empty`);
-    assert.equal(loaded.metadata.bodyPatch, false);
+  assert.deepEqual(Object.keys(loaded.skills).sort(), [...EXPECTED_INVENTORY]);
+  for (const skill of LOCKED_SKILLS) {
+    const rawBody = await readFile(join(mattSkillsCorpusRoot(), skill.name, 'SKILL.md'));
+    assert.equal(createHash('sha256').update(rawBody).digest('hex'), skill.sha256, 'raw pin for ' + skill.name);
+    assert.ok(loaded.skills[skill.name].length > 0, 'body for ' + skill.name + ' is empty');
+    for (const file of skill.files) {
+      assert.ok(
+        await readFile(join(mattSkillsCorpusRoot(), skill.name, file.path), 'utf8').then((text) => text.length > 0),
+        'corpus file for ' + skill.name + '/' + file.path + ' is empty',
+      );
+    }
   }
+  assert.equal(loaded.metadata.bodyPatch, false);
   assert.ok(loaded.license.length > 0, 'license is empty');
   assert.equal(loaded.metadata.repo, 'https://github.com/mattpocock/skills');
   assert.equal(loaded.metadata.tag, 'v1.2.3');
   assert.equal(loaded.metadata.tagObject, '835450ef244ab7335f75d95b83e7d979eae22a6d');
   assert.equal(loaded.metadata.commit, '6acc160e4e0cd062dbbbd7a1b26ae92855edf07e');
+  assert.deepEqual(loaded.overlays, ['grilling']);
 });
 
 test('rejects unsupported skill in metadata inventory', async () => {
@@ -61,9 +91,9 @@ test('rejects unsupported skill in metadata inventory', async () => {
     const metadata = JSON.parse(await readFile(join(dir, 'UPSTREAM.json'), 'utf8'));
     metadata.skills.push({
       name: 'not-a-matt-skill',
-      corpusPath: 'not-a-matt-skill/SKILL.md',
-      originalPath: 'skills/productivity/not-a-matt-skill/SKILL.md',
+      originalPath: 'skills/productivity/not-a-matt-skill',
       sha256: '0'.repeat(64),
+      files: [],
     });
     await writeFile(join(dir, 'UPSTREAM.json'), JSON.stringify(metadata, null, 2));
   });
@@ -85,13 +115,24 @@ test('rejects unexpected top-level corpus entries', async () => {
   );
 });
 
+test('rejects extra unlisted file in a corpus skill directory', async () => {
+  const result = await withCorpus(async (dir) => {
+    await writeFile(join(dir, 'to-questionnaire', 'stray.md'), 'x');
+  });
+  assert.equal(result.ok, false);
+  assert.ok(
+    result.errors.some((error) => error.includes('unsupported inventory entry in corpus') && error.includes('to-questionnaire/stray.md')),
+    result.errors.join('\n'),
+  );
+});
+
 test('rejects missing body', async () => {
   const result = await withCorpus(async (dir) => {
     await rm(join(dir, 'grill-me', 'SKILL.md'), { force: true });
   });
   assert.equal(result.ok, false);
   assert.ok(
-    result.errors.some((error) => error.includes('missing body') && error.includes('grill-me')),
+    result.errors.some((error) => error.includes('missing body') && error.includes('grill-me/SKILL.md')),
     result.errors.join('\n'),
   );
 });
@@ -103,6 +144,22 @@ test('rejects altered body', async () => {
   assert.equal(result.ok, false);
   assert.ok(
     result.errors.some((error) => error.includes('body digest mismatch') && error.includes('grilling')),
+    result.errors.join('\n'),
+  );
+});
+
+test('rejects altered extra file in a multi-file skill directory', async () => {
+  const multi = LOCKED_SKILLS.find((skill) => skill.files.length > 1);
+  const extra = multi.files.find((file) => file.path !== 'SKILL.md');
+  const result = await withCorpus(async (dir) => {
+    await writeFile(
+      join(dir, multi.name, extra.path),
+      (await readFile(join(dir, multi.name, extra.path), 'utf8')) + '\n',
+    );
+  });
+  assert.equal(result.ok, false);
+  assert.ok(
+    result.errors.some((error) => error.includes('body digest mismatch') && error.includes(multi.name + '/' + extra.path)),
     result.errors.join('\n'),
   );
 });
@@ -144,7 +201,8 @@ test('rejects altered provenance metadata', async () => {
 test('rejects altered metadata digest', async () => {
   const result = await withCorpus(async (dir) => {
     const metadata = JSON.parse(await readFile(join(dir, 'UPSTREAM.json'), 'utf8'));
-    metadata.skills[0].sha256 = '0'.repeat(64);
+    const grillMe = metadata.skills.find((skill) => skill.name === 'grill-me');
+    grillMe.sha256 = '0'.repeat(64);
     await writeFile(join(dir, 'UPSTREAM.json'), JSON.stringify(metadata, null, 2));
   });
   assert.equal(result.ok, false);
