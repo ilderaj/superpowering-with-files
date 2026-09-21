@@ -14,9 +14,11 @@ import { INVARIANTS } from '../src/invariants.mjs';
 const HELP = `Usage: render-verify --spec spec.json [--file page.html | --url URL] [--viewport WxH] [--json] [--out report.json] [--shot screenshot.png] [--timeout ms] [--launch-timeout ms]\n       render-verify --file page.html [--json] [--out report.json]`;
 
 // A browser launch is its own budget. Chrome's first start on a cold machine can
-// take several seconds to print its DevTools endpoint, so the launch wait must
-// not be derived from the page settle timeout that bounds a different step.
-const DEFAULT_LAUNCH_TIMEOUT_MS = 12000;
+// take many seconds to print its DevTools endpoint — the first launch on a
+// two-core CI runner measured ~12s against a warm ~1s — so the launch wait must
+// not be derived from the page settle timeout that bounds a different step, and
+// it needs margin over the slowest cold start rather than the average one.
+const DEFAULT_LAUNCH_TIMEOUT_MS = 30000;
 
 function fail(message) { const error = new Error(message); error.code = 'ERR_RENDER_VERIFY_CONFIG'; throw error; }
 

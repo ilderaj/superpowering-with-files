@@ -50,10 +50,12 @@ function runCli(args, options = {}) {
     });
     let stdout = '';
     let stderr = '';
+    // A backstop above the CLI's own budgets (a cold browser launch plus the
+    // settle wait), so a hung CLI reports its own diagnostic before this fires.
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
       reject(new Error(`CLI exceeded test deadline: ${args.join(' ')}`));
-    }, 20000);
+    }, 45000);
     child.stdout.on('data', (chunk) => { stdout += chunk; });
     child.stderr.on('data', (chunk) => { stderr += chunk; });
     child.on('error', reject);
