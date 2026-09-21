@@ -1,0 +1,4 @@
+canonical text blocks: 3
+swf-night-executor prompt_equal= True | model= combo/DeepSeekCombo | effort= high | rrule= FREQ=DAILY;BYHOUR=1;BYMINUTE=30 | status= ACTIVE
+swf-night-executor-fallback prompt_equal= True | model= main/gpt-5.6-luna | effort= high | rrule= FREQ=DAILY;BYHOUR=3;BYMINUTE=0 | status= ACTIVE
+swf-morning-handoff prompt_equal= True | model= combo/DeepSeekCombo | effort= high | rrule= FREQ=DAILY;BYHOUR=7;BYMINUTE=30 | status= ACTIVE

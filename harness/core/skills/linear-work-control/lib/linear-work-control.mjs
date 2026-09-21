@@ -32,7 +32,7 @@ export const STATE_MAP = Object.freeze({
   running: { status: 'In Progress', labels: ['agent-running'] },
   waiting_human: { status: 'In Progress', labels: ['waiting-human'] },
   blocked: { status: 'In Progress', labels: ['blocked'] },
-  review: { status: 'In Progress', labels: ['ready-review'] },
+  review: { status: 'In Review', labels: ['ready-review'] },
   failed: { status: 'In Progress', labels: ['agent-failed'] },
   done: { status: 'Done', labels: [] },
   canceled: { status: 'Canceled', labels: [] }

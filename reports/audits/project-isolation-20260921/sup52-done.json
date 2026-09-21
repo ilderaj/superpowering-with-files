@@ -1,0 +1,64 @@
+{
+  "id": "SUP-52",
+  "uuid": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+  "title": "Project-first · 现有任务迁移与自动归属验收",
+  "description": "harness-task: swf/project-isolation-adoption-20260921\n\n用户2026-09-21授权审计、实现并迁移现有任务和Roadmap到Project+Team+label+status隔离方案。\n\n本地权威：planning/active/project-isolation-adoption-20260921/ 三文件。\n规格：docs/plans/project-isolation-20260921/spec.md。\n\n验收：51原票完整迁移、UUID与依赖保持；Project/root/issue/comment guards；同Team错Project拒绝；真实task marker幂等重放；既有白夜班和Chief intake接线；报告未来cron和未注册repo覆盖限制。\n\n当前已完成迁移和本地验证，正在执行此票的真实intake重放与最终验收。此票为日间迁移记录，不增加nightly资格。",
+  "priority": {
+    "value": 0,
+    "name": "No priority"
+  },
+  "url": "https://linear.app/superpoweringwithfiles/issue/SUP-52/project-first-现有任务迁移与自动归属验收",
+  "gitBranchName": "imjaredli/sup-52-project-first-现有任务迁移与自动归属验收",
+  "createdAt": "2026-09-21T03:34:42.719Z",
+  "updatedAt": "2026-09-21T03:59:19.693Z",
+  "archivedAt": null,
+  "completedAt": "2026-09-21T03:59:19.680Z",
+  "startedAt": "2026-09-21T03:34:42.785Z",
+  "canceledAt": null,
+  "dueDate": null,
+  "slaStartedAt": null,
+  "slaMediumRiskAt": null,
+  "slaHighRiskAt": null,
+  "slaBreachesAt": null,
+  "status": "Done",
+  "statusType": "completed",
+  "labels": [
+    "workstream:isolation",
+    "swf-managed",
+    "executor:codex-local"
+  ],
+  "attachments": [],
+  "documents": [],
+  "stateHistory": [
+    {
+      "state": {
+        "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "startedAt": "2026-09-21T03:34:42.719Z",
+      "endedAt": "2026-09-21T03:59:19.688Z"
+    },
+    {
+      "state": {
+        "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+        "name": "Done",
+        "type": "completed"
+      },
+      "startedAt": "2026-09-21T03:59:19.688Z",
+      "endedAt": null
+    }
+  ],
+  "createdBy": "Jared Li",
+  "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+  "project": "SWF — Project Isolation & Automation",
+  "projectId": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+  "team": "SuperpoweringWithFiles",
+  "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+  "relations": {
+    "blocks": [],
+    "blockedBy": [],
+    "relatedTo": [],
+    "duplicateOf": null
+  }
+}

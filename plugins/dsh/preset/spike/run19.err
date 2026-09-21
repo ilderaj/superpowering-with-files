@@ -1,0 +1,11 @@
+[swf-mjs] module scope reached
+[swf-mjs] apply called
+[swf-mjs] loader settled; starting run
+[swf-mjs] services ok; resolve preset
+[swf-mjs] resolved swf-min
+[swf-mjs] setup: installModelSelection
+[swf-mjs] setup: presets.mount...
+[swf-mjs] setup: mount done
+[swf-mjs] agent created; whenIdle...
+[swf-mjs] turn done; flush
+dsh: UNKNOWN: content.some is not a function

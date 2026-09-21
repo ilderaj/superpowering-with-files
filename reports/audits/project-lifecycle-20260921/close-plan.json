@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "planOnly": true,
+  "eventId": "b79187c3-36dd-4f54-96d9-94bb8d08ff4c",
+  "event": "close",
+  "taskId": "project-lifecycle-repair-20260921",
+  "issueId": "7b8f4699-5c35-4a90-b3e6-0e25edcdf82f",
+  "projectId": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+  "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+  "state": "Done",
+  "labels": [
+    "workstream:isolation",
+    "swf-managed",
+    "executor:codex-local"
+  ],
+  "projectMutation": false
+}

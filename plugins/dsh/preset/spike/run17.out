@@ -1,0 +1,5 @@
+I'll validate the swf-min preset following your steps. First, let me note the catalog status and run the baseline probe plus the first subagent dispatch in parallel.
+
+**Step 1:** Yes — both `swf_probe` and `swf_guard_arm` are in my tool catalog.
+
+**Steps 2 & 3:** baseline probe + one-shot subagent dispatch:

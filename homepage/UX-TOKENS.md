@@ -3,8 +3,8 @@
 Status: **active standard** (2026-08-09, v2) — the durable visual contract for
 the Superpowering with Files homepage (`homepage/`). The single source of truth
 for values is `src/theme.css`; this file mirrors it for review and pins the
-component behavior. Consumed by `src/theme.css` + `src/styles.css`; mirrored as
-Pencil design files under `designs/`.
+component behavior. Consumed by `src/theme.css` + `src/styles.css`; historical
+design exports are kept under `designs/`.
 
 ## Design Direction
 
@@ -122,16 +122,14 @@ Elevation: `--shadow-xs 0 1px 2px rgba(31,30,26,0.04)` (hover lift) ·
 - Interactive links keep `<a>` semantics; disabled controls lose pointer
   events; hover states are color/surface shifts only.
 
-## Pencil Artifacts
+## Archived Design Artifacts
 
-- `designs/swf-ux-tokens.pen` — rebuilt in Pen.app (Pencil) as the Paper & Ink
-  standard: two top-level frames — the token/component sheet (palette,
-  radius, typography, buttons, badges, surfaces, focus, rhythm) and the hero
-  composition ("SWF Hero — Paper & Ink (v2)").
-
-Open them in Pen.app (Pencil) to iterate; the editor documents are the live
-objects, exported evidence PNGs land in `designs/shots/` (`ux-tokens-v2.png`,
-`hero-v2.png`).
+- `designs/swf-ux-tokens.pen` and the exported PNGs under `designs/shots/`
+  (`ux-tokens-v2.png`, `hero-v2.png`) are **historical artifacts** from the
+  v2 rebuild. The Pen.app (Pencil) editor has been retired (2026-08-09), so
+  the `.pen` file is no longer an editable design source.
+- The live visual contract is `src/theme.css` + this file; the design tokens
+  and component behavior below are the operative standard.
 
 ## Governance
 

@@ -1,0 +1,35 @@
+{
+  "startedAt": "2026-09-19T03:06:44.838Z",
+  "now": "2026-09-19T03:06:44.838Z",
+  "attemptedIssueIds": [],
+  "context": {
+    "workspace": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+    "team": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "project": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d"
+  },
+  "candidates": [
+    {
+      "id": "39eac872-8da0-458e-8c8b-30cc1019853a",
+      "workspace": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+      "team": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "project": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+      "state": "ready",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "nightly",
+        "agent-ready"
+      ],
+      "authorized": true,
+      "readiness": true,
+      "blockedBy": [
+        {
+          "id": "2207400d-97d3-47d1-816c-36b5c5ab1e5e",
+          "state": "done"
+        }
+      ],
+      "priority": 2,
+      "updatedAt": "2026-09-19T03:03:16.738Z"
+    }
+  ]
+}

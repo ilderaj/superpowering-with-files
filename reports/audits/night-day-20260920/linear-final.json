@@ -1,0 +1,743 @@
+[
+  {
+    "id": "SUP-46",
+    "uuid": "749994b1-8fce-42e1-913e-03c59a9d09a6",
+    "title": "WP-11 · Migration, documentation and release readiness",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:01:53.653Z"
+  },
+  {
+    "id": "SUP-45",
+    "uuid": "8277119c-739b-4a2c-ba02-59d8f9b98ffd",
+    "title": "WP-10 · Selective gate activation and baseline comparison",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T08:01:50.754Z"
+  },
+  {
+    "id": "SUP-42",
+    "uuid": "32800402-aba3-4939-a0c5-b425bd98d5ba",
+    "title": "WP-07 · Plan Gate and Verify Gate shadow integration",
+    "status": "Todo",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "nightly",
+      "agent-ready"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:01:47.681Z"
+  },
+  {
+    "id": "SUP-44",
+    "uuid": "b553a31e-8e97-419b-b2ca-4b92ba0b2f73",
+    "title": "WP-09 · Office deterministic evidence adapter",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:00:55.013Z"
+  },
+  {
+    "id": "SUP-43",
+    "uuid": "2a436a69-054f-432d-b752-aae6403afec6",
+    "title": "WP-08 · Coding deterministic evidence adapter",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:00:52.027Z"
+  },
+  {
+    "id": "SUP-41",
+    "uuid": "f933d035-3f5a-4ecc-ad20-0fc020f216a6",
+    "title": "WP-06 · Shadow replay fixtures and evaluation harness",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:00:48.282Z"
+  },
+  {
+    "id": "SUP-40",
+    "uuid": "9c43dff4-b3ae-44ca-9342-0075f801ac1a",
+    "title": "WP-05 · Capability-first execution requirement",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:00:45.526Z"
+  },
+  {
+    "id": "SUP-39",
+    "uuid": "cdd85be2-1a5c-4dd9-aa97-3395b369fb00",
+    "title": "WP-04 · Infrastructure vs cognitive failure taxonomy",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:00:42.849Z"
+  },
+  {
+    "id": "SUP-38",
+    "uuid": "fe18e187-d6cd-429e-adf8-b149303a5ae5",
+    "title": "WP-03 · Decision trace and observability (local, non-authoritative)",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:00:40.166Z"
+  },
+  {
+    "id": "SUP-37",
+    "uuid": "5994f8aa-9367-4021-93b5-f9b1463a0623",
+    "title": "WP-02 · Decision contract module and bundle schemas (inert)",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:00:35.830Z"
+  },
+  {
+    "id": "SUP-36",
+    "uuid": "318b4fb3-fa0a-4262-b741-135116ca2d83",
+    "title": "WP-01 · Mode / Intensity / Topology vocabulary derivation (additive)",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T08:00:31.059Z"
+  },
+  {
+    "id": "SUP-18",
+    "uuid": "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+    "title": "Phase 2 capability：零依赖 CDP 的 packages/render-verify + fixtures + verify:render",
+    "status": "Todo",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "nightly",
+      "agent-ready"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T08:00:08.589Z"
+  },
+  {
+    "id": "SUP-34",
+    "uuid": "dac3fd8f-d022-4587-ade4-1ae6a1d653c3",
+    "title": "LMP-12 · 扩展到四产品并完成真实自动化验收",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T07:59:23.022Z"
+  },
+  {
+    "id": "SUP-33",
+    "uuid": "02190d1b-1a04-4ccf-be13-a816e429fac3",
+    "title": "LMP-11 · SWF 兼容迁移与一个新产品试点",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:59:19.209Z"
+  },
+  {
+    "id": "SUP-32",
+    "uuid": "0586b16f-8719-4cb0-b01e-184558fab642",
+    "title": "LMP-10 · 产品自动化模板与调度接入",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T07:59:16.353Z"
+  },
+  {
+    "id": "SUP-31",
+    "uuid": "27591bc1-53f0-4f3f-9656-3a87e64bd7e7",
+    "title": "LMP-09 · 统一 Human 视图与只读聚合",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T07:59:13.150Z"
+  },
+  {
+    "id": "SUP-30",
+    "uuid": "d81894f8-db44-4d56-917f-34955659dbce",
+    "title": "LMP-08 · 同步重试、错误可见性与 Done 门",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:59:09.439Z"
+  },
+  {
+    "id": "SUP-29",
+    "uuid": "20a8a5f5-a6ba-4bf6-aa52-eec18b2845fe",
+    "title": "LMP-07 · 加入本地原子锁与限定队列",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:59:06.452Z"
+  },
+  {
+    "id": "SUP-28",
+    "uuid": "dc5e8423-0872-4d26-b01e-e7a88c0e4acc",
+    "title": "LMP-06 · 明确 Chief intake 与持续授权职责",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:59:04.044Z"
+  },
+  {
+    "id": "SUP-27",
+    "uuid": "4a09e47c-91c0-4432-a4da-da6034c8d4b4",
+    "title": "LMP-05 · 统一标签与各 Team 状态映射",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-20T07:59:01.072Z"
+  },
+  {
+    "id": "SUP-26",
+    "uuid": "55ef5cea-04b0-463e-a994-f9d0ec977074",
+    "title": "LMP-04 · 实现幂等首次接入流程",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:58:58.006Z"
+  },
+  {
+    "id": "SUP-25",
+    "uuid": "3f702e3e-5a58-493f-a510-db1cd40a42d2",
+    "title": "LMP-03 · 实现逐次目标校验和写入回读协议",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:58:54.999Z"
+  },
+  {
+    "id": "SUP-24",
+    "uuid": "39eac872-8da0-458e-8c8b-30cc1019853a",
+    "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取",
+    "status": "Todo",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "nightly",
+      "agent-ready"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:58:51.425Z"
+  },
+  {
+    "id": "SUP-13",
+    "uuid": "8a91c9b6-f7f1-4ab6-9d63-dd6af5c851cf",
+    "title": "7. Verification scenarios A-E",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-20T07:57:34.453Z"
+  },
+  {
+    "id": "SUP-35",
+    "uuid": "7dd163a7-d206-4421-8a02-e11853b146e0",
+    "title": "Decision-Control Runtime — lifecycle, semantic gates and provider-neutral execution",
+    "status": "In Progress",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:56:28.328Z"
+  },
+  {
+    "id": "SUP-15",
+    "uuid": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+    "title": "Dogfood: 复核当前版本的 render/verify 工作流与晨间交接",
+    "status": "Todo",
+    "labels": [
+      "nightly",
+      "agent-ready",
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 1,
+      "name": "Urgent"
+    },
+    "updatedAt": "2026-09-20T07:55:39.385Z"
+  },
+  {
+    "id": "SUP-47",
+    "uuid": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+    "title": "N01 · 夜班恢复与后继晋升契约验收",
+    "status": "Todo",
+    "labels": [
+      "nightly",
+      "agent-ready",
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-20T07:55:04.163Z"
+  },
+  {
+    "id": "SUP-14",
+    "uuid": "b5e9a8bc-a548-4298-b065-c92330735251",
+    "title": "Dogfood: night queue round trip and synchronized state",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-20T07:52:12.621Z"
+  },
+  {
+    "id": "SUP-12",
+    "uuid": "48e15c0d-c7eb-4adc-b6d7-261a6fd4dfb9",
+    "title": "8. Attention views and human setup",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-20T07:52:09.609Z"
+  },
+  {
+    "id": "SUP-21",
+    "uuid": "57d4216c-51c8-44f0-9bed-f1bdd8ee1c6b",
+    "title": "Phase 5 采纳与治理：research 文档 + PROVENANCE + adopt 同步 + 计数留档",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 4,
+      "name": "Low"
+    },
+    "updatedAt": "2026-09-19T23:33:57.866Z"
+  },
+  {
+    "id": "SUP-22",
+    "uuid": "d7508c53-989e-4578-b893-b2619052473a",
+    "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）",
+    "status": "In Progress",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-19T23:33:57.380Z"
+  },
+  {
+    "id": "SUP-16",
+    "uuid": "12956010-bdf4-4d2d-9dc2-a57f26d6e190",
+    "title": "Render-verify: 测量式 UI 验证能力吸收（markdown-viewer 方法 → SWF 自有 capability）",
+    "status": "In Progress",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-19T17:56:06.077Z"
+  },
+  {
+    "id": "SUP-17",
+    "uuid": "35fac9fe-88b7-4748-9d9b-ad50f1ca7b8a",
+    "title": "Phase 1 契约层：测量不变量契约 + ux-design 接线",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "updatedAt": "2026-09-19T17:54:07.267Z"
+  },
+  {
+    "id": "SUP-23",
+    "uuid": "2207400d-97d3-47d1-816c-36b5c5ab1e5e",
+    "title": "LMP-01 · 冻结产品映射与接入预检",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 1,
+      "name": "Urgent"
+    },
+    "updatedAt": "2026-09-19T03:03:22.134Z"
+  },
+  {
+    "id": "SUP-5",
+    "uuid": "e0a75be2-b0f4-419f-bd8b-ea8df0e12fbb",
+    "title": "MVP: Linear × Local Codex Human-Agent Control Plane",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-18T23:34:47.113Z"
+  },
+  {
+    "id": "SUP-10",
+    "uuid": "68c22bf7-f2f2-4090-b8a0-c008416d0645",
+    "title": "5. Deterministic helpers and tests",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-18T23:34:47.113Z"
+  },
+  {
+    "id": "SUP-20",
+    "uuid": "6905a686-c04c-460f-94f9-e49d18932ed0",
+    "title": "Phase 4 经验账：浏览器验证陷阱 + 经济学纪律",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 4,
+      "name": "Low"
+    },
+    "updatedAt": "2026-09-18T07:33:23.646Z"
+  },
+  {
+    "id": "SUP-19",
+    "uuid": "31e1c12d-0c6d-4782-a9eb-df41f36f3eb2",
+    "title": "Phase 3 真实消费：homepage/dist 测量证据 + 覆盖声明",
+    "status": "Backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "updatedAt": "2026-09-18T07:33:21.669Z"
+  },
+  {
+    "id": "SUP-11",
+    "uuid": "f660d3fc-5d65-47db-912f-1add50979c6f",
+    "title": "6. Night executor and morning handoff workflows",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-17T14:20:27.611Z"
+  },
+  {
+    "id": "SUP-9",
+    "uuid": "1db7117c-5773-47f1-9922-5d14f9160891",
+    "title": "4. Reusable linear-work-control skill",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-17T14:20:24.470Z"
+  },
+  {
+    "id": "SUP-8",
+    "uuid": "07760bf4-5372-4218-a349-c16ba76b904f",
+    "title": "3. Checkpoint, blocker, and resume protocol",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-17T14:20:23.152Z"
+  },
+  {
+    "id": "SUP-7",
+    "uuid": "c4728236-d3f7-428a-8401-fc79a1234c34",
+    "title": "2. State mapping and capability boundary",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-17T14:20:21.731Z"
+  },
+  {
+    "id": "SUP-6",
+    "uuid": "37670549-0cde-47b2-9dfe-5a2d5cc7fd33",
+    "title": "1. Binding, schema, and workspace guard",
+    "status": "Done",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "updatedAt": "2026-09-17T14:20:19.800Z"
+  }
+]

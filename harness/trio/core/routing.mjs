@@ -45,6 +45,12 @@ export const FLASH_EXECUTION_MODEL = 'opencode-go/deepseek-v4-flash';
 export const CHIEF_REQUESTED_MODELS = Object.freeze(['gpt-6-astra', 'gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna']);
 export const CHIEF_REQUESTED_EFFORTS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
 
+// Additive vocabulary over the existing work-role, effort and topology enums.
+// Nothing here changes an existing export or widens a supported effort subset.
+export const MODE_KINDS = Object.freeze(['think', 'execute']);
+export const INTENSITY_LEVELS = Object.freeze(['low', 'medium', 'high', 'xhigh', 'max']);
+export const TOPOLOGY_CLASSES = Object.freeze(['solo', 'delegated', 'parallel']);
+
 const COMPLEXITY_SIGNALS = Object.freeze({
   high: Object.freeze(['bounded', 'routine']),
   xhigh: Object.freeze(['multiFile', 'verificationHeavy', 'research', 'iterative']),
@@ -159,6 +165,54 @@ export function classifyComplexity(input = {}) {
   if (matched.length === 1) return matched[0];
   if (matched.length === 0) return null;
   throw new Error('Ambiguous complexity signals are a blocker for execution work; no implicit model escalation.');
+}
+
+// THINK and EXECUTE are derived from the existing work-role enums; the enums stay
+// authoritative and no model identity is bound to a mode.
+export function modeOf(workRole) {
+  if (typeof workRole !== 'string' || !WORK_ROLE_KINDS.includes(workRole)) {
+    throw new Error(`Unknown work role: ${String(workRole)}`);
+  }
+  return CHIEF_WORK_ROLES.includes(workRole) ? 'think' : 'execute';
+}
+
+// The per-mode supported subsets are deliberately unchanged from today's behaviour:
+// think uses CHIEF_REQUESTED_EFFORTS, execute keeps the execution-scoped COMPLEXITY_KINDS.
+export function intensitySubsetOf(mode) {
+  if (typeof mode !== 'string' || !MODE_KINDS.includes(mode)) {
+    throw new Error(`Unknown mode: ${String(mode)}`);
+  }
+  return mode === 'think' ? CHIEF_REQUESTED_EFFORTS : COMPLEXITY_KINDS;
+}
+
+export function normalizeIntensity(value, mode) {
+  const subset = intensitySubsetOf(mode);
+  if (typeof value !== 'string' || !INTENSITY_LEVELS.includes(value)) {
+    throw new Error(`Unknown intensity: ${String(value)}`);
+  }
+  if (!subset.includes(value)) {
+    throw new Error(`Intensity ${value} is not supported in ${mode} mode; use ${subset.join(', ')}.`);
+  }
+  return value;
+}
+
+// Topology is a derived label over fields that already exist; it never writes back
+// into Trio and never changes routing, delegation or permission behaviour.
+export function topologyClassOf(record = {}) {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) {
+    throw new Error('Topology classification requires an object record.');
+  }
+  const capability = record.capability && typeof record.capability === 'object' && !Array.isArray(record.capability)
+    ? record.capability
+    : {};
+  const childDelegation = record.childDelegation ?? capability.childDelegation;
+  const executionMode = record.executionMode ?? capability.executionMode;
+  const primaryExecution = record.primaryExecution ?? capability.primaryExecution;
+  const hostRoute = record.routeKind ?? record.hostRoute;
+  if (childDelegation === 'encouraged') return 'parallel';
+  if (hostRoute === 'native_subagent' || executionMode === 'worker_self_goal') return 'delegated';
+  if (primaryExecution === 'visible_worker_required') return 'delegated';
+  return 'solo';
 }
 
 function normalizeOverride(override) {
@@ -406,6 +460,77 @@ export function resolveAssignmentPacketModelPolicy(assignmentPacket, { isChild =
     hostEvidence,
     evidence: { authenticated: false }
   }, null);
+}
+
+// Capability-first requirements: the control plane states what it needs, never which
+// model to use. The registry stays ordered configuration, exactly like the existing
+// RECOMMENDED_MODEL_SELECTIONS presets; no provider fallback ladder is introduced.
+export const EXECUTION_REQUIREMENT_FIELDS = Object.freeze(['mode', 'intensity', 'capabilities']);
+
+export function ExecutionRequirement(input = {}) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new Error('Execution requirement must be an object.');
+  }
+  const missing = EXECUTION_REQUIREMENT_FIELDS.filter((field) => !Object.hasOwn(input, field));
+  if (missing.length > 0) {
+    throw new Error(`Execution requirement requires ${EXECUTION_REQUIREMENT_FIELDS.join(', ')}; missing ${missing.join(', ')}.`);
+  }
+  const unexpected = Object.keys(input).filter((field) => !EXECUTION_REQUIREMENT_FIELDS.includes(field));
+  if (unexpected.length > 0) {
+    throw new Error(`Execution requirement rejects unexpected fields: ${unexpected.join(', ')}.`);
+  }
+  if (typeof input.mode !== 'string' || !MODE_KINDS.includes(input.mode)) {
+    throw new Error(`Unknown mode: ${String(input.mode)}`);
+  }
+  const intensity = normalizeIntensity(input.intensity, input.mode);
+  assertNonEmptyStringArray(input.capabilities, 'Execution requirement capabilities');
+  return Object.freeze({ mode: input.mode, intensity, capabilities: Object.freeze([...input.capabilities]) });
+}
+
+export function resolveExecutionImplementation(requirementInput, registry = {}) {
+  const requirement = ExecutionRequirement(requirementInput);
+  const implementations = Array.isArray(registry?.implementations) ? registry.implementations : null;
+  if (implementations === null) {
+    throw new Error('Execution registry must declare an implementations array.');
+  }
+  const described = implementations.map((entry) => {
+    const id = normalizedString(entry?.id);
+    if (id === null) throw new Error('Every execution implementation requires a non-empty id.');
+    return {
+      id,
+      modes: Array.isArray(entry.modes) ? entry.modes : [],
+      capabilities: Array.isArray(entry.capabilities) ? entry.capabilities : [],
+      intensities: Array.isArray(entry.intensities) ? entry.intensities : [],
+      available: entry.available !== false
+    };
+  });
+  const unsatisfiable = (reason) => ({
+    implementation: null,
+    reason,
+    fallbackReason: reason,
+    considered: []
+  });
+  const modeMatches = described.filter((entry) => entry.modes.includes(requirement.mode));
+  if (modeMatches.length === 0) return unsatisfiable('unsatisfiable_mode');
+  const capabilityMatches = modeMatches.filter((entry) =>
+    requirement.capabilities.every((capability) => entry.capabilities.includes(capability)));
+  if (capabilityMatches.length === 0) return unsatisfiable('unsatisfiable_capability');
+  const availableMatches = capabilityMatches.filter((entry) => entry.available);
+  if (availableMatches.length === 0) return unsatisfiable('no_available_implementation');
+  const intensityMatches = availableMatches.filter((entry) =>
+    entry.intensities.includes(requirement.intensity));
+  if (intensityMatches.length === 0) return unsatisfiable('unsatisfiable_intensity');
+  return {
+    implementation: {
+      id: intensityMatches[0].id,
+      mode: requirement.mode,
+      intensity: requirement.intensity,
+      capabilities: [...requirement.capabilities]
+    },
+    reason: 'selected',
+    fallbackReason: null,
+    considered: intensityMatches.map((entry) => entry.id)
+  };
 }
 
 function assertNonEmptyStringArray(values, label) {

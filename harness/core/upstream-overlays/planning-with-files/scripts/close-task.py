@@ -13,14 +13,24 @@ import planning_paths
 
 
 CURRENT_STATE_TEMPLATE = """## Current State
+Task ID: {task_id}
 Status: closed
 Archive Eligible: yes
 Close Reason: {reason}
 Closed At: {closed_at}
+Reconcile: not_required
 """
 
-def update_current_state(markdown: str, reason: str, closed_at: str) -> str:
-    block = CURRENT_STATE_TEMPLATE.format(reason=reason, closed_at=closed_at).rstrip()
+def update_current_state(markdown: str, reason: str, closed_at: str, task_id: str) -> str:
+    matches = re.findall(r"^Task ID:\s*([A-Za-z0-9][A-Za-z0-9._-]{0,79})\s*$", markdown, re.MULTILINE)
+    if len(set(matches)) > 1:
+        raise RuntimeError("task_plan.md contains conflicting Task ID fields")
+    if matches and matches[0] != task_id:
+        raise RuntimeError(f"Task ID {matches[0]!r} does not match active directory {task_id!r}")
+    # Keep exactly one stable identity wherever the author placed it; the
+    # replacement Current State block owns the canonical copy.
+    markdown = re.sub(r"^Task ID:\s*[A-Za-z0-9][A-Za-z0-9._-]{0,79}\s*\n", "", markdown, flags=re.MULTILINE)
+    block = CURRENT_STATE_TEMPLATE.format(task_id=task_id, reason=reason, closed_at=closed_at).rstrip()
     pattern = re.compile(r"^##\s+Current State\s*$[\s\S]*?(?=^##\s+|\Z)", re.MULTILINE)
 
     if pattern.search(markdown):
@@ -57,11 +67,12 @@ def main() -> int:
         return 2
 
     closed_at = datetime.now().isoformat(timespec="seconds")
-    updated = update_current_state(read_text(task_plan), args.reason, closed_at)
+    updated = update_current_state(read_text(task_plan), args.reason, closed_at, task_id)
     if sync_status["has_companion"]:
         sync_close_state(project_path, task_id, closed_at, args.reason, updated)
     else:
         task_plan.write_text(updated, encoding="utf-8")
+    planning_paths.stage_lifecycle_sync(project_path, task_id, plan_dir, "close")
     print(f"[planning-with-files] Closed task and marked archive eligible: {plan_dir}")
     return 0
 

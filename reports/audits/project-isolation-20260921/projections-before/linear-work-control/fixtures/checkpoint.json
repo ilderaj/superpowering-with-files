@@ -1,0 +1,26 @@
+{
+  "taskId": "swf-linear-control-plane-mvp-20260917",
+  "title": "MVP: Linear × Local Codex Human-Agent Control Plane",
+  "state": "running",
+  "progress": {
+    "percent": 60,
+    "note": "deterministic helpers and skill landed"
+  },
+  "completed": [
+    "binding schema plus workspace guard validated"
+  ],
+  "now": [
+    "publishing the first checkpoint through the MCP"
+  ],
+  "next": [
+    "bind the Linear project once authentication matches"
+  ],
+  "humanAction": {
+    "required": false
+  },
+  "validation": {
+    "summary": "core suite passes; see progress.md for the current counts",
+    "command": "npm run verify:core"
+  },
+  "timestamp": "2026-09-17 21:20:00 UTC+8"
+}

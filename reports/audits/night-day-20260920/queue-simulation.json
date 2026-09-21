@@ -1,0 +1,83 @@
+{
+  "kind": "manual read-only selection simulation; no claims or execution",
+  "results": [
+    {
+      "ok": true,
+      "nextIssueId": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+      "reason": "selected",
+      "elapsedMs": 0,
+      "attemptsUsed": 0,
+      "skipped": [],
+      "remainingIssueIds": [
+        "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+        "39eac872-8da0-458e-8c8b-30cc1019853a",
+        "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+        "32800402-aba3-4939-a0c5-b425bd98d5ba"
+      ]
+    },
+    {
+      "ok": true,
+      "nextIssueId": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+      "reason": "selected",
+      "elapsedMs": 0,
+      "attemptsUsed": 1,
+      "skipped": [
+        {
+          "id": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+          "reason": "already-attempted"
+        }
+      ],
+      "remainingIssueIds": [
+        "39eac872-8da0-458e-8c8b-30cc1019853a",
+        "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+        "32800402-aba3-4939-a0c5-b425bd98d5ba"
+      ]
+    },
+    {
+      "ok": true,
+      "nextIssueId": "39eac872-8da0-458e-8c8b-30cc1019853a",
+      "reason": "selected",
+      "elapsedMs": 0,
+      "attemptsUsed": 2,
+      "skipped": [
+        {
+          "id": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+          "reason": "already-attempted"
+        },
+        {
+          "id": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+          "reason": "already-attempted"
+        }
+      ],
+      "remainingIssueIds": [
+        "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+        "32800402-aba3-4939-a0c5-b425bd98d5ba"
+      ]
+    },
+    {
+      "ok": true,
+      "nextIssueId": null,
+      "reason": "attempt-budget",
+      "elapsedMs": 0,
+      "attemptsUsed": 3,
+      "skipped": [
+        {
+          "id": "39eac872-8da0-458e-8c8b-30cc1019853a",
+          "reason": "already-attempted"
+        },
+        {
+          "id": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+          "reason": "already-attempted"
+        },
+        {
+          "id": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+          "reason": "already-attempted"
+        }
+      ],
+      "remainingIssueIds": [
+        "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+        "32800402-aba3-4939-a0c5-b425bd98d5ba"
+      ]
+    }
+  ]
+}

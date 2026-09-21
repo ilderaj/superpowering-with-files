@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "ilderaj"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
+  },
+  "project": {
+    "id": "2c23513e-5abd-4e71-9212-8814f9b3aa12"
+  },
+  "goalIssue": {
+    "id": "d7508c53-989e-4578-b893-b2619052473a",
+    "identifier": "SUP-22",
+    "url": "https://linear.app/ilderaj/issue/SUP-22/多项目-linear-隔离与-chief-自动化治理lmp"
+  },
+  "statusComment": {
+    "id": "6671e48e-e109-4624-9d06-7f00c6acb16c"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "linear-multiproject-isolation-20260918": {
+      "issueId": "d7508c53-989e-4578-b893-b2619052473a",
+      "identifier": "SUP-22",
+      "state": "running",
+      "nightSlice": "SUP-25",
+      "nightSliceState": "ready",
+      "subIssueStates": {
+        "LMP-01": "done",
+        "LMP-02": "done",
+        "LMP-03": "ready",
+        "LMP-04": "planned",
+        "LMP-05": "planned",
+        "LMP-06": "planned",
+        "LMP-07": "planned",
+        "LMP-08": "planned",
+        "LMP-09": "planned",
+        "LMP-10": "planned",
+        "LMP-11": "planned",
+        "LMP-12": "planned"
+      },
+      "subIssues": {
+        "LMP-10": "0586b16f-8719-4cb0-b01e-184558fab642",
+        "LMP-11": "02190d1b-1a04-4ccf-be13-a816e429fac3",
+        "LMP-12": "dac3fd8f-d022-4587-ade4-1ae6a1d653c3",
+        "LMP-01": "2207400d-97d3-47d1-816c-36b5c5ab1e5e",
+        "LMP-02": "39eac872-8da0-458e-8c8b-30cc1019853a",
+        "LMP-03": "3f702e3e-5a58-493f-a510-db1cd40a42d2",
+        "LMP-04": "55ef5cea-04b0-463e-a994-f9d0ec977074",
+        "LMP-05": "4a09e47c-91c0-4432-a4da-da6034c8d4b4",
+        "LMP-06": "dc5e8423-0872-4d26-b01e-e7a88c0e4acc",
+        "LMP-07": "20a8a5f5-a6ba-4bf6-aa52-eec18b2845fe",
+        "LMP-08": "d81894f8-db44-4d56-917f-34955659dbce",
+        "LMP-09": "27591bc1-53f0-4f3f-9656-3a87e64bd7e7"
+      }
+    }
+  },
+  "sync": {
+    "lastResult": "ok",
+    "lastCheckpointAt": "2026-09-19 01:40 UTC+8",
+    "pendingRetry": false,
+    "lastError": null
+  }
+}

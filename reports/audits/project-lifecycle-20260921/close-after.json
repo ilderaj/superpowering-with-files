@@ -1,0 +1,64 @@
+{
+  "id": "SUP-53",
+  "uuid": "7b8f4699-5c35-4a90-b3e6-0e25edcdf82f",
+  "title": "立即修复：Trio 归档恢复绑定与产品默认 Project 生命周期",
+  "description": "```text\nharness-task: swf/project-lifecycle-repair-20260921\n```\n\n用户授权立即执行，不排夜班。Local authority: planning/active/project-lifecycle-repair-20260921/task_plan.md。\n\n验收：稳定 Task ID 跨 close/archive/reopen；复用原 issue UUID；恢复不自动 nightly；关闭 Project 拒绝执行；新产品默认单 Project，显式交付流才拆分；回归测试、安装采纳及真实闭环验证。",
+  "priority": {
+    "value": 0,
+    "name": "No priority"
+  },
+  "url": "https://linear.app/superpoweringwithfiles/issue/SUP-53/立即修复trio-归档恢复绑定与产品默认-project-生命周期",
+  "gitBranchName": "imjaredli/sup-53-立即修复：trio-归档恢复绑定与产品默认-project-生命周期",
+  "createdAt": "2026-09-21T04:20:02.307Z",
+  "updatedAt": "2026-09-21T04:34:23.579Z",
+  "archivedAt": null,
+  "completedAt": "2026-09-21T04:34:23.555Z",
+  "startedAt": "2026-09-21T04:20:02.500Z",
+  "canceledAt": null,
+  "dueDate": null,
+  "slaStartedAt": null,
+  "slaMediumRiskAt": null,
+  "slaHighRiskAt": null,
+  "slaBreachesAt": null,
+  "status": "Done",
+  "statusType": "completed",
+  "labels": [
+    "workstream:isolation",
+    "swf-managed",
+    "executor:codex-local"
+  ],
+  "attachments": [],
+  "documents": [],
+  "stateHistory": [
+    {
+      "state": {
+        "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "startedAt": "2026-09-21T04:20:02.307Z",
+      "endedAt": "2026-09-21T04:34:23.570Z"
+    },
+    {
+      "state": {
+        "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+        "name": "Done",
+        "type": "completed"
+      },
+      "startedAt": "2026-09-21T04:34:23.570Z",
+      "endedAt": null
+    }
+  ],
+  "createdBy": "Jared Li",
+  "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+  "project": "SWF — Project Isolation & Automation",
+  "projectId": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+  "team": "SuperpoweringWithFiles",
+  "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+  "relations": {
+    "blocks": [],
+    "blockedBy": [],
+    "relatedTo": [],
+    "duplicateOf": null
+  }
+}

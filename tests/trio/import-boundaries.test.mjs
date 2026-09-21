@@ -15,7 +15,10 @@ export const FINAL_INVENTORY = Object.freeze([
   'harness/trio/hosts/codex.mjs',
   'harness/trio/config.mjs',
   'harness/trio/projection.mjs',
-  'harness/installer/commands/trio.mjs'
+  'harness/installer/commands/trio.mjs',
+  'harness/trio/core/decision.mjs',
+  'harness/trio/core/evidence.mjs',
+  'harness/trio/core/shadow.mjs'
 ]);
 
 const MILESTONE_INVENTORY = Object.freeze({
@@ -81,6 +84,15 @@ export const FINAL_DIRECTION_MATRIX = Object.freeze({
     'harness/trio/hosts/codex.mjs',
     'harness/trio/config.mjs',
     'harness/trio/projection.mjs'
+  ]),
+  'harness/trio/core/decision.mjs': Object.freeze([
+    'harness/trio/core/routing.mjs'
+  ]),
+  'harness/trio/core/evidence.mjs': Object.freeze([
+    'harness/trio/core/decision.mjs'
+  ]),
+  'harness/trio/core/shadow.mjs': Object.freeze([
+    'harness/trio/core/decision.mjs'
   ])
 });
 

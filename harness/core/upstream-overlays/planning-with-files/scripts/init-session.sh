@@ -36,7 +36,7 @@ if [ "$#" -eq 2 ] && looks_like_project_path "${1:-}" && [ "${2#-}" = "${2:-}" ]
         {
             echo ""
             echo "## Task Metadata"
-            echo "- Task ID: $TASK_SLUG"
+            echo "Task ID: $TASK_SLUG"
             echo "- Planning Directory: $PLAN_DIR"
         } >> "$PLAN_DIR/task_plan.md"
         echo "Created $PLAN_DIR/task_plan.md"
@@ -49,7 +49,7 @@ if [ "$#" -eq 2 ] && looks_like_project_path "${1:-}" && [ "${2#-}" = "${2:-}" ]
         {
             echo ""
             echo "## Task Metadata"
-            echo "- Task ID: $TASK_SLUG"
+            echo "Task ID: $TASK_SLUG"
             echo "- Planning Directory: $PLAN_DIR"
         } >> "$PLAN_DIR/findings.md"
         echo "Created $PLAN_DIR/findings.md"
@@ -62,7 +62,7 @@ if [ "$#" -eq 2 ] && looks_like_project_path "${1:-}" && [ "${2#-}" = "${2:-}" ]
         {
             echo ""
             echo "## Task Metadata"
-            echo "- Task ID: $TASK_SLUG"
+            echo "Task ID: $TASK_SLUG"
             echo "- Planning Directory: $PLAN_DIR"
         } >> "$PLAN_DIR/progress.md"
         echo "Created $PLAN_DIR/progress.md"

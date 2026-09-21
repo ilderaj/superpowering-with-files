@@ -1,0 +1,14 @@
+version = 1
+id = "swf-night-executor"
+kind = "cron"
+name = "SWF Night Executor"
+prompt = "Run one nightly local execution pass for this repository. Read harness/core/skills/linear-work-control/SKILL.md and reference.md first, then resolve the Linear binding for the task you are about to work on.\n\n1. Verified preflight: read the authenticated Linear workspace and run the guard helper. If it does not return ok, make no Linear write, record the mismatch in local task files, and stop.\n2. Select at most one ready task: swf-managed + agent-ready + nightly, in the bound project, ordered by priority then updated time. Exclude waiting-human, blocked, ready-review, and anything already running. Use linear_list_issues with the label and state filters when the binding exists.\n3. Read the task's local files before acting (planning/active/<task-id>/). If nothing is ready, publish a no-op checkpoint and finish.\n4. Work the task locally with the normal SWF governance for this repository. Update local worklog, state, validation, and blockers as you go.\n5. Publish one checkpoint to the bound issue: state, progress, completed just now, happening now, next, human action required, latest validation. Update the stored status comment in place.\n6. If the task needs a human decision, write the local blocker, publish the structured blocker, move the issue to waiting-human, and continue with the next independent ready task instead of stopping the whole run.\n7. If the task fails technically, record the failure locally, set agent-failed with the reason, and continue with the next independent safe task.\n8. Only mark Done when the completion gate returns DONE ALLOWED.\n9. Finish by publishing one overnight summary for the human: completed, ready for review, needs a decision, failed, still running, skipped, next work.\n\nConstraints: one task at a time, no parallel edits to this repository, never write to a workspace that is not the bound workspace, never invent completion, and keep every published surface short enough to read in a minute."
+status = "ACTIVE"
+rrule = "FREQ=DAILY;BYHOUR=1;BYMINUTE=30"
+model = "opencode-go/deepseek-v4.1-flash"
+reasoning_effort = "high"
+execution_environment = "local"
+target = { type = "project", project_id = "local-8de225de40a3a2886c8065ccb69a4588" }
+cwds = ["/Users/jared/SuperpoweringWithFiles"]
+created_at = 1789650099724
+updated_at = 1789701730888

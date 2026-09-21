@@ -1,0 +1,14 @@
+version = 1
+id = "swf-morning-handoff"
+kind = "cron"
+name = "SWF Morning Handoff"
+prompt = "Produce the morning handoff for this repository. Read harness/core/skills/linear-work-control/SKILL.md and reference.md first, then run the guard helper; if it does not return ok, make no Linear write and report the mismatch locally instead.\n\n1. Read the bound project's issues with labels waiting-human, blocked, ready-review, agent-failed and agent-running, plus Done issues updated in the last 24 hours. Use linear_list_issues with the label, state, and updatedAt filters when the binding exists.\n2. Read the bound goal issue's latest checkpoint and overnight summary comments with linear_list_comments.\n3. Reconcile them with the local task files so the handoff reflects local truth, not Linear alone.\n4. Publish one morning summary comment grouped as: completed, ready for review, needs a decision, failed, still running, skipped, next work. Each line names the issue and the single action the human must take, if any.\n5. Leave every waiting-human and blocked issue in place for the human. Do not resolve decisions yourself.\n6. Record the run in the local task files, including what the run did not cover.\n\nConstraints: read-mostly, no schedule invention, no bulk status changes, no rewriting history, and no claim that something was delivered when it was only validated locally."
+status = "ACTIVE"
+rrule = "FREQ=DAILY;BYHOUR=7;BYMINUTE=30"
+model = "opencode-go/deepseek-v4.1-flash"
+reasoning_effort = "high"
+execution_environment = "local"
+target = { type = "project", project_id = "local-8de225de40a3a2886c8065ccb69a4588" }
+cwds = ["/Users/jared/SuperpoweringWithFiles"]
+created_at = 1789650104504
+updated_at = 1789701735290

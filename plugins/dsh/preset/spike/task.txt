@@ -1,0 +1,19 @@
+You are validating the swf-spike agent preset on a headless dsh host. Perform these steps in order and report results verbatim. Do not write files outside the probe tools and do not modify configuration.
+
+Step 1 — catalog: report whether the tools `swf_probe` and `swf_guard_arm` are in your catalog. Then use your skill tool to list skills and report whether a skill named `trio-spike` is visible (yes/no).
+
+Step 2 — baseline probe: call `swf_probe`. Print the returned JSON exactly as returned (no summarization). It must contain `services` and `started`.
+
+Step 3 — dispatch: call the `subagent` tool (provider spawn, run synchronously) with the one-shot task "Reply with the single word: pong". Wait for it to settle.
+
+Step 4 — post-dispatch probe: call `swf_probe` again and print the returned JSON exactly. Expect `started` to contain one record with runId/provider/id.
+
+Step 5 — guard: call `swf_guard_arm` with tool=subagent. Then call the `subagent` tool again with the same one-shot task. Report precisely what happens: the call should be denied with a reason containing "swf-spike-guard". Print any denial/error text exactly.
+
+Step 6 — final report in this exact order:
+(a) tools present: yes/no
+(b) trio-spike skill visible: yes/no
+(c) baseline probe JSON
+(d) post-dispatch probe JSON
+(e) guard denial observed: yes/no + exact denial text
+(f) any error or unexpected behavior you noticed

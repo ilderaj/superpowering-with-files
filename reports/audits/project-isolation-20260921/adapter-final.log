@@ -1,0 +1,26 @@
+✔ marker segments allow live WP/LMP/camelCase forms and reject dot segments (1.358916ms)
+✔ intake defaults, exact keys and conflicting mappings (0.677583ms)
+✔ exact marker reuse and complete unique coverage (0.32675ms)
+✔ closed projects deny new intake; labels never route; terminal never queues (0.328833ms)
+✔ policy ambiguity and missing issue evidence fail closed (0.206875ms)
+✔ creation requires known matching active project metadata (0.189ms)
+✔ policy may omit descriptions, but live snapshot ownership is required (0.228292ms)
+✔ missing or wrong marker cannot reuse or create (0.100625ms)
+✔ comment mutation requires exact fully-read issue-linked comment (0.190291ms)
+✔ registry policy validation rejects project overlap but permits shared team (0.155541ms)
+✔ guard verifies exact issue/project and independent real Git family (250.75375ms)
+✔ CLI prints JSON denial and documents inputs (299.945167ms)
+✔ workspace project catalog rejects duplicate ownership outside configured project list (0.18075ms)
+✔ legacy identifier and UUID maps preserve parent and child, without inheriting comment (2.218167ms)
+✔ legacy map-only UUID and identifier-only forms are supported with exact live lookup (0.356042ms)
+✔ missing/ambiguous/drifting identity and loss-prone maps fail closed (0.884875ms)
+✔ non-goal task cannot inherit goal status comment (0.11825ms)
+✔ v2 reuses canonical schema validation and still requires live marker/readback (0.500833ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 639.644

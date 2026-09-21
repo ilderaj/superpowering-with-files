@@ -1,5 +1,19 @@
 # Roadmap
 
+## Linear Project ownership（2026-09-21）
+
+当前采用 [Project-first 隔离](plans/project-isolation-20260921/spec.md)。Team SUP承载共同执行工作流；Project承载产品交付流，label仅作分类/执行资格，Status表达进度。
+
+| Roadmap / backlog | Linear归属 | 处置 |
+|---|---|---|
+| 基础治理、KER/GOV/REC/UPD/MCP/ADOPT/OFFICE/CDX与历史版本路线 | SWF — Core & Operations | 历史完成/被替代不重建任务；未实现候选先reconcile，真正tracked intake默认此Project，非自动nightly |
+| Render measurement与采纳 | SWF — Render Verification | SUP15–21；依赖和验收保持 |
+| 多项目接入/白夜班/隔离 | SWF — Project Isolation & Automation | SUP22–34；共享Team+独立Project替代四Team推广 |
+| Decision Runtime、WP/J修复评估 | SWF — Decision Runtime | SUP35–46、48–51；shadow/发布门保持 |
+| 夜班恢复N01历史交付 | SWF — Core & Operations | SUP47保持Done |
+
+每个新tracked任务按当前repo policy、明确parent/project key或default Project自动归属，不靠标题推测。Project不提供文件并发锁，不代表权限隔离。元数据manifest位于reports/audits/project-isolation-20260921/；权威仍是各任务Trio。
+
 This roadmap captures the current mainline for Harness and the work that is intentionally deferred behind stronger proof.
 
 ## Current V1.3 Implementation Line

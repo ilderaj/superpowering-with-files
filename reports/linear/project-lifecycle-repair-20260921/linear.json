@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "ilderaj"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
+  },
+  "project": {
+    "id": "2c23513e-5abd-4e71-9212-8814f9b3aa12"
+  },
+  "goalIssue": {
+    "id": "7b8f4699-5c35-4a90-b3e6-0e25edcdf82f",
+    "identifier": "SUP-53"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "project-lifecycle-repair-20260921": {
+      "issueId": "7b8f4699-5c35-4a90-b3e6-0e25edcdf82f",
+      "identifier": "SUP-53",
+      "state": "done"
+    }
+  },
+  "sync": {
+    "lastResult": "ok",
+    "pendingRetry": false
+  },
+  "statusComment": {
+    "id": "293257c1-e4b4-47e0-bbb4-3a4eaa003181"
+  }
+}

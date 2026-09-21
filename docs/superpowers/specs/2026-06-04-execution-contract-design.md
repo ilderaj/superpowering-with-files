@@ -475,3 +475,7 @@ Proceed with **Hybrid Authority + Receipts**.
 Implement the execution contract first.
 Add receipt persistence and integration signals second.
 Do not let receipt mechanics redefine authoritative task memory.
+
+---
+
+**Status (2026-09-19): retired.** The per-unit execution contract, its receipts, approval tokens and write plans were implemented and then deliberately removed; `tests/installer/record-command.test.mjs` asserts their absence. This spec is historical design input, not current authority. The live execution contract is the 8-field assignment packet in `harness/trio/core/routing.mjs` — see [2026-09-19-decision-control-runtime-design.md](2026-09-19-decision-control-runtime-design.md).

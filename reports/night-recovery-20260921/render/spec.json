@@ -1,0 +1,5 @@
+{
+  "page": "centered-fixture", "state": "default", "viewport": {"width":800,"height":600},
+  "coverage": {"unverified":["homepage consumption (SUP-19)","other states and viewports"]},
+  "checks": [{"invariant":"centered","selector":"#target","parentSelector":"body"}]
+}

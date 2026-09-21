@@ -1,0 +1,19 @@
+[swf-mjs] module scope reached
+file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:1186
+		throw new Error(`${binName}: ${stage}: ${detail}${stack}`, { cause });
+		      ^
+
+Error: dsh: plugin tree failed to load: dsh: 1 entry did not activate
+/Users/jared/.dsh/profiles/headless/swf-runner-min.mjs: pending (waiting for services: agentDefaultModel, agents, sessions)
+    at boot (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:1186:9)
+    at async runProfile (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh/lib/profile-boot-DG5t9aNs.js:247:14)
+    at async file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh/lib/bin.js:133:3 {
+  [cause]: Error: dsh: 1 entry did not activate
+  /Users/jared/.dsh/profiles/headless/swf-runner-min.mjs: pending (waiting for services: agentDefaultModel, agents, sessions)
+      at assertEntriesActivated (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:1133:9)
+      at boot (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js:1178:9)
+      at async runProfile (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh/lib/profile-boot-DG5t9aNs.js:247:14)
+      at async file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh/lib/bin.js:133:3
+}
+
+Node.js v25.8.1

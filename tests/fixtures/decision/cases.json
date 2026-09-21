@@ -1,0 +1,873 @@
+[
+  {
+    "id": "intake-trivial-quick-edit",
+    "area": "intake",
+    "bundle": "intake",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "intake",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "low"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": null
+    },
+    "operator": {
+      "goal_clarity": 5,
+      "plan_needed": false,
+      "tracked_state_value": false,
+      "risk_level": "low",
+      "intelligence_demand": "low",
+      "parallel_benefit": false
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "intake-tracked-coding",
+    "area": "intake",
+    "bundle": "intake",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "intake",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "multi-step tracked coding task"
+    },
+    "operator": {
+      "goal_clarity": 4,
+      "plan_needed": true,
+      "tracked_state_value": true,
+      "risk_level": "medium",
+      "intelligence_demand": "high",
+      "parallel_benefit": false
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "intake-plan-only",
+    "area": "intake",
+    "bundle": "intake",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "intake",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "plan-only task"
+    },
+    "operator": {
+      "goal_clarity": 3,
+      "plan_needed": true,
+      "tracked_state_value": true,
+      "risk_level": "medium",
+      "intelligence_demand": "high",
+      "parallel_benefit": false
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "intake-execute-existing-plan",
+    "area": "intake",
+    "bundle": "intake",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "intake",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "execute",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "execute an already frozen plan"
+    },
+    "operator": {
+      "goal_clarity": 5,
+      "plan_needed": false,
+      "tracked_state_value": true,
+      "risk_level": "low",
+      "intelligence_demand": "medium",
+      "parallel_benefit": true
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "intake-office-artifact",
+    "area": "intake",
+    "bundle": "intake",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "intake",
+      "capability": "office"
+    },
+    "requirement": {
+      "mode": "execute",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "office artifact production"
+    },
+    "operator": {
+      "goal_clarity": 4,
+      "plan_needed": true,
+      "tracked_state_value": false,
+      "risk_level": "low",
+      "intelligence_demand": "medium",
+      "parallel_benefit": false
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "intake-high-uncertainty-architecture",
+    "area": "intake",
+    "bundle": "intake",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "intake",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "max"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "high-uncertainty architecture task"
+    },
+    "operator": {
+      "goal_clarity": 2,
+      "plan_needed": true,
+      "tracked_state_value": true,
+      "risk_level": "high",
+      "intelligence_demand": "max",
+      "parallel_benefit": true
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "plan-ready",
+    "area": "plan",
+    "bundle": "plan",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "plan",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "genuinely ready plan"
+    },
+    "operator": {
+      "requirements_covered": true,
+      "solution_coherent": true,
+      "dependencies_resolved": true,
+      "implementation_specific": true,
+      "acceptance_defined": true,
+      "verification_defined": true,
+      "blocking_unknowns_remain": false
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "plan-incomplete-requirements",
+    "area": "plan",
+    "bundle": "plan",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "plan",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "incomplete requirements"
+    },
+    "operator": {
+      "requirements_covered": false,
+      "solution_coherent": true,
+      "dependencies_resolved": true,
+      "implementation_specific": true,
+      "acceptance_defined": true,
+      "verification_defined": true,
+      "blocking_unknowns_remain": false
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "plan-unresolved-dependency",
+    "area": "plan",
+    "bundle": "plan",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "plan",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "unresolved dependency"
+    },
+    "operator": {
+      "requirements_covered": true,
+      "solution_coherent": true,
+      "dependencies_resolved": false,
+      "implementation_specific": true,
+      "acceptance_defined": true,
+      "verification_defined": true,
+      "blocking_unknowns_remain": false
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "plan-vague-acceptance",
+    "area": "plan",
+    "bundle": "plan",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "plan",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "vague acceptance criteria"
+    },
+    "operator": {
+      "requirements_covered": true,
+      "solution_coherent": true,
+      "dependencies_resolved": true,
+      "implementation_specific": true,
+      "acceptance_defined": false,
+      "verification_defined": false,
+      "blocking_unknowns_remain": true
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "verify-tests-pass-goal-not-satisfied",
+    "area": "verify",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "pass"
+          }
+        ]
+      },
+      "semanticContext": "tests pass but the goal is not satisfied"
+    },
+    "operator": {
+      "goal_satisfied": false,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 2,
+      "more_work_required": true
+    },
+    "failure": null,
+    "oldBehaviour": "done"
+  },
+  {
+    "id": "verify-goal-satisfied-sufficient-evidence",
+    "area": "verify",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "pass"
+          },
+          {
+            "id": "lint",
+            "status": "pass"
+          }
+        ]
+      },
+      "semanticContext": "goal satisfied with sufficient evidence"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 1,
+      "more_work_required": false
+    },
+    "failure": null,
+    "oldBehaviour": "done"
+  },
+  {
+    "id": "verify-local-repair-needed",
+    "area": "verify",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "pass"
+          }
+        ]
+      },
+      "semanticContext": "implementation needs a local repair"
+    },
+    "operator": {
+      "goal_satisfied": false,
+      "requirements_covered": true,
+      "semantic_correctness": false,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 3,
+      "more_work_required": true
+    },
+    "failure": null,
+    "oldBehaviour": "repair"
+  },
+  {
+    "id": "verify-architecture-requires-replan",
+    "area": "verify",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "pass"
+          }
+        ]
+      },
+      "semanticContext": "architecture requires a replan"
+    },
+    "operator": {
+      "goal_satisfied": false,
+      "requirements_covered": false,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 3,
+      "more_work_required": false
+    },
+    "failure": null,
+    "oldBehaviour": "repair"
+  },
+  {
+    "id": "verify-infrastructure-failure",
+    "area": "verify",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "provider_probe",
+            "status": "unknown"
+          }
+        ]
+      },
+      "semanticContext": "infrastructure failure during verification"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 2,
+      "more_work_required": false
+    },
+    "failure": "timeout",
+    "oldBehaviour": "retry"
+  },
+  {
+    "id": "verify-deterministic-failure-blocks-done",
+    "area": "verify",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "fail"
+          }
+        ]
+      },
+      "semanticContext": "semantic answers are clean but a deterministic check failed"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 2,
+      "more_work_required": false
+    },
+    "failure": null,
+    "oldBehaviour": "done"
+  },
+  {
+    "id": "night-clean-unattended-success",
+    "area": "night",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "execute",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "pass"
+          }
+        ]
+      },
+      "semanticContext": "clean unattended success"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 1,
+      "more_work_required": false
+    },
+    "failure": null,
+    "oldBehaviour": "done"
+  },
+  {
+    "id": "night-technical-provider-failure",
+    "area": "night",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "execute",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "provider_probe",
+            "status": "unknown"
+          }
+        ]
+      },
+      "semanticContext": "provider failure during an unattended run"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "regression_risk": 2,
+      "more_work_required": false
+    },
+    "failure": "provider_unavailable",
+    "oldBehaviour": "retry"
+  },
+  {
+    "id": "night-blocker-requiring-human",
+    "area": "night",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "execute",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "pass"
+          }
+        ]
+      },
+      "semanticContext": "blocker requiring a human decision"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 2,
+      "more_work_required": false
+    },
+    "failure": "unresolved_ambiguity",
+    "oldBehaviour": "waiting-human"
+  },
+  {
+    "id": "night-unexpected-scope-expansion",
+    "area": "night",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "execute",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "pass"
+          }
+        ]
+      },
+      "semanticContext": "unexpected scope expansion"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": false,
+      "verification_sufficient": true,
+      "regression_risk": 3,
+      "more_work_required": false
+    },
+    "failure": null,
+    "oldBehaviour": "done"
+  },
+  {
+    "id": "night-verification-failure",
+    "area": "night",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "execute",
+      "intensity": "high"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "tests",
+            "status": "fail"
+          }
+        ]
+      },
+      "semanticContext": "verification failure"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 2,
+      "more_work_required": false
+    },
+    "failure": null,
+    "oldBehaviour": "done"
+  },
+  {
+    "id": "office-deterministic-pass-semantic-fail",
+    "area": "office",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "office"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "medium"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "formula_integrity",
+            "status": "pass"
+          },
+          {
+            "id": "render",
+            "status": "pass"
+          }
+        ]
+      },
+      "semanticContext": "deterministic artifact checks pass but semantic quality fails"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": false,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 2,
+      "more_work_required": false
+    },
+    "failure": null,
+    "oldBehaviour": "done"
+  },
+  {
+    "id": "office-semantic-pass-deterministic-fail",
+    "area": "office",
+    "bundle": "verify",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "verify",
+      "capability": "office"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "medium"
+    },
+    "evidence": {
+      "deterministic": {
+        "checks": [
+          {
+            "id": "render",
+            "status": "fail"
+          }
+        ]
+      },
+      "semanticContext": "semantic quality passes but deterministic artifact validation fails"
+    },
+    "operator": {
+      "goal_satisfied": true,
+      "requirements_covered": true,
+      "semantic_correctness": true,
+      "scope_preserved": true,
+      "verification_sufficient": true,
+      "regression_risk": 2,
+      "more_work_required": false
+    },
+    "failure": null,
+    "oldBehaviour": "done"
+  },
+  {
+    "id": "action-destructive-write",
+    "area": "action",
+    "bundle": "action",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "action",
+      "capability": "safety"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "medium"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "destructive and irreversible operation"
+    },
+    "operator": {
+      "destructive": true,
+      "irreversible": true,
+      "privileged": false,
+      "high_impact": true,
+      "external": false,
+      "security_sensitive": false
+    },
+    "failure": null,
+    "oldBehaviour": "policy_gate"
+  },
+  {
+    "id": "release-ready-not-authorized",
+    "area": "release",
+    "bundle": "release",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "release",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "low"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "readiness judged, authorization not recorded"
+    },
+    "operator": {
+      "readiness": "ready"
+    },
+    "authorization": {
+      "value": "not_authorized",
+      "authority": "human",
+      "evidence": "shadow fixture: readiness judged, authorization not recorded"
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "release-ready-authorized",
+    "area": "release",
+    "bundle": "release",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "release",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "low"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "readiness judged and authorization recorded"
+    },
+    "operator": {
+      "readiness": "ready"
+    },
+    "authorization": {
+      "value": "allowed",
+      "authority": "human",
+      "evidence": "shadow fixture: readiness judged and authorization recorded"
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  },
+  {
+    "id": "release-not-ready",
+    "area": "release",
+    "bundle": "release",
+    "subject": {
+      "taskId": "decision-shadow",
+      "phase": "release",
+      "capability": "dev"
+    },
+    "requirement": {
+      "mode": "think",
+      "intensity": "low"
+    },
+    "evidence": {
+      "deterministic": {},
+      "semanticContext": "authorization recorded but readiness not satisfied"
+    },
+    "operator": {
+      "readiness": "not_ready"
+    },
+    "authorization": {
+      "value": "allowed",
+      "authority": "human",
+      "evidence": "shadow fixture: authorization recorded but readiness not satisfied"
+    },
+    "failure": null,
+    "oldBehaviour": "continue"
+  }
+]

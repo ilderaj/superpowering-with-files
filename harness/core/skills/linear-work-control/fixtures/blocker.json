@@ -1,7 +1,7 @@
 {
   "taskId": "swf-linear-control-plane-mvp-20260917",
   "context": "the connected Linear identity belongs to a different workspace",
-  "question": "re-authenticate the Linear connection to superpoweringwithfiles, or rebind to the connected workspace?",
+  "question": "re-authenticate the Linear connection to ilderaj, or rebind to the connected workspace?",
   "options": [
     {
       "label": "Re-authenticate",

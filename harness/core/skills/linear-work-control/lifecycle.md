@@ -1,0 +1,21 @@
+# Stable task identity and lifecycle synchronization
+
+The Trio remains task authority. `Task ID: <stable-id>` in task_plan.md survives moves between active and archive. One product owns one default Project unless explicit independent delivery streams need additional Projects. Multiple Trios share a Project; a directory, Codex project entry or new conversation never implicitly creates one. Git common-dir identifies the repository family; task ID distinguishes its tasks. Independent copies must explicitly retain the product identity or enroll as a different product. Ambiguous identities stop rather than guess.
+
+Use close-task.py, archive-task.sh and reopen-task.py from planning-with-files. Reopen takes the exact closed active or archived directory, not a guessed timestamp. The existing reports/linear/<stable-id>/linear.json remains in place. The resolver uses the Trio's stable ID; it never derives identity by stripping an archive prefix. Legacy archived tasks without explicit ID need an evidence-backed identity repair before reuse.
+
+## Immediate reconciliation
+
+Local lifecycle commands stage `sync.lifecycle` in that existing binding, with a unique eventId, event, taskId, current trioPath and recordedAt. This is synchronization metadata, not task authority. They do not call authenticated Linear APIs. The executing Chief/direct agent must drain this event immediately in the same task; network failure preserves visible pendingRetry debt. Night/morning are recovery opportunities, not a required delay.
+
+1. Read the current Trio through event.trioPath, check stable ID and actual Current State, and normalize the existing binding using the exact task selector. Include archive metadata during discovery. A missing/corrupt binding is not permission to create a replacement issue. No title/path guessing.
+2. Read the exact issue, Project and all children from authenticated Linear, with full pagination. Validate workspace, root family and exact target via guard-target. Build plan input below. A partial child query cannot establish zero children.
+3. Run `node scripts/linear-lifecycle.mjs plan < input.json` from the Linear skill. Close/archive require a closed Trio plus explicit done/canceled outcome. Done requires passed validation, all done-when conditions and zero unresolved blockers. Unfinished children deny parent completion; never bulk-close descendants. Reopen requires active Trio and an active Project. A closed/archived Project means setup-needed; do not automatically restore it.
+4. Apply only returned state/labels to the same issue UUID after fresh guards. Preserve other labels. Reopen moves to Backlog without agent-ready/nightly; scope, dependencies, readiness and unattended authorization must be re-evaluated separately. Close/archive remove runtime/attention labels. No Project is deleted, archived or reopened by a Trio event.
+5. Re-read the exact issue. Run `verify-receipt` with `{plan,pendingEvent,observed}`; observed includes fullyRead, issueId, projectId, teamId, statusName and full labels. Re-read the pending event to reject a stale response. Only a matching receipt permits acknowledgement in the existing binding. Preserve unrelated prior sync debt. Record evidence in progress.md and update its existing status comment with the current Trio path if bound.
+
+Plan input: `{event,task,expected,observed,project,childrenComplete,children}`. task supplies taskId, status (active/closed), outcome (done/canceled), validationState, doneWhenSatisfied, unresolvedBlockers from current local evidence. expected supplies issueId/projectId/teamId from normalized binding. observed supplies those IDs, fullyRead, labels. project supplies id, fullyRead, statusType and archived. children each supplies fullyRead and statusType. Event comes from the existing binding, never a synthetic latest-state guess. Helpers validate supplied evidence; they cannot authenticate it or intercept arbitrary MCP calls.
+
+## Project retention
+
+A Project can contain many active/archived Trios and a future Roadmap. Finishing one task does not finish the Project. Project retirement is a separate explicit operation after complete issue/Roadmap inventory and unresolved-work review. Retain UUID and history. Restoring a task under a retired Project requires an explicit Project restore or authorized rebind before execution.

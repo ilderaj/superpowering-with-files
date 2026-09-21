@@ -1,0 +1,35 @@
+{
+  "swf-night-executor": {
+    "model": "combo/DeepSeekCombo",
+    "effort": "high",
+    "rrule": "FREQ=DAILY;BYHOUR=1;BYMINUTE=30",
+    "status": "ACTIVE",
+    "promptMatchesCanonical": true,
+    "cwds": [
+      "~/SuperpoweringWithFiles"
+    ],
+    "notificationPolicy": null
+  },
+  "swf-night-executor-fallback": {
+    "model": "main/gpt-5.6-luna",
+    "effort": "high",
+    "rrule": "FREQ=DAILY;BYHOUR=3;BYMINUTE=0",
+    "status": "ACTIVE",
+    "promptMatchesCanonical": true,
+    "cwds": [
+      "~/SuperpoweringWithFiles"
+    ],
+    "notificationPolicy": "failed_runs_only"
+  },
+  "swf-morning-handoff": {
+    "model": "combo/DeepSeekCombo",
+    "effort": "high",
+    "rrule": "FREQ=DAILY;BYHOUR=7;BYMINUTE=30",
+    "status": "ACTIVE",
+    "promptMatchesCanonical": true,
+    "cwds": [
+      "~/SuperpoweringWithFiles"
+    ],
+    "notificationPolicy": null
+  }
+}

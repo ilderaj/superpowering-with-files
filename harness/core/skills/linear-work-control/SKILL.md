@@ -6,9 +6,11 @@ description: Use when a goal or tracked task is bound to a Linear workspace and 
 # Linear Work Control
 
 ## Overview
-Linear Work Control connects one local SWF goal or tracked planning task to one Linear issue so a human can learn what is running, what finished, what is blocked, and what needs a decision by opening Linear instead of asking a chat. Linear is the human-facing control plane. Local files remain the durable execution state. This skill never mutates Linear by itself: every write goes through the authenticated Linear MCP and only after the wrong-workspace guard passes.
+Linear Work Control connects one local SWF goal or tracked planning task to one Linear issue so a human can learn what is running, what finished, what is blocked, and what needs a decision by opening Linear instead of asking a chat. Linear is the human-facing control plane. Local files remain the durable execution state. This skill never mutates Linear by itself: normal writes go through the authenticated Linear MCP after the wrong-workspace guard passes. Only authorized [Team bootstrap](reference.md#5a-team-bootstrap-ui-fallback) may use the narrow UI fallback when MCP lacks Team creation.
 
 The deterministic half lives in [scripts/linear-work-control.mjs](scripts/linear-work-control.mjs) with logic in [lib/linear-work-control.mjs](lib/linear-work-control.mjs). The full protocol is in [reference.md](reference.md), the publishable surface shapes are in [templates.md](templates.md), and the scheduled workflows are in [automation-workflows.md](automation-workflows.md).
+
+The LMP-02 v2 product/task resolver lives in [lib/linear-product-binding.mjs](lib/linear-product-binding.mjs) and is exposed through the same CLI. It validates separate product and task schemas, checks the independent Git root registration, and keeps v1 explicit sync readable without upgrading it.
 
 ## Outcome Contract
 
@@ -23,6 +25,10 @@ The deterministic half lives in [scripts/linear-work-control.mjs](scripts/linear
 - An overnight or scheduled run must publish an attention summary for the next morning.
 - Do not use this skill to build a dashboard, mirror logs into Linear, or store credentials.
 
+## Project-first adoption
+
+Follow [project-first intake and execution](project-first.md) for adopted repositories and new projects explicitly requesting Linear day/night management. Team is shared organization; Project is exact product/delivery scope. In adopted repositories new tracked work enrolls automatically; missing enrollment is explicit setup-needed, never silently omitted. Run the additional project-routing target guard before every claim/write, preserving legacy maps and unrelated labels.
+
 ## Binding
 
 Resolve the binding before anything else. Prefer, in order:
@@ -32,7 +38,7 @@ Resolve the binding before anything else. Prefer, in order:
 3. The path named by the operator or the goal prompt; `resume-brief --binding <file>` overrides the resolution entirely.
 4. `.goal/LINEAR.json` for non-SWF repositories.
 
-A path that exists but cannot be read or parsed fails closed with `**Binding:** invalid`; it is never treated as "no binding". A missing binding means Linear is simply not part of the task: continue exactly as a local-only goal and do not create binding files speculatively.
+A path that exists but cannot be read or parsed fails closed with `**Binding:** invalid`; it is never treated as "no binding". Outside adopted/requested Linear management, a missing binding remains local-only. In an adopted repository or requested enrollment, follow project-first.md automatic intake; a failed setup stays visible as setup-needed and cannot enter unattended execution.
 
 ```bash
 node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs validate-binding reports/linear/<task-id>/linear.json
@@ -56,7 +62,7 @@ The binding schema, including the fields that must never appear, is in [referenc
    The parser reports unrecognized lines instead of inferring intent. An exact prefix is not required: when natural-language intent is unambiguous, act on it and record the quoted line plus your interpretation in the local files. Vague commentary is never a decision.
 4. **Work locally, publish at checkpoints only.** Follow the local-first order in [reference.md](reference.md). Do not publish every tool call.
 5. **Render, then publish.** Render the human snapshot with the helper and send it through the Linear MCP as a comment update on the stored status comment id, with the status and labels from the state mapping.
-6. **Block clearly.** Local blocker first, then a structured Linear blocker whose question a human can answer with `DECISION: <option>`.
+6. **Block clearly.** For resolved dependencies, unknown investigation results, or missing Teams, apply [recovery readiness](reference.md#4a-recovery-readiness) before assigning a human blocker. Local blocker first, then a structured Linear blocker whose question a human can answer with `DECISION: <option>`.
 7. **Complete only through the gate.** Run `completion-gate`; mark Linear `Done` only when it returns `DONE ALLOWED`.
 8. **Survive failure.** A failed Linear publish never invalidates local state. Record the failure with `sync.lastResult` and retry at the next checkpoint.
 
@@ -76,3 +82,5 @@ The binding schema, including the fields that must never appear, is in [referenc
 - Creating a second comment per checkpoint instead of updating the stored status comment.
 - Mirroring the entire worklog into Linear and burying the human signal.
 - Blocking the whole queue on one missing human answer when independent tasks remain.
+
+For close/archive/reopen, follow [lifecycle.md](lifecycle.md) and reconcile the staged event immediately; do not wait for night execution.

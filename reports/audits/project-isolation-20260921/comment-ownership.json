@@ -1,0 +1,44 @@
+[
+  {
+    "issueId": "7dd163a7-d206-4421-8a02-e11853b146e0",
+    "commentId": "a26c790c-969e-4936-9a20-417c26803ed7",
+    "path": "reports/linear/swf-decision-control-runtime-20260919/linear.json",
+    "fullyRead": true,
+    "hasNextPage": false
+  },
+  {
+    "issueId": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+    "commentId": "c1eada5e-1fca-4728-aebb-e27b83d15a16",
+    "path": "reports/linear/chiefops-night-day-handoff-audit-20260920/linear.json",
+    "fullyRead": true,
+    "hasNextPage": false
+  },
+  {
+    "issueId": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+    "commentId": "7fea0d8b-60e1-4e40-a8e3-88936fa4190f",
+    "path": "reports/linear/sup-15-render-verify-dogfood-20260918/linear.json",
+    "fullyRead": true,
+    "hasNextPage": false
+  },
+  {
+    "issueId": "12956010-bdf4-4d2d-9dc2-a57f26d6e190",
+    "commentId": "931099cf-39d0-401c-94a2-7c1404efa1ee",
+    "path": "reports/linear/swf-render-verify-absorption-20260914/linear.json",
+    "fullyRead": true,
+    "hasNextPage": false
+  },
+  {
+    "issueId": "d7508c53-989e-4578-b893-b2619052473a",
+    "commentId": "6671e48e-e109-4624-9d06-7f00c6acb16c",
+    "path": "reports/linear/linear-multiproject-isolation-20260918/linear.json",
+    "fullyRead": true,
+    "hasNextPage": false
+  },
+  {
+    "issueId": "e0a75be2-b0f4-419f-bd8b-ea8df0e12fbb",
+    "commentId": "29b1a2b4-f80b-461c-841b-e1c90748e53b",
+    "path": "planning/active/swf-linear-control-plane-mvp-20260917/linear.json",
+    "fullyRead": true,
+    "hasNextPage": false
+  }
+]

@@ -1,0 +1,4049 @@
+[
+  {
+    "id": "SUP-20",
+    "uuid": "6905a686-c04c-460f-94f9-e49d18932ed0",
+    "title": "Phase 4 经验账：浏览器验证陷阱 + 经济学纪律",
+    "description": "## Task\n\n把上游验证陷阱本地化：在 `MEASUREMENT-CONTRACT.md` 增\"浏览器验证陷阱\"节与经济学纪律。\n\n## Local authority\n\n`planning/active/swf-render-verify-absorption-20260914/task_plan.md` — Phase 4\n\n## Done when\n\n* 契约含：CSP 禁 `unsafe-eval` → 页面内只传字符串 IIFE；打包器注入 `__name` → 编译后函数不可序列化进页面；品牌 Chrome 拒绝 `--load-extension`；测量前必须等字体/图片 settle；期望值用探针解析而非硬编码；per-fixture 隔离 + 具名失败；重资产套件排序与 skip 开关；工件缺失给可执行报错\n* 经济学纪律：默认不建像素基线；感知层只在必要时使用；套件按成本排序（heavy last）\n* 条款有测试断言；措辞为 SWF 自研，无上游文本\n\n## Notes\n\n可与 Phase 3 并行，但同一时段只运行一个切片，编辑面不重叠。",
+    "priority": {
+      "value": 4,
+      "name": "Low"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-20/phase-4-经验账浏览器验证陷阱-经济学纪律",
+    "gitBranchName": "imjaredli/sup-20-phase-4-经验账：浏览器验证陷阱-经济学纪律",
+    "createdAt": "2026-09-18T07:33:23.646Z",
+    "updatedAt": "2026-09-21T02:17:08.297Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "nightly",
+      "agent-ready"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T07:33:23.646Z",
+        "endedAt": "2026-09-21T02:17:08.289Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-21T02:17:08.289Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-16",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-21",
+          "title": "Phase 5 采纳与治理：research 文档 + PROVENANCE + adopt 同步 + 计数留档"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-18",
+          "title": "Phase 2 capability：零依赖 CDP 的 packages/render-verify + fixtures + verify:render"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-19",
+    "uuid": "31e1c12d-0c6d-4782-a9eb-df41f36f3eb2",
+    "title": "Phase 3 真实消费：homepage/dist 测量证据 + 覆盖声明",
+    "description": "## Task\n\n用真实工件（homepage build 产物）跑一次测量式验证，产出 JSON 证据 + 具名覆盖声明。\n\n## Local authority\n\n`planning/active/swf-render-verify-absorption-20260914/task_plan.md` — Phase 3\n\n## Done when\n\n* `npm run build --prefix homepage` → 本地 serve `homepage/dist` → 在 1440×900 与 390×844 采证\n* 证据文件（JSON + 人类可读摘要）+ 覆盖声明 + 未验证项；命令可复算\n* 不主张设计质量，只报告测量结果与失败计数\n\n## Notes\n\n依赖 Phase 2。真实工件或浏览器缺失时只报 blocked / limited，不得声明已通过。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-19/phase-3-真实消费homepagedist-测量证据-覆盖声明",
+    "gitBranchName": "imjaredli/sup-19-phase-3-真实消费：homepagedist-测量证据-覆盖声明",
+    "createdAt": "2026-09-18T07:33:21.669Z",
+    "updatedAt": "2026-09-21T02:17:05.576Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "nightly",
+      "agent-ready"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T07:33:21.669Z",
+        "endedAt": "2026-09-21T02:17:05.569Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-21T02:17:05.569Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-16",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-21",
+          "title": "Phase 5 采纳与治理：research 文档 + PROVENANCE + adopt 同步 + 计数留档"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-18",
+          "title": "Phase 2 capability：零依赖 CDP 的 packages/render-verify + fixtures + verify:render"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-18",
+    "uuid": "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+    "title": "Phase 2 capability：零依赖 CDP 的 packages/render-verify + fixtures + verify:render",
+    "description": "## Task\n\n实现零依赖 CDP 的 `packages/render-verify/`（cdp / static-server / settle / measure / invariants / bin），配 PASS/FAIL fixture 与 CLI 契约测试，接入 `verify:render` 与 CI。\n\n## Local authority\n\n`planning/active/swf-render-verify-absorption-20260914/task_plan.md` — Phase 2\n\n## Done when\n\n* 按 D2 定案（零依赖 CDP：Node 内置 `fetch` + 全局 `WebSocket`）落地六个模块；退出码 0=通过 / 2=不变量失败 / 3=环境不可用（Chrome 缺失记\"验证受限\"，绝不当通过）\n* 每个不变量都有 PASS 与 FAIL fixture，FAIL 侧有 RED 证据\n* `npm run verify:render` 存在并接入 `verify:all` 与 `.github/workflows/repo-verify.yml`\n* 根 `package.json` 的 `dependencies` 仍为空\n\n## Notes\n\n属主边界新增 `packages/render-verify/`、`tests/render-verify/`、`tests/fixtures/render-verify/`。D2 已于 2026-09-18 定案为 A（零依赖 CDP）；改回 playwright-core 需重新定案。\n\n## Chief review / nightly plan · 2026-09-20\n\nSUP17 measurement contract缺陷已修复且13/13通过，Phase1接受。用户本轮授权Phase2本地实现进nightly。首片目标20分钟：先PASS/FAIL fixture与最小CDP/static-server；其余模块按原范围续片。首片不等于整票Done。优先级Medium，在SUP15 canary、LMP02与N01之后；全局3 attempts/45min。真实Chrome不可用必须limited，不得算PASS。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-18/phase-2-capability零依赖-cdp-的-packagesrender-verify-fixtures",
+    "gitBranchName": "imjaredli/sup-18-phase-2-capability：零依赖-cdp-的-packagesrender-verify-fixtures",
+    "createdAt": "2026-09-18T07:33:20.130Z",
+    "updatedAt": "2026-09-21T02:16:33.443Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-21T02:16:33.421Z",
+    "startedAt": "2026-09-21T01:32:50.961Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T07:33:20.130Z",
+        "endedAt": "2026-09-20T08:00:07.204Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-20T08:00:07.204Z",
+        "endedAt": "2026-09-21T01:32:50.973Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-21T01:32:50.973Z",
+        "endedAt": "2026-09-21T02:16:33.436Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-21T02:16:33.436Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-16",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-20",
+          "title": "Phase 4 经验账：浏览器验证陷阱 + 经济学纪律"
+        },
+        {
+          "id": "SUP-19",
+          "title": "Phase 3 真实消费：homepage/dist 测量证据 + 覆盖声明"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-17",
+          "title": "Phase 1 契约层：测量不变量契约 + ux-design 接线"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-25",
+    "uuid": "3f702e3e-5a58-493f-a510-db1cd40a42d2",
+    "title": "LMP-03 · 实现逐次目标校验和写入回读协议",
+    "description": "* 优先级：P0；依赖：02；规格：S2。\n* Owner（角色）：开发执行者。\n* 范围：核对 root/product/workspace/team/project/issue/comment；创建与更新分别校验；跨产品父子关系拒绝；处理目标漂移。\n* 验收：错误 team/project/comment 零写入；自洽但属于另一产品的 binding 也拒绝；预检后移动可通过回读发现，披露非事务边界。\n* 交付：guard helper、连接器调用契约、负向 fixture 与写入证据。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地实现范围已获 nightly 授权；仅当全部真实代码依赖 Done、本地 readiness 和无冲突检查通过后，由执行器设 Todo + agent-ready + nightly；无需重复人类确认。实际建 Team/套餐升级/生产接入/发布不在本地开发切片内。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n写入前后核验 root → product → workspace → Team → Project → issue/comment；`SUP-25` UUID 前缀为 `3f702e3e...`；发现 target drift 零后续写入。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-25/lmp-03-实现逐次目标校验和写入回读协议",
+    "gitBranchName": "imjaredli/sup-25-lmp-03-实现逐次目标校验和写入回读协议",
+    "createdAt": "2026-09-18T12:29:30.027Z",
+    "updatedAt": "2026-09-21T02:13:18.815Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "nightly",
+      "agent-ready"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:30.027Z",
+        "endedAt": "2026-09-21T02:13:18.807Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-21T02:13:18.807Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-30",
+          "title": "LMP-08 · 同步重试、错误可见性与 Done 门"
+        },
+        {
+          "id": "SUP-29",
+          "title": "LMP-07 · 加入本地原子锁与限定队列"
+        },
+        {
+          "id": "SUP-28",
+          "title": "LMP-06 · 明确 Chief intake 与持续授权职责"
+        },
+        {
+          "id": "SUP-26",
+          "title": "LMP-04 · 实现幂等首次接入流程"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-24",
+          "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-24",
+    "uuid": "39eac872-8da0-458e-8c8b-30cc1019853a",
+    "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取",
+    "description": "* 优先级：P0；依赖：01；规格：S1/S8。\n* Owner（角色）：开发执行者。\n* 范围：扩展 helper schema 与 resolver；产品配置和 task binding 分离；兼容 v1 与 legacy 路径；根目录/worktree 身份验证。\n* 验收：坏 JSON、未知版本、重复身份、复制根目录均 fail closed；v1 fixture 保持可读；原子写不出现半配置。\n* 交付：schema、迁移 dry-run、兼容与错误场景测试。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地实现范围已获 nightly 授权；仅当全部真实代码依赖 Done、本地 readiness 和无冲突检查通过后，由执行器设 Todo + agent-ready + nightly；无需重复人类确认。实际建 Team/套餐升级/生产接入/发布不在本地开发切片内。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n产品 Team/Project 配置与 repo/root binding 分离；复制 binding、未知版本、重复 productKey 或 root 不匹配必须 fail closed；保留 v1 读取。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。\n首片目标20分钟：schema+v1 compatibility RED/GREEN；后续resolver/root/worktree/atomic write分片。保留未完成清单，不以首片代整票Done。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-24/lmp-02-实现-v2-配置task-binding-与兼容读取",
+    "gitBranchName": "imjaredli/sup-24-lmp-02-实现-v2-配置、task-binding-与兼容读取",
+    "createdAt": "2026-09-18T12:29:27.102Z",
+    "updatedAt": "2026-09-21T02:12:04.894Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-21T02:12:04.825Z",
+    "startedAt": "2026-09-21T01:32:55.978Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:27.102Z",
+        "endedAt": "2026-09-19T03:03:16.738Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-19T03:03:16.738Z",
+        "endedAt": "2026-09-21T01:32:55.994Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-21T01:32:55.994Z",
+        "endedAt": "2026-09-21T02:12:04.882Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-21T02:12:04.882Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-28",
+          "title": "LMP-06 · 明确 Chief intake 与持续授权职责"
+        },
+        {
+          "id": "SUP-27",
+          "title": "LMP-05 · 统一标签与各 Team 状态映射"
+        },
+        {
+          "id": "SUP-26",
+          "title": "LMP-04 · 实现幂等首次接入流程"
+        },
+        {
+          "id": "SUP-25",
+          "title": "LMP-03 · 实现逐次目标校验和写入回读协议"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-23",
+          "title": "LMP-01 · 冻结产品映射与接入预检"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-16",
+          "title": "Render-verify: 测量式 UI 验证能力吸收（markdown-viewer 方法 → SWF 自有 capability）"
+        },
+        {
+          "id": "SUP-35",
+          "title": "Decision-Control Runtime — lifecycle, semantic gates and provider-neutral execution"
+        },
+        {
+          "id": "SUP-36",
+          "title": "WP-01 · Mode / Intensity / Topology vocabulary derivation (additive)"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-49",
+    "uuid": "2149158a-0251-4dbc-a909-9478aab9cdd5",
+    "title": "J02 · 隔离shadow观测错误并修正三态统计",
+    "description": "## 问题与交付\n\nvalid checkpoint上坏observations不抛主路径异常，坏项后继续；task/bundle mismatch拒绝；agreement true/false/null准确统计，total覆盖全部attempt，traceFailures单列；版本化trace保留question身份；按question修复F27别名。\n\n## 冻结规格与权威\n\n读取 docs/plans/jev-swf-audit-20260920/spec.md S2、plan.md；Trio planning/active/swf-decision-control-runtime-20260919/。原8个foundation票保持Done。\n\n## Scope\n\nharness/trio/core/shadow.mjs；tests/trio/shadow-gate.test.mjs。可更新本任务Trio/报告；其他共享修改保持。依赖：J01。\n\n## 验收\n\n先记录RED再修复，覆盖上述边界；node --test tests/trio/shadow-gate.test.mjs；npm run verify:trio。worker只交candidate，Chief独立复验后Done；未完成保留next action。\n\n## 夜班授权\n\nexecutor:codex-local，现有Night Executor；每票20分钟首片、全队列3次/45分钟。本地修改+离线测试已授权；仅首个无依赖票ready/nightly，后继在前票Chief接受并重新readiness后晋级。无push/merge/deploy/global sync apply、无live干预或gate激活；gate全部shadow。首次真实caller仍须Chief可观察。\n\n## 回退\n\n仅回退本票diff，禁止reset/stash或覆盖共享改动。超时/越scope则checkpoint。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-49/j02-隔离shadow观测错误并修正三态统计",
+    "gitBranchName": "imjaredli/sup-49-j02-隔离shadow观测错误并修正三态统计",
+    "createdAt": "2026-09-20T09:00:09.584Z",
+    "updatedAt": "2026-09-21T02:00:34.733Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "Bug",
+      "nightly",
+      "agent-ready"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:00:09.584Z",
+        "endedAt": "2026-09-21T02:00:34.727Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-21T02:00:34.727Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-50",
+          "title": "J03 · 分离release授权来源并校验backend真实性"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-48",
+          "title": "J01 · 修复适用验证范围与失败优先级"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-48",
+    "uuid": "c48bf952-0704-47e3-8d6c-1f6e377906e4",
+    "title": "J01 · 修复适用验证范围与失败优先级",
+    "description": "## 问题与交付\n\n复现仅tests/document适用仍retry、known fail被unknown掩盖。新增requiredCheckIds兼容默认全量；collector按commands/inspections推导；已知fail优先，timeout→retry，not-run/unreadable→continue。检查重复/未知id/空范围与semantic不足不得done。\n\n## 冻结规格与权威\n\n读取 docs/plans/jev-swf-audit-20260920/spec.md S1、plan.md；Trio planning/active/swf-decision-control-runtime-20260919/。原8个foundation票保持Done。\n\n## Scope\n\nharness/trio/core/{decision,evidence}.mjs；tests/trio/{decision,dev-evidence,office-evidence}.test.mjs。可更新本任务Trio/报告；其他共享修改保持。依赖：无依赖。\n\n## 验收\n\n先记录RED再修复，覆盖上述边界；node --test tests/trio/decision.test.mjs tests/trio/dev-evidence.test.mjs tests/trio/office-evidence.test.mjs；npm run verify:trio。worker只交candidate，Chief独立复验后Done；未完成保留next action。\n\n## 夜班授权\n\nexecutor:codex-local，现有Night Executor；每票20分钟首片、全队列3次/45分钟。本地修改+离线测试已授权；仅首个无依赖票ready/nightly，后继在前票Chief接受并重新readiness后晋级。无push/merge/deploy/global sync apply、无live干预或gate激活；gate全部shadow。首次真实caller仍须Chief可观察。\n\n## 回退\n\n仅回退本票diff，禁止reset/stash或覆盖共享改动。超时/越scope则checkpoint。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-48/j01-修复适用验证范围与失败优先级",
+    "gitBranchName": "imjaredli/sup-48-j01-修复适用验证范围与失败优先级",
+    "createdAt": "2026-09-20T09:00:06.362Z",
+    "updatedAt": "2026-09-21T01:59:57.705Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-21T01:59:57.692Z",
+    "startedAt": "2026-09-21T01:32:53.583Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "Bug"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:00:06.362Z",
+        "endedAt": "2026-09-20T09:01:38.542Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-20T09:01:38.542Z",
+        "endedAt": "2026-09-21T01:32:53.594Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-21T01:32:53.594Z",
+        "endedAt": "2026-09-21T01:59:57.700Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-21T01:59:57.700Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-49",
+          "title": "J02 · 隔离shadow观测错误并修正三态统计"
+        }
+      ],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-47",
+    "uuid": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+    "title": "N01 · 夜班模型证据、恢复与后继晋升契约验收",
+    "description": "## Problem\n\n当前 selector 正确，但跨恢复预算、后继promotion部分失败与回读幂等仍主要依赖prompt纪律。补充可复现验收，避免一次配置被误报为真实闭环。\n\n## Spec / authority\n\n规格：docs/plans/night-day-loop-20260920/spec.md S1–S4 / N01。\n权威：planning/active/chiefops-night-day-handoff-audit-20260920/ 三件套。\n绑定：reports/linear/chiefops-night-day-handoff-audit-20260920/linear.json。\n用户2026-09-20已授权本地实现并排今晚；不涉及外部产品、发布或gate激活。\n\n## Implementation plan (first slice <=20min)\n\n1. 从真实MCP字段形状构建去敏fixture，identifier与UUID单独核对，title可刷新。\n2. RED/GREEN覆盖恢复不重置startedAt/attempted IDs、跨scope共享预算、未带queue标签successor、unknown依赖拒绝、promotion部分失败后回读幂等、claim失败不执行。\n3. 复用night-queue和现有progress checkpoint协议；仅必要时增加最小纯函数，不建状态库/scheduler。模拟MCP证据须标模拟。\n4. 窄测试后记录输入输出与coverage；预算不足保留可恢复checkpoint，不能把部分完成标Done。\n\n## Done when\n\n失败/恢复场景可复现且全部窄测试通过；无新增durable authority；不改变真实其他产品；首个真实cron观测与离线验收分开记录。\n\n## Tonight\n\n2026-09-21 01:30 Asia/Shanghai候选；全局3 attempts/45min，SUP15 canary优先。同repo串行，确认无活动owner冲突才写。实际未尝试须晨报解释。\n\n## Non-goals\n\n不把fixture当Host run，不自动创建Team，不全量覆盖global projections。LMP07继续负责原子repo锁，避免重复实现。\n\n## 2026-09-20 side chat追加：今晚优先切片\n\n用户已授权审计并排夜班。规格/实施计划：docs/plans/night-day-loop-20260920/carrier-model-spec.md（C1–C3）。复用本票与原Trio，不新建scheduler或per-ticket用户session。\n现场为23 automation / 11 heartbeat，非22/9；heartbeat无model字段不是自动判定缺陷。保留单cron session串行和全局3 attempts/45min协作预算，不声称硬中断。\n首片<=20min优先C2/C3：区分configured、Host-reported route/effort、provider actual；可信匹配/mismatch/unknown负向测试；缺证据保留unknown，不能用模型自述伪造attestation；已证实路由/effort不符停止受影响路径。精确检查SWF路由，拒绝静默短别名fallback，不全局禁用别名。\n更新canonical两条prompt后通过automation_update同步并读回，保持schedule/model/effort/notification/target。heartbeat仅只读盘点和记录thread-resolved policy，不批量换模、不写未知字段、不恢复paused。Host证据探测有界且只读元数据。\n后续完成原N01恢复/promotion与deadline/overrun测试，部分完成不得Done。离线验收与真实cron观测分开。\n提升Urgent以进入2026-09-21 01:30候选前列；当前同Urgent SUP15较早，其后本票，再High SUP24。实际依实时排序/预算；07:30晨报解释未执行与证据缺口。",
+    "priority": {
+      "value": 1,
+      "name": "Urgent"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-47/n01-夜班模型证据恢复与后继晋升契约验收",
+    "gitBranchName": "imjaredli/sup-47-n01-夜班模型证据、恢复与后继晋升契约验收",
+    "createdAt": "2026-09-20T07:55:04.163Z",
+    "updatedAt": "2026-09-21T01:53:47.343Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-21T01:53:47.328Z",
+    "startedAt": "2026-09-21T01:26:43.346Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-20T07:55:04.163Z",
+        "endedAt": "2026-09-21T01:26:43.373Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-21T01:26:43.373Z",
+        "endedAt": "2026-09-21T01:53:47.336Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-21T01:53:47.336Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-15",
+    "uuid": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+    "title": "Dogfood: 复核当前版本的 render/verify 工作流与晨间交接",
+    "description": "## Task\n\nDogfood：用**当前版本**复核 homepage 的 render/verify 工作流，并产出一条人类可读的晨间交接。建单已做审计并把验收条件窄化到下面这份；本轮不重复实现已完成的功能。\n\n## 审计结论（建单后审计，2026-09-18）\n\n* 版本依据：本地 HEAD = 远端 `main` = 远端 `dev` = `e179ae63`\n* `planning/active/swf-render-verify-absorption-20260914` 记录的测量包实现仍未出现在当前代码里；因此本轮只做窄化复核，不扩面、不补实现。\n\n## Local authority\n\n`planning/active/sup-15-render-verify-dogfood-20260918/task_plan.md`\n\n## 范围（窄化后）\n\n* 目标页：homepage，基路径 `/superpowering-with-files/`\n* 两档视口：1440×900、390×844\n* 检查点：`.hero`、`#hero-title`、`.hero-copy`、两个 `.hero-actions .button`\n* CTA 高度按 `homepage/src/theme.css:106` 的 `2.5rem` 判定（不要用 44px）\n* 证据：截图 + 测量值 + 浏览器错误；记录执行时的 SHA、浏览器版本、构建产物\n\n## 允许的命令\n\n* 两个既有 targeted 测试\n* 一次 homepage build\n* 一次本地 preview\n\n## 不做\n\n不跑全量套件、不改 CI、不部署、不新增功能实现。\n\n## Done when\n\n* 两档视口检查项都有证据（截图 + 测量）\n* 晨间交接有一条简报，写明已验证 / 未验证边界\n\n## 阻塞条件\n\n缺浏览器或构建证据时只能报 blocked / limited，不得声称已验证。\n\n## 2026-09-20 Chief 排期\n\n作为 2026-09-21 01:30 夜班首个真实 canary，优先级 Urgent。原两档视口/截图/测量/交接验收保留；执行时重新记录真实 SHA 和工作树，不沿用旧 HEAD。首片目标20分钟。排队和手动选择预检不算 scheduled observation，未尝试必须在晨报列原因。",
+    "priority": {
+      "value": 1,
+      "name": "Urgent"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-15/dogfood-复核当前版本的-renderverify-工作流与晨间交接",
+    "gitBranchName": "imjaredli/sup-15-dogfood-复核当前版本的-renderverify-工作流与晨间交接",
+    "createdAt": "2026-09-18T02:52:24.833Z",
+    "updatedAt": "2026-09-21T01:29:08.797Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": "2026-09-21T01:27:03.633Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "In Progress",
+    "statusType": "started",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "ready-review"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T02:52:24.833Z",
+        "endedAt": "2026-09-18T03:24:20.641Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-18T03:24:20.641Z",
+        "endedAt": "2026-09-21T01:27:03.651Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-21T01:27:03.651Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-35",
+          "title": "Decision-Control Runtime — lifecycle, semantic gates and provider-neutral execution"
+        },
+        {
+          "id": "SUP-36",
+          "title": "WP-01 · Mode / Intensity / Topology vocabulary derivation (additive)"
+        },
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-38",
+    "uuid": "fe18e187-d6cd-429e-adf8-b149303a5ae5",
+    "title": "WP-03 · Decision trace and observability (local, non-authoritative)",
+    "description": "## Task\n\nRecord enough shadow-decision evidence to evaluate a gate later, locally and non-authoritatively.\n\nRecorded fields: `ts, taskId, phase, bundle, bundleVersion, questionId, answer, confidenceProvenance, backendId, latencyMs|null, transitionRecommendation, override, eventualOutcome`. Runtime location: `.harness/decision-trace/<task-id>.jsonl`.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: medium\nTopology: solo\n\n## Scope\n\nA new trace module (or a section of `decision.mjs` if it stays small); new tests; `.harness/decision-trace/` as the runtime location.\n\n## Non-goals\n\nNo chain-of-thought. No Linear telemetry. No new tracked artifact. No durable task state. Never authoritative over Trio.\n\n## Done when\n\n* Append is atomic and never mutates Trio.\n* A malformed record is rejected rather than written.\n* A record containing a chain-of-thought-shaped field is rejected.\n* No file is created under `planning/`.\n* `git status` shows no new tracked file after a run.\n\n## Verification\n\nTargeted tests, then `npm run verify:trio`, `npm run verify:core`.\n\n## Dependencies\n\nWP-02 accepted.\n\n## Night eligibility\n\neligible after WP-02 is accepted.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names turn out to conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-6 wave and verified on the current tree (`npm run verify:trio` 421/0, `npm run verify:core` 449+82/0, `./scripts/harness sync --check` exit 0). The issue sits at `In Progress` + `ready-review`: the fixed work product has not been reviewed by a human and the parent initiative is still open, so no completion gate is asserted here.\n\n## Chief acceptance · 2026-09-20\n\n本轮用户授权处理pending review；独立subagent逐项复核后Chief接受原ticket的组件/adapter/确定性回放验收，completion-gate DONE ALLOWED。verify:trio 470/470；verify:core最终重验通过（精确计数见本地报告）；相关窄测试与replay通过。仅确认本票原范围，不宣称live模型效果、producer集成或运行时发布；SUP42仍有集成缺口，父项目保持开放。global sync --check仍报projection drift/unknown observation，此环境接入缺口未伪报通过，独立于本票惰性产物验收。证据：reports/audits/night-day-20260920/、DCR progress.md。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-38/wp-03-decision-trace-and-observability-local-non-authoritative",
+    "gitBranchName": "imjaredli/sup-38-wp-03-decision-trace-and-observability-local-non",
+    "createdAt": "2026-09-19T06:40:18.724Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T08:00:40.156Z",
+    "startedAt": "2026-09-19T07:14:36.097Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:18.724Z",
+        "endedAt": "2026-09-19T07:14:36.112Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:14:36.112Z",
+        "endedAt": "2026-09-20T08:00:40.166Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T08:00:40.166Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-41",
+    "uuid": "f933d035-3f5a-4ecc-ad20-0fc020f216a6",
+    "title": "WP-06 · Shadow replay fixtures and evaluation harness",
+    "description": "## Task\n\nAdd the spec §19 fixture set and a deterministic runner that reports old-behaviour vs shadow-gate behaviour.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: high\nTopology: solo\n\n## Scope\n\nNew `tests/fixtures/decision/` tree; new `scripts/evaluate-decision-shadow.mjs`; test wiring.\n\n## Non-goals\n\nDo **not** extend `scripts/evaluate-trio-v2.mjs` or `tests/fixtures/trio-v2/` — their fixture root and proof allow-list are pinned. No live model calls. No Host/model claim.\n\n## Done when\n\n* Every §19 row has at least one case: intake (6), plan gate (4), verify gate (5), night (5), office (2).\n* The runner is idempotent and byte-reproducible across two runs.\n* The emitted document states it is deterministic shadow evidence, not a matched Host/model benchmark, and validation fails if that disclaimer is removed.\n\n## Verification\n\nTargeted tests, then `npm run verify:trio`, `npm run verify:core`.\n\n## Dependencies\n\nWP-02, WP-03 and WP-04 accepted.\n\n## Night eligibility\n\neligible after WP-02/03/04 are accepted.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-6 wave and verified on the current tree (`npm run verify:trio` 421/0, `npm run verify:core` 449+82/0, `./scripts/harness sync --check` exit 0). The issue sits at `In Progress` + `ready-review`: the fixed work product has not been reviewed by a human and the parent initiative is still open, so no completion gate is asserted here.\n\n## Chief acceptance · 2026-09-20\n\n本轮用户授权处理pending review；独立subagent逐项复核后Chief接受原ticket的组件/adapter/确定性回放验收，completion-gate DONE ALLOWED。verify:trio 470/470；verify:core最终重验通过（精确计数见本地报告）；相关窄测试与replay通过。仅确认本票原范围，不宣称live模型效果、producer集成或运行时发布；SUP42仍有集成缺口，父项目保持开放。global sync --check仍报projection drift/unknown observation，此环境接入缺口未伪报通过，独立于本票惰性产物验收。证据：reports/audits/night-day-20260920/、DCR progress.md。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-41/wp-06-shadow-replay-fixtures-and-evaluation-harness",
+    "gitBranchName": "imjaredli/sup-41-wp-06-shadow-replay-fixtures-and-evaluation-harness",
+    "createdAt": "2026-09-19T06:40:38.298Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T08:00:48.265Z",
+    "startedAt": "2026-09-19T07:14:44.025Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:38.298Z",
+        "endedAt": "2026-09-19T07:14:44.039Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:14:44.039Z",
+        "endedAt": "2026-09-20T08:00:48.282Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T08:00:48.282Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-42",
+          "title": "WP-07 · Plan Gate and Verify Gate shadow integration"
+        }
+      ],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-51",
+    "uuid": "f1f50085-d284-491d-92c4-a1e3d6588e60",
+    "title": "J04 · 修正T1评估与冻结独立对照协议",
+    "description": "## 问题与交付\n\n独立truth vocabulary、覆盖率/正确率分母、别名、unsupported与premature统计；当前27/26/15/1基准不改truth凑数。新增decision专属离线profile/合成fixture，冻结T1.5盲标+2复核和T2协议。真实案例/两臂推理/usage由WP10做，本票不伪造实测。output非fresh，全量usage求和，缺测unproven，+5%护栏。\n\n## 冻结规格与权威\n\n读取 docs/plans/jev-swf-audit-20260920/spec.md S4、plan.md；Trio planning/active/swf-decision-control-runtime-20260919/。原8个foundation票保持Done。\n\n## Scope\n\nscripts/evaluate-decision-{accuracy,shadow}.mjs；tests/trio/decision-accuracy.test.mjs；tests/fixtures/decision/；tests/evals/decision-control/；scripts/evaluate-decision-profile.mjs；原evaluation-design/baseline文档。可更新本任务Trio/报告；其他共享修改保持。依赖：J03。\n\n## 验收\n\n先记录RED再修复，覆盖上述边界；node --test tests/trio/decision-accuracy.test.mjs；显式运行新增profile测试和两份T1脚本；npm run verify:trio。worker只交candidate，Chief独立复验后Done；未完成保留next action。\n\n## 夜班授权\n\nexecutor:codex-local，现有Night Executor；每票20分钟首片、全队列3次/45分钟。本地修改+离线测试已授权；仅首个无依赖票ready/nightly，后继在前票Chief接受并重新readiness后晋级。无push/merge/deploy/global sync apply、无live干预或gate激活；gate全部shadow。首次真实caller仍须Chief可观察。\n\n## 回退\n\n仅回退本票diff，禁止reset/stash或覆盖共享改动。超时/越scope则checkpoint。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-51/j04-修正t1评估与冻结独立对照协议",
+    "gitBranchName": "imjaredli/sup-51-j04-修正t1评估与冻结独立对照协议",
+    "createdAt": "2026-09-20T09:00:23.248Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "Bug"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:00:23.248Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        },
+        {
+          "id": "SUP-42",
+          "title": "WP-07 · Plan Gate and Verify Gate shadow integration"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-50",
+          "title": "J03 · 分离release授权来源并校验backend真实性"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-39",
+    "uuid": "cdd85be2-1a5c-4dd9-aa97-3395b369fb00",
+    "title": "WP-04 · Infrastructure vs cognitive failure taxonomy",
+    "description": "## Task\n\nSeparate infrastructure failure from cognitive failure and recommend the correct response for each.\n\nNew frozen names: `FAILURE_CLASSES = ['infrastructure','cognitive']`, `classifyFailure(error)` → `{ class, code, retryable, suggestedTransition }`.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: medium\nTopology: solo\n\n## Scope\n\nA new pure module under `harness/trio/core/` plus tests.\n\n## Non-goals\n\nNo change to error messages or thrown codes in existing modules. No retry logic. No provider fallback ladder.\n\n## Done when\n\n* quota/429, timeout, provider unavailable, transport mismatch, unsupported tool, sandbox denial, context limit and provider mismatch map to `infrastructure` with `retryable: true`.\n* Incomplete plan, unresolved ambiguity, repeated failed repair, verification contradiction and wrong architecture map to `cognitive`.\n* An explicit test asserts that no `infrastructure` case returns an intelligence escalation.\n\n## Verification\n\nTargeted tests, then `npm run verify:trio`, `npm run verify:core`.\n\n## Dependencies\n\nNone (independent).\n\n## Night eligibility\n\neligible after WP-01 is accepted (wave discipline, not a code dependency).\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names turn out to conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-6 wave and verified on the current tree (`npm run verify:trio` 421/0, `npm run verify:core` 449+82/0, `./scripts/harness sync --check` exit 0). The issue sits at `In Progress` + `ready-review`: the fixed work product has not been reviewed by a human and the parent initiative is still open, so no completion gate is asserted here.\n\n## Chief acceptance · 2026-09-20\n\n本轮用户授权处理pending review；独立subagent逐项复核后Chief接受原ticket的组件/adapter/确定性回放验收，completion-gate DONE ALLOWED。verify:trio 470/470；verify:core最终重验通过（精确计数见本地报告）；相关窄测试与replay通过。仅确认本票原范围，不宣称live模型效果、producer集成或运行时发布；SUP42仍有集成缺口，父项目保持开放。global sync --check仍报projection drift/unknown observation，此环境接入缺口未伪报通过，独立于本票惰性产物验收。证据：reports/audits/night-day-20260920/、DCR progress.md。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-39/wp-04-infrastructure-vs-cognitive-failure-taxonomy",
+    "gitBranchName": "imjaredli/sup-39-wp-04-infrastructure-vs-cognitive-failure-taxonomy",
+    "createdAt": "2026-09-19T06:40:21.931Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T08:00:42.837Z",
+    "startedAt": "2026-09-19T07:14:41.018Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:21.931Z",
+        "endedAt": "2026-09-19T07:14:41.038Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:14:41.038Z",
+        "endedAt": "2026-09-20T08:00:42.849Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T08:00:42.849Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-44",
+    "uuid": "b553a31e-8e97-419b-b2ca-4b92ba0b2f73",
+    "title": "WP-09 · Office deterministic evidence adapter",
+    "description": "## Task\n\nCollect deterministic office-artifact facts (document structure, spreadsheet formula integrity, slide render, PDF structural checks) for the `verify` bundle.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: office\nIntensity: medium\nTopology: solo\n\n## Scope\n\nA new adapter module and tests that reuse the existing office capability references.\n\n## Non-goals\n\nDo not duplicate any specialised artifact skill. No new renderer. No semantic scoring.\n\n## Done when\n\n* Deterministic artifact facts only; a formula error or failed render is a fact.\n* The §19 office pair is reproducible: deterministic pass with semantic fail, and semantic pass with deterministic fail.\n* `tests/trio/office-capability.test.mjs` is unchanged and passing.\n\n## Verification\n\nTargeted tests, then `npm run verify:trio`.\n\n## Dependencies\n\nWP-02 accepted.\n\n## Night eligibility\n\neligible after WP-02 is accepted.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Night eligibility (2026-09-19)\n\nEligible after WP-08 (<issue id=\"2a436a69-054f-432d-b752-aae6403afec6\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-43/wp-08-coding-deterministic-evidence-adapter\">SUP-43</issue>) is reviewed. It shares an edit surface with WP-08 (`tests/trio/import-boundaries.test.mjs` plus the `verify:trio` file list), so queuing both would create a night-time edit collision. Not queued.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-8 wave, in the same `harness/trio/core/evidence.mjs` module as WP-08 so the frozen-inventory cost stayed at one entry instead of two. Tests: `tests/trio/office-evidence.test.mjs` (13 cases).\n\nThe adapter records deterministic artifact facts only — document structure, spreadsheet formula integrity, slide render and PDF structure, plus presence, size and digest for the produced files. Both §19 office directions are covered: deterministic checks pass while semantic quality fails (the semantic failure decides, `repair`), and semantic quality passes while deterministic validation fails (the observed failure decides, `repair`; a scope violation gives `replan`). `tests/trio/office-capability.test.mjs` is unchanged and passing.\n\n## Chief acceptance · 2026-09-20\n\n本轮用户授权处理pending review；独立subagent逐项复核后Chief接受原ticket的组件/adapter/确定性回放验收，completion-gate DONE ALLOWED。verify:trio 470/470；verify:core最终重验通过（精确计数见本地报告）；相关窄测试与replay通过。仅确认本票原范围，不宣称live模型效果、producer集成或运行时发布；SUP42仍有集成缺口，父项目保持开放。global sync --check仍报projection drift/unknown observation，此环境接入缺口未伪报通过，独立于本票惰性产物验收。证据：reports/audits/night-day-20260920/、DCR progress.md。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-44/wp-09-office-deterministic-evidence-adapter",
+    "gitBranchName": "imjaredli/sup-44-wp-09-office-deterministic-evidence-adapter",
+    "createdAt": "2026-09-19T06:40:48.018Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T08:00:54.997Z",
+    "startedAt": "2026-09-19T07:50:07.908Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:48.018Z",
+        "endedAt": "2026-09-19T07:50:07.921Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:50:07.921Z",
+        "endedAt": "2026-09-20T08:00:55.013Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T08:00:55.013Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        }
+      ],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        },
+        {
+          "id": "SUP-43",
+          "title": "WP-08 · Coding deterministic evidence adapter"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-40",
+    "uuid": "9c43dff4-b3ae-44ca-9342-0075f801ac1a",
+    "title": "WP-05 · Capability-first execution requirement",
+    "description": "## Task\n\nLet the control plane express `{ mode, intensity, capabilities[] }` and receive an implementation, instead of naming a model.\n\nNew frozen names: `ExecutionRequirement`, `resolveExecutionImplementation(requirement, registry)`.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: high\nTopology: solo\n\n## Scope\n\nAdditive exports in `harness/trio/core/routing.mjs`; new tests.\n\n## Non-goals\n\nDo not change `resolveModelEffort`, `validateModelEffort`, `RECOMMENDED_MODEL_SELECTIONS`, or any packet field. No fallback ladder. No model name in any lifecycle semantic.\n\n## Done when\n\n* An unsatisfiable requirement returns a structured failure, not a wrong model.\n* An unsatisfiable capability is never silently downgraded.\n* A test asserts that no lifecycle-semantic string contains a model name.\n* Existing model-routing tests are unchanged and passing.\n\n## Verification\n\nTargeted tests, then `npm run verify:trio`.\n\n## Dependencies\n\nWP-01 accepted.\n\n## Night eligibility\n\neligible after WP-01 is accepted.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names turn out to conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-6 wave and verified on the current tree (`npm run verify:trio` 421/0, `npm run verify:core` 449+82/0, `./scripts/harness sync --check` exit 0). The issue sits at `In Progress` + `ready-review`: the fixed work product has not been reviewed by a human and the parent initiative is still open, so no completion gate is asserted here.\n\n## Chief acceptance · 2026-09-20\n\n本轮用户授权处理pending review；独立subagent逐项复核后Chief接受原ticket的组件/adapter/确定性回放验收，completion-gate DONE ALLOWED。verify:trio 470/470；verify:core最终重验通过（精确计数见本地报告）；相关窄测试与replay通过。仅确认本票原范围，不宣称live模型效果、producer集成或运行时发布；SUP42仍有集成缺口，父项目保持开放。global sync --check仍报projection drift/unknown observation，此环境接入缺口未伪报通过，独立于本票惰性产物验收。证据：reports/audits/night-day-20260920/、DCR progress.md。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-40/wp-05-capability-first-execution-requirement",
+    "gitBranchName": "imjaredli/sup-40-wp-05-capability-first-execution-requirement",
+    "createdAt": "2026-09-19T06:40:25.101Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T08:00:45.498Z",
+    "startedAt": "2026-09-19T07:14:38.492Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:25.101Z",
+        "endedAt": "2026-09-19T07:14:38.503Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:14:38.503Z",
+        "endedAt": "2026-09-20T08:00:45.526Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T08:00:45.526Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-37",
+    "uuid": "5994f8aa-9367-4021-93b5-f9b1463a0623",
+    "title": "WP-02 · Decision contract module and bundle schemas (inert)",
+    "description": "## Task\n\nAdd a provider-neutral decision contract as a pure module: request/response schemas, the three kinds, the five bundles with frozen question ids, and pure composite resolvers.\n\nNew frozen names: `DECISION_KINDS = ['boolean','choice','score']`, `DECISION_BUNDLES` (intake/plan/action/verify/release), `DECISION_OUTCOMES = ['continue','repair','replan','escalate','done']`, `EVIDENCE_CLASSES = ['deterministic','semantic','composite']`, `RELEASE_STATES = ['not_ready','ready','allowed']`, `validateDecisionRequest`, `validateDecisionResponse`, `resolvePlanReady`, `resolveActionGate`, `resolveNextState`, `resolveReleaseState`.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: high\nTopology: solo\n\n## Scope\n\nNew `harness/trio/core/decision.mjs`; new `tests/trio/decision.test.mjs`; `tests/trio/import-boundaries.test.mjs`; the `verify:trio` file list.\n\n## Non-goals\n\nNo network call. No local inference. No third-party dependency. No wiring into any runtime path. No `external` backend implementation. No numeric confidence — `confidence.level` is a level, never a probability.\n\n## Done when\n\n* Validation rejects unknown bundle, unknown question id, wrong kind, missing `confidence.provenance`, and out-of-scale score.\n* Composite resolvers are total and deterministic.\n* `resolveReleaseState` never returns `allowed` from `readiness` alone.\n* A case where `goal_satisfied=true` but a deterministic check failed resolves to `repair`/`replan`, never `done`.\n* The module has no importer other than its test.\n\n## Verification\n\n`node --test tests/trio/decision.test.mjs`, then `npm run verify:trio`, `npm run verify:core`, `./scripts/harness sync --check`.\n\n## Dependencies\n\nWP-01 accepted (the request carries `mode`/`intensity`).\n\n## Night eligibility\n\neligible after WP-01 is accepted.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names turn out to conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-6 wave and verified on the current tree (`npm run verify:trio` 421/0, `npm run verify:core` 449+82/0, `./scripts/harness sync --check` exit 0). The issue sits at `In Progress` + `ready-review`: the fixed work product has not been reviewed by a human and the parent initiative is still open, so no completion gate is asserted here.\n\n## Chief acceptance · 2026-09-20\n\n本轮用户授权处理pending review；独立subagent逐项复核后Chief接受原ticket的组件/adapter/确定性回放验收，completion-gate DONE ALLOWED。verify:trio 470/470；verify:core最终重验通过（精确计数见本地报告）；相关窄测试与replay通过。仅确认本票原范围，不宣称live模型效果、producer集成或运行时发布；SUP42仍有集成缺口，父项目保持开放。global sync --check仍报projection drift/unknown observation，此环境接入缺口未伪报通过，独立于本票惰性产物验收。证据：reports/audits/night-day-20260920/、DCR progress.md。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-37/wp-02-decision-contract-module-and-bundle-schemas-inert",
+    "gitBranchName": "imjaredli/sup-37-wp-02-decision-contract-module-and-bundle-schemas-inert",
+    "createdAt": "2026-09-19T06:40:15.278Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T08:00:35.816Z",
+    "startedAt": "2026-09-19T07:14:33.990Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:15.278Z",
+        "endedAt": "2026-09-19T07:14:34.003Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:14:34.003Z",
+        "endedAt": "2026-09-20T08:00:35.830Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T08:00:35.830Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        },
+        {
+          "id": "SUP-43",
+          "title": "WP-08 · Coding deterministic evidence adapter"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-42",
+    "uuid": "32800402-aba3-4939-a0c5-b425bd98d5ba",
+    "title": "WP-07 · Plan Gate and Verify Gate shadow integration",
+    "description": "2026-09-20审计整改：当前先决条件新增J04/<issue id=\"f1f50085-d284-491d-92c4-a1e3d6588e60\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-51/j04-修正t1评估与冻结独立对照协议\">SUP-51</issue>（其前置J01–03）。本票暂退出night队列。具体入口遵循 docs/plans/jev-swf-audit-20260920/spec.md S5：repo侧 scripts/render-decision-checkpoint.mjs 组合现有renderCheckpoint和shadow；保持stdout字节等价，坏观测不阻断。禁止修改global skill或反向依赖repo。新增CLI/fixture不算实际接入，Chief首次真实checkpoint调用可观察后才Done。该新规格覆盖下文冲突描述。\n\n## Task\n\nAttach the `plan` and `verify` bundles to the existing Trio + ChiefOps checkpoint in **shadow only**, recording the recommendation without acting on it.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: high\nTopology: solo\n\n## Scope\n\nThe decision-trace writer call site; the checkpoint path; new tests.\n\n## Non-goals\n\nNo transition is taken from a gate output. No change to ChiefOps governance. No change to completion semantics. No duplicate readiness check.\n\n## Done when\n\n* A checkpoint records the shadow recommendation alongside current behaviour, including agreement or disagreement.\n* A gate failure never blocks the existing path.\n* A shadow run where the gate disagrees with current behaviour completes normally and records the disagreement.\n* No existing checkpoint test changes.\n\n## Verification\n\nTargeted tests, then `npm run verify:trio`, `npm run verify:core`.\n\n## Dependencies\n\nWP-06 accepted.\n\n## Night eligibility\n\nconditional — additive and shadow-only, but it touches the checkpoint path, so the first execution should be watched rather than run fully unattended.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Night eligibility (2026-09-19)\n\nRemains in Backlog. Its dependency WP-06 is delivered, but the plan records this slice as night-safe **conditional** because it touches the checkpoint path and has no real caller yet; the first execution should be watched. Not queued.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-8 wave as `harness/trio/core/shadow.mjs` plus `tests/trio/shadow-gate.test.mjs` (11 cases). The recorder records a shadow recommendation alongside the current behaviour with agreement or disagreement, and a gate that throws, cannot answer or cannot write its trace returns a structured result instead of blocking the existing path — verified by the `a gate failure never blocks the existing path` and `a shadow run where the gate disagrees completes normally` cases.\n\n**One part remains open and is recorded as a limitation, not as done.** The recorder is not yet wired into the live Linear checkpoint renderer, because that file is currently modified in the sibling `linear-multiproject-isolation-20260918` working tree and this ticket's stop conditions forbid widening scope into another initiative's uncommitted files. The slice was therefore implemented additively so a checkpoint caller can invoke it. Wiring it remains gated on that path becoming free.\n\n## Re-review / implementation slice · 2026-09-20\n\n未接受整票：缺真实checkpoint producer调用。原recorder测试通过不等于integration完成。用户本轮授权nightly实现+离线测试；覆盖先前not queued描述。首片20分钟：识别真实producer边界与输入契约，shadow-only调用recordCheckpointShadow；测试disagreement正常完成、throw/write failure不阻塞、原checkpoint字节不变。若无真实producer不得另造状态机充数。与LMP共享文件必须串行核对owner和现有diff，保留已有更改。首次真实producer调用需白班可观察，夜班只报implementation complete / live verification pending，不得整票Done或激活gate。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-42/wp-07-plan-gate-and-verify-gate-shadow-integration",
+    "gitBranchName": "imjaredli/sup-42-wp-07-plan-gate-and-verify-gate-shadow-integration",
+    "createdAt": "2026-09-19T06:40:42.529Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:42.529Z",
+        "endedAt": "2026-09-19T07:50:10.221Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:50:10.221Z",
+        "endedAt": "2026-09-20T08:01:46.775Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-20T08:01:46.775Z",
+        "endedAt": "2026-09-20T09:01:31.226Z"
+      },
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:01:31.226Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-51",
+          "title": "J04 · 修正T1评估与冻结独立对照协议"
+        },
+        {
+          "id": "SUP-41",
+          "title": "WP-06 · Shadow replay fixtures and evaluation harness"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        },
+        {
+          "id": "SUP-43",
+          "title": "WP-08 · Coding deterministic evidence adapter"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-43",
+    "uuid": "2a436a69-054f-432d-b752-aae6403afec6",
+    "title": "WP-08 · Coding deterministic evidence adapter",
+    "description": "## Task\n\nCollect deterministic dev evidence (tests, build, lint, typecheck, git/branch state) into `evidence.deterministic` for the `verify` bundle.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: medium\nTopology: solo\n\n## Scope\n\nA new adapter module and tests.\n\n## Non-goals\n\nDo not replace or reimplement any existing check. Do not add a new test runner. Do not run release actions. The adapter makes no semantic judgement.\n\n## Done when\n\n* Adapter output contains observed facts only, no opinion.\n* A failing command is reported as a fact, not as a decision.\n* No existing check is altered.\n\n## Verification\n\nTargeted tests, then `npm run verify:trio`.\n\n## Dependencies\n\nWP-02 accepted.\n\n## Night eligibility\n\neligible after WP-02 is accepted.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Queue status (2026-09-19)\n\nPromoted to the night queue as the single next dependency-free, edit-disjoint slice (`Todo` + `agent-ready` + `nightly`). Its only dependency, WP-02 (<issue id=\"5994f8aa-9367-4021-93b5-f9b1463a0623\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-37/wp-02-decision-contract-module-and-bundle-schemas-inert\">SUP-37</issue>), is implemented and verified on the current tree, and the predecessor's `ready-review` label is documented as \"attention, not blocking\". WP-09 (<issue id=\"b553a31e-8e97-419b-b2ca-4b92ba0b2f73\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-44/wp-09-office-deterministic-evidence-adapter\">SUP-44</issue>) is deliberately left in Backlog because it shares this slice's edit surface (`tests/trio/import-boundaries.test.mjs` plus the `verify:trio` file list), and WP-07 (<issue id=\"32800402-aba3-4939-a0c5-b425bd98d5ba\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-42/wp-07-plan-gate-and-verify-gate-shadow-integration\">SUP-42</issue>) stays out because its plan entry records conditional night-safety and its integration point still has no real caller.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-8 wave as `harness/trio/core/evidence.mjs` plus `tests/trio/dev-evidence.test.mjs` (12 cases). The adapter reports observed facts only: a failing command is a fact with an exit code, an unstarted or timed-out command is `unknown` rather than a fabricated failure, git state is reported as facts with no verdict, and the output satisfies the `verify` bundle's `evidence.deterministic` contract. No existing check was altered and no test runner was added.\n\n`agent-ready` and `nightly` were removed: the slice is delivered, so leaving it queued would have pointed the night lane at finished work. It now sits at `In Progress` + `ready-review`.\n\n## Chief acceptance · 2026-09-20\n\n本轮用户授权处理pending review；独立subagent逐项复核后Chief接受原ticket的组件/adapter/确定性回放验收，completion-gate DONE ALLOWED。verify:trio 470/470；verify:core最终重验通过（精确计数见本地报告）；相关窄测试与replay通过。仅确认本票原范围，不宣称live模型效果、producer集成或运行时发布；SUP42仍有集成缺口，父项目保持开放。global sync --check仍报projection drift/unknown observation，此环境接入缺口未伪报通过，独立于本票惰性产物验收。证据：reports/audits/night-day-20260920/、DCR progress.md。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-43/wp-08-coding-deterministic-evidence-adapter",
+    "gitBranchName": "imjaredli/sup-43-wp-08-coding-deterministic-evidence-adapter",
+    "createdAt": "2026-09-19T06:40:45.249Z",
+    "updatedAt": "2026-09-20T23:35:35.369Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T08:00:52.010Z",
+    "startedAt": "2026-09-19T07:50:15.594Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:45.249Z",
+        "endedAt": "2026-09-19T07:14:49.437Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-19T07:14:49.437Z",
+        "endedAt": "2026-09-19T07:50:15.604Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:50:15.604Z",
+        "endedAt": "2026-09-20T08:00:52.027Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T08:00:52.027Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        }
+      ],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-42",
+          "title": "WP-07 · Plan Gate and Verify Gate shadow integration"
+        },
+        {
+          "id": "SUP-37",
+          "title": "WP-02 · Decision contract module and bundle schemas (inert)"
+        },
+        {
+          "id": "SUP-44",
+          "title": "WP-09 · Office deterministic evidence adapter"
+        },
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-22",
+    "uuid": "d7508c53-989e-4578-b893-b2619052473a",
+    "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）",
+    "description": "目标：一个产品一个 Team，产品执行隔离、Human 统一监督。用户已授权建单并加入今晚 nightly。父单仅作容器，不由执行器直接领取。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n方案：docs/plans/linear-multiproject-isolation-20260918/proposal.md\n\n2026-09-19 恢复计划已批准：LMP-01 预检已验收；本地实现按依赖自动解锁。夜班改为最多 3 个切片/45 分钟的有界串行队列。套餐升级、其它产品上线与新增调度启用仍按具体授权。\n\n# 多项目隔离 Specs 与 Tickets\n\n> 用户已授权建单与今晚 nightly；LMP 编号保留为规格索引，真实 Linear 子单见关联。\n\n## 规格\n\n| Spec | 必须满足的契约 | 失败语义 |\n| -- | -- | -- |\n| S1 产品身份 | 稳定 productKey + 本机执行根映射 + workspace/team/project ID；名称仅展示 | identity-unknown / ambiguous / root-mismatch，禁止外部写与远程领取 |\n| S2 任务路由 | task 与 issue 一对一绑定；跨层 ID 核验；comment/parent 所属验证；创建后回读 | target-drift，保留本地工作，不跟随人工移动 |\n| S3 接入 | 首次显式 intake 触发；先查后建；步骤可恢复；重复调用返回同一映射 | setup-needed，禁止默认落到 SUP |\n| S4 状态与标签 | workspace 语义标签优先；API 使用 ID；九种状态保留；不删除用户其它标签 | mapping-missing，不能凭相同名字选第一个 |\n| S5 执行 | 只领本产品任务；readiness、授权和锁全部通过；canonical repo 串行；首版单 Host | lease-lost / authorization-missing，停止依赖动作 |\n| S6 同步 | 本地先写，单 status comment 更新；重试查重；Done 必须通过验证与适用验收 | sync-pending，不丢失本地事实、不伪报完成 |\n| S7 监督 | All teams managed 视图，按 Team 分组；聚合展示 stale/unavailable；新产品自动纳入 | 不用空结果冒充健康，不扩大执行授权 |\n| S8 兼容 | v1 原有 SWF 显式同步可读；v2 才能进入多产品自动队列；legacy 单主写 | 不静默升级，不强制移动历史 issue |\n\n### 建议 v2 数据形状（待实现；当前 helper 尚不接受）\n\n```json\n{\n  \"schemaVersion\": 2,\n  \"productKey\": \"sequre\",\n  \"workspaceId\": \"<verified-id>\",\n  \"teamId\": \"<verified-id>\",\n  \"allowedProjectIds\": [\"<verified-id>\"],\n  \"rootIdentity\": \"<stable-local-registration>\",\n  \"hostProjectId\": \"<verified-or-null>\",\n  \"executionMode\": \"manual\",\n  \"labelIds\": {\"managed\": \"<verified-id>\"},\n  \"statusIds\": {\"ready\": \"<verified-id>\"}\n}\n```\n\n本机目录映射与可迁移配置分离；完整 schema 需枚举必填、可空、禁用、未知字段和凭据拒绝规则。task binding 引用产品身份及配置版本，同时保存 task/issue/project/comment IDs。配置不保存 blockers 或实施进度。所有写入使用预检产出的目标，不由模型重新猜名称。\n\n### 全局验收场景\n\n| 场景 | 预期 |\n| -- | -- |\n| SeQure issue 被误贴 SUP 的 nightly 标签 | SWF 执行器拒绝，SeQure 仍须自己的授权 |\n| 把 SWF binding 复制到 Löffi 根目录 | root/product 映射不符，零 Linear 写入 |\n| 人工把 issue 移到另一 Team/Project | 下次恢复或写入前拒绝，显示需重新绑定 |\n| 两个进程/两个 worktree 同领一个仓库 | 恰好一个获锁，另一方不执行；过期不能盲目接管 |\n| 新产品第二次 intake，首次响应曾丢失 | 回读复用 Team/issue/comment，无重复 |\n| 同名不同 ID 的状态/标签 | 使用本产品 ID 映射，保留无关标签 |\n| 某产品 Linear 或本地路径不可用 | 该产品 unavailable，其它产品可继续 |\n| 用户撤销无人值守授权 | 下次领取拒绝；在运行检查点停止依赖动作 |\n| Done 有实现结果但未完成要求的验收 | 不发布 Done |\n| 新产品完成接入 | All teams 视图可见，已有产品的 issue 与执行范围不变 |\n| v1 恢复以及迁移回退 | 原 SWF 同步可用；不会启用跨产品自动领取 |\n| 评论属另一个 issue、issue 在预检后移动 | 拒绝错误评论；回读发现竞态则停止并报 drift |\n",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-22/多项目-linear-隔离与-chief-自动化治理lmp",
+    "gitBranchName": "imjaredli/sup-22-多项目-linear-隔离与-chief-自动化治理（lmp）",
+    "createdAt": "2026-09-18T12:29:02.732Z",
+    "updatedAt": "2026-09-20T23:35:34.803Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": "2026-09-19T03:03:37.819Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "In Progress",
+    "statusType": "started",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:02.732Z",
+        "endedAt": "2026-09-19T03:03:37.831Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T03:03:37.831Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-42",
+          "title": "WP-07 · Plan Gate and Verify Gate shadow integration"
+        },
+        {
+          "id": "SUP-39",
+          "title": "WP-04 · Infrastructure vs cognitive failure taxonomy"
+        },
+        {
+          "id": "SUP-51",
+          "title": "J04 · 修正T1评估与冻结独立对照协议"
+        },
+        {
+          "id": "SUP-43",
+          "title": "WP-08 · Coding deterministic evidence adapter"
+        },
+        {
+          "id": "SUP-40",
+          "title": "WP-05 · Capability-first execution requirement"
+        },
+        {
+          "id": "SUP-48",
+          "title": "J01 · 修复适用验证范围与失败优先级"
+        },
+        {
+          "id": "SUP-19",
+          "title": "Phase 3 真实消费：homepage/dist 测量证据 + 覆盖声明"
+        },
+        {
+          "id": "SUP-20",
+          "title": "Phase 4 经验账：浏览器验证陷阱 + 经济学纪律"
+        },
+        {
+          "id": "SUP-47",
+          "title": "N01 · 夜班模型证据、恢复与后继晋升契约验收"
+        },
+        {
+          "id": "SUP-41",
+          "title": "WP-06 · Shadow replay fixtures and evaluation harness"
+        },
+        {
+          "id": "SUP-38",
+          "title": "WP-03 · Decision trace and observability (local, non-authoritative)"
+        },
+        {
+          "id": "SUP-49",
+          "title": "J02 · 隔离shadow观测错误并修正三态统计"
+        },
+        {
+          "id": "SUP-44",
+          "title": "WP-09 · Office deterministic evidence adapter"
+        },
+        {
+          "id": "SUP-37",
+          "title": "WP-02 · Decision contract module and bundle schemas (inert)"
+        },
+        {
+          "id": "SUP-21",
+          "title": "Phase 5 采纳与治理：research 文档 + PROVENANCE + adopt 同步 + 计数留档"
+        },
+        {
+          "id": "SUP-35",
+          "title": "Decision-Control Runtime — lifecycle, semantic gates and provider-neutral execution"
+        },
+        {
+          "id": "SUP-36",
+          "title": "WP-01 · Mode / Intensity / Topology vocabulary derivation (additive)"
+        },
+        {
+          "id": "SUP-46",
+          "title": "WP-11 · Migration, documentation and release readiness"
+        },
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        },
+        {
+          "id": "SUP-18",
+          "title": "Phase 2 capability：零依赖 CDP 的 packages/render-verify + fixtures + verify:render"
+        },
+        {
+          "id": "SUP-5",
+          "title": "MVP: Linear × Local Codex Human-Agent Control Plane"
+        },
+        {
+          "id": "SUP-12",
+          "title": "8. Attention views and human setup"
+        },
+        {
+          "id": "SUP-14",
+          "title": "Dogfood: night queue round trip and synchronized state"
+        },
+        {
+          "id": "SUP-15",
+          "title": "Dogfood: 复核当前版本的 render/verify 工作流与晨间交接"
+        },
+        {
+          "id": "SUP-13",
+          "title": "7. Verification scenarios A-E"
+        },
+        {
+          "id": "SUP-17",
+          "title": "Phase 1 契约层：测量不变量契约 + ux-design 接线"
+        },
+        {
+          "id": "SUP-16",
+          "title": "Render-verify: 测量式 UI 验证能力吸收（markdown-viewer 方法 → SWF 自有 capability）"
+        },
+        {
+          "id": "SUP-10",
+          "title": "5. Deterministic helpers and tests"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-35",
+    "uuid": "7dd163a7-d206-4421-8a02-e11853b146e0",
+    "title": "Decision-Control Runtime — lifecycle, semantic gates and provider-neutral execution",
+    "description": "Chief-owned initiative. Not itself a night execution task.\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` (task_plan.md / findings.md / progress.md)\n**Spec:** `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`\n**Plan:** `docs/plans/2026-09-19-decision-control-runtime-plan.md`\n\n## Mission\n\nEvolve SWF toward a simpler, general, provider-neutral, decision-driven runtime for coding and office work, without building another orchestration stack beside the one that already exists.\n\nNorth star: Trio owns truth. Code owns lifecycle. Decision Gates judge narrow semantics. ChiefOps owns governance. Linear exposes human attention. Night executes frozen slices. Morning reconciles evidence. Models provide capabilities, not identities.\n\n## Already satisfied — do not rebuild\n\n* Trio = exactly `task_plan.md` / `findings.md` / `progress.md`, sole durable authority\n* Quick/Tracked intake taxonomy (`deep-reasoning` normalizes to `tracked`)\n* The 8-field assignment packet is the execution contract\n* Linear projection, workspace guard, night queue, night executor, morning handoff\n* Provider-neutral model resolution through a declared `workRole`\n\n## Retired — deliberately not reintroduced\n\n* the three-route Decision-Plane Router (`lean-direct` / `tracked-lean` / `deep-rich`)\n* per-unit execution contracts, JSON receipts, approval tokens\n\n## Genuine gaps this initiative closes\n\n1. No mode / intensity / topology vocabulary over the existing work roles, effort list and topology enums.\n2. No provider-neutral semantic decision layer, and no recorded decision trace.\n3. No infrastructure-vs-cognitive failure taxonomy.\n\n## Slices\n\nWP-01 … WP-11 — see child issues. Dependency-gated waves; only the next dependency-free, edit-disjoint slice is night-eligible at any time.\n\n## Phase 6 status (2026-09-19)\n\nThe first implementation wave (WP-01 … WP-06) is implemented and verified directly by the Chief: `harness/trio/core/routing.mjs` (additive vocabulary + capability-first resolver), the new `harness/trio/core/decision.mjs`, `tests/trio/{vocabulary,decision}.test.mjs`, `tests/fixtures/decision/`, `scripts/evaluate-decision-shadow.mjs`. `verify:trio` 421 pass / 0 fail, `verify:core` 449 + 82 pass / 0 fail, `sync --check` exit 0. No gate is active and the decision layer is not imported by any runtime path. Contract bodies are reconciled: <issue id=\"318b4fb3-fa0a-4262-b741-135116ca2d83\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-36/wp-01-mode-intensity-topology-vocabulary-derivation-additive\">SUP-36</issue> … <issue id=\"749994b1-8fce-42e1-913e-03c59a9d09a6\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-46/wp-11-migration-documentation-and-release-readiness\">SUP-46</issue> were repointed from the gitignored `docs/superpowers/plans/…` path to `docs/plans/2026-09-19-decision-control-runtime-plan.md`, and the parent description no longer carries a stale pointer.\n\n## Phase 7 status (2026-09-19)\n\nLinear now matches the delivered work.\n\n* **WP-01 … WP-06** (`SUP-36` … `SUP-41`) are at `In Progress` + `ready-review`: delivered and verified directly by the Chief, awaiting human review. No completion gate was asserted, so nothing is marked `Done`.\n* **Exactly one successor is queued:** WP-08 (`SUP-43`) at `Todo` + `agent-ready` + `nightly`. Its only dependency, WP-02, is implemented and verified on the current tree, and `ready-review` is documented as \"attention, not blocking\". `SUP-36` was stripped of `agent-ready` and `nightly` so the queue holds no stale slice.\n* **WP-07** stays unqueued: its plan entry records night-safety as *conditional* and its integration point still has no real checkpoint caller.\n* **WP-09** stays unqueued until WP-08 is reviewed: the two share an edit surface (`tests/trio/import-boundaries.test.mjs` plus the `verify:trio` file list).\n* **WP-10 / WP-11** remain dependency-gated; the activation decision is a Chief/human call, not automatic.\n\n`validate-binding` returned `binding valid` and the workspace guard returned `ALLOW ok` before these writes.",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral",
+    "gitBranchName": "imjaredli/sup-35-decision-control-runtime-lifecycle-semantic-gates-and",
+    "createdAt": "2026-09-19T06:39:53.164Z",
+    "updatedAt": "2026-09-20T09:02:46.994Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": "2026-09-19T06:44:31.179Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "In Progress",
+    "statusType": "started",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:39:53.164Z",
+        "endedAt": "2026-09-19T06:44:31.199Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T06:44:31.199Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-15",
+          "title": "Dogfood: 复核当前版本的 render/verify 工作流与晨间交接"
+        },
+        {
+          "id": "SUP-24",
+          "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取"
+        },
+        {
+          "id": "SUP-17",
+          "title": "Phase 1 契约层：测量不变量契约 + ux-design 接线"
+        },
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-45",
+    "uuid": "8277119c-739b-4a2c-ba02-59d8f9b98ffd",
+    "title": "WP-10 · Selective gate activation and baseline comparison",
+    "description": "2026-09-20审计更正：遵循 docs/plans/jev-swf-audit-20260920/spec.md S4，先做真实raw inputs/盲标签+2复核/两臂真实语义回答的T1.5，必须保留Host usage和身份可比性。原T1 26/26仅contract agreement，非独立accuracy。WP07只shadow；T2另需限定实验干预授权。全量实测usage求和，output不等于fresh，禁止减avoidedCost；+5%护栏，缺证据unproven。当前Backlog不进入night队列。\n\n## Task\n\nDecide from recorded evidence which gates, if any, may move from shadow to active, with a measured baseline comparison against the spec §18 benefit list.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: think + execute\nCapability: dev\nIntensity: max\nTopology: solo\n\n## Scope\n\nThe evaluation result document; the activation switch (configuration, not code); the Trio decision record.\n\n## Non-goals\n\nActivation of any gate is **not** automatic. No release action. No Linear telemetry.\n\n## Done when\n\n* Each gate is reported with its measured effect on the §18 list.\n* A gate with no measured benefit stays in shadow.\n* The activation switch defaults to shadow.\n* A written activation decision exists per gate, with the evidence it rests on and its rollback condition.\n\n## Verification\n\nReproducible comparison document; targeted tests; `npm run verify:trio`.\n\n## Dependencies\n\nWP-07, WP-08, WP-09 accepted.\n\n## Night eligibility\n\nimplementation and evaluation slices may run at night; the final activation decision is **not** automatic and remains a Chief/human decision.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-9 wave.\n\n**The activation decision is: no gate is activated.** Every one of the six priority gates (`plan_needed`, `plan_ready`, `execution_ready`, `verification_sufficient`, `next_action`, `goal_complete`) stays in `shadow`.\n\nThe switch is data rather than code, appended to `harness/trio/core/shadow.mjs`, with four tests in `tests/trio/shadow-gate.test.mjs`. `resolveGateActivations()` returns `shadow` for a gate with no record, and `resolveGateActivation()` refuses to promote a gate whose record lacks a measured benefit, a rollback condition, evidence, or a Chief/human authorization — so a gate cannot reach active control by configuration accident.\n\nThe measured comparison is `docs/plans/2026-09-19-decision-control-runtime-baseline.md`, reproducible with `node scripts/evaluate-decision-shadow.mjs` (27 cases, 15 disagreements, 1 unevaluable). It states honestly that every §18 benefit is **not measured**: the fixture answers are operator inputs, so the replay proves internal consistency and totality, not a live disagreement rate. A gate with no measured benefit stays in shadow, which is why none was promoted.\n\n## Re-review · 2026-09-20\n\n接受维持全部shadow的决定，但整票measured baseline未完成；依赖WP07真实producer证据。实施计划：逐gate记录§18实测/unknown、来源、rollback；独立holdout/outcome不得自造。依赖满足后授权nightly离线评估/文档；不得自动激活任何gate。不再把此实现缺口伪装成人类review积压。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-45/wp-10-selective-gate-activation-and-baseline-comparison",
+    "gitBranchName": "imjaredli/sup-45-wp-10-selective-gate-activation-and-baseline-comparison",
+    "createdAt": "2026-09-19T06:40:51.208Z",
+    "updatedAt": "2026-09-20T09:01:35.639Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:51.208Z",
+        "endedAt": "2026-09-19T07:50:21.732Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:50:21.732Z",
+        "endedAt": "2026-09-20T08:01:49.870Z"
+      },
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T08:01:49.870Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-46",
+          "title": "WP-11 · Migration, documentation and release readiness"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-51",
+          "title": "J04 · 修正T1评估与冻结独立对照协议"
+        },
+        {
+          "id": "SUP-44",
+          "title": "WP-09 · Office deterministic evidence adapter"
+        },
+        {
+          "id": "SUP-43",
+          "title": "WP-08 · Coding deterministic evidence adapter"
+        },
+        {
+          "id": "SUP-42",
+          "title": "WP-07 · Plan Gate and Verify Gate shadow integration"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-50",
+    "uuid": "734d7b8c-a7d6-4eb5-96b9-a9c0900dd2ab",
+    "title": "J03 · 分离release授权来源并校验backend真实性",
+    "description": "## 问题与交付\n\noperator或自报policy provenance不得给allowed；独立policy context匹配task/operation/evidenceRef才可给recommendation，Host仍最终授权。backend须与真实回答路径一致，host无adapter不可冒充已调用；不造新权限系统。\n\n## 冻结规格与权威\n\n读取 docs/plans/jev-swf-audit-20260920/spec.md S3、plan.md；Trio planning/active/swf-decision-control-runtime-20260919/。原8个foundation票保持Done。\n\n## Scope\n\nharness/trio/core/decision.mjs；tests/trio/decision.test.mjs；docs/decision-control-runtime.md。可更新本任务Trio/报告；其他共享修改保持。依赖：J02。\n\n## 验收\n\n先记录RED再修复，覆盖上述边界；node --test tests/trio/decision.test.mjs；npm run verify:trio。worker只交candidate，Chief独立复验后Done；未完成保留next action。\n\n## 夜班授权\n\nexecutor:codex-local，现有Night Executor；每票20分钟首片、全队列3次/45分钟。本地修改+离线测试已授权；仅首个无依赖票ready/nightly，后继在前票Chief接受并重新readiness后晋级。无push/merge/deploy/global sync apply、无live干预或gate激活；gate全部shadow。首次真实caller仍须Chief可观察。\n\n## 回退\n\n仅回退本票diff，禁止reset/stash或覆盖共享改动。超时/越scope则checkpoint。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-50/j03-分离release授权来源并校验backend真实性",
+    "gitBranchName": "imjaredli/sup-50-j03-分离release授权来源并校验backend真实性",
+    "createdAt": "2026-09-20T09:00:19.702Z",
+    "updatedAt": "2026-09-20T09:00:20.490Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "Bug"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:00:19.702Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-51",
+          "title": "J04 · 修正T1评估与冻结独立对照协议"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-49",
+          "title": "J02 · 隔离shadow观测错误并修正三态统计"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-34",
+    "uuid": "dac3fd8f-d022-4587-ade4-1ae6a1d653c3",
+    "title": "LMP-12 · 扩展到四产品并完成真实自动化验收",
+    "description": "* 优先级：P1；依赖：09/10/11；规格：S1–S8。\n* Owner（角色）：Chief + Human。\n* 范围：在授权后接入其余产品；验证真实夜班、Human 决策恢复、统一摘要；发布新产品操作指南。\n* 验收：四产品归属明确；至少一次真实运行及失败/决策路径证据；无跨产品写入；缺失观测保持待验收，不以配置成功关闭。\n* 交付：上线/回退手册、观测证据、最终验收记录。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地准备可以继续；真实视图变更、调度启用、试点/推广须验证目标配置和适用授权，不能由本地 fixture 通过自动认定完成。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n仅在试点和监督通过后扩展；逐产品取得接入/调度授权；缺少真实触发或失败路径证据保持待验收，不以配置完成关闭。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。\n\n## Capacity / pilot evidence · 2026-09-20\n\nUI Billing实证当前Free plan；官方 [https://linear.app/docs/teams](<https://linear.app/docs/teams>) ：Free最多2 Teams，当前仅SUP。足够SWF+SeQure主repo（~/Personal Projects/SeQure）的第二Team试点，须先完成root/lock/权限前置，不现在创建。四产品各Team需额外容量；第三Team前由human决定升级或明确批准共享Team+独立Project方案，不能自动收费或默认塞SUP。本地开发不被容量门阻塞。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-34/lmp-12-扩展到四产品并完成真实自动化验收",
+    "gitBranchName": "imjaredli/sup-34-lmp-12-扩展到四产品并完成真实自动化验收",
+    "createdAt": "2026-09-18T12:29:56.109Z",
+    "updatedAt": "2026-09-20T08:08:29.793Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:56.109Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [
+        {
+          "id": "SUP-31",
+          "title": "LMP-09 · 统一 Human 视图与只读聚合"
+        },
+        {
+          "id": "SUP-32",
+          "title": "LMP-10 · 产品自动化模板与调度接入"
+        },
+        {
+          "id": "SUP-33",
+          "title": "LMP-11 · SWF 兼容迁移与一个新产品试点"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-33",
+    "uuid": "02190d1b-1a04-4ccf-be13-a816e429fac3",
+    "title": "LMP-11 · SWF 兼容迁移与一个新产品试点",
+    "description": "* 优先级：P0；依赖：04/05/06/07/08；规格：S1–S8。\n* Owner（角色）：试点执行者 + 独立评审者。\n* 范围：保留 SUP 原对象；试点一个经确认的新产品；跑正确路由与串台反例、断线恢复、重复 intake。\n* 验收：SWF 历史 ID 不变；试点只写目标 Team；反例全部拒绝；用户可从视图定位产品/任务/下一步；回退演练通过。\n* 交付：端到端报告、迁移前后对照、review 门。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地准备可以继续；真实视图变更、调度启用、试点/推广须验证目标配置和适用授权，不能由本地 fixture 通过自动认定完成。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n单产品单 repo 试点；必须先通过 LMP-07 锁与恢复证据，再验证串台拒绝、重复 intake、断线恢复和回退。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。\n\n## Capacity / pilot evidence · 2026-09-20\n\nUI Billing实证当前Free plan；官方 [https://linear.app/docs/teams](<https://linear.app/docs/teams>) ：Free最多2 Teams，当前仅SUP。足够SWF+SeQure主repo（~/Personal Projects/SeQure）的第二Team试点，须先完成root/lock/权限前置，不现在创建。四产品各Team需额外容量；第三Team前由human决定升级或明确批准共享Team+独立Project方案，不能自动收费或默认塞SUP。本地开发不被容量门阻塞。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-33/lmp-11-swf-兼容迁移与一个新产品试点",
+    "gitBranchName": "imjaredli/sup-33-lmp-11-swf-兼容迁移与一个新产品试点",
+    "createdAt": "2026-09-18T12:29:53.233Z",
+    "updatedAt": "2026-09-20T08:08:27.545Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:53.233Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-34",
+          "title": "LMP-12 · 扩展到四产品并完成真实自动化验收"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-30",
+          "title": "LMP-08 · 同步重试、错误可见性与 Done 门"
+        },
+        {
+          "id": "SUP-28",
+          "title": "LMP-06 · 明确 Chief intake 与持续授权职责"
+        },
+        {
+          "id": "SUP-27",
+          "title": "LMP-05 · 统一标签与各 Team 状态映射"
+        },
+        {
+          "id": "SUP-29",
+          "title": "LMP-07 · 加入本地原子锁与限定队列"
+        },
+        {
+          "id": "SUP-26",
+          "title": "LMP-04 · 实现幂等首次接入流程"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-26",
+    "uuid": "55ef5cea-04b0-463e-a994-f9d0ec977074",
+    "title": "LMP-04 · 实现幂等首次接入流程",
+    "description": "* 优先级：P0；依赖：02/03；规格：S3。\n* Owner（角色）：Chief 协议维护者。\n* 范围：参数化 bootstrap，移除固定 MVP 标题；先查后建；保存步骤 ID；缺 Team 创建能力时提供 UI/人工恢复入口。\n* 验收：二次 intake 不重复建对象；断线重试可恢复；未完成 Team 创建不会写 issue；普通问答不触发接入。\n* 交付：接入流程、恢复清单、故障注入验证。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地实现范围已获 nightly 授权；仅当全部真实代码依赖 Done、本地 readiness 和无冲突检查通过后，由执行器设 Todo + agent-ready + nightly；无需重复人类确认。实际建 Team/套餐升级/生产接入/发布不在本地开发切片内。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\nTeam bootstrap 可使用已授权的 UI fallback：仅 MCP 无建 Team 能力时，在同 workspace 核对名称/key、重名、权限与容量后创建，MCP 回读后才绑定；不提取 token，不购买升级。\n\n## 2026-09-20 审计后实施增补\n\n显式 intake 才 bootstrap；先查后建、逐步保存 ID；权限/容量/登录/MFA/回读失败进入 `setup-needed`，不继续建 Issue；不因 folder 开关创建或删除 Team。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。\n\n## Capacity / pilot evidence · 2026-09-20\n\nUI Billing实证当前Free plan；官方 [https://linear.app/docs/teams](<https://linear.app/docs/teams>) ：Free最多2 Teams，当前仅SUP。足够SWF+SeQure主repo（~/Personal Projects/SeQure）的第二Team试点，须先完成root/lock/权限前置，不现在创建。四产品各Team需额外容量；第三Team前由human决定升级或明确批准共享Team+独立Project方案，不能自动收费或默认塞SUP。本地开发不被容量门阻塞。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-26/lmp-04-实现幂等首次接入流程",
+    "gitBranchName": "imjaredli/sup-26-lmp-04-实现幂等首次接入流程",
+    "createdAt": "2026-09-18T12:29:32.699Z",
+    "updatedAt": "2026-09-20T08:08:24.903Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:32.699Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-33",
+          "title": "LMP-11 · SWF 兼容迁移与一个新产品试点"
+        },
+        {
+          "id": "SUP-27",
+          "title": "LMP-05 · 统一标签与各 Team 状态映射"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-25",
+          "title": "LMP-03 · 实现逐次目标校验和写入回读协议"
+        },
+        {
+          "id": "SUP-24",
+          "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-16",
+    "uuid": "12956010-bdf4-4d2d-9dc2-a57f26d6e190",
+    "title": "Render-verify: 测量式 UI 验证能力吸收（markdown-viewer 方法 → SWF 自有 capability）",
+    "description": "## Goal\n\n把 markdown-viewer `test/` 的「测量式 UI 验证方法」吸收为 SWF 自有的、平台中立的浏览器渲染验证能力：用语义不变量 + 产物契约断言替代像素基线，作为 `ux-design` 渲染检查的确定性机制，与像素/帧检查分层互补。实现全自研，不复制上游 GPL-3.0 代码或文本。\n\n## Done when\n\n* 方法契约落在 SWF 既有结构内（`ux-design` 参考文件 + `packages/render-verify/` + `tests/`），不新增 skill 身份\n* 每个不变量都有 PASS 与 FAIL fixture，RED-before-GREEN 可查\n* 至少一个真实工件消费证据（`homepage/dist`）输出 JSON + 具名覆盖（viewport / 页面 / 状态 / 未验证项）\n* 根 `package.json` 的 `dependencies` 保持为空；`verify:trio` / `verify:core` / `verify:render` / `verify:homepage` 全绿\n\n## Source of truth\n\nLocal durable state at `planning/active/swf-render-verify-absorption-20260914/` — Linear is a projection.\n\n## Execution\n\nLocal Codex session (`executor:codex-local`). Human owner stays the assignee.\n\n## Status\n\nSee the pinned checkpoint comment below. Current blocking decision: 执行计划批准范围 + D2 驱动方式（CDP 零依赖 vs playwright-core）。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-16/render-verify-测量式-ui-验证能力吸收markdown-viewer-方法-swf-自有-capability",
+    "gitBranchName": "imjaredli/sup-16-render-verify-测量式-ui-验证能力吸收（markdown-viewer-方法-swf-自有",
+    "createdAt": "2026-09-18T07:29:38.323Z",
+    "updatedAt": "2026-09-20T08:06:24.996Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": "2026-09-18T07:29:38.440Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "In Progress",
+    "statusType": "started",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-18T07:29:38.323Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-24",
+          "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取"
+        },
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-21",
+    "uuid": "57d4216c-51c8-44f0-9bed-f1bdd8ee1c6b",
+    "title": "Phase 5 采纳与治理：research 文档 + PROVENANCE + adopt 同步 + 计数留档",
+    "description": "## Task\n\n采纳与治理：research 文档、PROVENANCE 增补、adopt 字节同步、计数留档。\n\n## Local authority\n\n`planning/active/swf-render-verify-absorption-20260914/task_plan.md` — Phase 5\n\n## Done when\n\n* `docs/research/render-verify-absorption-20260914.md`：来源校正（commit、许可证边界）、吸收/舍弃表、验证计数、明确未验证项\n* `harness/optional-skills/ux-design/PROVENANCE.json` 增补来源注记（无文本/代码复制）\n* ux-design 文件集变化 → `scripts/adopt-global-skills.mjs` 干跑 + 投影字节一致校验\n* `verify:trio` / `verify:core` / `verify:render` / `verify:homepage` 前后计数留档；CI 绿\n\n## Notes\n\n本票不改 `ux-design` description（会话注入面零增长）。\n\n## 2026-09-20 采纳诊断补充\n\nsync --check当前exit1：managed update及manual destination-observation-unknown，不能归因为dirty tree。Phase5先做按target dry-run诊断、列出最小差异及owner，再验证projection字节；禁止全量覆盖global targets。原全局apply/发布独立gate仍保留。依赖Phase3/4后按已授权本地诊断范围晋升nightly。",
+    "priority": {
+      "value": 4,
+      "name": "Low"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-21/phase-5-采纳与治理research-文档-provenance-adopt-同步-计数留档",
+    "gitBranchName": "imjaredli/sup-21-phase-5-采纳与治理：research-文档-provenance-adopt-同步-计数留档",
+    "createdAt": "2026-09-18T07:33:25.252Z",
+    "updatedAt": "2026-09-20T08:04:04.201Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T07:33:25.252Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-16",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [
+        {
+          "id": "SUP-19",
+          "title": "Phase 3 真实消费：homepage/dist 测量证据 + 覆盖声明"
+        },
+        {
+          "id": "SUP-20",
+          "title": "Phase 4 经验账：浏览器验证陷阱 + 经济学纪律"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-28",
+    "uuid": "dc5e8423-0872-4d26-b01e-e7a88c0e4acc",
+    "title": "LMP-06 · 明确 Chief intake 与持续授权职责",
+    "description": "* 优先级：P0；依赖：02/03；规格：S3/S5。\n* Owner（角色）：Chief 协议维护者。\n* 范围：改 canonical Chief/Linear 技能并投影；intake 展示归属和授权来源；manual 默认；standing authorization 可选；委派验收语义保留。\n* 验收：未授权不加 nightly；已有明确授权不反复征询；接入不等于执行授权；Chief 不变成跨产品调度器。\n* 交付：契约改动、必要语义测试、canonical/projection 校验。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地实现范围已获 nightly 授权；仅当全部真实代码依赖 Done、本地 readiness 和无冲突检查通过后，由执行器设 Todo + agent-ready + nightly；无需重复人类确认。实际建 Team/套餐升级/生产接入/发布不在本地开发切片内。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n产品接入、repo 执行、nightly/standing authorization 分层；默认 manual；接入不自动授予执行权，Chief 不承担跨产品派工。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。\n\n## Coverage acceptance\n\n当前36个active目录只有5份binding映射6个task（SUP15在MVP taskMap）；其余30个不是自动已入loop。新增intake coverage输出：completed旧目录 / explicit local-only / tracked接入缺口，带owner与下一步。不因目录名active就批量排队/建Team/归档。证据 reports/audits/night-day-20260920/local-coverage.json。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-28/lmp-06-明确-chief-intake-与持续授权职责",
+    "gitBranchName": "imjaredli/sup-28-lmp-06-明确-chief-intake-与持续授权职责",
+    "createdAt": "2026-09-18T12:29:38.268Z",
+    "updatedAt": "2026-09-20T08:04:00.766Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:38.268Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-33",
+          "title": "LMP-11 · SWF 兼容迁移与一个新产品试点"
+        },
+        {
+          "id": "SUP-32",
+          "title": "LMP-10 · 产品自动化模板与调度接入"
+        },
+        {
+          "id": "SUP-29",
+          "title": "LMP-07 · 加入本地原子锁与限定队列"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-24",
+          "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取"
+        },
+        {
+          "id": "SUP-25",
+          "title": "LMP-03 · 实现逐次目标校验和写入回读协议"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-46",
+    "uuid": "749994b1-8fce-42e1-913e-03c59a9d09a6",
+    "title": "WP-11 · Migration, documentation and release readiness",
+    "description": "## Task\n\nDocument the runtime, its compatible migration path, its known limitations, and its rollout gates.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: think\nCapability: dev + office\nIntensity: high\nTopology: solo\n\n## Scope\n\n`docs/` architecture and operations pages; `README` where operator-facing; the Trio record. At most, add a pointer from the two 2026-06-04 specs to this reconciliation.\n\n## Non-goals\n\nNo commit, push, PR, merge, publish or deploy without explicit authorization. No retroactive rewrite of the 2026-06-04 specs.\n\n## Done when\n\n* A reader can tell what changed, what deliberately did not, and what remains limited.\n* Spec §21's release boundary is restated for the operator.\n* `tests/plugin-kit/docs-contract.test.mjs` and `tests/core/no-personal-paths.test.mjs` pass.\n\n## Verification\n\n`npm run verify:core`.\n\n## Dependencies\n\nWP-10 accepted.\n\n## Night eligibility\n\nnot eligible — external release actions are excluded.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-9 wave as `docs/decision-control-runtime.md`, with a README row and a retirement status pointer appended to each of the two 2026-06-04 specs.\n\nThe document states what changed, what deliberately did not change, the migration path, the operating instructions, seven known limitations, and a restatement of spec §21's release boundary for the operator. `tests/plugin-kit/docs-contract.test.mjs` and `tests/core/no-personal-paths.test.mjs` both pass under `npm run verify:core` (449 + 82 pass / 0 fail). No external release action was taken and the 2026-06-04 specs were not rewritten — only a status pointer was appended.\n\n## Re-review · 2026-09-20\n\n文档本身已具备，docs checks通过；原WP10依赖尚未接受，故Backlog。后续计划：WP10验收后核对migration/limitations/release boundary与真实结果，窄docs-contract验证后关闭；本地文档复核可nightly，发布/部署仍不在此票授权。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-46/wp-11-migration-documentation-and-release-readiness",
+    "gitBranchName": "imjaredli/sup-46-wp-11-migration-documentation-and-release-readiness",
+    "createdAt": "2026-09-19T06:40:53.824Z",
+    "updatedAt": "2026-09-20T08:01:53.653Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:53.824Z",
+        "endedAt": "2026-09-19T07:50:18.189Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:50:18.189Z",
+        "endedAt": "2026-09-20T08:01:52.759Z"
+      },
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T08:01:52.759Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-36",
+    "uuid": "318b4fb3-fa0a-4262-b741-135116ca2d83",
+    "title": "WP-01 · Mode / Intensity / Topology vocabulary derivation (additive)",
+    "description": "> First night slice of the Decision-Control Runtime initiative. Additive only — no existing runtime behaviour may change.\n\n## Task\n\nName the vocabulary SWF already implies. Add pure derivations over the existing enums so a requirement can be expressed as mode / intensity / topology without naming a model.\n\nNew frozen names: `MODE_KINDS = ['think','execute']`, `INTENSITY_LEVELS = ['low','medium','high','xhigh','max']`, `TOPOLOGY_CLASSES = ['solo','delegated','parallel']`, `modeOf(workRole)`, `intensitySubsetOf(mode)`, `normalizeIntensity(value, mode)`, `topologyClassOf(record)`.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: high\nTopology: solo\n(These are semantic requirements, not model assignments. The Host resolves the implementation.)\n\n## Scope\n\n`harness/trio/core/routing.mjs` — **additive exports only**; a new or extended test file under `tests/trio/`; only if a new module is introduced, `tests/trio/import-boundaries.test.mjs` plus the `verify:trio` file list in `package.json`.\n\n## Non-goals\n\nDo **not** modify `classifyWorkRole`, `classifyComplexity`, `resolveModelEffort`, `validateModelEffort`, `topologyOf`, the assignment packet, or any existing exported behaviour. Do not widen `execute` intensity to `low|medium`. Do not add a second state machine. Do not edit files owned by the sibling `linear-multiproject-isolation-20260918` working tree.\n\n## Done when\n\n* Every new name is exported and unit-tested.\n* `modeOf` is total over `CHIEF_WORK_ROLES` and `EXECUTION_WORK_ROLES` and throws on an unknown role.\n* `normalizeIntensity('low','execute')` rejects; `normalizeIntensity('low','think')` accepts.\n* `topologyClassOf` derives only from fields that already exist.\n* No existing test expectation is edited; only new cases are added.\n\n## Verification\n\n`node --test` on the affected test file (targeted first), then `npm run verify:trio`, `npm run verify:core`, `./scripts/harness sync --check`. Record exact pass/fail counts.\n\n## Dependencies\n\nNone.\n\n## Night eligibility\n\n**eligible** — tracked, bounded, additive, unattended-verifiable, no external or destructive step, edit surface disjoint from <issue id=\"39eac872-8da0-458e-8c8b-30cc1019853a\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-24/lmp-02-实现-v2-配置task-binding-与兼容读取\">SUP-24</issue> / <issue id=\"35fac9fe-88b7-4748-9d9b-ad50f1ca7b8a\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-17/phase-1-契约层测量不变量契约-ux-design-接线\">SUP-17</issue> / <issue id=\"c48e2a01-24ae-4172-803a-5be9f273ea79\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-15/dogfood-复核当前版本的-renderverify-工作流与晨间交接\">SUP-15</issue>.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names turn out to conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Queue status (2026-09-19)\n\nThe slice was executed directly by the Chief in the phase-6 wave (`harness/trio/core/routing.mjs`, additive; `tests/trio/vocabulary.test.mjs`), so `agent-ready` and `nightly` were removed and the issue now sits at `In Progress` + `ready-review`. The queue holds exactly one slice from this initiative; this ticket is kept open for review, not re-queued.\n\n## Chief acceptance · 2026-09-20\n\n本轮用户授权处理pending review；独立subagent逐项复核后Chief接受原ticket的组件/adapter/确定性回放验收，completion-gate DONE ALLOWED。verify:trio 470/470；verify:core最终重验通过（精确计数见本地报告）；相关窄测试与replay通过。仅确认本票原范围，不宣称live模型效果、producer集成或运行时发布；SUP42仍有集成缺口，父项目保持开放。global sync --check仍报projection drift/unknown observation，此环境接入缺口未伪报通过，独立于本票惰性产物验收。证据：reports/audits/night-day-20260920/、DCR progress.md。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-36/wp-01-mode-intensity-topology-vocabulary-derivation-additive",
+    "gitBranchName": "imjaredli/sup-36-wp-01-mode-intensity-topology-vocabulary-derivation-additive",
+    "createdAt": "2026-09-19T06:40:10.644Z",
+    "updatedAt": "2026-09-20T08:00:31.059Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T08:00:31.040Z",
+    "startedAt": "2026-09-19T07:14:20.078Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-19T06:40:10.644Z",
+        "endedAt": "2026-09-19T07:14:20.090Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:14:20.090Z",
+        "endedAt": "2026-09-20T08:00:31.059Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T08:00:31.059Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-17",
+          "title": "Phase 1 契约层：测量不变量契约 + ux-design 接线"
+        },
+        {
+          "id": "SUP-24",
+          "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取"
+        },
+        {
+          "id": "SUP-15",
+          "title": "Dogfood: 复核当前版本的 render/verify 工作流与晨间交接"
+        },
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-32",
+    "uuid": "0586b16f-8719-4cb0-b01e-184558fab642",
+    "title": "LMP-10 · 产品自动化模板与调度接入",
+    "description": "* 优先级：P1；依赖：06/07/08/09；规格：S5/S7。\n* Owner（角色）：Host 自动化配置者。\n* 范围：每个已授权产品一个执行入口；按需全局早报；创建默认暂停；指定 Host project/cwd/config；接入记录可重建。\n* 验收：不会因新建项目自动启用夜班；产品 A automation 不能操作 B；无变化不通知；既有 SWF 早报在替代验证前保留。\n* 交付：工具创建/更新回读、计划与实际运行区别记录。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地准备可以继续；真实视图变更、调度启用、试点/推广须验证目标配置和适用授权，不能由本地 fixture 通过自动认定完成。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n每个已授权产品最多一个 execution automation；默认暂停；明确 cwd/binding；不因新建 Codex project 自动启用夜班。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-32/lmp-10-产品自动化模板与调度接入",
+    "gitBranchName": "imjaredli/sup-32-lmp-10-产品自动化模板与调度接入",
+    "createdAt": "2026-09-18T12:29:50.335Z",
+    "updatedAt": "2026-09-20T07:59:16.353Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:50.335Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-34",
+          "title": "LMP-12 · 扩展到四产品并完成真实自动化验收"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-30",
+          "title": "LMP-08 · 同步重试、错误可见性与 Done 门"
+        },
+        {
+          "id": "SUP-28",
+          "title": "LMP-06 · 明确 Chief intake 与持续授权职责"
+        },
+        {
+          "id": "SUP-31",
+          "title": "LMP-09 · 统一 Human 视图与只读聚合"
+        },
+        {
+          "id": "SUP-29",
+          "title": "LMP-07 · 加入本地原子锁与限定队列"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-31",
+    "uuid": "27591bc1-53f0-4f3f-9656-3a87e64bd7e7",
+    "title": "LMP-09 · 统一 Human 视图与只读聚合",
+    "description": "* 优先级：P1；依赖：05/08；规格：S7。\n* Owner（角色）：监督流程维护者。\n* 范围：复用现有视图；配置 All teams managed 过滤与 Team 分组；统一摘要按已注册产品查询，包含 stale/unknown。\n* 验收：新产品无需改 team 白名单即可可见；API 聚合按真实 ID；一次产品失败不漏报；聚合器零业务状态写入。\n* 交付：四入口配置、UI 截图与查询覆盖证明。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地准备可以继续；真实视图变更、调度启用、试点/推广须验证目标配置和适用授权，不能由本地 fixture 通过自动认定完成。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n监督聚合按真实产品/Team/Project 查询，显示 stale/unavailable；聚合器只读，不因 folder 或空结果改变业务状态。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-31/lmp-09-统一-human-视图与只读聚合",
+    "gitBranchName": "imjaredli/sup-31-lmp-09-统一-human-视图与只读聚合",
+    "createdAt": "2026-09-18T12:29:47.870Z",
+    "updatedAt": "2026-09-20T07:59:13.150Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:47.870Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-34",
+          "title": "LMP-12 · 扩展到四产品并完成真实自动化验收"
+        },
+        {
+          "id": "SUP-32",
+          "title": "LMP-10 · 产品自动化模板与调度接入"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-30",
+          "title": "LMP-08 · 同步重试、错误可见性与 Done 门"
+        },
+        {
+          "id": "SUP-27",
+          "title": "LMP-05 · 统一标签与各 Team 状态映射"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-30",
+    "uuid": "d81894f8-db44-4d56-917f-34955659dbce",
+    "title": "LMP-08 · 同步重试、错误可见性与 Done 门",
+    "description": "* 优先级：P0；依赖：03/05/07；规格：S6。\n* Owner（角色）：开发执行者。\n* 范围：保持本地优先；issue/comment 创建响应丢失时先查证；更新唯一 comment；保留同步失败与可重试信息。\n* 验收：失败不丢本地状态、不重复评论；未验收不 Done；无 Linear 时可通过获授权 Host 渠道报告；无通道时明确仅本地可见。\n* 交付：恢复与幂等测试、通知失败边界证据。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地实现范围已获 nightly 授权；仅当全部真实代码依赖 Done、本地 readiness 和无冲突检查通过后，由执行器设 Todo + agent-ready + nightly；无需重复人类确认。实际建 Team/套餐升级/生产接入/发布不在本地开发切片内。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n本地先写、Linear 后同步；响应丢失先查重；失败可重试且不重复评论；未通过验证不得 Done。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-30/lmp-08-同步重试错误可见性与-done-门",
+    "gitBranchName": "imjaredli/sup-30-lmp-08-同步重试、错误可见性与-done-门",
+    "createdAt": "2026-09-18T12:29:45.169Z",
+    "updatedAt": "2026-09-20T07:59:09.439Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:45.169Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-33",
+          "title": "LMP-11 · SWF 兼容迁移与一个新产品试点"
+        },
+        {
+          "id": "SUP-32",
+          "title": "LMP-10 · 产品自动化模板与调度接入"
+        },
+        {
+          "id": "SUP-31",
+          "title": "LMP-09 · 统一 Human 视图与只读聚合"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-25",
+          "title": "LMP-03 · 实现逐次目标校验和写入回读协议"
+        },
+        {
+          "id": "SUP-29",
+          "title": "LMP-07 · 加入本地原子锁与限定队列"
+        },
+        {
+          "id": "SUP-27",
+          "title": "LMP-05 · 统一标签与各 Team 状态映射"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-29",
+    "uuid": "20a8a5f5-a6ba-4bf6-aa52-eec18b2845fe",
+    "title": "LMP-07 · 加入本地原子锁与限定队列",
+    "description": "* 优先级：P0；依赖：03/05/06；规格：S5。\n* Owner（角色）：开发执行者。\n* 范围：按 canonical repo 获取跨进程锁；队列过滤和结果二次核验；owner/恢复验证；各独立 repo 分开执行。\n* 验收：双进程竞争仅一个执行；两个 worktree 互斥；丢锁停止；外来 issue 即使标签匹配也拒绝；单 Host 限制明确。\n* 交付：竞争测试、恢复测试、执行诊断日志。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地实现范围已获 nightly 授权；仅当全部真实代码依赖 Done、本地 readiness 和无冲突检查通过后，由执行器设 Todo + agent-ready + nightly；无需重复人类确认。实际建 Team/套餐升级/生产接入/发布不在本地开发切片内。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\ncanonical repo/worktree 家族锁是试点硬前置；竞争只允许一个 owner，丢 lease 停止写入，旧 owner 未确认停止不得接管。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-29/lmp-07-加入本地原子锁与限定队列",
+    "gitBranchName": "imjaredli/sup-29-lmp-07-加入本地原子锁与限定队列",
+    "createdAt": "2026-09-18T12:29:41.319Z",
+    "updatedAt": "2026-09-20T07:59:06.452Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:41.319Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-33",
+          "title": "LMP-11 · SWF 兼容迁移与一个新产品试点"
+        },
+        {
+          "id": "SUP-32",
+          "title": "LMP-10 · 产品自动化模板与调度接入"
+        },
+        {
+          "id": "SUP-30",
+          "title": "LMP-08 · 同步重试、错误可见性与 Done 门"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-27",
+          "title": "LMP-05 · 统一标签与各 Team 状态映射"
+        },
+        {
+          "id": "SUP-28",
+          "title": "LMP-06 · 明确 Chief intake 与持续授权职责"
+        },
+        {
+          "id": "SUP-25",
+          "title": "LMP-03 · 实现逐次目标校验和写入回读协议"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-27",
+    "uuid": "4a09e47c-91c0-4432-a4da-da6034c8d4b4",
+    "title": "LMP-05 · 统一标签与各 Team 状态映射",
+    "description": "* 优先级：P1；依赖：02/04；规格：S4/S8。\n* Owner（角色）：开发执行者。\n* 范围：新增 agent-managed；过渡期读取旧 swf-managed；逐 Team 回读状态 ID；语义标签复用 workspace 级对象。\n* 验收：不删除旧标签或其它用户标签；同名标签不误绑定；不覆盖自定义 workflow；所有九种状态有确定映射。\n* 交付：迁移预览、ID 映射、现有视图影响清单。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n本地实现范围已获 nightly 授权；仅当全部真实代码依赖 Done、本地 readiness 和无冲突检查通过后，由执行器设 Todo + agent-ready + nightly；无需重复人类确认。实际建 Team/套餐升级/生产接入/发布不在本地开发切片内。\n\n## R2 依赖修正（2026-09-19）\n\nTeam 尚未创建不等于套餐容量不足；未知的 live Team ID/容量不阻塞 schema、guard 和 fixture 开发。真实 rollout 仍验证套餐、权限、Team IDs、产品映射及授权。\n\n## 2026-09-20 审计后实施增补\n\n按各 Team 回读状态与标签 ID，保留旧标签兼容；`SUP-27` UUID 前缀为 `4a09e47c...`；不得按同名对象猜 ID。\n\n规格与计划：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md；nightly-recovery-plan.md。用户本轮授权本地实现/fixture/测试和依赖满足后晋升nightly；真实新产品接入按明确产品/root、锁、权限容量和独立授权核验，不自动升级套餐或发布。全局3 attempts/45min；依赖未Done时保持Backlog，已规划不等于已可执行。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-27/lmp-05-统一标签与各-team-状态映射",
+    "gitBranchName": "imjaredli/sup-27-lmp-05-统一标签与各-team-状态映射",
+    "createdAt": "2026-09-18T12:29:35.631Z",
+    "updatedAt": "2026-09-20T07:59:01.072Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-18T12:29:35.631Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-33",
+          "title": "LMP-11 · SWF 兼容迁移与一个新产品试点"
+        },
+        {
+          "id": "SUP-31",
+          "title": "LMP-09 · 统一 Human 视图与只读聚合"
+        },
+        {
+          "id": "SUP-30",
+          "title": "LMP-08 · 同步重试、错误可见性与 Done 门"
+        },
+        {
+          "id": "SUP-29",
+          "title": "LMP-07 · 加入本地原子锁与限定队列"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-26",
+          "title": "LMP-04 · 实现幂等首次接入流程"
+        },
+        {
+          "id": "SUP-24",
+          "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-13",
+    "uuid": "8a91c9b6-f7f1-4ab6-9d63-dd6af5c851cf",
+    "title": "7. Verification scenarios A-E",
+    "description": "## Task\n\n按 goal prompt 的 Test A–E 逐条验证，并对每条注明已验证/未验证边界。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 7\n\n## Done when\n\n* A–E 的本地腿可复现\n* Linear 腿在 workspace 通过后实测并记录证据\n* 不能验证的部分明确写为未验证\n\n## Notes\n\n本次 bootstrap 后开始执行 Linear 腿（真实 issue 的 checkpoint / waiting-human / resume / completion 往返）。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-13/7-verification-scenarios-a-e",
+    "gitBranchName": "imjaredli/sup-13-7-verification-scenarios-a-e",
+    "createdAt": "2026-09-17T14:20:30.968Z",
+    "updatedAt": "2026-09-20T07:57:34.453Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-20T07:57:34.439Z",
+    "startedAt": "2026-09-17T14:20:31.038Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-17T14:20:30.968Z",
+        "endedAt": "2026-09-20T07:57:34.447Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-20T07:57:34.447Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-12",
+          "title": "8. Attention views and human setup"
+        },
+        {
+          "id": "SUP-14",
+          "title": "Dogfood: night queue round trip and synchronized state"
+        },
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-14",
+    "uuid": "b5e9a8bc-a548-4298-b065-c92330735251",
+    "title": "Dogfood: night queue round trip and synchronized state",
+    "description": "## Task\n\n用一条真实 issue 走通 night queue 选择 → 本地执行 → 状态同步 → completion gate 的完整往返，并留下可复核证据。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 7（Test C）/ Phase 8\n\n## Done when\n\n* night queue 过滤条件（`swf-managed` + `agent-ready` + `nightly`）能只读选出本 issue\n* 执行期间本 issue 状态与语义标签按映射同步（Todo+agent-ready → In Progress+agent-running → Done）\n* 同仓库存在 waiting-human 的 issue 时不影响本 issue 被选中与执行（阻断隔离）\n* morning handoff 摘要能用真实数据渲染出来（automation 本身仍为 PAUSED，未触发）\n* completion gate 在证据齐备后返回 DONE ALLOWED\n\n## Notes\n\n本 issue 是 dogfooding 载体：它的证据就是它自己的评论与状态变化，外加本地 task 目录的记录。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-14/dogfood-night-queue-round-trip-and-synchronized-state",
+    "gitBranchName": "imjaredli/sup-14-dogfood-night-queue-round-trip-and-synchronized-state",
+    "createdAt": "2026-09-17T14:26:16.241Z",
+    "updatedAt": "2026-09-20T07:52:12.621Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-17T14:34:11.552Z",
+    "startedAt": "2026-09-17T14:30:33.418Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-17T14:26:16.241Z",
+        "endedAt": "2026-09-17T14:30:33.441Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-17T14:30:33.441Z",
+        "endedAt": "2026-09-17T14:34:11.562Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-17T14:34:11.562Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-12",
+          "title": "8. Attention views and human setup"
+        },
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        },
+        {
+          "id": "SUP-13",
+          "title": "7. Verification scenarios A-E"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-12",
+    "uuid": "48e15c0d-c7eb-4adc-b6d7-261a6fd4dfb9",
+    "title": "8. Attention views and human setup",
+    "description": "## Task\n\nLinear 侧的人工设置：八个 attention 视图 + automation 启用决定。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 8\n\n## Done when\n\n* Needs Human 视图可用（最高优先级）\n* 其余七个视图按 reference.md 第 9 节创建\n* 决定是否启用两条 PAUSED automation\n\n## Notes\n\nMCP 不提供视图创建能力，此步只能人工在 Linear UI 完成；步骤已写在 docs/linear-work-control.md。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-12/8-attention-views-and-human-setup",
+    "gitBranchName": "imjaredli/sup-12-8-attention-views-and-human-setup",
+    "createdAt": "2026-09-17T14:20:29.018Z",
+    "updatedAt": "2026-09-20T07:52:09.609Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-18T03:28:19.715Z",
+    "startedAt": "2026-09-17T14:20:29.103Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-17T14:20:29.018Z",
+        "endedAt": "2026-09-18T03:28:19.741Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-18T03:28:19.741Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        },
+        {
+          "id": "SUP-13",
+          "title": "7. Verification scenarios A-E"
+        },
+        {
+          "id": "SUP-14",
+          "title": "Dogfood: night queue round trip and synchronized state"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-17",
+    "uuid": "35fac9fe-88b7-4748-9d9b-ad50f1ca7b8a",
+    "title": "Phase 1 契约层：测量不变量契约 + ux-design 接线",
+    "description": "## Task\n\n落地测量式验证的契约层：新增 `MEASUREMENT-CONTRACT.md`，把测量层接进 `RENDERED-VERIFICATION.md`，更新 `methods.md` 的 ux-design 行，并用 ux-design 契约测试锁定条款。\n\n## Local authority\n\n`planning/active/swf-render-verify-absorption-20260914/task_plan.md` — Phase 1\n\n## Done when\n\n* `harness/optional-skills/ux-design/MEASUREMENT-CONTRACT.md` 存在：两层证据分工（感知层=像素/帧，结构层=测量不变量）、不变量词汇与精确谓词、期望值来源（探针/配置，禁止硬编码调色板与字号）、覆盖与限制记录、失败输出必须具名 selector 与测量值、平台中立措辞\n* `RENDERED-VERIFICATION.md` 把测量层接进 \"Make the output visible\" 与 \"Two passes, two inspections\"，既有证据态表不变\n* `harness/trio/capabilities/dev/references/methods.md` 的 ux-design 行：有浏览器能力时先跑测量层，再做目视检查\n* `tests/installer/ux-design.test.mjs` 断言新条款，且删除变异给出 RED\n* `node --test tests/installer/*.test.mjs` 与 `npm run verify:trio` 全绿；`ux-design` description 字节未变\n\n## Notes\n\n零运行时依赖；不碰 `packages/`、不改 CI、不改 homepage 产品源码。属主边界见 task_plan 的 Scope and Authorization。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-17/phase-1-契约层测量不变量契约-ux-design-接线",
+    "gitBranchName": "imjaredli/sup-17-phase-1-契约层：测量不变量契约-ux-design-接线",
+    "createdAt": "2026-09-18T07:33:18.656Z",
+    "updatedAt": "2026-09-19T17:54:07.267Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-19T17:54:06.554Z",
+    "startedAt": "2026-09-19T17:38:49.429Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-18T07:33:18.656Z",
+        "endedAt": "2026-09-19T17:38:49.460Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T17:38:49.460Z",
+        "endedAt": "2026-09-19T17:54:06.973Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-19T17:54:06.973Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-16",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-18",
+          "title": "Phase 2 capability：零依赖 CDP 的 packages/render-verify + fixtures + verify:render"
+        }
+      ],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-35",
+          "title": "Decision-Control Runtime — lifecycle, semantic gates and provider-neutral execution"
+        },
+        {
+          "id": "SUP-36",
+          "title": "WP-01 · Mode / Intensity / Topology vocabulary derivation (additive)"
+        },
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-23",
+    "uuid": "2207400d-97d3-47d1-816c-36b5c5ab1e5e",
+    "title": "LMP-01 · 冻结产品映射与接入预检",
+    "description": "* 优先级：P0；依赖：无；规格：S1/S3。\n* Owner（角色）：Chief + Human。\n* 范围：核对套餐/权限、四产品根目录、Host ID、Team 名称与前缀；识别已有同名对象。\n* 验收：输出已核实 ID 或明确 unknown；未创建的 Team 与套餐容量 unknown 分开记录；仅实际接入等待这些证据；不创建重复 Team。\n* 交付：产品映射清单与接入预检结果；预检证据验收。\n* 回退：暂停该能力启用，保留原映射和所有外部对象；若涉及数据迁移先恢复经过核实的旧引用，不删除对象模拟回退。\n\n本地权威：planning/active/linear-multiproject-isolation-20260918/ 三文件。\n绑定：reports/linear/linear-multiproject-isolation-20260918/linear.json\n规格：docs/plans/linear-multiproject-isolation-20260918/specs-and-tickets.md\n\n## 修复后的验收与结果\n\n2026-09-19 用户批准恢复计划，主执行者完成独立复核：四产品根目录有效，SWF 映射已核实，Host IDs 有昨夜夜班证据；套餐/建 Team 权限 unknown 保留至实际接入。预检不包含真实建 Team、升级套餐或上线。\ncompletion-gate: DONE ALLOWED。后续本地开发可按真实依赖及已有 nightly 授权推进；实际接入另行核实目标和门禁。",
+    "priority": {
+      "value": 1,
+      "name": "Urgent"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-23/lmp-01-冻结产品映射与接入预检",
+    "gitBranchName": "imjaredli/sup-23-lmp-01-冻结产品映射与接入预检",
+    "createdAt": "2026-09-18T12:29:24.992Z",
+    "updatedAt": "2026-09-19T03:03:22.134Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-19T03:03:13.135Z",
+    "startedAt": "2026-09-18T17:40:44.329Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-18T12:29:24.992Z",
+        "endedAt": "2026-09-18T17:40:44.346Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-18T17:40:44.346Z",
+        "endedAt": "2026-09-19T03:03:13.145Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-19T03:03:13.145Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-22",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-24",
+          "title": "LMP-02 · 实现 v2 配置、task binding 与兼容读取"
+        }
+      ],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-5",
+    "uuid": "e0a75be2-b0f4-419f-bd8b-ea8df0e12fbb",
+    "title": "MVP: Linear × Local Codex Human-Agent Control Plane",
+    "description": "## Goal\n\n在 SWF 仓库落地一个 additive 的 Linear 集成层：Linear 成为 human-facing control plane，本地 `planning/active/<task-id>/` 文件继续是 durable execution source of truth。\n\n## Done when\n\n* binding schema 校验通过，且所有 Linear 写入前 guard 返回 ok（错误 workspace 一律 DENY）\n* checkpoint / blocker / resume / completion 协议可确定性渲染、解析、校验\n* 真实 workspace `superpoweringwithfiles` 上完成 bootstrap：project、goal issue、sub-issues、status comment\n* Night Executor 与 Morning Handoff 工作流存在（当前 PAUSED；configured ≠ triggered ≠ observed）\n* 测试场景 A–E 的本地腿已复测，Linear 腿按当前环境能力验证并如实记录\n\n## Source of truth\n\nLocal durable state at `planning/active/swf-linear-control-plane-mvp-20260917/` — Linear is a projection.\n\n## Execution\n\nLocal Codex session (`executor:codex-local`). Human owner stays the assignee.\n\n## Status\n\nSee the pinned checkpoint comment below.",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-5/mvp-linear-local-codex-human-agent-control-plane",
+    "gitBranchName": "imjaredli/sup-5-mvp-linear-×-local-codex-human-agent-control-plane",
+    "createdAt": "2026-09-17T14:19:54.660Z",
+    "updatedAt": "2026-09-18T23:34:47.113Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-17T15:13:18.057Z",
+    "startedAt": "2026-09-17T14:19:54.708Z",
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-17T14:19:54.660Z",
+        "endedAt": "2026-09-17T15:13:18.074Z"
+      },
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-17T15:13:18.074Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-10",
+    "uuid": "68c22bf7-f2f2-4090-b8a0-c008416d0645",
+    "title": "5. Deterministic helpers and tests",
+    "description": "## Task\n\n确定性 helper CLI + 单元测试 + 全量回归。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 4 + Phase 7\n\n## Done when\n\n* node --test tests/core/linear-work-control-eval.test.mjs 全绿\n* npm run verify:core 与 verify:trio 全绿\n\n## Notes\n\n计数口径不写死在描述里：2026-09-17 加固后为 25 个用例、verify:core 507/507（425 + 82）、verify:trio 425/425；2026-09-18 01:00 UTC+8（Session 6，第 2 轮复核修复后）为 28 个用例、510/510（428 + 82）、425/425；2026-09-18 02:20 UTC+8（Session 7，第 3 轮复核修复后）为 29 个用例、511/511（429 + 82）、425/425。当前口径以 planning/active/swf-linear-control-plane-mvp-20260917/final-report.md 第 4 节为准（含命令与时间戳）。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-10/5-deterministic-helpers-and-tests",
+    "gitBranchName": "imjaredli/sup-10-5-deterministic-helpers-and-tests",
+    "createdAt": "2026-09-17T14:20:25.994Z",
+    "updatedAt": "2026-09-18T23:34:47.113Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-17T14:20:26.042Z",
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-17T14:20:25.994Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-11",
+    "uuid": "f660d3fc-5d65-47db-912f-1add50979c6f",
+    "title": "6. Night executor and morning handoff workflows",
+    "description": "## Task\n\n夜执行与晨间交接工作流（prompt 版本化 + Codex App automation）。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 6\n\n## Done when\n\n* 两个工作流的 prompt 版本化在仓库中且与 automation 内容逐字一致\n* automation 已创建\n\n## Notes\n\n两条 automation 均为 PAUSED，rrule 仅为占位；configured ≠ triggered ≠ observed，启用与首次观察属于人类决定。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-11/6-night-executor-and-morning-handoff-workflows",
+    "gitBranchName": "imjaredli/sup-11-6-night-executor-and-morning-handoff-workflows",
+    "createdAt": "2026-09-17T14:20:27.611Z",
+    "updatedAt": "2026-09-17T14:20:27.611Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-17T14:20:27.645Z",
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-17T14:20:27.611Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-9",
+    "uuid": "1db7117c-5773-47f1-9922-5d14f9160891",
+    "title": "4. Reusable linear-work-control skill",
+    "description": "## Task\n\n把协议固化为可复用 skill（SKILL.md + 参考 + 模板 + 自动化工作流）。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 5\n\n## Done when\n\n* skill 通过本地 skill 契约测试\n* adopt-global-skills 已登记该 skill（尚未执行 adoption）\n\n## Notes\n\nskill 尚未执行全局 adoption；那是单独的、需要授权的步骤。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-9/4-reusable-linear-work-control-skill",
+    "gitBranchName": "imjaredli/sup-9-4-reusable-linear-work-control-skill",
+    "createdAt": "2026-09-17T14:20:24.470Z",
+    "updatedAt": "2026-09-17T14:20:24.470Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-17T14:20:24.533Z",
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-17T14:20:24.470Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-8",
+    "uuid": "07760bf4-5372-4218-a349-c16ba76b904f",
+    "title": "3. Checkpoint, blocker, and resume protocol",
+    "description": "## Task\n\ncheckpoint / blocker / resume 三种可发布文本的确定性渲染与人言解析。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 3\n\n## Done when\n\n* render 四种 kind 输出稳定且带 swf: 标记\n* parse-human-input 只接受有内容的 DECISION/PAUSE/RESUME/CANCEL/REPLAN/PRIORITY\n* resume-brief 不依赖对话历史即可重建任务画面\n\n## Notes\n\n空 DECISION 等模糊输入不算有效答复，不会解锁 resume（失败关闭）。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-8/3-checkpoint-blocker-and-resume-protocol",
+    "gitBranchName": "imjaredli/sup-8-3-checkpoint-blocker-and-resume-protocol",
+    "createdAt": "2026-09-17T14:20:23.152Z",
+    "updatedAt": "2026-09-17T14:20:23.152Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-17T14:20:23.219Z",
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-17T14:20:23.152Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-7",
+    "uuid": "c4728236-d3f7-428a-8401-fc79a1234c34",
+    "title": "2. State mapping and capability boundary",
+    "description": "## Task\n\n定义运行时状态到 Linear stock status + 语义标签的映射，并记录 MCP 能力边界。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 2\n\n## Done when\n\n* 8 个运行时状态都有映射，humanActionRequired 只对 waiting_human / blocked 为真\n* 能力边界（可读/可写/不可读）以只读探测为证据写入 reference.md\n\n## Notes\n\n真实 team 状态为 Backlog / Todo / In Progress / Done / Canceled / Duplicate：本 workspace 没有 In Review，`review` 映射为 In Progress + ready-review，属等价替换，已记入本地 findings.md。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-7/2-state-mapping-and-capability-boundary",
+    "gitBranchName": "imjaredli/sup-7-2-state-mapping-and-capability-boundary",
+    "createdAt": "2026-09-17T14:20:21.731Z",
+    "updatedAt": "2026-09-17T14:20:21.731Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-17T14:20:21.791Z",
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-17T14:20:21.731Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-6",
+    "uuid": "37670549-0cde-47b2-9dfe-5a2d5cc7fd33",
+    "title": "1. Binding, schema, and workspace guard",
+    "description": "## Task\n\n落地 durable binding（linear.json）+ schema 校验 + 错误 workspace 写入保护。\n\n## Local authority\n\n`planning/active/swf-linear-control-plane-mvp-20260917/task_plan.md` — Phase 2\n\n## Done when\n\n* validate-binding 对真实 binding 返回 binding valid\n* guard 在 workspace 不匹配时 DENY 且 exit 1\n* guard 在任何 Linear 写入前是唯一强制点\n\n## Notes\n\n真实的 workspace 复测：2026-09-17 人工重新授权后 `linear_get_workspace` 返回 SuperpoweringWithFiles，guard 返回 ALLOW。",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-6/1-binding-schema-and-workspace-guard",
+    "gitBranchName": "imjaredli/sup-6-1-binding-schema-and-workspace-guard",
+    "createdAt": "2026-09-17T14:20:19.800Z",
+    "updatedAt": "2026-09-17T14:20:19.800Z",
+    "archivedAt": null,
+    "completedAt": "2026-09-17T14:20:19.899Z",
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Done",
+    "statusType": "completed",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "a94cbf1d-1fe3-4f92-8538-78ac942270ef",
+          "name": "Done",
+          "type": "completed"
+        },
+        "startedAt": "2026-09-17T14:20:19.800Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Core & Operations",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-5",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-2",
+    "uuid": "ee3c951c-ffee-4ed3-aa1d-cfbbceeb871a",
+    "title": "Connect your tools",
+    "description": "Integrations turn Linear into your source of truth around product development. Keep data in sync, and eliminate manual updates between tools.\n\n<linear-image>{\"type\":\"image\",\"attrs\":{\"src\":\"https://uploads.linear.app/fe63b3e2-bf87-46c0-8784-cd7d639287c8/c2eae035-37e2-4754-adcb-b8305431aa1f/c92d70c7-e6d0-4fa2-a0fd-78f6e780993a\",\"title\":\"connect-your-tools.png\",\"width\":2880,\"height\":1768,\"displayWidth\":534}}</linear-image>\n\n### **Key integrations**\n\n* [**Slack**](<https://linear.app/settings/integrations/slack>)\n  Create issues from Slack messages and sync threads\n* **[GitHub](<https://linear.app/settings/integrations/github>) / [GitLab](<https://linear.app/settings/integrations/gitlab>)**\n  Automate your pull request, commit workflows, and keep issues synced both ways\n* [**Agents**](<https://linear.app/integrations/agents>)\n  Deploy AI agents that work alongside you as teammates\n\n### **Browse all integrations**\n\nDiscover 150+ available connections in our [integration directory](<https://linear.app/integrations>) – from bug creation via support tools (Intercom, Zendesk), to issues created from design explorations (Figma).\n\n### **Linear API**\n\nIf you need something more custom, you can build directly on the Linear API (built on GraphQL). [See our Dev Docs to learn more](<https://linear.app/developers>).",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-2/connect-your-tools",
+    "gitBranchName": "imjaredli/sup-2-connect-your-tools",
+    "createdAt": "2026-09-17T08:48:44.966Z",
+    "updatedAt": "2026-09-17T08:48:44.966Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-17T08:48:44.966Z",
+        "endedAt": null
+      }
+    ],
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-4",
+    "uuid": "bd504257-a37c-4900-a05d-8dfdd3f54c83",
+    "title": "Set up your teams",
+    "description": "This workspace is a container for your organization’s work. \n\n* [Learn more about Workspaces](<https://linear.app/docs/workspaces>)\n  How to configure settings and workflows \n\nTeams are how you organize people and work in Linear.\n\n* [Learn about Teams](<https://linear.app/docs/teams>)\n  How to structure teams and configure workflows\n\nTeams are made of members with defined roles (Admin, Member, Guest).\n\n* [Learn more about Members](<https://linear.app/docs/invite-members>)\n  Add your team and assign roles\n\n---\n\nReady to add your team? Invite via CSV or a unique link in [settings](<http://linear.app/settings/members>).",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-4/set-up-your-teams",
+    "gitBranchName": "imjaredli/sup-4-set-up-your-teams",
+    "createdAt": "2026-09-17T08:48:44.966Z",
+    "updatedAt": "2026-09-17T08:48:44.966Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-17T08:48:44.966Z",
+        "endedAt": null
+      }
+    ],
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-3",
+    "uuid": "28f6f1ca-7f06-4a5b-b562-94878b24b17d",
+    "title": "Import your data",
+    "description": "Sync data between Linear and your other tools.\n\n<linear-image>{\"type\":\"image\",\"attrs\":{\"src\":\"https://uploads.linear.app/fe63b3e2-bf87-46c0-8784-cd7d639287c8/80d7e050-dd1f-4d4f-8257-b29c16087017/65c16454-30f3-4f4a-8f25-c2428d64ff57\",\"title\":\"import-your-data.png\",\"width\":2880,\"height\":1769,\"displayWidth\":560}}</linear-image>\n\nWhether you're exploring Linear, running a pilot, or ready for full migration, we’ve got you covered. \n\n### **Exploring Linear:**\n\n* [**Pitch Linear**](<https://linear.app/switch/pitch-guide>)\n  Build your business case and get organizational buy-in\n* [**Run a pilot**](<https://linear.app/switch/pilot-guide>)\n  Test Linear with a small team before rolling out company-wide\n\n### **Ready to migrate:**\n\n* [**Migration guide**](<https://linear.app/switch/migration-guide>) \n  Step-by-step process for importing data and rolling out Linear\n\n---\n\nIf you have any questions hit `?` in the bottom left > Contact us.\n\n<linear-image>{\"type\":\"image\",\"attrs\":{\"src\":\"https://uploads.linear.app/fe63b3e2-bf87-46c0-8784-cd7d639287c8/191f6985-8562-4f62-9482-a094b69c4756/0e4ff63b-3da2-4699-912b-04afb68511e8\",\"title\":\"contactlinear (1).gif\",\"width\":1920,\"height\":1080,\"displayWidth\":603}}</linear-image>",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-3/import-your-data",
+    "gitBranchName": "imjaredli/sup-3-import-your-data",
+    "createdAt": "2026-09-17T08:48:44.966Z",
+    "updatedAt": "2026-09-17T08:48:44.966Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-17T08:48:44.966Z",
+        "endedAt": null
+      }
+    ],
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-1",
+    "uuid": "189c2caa-8fb7-44cb-a472-c33594d115c9",
+    "title": "Get familiar with Linear",
+    "description": "Welcome to Linear! \n\nWatch an introductory video and access a list of resources below.\n\n<linear-embed node-type=\"video\">{\"uploadState\":\"finished\",\"uploadId\":\"upload-1768557254876-t6pc6wu\",\"src\":\"https://uploads.linear.app/fe63b3e2-bf87-46c0-8784-cd7d639287c8/a044fb03-9b84-470c-ab6f-8eae613e2529/98d7274d-de7f-4910-b3f3-f72e8e286a98\",\"title\":\"LinearH264Version_1.mp4\",\"size\":75734656,\"controls\":true,\"height\":2160,\"width\":3840,\"metadataId\":null,\"mimetype\":null}</linear-embed>\n\n### **Choose your setup guide** based on your company stage:\n\n* [Small teams](<https://linear.app/docs/how-to-use-linear-small-teams>)\n  For early-stage startups and projects\n* [Startups & mid-size companies](<https://linear.app/docs/how-to-use-linear-startups-mid-size-companies>)\n  For growing teams with cross-functional needs\n* [Large & scaling companies](<https://linear.app/docs/how-to-use-linear-large-scaling-companies>)\n  For enterprise and high-growth teams with complex workflows\n\n### **Need help getting started?**\n\n* [Join our Slack community](<https://linear.app/join-slack>)\n  Connect with other Linear users and get tips\n* [Join a live ](<https://lu.ma/welcome-to-linear?utm_source=docs>)[onboarding](<https://lu.ma/welcome-to-linear?utm_source=onboarding>)[ ](<https://lu.ma/welcome-to-linear?utm_source=docs>)[session](<https://lu.ma/welcome-to-linear?utm_source=onboarding>)\n  Learn the essentials and see demos of core workflows\n\n---\n\nIf you have any questions hit `?` in the bottom left > Contact us.\n\n<linear-image>{\"type\":\"image\",\"attrs\":{\"src\":\"https://uploads.linear.app/fe63b3e2-bf87-46c0-8784-cd7d639287c8/bc9bbf62-4192-411f-88f6-c89c9150503e/4df0346e-803b-4f58-8527-4aeb30d88411\",\"title\":\"contactlinear (1).gif\",\"width\":1920,\"height\":1080,\"displayWidth\":625}}</linear-image>",
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-1/get-familiar-with-linear",
+    "gitBranchName": "imjaredli/sup-1-get-familiar-with-linear",
+    "createdAt": "2026-09-17T08:48:44.966Z",
+    "updatedAt": "2026-09-17T08:48:44.966Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-17T08:48:44.966Z",
+        "endedAt": null
+      }
+    ],
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  }
+]

@@ -1,0 +1,38 @@
+✔ C2 accepts only run-bound trusted Host evidence and keeps provider identity separate (6.928292ms)
+✔ C2 treats model self-report, missing Host evidence, and another run as unknown (0.143667ms)
+✔ C3 compares the actual passed configuration exactly, including aliases and effort (0.093833ms)
+✔ C1 stops admission at the shared deadline and records cooperative overrun (0.179625ms)
+✔ recovery selects across scopes with one attempted ledger and reports invalid coverage (0.5225ms)
+✔ claim failure prevents execution and does not turn a failed claim into work (0.788875ms)
+✔ promotion is label-independent, blocks unknown dependencies, and recovers after partial failure (0.263625ms)
+✔ promotion repairs missing labels, requires explicit mapping, and excludes attention states (0.210833ms)
+✔ unreadable promotion labels and conflicting mapping never permit promotion (1.422083ms)
+✔ promotion readback with new running ownership is not successful recovery (0.140458ms)
+✔ a finish timestamp beyond observation time cannot reopen admission (0.078042ms)
+✔ night queue revisits after success with one global attempt/time budget (2.784333ms)
+✔ night recovery resolves each issue and publishes running before work (0.337292ms)
+✔ morning reports queue coverage without broadening writes (0.167416ms)
+✔ recovery discovers successors, reconciles budget stops and compares scopes (0.227542ms)
+✔ night entry promotes mapped successors even when the labeled queue is empty (0.096375ms)
+✔ night and morning preserve run-bound model evidence and provider unknowns (0.672042ms)
+✔ priority 1..4 precedes 0; oldest update then codepoint ID breaks ties without mutation (7.815709ms)
+✔ ineligible items cannot block independent eligible work (0.326125ms)
+✔ shared history allows three attempts across calls, counting failures too (0.181333ms)
+✔ 45-minute shared deadline is inclusive and preserves remaining queue (0.101625ms)
+✔ empty and entirely blocked queues return no eligible issue (0.850667ms)
+✔ invalid inputs and ambiguous clocks fail closed for the whole snapshot (0.588792ms)
+✔ CLI reads stdin JSON, emits selection JSON, and documents caller-owned history (135.287542ms)
+✔ CLI rejects malformed JSON and invalid arguments without selecting (255.252208ms)
+✔ dependencies require actual done and history counts attempts from other scopes (0.155541ms)
+✔ authorized nightly successors use readiness evidence without repeat permission (0.853333ms)
+✔ recovery separates absent teams, capacity evidence, and local implementation (0.727667ms)
+✔ resolved prerequisites can close blockers without manufacturing human approval (0.143083ms)
+✔ Team UI exception is conditional, guarded, and read back before binding (1.031417ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 504.532125

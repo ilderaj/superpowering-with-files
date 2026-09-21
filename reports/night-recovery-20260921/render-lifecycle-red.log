@@ -1,0 +1,32 @@
+✖ navigation timeout is caught while the navigation command is still pending (6.679458ms)
+✖ failed navigation does not leave an unhandled load-event timeout (5.710459ms)
+(node:40142) PromiseRejectionHandledWarning: Promise rejection was handled asynchronously (rejection id: 2)
+(Use `node --trace-warnings ...` to show where the warning was created)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 201.428458
+
+✖ failing tests:
+
+test at tests/render-verify/cdp-lifecycle.test.mjs:5:1
+✖ navigation timeout is caught while the navigation command is still pending (6.679458ms)
+  Error [RenderVerifyTimeoutError]: Timed out waiting for CDP event Page.loadEventFired
+      at Timeout.<anonymous> (file:///Users/jared/SuperpoweringWithFiles/packages/render-verify/src/cdp.mjs:26:37)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7) {
+    code: 'ERR_RENDER_VERIFY_TIMEOUT'
+  }
+
+test at tests/render-verify/cdp-lifecycle.test.mjs:17:1
+✖ failed navigation does not leave an unhandled load-event timeout (5.710459ms)
+  Error [RenderVerifyTimeoutError]: Timed out waiting for CDP event Page.loadEventFired
+      at Timeout.<anonymous> (file:///Users/jared/SuperpoweringWithFiles/packages/render-verify/src/cdp.mjs:26:37)
+      at listOnTimeout (node:internal/timers:605:17)
+      at process.processTimers (node:internal/timers:541:7) {
+    code: 'ERR_RENDER_VERIFY_TIMEOUT'
+  }

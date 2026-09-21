@@ -1,0 +1,488 @@
+{
+  "schemaVersion": 1,
+  "runner": "scripts/evaluate-decision-shadow.mjs",
+  "mode": "shadow",
+  "disclaimer": [
+    "This is deterministic shadow evidence, not a matched Host/model benchmark.",
+    "No model or network call is made; operator answers are fixture inputs.",
+    "Actual model and effort remain unknown without authenticated Host evidence.",
+    "No transition is taken from a gate: a shadow record only holds the recommendation."
+  ],
+  "rows": {
+    "intake/trivial-quick-edit": [
+      "intake-trivial-quick-edit"
+    ],
+    "intake/multi-step-tracked-coding": [
+      "intake-tracked-coding"
+    ],
+    "intake/plan-only": [
+      "intake-plan-only"
+    ],
+    "intake/execute-existing-plan": [
+      "intake-execute-existing-plan"
+    ],
+    "intake/office-artifact": [
+      "intake-office-artifact"
+    ],
+    "intake/high-uncertainty-architecture": [
+      "intake-high-uncertainty-architecture"
+    ],
+    "plan/genuinely-ready": [
+      "plan-ready"
+    ],
+    "plan/incomplete-requirements": [
+      "plan-incomplete-requirements"
+    ],
+    "plan/unresolved-dependency": [
+      "plan-unresolved-dependency"
+    ],
+    "plan/vague-acceptance-criteria": [
+      "plan-vague-acceptance"
+    ],
+    "verify/tests-pass-goal-not-satisfied": [
+      "verify-tests-pass-goal-not-satisfied"
+    ],
+    "verify/goal-satisfied-sufficient-evidence": [
+      "verify-goal-satisfied-sufficient-evidence"
+    ],
+    "verify/needs-local-repair": [
+      "verify-local-repair-needed"
+    ],
+    "verify/architecture-requires-replan": [
+      "verify-architecture-requires-replan"
+    ],
+    "verify/infrastructure-failure": [
+      "verify-infrastructure-failure"
+    ],
+    "verify/deterministic-failure-blocks-done": [
+      "verify-deterministic-failure-blocks-done"
+    ],
+    "night/clean-unattended-success": [
+      "night-clean-unattended-success"
+    ],
+    "night/technical-provider-failure": [
+      "night-technical-provider-failure"
+    ],
+    "night/blocker-requiring-human": [
+      "night-blocker-requiring-human"
+    ],
+    "night/unexpected-scope-expansion": [
+      "night-unexpected-scope-expansion"
+    ],
+    "night/verification-failure": [
+      "night-verification-failure"
+    ],
+    "office/deterministic-pass-semantic-fail": [
+      "office-deterministic-pass-semantic-fail"
+    ],
+    "office/semantic-pass-deterministic-fail": [
+      "office-semantic-pass-deterministic-fail"
+    ],
+    "action/risk-boundary": [
+      "action-destructive-write"
+    ],
+    "release/ready-not-authorized": [
+      "release-ready-not-authorized"
+    ],
+    "release/ready-authorized": [
+      "release-ready-authorized"
+    ],
+    "release/not-ready": [
+      "release-not-ready"
+    ]
+  },
+  "cases": [
+    {
+      "id": "intake-trivial-quick-edit",
+      "area": "intake",
+      "bundle": "intake",
+      "shadowTransition": "continue",
+      "shadowComposites": {
+        "intake_route": "continue"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": false
+    },
+    {
+      "id": "intake-tracked-coding",
+      "area": "intake",
+      "bundle": "intake",
+      "shadowTransition": "plan",
+      "shadowComposites": {
+        "intake_route": "plan"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": true
+    },
+    {
+      "id": "intake-plan-only",
+      "area": "intake",
+      "bundle": "intake",
+      "shadowTransition": "plan",
+      "shadowComposites": {
+        "intake_route": "plan"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": true
+    },
+    {
+      "id": "intake-execute-existing-plan",
+      "area": "intake",
+      "bundle": "intake",
+      "shadowTransition": "continue",
+      "shadowComposites": {
+        "intake_route": "continue"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": false
+    },
+    {
+      "id": "intake-office-artifact",
+      "area": "intake",
+      "bundle": "intake",
+      "shadowTransition": "plan",
+      "shadowComposites": {
+        "intake_route": "plan"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": true
+    },
+    {
+      "id": "intake-high-uncertainty-architecture",
+      "area": "intake",
+      "bundle": "intake",
+      "shadowTransition": "plan",
+      "shadowComposites": {
+        "intake_route": "plan"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": true
+    },
+    {
+      "id": "plan-ready",
+      "area": "plan",
+      "bundle": "plan",
+      "shadowTransition": "continue",
+      "shadowComposites": {
+        "plan_ready": true
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": false
+    },
+    {
+      "id": "plan-incomplete-requirements",
+      "area": "plan",
+      "bundle": "plan",
+      "shadowTransition": "replan",
+      "shadowComposites": {
+        "plan_ready": false
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": true
+    },
+    {
+      "id": "plan-unresolved-dependency",
+      "area": "plan",
+      "bundle": "plan",
+      "shadowTransition": "replan",
+      "shadowComposites": {
+        "plan_ready": false
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": true
+    },
+    {
+      "id": "plan-vague-acceptance",
+      "area": "plan",
+      "bundle": "plan",
+      "shadowTransition": "replan",
+      "shadowComposites": {
+        "plan_ready": false
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": true
+    },
+    {
+      "id": "verify-tests-pass-goal-not-satisfied",
+      "area": "verify",
+      "bundle": "verify",
+      "shadowTransition": "repair",
+      "shadowComposites": {
+        "next_state": "repair"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "done",
+      "disagreement": true
+    },
+    {
+      "id": "verify-goal-satisfied-sufficient-evidence",
+      "area": "verify",
+      "bundle": "verify",
+      "shadowTransition": "done",
+      "shadowComposites": {
+        "next_state": "done"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "done",
+      "disagreement": false
+    },
+    {
+      "id": "verify-local-repair-needed",
+      "area": "verify",
+      "bundle": "verify",
+      "shadowTransition": "repair",
+      "shadowComposites": {
+        "next_state": "repair"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "repair",
+      "disagreement": false
+    },
+    {
+      "id": "verify-architecture-requires-replan",
+      "area": "verify",
+      "bundle": "verify",
+      "shadowTransition": "replan",
+      "shadowComposites": {
+        "next_state": "replan"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "repair",
+      "disagreement": true
+    },
+    {
+      "id": "verify-infrastructure-failure",
+      "area": "verify",
+      "bundle": "verify",
+      "shadowTransition": "retry",
+      "shadowComposites": {
+        "next_state": "retry"
+      },
+      "unanswered": [],
+      "failureClass": "infrastructure",
+      "failureTransition": "retry",
+      "oldBehaviour": "retry",
+      "disagreement": false
+    },
+    {
+      "id": "verify-deterministic-failure-blocks-done",
+      "area": "verify",
+      "bundle": "verify",
+      "shadowTransition": "repair",
+      "shadowComposites": {
+        "next_state": "repair"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "done",
+      "disagreement": true
+    },
+    {
+      "id": "night-clean-unattended-success",
+      "area": "night",
+      "bundle": "verify",
+      "shadowTransition": "done",
+      "shadowComposites": {
+        "next_state": "done"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "done",
+      "disagreement": false
+    },
+    {
+      "id": "night-technical-provider-failure",
+      "area": "night",
+      "bundle": "verify",
+      "shadowTransition": null,
+      "shadowComposites": null,
+      "unanswered": [
+        "verification_sufficient"
+      ],
+      "failureClass": "infrastructure",
+      "failureTransition": "retry",
+      "oldBehaviour": "retry",
+      "disagreement": true
+    },
+    {
+      "id": "night-blocker-requiring-human",
+      "area": "night",
+      "bundle": "verify",
+      "shadowTransition": "escalate",
+      "shadowComposites": {
+        "next_state": "escalate"
+      },
+      "unanswered": [],
+      "failureClass": "cognitive",
+      "failureTransition": "think_escalation",
+      "oldBehaviour": "waiting-human",
+      "disagreement": true
+    },
+    {
+      "id": "night-unexpected-scope-expansion",
+      "area": "night",
+      "bundle": "verify",
+      "shadowTransition": "replan",
+      "shadowComposites": {
+        "next_state": "replan"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "done",
+      "disagreement": true
+    },
+    {
+      "id": "night-verification-failure",
+      "area": "night",
+      "bundle": "verify",
+      "shadowTransition": "repair",
+      "shadowComposites": {
+        "next_state": "repair"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "done",
+      "disagreement": true
+    },
+    {
+      "id": "office-deterministic-pass-semantic-fail",
+      "area": "office",
+      "bundle": "verify",
+      "shadowTransition": "repair",
+      "shadowComposites": {
+        "next_state": "repair"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "done",
+      "disagreement": true
+    },
+    {
+      "id": "office-semantic-pass-deterministic-fail",
+      "area": "office",
+      "bundle": "verify",
+      "shadowTransition": "repair",
+      "shadowComposites": {
+        "next_state": "repair"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "done",
+      "disagreement": true
+    },
+    {
+      "id": "action-destructive-write",
+      "area": "action",
+      "bundle": "action",
+      "shadowTransition": "escalate",
+      "shadowComposites": {
+        "action_requires_policy_gate": true
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "policy_gate",
+      "disagreement": true
+    },
+    {
+      "id": "release-ready-not-authorized",
+      "area": "release",
+      "bundle": "release",
+      "shadowTransition": "continue",
+      "shadowComposites": {
+        "release_state": "ready"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": false
+    },
+    {
+      "id": "release-ready-authorized",
+      "area": "release",
+      "bundle": "release",
+      "shadowTransition": "done",
+      "shadowComposites": {
+        "release_state": "allowed"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": true
+    },
+    {
+      "id": "release-not-ready",
+      "area": "release",
+      "bundle": "release",
+      "shadowTransition": "continue",
+      "shadowComposites": {
+        "release_state": "not_ready"
+      },
+      "unanswered": [],
+      "failureClass": null,
+      "failureTransition": null,
+      "oldBehaviour": "continue",
+      "disagreement": false
+    }
+  ],
+  "summary": {
+    "cases": 27,
+    "disagreements": 18,
+    "unevaluable": 1,
+    "byArea": {
+      "action": 1,
+      "intake": 6,
+      "night": 5,
+      "office": 2,
+      "plan": 4,
+      "release": 3,
+      "verify": 6
+    }
+  }
+}

@@ -1,0 +1,86 @@
+# swf-spike agent preset — spike composition (copy of `standard`, trimmed).
+
+# SPIKE: 验证「SWF 作为 dsh agent preset」的挂载机制（见
+# reports/audit/2026-08-17-dsh-agent-preset-spike.md）。组合刻意保持最小，
+# 只保留 spike 验收点需要的行：基本信息行、shell/fs/skills 基础行、
+# 子代理与 goal 行（用于观察 subagent/start），以及绝对路径挂载的
+# swf-spike probe 插件行。这不是 SWF 全量 preset：技能目录（trio/dev/office/
+# safety/chiefops）与决策核心工具化在 spike 通过后接续（见该报告 §7）。
+
+# ── identity ────────────────────────────────────────────────────────────────
+
+# persona 行：SWF 入口策略的极简口语版。{{model}}/{{cwd}} 由宿主解析。
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: >-
+      You are running the SWF spike preset on the DeepSeek Harness ({{model}},
+      cwd {{cwd}}). This session exists to validate preset mechanics, not to
+      do real work. If you see a `swf_probe` tool in your catalog, call it and
+      report its JSON exactly as returned. Non-SWF work in this session is out
+      of scope; say so and stop.
+
+- id: agent-instructions
+  name: '@deepseek-ai/dsh-agent-instructions'
+  config:
+    maxBytes: 65536
+
+# ── shell / filesystem ──────────────────────────────────────────────────────
+
+- id: tool-bash
+  name: '@deepseek-ai/dsh-tool-bash'
+  disabled: !!js process.platform === 'win32'
+
+- id: tool-pwsh
+  name: '@deepseek-ai/dsh-tool-pwsh'
+  disabled: !!js process.platform !== 'win32'
+
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-fs-search
+  name: '@deepseek-ai/dsh-tool-fs-search'
+  config:
+    sampleOverCapGlobResults: false
+
+# ── skills ──────────────────────────────────────────────────────────────────
+
+# skill 发现层 + 工具行。preset 自带的 skills/ 目录随组合一起被发现
+# （本 spike 带一个标记技能 skills/trio-spike/SKILL.md 验证该机制）。
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'
+
+# ── goals / delegation ──────────────────────────────────────────────────────
+
+# goal 与 subagent 工具行：注册进宿主注册表，preset 层只是把工具交给本
+# preset 的会话。subagent 行用于验证「preset 层监听 subagent/start」。
+- id: tool-goal
+  name: '@deepseek-ai/dsh-tool-goal'
+
+- id: tool-subagent
+  name: '@deepseek-ai/dsh-tool-subagent'
+  config:
+    provider: spawn
+    toolName: subagent
+    backgroundMode: continuable
+
+# ── remaining model-facing rows ─────────────────────────────────────────────
+
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'
+
+- id: tool-todo
+  name: '@deepseek-ai/dsh-tool-todo'
+
+# ── spike probe (absolute-path row) ─────────────────────────────────────────
+
+# 绝对路径行：loader 转 file: URL 后 ESM 导入（dsh-agent-presets README:
+# "An absolute filesystem path keeps its own location"）。插件零依赖，只
+# 注册 swf_probe / swf_guard_arm 两个工具 + subagent/start 监听 + 一个
+# guard。挂载即验证：①插件文件可加载；②ctx 可解析宿主服务与工具注册表；
+# ③preset 层监听能收到后代 subagent/start；④guard 注册生效。
+- id: tool-swf-probe
+  name: /Users/jared/SuperpoweringWithFiles/plugins/dsh/preset/spike/swf-tool/index.js

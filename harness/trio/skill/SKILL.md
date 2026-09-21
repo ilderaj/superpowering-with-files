@@ -13,6 +13,8 @@ Route before choosing effort or execution topology:
 - **Tracked:** create or restore the bound task's three planning files under `planning/active/<task-id>/`: `task_plan.md`, `findings.md`, and `progress.md`. They are the sole durable task authority; no fourth task-state surface.
 - **Deep:** a current-round reasoning choice for material uncertainty, not a durable task type.
 
+In a repository with `.harness/linear/routing.json`, tracked intake also follows `linear-work-control` Project-first enrollment, including direct execution without ChiefOps. Explicit opt-out remains local-only. Missing enrollment is visible setup-needed and not eligible for unattended execution; quick work remains exempt.
+
 Select exactly one capability family: `dev`, `office`, or `safety`. Read its SKILL and only the references needed for the current decision. ChiefOps is an optional governance companion for a selected Chief lane.
 
 Direct work may complete after relevant verification without Chief acceptance. Delegated primary work returns a candidate and needs Chief acceptance plus Trio writeback; an explicitly chosen governance lane may also require independent acceptance. Bounded helpers do not turn a direct executor into a delegated primary worker.
