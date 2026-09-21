@@ -20,6 +20,9 @@ export const EVIDENCE_CLASSES = Object.freeze(['deterministic', 'semantic', 'com
 // to an infrastructure failure, which must never be judged done).
 export const DECISION_OUTCOMES = Object.freeze(['continue', 'plan', 'repair', 'replan', 'retry', 'escalate', 'done']);
 export const RELEASE_STATES = Object.freeze(['not_ready', 'ready', 'allowed']);
+// The recorded policy decision vocabulary. `allowed` is never inferred from a
+// request field: it arrives through the dedicated authorization channel only.
+export const AUTHORIZATION_VALUES = Object.freeze(['not_authorized', 'allowed']);
 export const CONFIDENCE_LEVELS = Object.freeze(['unknown', 'low', 'medium', 'high']);
 export const CONFIDENCE_PROVENANCE = Object.freeze(['deterministic', 'operator', 'model', 'policy']);
 export const BACKEND_IDS = Object.freeze(['deterministic', 'operator', 'host', 'external']);
@@ -90,7 +93,7 @@ export const DECISION_BUNDLES = Object.freeze({
     questions: Object.freeze([
       question('readiness', 'choice', { options: Object.freeze(['not_ready', 'ready']) }),
       question('authorization', 'choice', {
-        options: Object.freeze(['not_authorized', 'allowed']),
+        options: AUTHORIZATION_VALUES,
         evidenceClass: 'deterministic'
       })
     ]),
@@ -419,25 +422,34 @@ export function resolveNextState(answers, { deterministic = {}, failure = null }
   return 'done';
 }
 
-// READY is judged; ALLOWED is only ever policy and recorded authorization. The
-// composite reads the answer set, but it grants `allowed` only when the
-// authorization answer itself carries policy provenance, so a value alone
-// cannot manufacture permission. A caller that passes a plain answer map
-// instead of a response answer set must declare that provenance explicitly.
-function policyAuthorizationProvenance(answers, declared) {
-  if (declared !== undefined) return declared;
-  if (!Array.isArray(answers)) return null;
-  const entry = answers.find((answer) => answer && answer.id === 'authorization');
-  return entry?.confidence?.provenance ?? null;
+// READY is judged; ALLOWED is only ever a recorded policy decision. Permission
+// is never inferred from data: `authorization` is declared deterministic
+// evidence, so no operator or model answer may set it, and it is not read from
+// the request's own `evidence.deterministic.answers` either. It must arrive
+// through the dedicated authorization channel as a record that names the
+// authority and the evidence behind it. This module cannot authenticate that
+// record; it refuses to manufacture the provenance instead.
+export const AUTHORIZATION_RECORD_FIELDS = Object.freeze(['value', 'authority', 'evidence']);
+
+export function validateAuthorizationRecord(record) {
+  assertExactKeys(record, AUTHORIZATION_RECORD_FIELDS, 'Authorization record');
+  if (!AUTHORIZATION_VALUES.includes(record.value)) {
+    throw new Error(`Authorization record.value must be one of ${AUTHORIZATION_VALUES.join(', ')}.`);
+  }
+  assertText(record.authority, 'Authorization record.authority');
+  assertText(record.evidence, 'Authorization record.evidence');
+  return structuredClone(record);
 }
 
+// `authorizationProvenance` is the caller's explicit declaration of where the
+// authorization answer came from. It is never read out of the answer set, so a
+// response-shaped object cannot grant permission on its own.
 export function resolveReleaseState(answers, { authorizationProvenance } = {}) {
   const map = answerValues(answers);
   const readiness = requireChoiceValue(map, 'readiness', ['not_ready', 'ready']);
   const authorization = requireChoiceValue(map, 'authorization', ['not_authorized', 'allowed']);
   if (readiness === 'not_ready') return 'not_ready';
-  const provenance = policyAuthorizationProvenance(answers, authorizationProvenance);
-  return authorization === 'allowed' && provenance === 'policy' ? 'allowed' : 'ready';
+  return authorization === 'allowed' && authorizationProvenance === 'policy' ? 'allowed' : 'ready';
 }
 
 export function resolveComposites(bundleName, answers, context = {}) {
@@ -465,13 +477,42 @@ export function transitionRecommendationOf(bundleName, composites = {}) {
   return 'continue';
 }
 
-export function answersFromEvidence(request) {
+// The authorization answer is the one answer whose provenance is not read from
+// the answer value: it is `policy` exactly when the authorization channel
+// supplied the record, and that channel is the only path that reaches here.
+function authorizationAnswer(frozen, record) {
+  return {
+    id: frozen.id,
+    value: record.value,
+    kind: frozen.kind,
+    confidence: { level: 'high', provenance: 'policy' }
+  };
+}
+
+// A question declared as deterministic evidence is never answered from the
+// request's own recorded evidence: the request payload may not carry it at all.
+function assertNotRecordedDeterministic(frozen, recorded) {
+  if (Object.hasOwn(recorded, frozen.id)) {
+    throw new Error(`Request evidence may not record ${frozen.id}: it is declared deterministic evidence and must arrive through the authorization channel.`);
+  }
+}
+
+export function answersFromEvidence(request, authorization = null) {
   const validated = validateDecisionRequest(request);
   const bundle = bundleOf(validated.bundle);
   const supplied = validated.evidence.deterministic.answers ?? {};
   const answers = [];
   const unanswered = [];
   for (const frozen of bundle.questions) {
+    if (frozen.evidenceClass === 'deterministic') {
+      assertNotRecordedDeterministic(frozen, supplied);
+      if (authorization === null) {
+        unanswered.push(frozen.id);
+        continue;
+      }
+      answers.push(authorizationAnswer(frozen, authorization));
+      continue;
+    }
     if (!Object.hasOwn(supplied, frozen.id)) {
       unanswered.push(frozen.id);
       continue;
@@ -481,21 +522,13 @@ export function answersFromEvidence(request) {
       id: frozen.id,
       value: supplied[frozen.id],
       kind: frozen.kind,
-      confidence: { level: 'high', provenance: provenanceOf(frozen) }
+      confidence: { level: 'high', provenance: 'deterministic' }
     });
   }
   return { answers, unanswered };
 }
 
-// READY is judged by a semantic answer; ALLOWED is only ever policy. A question
-// declared as deterministic evidence is therefore answered from the request's
-// own recorded evidence and carries policy provenance. A question the design
-// keeps semantic carries deterministic provenance when it comes from evidence.
-function provenanceOf(frozen) {
-  return frozen.evidenceClass === 'deterministic' ? 'policy' : 'deterministic';
-}
-
-export function answersFromOperator(request, supplied) {
+export function answersFromOperator(request, supplied, authorization = null) {
   const validated = validateDecisionRequest(request);
   const bundle = bundleOf(validated.bundle);
   assertPlainObject(supplied, 'Operator answers');
@@ -505,19 +538,14 @@ export function answersFromOperator(request, supplied) {
   for (const frozen of bundle.questions) {
     if (frozen.evidenceClass === 'deterministic') {
       if (Object.hasOwn(supplied, frozen.id)) {
-        throw new Error(`Operator answers may not set ${frozen.id}: it is declared deterministic evidence and must come from the request's own recorded evidence.`);
+        throw new Error(`Operator answers may not set ${frozen.id}: it is declared deterministic evidence and must arrive through the authorization channel.`);
       }
-      if (!Object.hasOwn(recorded, frozen.id)) {
+      assertNotRecordedDeterministic(frozen, recorded);
+      if (authorization === null) {
         unanswered.push(frozen.id);
         continue;
       }
-      assertAnswerValue(recorded[frozen.id], frozen, `evidence.deterministic.answers.${frozen.id}`);
-      answers.push({
-        id: frozen.id,
-        value: recorded[frozen.id],
-        kind: frozen.kind,
-        confidence: { level: 'high', provenance: 'policy' }
-      });
+      answers.push(authorizationAnswer(frozen, authorization));
       continue;
     }
     if (!Object.hasOwn(supplied, frozen.id)) {
@@ -540,16 +568,17 @@ export function answersFromOperator(request, supplied) {
   return { answers, unanswered };
 }
 
-export function evaluateDecision(request, { operator = null, failure = null, backendId = null } = {}) {
+export function evaluateDecision(request, { operator = null, failure = null, backendId = null, authorization = null } = {}) {
   const validated = validateDecisionRequest(request);
+  const authorizationRecord = authorization === null ? null : validateAuthorizationRecord(authorization);
   const backend = backendId ?? (operator === null ? 'deterministic' : 'operator');
   if (!BACKEND_IDS.includes(backend)) throw new Error(`Unknown decision backend: ${String(backend)}`);
   if (backend === 'external') {
     throw new Error('The external decision backend is out of scope for this milestone; no network decision backend is available.');
   }
   const { answers, unanswered } = operator === null
-    ? answersFromEvidence(validated)
-    : answersFromOperator(validated, operator);
+    ? answersFromEvidence(validated, authorizationRecord)
+    : answersFromOperator(validated, operator, authorizationRecord);
   if (unanswered.length > 0) {
     return { response: null, composites: null, transitionRecommendation: null, unanswered };
   }
@@ -562,7 +591,8 @@ export function evaluateDecision(request, { operator = null, failure = null, bac
   });
   const composites = resolveComposites(validated.bundle, response.answers, {
     deterministic: validated.evidence.deterministic,
-    failure
+    failure,
+    authorizationProvenance: authorizationRecord === null ? null : 'policy'
   });
   return {
     response,

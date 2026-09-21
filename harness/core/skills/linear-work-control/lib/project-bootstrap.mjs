@@ -51,10 +51,14 @@ export function planProjectBootstrap(input = {}) {
   if (stream !== undefined && stream?.requested !== true) return fail('stream enrollment must be explicit');
   if (stream?.requested === true && !KEY.test(stream.key || '')) return fail('requested stream key required');
   const requestedKey = stream?.requested === true ? stream.key : null;
-  const relevantOwnership = ownership.filter(entry => entry.productKey === request.productKey && (!requestedKey || entry.projectKey === requestedKey));
+  // Foreign-team ownership is checked across every marker for this product, not
+  // only the requested stream: otherwise an explicit stream request would hide an
+  // existing ownership under another team and split one product across two teams.
+  const productOwnership = ownership.filter(entry => entry.productKey === request.productKey);
+  const relevantOwnership = requestedKey === null ? productOwnership : productOwnership.filter(entry => entry.projectKey === requestedKey);
   const duplicateKeys = new Set(relevantOwnership.map(entry => entry.projectKey).filter((key, index, keys) => keys.indexOf(key) !== index));
   if (duplicateKeys.size) errors.push('duplicate ownership key across catalog');
-  if (relevantOwnership.some(entry => entry.project.teamId !== policy.teamId)) errors.push('product ownership exists under another team');
+  if (productOwnership.some(entry => entry.project.teamId !== policy.teamId)) errors.push('product ownership exists under another team');
   if (policy.defaultProjectId) {
     const defaultProject = projects.find(project => project.id === policy.defaultProjectId);
     if (!defaultProject || defaultProject.teamId !== policy.teamId || !ownership.some(entry => entry.project.id === policy.defaultProjectId && entry.productKey === request.productKey)) errors.push('policy default Project is foreign or unowned');

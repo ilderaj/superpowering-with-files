@@ -96,7 +96,11 @@ export function buildRequest(entry) {
 export function evaluateShadowCase(entry) {
   const request = buildRequest(entry);
   const failure = entry.failure ?? null;
-  const result = evaluateDecision(request, { operator: entry.operator ?? null, failure });
+  const result = evaluateDecision(request, {
+    operator: entry.operator ?? null,
+    failure,
+    authorization: entry.authorization ?? null
+  });
   const classified = failure === null ? null : classifyFailure(failure);
   return {
     id: entry.id,

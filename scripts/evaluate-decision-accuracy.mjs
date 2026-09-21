@@ -77,7 +77,11 @@ function buildRequest(entry) {
 
 export function evaluateCase(entry) {
   const request = buildRequest(entry);
-  const result = evaluateDecision(request, { operator: entry.operator ?? null, failure: entry.failure ?? null });
+  const result = evaluateDecision(request, {
+    operator: entry.operator ?? null,
+    failure: entry.failure ?? null,
+    authorization: entry.authorization ?? null
+  });
   if (!result.response) {
     return { transitionVerdict: null, answerVerdict: null, unevaluable: true, unanswered: result.unanswered };
   }

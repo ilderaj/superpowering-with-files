@@ -128,6 +128,17 @@ test('catalog completeness is global and other-team ownership conflicts block cr
   assert.equal(planProjectBootstrap(input).ok, false);
 });
 
+test('a requested stream never hides existing foreign-team ownership of the same product', () => {
+  const input = base();
+  input.request.stream = { requested: true, key: 'render' };
+  input.catalog.projects = [project({ id: id(9), teamId: id(9), description: 'productKey: loffi; projectKey: main' })];
+  assert.equal(planProjectBootstrap(input).ok, false);
+  // A foreign marker for another product leaves the requested stream free.
+  input.catalog.projects[0].description = 'productKey: other; projectKey: main';
+  const freed = planProjectBootstrap(input);
+  assert.deepEqual({ ok: freed.ok, action: freed.action, projectKey: freed.projectKey }, { ok: true, action: 'create', projectKey: 'render' });
+});
+
 test('default Project must be exact owned target and duplicate keys are rejected before selection', () => {
   const input = base();
   input.policy.defaultProjectId = id(3);
