@@ -349,12 +349,20 @@ async function discoverProductRegistry(repoRoot) {
   };
 }
 
+// Git honours ambient GIT_DIR/GIT_WORK_TREE overrides, so `git -C <root>` would
+// otherwise measure the override instead of the supplied root and let the family
+// guard be spoofed. Identity is always measured from the supplied path.
+function gitFamilyEnv() {
+  return Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+}
+
 async function inspectGitFamily(repoRoot) {
   let top;
   let common;
+  const env = gitFamilyEnv();
   try {
-    top = (await execFileAsync('git', ['-C', repoRoot, 'rev-parse', '--show-toplevel'])).stdout.trim();
-    common = (await execFileAsync('git', ['-C', repoRoot, 'rev-parse', '--git-common-dir'])).stdout.trim();
+    top = (await execFileAsync('git', ['-C', repoRoot, 'rev-parse', '--show-toplevel'], { env })).stdout.trim();
+    common = (await execFileAsync('git', ['-C', repoRoot, 'rev-parse', '--git-common-dir'], { env })).stdout.trim();
   } catch (error) {
     return { ok: false, error: 'cannot inspect Git root/worktree family (' + (error.stderr || error.code || error.message).trim() + ')' };
   }

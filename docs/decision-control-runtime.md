@@ -112,6 +112,8 @@ Restated from spec §21 for the operator:
 * Commit, push, PR, merge, publish and deploy each follow current repository policy and explicit user authorization every time.
 * `release_state = allowed` is a policy output, never a schedule output. A model may judge readiness; only policy and recorded authorization may permit a release action.
 
+Readiness and permission are separated in the evaluator, not only in the prose. The `authorization` question is declared deterministic evidence, so an operator or model answer for it is refused outright rather than accepted; the value is read from the request's own recorded deterministic evidence and tagged with `policy` provenance. Only an answer carrying that provenance yields `allowed`. Readiness with no recorded authorization is reported as an unanswered question, which leaves the release state `ready` with a `continue` recommendation.
+
 ## Verification
 
 ```bash

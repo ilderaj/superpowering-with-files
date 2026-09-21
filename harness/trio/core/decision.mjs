@@ -419,13 +419,25 @@ export function resolveNextState(answers, { deterministic = {}, failure = null }
   return 'done';
 }
 
-// READY is judged; ALLOWED is only ever policy and recorded authorization.
-export function resolveReleaseState(answers) {
+// READY is judged; ALLOWED is only ever policy and recorded authorization. The
+// composite reads the answer set, but it grants `allowed` only when the
+// authorization answer itself carries policy provenance, so a value alone
+// cannot manufacture permission. A caller that passes a plain answer map
+// instead of a response answer set must declare that provenance explicitly.
+function policyAuthorizationProvenance(answers, declared) {
+  if (declared !== undefined) return declared;
+  if (!Array.isArray(answers)) return null;
+  const entry = answers.find((answer) => answer && answer.id === 'authorization');
+  return entry?.confidence?.provenance ?? null;
+}
+
+export function resolveReleaseState(answers, { authorizationProvenance } = {}) {
   const map = answerValues(answers);
   const readiness = requireChoiceValue(map, 'readiness', ['not_ready', 'ready']);
   const authorization = requireChoiceValue(map, 'authorization', ['not_authorized', 'allowed']);
   if (readiness === 'not_ready') return 'not_ready';
-  return authorization === 'allowed' ? 'allowed' : 'ready';
+  const provenance = policyAuthorizationProvenance(answers, authorizationProvenance);
+  return authorization === 'allowed' && provenance === 'policy' ? 'allowed' : 'ready';
 }
 
 export function resolveComposites(bundleName, answers, context = {}) {
@@ -437,7 +449,9 @@ export function resolveComposites(bundleName, answers, context = {}) {
     composites.action_requires_policy_gate = resolveActionGate(answers);
   }
   if (bundle.composites.includes('next_state')) composites.next_state = resolveNextState(answers, context);
-  if (bundle.composites.includes('release_state')) composites.release_state = resolveReleaseState(answers);
+  if (bundle.composites.includes('release_state')) {
+    composites.release_state = resolveReleaseState(answers, { authorizationProvenance: context.authorizationProvenance });
+  }
   return composites;
 }
 
@@ -467,19 +481,45 @@ export function answersFromEvidence(request) {
       id: frozen.id,
       value: supplied[frozen.id],
       kind: frozen.kind,
-      confidence: { level: 'high', provenance: 'deterministic' }
+      confidence: { level: 'high', provenance: provenanceOf(frozen) }
     });
   }
   return { answers, unanswered };
+}
+
+// READY is judged by a semantic answer; ALLOWED is only ever policy. A question
+// declared as deterministic evidence is therefore answered from the request's
+// own recorded evidence and carries policy provenance. A question the design
+// keeps semantic carries deterministic provenance when it comes from evidence.
+function provenanceOf(frozen) {
+  return frozen.evidenceClass === 'deterministic' ? 'policy' : 'deterministic';
 }
 
 export function answersFromOperator(request, supplied) {
   const validated = validateDecisionRequest(request);
   const bundle = bundleOf(validated.bundle);
   assertPlainObject(supplied, 'Operator answers');
+  const recorded = validated.evidence.deterministic.answers ?? {};
   const answers = [];
   const unanswered = [];
   for (const frozen of bundle.questions) {
+    if (frozen.evidenceClass === 'deterministic') {
+      if (Object.hasOwn(supplied, frozen.id)) {
+        throw new Error(`Operator answers may not set ${frozen.id}: it is declared deterministic evidence and must come from the request's own recorded evidence.`);
+      }
+      if (!Object.hasOwn(recorded, frozen.id)) {
+        unanswered.push(frozen.id);
+        continue;
+      }
+      assertAnswerValue(recorded[frozen.id], frozen, `evidence.deterministic.answers.${frozen.id}`);
+      answers.push({
+        id: frozen.id,
+        value: recorded[frozen.id],
+        kind: frozen.kind,
+        confidence: { level: 'high', provenance: 'policy' }
+      });
+      continue;
+    }
     if (!Object.hasOwn(supplied, frozen.id)) {
       unanswered.push(frozen.id);
       continue;

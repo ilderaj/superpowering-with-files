@@ -233,11 +233,23 @@ test('resolveNextState covers every outcome and never escalates intelligence on 
   assert.equal(resolveNextState(verifyAnswers(), { failure: 'repeated_failed_repair' }), 'escalate');
 });
 
-test('resolveReleaseState never returns allowed from readiness alone', () => {
+test('resolveReleaseState never returns allowed from readiness or a bare value', () => {
   assert.equal(resolveReleaseState({ readiness: 'not_ready', authorization: 'not_authorized' }), 'not_ready');
   assert.equal(resolveReleaseState({ readiness: 'not_ready', authorization: 'allowed' }), 'not_ready');
   assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'not_authorized' }), 'ready');
-  assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'allowed' }), 'allowed');
+  // ALLOWED requires policy provenance, so neither a bare value map nor an
+  // operator-provenanced answer may grant it.
+  assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'allowed' }), 'ready');
+  assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'allowed' }, { authorizationProvenance: 'operator' }), 'ready');
+  assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'allowed' }, { authorizationProvenance: 'policy' }), 'allowed');
+  assert.equal(resolveReleaseState([
+    { id: 'readiness', value: 'ready', confidence: { level: 'medium', provenance: 'operator' } },
+    { id: 'authorization', value: 'allowed', confidence: { level: 'medium', provenance: 'operator' } }
+  ]), 'ready');
+  assert.equal(resolveReleaseState([
+    { id: 'readiness', value: 'ready', confidence: { level: 'medium', provenance: 'operator' } },
+    { id: 'authorization', value: 'allowed', confidence: { level: 'high', provenance: 'policy' } }
+  ]), 'allowed');
   assert.throws(() => resolveReleaseState({ readiness: 'maybe', authorization: 'allowed' }), /readiness/i);
   assert.throws(() => resolveReleaseState({ readiness: 'ready' }), /authorization/i);
 });
@@ -264,7 +276,11 @@ test('resolveComposites and transitionRecommendationOf dispatch per bundle', () 
   }), { intake_route: 'plan' });
   assert.deepEqual(resolveComposites('plan', planAnswers()), { plan_ready: true });
   assert.deepEqual(resolveComposites('verify', verifyAnswers()), { next_state: 'done' });
-  assert.deepEqual(resolveComposites('release', { readiness: 'ready', authorization: 'allowed' }), { release_state: 'allowed' });
+  assert.deepEqual(resolveComposites('release', { readiness: 'ready', authorization: 'allowed' }), { release_state: 'ready' });
+  assert.deepEqual(
+    resolveComposites('release', { readiness: 'ready', authorization: 'allowed' }, { authorizationProvenance: 'policy' }),
+    { release_state: 'allowed' }
+  );
 
   assert.equal(transitionRecommendationOf('verify', { next_state: 'repair' }), 'repair');
   assert.equal(transitionRecommendationOf('plan', { plan_ready: false }), 'replan');
@@ -307,6 +323,42 @@ test('evaluateDecision answers from operator input or deterministic evidence and
     () => evaluateDecision(requestFor('verify'), { operator: verifyAnswers(), backendId: 'guess' }),
     /Unknown decision backend/i
   );
+});
+
+test('operator answers establish readiness but never release authorization', () => {
+  const releaseRequest = (recorded = {}) => requestFor('release', {
+    evidence: { deterministic: { answers: recorded }, semanticContext: null }
+  });
+
+  // An operator may not answer the deterministic authorization question at all.
+  assert.throws(
+    () => evaluateDecision(releaseRequest(), { operator: { readiness: 'ready', authorization: 'allowed' } }),
+    /deterministic evidence/i
+  );
+
+  // Readiness without recorded authorization is unevaluable, never allowed.
+  const unauthorised = evaluateDecision(releaseRequest(), { operator: { readiness: 'ready' } });
+  assert.equal(unauthorised.response, null);
+  assert.deepEqual(unauthorised.unanswered, ['authorization']);
+  assert.equal(unauthorised.transitionRecommendation, null);
+
+  // Recorded policy authorization is the only source of allowed.
+  const authorised = evaluateDecision(releaseRequest({ authorization: 'allowed' }), { operator: { readiness: 'ready' } });
+  assert.equal(authorised.response.backend.id, 'operator');
+  const authorization = authorised.response.answers.find((entry) => entry.id === 'authorization');
+  assert.equal(authorization.confidence.provenance, 'policy');
+  assert.equal(authorised.composites.release_state, 'allowed');
+  assert.equal(authorised.transitionRecommendation, 'done');
+
+  // A recorded refusal keeps readiness without permission.
+  const refused = evaluateDecision(releaseRequest({ authorization: 'not_authorized' }), { operator: { readiness: 'ready' } });
+  assert.equal(refused.composites.release_state, 'ready');
+  assert.equal(refused.transitionRecommendation, 'continue');
+
+  // The deterministic backend tags the same answer with policy provenance.
+  const deterministic = evaluateDecision(releaseRequest({ readiness: 'ready', authorization: 'allowed' }));
+  assert.equal(deterministic.response.answers.find((entry) => entry.id === 'authorization').confidence.provenance, 'policy');
+  assert.equal(deterministic.transitionRecommendation, 'done');
 });
 
 test('decision trace round-trips locally and never accepts chain-of-thought', async () => {

@@ -164,6 +164,30 @@ test('root registration accepts a worktree in the same git family and rejects an
   assert.match(JSON.parse(refused.stdout).error, /root|git|family/i);
 });
 
+test('root registration measures the supplied root despite ambient Git overrides', async (t) => {
+  const { repo } = await fixture(t);
+  const unrelated = await mkdtemp(path.join(os.tmpdir(), 'swf-lmp02-spoof-'));
+  t.after(() => rm(unrelated, { recursive: true, force: true }));
+  await git(unrelated, 'init', '-q');
+  const registration = JSON.parse(await readFile(path.join(repo, '.harness/linear/root-registration.json'), 'utf8'));
+
+  const saved = { GIT_DIR: process.env.GIT_DIR, GIT_WORK_TREE: process.env.GIT_WORK_TREE };
+  process.env.GIT_DIR = path.join(repo, '.git');
+  process.env.GIT_WORK_TREE = repo;
+  try {
+    const spoofed = await verifyRepoFamily(unrelated, registration, 'swf');
+    assert.equal(spoofed.ok, false, 'ambient GIT_DIR/GIT_WORK_TREE must not make an unrelated repo eligible');
+    assert.equal(spoofed.code, 'root-mismatch');
+    // The registered family still verifies while the same overrides are present.
+    assert.equal((await verifyRepoFamily(repo, registration, 'swf')).ok, true);
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
 test('root registration canonicalRoot must itself resolve to the registered Git family', async (t) => {
   const { repo } = await fixture(t);
   const corruptedRoot = await mkdtemp(path.join(os.tmpdir(), 'swf-lmp02-corrupt-root-'));

@@ -11,13 +11,18 @@ import { measurePage } from '../src/measure.mjs';
 import { evaluateInvariants } from '../src/invariants.mjs';
 import { INVARIANTS } from '../src/invariants.mjs';
 
-const HELP = `Usage: render-verify --spec spec.json [--file page.html | --url URL] [--viewport WxH] [--json] [--out report.json] [--shot screenshot.png]\n       render-verify --file page.html [--json] [--out report.json]`;
+const HELP = `Usage: render-verify --spec spec.json [--file page.html | --url URL] [--viewport WxH] [--json] [--out report.json] [--shot screenshot.png] [--timeout ms] [--launch-timeout ms]\n       render-verify --file page.html [--json] [--out report.json]`;
+
+// A browser launch is its own budget. Chrome's first start on a cold machine can
+// take several seconds to print its DevTools endpoint, so the launch wait must
+// not be derived from the page settle timeout that bounds a different step.
+const DEFAULT_LAUNCH_TIMEOUT_MS = 12000;
 
 function fail(message) { const error = new Error(message); error.code = 'ERR_RENDER_VERIFY_CONFIG'; throw error; }
 
 function parseArgs(argv) {
   const values = { json: false };
-  const withValue = new Set(['--spec', '--file', '--url', '--viewport', '--out', '--shot', '--timeout']);
+  const withValue = new Set(['--spec', '--file', '--url', '--viewport', '--out', '--shot', '--timeout', '--launch-timeout']);
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === '--help') { console.log(HELP); process.exit(0); }
@@ -88,6 +93,8 @@ async function run(values) {
   if (!Number.isInteger(view.width) || !Number.isInteger(view.height) || view.width < 1 || view.height < 1) fail('viewport width and height must be positive integers');
   const timeoutMs = Number(values.timeout ?? spec.settleTimeoutMs ?? 5000);
   if (!Number.isFinite(timeoutMs) || timeoutMs < 1) fail('timeout must be a positive number');
+  const launchTimeoutMs = Number(values['launch-timeout'] ?? spec.launchTimeoutMs ?? DEFAULT_LAUNCH_TIMEOUT_MS);
+  if (!Number.isFinite(launchTimeoutMs) || launchTimeoutMs < 1) fail('launch timeout must be a positive number');
   let server;
   let browser;
   let page;
@@ -99,7 +106,7 @@ async function run(values) {
       server = await startStaticServer(root);
       url = fileUrl(server, requestedFile, root);
     }
-    browser = await launchChrome({ timeoutMs: Math.max(2000, Math.min(timeoutMs, 15000)) });
+    browser = await launchChrome({ timeoutMs: launchTimeoutMs });
     page = await browser.newPage();
     await page.setViewport(view.width, view.height);
     await page.navigate(url, Math.max(2000, timeoutMs));

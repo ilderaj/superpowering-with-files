@@ -800,12 +800,15 @@
       "intensity": "low"
     },
     "evidence": {
-      "deterministic": {},
+      "deterministic": {
+        "answers": {
+          "authorization": "not_authorized"
+        }
+      },
       "semanticContext": "readiness judged, authorization not recorded"
     },
     "operator": {
-      "readiness": "ready",
-      "authorization": "not_authorized"
+      "readiness": "ready"
     },
     "failure": null,
     "oldBehaviour": "continue"
@@ -824,12 +827,15 @@
       "intensity": "low"
     },
     "evidence": {
-      "deterministic": {},
+      "deterministic": {
+        "answers": {
+          "authorization": "allowed"
+        }
+      },
       "semanticContext": "readiness judged and authorization recorded"
     },
     "operator": {
-      "readiness": "ready",
-      "authorization": "allowed"
+      "readiness": "ready"
     },
     "failure": null,
     "oldBehaviour": "continue"
@@ -848,12 +854,15 @@
       "intensity": "low"
     },
     "evidence": {
-      "deterministic": {},
+      "deterministic": {
+        "answers": {
+          "authorization": "allowed"
+        }
+      },
       "semanticContext": "authorization recorded but readiness not satisfied"
     },
     "operator": {
-      "readiness": "not_ready",
-      "authorization": "allowed"
+      "readiness": "not_ready"
     },
     "failure": null,
     "oldBehaviour": "continue"

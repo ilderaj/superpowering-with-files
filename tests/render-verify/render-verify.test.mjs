@@ -121,6 +121,15 @@ for (const [fixtureName, check] of cases) {
   });
 }
 
+test('launch timeout is an independent knob and fails closed as environment-limited', browserOptions, async () => {
+  const outputRoot = await mkdtemp('/tmp/swf-render-verify-launch-');
+  temporaryRoots.push(outputRoot);
+  const specPath = await writeSpec(outputRoot, 'centered-pass.html', { invariant: 'no-page-errors' });
+  const result = await runCli(['--spec', specPath, '--file', join(fixtureRoot, 'centered-pass.html'), '--launch-timeout', '1', '--json']);
+  assert.equal(result.code, 3, result.stderr || result.stdout);
+  assert.match(result.stdout, /ERR_RENDER_VERIFY_ENVIRONMENT/);
+});
+
 test('static server rejects traversal and symlink escape', async () => {
   const root = await mkdtemp('/tmp/swf-render-verify-server-');
   temporaryRoots.push(root);
