@@ -2,7 +2,38 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 const doc = await readFile(new URL('../../harness/core/skills/linear-work-control/automation-workflows.md', import.meta.url), 'utf8');
-const [night, morning] = [...doc.matchAll(/```text\n([\s\S]*?)```/g)].map(m => m[1]);
+const [night, fallback, morning] = [...doc.matchAll(/```text\n([\s\S]*?)```/g)].map(m => m[1]);
+
+test('night carrier ladder documents combo failover plus an independent fallback', () => {
+  assert.match(doc, /## Carrier model ladder/);
+  assert.match(doc, /combo\/DeepSeekCombo/);
+  assert.match(doc, /strategy: failover/);
+  assert.match(doc, /main\/gpt-5\.6-luna/);
+  assert.match(doc, /swf-night-executor-fallback/);
+  assert.match(doc, /Configured failover is not proven failover\./);
+});
+
+test('fallback carrier acts only when the primary pass did not complete', () => {
+  assert.ok(fallback, 'the fallback prompt block must exist between the night and morning blocks');
+  assert.match(fallback, /carrier=fallback/);
+  assert.match(fallback, /still running, stop without any write/is);
+  assert.match(fallback, /never claim that the primary run succeeded/i);
+  assert.match(fallback, /3-attempt \/ 45-minute/);
+  assert.match(fallback, /window has closed with no terminal outcome/i);
+  assert.match(fallback, /entry checkpoint alone is not completion/i);
+  assert.match(fallback, /DONE ALLOWED/);
+  assert.match(fallback, /Asia\/Shanghai/);
+  assert.match(fallback, /no change to the primary night, morning, or any other automation/);
+});
+
+test('installed state names each carrier, its schedule and its model', () => {
+  assert.match(doc, /\| Night Executor \| `swf-night-executor` \| cron \| ACTIVE \| `FREQ=DAILY;BYHOUR=1;BYMINUTE=30` \| `combo\/DeepSeekCombo` \|/);
+  assert.match(doc, /\| Night Executor Fallback \| `swf-night-executor-fallback` \| cron \| ACTIVE \| `FREQ=DAILY;BYHOUR=3;BYMINUTE=0` \| `main\/gpt-5\.6-luna` \|/);
+  assert.match(doc, /\| Morning Handoff \| `swf-morning-handoff` \| cron \| ACTIVE \| `FREQ=DAILY;BYHOUR=7;BYMINUTE=30` \| `combo\/DeepSeekCombo` \|/);
+  assert.match(doc, /zip\(\('swf-night-executor', 'swf-night-executor-fallback', 'swf-morning-handoff'\), blocks\)/);
+  assert.match(doc, /The three `text` blocks above are the source prompts/);
+});
+
 test('night queue revisits after success with one global attempt/time budget', () => {
   assert.doesNotMatch(night, /at most one ready task/i);
   assert.match(night, /3 attempted slices/);

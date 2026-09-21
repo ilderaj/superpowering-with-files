@@ -1,0 +1,84 @@
+✔ C2 accepts only run-bound trusted Host evidence and keeps provider identity separate (1.862291ms)
+✔ C2 treats model self-report, missing Host evidence, and another run as unknown (0.094958ms)
+✔ C3 compares the actual passed configuration exactly, including aliases and effort (0.083083ms)
+✔ C1 stops admission at the shared deadline and records cooperative overrun (0.150708ms)
+✔ recovery selects across scopes with one attempted ledger and reports invalid coverage (0.470834ms)
+✔ claim failure prevents execution and does not turn a failed claim into work (0.70325ms)
+✔ promotion is label-independent, blocks unknown dependencies, and recovers after partial failure (0.229875ms)
+✔ promotion repairs missing labels, requires explicit mapping, and excludes attention states (0.1975ms)
+✖ unreadable promotion labels and conflicting mapping never permit promotion (1.069917ms)
+✖ promotion readback with new running ownership is not successful recovery (0.153208ms)
+✖ a finish timestamp beyond observation time cannot reopen admission (0.098125ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 8
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 95.675541
+
+✖ failing tests:
+
+test at tests/core/linear-night-n01.test.mjs:204:1
+✖ unreadable promotion labels and conflicting mapping never permit promotion (1.069917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'promote' !== 'skip'
+  
+      at TestContext.<anonymous> (file:///Users/jared/SuperpoweringWithFiles/tests/core/linear-night-n01.test.mjs:206:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'promote',
+    expected: 'skip',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/core/linear-night-n01.test.mjs:210:1
+✖ promotion readback with new running ownership is not successful recovery (0.153208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/jared/SuperpoweringWithFiles/tests/core/linear-night-n01.test.mjs:212:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/core/linear-night-n01.test.mjs:215:1
+✖ a finish timestamp beyond observation time cannot reopen admission (0.098125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Users/jared/SuperpoweringWithFiles/tests/core/linear-night-n01.test.mjs:216:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

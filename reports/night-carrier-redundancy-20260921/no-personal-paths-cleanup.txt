@@ -1,0 +1,30 @@
+Authorized cleanup: remove author-specific absolute paths from HEAD-committed files
+Authorization: user 2026-09-21 ("优化掉吧") following the reported out-of-scope drift
+Rule applied: /Users/jared/ -> ~/ (repo convention; 418 tracked .md files already use ~/)
+Exception: reports/audits/project-lifecycle-20260921/reconcile-live.mjs used the path inside an
+  inline python sys.path.insert, so it became os.path.expanduser('~/.agents/skills/planning-with-files/scripts')
+  to stay runnable instead of silently breaking on a literal tilde.
+
+Replacement counts:
+docs/research/swf-60d-20260906/sources.md 141
+reports/audit/2026-08-17-dsh-plugin-swf-benefit-audit.md 1
+reports/audits/2026-09-20-night-execution-carrier-and-model-findings.md 13
+reports/audits/project-isolation-20260921/{current-target,final-comment-guard,normalize-cli-input,normalized-final,normalized-live,intake-live-request,own*}.json 2 each
+reports/audits/project-isolation-20260921/{full-after,full-before,marker-after,marker-before}.json 3 each
+reports/audits/project-isolation-20260921/{intake-live-replay,weekly-update}.json 1 each
+reports/audits/project-isolation-20260921/target-guards.json 47
+reports/audits/project-lifecycle-20260921/adoption.json 37
+reports/audits/project-lifecycle-20260921/intake-issues.json 3
+reports/audits/project-lifecycle-20260921/{intake-normalized,own-target-guard}.json 2 each
+reports/audits/project-lifecycle-20260921/reconcile-live.mjs 1 (expanduser form)
+TOTAL 273
+
+Post-edit checks:
+- json.load on all 16 touched .json files: ok (0 bad)
+- node --check reconcile-live.mjs: ok
+- node --test tests/core/no-personal-paths.test.mjs: 3/3 pass
+- npm run verify:core: 529/529 + 82/82, EXIT=0
+
+Not touched (outside the scanned set, verbatim host output):
+- reports/audits/project-isolation-20260921/unknown-project-red.log (untracked .log)
+- reports/audits/project-lifecycle-20260921/archive-resume.txt (untracked .txt)

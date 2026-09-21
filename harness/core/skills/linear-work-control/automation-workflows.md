@@ -1,4 +1,4 @@
-# Scheduled workflows (Night Executor and Morning Handoff)
+# Scheduled workflows (Night Executor, Night Executor Fallback, Morning Handoff)
 
 The repository does not add a scheduler, daemon, or poller. These are Host-owned Codex automations whose prompts live outside the repository; this file is the version-controlled source for those prompts and for the setup steps.
 
@@ -8,6 +8,20 @@ The repository does not add a scheduler, daemon, or poller. These are Host-owned
 - The repository is readable at its registered project root and the Linear connection is authenticated to the bound workspace.
 - The binding exists and `validate-binding` passes; `guard` returns `ok` on the night the run executes.
 - Concurrency stays at one: a night run must not edit the repository in parallel with itself or another session.
+
+## Carrier model ladder
+
+The night and morning workflows are this repository's execution and observation loop, so their carrier must survive a provider outage. Three layers carry it:
+
+| Layer | Carrier | Covers |
+| --- | --- | --- |
+| L1 primary | `combo/DeepSeekCombo` — opencodex `strategy: failover`, `stickyLimit: 1`, targets `opencode-go/deepseek-v4.1-flash`, `command-code/deepseek/deepseek-v4.1-flash`, `deepseek/deepseek-flash` | one DeepSeek provider failing, rate-limiting, or being unreachable: the proxy moves to the next DeepSeek target inside the same run |
+| L2 fallback | `main/gpt-5.6-luna` on `swf-night-executor-fallback` | the whole DeepSeek path failing, the primary run failing before its first model call, or the primary run closing its own 01:30 window with no terminal outcome |
+| L3 report | the 07:30 Morning Handoff | the gap is reported as a coverage gap when this carrier can still run; it shares L1's carrier, so a total DeepSeek outage also suppresses the report |
+
+L2 exists because prompt-level self-recovery cannot handle a failure that happens before the first model call. On 2026-09-21 the 01:30 run ended after 928s with `502 Bad Gateway: Provider unreachable: getaddrinfo ETIMEOUT opencode.ai`, with no claim and no checkpoint, so nothing inside the prompt could run. The fallback is a separate Host schedule pinned to an independent model path; it acts only when the primary pass did not complete, and a primary window that closes with no terminal outcome counts as not completed. Because L3 shares L1's carrier, a missing morning report is itself the signal, never a clean night.
+
+Configured failover is not proven failover. This ladder records configured carriers. `provider actual identity` stays `unknown` without separate authentication, and a fallback activation counts as observed only when it actually runs.
 
 ## Night Executor
 
@@ -27,6 +41,21 @@ Before queue selection, reconcile pending sync.lifecycle events from current-rep
 7. Finish with one concise summary: completed, review, needs a decision, failed, running, remaining and skipped (with reasons), coverage gaps, stop reason and next action. An empty scope is not an empty project: report each scope's queue separately and treat unavailable or unreadable scopes as unknown coverage. Publish the run/project summary on the binding's goalIssue.id, and reuse the bound status comment for task checkpoints. Stay quiet when the state is unchanged and non-actionable; notify on meaningful completion, failure or required human action. Preserve configured/triggered/observed distinctions.
 
 Constraints: one task at a time, no parallel edits to this repository, no wrong-workspace writes, no inferred authorization, no completion from configuration alone. No new schedules or product onboarding beyond recorded authorization.
+```
+
+## Night Executor Fallback
+
+Create a second cron automation against the registered SWF project, on an independent model path, that runs after the night run's budget has closed. Prompt:
+
+```text
+Act as the fallback carrier for this repository's night executor. Your model is an independent fallback path; the primary night pass runs on the DeepSeek combo. Do not duplicate work that already completed.
+
+1. Determine whether tonight's (Asia/Shanghai) night run at 01:30 completed. Read the most recent Host session record for the swf-night-executor automation, and each bound task's progress.md entry whose startedAt falls inside tonight's window. A completed run has a startedAt checkpoint plus a terminal outcome (published summary, final checkpoint, or documented blocker). A failed run has no startedAt checkpoint, a Host turn that ended with an error before any tool action, or a startedAt checkpoint whose own 3-attempt / 45-minute window has closed with no terminal outcome; an entry checkpoint alone is not completion. A run is still running only while its own window is open, and your 03:00 start is already past tonight's 01:30 window. If tonight's run completed, or is still running, stop without any write and without a notification; report nothing.
+2. If tonight's run failed before doing its work, or never started, execute the canonical Night Executor workflow in harness/core/skills/linear-work-control/automation-workflows.md in full, under its own rules: entry reconciliation, one global 3-attempt / 45-minute budget measured from your own start, workspace and target guards before every write, readback after every write, promotion only for mapped successors whose real prerequisites are Done and whose readiness evidence passes, and Done only through DONE ALLOWED. Do not reuse the primary run's 01:30 admission window. Do not retry an issue id that tonight's run already recorded as attempted with a terminal outcome.
+3. Record the carrier explicitly. In the bound task's progress.md and in the published checkpoint, record carrier=fallback, the configured model and effort, Host-reported route and effort, provider actual identity (unknown unless separately authenticated), evidence source and time, and verification as matched, unknown, or mismatch. Never present the fallback as the primary night pass and never claim that the primary run succeeded.
+4. Publish exactly one short summary on the binding's goalIssue.id when you acted, naming the reason the primary pass was replaced. When nothing needed doing, publish nothing.
+
+Constraints: one task at a time, no parallel edits to this repository, no wrong-workspace writes, no inferred authorization, no completion from configuration alone, and no change to the primary night, morning, or any other automation.
 ```
 
 ## Morning Handoff
@@ -59,7 +88,7 @@ Create them from the Codex app automation surface, or ask a session to create th
 | cwd | the repository root |
 | execution environment | local |
 | status | paused at creation; activated only after the operator confirms the run time |
-| run time | chosen by the operator — this protocol does not invent it (confirmed for this workspace: 01:30 and 07:30 Asia/Shanghai) |
+| run time | chosen by the operator — this protocol does not invent it (confirmed for this workspace: 01:30 night, 03:00 fallback, 07:30 morning Asia/Shanghai) |
 
 The night run and the morning handoff must not share a minute, and neither may overlap the existing weekly repository review. After the first successful run, record the automation id, the resolved rrule, and the observed run evidence in the task's planning files.
 
@@ -67,19 +96,20 @@ The night run and the morning handoff must not share a minute, and neither may o
 
 | Workflow | id | kind | status | rrule | model | target | cwd |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Night Executor | `swf-night-executor` | cron | ACTIVE | `FREQ=DAILY;BYHOUR=1;BYMINUTE=30` | `main/gpt-5.6-luna` | registered SWF project | repository root |
-| Morning Handoff | `swf-morning-handoff` | cron | ACTIVE | `FREQ=DAILY;BYHOUR=7;BYMINUTE=30` | `opencode-go/deepseek-v4.1-flash` | registered SWF project | repository root |
+| Night Executor | `swf-night-executor` | cron | ACTIVE | `FREQ=DAILY;BYHOUR=1;BYMINUTE=30` | `combo/DeepSeekCombo` | registered SWF project | repository root |
+| Night Executor Fallback | `swf-night-executor-fallback` | cron | ACTIVE | `FREQ=DAILY;BYHOUR=3;BYMINUTE=0` | `main/gpt-5.6-luna` | registered SWF project | repository root |
+| Morning Handoff | `swf-morning-handoff` | cron | ACTIVE | `FREQ=DAILY;BYHOUR=7;BYMINUTE=30` | `combo/DeepSeekCombo` | registered SWF project | repository root |
 
-Both were created paused and were activated by the operator on 2026-09-18 (Asia/Shanghai), so the rrules above are operator-confirmed times rather than placeholders. Activation is a Host-side configuration change: it schedules the next occurrence but proves no run happened. Until a run is observed, describe these two as configured and scheduled, never as triggered or as having run.
+The night and morning carriers were created paused and activated by the operator on 2026-09-18 (Asia/Shanghai). The fallback was added on 2026-09-21 with the carrier-ladder change and is ACTIVE. The rrules above are operator-confirmed times rather than placeholders. Activation is a Host-side configuration change: it schedules the next occurrence but proves no run happened. Until a run is observed, describe these three as configured and scheduled, never as triggered or as having run, and treat a fallback activation as observed only once it actually runs.
 
-The two `text` blocks above are the source prompts. The live copies live at `~/.codex/automations/<id>/automation.toml` and must stay identical; re-check after any edit:
+The three `text` blocks above are the source prompts, in the order night, fallback, morning. The live copies live at `~/.codex/automations/<id>/automation.toml` and must stay identical; re-check after any edit:
 
 ```bash
 python3 - <<'PY'
 import tomllib, re, pathlib
 doc = pathlib.Path('harness/core/skills/linear-work-control/automation-workflows.md').read_text()
 blocks = [b.strip() for b in re.findall(r'```text\n(.*?)```', doc, re.S)]
-for name, source in zip(('swf-night-executor', 'swf-morning-handoff'), blocks):
+for name, source in zip(('swf-night-executor', 'swf-night-executor-fallback', 'swf-morning-handoff'), blocks):
     live = tomllib.loads((pathlib.Path.home() / '.codex/automations' / name / 'automation.toml').read_text())['prompt']
     print(name, live.strip() == source)
 PY
