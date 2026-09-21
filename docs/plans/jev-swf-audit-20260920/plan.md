@@ -35,10 +35,10 @@ Linear真实ID与排队回读见本任务progress及本文件追加映射。
 
 
 ## Linear projection (2026-09-20)
-- J01: [SUP-48](https://linear.app/superpoweringwithfiles/issue/SUP-48/j01-修复适用验证范围与失败优先级)
-- J02: [SUP-49](https://linear.app/superpoweringwithfiles/issue/SUP-49/j02-隔离shadow观测错误并修正三态统计)
-- J03: [SUP-50](https://linear.app/superpoweringwithfiles/issue/SUP-50/j03-分离release授权来源并校验backend真实性)
-- J04: [SUP-51](https://linear.app/superpoweringwithfiles/issue/SUP-51/j04-修正t1评估与冻结独立对照协议)
+- J01: [SUP-48](https://linear.app/ilderaj/issue/SUP-48/j01-修复适用验证范围与失败优先级)
+- J02: [SUP-49](https://linear.app/ilderaj/issue/SUP-49/j02-隔离shadow观测错误并修正三态统计)
+- J03: [SUP-50](https://linear.app/ilderaj/issue/SUP-50/j03-分离release授权来源并校验backend真实性)
+- J04: [SUP-51](https://linear.app/ilderaj/issue/SUP-51/j04-修正t1评估与冻结独立对照协议)
 J01 Todo + agent-ready + nightly is intended current slice; others Backlog. WP07 deferred behind J04. Live read-back confirmed: SUP-48 Todo + agent-ready + nightly, no blockers; SUP-49→50→51→42 dependency chain, all Backlog; SUP-45 retains original blockers plus SUP-51; SUP-46 behind SUP-45.
 
 最终队列回读：其他候选SUP-15和SUP-47为Urgent，SUP-24为更早High，SUP-48为High；若前三者均仍合格，SUP-48按当前排序第四，会超出单夜3次尝试上限，顺延下一夜。未修改其他initiative优先级。initiative-only selector确认SUP-48具备资格，不等于全局首选或已执行。

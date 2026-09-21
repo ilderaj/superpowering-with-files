@@ -32,7 +32,7 @@ Minimal enabled binding:
 {
   "schemaVersion": 1,
   "enabled": true,
-  "workspace": { "name": "superpoweringwithfiles", "url": "https://linear.app/superpoweringwithfiles" },
+  "workspace": { "name": "ilderaj", "url": "https://linear.app/ilderaj" },
   "team": { "id": "<team-uuid>", "name": "<team name>" },
   "project": { "id": "<project-uuid>", "name": "SWF — Agent Workbench MVP" },
   "goalIssue": { "id": "<issue-uuid>", "identifier": "SWF-1", "url": "https://linear.app/..." },
@@ -54,6 +54,8 @@ Field rules enforced by `validate-binding`:
 - **Forbidden:** any key whose name carries a credential marker (`token`, `secret`, `password`, `credential`, `apiKey`, `auth`, `bearer`, `jwt`, `cookie`, `session`, `oauth`, `passphrase`, `privateKey`) at any depth. The match runs against the normalized key name, so `apiToken`, `LINEAR_API_KEY`, and `bearerToken` all fail the way `apiKey` does. Host MCP authentication owns credentials: the binding, the repository, and every published comment stay credential-free.
 
 A goal without a binding keeps working exactly as before. Do not create a binding for a task that does not need Linear.
+
+Workspace selection is repository-scoped. `workspaceId` is the stable identity; the stored slug and URL are refreshable aliases. An adopted repository does not need a workspace argument repeated for every intake item: the caller reads the currently authenticated workspace before each mutation and compares it with the local policy. If the connector is authenticated to another workspace, the operation fails closed with a selection/setup result until the operator performs one explicit connection selection or rebind. The current MCP connector has one current authenticated workspace and no per-write workspace parameter, so automatic cross-workspace switching is a host capability, not something the local routing policy can safely infer.
 
 ## 2a. LMP-02 product and task binding v2
 

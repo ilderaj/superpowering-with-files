@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "enabled": true,
   "workspace": {
-    "name": "superpoweringwithfiles"
+    "name": "ilderaj"
   },
   "team": {
     "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
@@ -13,7 +13,7 @@
   "goalIssue": {
     "id": "d7508c53-989e-4578-b893-b2619052473a",
     "identifier": "SUP-22",
-    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-22/多项目-linear-隔离与-chief-自动化治理lmp"
+    "url": "https://linear.app/ilderaj/issue/SUP-22/多项目-linear-隔离与-chief-自动化治理lmp"
   },
   "statusComment": {
     "id": "6671e48e-e109-4624-9d06-7f00c6acb16c"

@@ -83,7 +83,7 @@ test('workspace guard denies writes to any workspace other than the bound one', 
   assert.equal(mismatch.code, 'workspace-mismatch');
   assert.match(mismatch.reason, /write denied/);
 
-  const match = checkWorkspaceGuard({ binding, observedWorkspace: 'https://linear.app/superpoweringwithfiles/' });
+  const match = checkWorkspaceGuard({ binding, observedWorkspace: 'https://linear.app/ilderaj/' });
   assert.equal(match.allowed, true);
   assert.equal(match.code, 'ok');
 
@@ -91,18 +91,18 @@ test('workspace guard denies writes to any workspace other than the bound one', 
   assert.equal(unknown.allowed, false);
   assert.equal(unknown.code, 'workspace-unknown');
 
-  const disabled = checkWorkspaceGuard({ binding: { enabled: false, workspace: { name: 'superpoweringwithfiles' } }, observedWorkspace: 'superpoweringwithfiles' });
+  const disabled = checkWorkspaceGuard({ binding: { enabled: false, workspace: { name: 'ilderaj' } }, observedWorkspace: 'ilderaj' });
   assert.equal(disabled.allowed, false);
   assert.equal(disabled.code, 'binding-disabled');
 
-  const invalid = checkWorkspaceGuard({ binding: { enabled: true, workspace: {} }, observedWorkspace: 'superpoweringwithfiles' });
+  const invalid = checkWorkspaceGuard({ binding: { enabled: true, workspace: {} }, observedWorkspace: 'ilderaj' });
   assert.equal(invalid.allowed, false);
   assert.equal(invalid.code, 'binding-invalid');
 });
 
 test('workspace references normalize a URL or trailing slash but never fold case', () => {
-  assert.equal(normalizeWorkspaceRef(' https://linear.app/superpoweringwithfiles/ '), 'superpoweringwithfiles');
-  assert.equal(normalizeWorkspaceRef('superpoweringwithfiles'), 'superpoweringwithfiles');
+  assert.equal(normalizeWorkspaceRef(' https://linear.app/ilderaj/ '), 'ilderaj');
+  assert.equal(normalizeWorkspaceRef('ilderaj'), 'ilderaj');
   assert.equal(normalizeWorkspaceRef('SuperpoweringWithFiles'), 'SuperpoweringWithFiles');
   assert.equal(normalizeWorkspaceRef(''), '');
 });
@@ -431,7 +431,7 @@ test('credential-shaped keys are rejected in any spelling and no documented key 
   const nested = validateBinding({
     schemaVersion: 1,
     enabled: true,
-    workspace: { name: 'superpoweringwithfiles' },
+    workspace: { name: 'ilderaj' },
     sync: { apiToken: 'placeholder-value' }
   });
   assert.equal(nested.ok, false);
@@ -440,7 +440,7 @@ test('credential-shaped keys are rejected in any spelling and no documented key 
 });
 
 test('the guard refuses to allow a write on any binding that fails validation', async () => {
-  const observed = 'superpoweringwithfiles';
+  const observed = 'ilderaj';
   const rejected = [
     { schemaVersion: 2, enabled: true, workspace: { name: observed } },
     { schemaVersion: 1, enabled: true, workspace: { name: observed }, dashboardUrl: 'https://example.test' },
@@ -462,7 +462,7 @@ test('the guard refuses to allow a write on any binding that fails validation', 
 
 test('the workspace comparison stays exact so a lookalike workspace cannot pass the guard', async () => {
   const binding = await fixture('binding-enabled.json');
-  for (const observed of ['www.superpoweringwithfiles', 'SuperpoweringWithFiles', 'superpoweringwithfiles-evil', 'https://linear.app/loffi']) {
+  for (const observed of ['www.ilderaj', 'Ilderaj', 'ilderaj-evil', 'https://linear.app/loffi']) {
     const result = checkWorkspaceGuard({ binding, observedWorkspace: observed });
     assert.equal(result.allowed, false, observed);
     assert.equal(result.code, 'workspace-mismatch', observed);
@@ -525,7 +525,7 @@ test('quoting the published template back is not an answer', () => {
 test('the CLI turns the guard, the completion gate, and human input into exit codes a wrapper can trust', async () => {
   const binding = path.join(skillRoot, 'fixtures', 'binding-enabled.json');
 
-  const allowed = await runCli(['guard', '--binding', binding, '--observed-workspace', 'superpoweringwithfiles']);
+  const allowed = await runCli(['guard', '--binding', binding, '--observed-workspace', 'ilderaj']);
   assert.equal(allowed.code, 0);
   assert.ok(allowed.stdout.startsWith('ALLOW ok:'), allowed.stdout);
 
@@ -569,12 +569,12 @@ test('the guard answers on stdout for missing, corrupt, directory, and --json bi
     const corrupt = path.join(dir, 'corrupt.json');
     await writeFile(corrupt, '{ "schemaVersion": 1, ');
 
-    const parsed = await runCli(['guard', '--binding', corrupt, '--observed-workspace', 'superpoweringwithfiles']);
+    const parsed = await runCli(['guard', '--binding', corrupt, '--observed-workspace', 'ilderaj']);
     assert.equal(parsed.code, 1);
     assert.ok(parsed.stdout.startsWith('DENY binding-invalid: cannot parse'), parsed.stdout);
     assert.ok(!parsed.stdout.includes('at Object.'), 'a corrupt binding must not print a stack trace');
 
-    const directory = await runCli(['guard', '--binding', dir, '--observed-workspace', 'superpoweringwithfiles']);
+    const directory = await runCli(['guard', '--binding', dir, '--observed-workspace', 'ilderaj']);
     assert.equal(directory.code, 1);
     assert.ok(directory.stdout.startsWith('DENY binding-invalid: cannot read'), directory.stdout);
 
@@ -583,7 +583,7 @@ test('the guard answers on stdout for missing, corrupt, directory, and --json bi
       '--binding',
       corrupt,
       '--observed-workspace',
-      'superpoweringwithfiles',
+      'ilderaj',
       '--json'
     ]);
     assert.equal(asJson.code, 1);
@@ -649,14 +649,14 @@ test('usage mistakes and an unreadable binding end in one-line diagnostics', asy
   assert.equal(fileAsDir.code, 2, 'a file passed as --dir must fail loudly too');
   assert.ok(fileAsDir.stderr.startsWith('error: the task dir is not a directory'), fileAsDir.stderr);
 
-  const valueless = await runCli(['guard', '--binding', '--observed-workspace', 'superpoweringwithfiles']);
+  const valueless = await runCli(['guard', '--binding', '--observed-workspace', 'ilderaj']);
   assert.equal(valueless.code, 1);
   assert.ok(
     valueless.stdout.startsWith('DENY binding-invalid: the --binding flag needs a binding file path'),
     valueless.stdout
   );
 
-  const fromStdin = await runCli(['guard', '--binding', '-', '--observed-workspace', 'superpoweringwithfiles'], {
+  const fromStdin = await runCli(['guard', '--binding', '-', '--observed-workspace', 'ilderaj'], {
     input: JSON.stringify(await fixture('binding-enabled.json'))
   });
   assert.equal(fromStdin.code, 0);
@@ -681,10 +681,10 @@ test('resume-brief rebuilds a task picture from a directory and mirrors the guar
       path.join(dir, 'task_plan.md'),
       ['## Goal', 'Ship the human-agent control plane', '', '## Current State', 'Status: active', '', '## Current Phase', 'Phase 2', '', '## Recovery Notes', '- resume from the bootstrap plan'].join('\n')
     );
-    await writeFile(path.join(dir, 'linear.json'), JSON.stringify({ schemaVersion: 1, enabled: true, workspace: { name: 'superpoweringwithfiles' } }, null, 2));
+    await writeFile(path.join(dir, 'linear.json'), JSON.stringify({ schemaVersion: 1, enabled: true, workspace: { name: 'ilderaj' } }, null, 2));
     await writeFile(path.join(dir, 'linear-pending-checkpoint.md'), 'pending');
 
-    const ready = await runCli(['resume-brief', '--dir', dir, '--observed-workspace', 'superpoweringwithfiles']);
+    const ready = await runCli(['resume-brief', '--dir', dir, '--observed-workspace', 'ilderaj']);
     assert.equal(ready.code, 0);
     assert.ok(ready.stdout.includes('Ship the human-agent control plane'), ready.stdout);
     assert.ok(ready.stdout.includes('**Pending checkpoint ready to publish:** yes'), ready.stdout);
@@ -694,7 +694,7 @@ test('resume-brief rebuilds a task picture from a directory and mirrors the guar
     assert.equal(denied.code, 1);
     assert.ok(denied.stdout.includes('DENY workspace-mismatch'), denied.stdout);
 
-    await writeFile(path.join(dir, 'linear.json'), JSON.stringify({ schemaVersion: 2, enabled: true, workspace: { name: 'superpoweringwithfiles' } }, null, 2));
+    await writeFile(path.join(dir, 'linear.json'), JSON.stringify({ schemaVersion: 2, enabled: true, workspace: { name: 'ilderaj' } }, null, 2));
     const invalid = await runCli(['resume-brief', '--dir', dir]);
     assert.equal(invalid.code, 1);
     assert.ok(invalid.stdout.includes('**Binding:** invalid'), invalid.stdout);
@@ -705,7 +705,7 @@ test('resume-brief rebuilds a task picture from a directory and mirrors the guar
     assert.ok(localOnly.stdout.includes('none found; treat this task as local-only'), localOnly.stdout);
 
     await writeFile(path.join(dir, 'linear.json'), '{ "schemaVersion": 1,');
-    const corrupt = await runCli(['resume-brief', '--dir', dir, '--observed-workspace', 'superpoweringwithfiles']);
+    const corrupt = await runCli(['resume-brief', '--dir', dir, '--observed-workspace', 'ilderaj']);
     assert.equal(corrupt.code, 1);
     assert.ok(corrupt.stdout.includes('**Binding:** invalid - linear.json is not valid JSON'), corrupt.stdout);
     assert.ok(!corrupt.stdout.includes('SyntaxError'), 'a corrupt binding must not surface a stack trace');

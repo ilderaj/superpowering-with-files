@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "enabled": true,
   "workspace": {
-    "name": "superpoweringwithfiles"
+    "name": "ilderaj"
   },
   "team": {
     "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
@@ -13,7 +13,7 @@
   "goalIssue": {
     "id": "7dd163a7-d206-4421-8a02-e11853b146e0",
     "identifier": "SUP-35",
-    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral-execution"
+    "url": "https://linear.app/ilderaj/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral-execution"
   },
   "statusComment": {
     "id": "a26c790c-969e-4936-9a20-417c26803ed7"
