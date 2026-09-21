@@ -3,7 +3,7 @@
   "status": "failed",
   "exitCode": 2,
   "target": {
-    "file": "/Users/jared/SuperpoweringWithFiles/tests/fixtures/render-verify/centered-fail.html",
+    "file": "~/SuperpoweringWithFiles/tests/fixtures/render-verify/centered-fail.html",
     "url": "http://127.0.0.1:54588/centered-fail.html"
   },
   "viewport": "800x600",
@@ -94,6 +94,6 @@
   ],
   "artifacts": {
     "screenshot": null,
-    "json": "/Users/jared/SuperpoweringWithFiles/reports/night-recovery-20260921/render/fail.json"
+    "json": "~/SuperpoweringWithFiles/reports/night-recovery-20260921/render/fail.json"
   }
 }

@@ -16,10 +16,10 @@
 
 配置层面没有线程分发字段，是 cron + local + project 目标：
 
-- `/Users/jared/.codex/automations/swf-night-executor/automation.toml:3` — `kind = "cron"`
+- `~/.codex/automations/swf-night-executor/automation.toml:3` — `kind = "cron"`
 - 同文件 `:10` — `execution_environment = "local"`
 - 同文件 `:11` — `target = { type = "project", project_id = "local-8de225de40a3a2886c8065ccb69a4588" }`
-- 同文件 `:12` — `cwds = ["/Users/jared/SuperpoweringWithFiles"]`
+- 同文件 `:12` — `cwds = ["~/SuperpoweringWithFiles"]`
 
 prompt 层面明确要求同一 session 内串行（`automation.toml:5` 单行 prompt 内含以下原文）：
 
@@ -29,7 +29,7 @@ prompt 层面明确要求同一 session 内串行（`automation.toml:5` 单行 p
 
 预算：整轮共享一个窗口，`3 次 attempted slice / 45 分钟` 先到先停。
 
-运行记忆印证（`/Users/jared/.codex/automations/swf-night-executor/memory.md`，2026-09-20 run 2）：一个 session 内选中并做完 SUP-17，随后因时间预算停在 SUP-24 / SUP-15 未领取；全程只记录了一个 thread binding。
+运行记忆印证（`~/.codex/automations/swf-night-executor/memory.md`，2026-09-20 run 2）：一个 session 内选中并做完 SUP-17，随后因时间预算停在 SUP-24 / SUP-15 未领取；全程只记录了一个 thread binding。
 
 相关但**不同**的机制：chief-worker 设计里的 subagent 委派是在**同一 session 内部**发生，不是新 session。 nightly prompt 不要求必须委派。升级为可见并行 worker 的条件是 slice 变成跨阶段、长时运行、独立可变状态或需人直接介入（`docs/superpowers/specs/2026-07-10-chief-worker-operating-model-design.md:364`）。日常 nightly slice 不满足。
 
@@ -37,12 +37,12 @@ prompt 层面明确要求同一 session 内串行（`automation.toml:5` 单行 p
 
 夜班与白班交接确实钉住 DeepSeek：
 
-- `/Users/jared/.codex/automations/swf-night-executor/automation.toml:8` — `model = "opencode-go/deepseek-v4.1-flash"`
+- `~/.codex/automations/swf-night-executor/automation.toml:8` — `model = "opencode-go/deepseek-v4.1-flash"`
 - 同文件 `:9` — `reasoning_effort = "high"`
-- `/Users/jared/.codex/automations/swf-morning-handoff/automation.toml:8` — `model = "opencode-go/deepseek-v4.1-flash"`
+- `~/.codex/automations/swf-morning-handoff/automation.toml:8` — `model = "opencode-go/deepseek-v4.1-flash"`
 - 同文件 `:9` — `reasoning_effort = "high"`
 
-但全局默认不是它：`/Users/jared/.codex/config.toml:17` — `model = "p459531/gpt-5.6-sol"`。
+但全局默认不是它：`~/.codex/config.toml:17` — `model = "p459531/gpt-5.6-sol"`。
 
 全部 22 个自动化的模型分布（`grep -m1 '^model'` 逐条读取）：
 
@@ -76,12 +76,12 @@ prompt 层面明确要求同一 session 内串行（`automation.toml:5` 单行 p
 
 ## 4. 发现 C：缺少运行时模型实证
 
-自动化目录只有 `automation.toml` + `memory.md`，**没有任何运行日志记录该轮实际使用的模型**。可复核：`ls -la /Users/jared/.codex/automations/swf-night-executor/`。
+自动化目录只有 `automation.toml` + `memory.md`，**没有任何运行日志记录该轮实际使用的模型**。可复核：`ls -la ~/.codex/automations/swf-night-executor/`。
 
 仓库自身结论（`planning/active/deepseek-context-recovery-diagnosis-20260917/findings.md:4`）：
 `Requested/route model opencode-go/deepseek-v4.1-flash; no claim about provider-internal actual model identity.`
 
-Trio 入口策略（`/Users/jared/SuperpoweringWithFiles/AGENTS.md`）：`The Host owns lifecycle, continuation, permissions, and authenticated model evidence. Actual model and effort remain unknown without that evidence.`
+Trio 入口策略（`~/SuperpoweringWithFiles/AGENTS.md`）：`The Host owns lifecycle, continuation, permissions, and authenticated model evidence. Actual model and effort remain unknown without that evidence.`
 
 因此当前只能确认"请求路由是 DeepSeek"，**不能确认"实际跑的是 DeepSeek"**。
 
@@ -104,10 +104,10 @@ Trio 入口策略（`/Users/jared/SuperpoweringWithFiles/AGENTS.md`）：`The Ho
 
 ## 7. 证据清单（可复核路径）
 
-- `/Users/jared/.codex/automations/swf-night-executor/automation.toml`（:3, :8, :9, :10, :11, :12）
-- `/Users/jared/.codex/automations/swf-night-executor/memory.md`（2026-09-20 run 2）
-- `/Users/jared/.codex/automations/swf-morning-handoff/automation.toml`（:8, :9）
-- `/Users/jared/.codex/config.toml`（:17）
+- `~/.codex/automations/swf-night-executor/automation.toml`（:3, :8, :9, :10, :11, :12）
+- `~/.codex/automations/swf-night-executor/memory.md`（2026-09-20 run 2）
+- `~/.codex/automations/swf-morning-handoff/automation.toml`（:8, :9）
+- `~/.codex/config.toml`（:17）
 - `planning/active/deepseek-context-recovery-diagnosis-20260917/findings.md`（:4, :38）
 - `docs/superpowers/specs/2026-07-10-chief-worker-operating-model-design.md`（:59, :72, :364, :402）
-- `/Users/jared/SuperpoweringWithFiles/AGENTS.md`（Host 持有 authenticated model evidence）
+- `~/SuperpoweringWithFiles/AGENTS.md`（Host 持有 authenticated model evidence）

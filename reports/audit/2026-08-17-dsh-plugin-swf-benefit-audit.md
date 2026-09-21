@@ -2,7 +2,7 @@
 
 - 日期：2026-08-17
 - 性质：只读分析与审计（不实施、不改生产代码、不碰宿主配置）
-- 环境事实：本次会话本身运行在 DeepSeek Harness（dsh）中（`$DSH_HOME=/Users/jared/.dsh`，web 入口 http://127.0.0.1:3080，默认 provider `opencode-go/deepseek-v4-flash`）；`~/.dsh/cordis.patch.yml` 当前为 `[]`，swf-dsh 插件**尚未挂载到本宿主**。
+- 环境事实：本次会话本身运行在 DeepSeek Harness（dsh）中（`$DSH_HOME=~/.dsh`，web 入口 http://127.0.0.1:3080，默认 provider `opencode-go/deepseek-v4-flash`）；`~/.dsh/cordis.patch.yml` 当前为 `[]`，swf-dsh 插件**尚未挂载到本宿主**。
 - 证据标注：【verified 本日】本仓库/本宿主实测；【SWF-local】仓库事实；【假设】工程假设；【建议】推荐方案
 
 ---

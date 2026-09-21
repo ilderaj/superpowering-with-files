@@ -16,7 +16,7 @@ if(mode==='plan') {
  if(!plan.ok)throw Error(JSON.stringify(plan));fs.writeFileSync(base+prefix+'-plan.json',JSON.stringify(plan,null,2));console.log(JSON.stringify(plan));
 } else {
  const plan=read(base+prefix+'-plan.json'),observed=norm(read(base+prefix+'-after.json'));const result=verifyLifecycleReceipt({plan,pendingEvent:binding.sync.lifecycle,observed});if(!result.ok)throw Error(JSON.stringify(result));
- const python="import sys,json;sys.path.insert(0,'/Users/jared/.agents/skills/planning-with-files/scripts');from linear_lifecycle_sync import ack_lifecycle_sync;print(json.dumps(ack_lifecycle_sync(sys.argv[1],sys.argv[2],sys.argv[3])))";
+ const python="import sys,json,os;sys.path.insert(0,os.path.expanduser('~/.agents/skills/planning-with-files/scripts'));from linear_lifecycle_sync import ack_lifecycle_sync;print(json.dumps(ack_lifecycle_sync(sys.argv[1],sys.argv[2],sys.argv[3])))";
  const ack=JSON.parse(execFileSync('python3',['-c',python,process.cwd(),plan.taskId,plan.eventId],{encoding:'utf8'}));if(!ack.ok)throw Error(JSON.stringify(ack));
  const updated=read(bindingPath);updated.taskMap[plan.taskId].state=plan.state==='Done'?'done':'planned';fs.writeFileSync(bindingPath,JSON.stringify(updated,null,2)+'\n');console.log(JSON.stringify({receipt:result,ack}));
 }

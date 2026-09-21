@@ -4,8 +4,8 @@
     "workspaceId": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
     "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
     "productKey": "swf",
-    "canonicalRoot": "/Users/jared/SuperpoweringWithFiles",
-    "gitCommonDir": "/Users/jared/SuperpoweringWithFiles/.git",
+    "canonicalRoot": "~/SuperpoweringWithFiles",
+    "gitCommonDir": "~/SuperpoweringWithFiles/.git",
     "defaultProjectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
     "projects": [
       {

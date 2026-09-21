@@ -3,7 +3,7 @@
   "status": "passed",
   "exitCode": 0,
   "target": {
-    "file": "/Users/jared/SuperpoweringWithFiles/tests/fixtures/render-verify/centered-pass.html",
+    "file": "~/SuperpoweringWithFiles/tests/fixtures/render-verify/centered-pass.html",
     "url": "http://127.0.0.1:54564/centered-pass.html"
   },
   "viewport": "800x600",
@@ -93,7 +93,7 @@
     }
   ],
   "artifacts": {
-    "screenshot": "/Users/jared/SuperpoweringWithFiles/reports/night-recovery-20260921/render/pass.png",
-    "json": "/Users/jared/SuperpoweringWithFiles/reports/night-recovery-20260921/render/pass.json"
+    "screenshot": "~/SuperpoweringWithFiles/reports/night-recovery-20260921/render/pass.png",
+    "json": "~/SuperpoweringWithFiles/reports/night-recovery-20260921/render/pass.json"
   }
 }

@@ -6,7 +6,7 @@
   "hostReportedEffort": "high",
   "providerActualIdentity": "unknown",
   "providerIdentityVerified": false,
-  "evidenceSource": "/Users/jared/.codex/sessions/2026/09/21/rollout-2026-09-21T01-31-23-01a0bfdf-63eb-7e72-9573-7ecc54a4c3fa.jsonl",
+  "evidenceSource": "~/.codex/sessions/2026/09/21/rollout-2026-09-21T01-31-23-01a0bfdf-63eb-7e72-9573-7ecc54a4c3fa.jsonl",
   "evidenceAt": "2026-09-21T01:25:42.000Z",
   "selfReportObserved": false,
   "verification": "matched",
