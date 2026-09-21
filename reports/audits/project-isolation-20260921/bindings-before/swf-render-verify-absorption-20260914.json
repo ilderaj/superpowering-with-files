@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "superpoweringwithfiles",
+    "url": "https://linear.app/superpoweringwithfiles"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "name": "SuperpoweringWithFiles",
+    "key": "SUP"
+  },
+  "project": {
+    "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "name": "SWF — Agent Workbench MVP"
+  },
+  "goalIssue": {
+    "id": "12956010-bdf4-4d2d-9dc2-a57f26d6e190",
+    "identifier": "SUP-16",
+    "title": "Render-verify: 测量式 UI 验证能力吸收（markdown-viewer 方法 → SWF 自有 capability）"
+  },
+  "statusComment": {
+    "id": "931099cf-39d0-401c-94a2-7c1404efa1ee"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "swf-render-verify-absorption-20260914": {
+      "issueId": "12956010-bdf4-4d2d-9dc2-a57f26d6e190",
+      "identifier": "SUP-16",
+      "state": "running",
+      "uuid": "12956010-bdf4-4d2d-9dc2-a57f26d6e190",
+      "note": "2026-09-20 Chief接受修复Phase1；Phase2已获用户授权，nightly首片20分钟RED/GREEN，可恢复；后续依赖按本地计划，不提前Done",
+      "subIssues": {
+        "phase1Contract": "SUP-17",
+        "phase2Capability": "SUP-18",
+        "phase3RealConsumption": "SUP-19",
+        "phase4ExperienceLedger": "SUP-20",
+        "phase5Adoption": "SUP-21"
+      },
+      "subIssueIds": {
+        "phase1Contract": "35fac9fe-88b7-4748-9d9b-ad50f1ca7b8a",
+        "phase2Capability": "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+        "phase3RealConsumption": "31e1c12d-0c6d-4782-a9eb-df41f36f3eb2",
+        "phase4ExperienceLedger": "6905a686-c04c-460f-94f9-e49d18932ed0",
+        "phase5Adoption": "57d4216c-51c8-44f0-9bed-f1bdd8ee1c6b"
+      },
+      "nightSlice": "31e1c12d-0c6d-4782-a9eb-df41f36f3eb2",
+      "subIssueStates": {
+        "phase1Contract": "done",
+        "phase2Capability": "done",
+        "phase3RealConsumption": "ready",
+        "phase4ExperienceLedger": "ready",
+        "phase5Adoption": "planned"
+      },
+      "nightSliceState": "ready"
+    }
+  },
+  "sync": {
+    "lastCheckpointAt": "2026-09-20 02:05 UTC+8",
+    "lastResult": "ok",
+    "lastError": null,
+    "pendingRetry": false
+  }
+}

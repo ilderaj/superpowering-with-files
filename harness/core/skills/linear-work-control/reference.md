@@ -9,7 +9,7 @@ Linear                     human-facing control plane (projection only)
 local files                durable execution state (source of truth)
 local Codex session        worker
 SWF harness / trio         execution governance
-Linear MCP                 the only write path
+Linear MCP                 normal write path; Team bootstrap exception in section 5a
 Codex automations          scheduled execution, where the Host supports it
 ```
 
@@ -55,6 +55,27 @@ Field rules enforced by `validate-binding`:
 
 A goal without a binding keeps working exactly as before. Do not create a binding for a task that does not need Linear.
 
+## 2a. LMP-02 product and task binding v2
+
+The v2 resolver keeps product identity separate from a task target:
+
+- `.harness/linear/project.json` is a strict `product-config` with `productKey`, `workspaceId`, `teamId`, and `allowedProjectIds`. It contains no task progress, blockers, or repo lease state.
+- `reports/linear/<task-id>/linear.json` is a strict `task-binding` with the product key, task and issue IDs, the config version, and an independent `rootRegistrationId`.
+- `.harness/linear/root-registration.json` is an independent local registration of `canonicalRepoId`, `canonicalRoot`, and `gitCommonDir`. The registered canonical root is inspected as Git and must itself map to the registered common directory; the current Git root or worktree must resolve to that same family before a v2 binding is eligible.
+
+The resolver checks the preferred `reports/linear` task binding first and requires its `taskId` to equal the requested task. A legacy `planning/active/<task-id>/linear.json`, archive binding, or `.goal/LINEAR.json` is considered only when the preferred path is absent. A present but unreadable, malformed, unknown-version, or invalid preferred file fails closed. A v1 binding remains readable as `legacy` compatibility and is never treated as a v2 multi-product queue identity. Every `.json` entry in the optional local product registry is read; a directory, dangling symlink, or unreadable entry fails closed rather than disappearing from discovery.
+
+Use the public helper for local checks and atomic writes:
+
+```bash
+node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs validate-product-config .harness/linear/project.json
+node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs validate-task-binding reports/linear/<task-id>/linear.json
+node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs resolve-product-binding --repo-root <repo> --task-id <task-id> --json
+node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs write-product-config --file .harness/linear/project.json --input <candidate.json>
+```
+
+`migrate-binding --dry-run` prints a proposed v2 task binding and writes nothing. Automatic upgrade and live migration are disabled; the proposal is rejected when the independent root product, legacy Team, or legacy Project is incompatible with the v2 product config. All v2 validators reuse the existing credential-shaped-key rejection; duplicate product keys in the local or explicitly supplied registry fail closed.
+
 ## 3. Wrong-workspace guard
 
 The guard is a required feature, not a one-time check. Before any Linear write:
@@ -88,7 +109,7 @@ Runtime state is the local truth (`progress.md` / `task_plan.md` status plus the
 | `running` | In Progress | `agent-running` | no |
 | `waiting_human` | In Progress | `waiting-human` | yes |
 | `blocked` | In Progress | `blocked` | yes |
-| `review` | In Progress | `ready-review` | attention, not blocking |
+| `review` | In Review | `ready-review` | attention, not blocking |
 | `failed` | In Progress | `agent-failed` | attention, not blocking |
 | `done` | Done | — | no |
 | `canceled` | Canceled | — | no |
@@ -104,18 +125,23 @@ node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs map
 node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs labels
 ```
 
+## 4a. Recovery readiness
+
+Preserve already-authorized scope. A bounded local successor may become `ready` after verified prerequisites, written acceptance, and non-overlapping edit surfaces establish readiness; it may also receive `nightly` when existing authorization covers unattended execution. Record the evidence without repeat permission. Pending human gates or changed scope still require the corresponding decision.
+
+Team absence means not yet created, not capacity exceeded; establish capacity from visible plan/limit evidence. An investigation may complete with explicit unknowns, sources, and follow-ups when its acceptance permits that result and required validation passes. Keep fixture and local implementation acceptance separate from actual onboarding: missing live Team IDs or capacity evidence blocks the dependent onboarding step, not independent authorized local work. Actual rollout, new costs or plan upgrades, and login or permission ambiguity retain their applicable human gates; local tests prove none of those outcomes.
+
 ## 5. Bootstrap
 
-Run once per workspace/team, in this order, and only after the guard returns `ok`. Record every returned id in the binding.
+For all new enrollment follow [Project-first intake](project-first.md). Reuse the approved Team and exact product/project ownership marker, not a universal SWF project. Existing SWF IDs and v1 maps are compatibility data, not a template for another product. Read statuses/labels per actual Team; create only missing semantic labels, preserving the compatibility name swf-managed as a manager marker. Record authenticated IDs after readback. Ordinary tracked intake in adopted repos is automatic; setup failure is explicit and not nightly eligible.
 
-1. `linear_list_issue_statuses` for the team — confirm the status names above exist.
-2. `linear_save_issue_label` for each of: `swf-managed`, `executor:codex-local`, `agent-ready`, `agent-running`, `waiting-human`, `blocked`, `ready-review`, `agent-failed`, `nightly`. Skip labels that already exist.
-3. `linear_list_projects` — reuse a suitable SWF project if one exists, otherwise `linear_save_project` with `name` and `addTeams`: `SWF — Agent Workbench MVP`.
-4. `linear_save_issue` for the parent goal issue `MVP: Linear × Local Codex Human-Agent Control Plane` (labels `swf-managed`), then one sub-issue per implementation phase using `parentId`.
-5. Create the status comment on the goal issue with `linear_save_comment` and store its id as `statusComment.id`; every later checkpoint updates that comment by id.
-6. Write the binding file, then re-run `validate-binding`.
+## 5a. Team bootstrap UI fallback
 
-Custom view creation is not exposed by the MCP surface, so the eight attention views are a human setup step (section 9).
+Use this exception only for Team bootstrap when the authenticated MCP lacks Team creation and existing authorization covers the same Team creation scope. If creation is available through MCP, use MCP. This exception grants no broader UI write authority.
+
+1. Pass the workspace guard with authenticated MCP evidence; in the logged-in UI verify the same workspace, approved Team name and key, no duplicate name/key, creation permissions, and visible plan/capacity sufficient for the approved Teams. Reuse a matching existing Team only after verifying its identity. Missing evidence, login or permission ambiguity, or a required upgrade stops creation for a human decision; continue independent local work.
+2. Create only within the approved scope through the normal UI. Never extract cookies or tokens, build an alternate API path, change plans, or broaden scope to bypass a gate. Preserve already-authorized scope without asking again for the same action.
+3. Obtain MCP readback of the created Team's identity and IDs before adding them to the binding; verify workspace, name, and key match. If readback fails, record the unconfirmed result and reconcile before retrying creation to avoid duplicates. Resume normal writes through MCP, including projects, issues, labels, and comments; validate the binding after recording verified IDs.
 
 ## 6. Checkpoint sync protocol
 
@@ -144,7 +170,7 @@ Write every blocker into the task's local ledger with one machine-readable state
 <!-- swf:blocker-state id=B2 state=waiting_human -->
 ```
 
-`resume-brief` counts an entry as open unless its state is `resolved`, `canceled`, or `done`. The marker may be plain, indented, or decorated as a list item, ordered-list item, task checkbox, blockquote, emphasis, or inline code. A lookalike spelling of the token is still detected and fails closed as unreadable: different case or width, invisible and format characters (zero-width space/joiner, soft hyphen), hyphen variants, a homoglyph letter of the token, a stray space anywhere inside the token, or a line break that splits it. A marker-looking spelling within two edits of the token is treated as a marker candidate as well. **Any line that mentions the token, or a near-miss of it, without parsing as a well-formed marker, also counts as open**, so a published blocker can never look answered by accident. Detection is deliberately best-effort beyond that envelope, and the two mechanisms do not compose: several arbitrary substitutions can still be dropped, and an un-mapped homoglyph combined with a stray space inside the token defeats both the prefix scan and the edit-distance window. The candidate scan also matches the `swf:block` prefix anywhere on a whitespace-stripped line, so it over-matches by design: prose containing `swf:blockchain` reads as a malformed marker and counts as open. That is why the ledger keeps one well-formed marker per blocker, and why ledger prose must not contain the `swf:block` prefix — describe the convention instead. Publishing to Linear does not close an entry: only a recorded human decision does.
+`resume-brief` counts an entry as open unless its state is `resolved`, `canceled`, or `done`. The marker may be plain, indented, or decorated as a list item, ordered-list item, task checkbox, blockquote, emphasis, or inline code. A lookalike spelling of the token is still detected and fails closed as unreadable: different case or width, invisible and format characters (zero-width space/joiner, soft hyphen), hyphen variants, a homoglyph letter of the token, a stray space anywhere inside the token, or a line break that splits it. A marker-looking spelling within two edits of the token is treated as a marker candidate as well. **Any line that mentions the token, or a near-miss of it, without parsing as a well-formed marker, also counts as open**, so a published blocker can never look answered by accident. Detection is deliberately best-effort beyond that envelope, and the two mechanisms do not compose: several arbitrary substitutions can still be dropped, and an un-mapped homoglyph combined with a stray space inside the token defeats both the prefix scan and the edit-distance window. The candidate scan also matches the `swf:block` prefix anywhere on a whitespace-stripped line, so it over-matches by design: prose containing `swf:blockchain` reads as a malformed marker and counts as open. That is why the ledger keeps one well-formed marker per blocker, and why ledger prose must not contain the `swf:block` prefix — describe the convention instead. Publishing to Linear does not close an entry: verified prerequisite evidence may resolve a dependency blocker within existing authorization; a human decision blocker still requires the recorded human decision. Update the local marker and evidence before projecting the resolution.
 
 ```bash
 node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs render --kind blocker --input blocker.json

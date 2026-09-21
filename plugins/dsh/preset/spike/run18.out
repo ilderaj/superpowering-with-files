@@ -1,0 +1,3 @@
+I'll work through the validation steps in order. Step 1 first: both `swf_probe` and `swf_guard_arm` are in my tool catalog — **yes** for both.
+
+Now Step 2 (baseline probe) and Step 3 (dispatch the subagent) — these are independent, so I'll run them together:

@@ -1,0 +1,11 @@
+[swf-mjs] module scope reached
+[swf-mjs] apply called
+[swf-mjs] loader settled; starting run
+[swf-mjs] services ok; resolve preset
+[swf-mjs] resolved swf-min
+[swf-mjs] setup: installModelSelection
+[swf-mjs] setup: presets.mount...
+[swf-mjs] setup: mount done
+[swf-mjs] agent created; whenIdle...
+[probe] subagent/start observed: [{"runId":"dea9abe5-59c1-40a2-9f88-0c3bbf1510f3","provider":"spawn","id":"4d6bc531-dd96-4f9f-b47f-32aeed0ccb9d"}]
+[swf-mjs] turn done; flush

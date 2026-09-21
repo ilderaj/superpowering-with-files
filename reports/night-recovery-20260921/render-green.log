@@ -1,0 +1,40 @@
+
+> superpowering-with-files@2.0.1 verify:render
+> node --test --test-concurrency=1 tests/render-verify/*.test.mjs
+
+✔ navigation timeout is caught while the navigation command is still pending (67.3165ms)
+✔ failed navigation does not leave an unhandled load-event timeout (21.509584ms)
+✔ unanswered CDP commands time out and remove their pending request (37.304375ms)
+✔ synchronous socket send failure removes its pending request (0.204375ms)
+✔ browser centered PASS fixture (905.463208ms)
+✔ browser centered FAIL fixture (766.606625ms)
+✔ browser leading-flush PASS fixture (771.965958ms)
+✔ browser leading-flush FAIL fixture (786.2805ms)
+✔ browser equal-to-probe PASS fixture (840.249959ms)
+✔ browser equal-to-probe FAIL fixture (847.458375ms)
+✔ browser no-horizontal-overflow PASS fixture (916.648625ms)
+✔ browser no-horizontal-overflow FAIL fixture (781.290042ms)
+✔ browser no-clip PASS fixture (802.082584ms)
+✔ browser no-clip FAIL fixture (764.770875ms)
+✔ browser single-layer PASS fixture (738.125041ms)
+✔ browser single-layer FAIL fixture (813.814292ms)
+✔ browser min-size PASS fixture (799.308083ms)
+✔ browser min-size FAIL fixture (813.886792ms)
+✔ browser rule-present PASS fixture (788.211458ms)
+✔ browser rule-present FAIL fixture (796.882542ms)
+✔ browser no-page-errors PASS fixture (782.120209ms)
+✔ browser no-page-errors FAIL fixture (833.072375ms)
+✔ static server rejects traversal and symlink escape (18.644458ms)
+✔ missing Chrome is an explicit environment-limited exit 3 (100.56725ms)
+✔ settle records fonts and image readiness and --shot writes a PNG (10661.00775ms)
+✔ settle timeout is bounded and returns environment-limited exit 3 (898.187917ms)
+✔ combined checks retain one selector measurement for multiple invariants (782.653875ms)
+✔ malformed explicit checks fail closed instead of defaulting to no-page-errors (97.618375ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 27426.093458

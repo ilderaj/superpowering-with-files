@@ -1,0 +1,19 @@
+# swf-spike headless overlay v2:
+#   1. compose the agent-presets roster (package installed into the profile's
+#      node_modules via `dsh plugin --profile headless add ...`);
+#   2. disable the shipped headless-runner and insert swf-runner, which mounts
+#      the roster default preset inside the agent's setup (the apiproxy step
+#      that web sessions get and the shipped runner skips).
+- insert:
+    - id: agent-presets
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        default: swf-spike
+
+- id: headless-runner
+  disabled: true
+
+- insert:
+    - id: swf-runner
+      name: /Users/jared/.dsh/profiles/headless/swf-runner.js
+      inject: [headlessStartup]

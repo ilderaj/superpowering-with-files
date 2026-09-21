@@ -1,0 +1,484 @@
+{
+  "schemaVersion": 2,
+  "runtime": "trio",
+  "mode": "check",
+  "descriptors": [
+    {
+      "targetId": "codex",
+      "surface": "entry",
+      "destination": "/Users/jared/.codex/AGENTS.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "trio",
+      "destination": "/Users/jared/.agents/skills/trio/SKILL.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "dev",
+      "destination": "/Users/jared/.agents/skills/trio/dev/SKILL.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "office",
+      "destination": "/Users/jared/.agents/skills/trio/office/SKILL.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "safety",
+      "destination": "/Users/jared/.agents/skills/trio/safety/SKILL.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "chiefops",
+      "destination": "/Users/jared/.agents/skills/chiefops/SKILL.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "trio/references/execution.md",
+      "destination": "/Users/jared/.agents/skills/trio/references/execution.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "dev/references/methods.md",
+      "destination": "/Users/jared/.agents/skills/trio/dev/references/methods.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "dev/references/review.md",
+      "destination": "/Users/jared/.agents/skills/trio/dev/references/review.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "dev/references/pr-feedback.md",
+      "destination": "/Users/jared/.agents/skills/trio/dev/references/pr-feedback.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "chiefops/references/delegated-execution.md",
+      "destination": "/Users/jared/.agents/skills/chiefops/references/delegated-execution.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "office/references/source-backed-work.md",
+      "destination": "/Users/jared/.agents/skills/trio/office/references/source-backed-work.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "codex",
+      "surface": "office/references/artifact-and-delivery.md",
+      "destination": "/Users/jared/.agents/skills/trio/office/references/artifact-and-delivery.md",
+      "action": "update",
+      "execution": "managed",
+      "conflict": false
+    },
+    {
+      "targetId": "copilot",
+      "surface": "entry",
+      "destination": "/Users/jared/manual/copilot/entry-policy.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "trio",
+      "destination": "/Users/jared/manual/copilot/skills/trio/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "dev",
+      "destination": "/Users/jared/manual/copilot/skills/trio/dev/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "office",
+      "destination": "/Users/jared/manual/copilot/skills/trio/office/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "safety",
+      "destination": "/Users/jared/manual/copilot/skills/trio/safety/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "chiefops",
+      "destination": "/Users/jared/manual/copilot/skills/chiefops/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "trio/references/execution.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/references/execution.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "dev/references/methods.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/dev/references/methods.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "dev/references/review.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/dev/references/review.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "dev/references/pr-feedback.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/dev/references/pr-feedback.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "chiefops/references/delegated-execution.md",
+      "destination": "/Users/jared/manual/copilot/skills/chiefops/references/delegated-execution.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "office/references/source-backed-work.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/office/references/source-backed-work.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "copilot",
+      "surface": "office/references/artifact-and-delivery.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/office/references/artifact-and-delivery.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "entry",
+      "destination": "/Users/jared/manual/claude-code/entry-policy.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "trio",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "dev",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/dev/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "office",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/office/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "safety",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/safety/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "chiefops",
+      "destination": "/Users/jared/manual/claude-code/skills/chiefops/SKILL.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "trio/references/execution.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/references/execution.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "dev/references/methods.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/dev/references/methods.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "dev/references/review.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/dev/references/review.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "dev/references/pr-feedback.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/dev/references/pr-feedback.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "chiefops/references/delegated-execution.md",
+      "destination": "/Users/jared/manual/claude-code/skills/chiefops/references/delegated-execution.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "office/references/source-backed-work.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/office/references/source-backed-work.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "office/references/artifact-and-delivery.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/office/references/artifact-and-delivery.md",
+      "action": "preserve",
+      "execution": "manual",
+      "conflict": true
+    }
+  ],
+  "conflicts": [
+    {
+      "targetId": "cursor",
+      "destination": null,
+      "execution": "manual_pending",
+      "reason": "no-retained-destination"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "entry",
+      "destination": "/Users/jared/manual/copilot/entry-policy.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "trio",
+      "destination": "/Users/jared/manual/copilot/skills/trio/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "dev",
+      "destination": "/Users/jared/manual/copilot/skills/trio/dev/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "office",
+      "destination": "/Users/jared/manual/copilot/skills/trio/office/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "safety",
+      "destination": "/Users/jared/manual/copilot/skills/trio/safety/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "chiefops",
+      "destination": "/Users/jared/manual/copilot/skills/chiefops/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "trio/references/execution.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/references/execution.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "dev/references/methods.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/dev/references/methods.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "dev/references/review.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/dev/references/review.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "dev/references/pr-feedback.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/dev/references/pr-feedback.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "chiefops/references/delegated-execution.md",
+      "destination": "/Users/jared/manual/copilot/skills/chiefops/references/delegated-execution.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "office/references/source-backed-work.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/office/references/source-backed-work.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "copilot",
+      "surface": "office/references/artifact-and-delivery.md",
+      "destination": "/Users/jared/manual/copilot/skills/trio/office/references/artifact-and-delivery.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "entry",
+      "destination": "/Users/jared/manual/claude-code/entry-policy.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "trio",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "dev",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/dev/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "office",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/office/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "safety",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/safety/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "chiefops",
+      "destination": "/Users/jared/manual/claude-code/skills/chiefops/SKILL.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "trio/references/execution.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/references/execution.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "dev/references/methods.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/dev/references/methods.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "dev/references/review.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/dev/references/review.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "dev/references/pr-feedback.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/dev/references/pr-feedback.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "chiefops/references/delegated-execution.md",
+      "destination": "/Users/jared/manual/claude-code/skills/chiefops/references/delegated-execution.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "office/references/source-backed-work.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/office/references/source-backed-work.md",
+      "reason": "destination-observation-unknown"
+    },
+    {
+      "targetId": "claude-code",
+      "surface": "office/references/artifact-and-delivery.md",
+      "destination": "/Users/jared/manual/claude-code/skills/trio/office/references/artifact-and-delivery.md",
+      "reason": "destination-observation-unknown"
+    }
+  ]
+}
+Trio projection verification failed: managed state is missing, drifted, or unowned.

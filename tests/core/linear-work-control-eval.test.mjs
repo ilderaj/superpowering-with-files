@@ -114,7 +114,7 @@ test('every canonical runtime state maps onto a stock Linear status plus semanti
     running: ['In Progress', ['agent-running']],
     waiting_human: ['In Progress', ['waiting-human']],
     blocked: ['In Progress', ['blocked']],
-    review: ['In Progress', ['ready-review']],
+    review: ['In Review', ['ready-review']],
     failed: ['In Progress', ['agent-failed']],
     done: ['Done', []],
     canceled: ['Canceled', []]
@@ -722,7 +722,7 @@ async function migrationFixture(t, location = 'active') {
   const metadata = path.join(repo, 'reports', 'linear', 'example');
   await mkdir(dir, { recursive: true });
   await mkdir(metadata, { recursive: true });
-  await writeFile(path.join(dir, 'task_plan.md'), '## Goal\nValidate current artifact\n');
+  await writeFile(path.join(dir, 'task_plan.md'), `${location === 'archive' ? 'Task ID: example\n' : ''}## Goal\nValidate current artifact\n`);
   await writeFile(path.join(dir, 'findings.md'), 'Evidence: browser coverage is bounded');
   await writeFile(path.join(dir, 'progress.md'), 'Next: inspect mobile\n<!-- swf:blocker-state id=B1 state=waiting_human -->');
   const binding = { schemaVersion: 1, enabled: true, workspace: { name: 'external-workspace' } };

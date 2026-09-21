@@ -1,0 +1,54 @@
+{
+  "adapter": {
+    "onlyTests": "retry",
+    "failedTests": "retry",
+    "onlyDocument": "retry"
+  },
+  "releaseFromOperator": {
+    "release_state": "allowed"
+  },
+  "unknownComparison": {
+    "agreement": null,
+    "summary": {
+      "version": 1,
+      "total": 1,
+      "agreements": 1,
+      "disagreements": 0,
+      "unevaluable": 0,
+      "byQuestion": {
+        "plan_ready": {
+          "agreements": 1,
+          "disagreements": 0
+        }
+      }
+    }
+  },
+  "malformedObservation": "throws: Checkpoint shadow observation must be an object.",
+  "t1": {
+    "gateAccuracy": 1,
+    "answerAccuracy": 1,
+    "oldAccuracy": 0.4230769230769231,
+    "falseDoneRate": 0,
+    "falseDoneCases": [],
+    "prematureExecutionRate": 0,
+    "prematureExecutionCases": [],
+    "unevaluable": 1,
+    "structuralGapCases": 0,
+    "structuralGapIds": [],
+    "expressibleTruthRate": 1
+  },
+  "shadow": {
+    "cases": 27,
+    "disagreements": 18,
+    "unevaluable": 1,
+    "byArea": {
+      "action": 1,
+      "intake": 6,
+      "night": 5,
+      "office": 2,
+      "plan": 4,
+      "release": 3,
+      "verify": 6
+    }
+  }
+}

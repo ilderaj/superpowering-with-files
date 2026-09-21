@@ -1,0 +1,14 @@
+[swf-mjs] module scope reached
+[swf-mjs] apply called
+[swf-mjs] loader settled; starting run
+[swf-mjs] services ok; resolve preset
+[swf-mjs] resolved swf-min
+[swf-mjs] setup: installModelSelection
+[swf-mjs] setup: presets.mount...
+swf-runner-min: Error: agent-presets: preset "swf-min" failed to mount: failed to apply loader entry tool-swf-probe (/Users/jared/SuperpoweringWithFiles/plugins/dsh/preset/spike/swf-tool/index.js): cannot get property "tools" without inject (/Users/jared/.dsh/.agent-presets/swf-min/agent.cordis.yml)
+    at mountPreset (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-agent-presets/lib/index.js:733:9)
+    at async file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-agent-presets/lib/index.js:1145:5
+    at async Proxy.mount (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-agent-presets/lib/index.js:958:20)
+    at async setup (file:///Users/jared/.dsh/profiles/headless/node_modules/swf-spike-bundle/swf-runner/index.mjs:51:7)
+    at async raceAbort (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:878:10)
+    at async Proxy.setupAndPublish (file:///Users/jared/.npm/_npx/1e7f6d9597241db0/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:1237:6)

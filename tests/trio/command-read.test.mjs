@@ -453,7 +453,7 @@ test('verify all runs the final Trio inventory before legacy backstops', async (
 
   assert.equal(
     packageJson.scripts['verify:all'],
-    'npm run verify:trio && npm run verify:core && npm run verify:homepage'
+    'npm run verify:trio && npm run verify:core && npm run verify:homepage && npm run verify:render'
   );
   assert.match(
     packageJson.scripts['verify:trio'],

@@ -1,0 +1,29 @@
+All steps complete. Final report verbatim:
+
+---
+
+## swf-min preset validation report
+
+**(a) Tools present:** yes — both `swf_probe` and `swf_guard_arm` are in the tool catalog.
+
+**(b) Baseline probe JSON** (before any dispatch):
+```json
+{}
+```
+
+**(c) Post-dispatch probe JSON** (after one subagent spawned and settled with reply `pong`):
+```json
+{}
+```
+
+**(d) Guard denial:** yes. After arming `swf_guard_arm` with `tool=subagent`, the next `subagent` call was denied. Exact text:
+```
+Error: swf-spike-guard: subagent denied while armed
+```
+
+**(e) Errors or unexpected behavior:**
+- The one-shot subagent task settled normally and returned exactly `pong` — no errors.
+- `swf_probe` returned `{}` both before and after the dispatch, i.e. no host services resolved and no subagent/start events were observed from this context — the probe's event counters stayed empty even though a subagent spawn did occur.
+- The guard behaved as designed: arm (`{"tool": "subagent"}`) → next `subagent` call denied with the `swf-spike-guard` message.
+
+All six steps executed in order with no other anomalies.

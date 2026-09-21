@@ -1,0 +1,14 @@
+- insert:
+    - id: agent-presets
+      name: '@deepseek-ai/dsh-agent-presets'
+      config:
+        default: swf-min
+
+- id: headless-runner
+  disabled: true
+
+- insert:
+    - id: swf-runner-min
+      name: /Users/jared/.dsh/profiles/headless/node_modules/swf-spike-bundle/swf-runner/index.mjs
+      config:
+        task: "You are validating the swf-min agent preset on a headless dsh host. Perform these steps and report results verbatim.\nStep 1: report whether tools swf_probe and swf_guard_arm are in your catalog (yes/no).\nStep 2: call swf_probe and print the returned JSON exactly.\nStep 3: call the subagent tool (provider spawn) with the one-shot task \"Reply with the single word: pong\". Wait for it to settle.\nStep 4: call swf_probe again and print the returned JSON exactly.\nStep 5: call swf_guard_arm with tool=subagent, then call the subagent tool again. Report whether it was denied and print any denial text exactly.\nStep 6: final report: (a) tools present yes/no (b) baseline probe JSON (c) post-dispatch probe JSON (d) guard denial yes/no + exact text (e) errors or unexpected behavior."

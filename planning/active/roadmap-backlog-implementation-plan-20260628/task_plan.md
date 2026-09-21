@@ -9,22 +9,11 @@
 基于已批准的 companion implementation plan，执行接下来三个迭代的主线任务，完成 `1.0.11`、`1.0.12`、`1.0.13` 的 kernel-first program delivery，并持续把实现、验证、reconcile 和 release 证据同步回当前 task-scoped planning root。
 
 ## Current State
-<!--
-  WHAT: Explicit lifecycle state for this task.
-  WHY: Completed-looking phases are not enough to archive safely. Archive only after
-       the task is intentionally closed and marked eligible.
-  STATUS VALUES:
-  - active: Work is ongoing
-  - blocked: Work cannot continue without external input
-  - waiting_review: Implementation is done but needs review
-  - waiting_execution: Plan is ready but execution has not started
-  - waiting_integration: Work is done but not integrated
-  - closed: Work is complete and may be archived if Archive Eligible is yes
--->
-Status: waiting_review
+Status: closed
 Archive Eligible: no
-Close Reason: Not closed; PR #109 merged and the old implementation branch has no commits outside origin/main, but the task goal names a 1.0.13 release while live GitHub latest is 1.0.12, and stale branch/worktree cleanup plus final release-scope acceptance require human approval.
-Reconcile: open
+Close Reason: Batch B close (user 2026-09-01): three-iteration deliveries achieved and exceeded (releases through 1.2.0); stale 1.0.12 reference corrected.
+Closed At: 2026-09-01T14:34:13+08:00
+Reconcile: complete
 
 ## Routing Decision
 - Selected Route: deep-rich

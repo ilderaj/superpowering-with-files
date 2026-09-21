@@ -1,0 +1,14 @@
+[swf-mjs] module scope reached
+[swf-mjs] apply called
+[swf-mjs] loader settled; starting run
+[swf-mjs] services ok; resolve preset
+[swf-mjs] resolved swf-min
+[swf-mjs] setup: installModelSelection
+[swf-mjs] setup: presets.mount...
+[swf-mjs] setup: mount done
+[swf-mjs] agent created; whenIdle...
+[probe] subagent/start observed: [{"runId":"8c844457-b973-4ba7-94c1-d1f58420e1f5","provider":"spawn","id":"a976ca66-88bf-456b-82c0-3d9be97245d9"}]
+[swf-mjs] turn done; flush
+dsh: UNKNOWN: content.some is not a function
+swf-runner-min: TypeError: io.exit is not a function
+    at run (file:///Users/jared/.dsh/profiles/headless/node_modules/swf-spike-bundle/swf-runner/index.mjs:65:6)

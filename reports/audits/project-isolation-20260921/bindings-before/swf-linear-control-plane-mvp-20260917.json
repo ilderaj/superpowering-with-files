@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "superpoweringwithfiles",
+    "url": "https://linear.app/superpoweringwithfiles"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "name": "SuperpoweringWithFiles",
+    "key": "SUP"
+  },
+  "project": {
+    "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "name": "SWF — Agent Workbench MVP"
+  },
+  "goalIssue": {
+    "id": "e0a75be2-b0f4-419f-bd8b-ea8df0e12fbb",
+    "identifier": "SUP-5",
+    "title": "MVP: Linear × Local Codex Human-Agent Control Plane"
+  },
+  "statusComment": {
+    "id": "29b1a2b4-f80b-461c-841b-e1c90748e53b"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "swf-linear-control-plane-mvp-20260917": {
+      "issueId": "SUP-5",
+      "identifier": "SUP-5",
+      "state": "done",
+      "subIssues": {
+        "bindingAndGuard": "SUP-6",
+        "stateMapping": "SUP-7",
+        "checkpointBlockerResume": "SUP-8",
+        "skill": "SUP-9",
+        "helpersAndTests": "SUP-10",
+        "schedulingWorkflows": "SUP-11",
+        "verificationScenarios": "SUP-13",
+        "attentionViewsHumanSetup": "SUP-12"
+      },
+      "subIssueStates": {
+        "verificationScenarios": "done",
+        "attentionViewsHumanSetup": "done",
+        "others": "done"
+      }
+    },
+    "sup-15-render-verify-dogfood-20260918": {
+      "issueId": "SUP-15",
+      "identifier": "SUP-15",
+      "uuid": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+      "state": "review",
+      "note": "2026-09-21 01:30优先canary；用户本轮授权；两档视口真实证据仍待执行",
+      "statusCommentId": "7fea0d8b-60e1-4e40-a8e3-88936fa4190f"
+    }
+  },
+  "sync": {
+    "lastCheckpointAt": "2026-09-18 12:05:00 UTC+8",
+    "lastResult": "ok",
+    "lastError": null,
+    "pendingRetry": false
+  }
+}

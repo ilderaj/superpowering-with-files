@@ -1,0 +1,85 @@
+{
+  "projects": [
+    {
+      "id": "36e9bab5-9e8e-4aae-916e-d48ebc272dfa",
+      "description": "projectKey: workspace-onboarding\nLinear入门说明SUP1–4。人工参考，不绑定本地执行root，不纳入agent/nightly队列。",
+      "status": {
+        "id": "9e114417-3f00-4715-9fa3-1aaf68af1cc6",
+        "name": "Backlog",
+        "type": "backlog"
+      },
+      "teams": [
+        {
+          "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+          "name": "SuperpoweringWithFiles",
+          "key": "SUP"
+        }
+      ]
+    },
+    {
+      "id": "58909832-b45d-4dab-9342-8b9316dca9df",
+      "description": "productKey: swf; projectKey: decision\n交付：Decision-Control Runtime foundation、shadow修复、独立评估和发布就绪。Roadmap：<issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>、WP01–11与J01–04；现有gate和release授权不因迁移改变。",
+      "status": {
+        "id": "2ff50b59-a658-490d-b7c2-cac7d967caf8",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "teams": [
+        {
+          "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+          "name": "SuperpoweringWithFiles",
+          "key": "SUP"
+        }
+      ]
+    },
+    {
+      "id": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+      "description": "productKey: swf; projectKey: isolation\n交付：Project-first任务隔离、自动intake、白班夜班、恢复与安全写入。Roadmap：<issue id=\"d7508c53-989e-4578-b893-b2619052473a\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-22/多项目-linear-隔离与-chief-自动化治理lmp\">SUP-22</issue> / LMP01–12；2026-09-21规格覆盖旧一产品一Team策略。共享SUP Team，新产品创建独立Project，未验证root/锁不得自动执行。",
+      "status": {
+        "id": "2ff50b59-a658-490d-b7c2-cac7d967caf8",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "teams": [
+        {
+          "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+          "name": "SuperpoweringWithFiles",
+          "key": "SUP"
+        }
+      ]
+    },
+    {
+      "id": "a02abd8a-89e9-41eb-9c9c-f68a3ca3007e",
+      "description": "productKey: swf; projectKey: render\n本地产品：SuperpoweringWithFiles。交付：测量式UI验证契约、capability、真实工件验收与采纳。Roadmap：<issue id=\"12956010-bdf4-4d2d-9dc2-a57f26d6e190\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-16/render-verify-测量式-ui-验证能力吸收markdown-viewer-方法-swf-自有-capability\">SUP-16</issue>及Phase1–5，<issue id=\"c48e2a01-24ae-4172-803a-5be9f273ea79\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-15/dogfood-复核当前版本的-renderverify-工作流… (truncated, use `get_project` for full description)",
+      "status": {
+        "id": "2ff50b59-a658-490d-b7c2-cac7d967caf8",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "teams": [
+        {
+          "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+          "name": "SuperpoweringWithFiles",
+          "key": "SUP"
+        }
+      ]
+    },
+    {
+      "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+      "description": "productKey: swf; projectKey: core\nSuperpoweringWithFiles基础能力与日常治理默认Project。原Agent Workbench MVP UUID保留，历史交付不重开。Roadmap：SUP5–14为已完成control plane，SUP47为已完成night recovery；新tracked任务未指定交付流时默认此Project。Render/Isolation/Decision分别使用独立Project。Team复用SUP，不把Team当产品隔离。\n本地planning三文件是任务权威；reports/linear存外部绑定元数据。规格docs/plans/project-isolation-20260921/spec.md；root/worktree+exact project/issue guard必需。Project归属不授权nightly，不是安全沙箱。",
+      "status": {
+        "id": "2ff50b59-a658-490d-b7c2-cac7d967caf8",
+        "name": "In Progress",
+        "type": "started"
+      },
+      "teams": [
+        {
+          "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+          "name": "SuperpoweringWithFiles",
+          "key": "SUP"
+        }
+      ]
+    }
+  ],
+  "hasNextPage": false
+}

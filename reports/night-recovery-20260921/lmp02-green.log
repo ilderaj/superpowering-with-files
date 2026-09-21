@@ -1,0 +1,19 @@
+✔ v2 product and task schemas are strict while v1 remains readable by the old validator (1.389125ms)
+✔ duplicate product identity is rejected (0.155291ms)
+✔ resolver rejects duplicate product identity in the local product registry (179.721375ms)
+✔ resolver prefers reports/linear and refuses malformed preferred metadata instead of falling back (289.501541ms)
+✔ resolver refuses a task A binding when the requested task is task B (160.065083ms)
+✔ root registration accepts a worktree in the same git family and rejects an unrelated repo (295.011833ms)
+✔ root registration canonicalRoot must itself resolve to the registered Git family (212.568166ms)
+✔ invalid atomic write leaves the original config intact (154.757542ms)
+✔ migration is dry-run only and performs no write (153.578708ms)
+✔ migration dry-run refuses root/product and legacy team/project identity mismatches (155.81575ms)
+✔ registry .json directories and dangling symlinks fail closed (236.066875ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1938.623292

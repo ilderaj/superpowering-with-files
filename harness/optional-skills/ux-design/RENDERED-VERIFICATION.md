@@ -8,6 +8,8 @@ Use whatever the host provides: a preview or browser capability, a screenshot st
 
 If nothing can render or export the artifact, say so and stop at the states you can defend, such as structural checks of the markup. An uninspected artifact is not a verified design, and a file on disk is not evidence about how it looks.
 
+When the host can render in a browser, run the measurement layer before judging: measure the invariants in the [measurement contract](MEASUREMENT-CONTRACT.md) against the rendered result, then inspect the rendered result visually. Deterministic measurement narrows what to look at and catches mechanical regressions; it does not judge taste, so it never replaces the inspection.
+
 ## What to inspect
 
 Judge the rendered result against the stated intent, not against a personal style:
@@ -38,6 +40,8 @@ If the Host cannot drive or record the interaction, inspect the reachable still 
 ## Two passes, two inspections
 
 Run the functional pass and its inspection first. Then run the aesthetics pass with the earlier constraints deliberately reopened, and inspect again. A defect found in the second pass is a normal result of the method, not a failure of the first.
+
+Each pass opens with the measurement layer (structure) and closes with the visual inspection (perception). A measurement failure is a concrete defect to fix before the aesthetics pass, not a matter of preference.
 
 ## Evidence states
 

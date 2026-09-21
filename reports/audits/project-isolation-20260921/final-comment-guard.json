@@ -1,0 +1,73 @@
+{
+  "policy": {
+    "schemaVersion": 1,
+    "workspaceId": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "productKey": "swf",
+    "canonicalRoot": "/Users/jared/SuperpoweringWithFiles",
+    "gitCommonDir": "/Users/jared/SuperpoweringWithFiles/.git",
+    "defaultProjectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "projects": [
+      {
+        "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+        "key": "core",
+        "workstreamLabel": "workstream:core"
+      },
+      {
+        "id": "a02abd8a-89e9-41eb-9c9c-f68a3ca3007e",
+        "key": "render",
+        "workstreamLabel": "workstream:render"
+      },
+      {
+        "id": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+        "key": "isolation",
+        "workstreamLabel": "workstream:isolation"
+      },
+      {
+        "id": "58909832-b45d-4dab-9342-8b9316dca9df",
+        "key": "decision",
+        "workstreamLabel": "workstream:decision"
+      }
+    ],
+    "managedLabel": "swf-managed",
+    "executorLabel": "executor:codex-local"
+  },
+  "observed": {
+    "issueId": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+    "workspaceId": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+    "fullyRead": true,
+    "parent": null,
+    "taskMarker": "harness-task: swf/project-isolation-adoption-20260921",
+    "statusType": "started",
+    "queued": false,
+    "labels": [
+      "workstream:isolation",
+      "swf-managed",
+      "executor:codex-local"
+    ]
+  },
+  "expected": {
+    "issueId": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+    "workspaceId": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+    "fullyRead": true,
+    "parent": null,
+    "taskMarker": "harness-task: swf/project-isolation-adoption-20260921",
+    "statusType": "started",
+    "queued": false,
+    "labels": [
+      "workstream:isolation",
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "commentId": "056bbc7b-6743-4966-8f95-3b6229f11511"
+  },
+  "observedComment": {
+    "id": "056bbc7b-6743-4966-8f95-3b6229f11511",
+    "issueId": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+    "fullyRead": true
+  }
+}

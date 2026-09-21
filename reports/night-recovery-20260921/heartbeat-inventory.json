@@ -1,0 +1,79 @@
+[
+  {
+    "id": "onerway-open-story-audit",
+    "status": "ACTIVE",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "sequre-seo",
+    "status": "ACTIVE",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "jira-teams",
+    "status": "ACTIVE",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "pr-139",
+    "status": "PAUSED",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "codex-opencodex",
+    "status": "ACTIVE",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "swf-trio-v2-read-only-monitor",
+    "status": "PAUSED",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "automation",
+    "status": "PAUSED",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "jira-demand-review-subtask-backfill",
+    "status": "PAUSED",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "kb-code-biz",
+    "status": "ACTIVE",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "pr-136-review",
+    "status": "PAUSED",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  },
+  {
+    "id": "sequre-10-20-seo",
+    "status": "ACTIVE",
+    "modelPolicy": "thread-resolved",
+    "resolvedModel": "unknown",
+    "reason": "no run-bound Host evidence inspected"
+  }
+]

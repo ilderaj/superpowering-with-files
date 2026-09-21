@@ -48,6 +48,7 @@ The three Trio files are the sole durable authority **for tracked tasks**. Host 
 | Quality contracts | [`dev`](harness/trio/capabilities/dev/SKILL.md), [`office`](harness/trio/capabilities/office/SKILL.md), [`safety`](harness/trio/capabilities/safety/SKILL.md) | Relevant quality checks and methods |
 | Governance companion | [`chiefops`](harness/trio/governance/chiefops/SKILL.md) | Bound-task recovery, delegation, acceptance |
 | Decision core | [`routing.mjs`](harness/trio/core/routing.mjs) | Packet binding, scope and permission adjudication |
+| Decision-control runtime | [`decision.mjs`](harness/trio/core/decision.mjs), [`evidence.mjs`](harness/trio/core/evidence.mjs), [`shadow.mjs`](harness/trio/core/shadow.mjs) | Frozen semantic decision bundles, deterministic evidence adapters, shadow gates (inert; see [runtime doc](docs/decision-control-runtime.md)) |
 | Host adapters | [`hosts/`](harness/trio/hosts/), [`plugins/dsh/`](plugins/dsh/) | Translate supported requests; preserve requested versus actual evidence |
 | Distribution | [`projection.mjs`](harness/trio/projection.mjs), [`plugin-kit`](packages/plugin-kit/) | Owned writes, readback, reference files, portable packages |
 | Optional methods | [`methods/`](harness/optional-skills/methods/) and upstream overlays | Focused review, debugging, TDD, modeling, planning |

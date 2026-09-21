@@ -1,0 +1,3 @@
+name: SWF Spike
+description: SWF-as-agent-preset 机制验证预设（探针工具 + subagent/start 观察 + guard）。仅用于 spike，不做真实工作。
+order: 99

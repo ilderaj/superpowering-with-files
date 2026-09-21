@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "superpoweringwithfiles"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
+  },
+  "project": {
+    "id": "2c23513e-5abd-4e71-9212-8814f9b3aa12"
+  },
+  "goalIssue": {
+    "id": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+    "identifier": "SUP-52"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "project-isolation-adoption-20260921": {
+      "issueId": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+      "identifier": "SUP-52",
+      "state": "done"
+    }
+  },
+  "sync": {
+    "lastResult": "ok",
+    "pendingRetry": false,
+    "lastCheckpointAt": "2026-09-21",
+    "lastError": null
+  },
+  "statusComment": {
+    "id": "056bbc7b-6743-4966-8f95-3b6229f11511"
+  }
+}

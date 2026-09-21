@@ -54,9 +54,30 @@ function assertOrdered(text, parts, label) {
   }
 }
 
+async function assertMeasurementContract(markdown) {
+  for (const [decision, pattern] of Object.entries({
+    twoLayers: /perceptual layer[\s\S]*structural layer/i,
+    invariantVocabulary: /invariant vocabulary/i,
+    precisePredicates: /precisely stated predicates/i,
+    probeExpectedValues: /never hardcode the palette/i,
+    settleBeforeMeasuring: /settle before measuring/i,
+    coverageAndLimits: /coverage and limits/i,
+    failureNamesSelector: /selector[\s\S]*measured value/i,
+    platformNeutral: /platform-neutral/i,
+    limitedNotPassed: /missing capability is never a pass/i,
+    singleLayerPredicate: /single-layer`\s*\|[^\n]*exactly one recorded owner[^\n]*ownership map/i,
+    noClipPredicate: /no-clip`\s*\|[^\n]*scrollHeight\s*<=\s*clientHeight[^\n]*client rect/i,
+    observer: /## measurement schema[\s\S]*observer is the rendered page[\s\S]*settled document/i,
+    units: /all lengths are css pixels[\s\S]*unit[\s\S]*tolerance/i,
+    toleranceRule: /abs\(measured - expected\)\s*<=\s*tolerance/i,
+    noClipObservation: /for `no-clip`[\s\S]*range[\s\S]*unverified/i,
+    failureContext: /unit[\s\S]*tolerance[\s\S]*observer[\s\S]*viewport/i,
+  })) assert.match(markdown, pattern, decision);
+}
+
 test('ux-design is self-contained, portable, and its referenced resources are reachable', async () => {
   assert.deepEqual((await readdir(root, { withFileTypes: true })).map((entry) => entry.name).sort(),
-    ['CORRECTION-LOOP.md', 'DESIGN-CONTRACT.md', 'PROVENANCE.json', 'RENDERED-VERIFICATION.md', 'SKILL.md']);
+    ['CORRECTION-LOOP.md', 'DESIGN-CONTRACT.md', 'MEASUREMENT-CONTRACT.md', 'PROVENANCE.json', 'RENDERED-VERIFICATION.md', 'SKILL.md']);
   const files = await filesUnder(root);
   const visited = new Set();
   const pending = [join(root, 'SKILL.md')];
@@ -119,6 +140,37 @@ test('rendered verification defines a tool-neutral frame inspection loop', async
   assert.match(verification, /cannot drive or record[\s\S]*unverified/i);
 });
 
+test('the measurement contract separates perceptual and structural evidence with precise predicates', async () => {
+  await assertMeasurementContract(await read('MEASUREMENT-CONTRACT.md'));
+});
+
+test('removing a measurement safeguard clause fails the contract', async () => {
+  const text = await read('MEASUREMENT-CONTRACT.md');
+  for (const clause of [
+    /precisely stated predicates/i,
+    /never hardcode the palette/i,
+    /settle before measuring/i,
+    /coverage and limits/i,
+  ]) {
+    await assert.rejects(() => assertMeasurementContract(text.replace(clause, '')), `clause removable: ${clause}`);
+  }
+  await assert.rejects(() => assertMeasurementContract(text.replace(/measured value/g, 'value')),
+    'failure output must name the measured value');
+  await assertMeasurementContract(text);
+});
+
+test('rendered verification runs the measurement layer before visual inspection', async () => {
+  const verification = await read('RENDERED-VERIFICATION.md');
+  assert.match(verification, /\[measurement contract\]\(MEASUREMENT-CONTRACT\.md\)/i);
+  assert.match(verification, /measurement layer[\s\S]*inspect the rendered result visually/i);
+  assert.match(verification, /A tool rendered or exported the artifact \| That anyone looked at it/);
+});
+
+test('the dev routing surface runs measurement before visual inspection when a browser is available', async () => {
+  const methods = await readRepo('harness/trio/capabilities/dev/references/methods.md');
+  assert.match(methods, /measurement-invariant layer first[\s\S]*inspect visually/i);
+});
+
 test('the correction loop preserves reproducible runs and guards against overfitting', async () => {
   const loop = await read('CORRECTION-LOOP.md');
   for (const field of [
@@ -169,5 +221,5 @@ test('provenance records both sources, the adaptation scope, and no benefit clai
   assert.ok(provenance.changes.length >= 4);
   assert.match(provenance.updates, /no measurable benefit claim/i);
   const files = (await filesUnder(root)).map((file) => relative(root, file)).sort();
-  assert.deepEqual(files, ['CORRECTION-LOOP.md', 'DESIGN-CONTRACT.md', 'PROVENANCE.json', 'RENDERED-VERIFICATION.md', 'SKILL.md']);
+  assert.deepEqual(files, ['CORRECTION-LOOP.md', 'DESIGN-CONTRACT.md', 'MEASUREMENT-CONTRACT.md', 'PROVENANCE.json', 'RENDERED-VERIFICATION.md', 'SKILL.md']);
 });

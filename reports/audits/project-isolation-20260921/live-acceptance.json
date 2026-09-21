@@ -1,0 +1,315 @@
+{
+  "bindingCount": 7,
+  "issueCount": 48,
+  "checks": [
+    {
+      "issueId": "7dd163a7-d206-4421-8a02-e11853b146e0",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "318b4fb3-fa0a-4262-b741-135116ca2d83",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-01",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "5994f8aa-9367-4021-93b5-f9b1463a0623",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-02",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "fe18e187-d6cd-429e-adf8-b149303a5ae5",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-03",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "cdd85be2-1a5c-4dd9-aa97-3395b369fb00",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-04",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "9c43dff4-b3ae-44ca-9342-0075f801ac1a",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-05",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "f933d035-3f5a-4ecc-ad20-0fc020f216a6",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-06",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "32800402-aba3-4939-a0c5-b425bd98d5ba",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-07",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "2a436a69-054f-432d-b752-aae6403afec6",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-08",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "b553a31e-8e97-419b-b2ca-4b92ba0b2f73",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-09",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "8277119c-739b-4a2c-ba02-59d8f9b98ffd",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-10",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "749994b1-8fce-42e1-913e-03c59a9d09a6",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/WP-11",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "c48bf952-0704-47e3-8d6c-1f6e377906e4",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/J01",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "2149158a-0251-4dbc-a909-9478aab9cdd5",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/J02",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "734d7b8c-a7d6-4eb5-96b9-a9c0900dd2ab",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/J03",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "f1f50085-d284-491d-92c4-a1e3d6588e60",
+      "taskMarker": "harness-task: swf/swf-decision-control-runtime-20260919/J04",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+      "taskMarker": "harness-task: swf/chiefops-night-day-handoff-audit-20260920",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+      "taskMarker": "harness-task: swf/sup-15-render-verify-dogfood-20260918",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+      "taskMarker": "harness-task: swf/project-isolation-adoption-20260921",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "12956010-bdf4-4d2d-9dc2-a57f26d6e190",
+      "taskMarker": "harness-task: swf/swf-render-verify-absorption-20260914",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "35fac9fe-88b7-4748-9d9b-ad50f1ca7b8a",
+      "taskMarker": "harness-task: swf/swf-render-verify-absorption-20260914/phase1Contract",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+      "taskMarker": "harness-task: swf/swf-render-verify-absorption-20260914/phase2Capability",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "31e1c12d-0c6d-4782-a9eb-df41f36f3eb2",
+      "taskMarker": "harness-task: swf/swf-render-verify-absorption-20260914/phase3RealConsumption",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "6905a686-c04c-460f-94f9-e49d18932ed0",
+      "taskMarker": "harness-task: swf/swf-render-verify-absorption-20260914/phase4ExperienceLedger",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "57d4216c-51c8-44f0-9bed-f1bdd8ee1c6b",
+      "taskMarker": "harness-task: swf/swf-render-verify-absorption-20260914/phase5Adoption",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "d7508c53-989e-4578-b893-b2619052473a",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "0586b16f-8719-4cb0-b01e-184558fab642",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-10",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "02190d1b-1a04-4ccf-be13-a816e429fac3",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-11",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "dac3fd8f-d022-4587-ade4-1ae6a1d653c3",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-12",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "2207400d-97d3-47d1-816c-36b5c5ab1e5e",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-01",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "39eac872-8da0-458e-8c8b-30cc1019853a",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-02",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "3f702e3e-5a58-493f-a510-db1cd40a42d2",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-03",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "55ef5cea-04b0-463e-a994-f9d0ec977074",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-04",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "4a09e47c-91c0-4432-a4da-da6034c8d4b4",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-05",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "dc5e8423-0872-4d26-b01e-e7a88c0e4acc",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-06",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "20a8a5f5-a6ba-4bf6-aa52-eec18b2845fe",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-07",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "d81894f8-db44-4d56-917f-34955659dbce",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-08",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "27591bc1-53f0-4f3f-9656-3a87e64bd7e7",
+      "taskMarker": "harness-task: swf/linear-multiproject-isolation-20260918/LMP-09",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "e0a75be2-b0f4-419f-bd8b-ea8df0e12fbb",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "37670549-0cde-47b2-9dfe-5a2d5cc7fd33",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/bindingAndGuard",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "c4728236-d3f7-428a-8401-fc79a1234c34",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/stateMapping",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "07760bf4-5372-4218-a349-c16ba76b904f",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/checkpointBlockerResume",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "1db7117c-5773-47f1-9922-5d14f9160891",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/skill",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "68c22bf7-f2f2-4090-b8a0-c008416d0645",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/helpersAndTests",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "f660d3fc-5d65-47db-912f-1add50979c6f",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/schedulingWorkflows",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "8a91c9b6-f7f1-4ab6-9d63-dd6af5c851cf",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/verificationScenarios",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "48e15c0d-c7eb-4adc-b6d7-261a6fd4dfb9",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/attentionViewsHumanSetup",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    },
+    {
+      "issueId": "b5e9a8bc-a548-4298-b065-c92330735251",
+      "taskMarker": "harness-task: swf/swf-linear-control-plane-mvp-20260917/nightQueueDogfood",
+      "guard": "ALLOW",
+      "replay": "reuse"
+    }
+  ],
+  "defaultCreateProposal": {
+    "ok": true,
+    "planOnly": true,
+    "action": "create",
+    "workspaceId": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "taskMarker": "harness-task: swf/next-tracked-example",
+    "parentId": null,
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "workstream:core"
+    ]
+  },
+  "wrongProject": {
+    "ok": false,
+    "decision": "DENY",
+    "error": "observed projectId differs from expected binding"
+  },
+  "preservation": "passed"
+}

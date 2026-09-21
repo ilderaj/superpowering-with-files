@@ -42,4 +42,6 @@ jobs:
           sudo apt-get install -y --no-install-recommends libreoffice poppler-utils
 
       - name: Run repository verification
+        env:
+          RENDER_VERIFY_REQUIRED: "1"
         run: npm run verify:all

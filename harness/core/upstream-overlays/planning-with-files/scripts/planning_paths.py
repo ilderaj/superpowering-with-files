@@ -25,6 +25,28 @@ ACTIVE_ROOT = Path("planning") / "active"
 ARCHIVE_ROOT = Path("planning") / "archive"
 THREAD_BINDINGS_ROOT = Path(".harness") / "planning-with-files" / "thread-bindings"
 SAFE_THREAD_ID_RE = re.compile(r"^[A-Za-z0-9._:-]{1,128}$")
+TASK_ID_RE = re.compile(r"^Task ID:\s*([A-Za-z0-9][A-Za-z0-9._-]{0,79})\s*$", re.MULTILINE)
+
+
+def stable_task_id(plan_dir: Path) -> str:
+    text = (plan_dir / "task_plan.md").read_text(encoding="utf-8")
+    matches = TASK_ID_RE.findall(text)
+    if len(matches) > 1:
+        raise RuntimeError(f"task_plan.md contains duplicate Task ID fields: {plan_dir}")
+    if not matches:
+        raise RuntimeError(f"task_plan.md must contain an explicit stable Task ID: {plan_dir}")
+    return matches[0]
+
+
+def stage_lifecycle_sync(project_path: Path, task_id: str, plan_dir: Path, event: str) -> str:
+    try:
+        from linear_lifecycle_sync import stage_lifecycle_sync as sync
+        result = sync(project_path, task_id, plan_dir, event)
+        return str(result or "ok")
+    except ModuleNotFoundError:
+        return "linear lifecycle sync unavailable"
+    except Exception as error:
+        return f"linear lifecycle sync failed: {error}"
 
 
 def sanitize_task_id(raw: str) -> str:
@@ -168,6 +190,21 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
     source_dir = active_dir(project_path, task_id)
     if not source_dir.exists():
         raise FileNotFoundError(f"active planning directory does not exist: {source_dir}")
+    try:
+        stable_id = stable_task_id(source_dir)
+    except RuntimeError as error:
+        if "must contain an explicit stable Task ID" not in str(error):
+            raise
+        task_plan = source_dir / "task_plan.md"
+        text = task_plan.read_text(encoding="utf-8")
+        if re.search(r"^Task ID:", text, re.MULTILINE):
+            raise
+        stable_id = source_dir.name
+        if not SAFE_THREAD_ID_RE.fullmatch(stable_id):
+            raise RuntimeError(f"legacy task basename is unsafe as stable Task ID: {stable_id}") from error
+        task_plan.write_text("Task ID: " + stable_id + "\n" + text, encoding="utf-8")
+    if task_id and task_id != stable_id:
+        raise RuntimeError(f"requested task id {task_id!r} does not match stable Task ID {stable_id!r}")
 
     status = inspect_plan_dir(source_dir)
     if not status["safe_to_archive"]:
@@ -192,7 +229,9 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
         task_plan_original_text = read_text(source_dir / "task_plan.md")
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    archive_dir = project_path / ARCHIVE_ROOT / f"{timestamp}-{source_dir.name}"
+    archive_dir = project_path / ARCHIVE_ROOT / f"{timestamp}-{stable_id}"
+    if archive_dir.exists():
+        raise FileExistsError(f"archive collision: {archive_dir}")
     archive_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(source_dir), str(archive_dir))
 
@@ -226,7 +265,72 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
             (source_dir / "task_plan.md").write_text(task_plan_original_text, encoding="utf-8")
         raise
 
+    stage_lifecycle_sync(project_path, stable_id, archive_dir, "archive")
     return archive_dir
+
+
+def reopen_task(project_path: Path, target: str) -> Path:
+    candidate = Path(target).expanduser()
+    if not candidate.is_absolute():
+        candidate = project_path / candidate
+    candidate = candidate.absolute()
+    if candidate.is_symlink() or not candidate.is_dir():
+        raise RuntimeError(f"reopen target must be a real directory: {candidate}")
+    candidate = candidate.resolve()
+    project_root = project_path.absolute()
+    try:
+        relative = Path(os.path.relpath(candidate, project_root))
+        if str(relative).startswith(".."):
+            raise ValueError
+    except ValueError as error:
+        raise RuntimeError("reopen target must be inside the project") from error
+    parts = relative.parts
+    if len(parts) != 3 or parts[:2] not in (("planning", "archive"), ("planning", "active")):
+        raise RuntimeError("reopen target must be an exact planning/archive or planning/active task path")
+    cursor = project_root
+    for component in parts:
+        cursor /= component
+        if cursor.is_symlink():
+            raise RuntimeError(f"reopen path contains a symlink: {cursor}")
+    if inspect_plan_dir(candidate)["status"] != "closed":
+        raise RuntimeError("reopen requires a closed Current State")
+    for name in ("task_plan.md", "findings.md", "progress.md", "companion_plan.md"):
+        if (candidate / name).is_symlink():
+            raise RuntimeError("reopen rejects symlink planning files")
+    stable_id = stable_task_id(candidate)
+    active = project_path / ACTIVE_ROOT / stable_id
+    if active.exists() and active != candidate:
+        raise RuntimeError(f"ambiguous duplicate identity: active task already exists at {active}")
+    moved = candidate != active
+    if moved:
+        active.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(candidate), str(active))
+    task_plan = active / "task_plan.md"
+    original_plan = task_plan.read_text(encoding="utf-8")
+    companion = active / "companion_plan.md"
+    original_companion = companion.read_text(encoding="utf-8") if companion.exists() else None
+    try:
+        def reopen_block(match):
+            block = re.sub(r"^Status:[ \t]*.*$", "Status: active", match.group(0), count=1, flags=re.MULTILINE)
+            block = re.sub(r"^Archive Eligible:[ \t]*.*$", "Archive Eligible: no", block, count=1, flags=re.MULTILINE)
+            return re.sub(r"^(Close Reason|Closed At):.*\n?", "", block, flags=re.MULTILINE)
+        text = re.sub(r"^## Current State\s*$[\s\S]*?(?=^## |\Z)", reopen_block, original_plan, count=1, flags=re.MULTILINE)
+        if companion.exists():
+            text = re.sub(r"^\s*(?:[-*]\s*)?Companion plan\s*:\s*.*$", "- Companion plan: `planning/active/%s/companion_plan.md`" % stable_id, text, count=1, flags=re.MULTILINE | re.IGNORECASE)
+            companion_text = original_companion
+            companion_text = re.sub(r"^\s*(?:[-*]\s*)?Active task path\s*:\s*.*$", "- Active task path: `planning/active/%s/`" % stable_id, companion_text, count=1, flags=re.MULTILINE | re.IGNORECASE)
+            companion_text = re.sub(r"^\s*(?:[-*]\s*)?Lifecycle state\s*:\s*.*$", "- Lifecycle state: active", companion_text, count=1, flags=re.MULTILINE | re.IGNORECASE)
+            companion.write_text(companion_text, encoding="utf-8")
+        task_plan.write_text(text, encoding="utf-8")
+        stage_lifecycle_sync(project_path, stable_id, active, "reopen")
+        return active
+    except Exception:
+        task_plan.write_text(original_plan, encoding="utf-8")
+        if original_companion is not None:
+            companion.write_text(original_companion, encoding="utf-8")
+        if moved:
+            shutil.move(str(active), str(candidate))
+        raise
 
 
 def main() -> int:
@@ -283,6 +387,12 @@ def main() -> int:
         return 0
     if command == "archive-active":
         print(archive_active_task(project_path, task_id))
+        return 0
+    if command == "reopen":
+        if len(sys.argv) < 4:
+            print("usage: planning_paths.py reopen <project_path> <archive-or-closed-active-path>", file=sys.stderr)
+            return 1
+        print(reopen_task(project_path, sys.argv[3]))
         return 0
 
     print(f"unknown command: {command}", file=sys.stderr)

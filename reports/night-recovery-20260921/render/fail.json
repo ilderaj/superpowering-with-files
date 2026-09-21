@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "status": "failed",
+  "exitCode": 2,
+  "target": {
+    "file": "/Users/jared/SuperpoweringWithFiles/tests/fixtures/render-verify/centered-fail.html",
+    "url": "http://127.0.0.1:54588/centered-fail.html"
+  },
+  "viewport": "800x600",
+  "page": "centered-fixture",
+  "state": "default",
+  "coverage": {
+    "page": "centered-fixture",
+    "state": "default",
+    "viewport": "800x600",
+    "checked": [
+      "centered"
+    ],
+    "unverified": [
+      "homepage consumption (SUP-19)",
+      "other states and viewports"
+    ]
+  },
+  "settle": {
+    "readyState": "complete",
+    "fonts": "loaded",
+    "images": 0,
+    "frames": 2
+  },
+  "measurement": {
+    "elements": {
+      "#target": {
+        "selector": "#target",
+        "missing": false,
+        "rect": {
+          "left": 0,
+          "right": 200,
+          "top": 0,
+          "bottom": 40,
+          "width": 200,
+          "height": 40
+        },
+        "margins": {
+          "leading": 0,
+          "trailing": 600
+        },
+        "scrollWidth": 200,
+        "clientWidth": 200,
+        "scrollHeight": 40,
+        "clientHeight": 40,
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "css": {},
+        "textRects": {
+          "supported": true,
+          "count": 0,
+          "nonEmptyNodes": 0,
+          "missingNodes": 0
+        }
+      }
+    },
+    "probes": {},
+    "ownership": [],
+    "stylesheets": [
+      "html, body { margin: 0px; }\n#target { width: 200px; margin-left: 0px; margin-right: auto; height: 40px; background: rgb(238, 238, 238); }"
+    ],
+    "document": {
+      "scrollWidth": 800,
+      "clientWidth": 800,
+      "scrollHeight": 600,
+      "clientHeight": 600
+    }
+  },
+  "pageErrors": [],
+  "results": [
+    {
+      "invariant": "centered",
+      "selector": "#target",
+      "measured": {
+        "leading": 0,
+        "trailing": 600
+      },
+      "expected": {
+        "leading": "equal to trailing and > 0",
+        "trailing": "equal to leading and > 0"
+      },
+      "unit": "CSS px",
+      "tolerance": 0,
+      "observer": "settled DOM in target host",
+      "viewport": "800x600",
+      "passed": false,
+      "message": "leading and trailing margins are not equal positive values"
+    }
+  ],
+  "artifacts": {
+    "screenshot": null,
+    "json": "/Users/jared/SuperpoweringWithFiles/reports/night-recovery-20260921/render/fail.json"
+  }
+}

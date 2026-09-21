@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "superpoweringwithfiles"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
+  },
+  "project": {
+    "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d"
+  },
+  "goalIssue": {
+    "id": "7dd163a7-d206-4421-8a02-e11853b146e0",
+    "identifier": "SUP-35",
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral-execution"
+  },
+  "statusComment": {
+    "id": "a26c790c-969e-4936-9a20-417c26803ed7"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "swf-decision-control-runtime-20260919": {
+      "issueId": "7dd163a7-d206-4421-8a02-e11853b146e0",
+      "identifier": "SUP-35",
+      "state": "running",
+      "nightSlice": "2149158a-0251-4dbc-a909-9478aab9cdd5",
+      "nightSliceState": "ready",
+      "subIssueStates": {
+        "WP-01": "done",
+        "WP-02": "done",
+        "WP-03": "done",
+        "WP-04": "done",
+        "WP-05": "done",
+        "WP-06": "done",
+        "WP-07": "planned",
+        "WP-08": "done",
+        "WP-09": "done",
+        "WP-10": "planned",
+        "WP-11": "planned",
+        "J01": "done",
+        "J02": "ready",
+        "J03": "planned",
+        "J04": "planned"
+      },
+      "subIssues": {
+        "WP-01": "318b4fb3-fa0a-4262-b741-135116ca2d83",
+        "WP-02": "5994f8aa-9367-4021-93b5-f9b1463a0623",
+        "WP-03": "fe18e187-d6cd-429e-adf8-b149303a5ae5",
+        "WP-04": "cdd85be2-1a5c-4dd9-aa97-3395b369fb00",
+        "WP-05": "9c43dff4-b3ae-44ca-9342-0075f801ac1a",
+        "WP-06": "f933d035-3f5a-4ecc-ad20-0fc020f216a6",
+        "WP-07": "32800402-aba3-4939-a0c5-b425bd98d5ba",
+        "WP-08": "2a436a69-054f-432d-b752-aae6403afec6",
+        "WP-09": "b553a31e-8e97-419b-b2ca-4b92ba0b2f73",
+        "WP-10": "8277119c-739b-4a2c-ba02-59d8f9b98ffd",
+        "WP-11": "749994b1-8fce-42e1-913e-03c59a9d09a6",
+        "J01": "c48bf952-0704-47e3-8d6c-1f6e377906e4",
+        "J02": "2149158a-0251-4dbc-a909-9478aab9cdd5",
+        "J03": "734d7b8c-a7d6-4eb5-96b9-a9c0900dd2ab",
+        "J04": "f1f50085-d284-491d-92c4-a1e3d6588e60"
+      },
+      "nightQueueNote": "2026-09-20 audit: J01 (SUP-48) only ready/nightly; J02->J03->J04->WP07->WP10->WP11 serial. Local fixes/offline tests authorized; promotion only after Chief acceptance and readiness. No live gate/global adoption/release. WP07 first real call must be Chief-observable."
+    }
+  },
+  "sync": {
+    "lastResult": "ok",
+    "lastCheckpointAt": "2026-09-20",
+    "pendingRetry": false,
+    "lastError": null
+  }
+}

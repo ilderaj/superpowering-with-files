@@ -1,0 +1,117 @@
+{
+  "startedAt": "2026-09-20T08:02:54.820Z",
+  "now": "2026-09-20T08:02:54.820Z",
+  "attemptedIssueIds": [],
+  "context": {
+    "workspace": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+    "team": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "project": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d"
+  },
+  "candidates": [
+    {
+      "id": "32800402-aba3-4939-a0c5-b425bd98d5ba",
+      "workspace": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+      "team": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "project": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+      "state": "ready",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "nightly",
+        "agent-ready"
+      ],
+      "authorized": true,
+      "readiness": true,
+      "blockedBy": [
+        {
+          "id": "f933d035-3f5a-4ecc-ad20-0fc020f216a6",
+          "state": "done"
+        }
+      ],
+      "priority": 3,
+      "updatedAt": "2026-09-20T08:01:47.681Z"
+    },
+    {
+      "id": "8ae0ea4c-08a1-43fe-b301-fe4b28f7e218",
+      "workspace": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+      "team": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "project": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+      "state": "ready",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "nightly",
+        "agent-ready"
+      ],
+      "authorized": true,
+      "readiness": true,
+      "blockedBy": [
+        {
+          "id": "35fac9fe-88b7-4748-9d9b-ad50f1ca7b8a",
+          "state": "done"
+        }
+      ],
+      "priority": 3,
+      "updatedAt": "2026-09-20T08:00:08.589Z"
+    },
+    {
+      "id": "39eac872-8da0-458e-8c8b-30cc1019853a",
+      "workspace": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+      "team": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "project": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+      "state": "ready",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "nightly",
+        "agent-ready"
+      ],
+      "authorized": true,
+      "readiness": true,
+      "blockedBy": [
+        {
+          "id": "2207400d-97d3-47d1-816c-36b5c5ab1e5e",
+          "state": "done"
+        }
+      ],
+      "priority": 2,
+      "updatedAt": "2026-09-20T07:58:51.425Z"
+    },
+    {
+      "id": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+      "workspace": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+      "team": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "project": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+      "state": "ready",
+      "labels": [
+        "nightly",
+        "agent-ready",
+        "swf-managed",
+        "executor:codex-local"
+      ],
+      "authorized": true,
+      "readiness": true,
+      "blockedBy": [],
+      "priority": 1,
+      "updatedAt": "2026-09-20T07:55:39.385Z"
+    },
+    {
+      "id": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+      "workspace": "dcaa7009-b84b-49ba-ab84-de1f0c46ba51",
+      "team": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "project": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+      "state": "ready",
+      "labels": [
+        "nightly",
+        "agent-ready",
+        "swf-managed",
+        "executor:codex-local"
+      ],
+      "authorized": true,
+      "readiness": true,
+      "blockedBy": [],
+      "priority": 2,
+      "updatedAt": "2026-09-20T07:55:04.163Z"
+    }
+  ]
+}

@@ -1,0 +1,266 @@
+[
+  {
+    "task": "active-trio-full-audit-20260724",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "chief-capability-audit-20260918",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: active",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "chief-worker-session-routing-issue-20260709",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "chiefops-goal-worker-analysis-20260728",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "chiefops-native-goal-worker-20260728",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: blocked",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "chiefops-night-day-handoff-audit-20260920",
+    "binding": "reports/linear/chiefops-night-day-handoff-audit-20260920/linear.json",
+    "effectiveBindings": [
+      "reports/linear/chiefops-night-day-handoff-audit-20260920/linear.json"
+    ],
+    "recordedStatus": "Status: active",
+    "coverage": "bound"
+  },
+  {
+    "task": "codex-seo-plugin-modernization-20260920",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: active",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "deepseek-context-recovery-diagnosis-20260917",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: active",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "dev-to-main-pr-closure-20260624",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "github-issues-audit-remediation-20260627",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_integration",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "global-adopt-20260612",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "goal-round-start-protocol",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_integration",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "harness-backlog-roadmap-audit-20260628",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_review",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "installer-artifact-surface-governance-plan-20260702",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_integration",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "issue-105-verification-command-prose",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "linear-multiproject-isolation-20260918",
+    "binding": "reports/linear/linear-multiproject-isolation-20260918/linear.json",
+    "effectiveBindings": [
+      "reports/linear/linear-multiproject-isolation-20260918/linear.json"
+    ],
+    "recordedStatus": "Status: active",
+    "coverage": "bound"
+  },
+  {
+    "task": "local-openai-app-network-20260728",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_execution",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "matt-skills-absorption-reassessment-20260903",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_review",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "matt-skills-upstream-refresh-20260919",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_review",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "mode-aware-verification-contract-rollout-20260612",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "ponytail-upstream-fit-analysis-20260619",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "roadmap-backlog-implementation-plan-20260628",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "stash-absorption-minimal-risk-plan-20260630",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "sup-15-render-verify-dogfood-20260918",
+    "binding": null,
+    "effectiveBindings": [
+      "planning/active/swf-linear-control-plane-mvp-20260917/linear.json"
+    ],
+    "recordedStatus": "Status: active",
+    "coverage": "bound"
+  },
+  {
+    "task": "swf-coding-harness-implementation-20260904",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "swf-decision-control-runtime-20260919",
+    "binding": "reports/linear/swf-decision-control-runtime-20260919/linear.json",
+    "effectiveBindings": [
+      "reports/linear/swf-decision-control-runtime-20260919/linear.json"
+    ],
+    "recordedStatus": "Status: active",
+    "coverage": "bound"
+  },
+  {
+    "task": "swf-linear-control-plane-mvp-20260917",
+    "binding": "planning/active/swf-linear-control-plane-mvp-20260917/linear.json",
+    "effectiveBindings": [
+      "planning/active/swf-linear-control-plane-mvp-20260917/linear.json"
+    ],
+    "recordedStatus": "Status: active",
+    "coverage": "bound"
+  },
+  {
+    "task": "swf-render-verify-absorption-20260914",
+    "binding": "reports/linear/swf-render-verify-absorption-20260914/linear.json",
+    "effectiveBindings": [
+      "reports/linear/swf-render-verify-absorption-20260914/linear.json"
+    ],
+    "recordedStatus": "Status: active",
+    "coverage": "bound"
+  },
+  {
+    "task": "swf-show-me-adoption-20260906",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "swf-skills-mcp-ecosystem-audit-20260911",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: active",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "swf-ux-design-method-20260911",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "swf-v14-controlled-acceptance-20260907",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_execution",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "token-consumption-audit-20260614",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: closed",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "upstream-refresh-pwf-mattpocock-20260901",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: blocked",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "upstream-release-locking-implementation-plan-20260704",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_integration",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  },
+  {
+    "task": "weekly-project-retrospective-automation",
+    "binding": null,
+    "effectiveBindings": [],
+    "recordedStatus": "Status: waiting_review",
+    "coverage": "local-only/unregistered; do not auto-admit"
+  }
+]

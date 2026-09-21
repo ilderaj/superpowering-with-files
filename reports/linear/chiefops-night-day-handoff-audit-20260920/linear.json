@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "superpoweringwithfiles"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
+  },
+  "project": {
+    "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d"
+  },
+  "goalIssue": {
+    "id": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+    "identifier": "SUP-47"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "chiefops-night-day-handoff-audit-20260920": {
+      "issueId": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+      "identifier": "SUP-47",
+      "state": "done",
+      "nightSlice": "7a396200-a8e5-4d3a-be10-0d86255eb8ed",
+      "note": "SUP47: first <=20min C2/C3 in docs/plans/night-day-loop-20260920/carrier-model-spec.md; then original N01 recovery/promotion; one shared budget; unknown Host model evidence remains unknown"
+    }
+  },
+  "sync": {
+    "lastResult": "ok",
+    "pendingRetry": false,
+    "lastCheckpointAt": "2026-09-21",
+    "lastError": null
+  },
+  "statusComment": {
+    "id": "c1eada5e-1fca-4728-aebb-e27b83d15a16"
+  }
+}

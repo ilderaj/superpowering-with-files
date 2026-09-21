@@ -1,0 +1,178 @@
+[
+  {
+    "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "uuid": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "icon": null,
+    "color": "#f7c8c1",
+    "name": "SWF — Core & Operations",
+    "summary": "",
+    "description": "productKey: swf; projectKey: core\nSuperpoweringWithFiles基础能力与日常治理默认Project。原Agent Workbench MVP UUID保留，历史交付不重开。Roadmap：SUP5–14为已完成control plane，SUP47为已完成night recovery；新tracked任务未指定交付流时默认此Project。Render/Isolation/Decision分别使用独立Project。Team复用SUP，不把Team当产品隔离。\n本地planning三文件是任务权威；reports/linear存外部绑定元数据。规格docs/plans/project-isolation-20260921/spec.md；root/worktree+exact project/issue guard必需。Project归属不授权nightly，不是安全沙箱。",
+    "url": "https://linear.app/superpoweringwithfiles/project/swf-core-and-operations-e63a62b33e72",
+    "resourceCount": 0,
+    "createdAt": "2026-09-17T14:19:46.161Z",
+    "updatedAt": "2026-09-21T03:21:08.287Z",
+    "startedAt": "2026-09-21T03:21:08.269Z",
+    "completedAt": null,
+    "canceledAt": null,
+    "startDate": "2026-09-21",
+    "startDateResolution": null,
+    "targetDate": null,
+    "targetDateResolution": null,
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "labels": [],
+    "initiatives": [],
+    "lead": {},
+    "leadTeam": {
+      "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "name": "SuperpoweringWithFiles",
+      "key": "SUP"
+    },
+    "status": {
+      "id": "2ff50b59-a658-490d-b7c2-cac7d967caf8",
+      "name": "In Progress",
+      "type": "started"
+    },
+    "teams": [
+      {
+        "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+        "name": "SuperpoweringWithFiles",
+        "key": "SUP"
+      }
+    ]
+  },
+  {
+    "id": "a02abd8a-89e9-41eb-9c9c-f68a3ca3007e",
+    "uuid": "a02abd8a-89e9-41eb-9c9c-f68a3ca3007e",
+    "icon": null,
+    "color": "#bec2c8",
+    "name": "SWF — Render Verification",
+    "summary": "",
+    "description": "productKey: swf; projectKey: render\n本地产品：SuperpoweringWithFiles。交付：测量式UI验证契约、capability、真实工件验收与采纳。Roadmap：<issue id=\"12956010-bdf4-4d2d-9dc2-a57f26d6e190\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-16/render-verify-测量式-ui-验证能力吸收markdown-viewer-方法-swf-自有-capability\">SUP-16</issue>及Phase1–5，<issue id=\"c48e2a01-24ae-4172-803a-5be9f273ea79\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-15/dogfood-复核当前版本的-renderverify-工作流与晨间交接\">SUP-15</issue> dogfood。共享SUP Team；Project是工作流归属，执行仍核对本地root/issue UUID并共享repo并发边界。",
+    "url": "https://linear.app/superpoweringwithfiles/project/swf-render-verification-897e57232f8b",
+    "resourceCount": 0,
+    "createdAt": "2026-09-21T03:20:14.131Z",
+    "updatedAt": "2026-09-21T03:20:14.131Z",
+    "startedAt": "2026-09-21T03:20:14.174Z",
+    "completedAt": null,
+    "canceledAt": null,
+    "startDate": "2026-09-21",
+    "startDateResolution": null,
+    "targetDate": null,
+    "targetDateResolution": null,
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "labels": [],
+    "initiatives": [],
+    "lead": {},
+    "leadTeam": {
+      "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "name": "SuperpoweringWithFiles",
+      "key": "SUP"
+    },
+    "status": {
+      "id": "2ff50b59-a658-490d-b7c2-cac7d967caf8",
+      "name": "In Progress",
+      "type": "started"
+    },
+    "teams": [
+      {
+        "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+        "name": "SuperpoweringWithFiles",
+        "key": "SUP"
+      }
+    ]
+  },
+  {
+    "id": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+    "uuid": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+    "icon": null,
+    "color": "#f2c94c",
+    "name": "SWF — Project Isolation & Automation",
+    "summary": "",
+    "description": "productKey: swf; projectKey: isolation\n交付：Project-first任务隔离、自动intake、白班夜班、恢复与安全写入。Roadmap：<issue id=\"d7508c53-989e-4578-b893-b2619052473a\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-22/多项目-linear-隔离与-chief-自动化治理lmp\">SUP-22</issue> / LMP01–12；2026-09-21规格覆盖旧一产品一Team策略。共享SUP Team，新产品创建独立Project，未验证root/锁不得自动执行。",
+    "url": "https://linear.app/superpoweringwithfiles/project/swf-project-isolation-and-automation-d99e58e72f71",
+    "resourceCount": 0,
+    "createdAt": "2026-09-21T03:20:36.572Z",
+    "updatedAt": "2026-09-21T03:20:36.572Z",
+    "startedAt": "2026-09-21T03:20:36.607Z",
+    "completedAt": null,
+    "canceledAt": null,
+    "startDate": "2026-09-21",
+    "startDateResolution": null,
+    "targetDate": null,
+    "targetDateResolution": null,
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "labels": [],
+    "initiatives": [],
+    "lead": {},
+    "leadTeam": {
+      "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "name": "SuperpoweringWithFiles",
+      "key": "SUP"
+    },
+    "status": {
+      "id": "2ff50b59-a658-490d-b7c2-cac7d967caf8",
+      "name": "In Progress",
+      "type": "started"
+    },
+    "teams": [
+      {
+        "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+        "name": "SuperpoweringWithFiles",
+        "key": "SUP"
+      }
+    ]
+  },
+  {
+    "id": "58909832-b45d-4dab-9342-8b9316dca9df",
+    "uuid": "58909832-b45d-4dab-9342-8b9316dca9df",
+    "icon": null,
+    "color": "#5e6ad2",
+    "name": "SWF — Decision Runtime",
+    "summary": "",
+    "description": "productKey: swf; projectKey: decision\n交付：Decision-Control Runtime foundation、shadow修复、独立评估和发布就绪。Roadmap：<issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>、WP01–11与J01–04；现有gate和release授权不因迁移改变。",
+    "url": "https://linear.app/superpoweringwithfiles/project/swf-decision-runtime-c5b93eacb5c4",
+    "resourceCount": 0,
+    "createdAt": "2026-09-21T03:20:38.846Z",
+    "updatedAt": "2026-09-21T03:20:38.846Z",
+    "startedAt": "2026-09-21T03:20:38.876Z",
+    "completedAt": null,
+    "canceledAt": null,
+    "startDate": "2026-09-21",
+    "startDateResolution": null,
+    "targetDate": null,
+    "targetDateResolution": null,
+    "priority": {
+      "value": 0,
+      "name": "No priority"
+    },
+    "labels": [],
+    "initiatives": [],
+    "lead": {},
+    "leadTeam": {
+      "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+      "name": "SuperpoweringWithFiles",
+      "key": "SUP"
+    },
+    "status": {
+      "id": "2ff50b59-a658-490d-b7c2-cac7d967caf8",
+      "name": "In Progress",
+      "type": "started"
+    },
+    "teams": [
+      {
+        "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+        "name": "SuperpoweringWithFiles",
+        "key": "SUP"
+      }
+    ]
+  }
+]

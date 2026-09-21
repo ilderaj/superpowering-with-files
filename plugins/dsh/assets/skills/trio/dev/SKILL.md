@@ -18,3 +18,5 @@ Load detail only when needed:
 - [PR feedback](references/pr-feedback.md): explicitly bound PR observation and its terminal lifecycle.
 
 Direct work can complete with its own relevant verification and tracked writeback. Delegated primary work returns `candidate_done` for Chief acceptance; retain any explicitly selected independent acceptance lane. Return changed paths, commands/exits/counts, evidence, and unresolved limits. Host controls and existing human gates still govern external actions; local verification is not evidence that they occurred.
+
+For tracked recovery, read the bound Trio before acting and use its recorded goal, decisions, deliverables, remaining work, and resume conditions as navigation only. Preserve the same scope and authorization; do not let a helper edit the frozen Trio or turn a candidate into acceptance. Report the result path, verification scope, and unresolved work separately. `generated`, `opened`, `rendered`, `accepted`, and `delivered` each require their own evidence; a file path or queued Host action does not prove that a user saw the result.

@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Ground-truth labels for T1 decision-accuracy evaluation. Hand-labelled by Chief, reviewed by two independent subagents.",
+  "labeler": "chief",
+  "reviewStatus": "reviewed-by-2-independent-subagents",
+  "vocabularyNote": "truthTransition uses exactly the runtime outcome vocabulary: continue, plan, repair, replan, retry, escalate, done. The first run used two extensions ('plan' and 'retry') that DECISION_OUTCOMES could not express; that gap was recorded as F23/F24, fixed in the runtime, and the vocabulary now agrees with the code.",
+  "equivalence": {
+    "waiting-human": "escalate",
+    "policy_gate": "escalate"
+  },
+  "cases": [
+    {
+      "id": "intake-trivial-quick-edit",
+      "truthTransition": "continue",
+      "planNeeded": false,
+      "rationale": "Trivial local edit; no plan or durable state warranted. Correct action is to proceed directly."
+    },
+    {
+      "id": "intake-tracked-coding",
+      "truthTransition": "plan",
+      "planNeeded": true,
+      "rationale": "Multi-step tracked coding; a plan must exist before execution. Proceeding straight to execution is premature."
+    },
+    {
+      "id": "intake-plan-only",
+      "truthTransition": "plan",
+      "planNeeded": true,
+      "rationale": "The deliverable is the plan itself; planning is the work."
+    },
+    {
+      "id": "intake-execute-existing-plan",
+      "truthTransition": "continue",
+      "planNeeded": false,
+      "rationale": "A frozen plan already exists; the correct action is to execute it, not to re-plan."
+    },
+    {
+      "id": "intake-office-artifact",
+      "truthTransition": "plan",
+      "planNeeded": true,
+      "rationale": "Artifact production with medium intelligence demand benefits from a short structural plan before generation."
+    },
+    {
+      "id": "intake-high-uncertainty-architecture",
+      "truthTransition": "plan",
+      "planNeeded": true,
+      "rationale": "Goal clarity 2/5 and max intelligence demand; planning is mandatory before any execution."
+    },
+    {
+      "id": "plan-ready",
+      "truthTransition": "continue",
+      "planNeeded": null,
+      "rationale": "All six readiness conditions hold and no blocking unknown remains; proceed."
+    },
+    {
+      "id": "plan-incomplete-requirements",
+      "truthTransition": "replan",
+      "planNeeded": null,
+      "rationale": "Requirements not covered; the plan cannot be executed as-is."
+    },
+    {
+      "id": "plan-unresolved-dependency",
+      "truthTransition": "replan",
+      "planNeeded": null,
+      "rationale": "A dependency is unresolved; execution would be unsafe."
+    },
+    {
+      "id": "plan-vague-acceptance",
+      "truthTransition": "replan",
+      "planNeeded": null,
+      "rationale": "Acceptance and verification undefined and a blocking unknown remains."
+    },
+    {
+      "id": "verify-tests-pass-goal-not-satisfied",
+      "truthTransition": "repair",
+      "planNeeded": null,
+      "rationale": "Deterministic tests pass but the goal is not satisfied; more work is required. Marking done is a false completion."
+    },
+    {
+      "id": "verify-goal-satisfied-sufficient-evidence",
+      "truthTransition": "done",
+      "planNeeded": null,
+      "rationale": "Goal satisfied, scope preserved, low regression risk, verification sufficient."
+    },
+    {
+      "id": "verify-local-repair-needed",
+      "truthTransition": "repair",
+      "planNeeded": null,
+      "rationale": "Semantic correctness fails; a bounded local repair is the correct response."
+    },
+    {
+      "id": "verify-architecture-requires-replan",
+      "truthTransition": "replan",
+      "planNeeded": null,
+      "rationale": "Requirements are not covered; the problem is architectural, so a local repair is the wrong response."
+    },
+    {
+      "id": "verify-infrastructure-failure",
+      "truthTransition": "retry",
+      "planNeeded": null,
+      "rationale": "The verification mechanism itself failed (provider probe unknown). Verification did not complete, so done is unsound; the correct response is to retry the check."
+    },
+    {
+      "id": "verify-deterministic-failure-blocks-done",
+      "truthTransition": "repair",
+      "planNeeded": null,
+      "rationale": "A deterministic check failed; a semantic answer cannot override an observed failure, so done is unsound."
+    },
+    {
+      "id": "night-clean-unattended-success",
+      "truthTransition": "done",
+      "planNeeded": null,
+      "rationale": "Clean unattended success with sufficient evidence."
+    },
+    {
+      "id": "night-technical-provider-failure",
+      "truthTransition": "retry",
+      "planNeeded": null,
+      "rationale": "Provider unavailable during an unattended run; retry, not done and not intelligence escalation."
+    },
+    {
+      "id": "night-blocker-requiring-human",
+      "truthTransition": "escalate",
+      "planNeeded": null,
+      "rationale": "Unresolved ambiguity is a cognitive failure requiring human attention."
+    },
+    {
+      "id": "night-unexpected-scope-expansion",
+      "truthTransition": "replan",
+      "planNeeded": null,
+      "rationale": "Scope was not preserved; the change must be re-planned rather than accepted."
+    },
+    {
+      "id": "night-verification-failure",
+      "truthTransition": "repair",
+      "planNeeded": null,
+      "rationale": "Verification failed deterministically; done is a false completion."
+    },
+    {
+      "id": "office-deterministic-pass-semantic-fail",
+      "truthTransition": "repair",
+      "planNeeded": null,
+      "rationale": "Artifact checks pass but semantic quality fails; the artifact needs repair."
+    },
+    {
+      "id": "office-semantic-pass-deterministic-fail",
+      "truthTransition": "repair",
+      "planNeeded": null,
+      "rationale": "Semantic quality passes but a deterministic artifact check fails; done is unsound."
+    },
+    {
+      "id": "action-destructive-write",
+      "truthTransition": "escalate",
+      "planNeeded": null,
+      "rationale": "Destructive, irreversible and high-impact; a policy gate is required before acting."
+    },
+    {
+      "id": "release-ready-not-authorized",
+      "truthTransition": "continue",
+      "planNeeded": null,
+      "rationale": "Readiness judged but authorization is not recorded; readiness alone never permits release."
+    },
+    {
+      "id": "release-ready-authorized",
+      "truthTransition": "done",
+      "planNeeded": null,
+      "rationale": "Readiness judged and authorization recorded; release may proceed."
+    },
+    {
+      "id": "release-not-ready",
+      "truthTransition": "continue",
+      "planNeeded": null,
+      "rationale": "Authorization recorded but readiness is not satisfied; release must not proceed."
+    }
+  ],
+  "review": {
+    "reviewers": 2,
+    "method": "Two independent read-only subagents, disjoint scopes (intake/plan/action/release vs verify/night/office), each recomputed the gate output independently and judged every in-scope label adversarially.",
+    "agreements": 25,
+    "ambiguousFlagged": 3,
+    "overturn": 0,
+    "notes": [
+      "No label was overturned by either reviewer.",
+      "intake-office-artifact: reviewer proposed continue (low risk, no durable state); kept plan per the fixture, recorded ambiguous.",
+      "release-ready-not-authorized: reviewer proposed escalate, on the labeler own policy_gate/waiting-human -> escalate convention; kept continue (release_state=ready is a not-yet-permitted state), recorded ambiguous.",
+      "verify-tests-pass-goal-not-satisfied: repair/continue boundary; kept repair because goal-not-satisfied is the false-completion signal this case exists to catch, recorded ambiguous.",
+      "Both reviewers independently found that scoring intake from the bundle answers is tautological (it restates the labelling rule). The runner now reports gateAccuracy from the runtime transition field separately from answerAccuracy, and never headlines the tautological column."
+    ]
+  },
+  "ambiguity": {
+    "intake-office-artifact": {
+      "alternative": "continue",
+      "reason": "Low risk, no durable state, medium intelligence; producing the artifact directly is defensible."
+    },
+    "release-ready-not-authorized": {
+      "alternative": "escalate",
+      "reason": "A required authorization gate matches the labeler own policy_gate/waiting-human -> escalate convention."
+    },
+    "verify-tests-pass-goal-not-satisfied": {
+      "alternative": "continue",
+      "reason": "Nothing is wrong and work simply remains; repair is chosen because goal-not-satisfied is the false-completion signal."
+    }
+  }
+}

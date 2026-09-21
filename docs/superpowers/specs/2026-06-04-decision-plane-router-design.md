@@ -379,3 +379,7 @@ The next implementation planning step should define:
 1. the authoritative routing record shape for tracked tasks;
 2. which runtime surface first consumes the route;
 3. how route-aware context selection is verified without silently changing install-time state.
+
+---
+
+**Status (2026-09-19): retired.** The three-route router (`lean-direct` / `tracked-lean` / `deep-rich`) was implemented and then deliberately removed; `tests/trio/authority-parity.test.mjs` asserts the module's absence. This spec is historical design input, not current authority. The surviving question it raised is answered by the frozen decision bundles and the existing 8-field assignment packet — see [2026-09-19-decision-control-runtime-design.md](2026-09-19-decision-control-runtime-design.md).

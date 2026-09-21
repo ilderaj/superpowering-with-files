@@ -1,0 +1,41 @@
+{
+  "source": "/Users/jared/.codex/sessions/2026/09/21/rollout-2026-09-21T01-31-23-01a0bfdf-63eb-7e72-9573-7ecc54a4c3fa.jsonl",
+  "providerActualIdentity": "unknown",
+  "records": [
+    {
+      "type": "turn_context",
+      "turn_id": "01a0bfdf-66a9-73f2-b595-63f9db8ec289",
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "effort": "high",
+      "cwd": "/Users/jared/SuperpoweringWithFiles"
+    },
+    {
+      "type": "task_complete",
+      "turn_id": "01a0bfdf-66a9-73f2-b595-63f9db8ec289",
+      "last_agent_message": null,
+      "error": {
+        "message": "unexpected status 502 Bad Gateway: Provider unreachable: getaddrinfo ETIMEOUT opencode.ai, url: http://127.0.0.1:10100/v1/responses",
+        "codex_error_info": "other"
+      },
+      "started_at": 1789925484,
+      "completed_at": 1789926412,
+      "duration_ms": 928376
+    },
+    {
+      "type": "turn_context",
+      "turn_id": "01a0c191-674f-7e22-a6f0-7b1799c0efe8",
+      "model": "main/gpt-5.6-luna",
+      "effort": "high",
+      "cwd": "/Users/jared/SuperpoweringWithFiles"
+    },
+    {
+      "type": "task_complete",
+      "turn_id": "01a0c191-674f-7e22-a6f0-7b1799c0efe8",
+      "last_agent_message": "PROBE_OK \u2014 `/Users/jared/SuperpoweringWithFiles`\n\n::inbox-item{title=\"Night probe passed\" summary=\"Read-only pwd confirmed repository directory\"}",
+      "error": null,
+      "started_at": 1789953927,
+      "completed_at": 1789953942,
+      "duration_ms": 15314
+    }
+  ]
+}

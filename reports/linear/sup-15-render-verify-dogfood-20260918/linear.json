@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "superpoweringwithfiles",
+    "url": "https://linear.app/superpoweringwithfiles"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "name": "SuperpoweringWithFiles",
+    "key": "SUP"
+  },
+  "project": {
+    "id": "a02abd8a-89e9-41eb-9c9c-f68a3ca3007e"
+  },
+  "goalIssue": {
+    "id": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+    "identifier": "SUP-15"
+  },
+  "statusComment": {
+    "id": "7fea0d8b-60e1-4e40-a8e3-88936fa4190f"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "sup-15-render-verify-dogfood-20260918": {
+      "issueId": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+      "identifier": "SUP-15",
+      "uuid": "c48e2a01-24ae-4172-803a-5be9f273ea79",
+      "state": "review",
+      "note": "2026-09-21 Project-first迁移；保留review状态，不因迁移重新执行。",
+      "statusCommentId": "7fea0d8b-60e1-4e40-a8e3-88936fa4190f"
+    }
+  },
+  "sync": {
+    "lastResult": "ok",
+    "pendingRetry": false,
+    "lastError": null
+  }
+}

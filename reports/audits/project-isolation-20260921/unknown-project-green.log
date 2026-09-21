@@ -1,0 +1,17 @@
+✔ intake defaults, exact keys and conflicting mappings (1.547083ms)
+✔ exact marker reuse and complete unique coverage (0.327458ms)
+✔ closed projects deny new intake; labels never route; terminal never queues (1.040542ms)
+✔ policy ambiguity and missing issue evidence fail closed (0.214167ms)
+✔ creation requires known matching active project metadata (0.166ms)
+✔ comment mutation requires exact fully-read issue-linked comment (0.170042ms)
+✔ registry policy validation rejects project overlap but permits shared team (0.107667ms)
+✔ guard verifies exact issue/project and independent real Git family (295.507458ms)
+✔ CLI prints JSON denial and documents inputs (317.55425ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 714.646875

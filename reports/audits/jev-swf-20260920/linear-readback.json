@@ -1,0 +1,566 @@
+[
+  {
+    "id": "SUP-48",
+    "uuid": "c48bf952-0704-47e3-8d6c-1f6e377906e4",
+    "title": "J01 · 修复适用验证范围与失败优先级",
+    "description": "## 问题与交付\n\n复现仅tests/document适用仍retry、known fail被unknown掩盖。新增requiredCheckIds兼容默认全量；collector按commands/inspections推导；已知fail优先，timeout→retry，not-run/unreadable→continue。检查重复/未知id/空范围与semantic不足不得done。\n\n## 冻结规格与权威\n\n读取 docs/plans/jev-swf-audit-20260920/spec.md S1、plan.md；Trio planning/active/swf-decision-control-runtime-20260919/。原8个foundation票保持Done。\n\n## Scope\n\nharness/trio/core/{decision,evidence}.mjs；tests/trio/{decision,dev-evidence,office-evidence}.test.mjs。可更新本任务Trio/报告；其他共享修改保持。依赖：无依赖。\n\n## 验收\n\n先记录RED再修复，覆盖上述边界；node --test tests/trio/decision.test.mjs tests/trio/dev-evidence.test.mjs tests/trio/office-evidence.test.mjs；npm run verify:trio。worker只交candidate，Chief独立复验后Done；未完成保留next action。\n\n## 夜班授权\n\nexecutor:codex-local，现有Night Executor；每票20分钟首片、全队列3次/45分钟。本地修改+离线测试已授权；仅首个无依赖票ready/nightly，后继在前票Chief接受并重新readiness后晋级。无push/merge/deploy/global sync apply、无live干预或gate激活；gate全部shadow。首次真实caller仍须Chief可观察。\n\n## 回退\n\n仅回退本票diff，禁止reset/stash或覆盖共享改动。超时/越scope则checkpoint。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-48/j01-修复适用验证范围与失败优先级",
+    "gitBranchName": "imjaredli/sup-48-j01-修复适用验证范围与失败优先级",
+    "createdAt": "2026-09-20T09:00:06.362Z",
+    "updatedAt": "2026-09-20T09:01:38.551Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Todo",
+    "statusType": "unstarted",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "Bug",
+      "nightly",
+      "agent-ready"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:00:06.362Z",
+        "endedAt": "2026-09-20T09:01:38.542Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-20T09:01:38.542Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Agent Workbench MVP",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-49",
+          "title": "J02 · 隔离shadow观测错误并修正三态统计"
+        }
+      ],
+      "blockedBy": [],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-49",
+    "uuid": "2149158a-0251-4dbc-a909-9478aab9cdd5",
+    "title": "J02 · 隔离shadow观测错误并修正三态统计",
+    "description": "## 问题与交付\n\nvalid checkpoint上坏observations不抛主路径异常，坏项后继续；task/bundle mismatch拒绝；agreement true/false/null准确统计，total覆盖全部attempt，traceFailures单列；版本化trace保留question身份；按question修复F27别名。\n\n## 冻结规格与权威\n\n读取 docs/plans/jev-swf-audit-20260920/spec.md S2、plan.md；Trio planning/active/swf-decision-control-runtime-20260919/。原8个foundation票保持Done。\n\n## Scope\n\nharness/trio/core/shadow.mjs；tests/trio/shadow-gate.test.mjs。可更新本任务Trio/报告；其他共享修改保持。依赖：J01。\n\n## 验收\n\n先记录RED再修复，覆盖上述边界；node --test tests/trio/shadow-gate.test.mjs；npm run verify:trio。worker只交candidate，Chief独立复验后Done；未完成保留next action。\n\n## 夜班授权\n\nexecutor:codex-local，现有Night Executor；每票20分钟首片、全队列3次/45分钟。本地修改+离线测试已授权；仅首个无依赖票ready/nightly，后继在前票Chief接受并重新readiness后晋级。无push/merge/deploy/global sync apply、无live干预或gate激活；gate全部shadow。首次真实caller仍须Chief可观察。\n\n## 回退\n\n仅回退本票diff，禁止reset/stash或覆盖共享改动。超时/越scope则checkpoint。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-49/j02-隔离shadow观测错误并修正三态统计",
+    "gitBranchName": "imjaredli/sup-49-j02-隔离shadow观测错误并修正三态统计",
+    "createdAt": "2026-09-20T09:00:09.584Z",
+    "updatedAt": "2026-09-20T09:00:16.374Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "Bug"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:00:09.584Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Agent Workbench MVP",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-50",
+          "title": "J03 · 分离release授权来源并校验backend真实性"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-48",
+          "title": "J01 · 修复适用验证范围与失败优先级"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-50",
+    "uuid": "734d7b8c-a7d6-4eb5-96b9-a9c0900dd2ab",
+    "title": "J03 · 分离release授权来源并校验backend真实性",
+    "description": "## 问题与交付\n\noperator或自报policy provenance不得给allowed；独立policy context匹配task/operation/evidenceRef才可给recommendation，Host仍最终授权。backend须与真实回答路径一致，host无adapter不可冒充已调用；不造新权限系统。\n\n## 冻结规格与权威\n\n读取 docs/plans/jev-swf-audit-20260920/spec.md S3、plan.md；Trio planning/active/swf-decision-control-runtime-20260919/。原8个foundation票保持Done。\n\n## Scope\n\nharness/trio/core/decision.mjs；tests/trio/decision.test.mjs；docs/decision-control-runtime.md。可更新本任务Trio/报告；其他共享修改保持。依赖：J02。\n\n## 验收\n\n先记录RED再修复，覆盖上述边界；node --test tests/trio/decision.test.mjs；npm run verify:trio。worker只交candidate，Chief独立复验后Done；未完成保留next action。\n\n## 夜班授权\n\nexecutor:codex-local，现有Night Executor；每票20分钟首片、全队列3次/45分钟。本地修改+离线测试已授权；仅首个无依赖票ready/nightly，后继在前票Chief接受并重新readiness后晋级。无push/merge/deploy/global sync apply、无live干预或gate激活；gate全部shadow。首次真实caller仍须Chief可观察。\n\n## 回退\n\n仅回退本票diff，禁止reset/stash或覆盖共享改动。超时/越scope则checkpoint。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-50/j03-分离release授权来源并校验backend真实性",
+    "gitBranchName": "imjaredli/sup-50-j03-分离release授权来源并校验backend真实性",
+    "createdAt": "2026-09-20T09:00:19.702Z",
+    "updatedAt": "2026-09-20T09:00:20.490Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "Bug"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:00:19.702Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Agent Workbench MVP",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-51",
+          "title": "J04 · 修正T1评估与冻结独立对照协议"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-49",
+          "title": "J02 · 隔离shadow观测错误并修正三态统计"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-51",
+    "uuid": "f1f50085-d284-491d-92c4-a1e3d6588e60",
+    "title": "J04 · 修正T1评估与冻结独立对照协议",
+    "description": "## 问题与交付\n\n独立truth vocabulary、覆盖率/正确率分母、别名、unsupported与premature统计；当前27/26/15/1基准不改truth凑数。新增decision专属离线profile/合成fixture，冻结T1.5盲标+2复核和T2协议。真实案例/两臂推理/usage由WP10做，本票不伪造实测。output非fresh，全量usage求和，缺测unproven，+5%护栏。\n\n## 冻结规格与权威\n\n读取 docs/plans/jev-swf-audit-20260920/spec.md S4、plan.md；Trio planning/active/swf-decision-control-runtime-20260919/。原8个foundation票保持Done。\n\n## Scope\n\nscripts/evaluate-decision-{accuracy,shadow}.mjs；tests/trio/decision-accuracy.test.mjs；tests/fixtures/decision/；tests/evals/decision-control/；scripts/evaluate-decision-profile.mjs；原evaluation-design/baseline文档。可更新本任务Trio/报告；其他共享修改保持。依赖：J03。\n\n## 验收\n\n先记录RED再修复，覆盖上述边界；node --test tests/trio/decision-accuracy.test.mjs；显式运行新增profile测试和两份T1脚本；npm run verify:trio。worker只交candidate，Chief独立复验后Done；未完成保留next action。\n\n## 夜班授权\n\nexecutor:codex-local，现有Night Executor；每票20分钟首片、全队列3次/45分钟。本地修改+离线测试已授权；仅首个无依赖票ready/nightly，后继在前票Chief接受并重新readiness后晋级。无push/merge/deploy/global sync apply、无live干预或gate激活；gate全部shadow。首次真实caller仍须Chief可观察。\n\n## 回退\n\n仅回退本票diff，禁止reset/stash或覆盖共享改动。超时/越scope则checkpoint。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-51/j04-修正t1评估与冻结独立对照协议",
+    "gitBranchName": "imjaredli/sup-51-j04-修正t1评估与冻结独立对照协议",
+    "createdAt": "2026-09-20T09:00:23.248Z",
+    "updatedAt": "2026-09-20T09:01:32.520Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local",
+      "Bug"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:00:23.248Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Agent Workbench MVP",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        },
+        {
+          "id": "SUP-42",
+          "title": "WP-07 · Plan Gate and Verify Gate shadow integration"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-50",
+          "title": "J03 · 分离release授权来源并校验backend真实性"
+        }
+      ],
+      "relatedTo": [],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-42",
+    "uuid": "32800402-aba3-4939-a0c5-b425bd98d5ba",
+    "title": "WP-07 · Plan Gate and Verify Gate shadow integration",
+    "description": "2026-09-20审计整改：当前先决条件新增J04/<issue id=\"f1f50085-d284-491d-92c4-a1e3d6588e60\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-51/j04-修正t1评估与冻结独立对照协议\">SUP-51</issue>（其前置J01–03）。本票暂退出night队列。具体入口遵循 docs/plans/jev-swf-audit-20260920/spec.md S5：repo侧 scripts/render-decision-checkpoint.mjs 组合现有renderCheckpoint和shadow；保持stdout字节等价，坏观测不阻断。禁止修改global skill或反向依赖repo。新增CLI/fixture不算实际接入，Chief首次真实checkpoint调用可观察后才Done。该新规格覆盖下文冲突描述。\n\n## Task\n\nAttach the `plan` and `verify` bundles to the existing Trio + ChiefOps checkpoint in **shadow only**, recording the recommendation without acting on it.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: execute\nCapability: dev\nIntensity: high\nTopology: solo\n\n## Scope\n\nThe decision-trace writer call site; the checkpoint path; new tests.\n\n## Non-goals\n\nNo transition is taken from a gate output. No change to ChiefOps governance. No change to completion semantics. No duplicate readiness check.\n\n## Done when\n\n* A checkpoint records the shadow recommendation alongside current behaviour, including agreement or disagreement.\n* A gate failure never blocks the existing path.\n* A shadow run where the gate disagrees with current behaviour completes normally and records the disagreement.\n* No existing checkpoint test changes.\n\n## Verification\n\nTargeted tests, then `npm run verify:trio`, `npm run verify:core`.\n\n## Dependencies\n\nWP-06 accepted.\n\n## Night eligibility\n\nconditional — additive and shadow-only, but it touches the checkpoint path, so the first execution should be watched rather than run fully unattended.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Night eligibility (2026-09-19)\n\nRemains in Backlog. Its dependency WP-06 is delivered, but the plan records this slice as night-safe **conditional** because it touches the checkpoint path and has no real caller yet; the first execution should be watched. Not queued.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-8 wave as `harness/trio/core/shadow.mjs` plus `tests/trio/shadow-gate.test.mjs` (11 cases). The recorder records a shadow recommendation alongside the current behaviour with agreement or disagreement, and a gate that throws, cannot answer or cannot write its trace returns a structured result instead of blocking the existing path — verified by the `a gate failure never blocks the existing path` and `a shadow run where the gate disagrees completes normally` cases.\n\n**One part remains open and is recorded as a limitation, not as done.** The recorder is not yet wired into the live Linear checkpoint renderer, because that file is currently modified in the sibling `linear-multiproject-isolation-20260918` working tree and this ticket's stop conditions forbid widening scope into another initiative's uncommitted files. The slice was therefore implemented additively so a checkpoint caller can invoke it. Wiring it remains gated on that path becoming free.\n\n## Re-review / implementation slice · 2026-09-20\n\n未接受整票：缺真实checkpoint producer调用。原recorder测试通过不等于integration完成。用户本轮授权nightly实现+离线测试；覆盖先前not queued描述。首片20分钟：识别真实producer边界与输入契约，shadow-only调用recordCheckpointShadow；测试disagreement正常完成、throw/write failure不阻塞、原checkpoint字节不变。若无真实producer不得另造状态机充数。与LMP共享文件必须串行核对owner和现有diff，保留已有更改。首次真实producer调用需白班可观察，夜班只报implementation complete / live verification pending，不得整票Done或激活gate。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-42/wp-07-plan-gate-and-verify-gate-shadow-integration",
+    "gitBranchName": "imjaredli/sup-42-wp-07-plan-gate-and-verify-gate-shadow-integration",
+    "createdAt": "2026-09-19T06:40:42.529Z",
+    "updatedAt": "2026-09-20T09:01:32.479Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:42.529Z",
+        "endedAt": "2026-09-19T07:50:10.221Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:50:10.221Z",
+        "endedAt": "2026-09-20T08:01:46.775Z"
+      },
+      {
+        "state": {
+          "id": "00781cf1-ad57-4547-903e-926f100f7d70",
+          "name": "Todo",
+          "type": "unstarted"
+        },
+        "startedAt": "2026-09-20T08:01:46.775Z",
+        "endedAt": "2026-09-20T09:01:31.226Z"
+      },
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T09:01:31.226Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Agent Workbench MVP",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-51",
+          "title": "J04 · 修正T1评估与冻结独立对照协议"
+        },
+        {
+          "id": "SUP-41",
+          "title": "WP-06 · Shadow replay fixtures and evaluation harness"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-43",
+          "title": "WP-08 · Coding deterministic evidence adapter"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-45",
+    "uuid": "8277119c-739b-4a2c-ba02-59d8f9b98ffd",
+    "title": "WP-10 · Selective gate activation and baseline comparison",
+    "description": "2026-09-20审计更正：遵循 docs/plans/jev-swf-audit-20260920/spec.md S4，先做真实raw inputs/盲标签+2复核/两臂真实语义回答的T1.5，必须保留Host usage和身份可比性。原T1 26/26仅contract agreement，非独立accuracy。WP07只shadow；T2另需限定实验干预授权。全量实测usage求和，output不等于fresh，禁止减avoidedCost；+5%护栏，缺证据unproven。当前Backlog不进入night队列。\n\n## Task\n\nDecide from recorded evidence which gates, if any, may move from shadow to active, with a measured baseline comparison against the spec §18 benefit list.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: think + execute\nCapability: dev\nIntensity: max\nTopology: solo\n\n## Scope\n\nThe evaluation result document; the activation switch (configuration, not code); the Trio decision record.\n\n## Non-goals\n\nActivation of any gate is **not** automatic. No release action. No Linear telemetry.\n\n## Done when\n\n* Each gate is reported with its measured effect on the §18 list.\n* A gate with no measured benefit stays in shadow.\n* The activation switch defaults to shadow.\n* A written activation decision exists per gate, with the evidence it rests on and its rollback condition.\n\n## Verification\n\nReproducible comparison document; targeted tests; `npm run verify:trio`.\n\n## Dependencies\n\nWP-07, WP-08, WP-09 accepted.\n\n## Night eligibility\n\nimplementation and evaluation slices may run at night; the final activation decision is **not** automatic and remains a Chief/human decision.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-9 wave.\n\n**The activation decision is: no gate is activated.** Every one of the six priority gates (`plan_needed`, `plan_ready`, `execution_ready`, `verification_sufficient`, `next_action`, `goal_complete`) stays in `shadow`.\n\nThe switch is data rather than code, appended to `harness/trio/core/shadow.mjs`, with four tests in `tests/trio/shadow-gate.test.mjs`. `resolveGateActivations()` returns `shadow` for a gate with no record, and `resolveGateActivation()` refuses to promote a gate whose record lacks a measured benefit, a rollback condition, evidence, or a Chief/human authorization — so a gate cannot reach active control by configuration accident.\n\nThe measured comparison is `docs/plans/2026-09-19-decision-control-runtime-baseline.md`, reproducible with `node scripts/evaluate-decision-shadow.mjs` (27 cases, 15 disagreements, 1 unevaluable). It states honestly that every §18 benefit is **not measured**: the fixture answers are operator inputs, so the replay proves internal consistency and totality, not a live disagreement rate. A gate with no measured benefit stays in shadow, which is why none was promoted.\n\n## Re-review · 2026-09-20\n\n接受维持全部shadow的决定，但整票measured baseline未完成；依赖WP07真实producer证据。实施计划：逐gate记录§18实测/unknown、来源、rollback；独立holdout/outcome不得自造。依赖满足后授权nightly离线评估/文档；不得自动激活任何gate。不再把此实现缺口伪装成人类review积压。",
+    "priority": {
+      "value": 2,
+      "name": "High"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-45/wp-10-selective-gate-activation-and-baseline-comparison",
+    "gitBranchName": "imjaredli/sup-45-wp-10-selective-gate-activation-and-baseline-comparison",
+    "createdAt": "2026-09-19T06:40:51.208Z",
+    "updatedAt": "2026-09-20T09:01:35.639Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:51.208Z",
+        "endedAt": "2026-09-19T07:50:21.732Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:50:21.732Z",
+        "endedAt": "2026-09-20T08:01:49.870Z"
+      },
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T08:01:49.870Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Agent Workbench MVP",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [
+        {
+          "id": "SUP-46",
+          "title": "WP-11 · Migration, documentation and release readiness"
+        }
+      ],
+      "blockedBy": [
+        {
+          "id": "SUP-51",
+          "title": "J04 · 修正T1评估与冻结独立对照协议"
+        },
+        {
+          "id": "SUP-44",
+          "title": "WP-09 · Office deterministic evidence adapter"
+        },
+        {
+          "id": "SUP-43",
+          "title": "WP-08 · Coding deterministic evidence adapter"
+        },
+        {
+          "id": "SUP-42",
+          "title": "WP-07 · Plan Gate and Verify Gate shadow integration"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  },
+  {
+    "id": "SUP-46",
+    "uuid": "749994b1-8fce-42e1-913e-03c59a9d09a6",
+    "title": "WP-11 · Migration, documentation and release readiness",
+    "description": "## Task\n\nDocument the runtime, its compatible migration path, its known limitations, and its rollout gates.\n\n## Local authority\n\n**Local authority:** `planning/active/swf-decision-control-runtime-20260919/` three files; spec `docs/superpowers/specs/2026-09-19-decision-control-runtime-design.md`; plan `docs/plans/2026-09-19-decision-control-runtime-plan.md`. Parent: <issue id=\"7dd163a7-d206-4421-8a02-e11853b146e0\" href=\"https://linear.app/superpoweringwithfiles/issue/SUP-35/decision-control-runtime-lifecycle-semantic-gates-and-provider-neutral\">SUP-35</issue>.\n\n## Execution intent\n\nMode: think\nCapability: dev + office\nIntensity: high\nTopology: solo\n\n## Scope\n\n`docs/` architecture and operations pages; `README` where operator-facing; the Trio record. At most, add a pointer from the two 2026-06-04 specs to this reconciliation.\n\n## Non-goals\n\nNo commit, push, PR, merge, publish or deploy without explicit authorization. No retroactive rewrite of the 2026-06-04 specs.\n\n## Done when\n\n* A reader can tell what changed, what deliberately did not, and what remains limited.\n* Spec §21's release boundary is restated for the operator.\n* `tests/plugin-kit/docs-contract.test.mjs` and `tests/core/no-personal-paths.test.mjs` pass.\n\n## Verification\n\n`npm run verify:core`.\n\n## Dependencies\n\nWP-10 accepted.\n\n## Night eligibility\n\nnot eligible — external release actions are excluded.\n\n## Stop / replan conditions\n\nStop and record a blocker, or `REPLAN`, when: the recorded edit surface is not enough to finish; an existing test outside this ticket's list must change to make it pass; the plan's frozen names conflict with existing code; a human decision is needed; or the slice would need to touch another initiative's uncommitted files. Do not widen scope to work around any of these.\n\n## Delivery status (2026-09-19)\n\nDelivered by direct Chief execution in the phase-9 wave as `docs/decision-control-runtime.md`, with a README row and a retirement status pointer appended to each of the two 2026-06-04 specs.\n\nThe document states what changed, what deliberately did not change, the migration path, the operating instructions, seven known limitations, and a restatement of spec §21's release boundary for the operator. `tests/plugin-kit/docs-contract.test.mjs` and `tests/core/no-personal-paths.test.mjs` both pass under `npm run verify:core` (449 + 82 pass / 0 fail). No external release action was taken and the 2026-06-04 specs were not rewritten — only a status pointer was appended.\n\n## Re-review · 2026-09-20\n\n文档本身已具备，docs checks通过；原WP10依赖尚未接受，故Backlog。后续计划：WP10验收后核对migration/limitations/release boundary与真实结果，窄docs-contract验证后关闭；本地文档复核可nightly，发布/部署仍不在此票授权。",
+    "priority": {
+      "value": 3,
+      "name": "Medium"
+    },
+    "url": "https://linear.app/superpoweringwithfiles/issue/SUP-46/wp-11-migration-documentation-and-release-readiness",
+    "gitBranchName": "imjaredli/sup-46-wp-11-migration-documentation-and-release-readiness",
+    "createdAt": "2026-09-19T06:40:53.824Z",
+    "updatedAt": "2026-09-20T08:01:53.653Z",
+    "archivedAt": null,
+    "completedAt": null,
+    "startedAt": null,
+    "canceledAt": null,
+    "dueDate": null,
+    "slaStartedAt": null,
+    "slaMediumRiskAt": null,
+    "slaHighRiskAt": null,
+    "slaBreachesAt": null,
+    "status": "Backlog",
+    "statusType": "backlog",
+    "labels": [
+      "swf-managed",
+      "executor:codex-local"
+    ],
+    "attachments": [],
+    "documents": [],
+    "stateHistory": [
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-19T06:40:53.824Z",
+        "endedAt": "2026-09-19T07:50:18.189Z"
+      },
+      {
+        "state": {
+          "id": "0b670ab0-8ca9-4dd8-94bd-28439d5eb47d",
+          "name": "In Progress",
+          "type": "started"
+        },
+        "startedAt": "2026-09-19T07:50:18.189Z",
+        "endedAt": "2026-09-20T08:01:52.759Z"
+      },
+      {
+        "state": {
+          "id": "12c716f7-5a01-4cbd-bf0e-a2015ec3dd4b",
+          "name": "Backlog",
+          "type": "backlog"
+        },
+        "startedAt": "2026-09-20T08:01:52.759Z",
+        "endedAt": null
+      }
+    ],
+    "createdBy": "Jared Li",
+    "createdById": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "assignee": "Jared Li",
+    "assigneeId": "eca7cd53-63b4-476f-bc9c-d20a57df6519",
+    "project": "SWF — Agent Workbench MVP",
+    "projectId": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d",
+    "parentId": "SUP-35",
+    "team": "SuperpoweringWithFiles",
+    "teamId": "454e02a0-89de-4a17-b06b-b18a4842986e",
+    "relations": {
+      "blocks": [],
+      "blockedBy": [
+        {
+          "id": "SUP-45",
+          "title": "WP-10 · Selective gate activation and baseline comparison"
+        }
+      ],
+      "relatedTo": [
+        {
+          "id": "SUP-22",
+          "title": "多项目 Linear 隔离与 Chief 自动化治理（LMP）"
+        }
+      ],
+      "duplicateOf": null
+    }
+  }
+]

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // CLI surface for the linear-work-control deterministic helpers.
 //
-// Everything here is read-only and credential-free: it validates bindings,
+// Credential-free helpers validate bindings and explicitly write local v2 metadata,
 // decides the wrong-workspace guard, maps states, and renders the human-facing
 // Markdown that a session then publishes through the authenticated Linear MCP.
 //
@@ -14,6 +14,12 @@
 //   node scripts/linear-work-control.mjs resume-brief --dir <task dir> [--observed-workspace <ref>]
 //       (always prints the brief; exits 1 when the binding is invalid or the guard denies)
 //   node scripts/linear-work-control.mjs parse-human-input --file <file|-> [--json]
+//   node scripts/linear-work-control.mjs validate-product-config <file|-> [--json]
+//   node scripts/linear-work-control.mjs validate-task-binding <file|-> [--json]
+//   node scripts/linear-work-control.mjs resolve-product-binding --repo-root <dir> [--task-id <id>] [--json]
+//   node scripts/linear-work-control.mjs write-product-config --file <file> --input <file|-> [--json]
+//   node scripts/linear-work-control.mjs write-task-binding --file <file> --input <file|-> [--json]
+//   node scripts/linear-work-control.mjs migrate-binding --input <v1> --product-config <file> --root-registration <file> --task-id <id> --dry-run [--json]
 //   node scripts/linear-work-control.mjs labels
 //   node scripts/linear-work-control.mjs sync-order
 //
@@ -21,6 +27,7 @@
 // unknown state, or a closed completion gate. Exit code 2 means the command
 // itself was called wrong; a wrapper may treat it as a bug in its own call.
 
+import { readFileSync } from 'node:fs';
 import { lstat, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -40,6 +47,15 @@ import {
   summarizeHumanInput,
   validateBinding
 } from '../lib/linear-work-control.mjs';
+import {
+  planV1Migration,
+  resolveProductBinding,
+  validateProductConfig,
+  validateRootRegistration,
+  validateTaskBinding,
+  writeProductConfigAtomic,
+  writeTaskBindingAtomic
+} from '../lib/linear-product-binding.mjs';
 
 function parseArgs(argv) {
   const flags = {};
@@ -50,9 +66,9 @@ function parseArgs(argv) {
       const key = arg.slice(2);
       const next = argv[index + 1];
       if (next === undefined || next.startsWith('--')) {
-        flags[key] = true;
+        flags[key] = flags[key] === undefined ? true : (Array.isArray(flags[key]) ? [...flags[key], true] : [flags[key], true]);
       } else {
-        flags[key] = next;
+        flags[key] = flags[key] === undefined ? next : (Array.isArray(flags[key]) ? [...flags[key], next] : [flags[key], next]);
         index += 1;
       }
     } else {
@@ -98,12 +114,24 @@ function readStdin() {
 // legacy fallback, and only true absence of the preferred path falls back.
 function preferredMetadataBinding(taskDir) {
   const absolute = path.resolve(taskDir);
-  const taskId = path.basename(absolute);
   const location = path.basename(path.dirname(absolute));
   const planningDir = path.dirname(path.dirname(absolute));
   if (!['active', 'archive'].includes(location) || path.basename(planningDir) !== 'planning') {
     return null;
   }
+  let taskId;
+  try {
+    const plan = readFileSync(path.join(absolute, 'task_plan.md'), 'utf8');
+    const fields=[...plan.matchAll(/^Task ID:[ \t]*([^\r\n]*)$/gm)];
+    if(fields.length>1) return {error:'duplicate stable Task ID'};
+    taskId=fields[0]?.[1]?.trim();
+    if(taskId && !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(taskId)) return {error:'invalid stable Task ID'};
+  } catch {}
+  if (!taskId) {
+    if (location === 'active') taskId = path.basename(absolute);
+    else return { error: 'archived task has no explicit stable Task ID; refusing to create a new identity' };
+  }
+  if(location==='active' && taskId!==path.basename(absolute)) return {error:'active path/stable identity mismatch'};
   const relative = path.join('reports', 'linear', taskId, 'linear.json');
   return { file: path.join(path.dirname(planningDir), relative), label: relative };
 }
@@ -311,9 +339,13 @@ switch (command) {
     const candidates = flags.binding
       ? [{ file: flags.binding, label: flags.binding }]
       : [
-          ...(preferred ? [preferred] : []),
+          ...(preferred?.file ? [preferred] : []),
           { file: path.join(dir, 'linear.json'), label: 'linear.json' }
         ];
+    if (!flags.binding && preferred?.error) {
+      bindingValidation = { ok: false, errors: [preferred.error] };
+      exitCode = 1;
+    }
     const source = await resolveBindingSource(candidates);
     if (source === null && flags.binding) {
       // An explicitly named binding that is not there is a mistake to surface,
@@ -395,6 +427,100 @@ switch (command) {
     if (!summary.actionable) {
       process.exitCode = 1;
     }
+    break;
+  }
+
+  case 'validate-product-config': {
+    const input = await readInput(subject || flags.file);
+    const result = validateProductConfig(input);
+    emit(flags, result, result.ok ? 'product config valid' : ['product config invalid:', ...result.errors.map((error) => '  - ' + error)].join('\n'));
+    if (!result.ok) process.exitCode = 1;
+    break;
+  }
+
+  case 'validate-task-binding': {
+    const input = await readInput(subject || flags.file);
+    const result = validateTaskBinding(input);
+    emit(flags, result, result.ok ? 'task binding valid' : ['task binding invalid:', ...result.errors.map((error) => '  - ' + error)].join('\n'));
+    if (!result.ok) process.exitCode = 1;
+    break;
+  }
+
+  case 'validate-root-registration': {
+    const input = await readInput(subject || flags.file);
+    const result = validateRootRegistration(input);
+    emit(flags, result, result.ok ? 'root registration valid' : ['root registration invalid:', ...result.errors.map((error) => '  - ' + error)].join('\n'));
+    if (!result.ok) process.exitCode = 1;
+    break;
+  }
+
+  case 'resolve-product-binding':
+  case 'resolve-binding': {
+    const repoRoot = flags['repo-root'] || process.cwd();
+    const registry = flags.registry === undefined ? [] : (Array.isArray(flags.registry) ? flags.registry : [flags.registry]);
+    let result;
+    try {
+      result = await resolveProductBinding({
+        repoRoot,
+        taskId: flags['task-id'],
+        taskDir: flags['task-dir'],
+        productConfig: flags['product-config'],
+        taskBinding: flags['task-binding'],
+        rootRegistration: flags['root-registration'],
+        registry
+      });
+    } catch (error) {
+      result = { ok: false, error: error.message || String(error), code: 'binding-invalid' };
+    }
+    if (flags.json) {
+      process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+    } else if (result.ok) {
+      process.stdout.write('resolved ' + result.mode + ' product ' + (result.product ? result.product.productKey : 'legacy') + ' task ' + result.task.taskId + ' from ' + result.source + '\n');
+    } else {
+      process.stdout.write('DENY ' + (result.code || 'binding-invalid') + ': ' + result.error + '\n');
+    }
+    if (!result.ok) process.exitCode = 1;
+    break;
+  }
+
+  case 'write-product-config':
+  case 'write-task-binding': {
+    const file = flags.file;
+    if (!file) {
+      usageError(command + ' needs --file <file> --input <file|->', command + ' --file <file> --input <file|-> [--json]');
+      break;
+    }
+    const input = await readInput(flags.input || '-');
+    try {
+      const result = command === 'write-product-config'
+        ? await writeProductConfigAtomic(file, input)
+        : await writeTaskBindingAtomic(file, input);
+      emit(flags, result, 'wrote validated ' + (command === 'write-product-config' ? 'product config' : 'task binding') + ' atomically: ' + file);
+    } catch (error) {
+      const result = { ok: false, code: error.code || 'write-failed', error: error.message || String(error), errors: error.errors || [] };
+      emit(flags, result, result.error);
+      process.exitCode = 1;
+    }
+    break;
+  }
+
+  case 'migrate-binding':
+  case 'migrate': {
+    const usage = 'migrate-binding --input <v1> --product-config <file> --root-registration <file> --task-id <id> --dry-run [--json]';
+    if (flags['dry-run'] !== true) {
+      usageError('automatic migration is disabled; pass --dry-run', usage);
+      break;
+    }
+    if (!flags.input || !flags['product-config'] || !flags['root-registration'] || !flags['task-id']) {
+      usageError('migration dry-run needs --input, --product-config, --root-registration, and --task-id', usage);
+      break;
+    }
+    const legacy = await readInput(flags.input);
+    const product = await readInput(flags['product-config']);
+    const root = await readInput(flags['root-registration']);
+    const result = planV1Migration({ legacyBinding: legacy, productConfig: product, rootRegistration: root, taskId: flags['task-id'] });
+    emit(flags, result, result.ok ? 'migration dry-run only; no file was written\n' + JSON.stringify(result.proposal, null, 2) : ['migration dry-run blocked:', ...result.errors.map((error) => '  - ' + error)].join('\n'));
+    if (!result.ok) process.exitCode = 1;
     break;
   }
 

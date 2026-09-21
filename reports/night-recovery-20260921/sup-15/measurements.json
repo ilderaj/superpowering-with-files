@@ -1,0 +1,198 @@
+{
+  "browser": "153.0.8010.12",
+  "sha": "ad3c8b305ec434bde9dba904cb11741e00f8337e",
+  "dirty": true,
+  "url": "http://127.0.0.1:4173/superpowering-with-files/",
+  "viewports": [
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "errors": [],
+      "measurements": {
+        "rootFont": 16,
+        "scrollWidth": 1440,
+        "innerWidth": 1440,
+        "checkpoints": [
+          {
+            "selector": ".hero",
+            "text": "Trio v2 for CodexPlan in one session. Execute with proof.Codex is the managed native host. Other hos",
+            "rect": {
+              "x": 130,
+              "y": 60,
+              "width": 1180,
+              "height": 878.03125,
+              "top": 60,
+              "right": 1310,
+              "bottom": 938.03125,
+              "left": 130
+            },
+            "display": "block",
+            "visibility": "visible"
+          },
+          {
+            "selector": "#hero-title",
+            "text": "Plan in one session. Execute with proof.",
+            "rect": {
+              "x": 130,
+              "y": 191,
+              "width": 605.21875,
+              "height": 128.9375,
+              "top": 191,
+              "right": 735.21875,
+              "bottom": 319.9375,
+              "left": 130
+            },
+            "display": "block",
+            "visibility": "visible"
+          },
+          {
+            "selector": ".hero-copy",
+            "text": "Codex is the managed native host. Other hosts use a generic/manual fallback; the Trio keeps three du",
+            "rect": {
+              "x": 130,
+              "y": 335.9375,
+              "width": 605.21875,
+              "height": 86.390625,
+              "top": 335.9375,
+              "right": 735.21875,
+              "bottom": 422.328125,
+              "left": 130
+            },
+            "display": "block",
+            "visibility": "visible"
+          },
+          {
+            "selector": ".hero-actions .button",
+            "text": "View source",
+            "rect": {
+              "x": 130,
+              "y": 450.328125,
+              "width": 113.609375,
+              "height": 40,
+              "top": 450.328125,
+              "right": 243.609375,
+              "bottom": 490.328125,
+              "left": 130
+            },
+            "display": "flex",
+            "visibility": "visible"
+          },
+          {
+            "selector": ".hero-actions .button",
+            "text": "Read workflow",
+            "rect": {
+              "x": 255.609375,
+              "y": 450.328125,
+              "width": 132.46875,
+              "height": 40,
+              "top": 450.328125,
+              "right": 388.078125,
+              "bottom": 490.328125,
+              "left": 255.609375
+            },
+            "display": "flex",
+            "visibility": "visible"
+          }
+        ]
+      },
+      "screenshot": "reports/night-recovery-20260921/sup-15/1440x900.png"
+    },
+    {
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "errors": [],
+      "measurements": {
+        "rootFont": 16,
+        "scrollWidth": 390,
+        "innerWidth": 390,
+        "checkpoints": [
+          {
+            "selector": ".hero",
+            "text": "Trio v2 for CodexPlan in one session. Execute with proof.Codex is the managed native host. Other hos",
+            "rect": {
+              "x": 14,
+              "y": 54,
+              "width": 362,
+              "height": 1651.46875,
+              "top": 54,
+              "right": 376,
+              "bottom": 1705.46875,
+              "left": 14
+            },
+            "display": "block",
+            "visibility": "visible"
+          },
+          {
+            "selector": "#hero-title",
+            "text": "Plan in one session. Execute with proof.",
+            "rect": {
+              "x": 14,
+              "y": 165,
+              "width": 362,
+              "height": 145.96875,
+              "top": 165,
+              "right": 376,
+              "bottom": 310.96875,
+              "left": 14
+            },
+            "display": "block",
+            "visibility": "visible"
+          },
+          {
+            "selector": ".hero-copy",
+            "text": "Codex is the managed native host. Other hosts use a generic/manual fallback; the Trio keeps three du",
+            "rect": {
+              "x": 14,
+              "y": 326.96875,
+              "width": 362,
+              "height": 115.1875,
+              "top": 326.96875,
+              "right": 376,
+              "bottom": 442.15625,
+              "left": 14
+            },
+            "display": "block",
+            "visibility": "visible"
+          },
+          {
+            "selector": ".hero-actions .button",
+            "text": "View source",
+            "rect": {
+              "x": 14,
+              "y": 470.15625,
+              "width": 362,
+              "height": 40,
+              "top": 470.15625,
+              "right": 376,
+              "bottom": 510.15625,
+              "left": 14
+            },
+            "display": "flex",
+            "visibility": "visible"
+          },
+          {
+            "selector": ".hero-actions .button",
+            "text": "Read workflow",
+            "rect": {
+              "x": 14,
+              "y": 522.15625,
+              "width": 362,
+              "height": 40,
+              "top": 522.15625,
+              "right": 376,
+              "bottom": 562.15625,
+              "left": 14
+            },
+            "display": "flex",
+            "visibility": "visible"
+          }
+        ]
+      },
+      "screenshot": "reports/night-recovery-20260921/sup-15/390x844.png"
+    }
+  ]
+}

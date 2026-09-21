@@ -1,0 +1,17 @@
+{
+  "result": {
+    "ok": true,
+    "planOnly": true,
+    "action": "reuse",
+    "issueId": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+    "projectId": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+    "taskMarker": "harness-task: swf/project-isolation-adoption-20260921"
+  },
+  "guard": {
+    "ok": true,
+    "decision": "ALLOW",
+    "issueId": "8002b9e8-6d24-4398-aede-a09ae6b06db4",
+    "projectId": "2c23513e-5abd-4e71-9212-8814f9b3aa12",
+    "gitFamily": "/Users/jared/SuperpoweringWithFiles/.git"
+  }
+}

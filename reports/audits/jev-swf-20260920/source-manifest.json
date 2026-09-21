@@ -1,0 +1,24 @@
+{
+  "head": "ad3c8b305ec434bde9dba904cb11741e00f8337e",
+  "branch": "dev",
+  "sha256": {
+    "harness/trio/core/routing.mjs": "bc8a39f9aa0ecb7dffde4e331d78c001408d198523845558ab687049babafaaa",
+    "harness/trio/core/decision.mjs": "75e512d059fe33e84697552575fc7806b65a20efe00b79473023e3bffb61316b",
+    "harness/trio/core/evidence.mjs": "26a4cd21afb3dba385a9695298205ebbe8c924b719f42ba412c31ba89dab03f3",
+    "harness/trio/core/shadow.mjs": "3becc9cf248796de13dc3d457378e167f652452b112501474836d2025d5995bc",
+    "scripts/evaluate-decision-accuracy.mjs": "00bf9830e4584bc1d572b555a964700349cfb7b48d9414e8d34be75c940eecb2",
+    "scripts/evaluate-decision-shadow.mjs": "b93d092ec1265f55f0b6dd719c8a2d7751872425fef99f64b974fbc5ab4caeb2",
+    "package.json": "5c550dc6cd184f53f53fe7be971668b6c8d693705038cc94d4d7d9889775b22c",
+    "tests/trio/import-boundaries.test.mjs": "a4ef25c1eeb0631a024f4401cecba879ab33f00774d14109ae183f44770cd5d7",
+    "tests/fixtures/decision/cases.json": "0fb21ccb6220eb7c61ba63f719eefbed23179d5fa0fc22e254b8a460c1695a0d",
+    "tests/fixtures/decision/observed-shadow-result.json": "e663b1bd19f30c269830a0305ead409ec206a93899966a61b4c397e7aa6f11c6",
+    "tests/fixtures/decision/ground-truth.json": "2c3f8987416d55be5c4918d69febfded54401300aad166426aeaccf188c0f3b1",
+    "tests/fixtures/decision/observed-accuracy-result.json": "fc2c5b566dfd02c952b9f0bdd8266cfa2a5fab664f4482c8cf6cf628cd151144",
+    "tests/trio/dev-evidence.test.mjs": "efe69cce531522d0f9b68355615143126a10a7aa294b5c08bf4b24313c4e4faf",
+    "tests/trio/shadow-gate.test.mjs": "fdc0ef70faf2576e8bf73150f2f497a5f9f37d257c201368d35914f0a787a0b6",
+    "tests/trio/decision.test.mjs": "c083dcaed07fc3c3b658ddce8806751482c2cf96fc538e16f9bc9514d2e3bce4",
+    "tests/trio/decision-accuracy.test.mjs": "93c7a19870caf00ed6a5f861dfbbe086d95d13b06a011179c76692b5bfb58491",
+    "tests/trio/office-evidence.test.mjs": "e43dee013f86fc5e38ec48df1a43ee7723b51a01f9f8166f12ea1c272a843e1f",
+    "tests/trio/vocabulary.test.mjs": "60739412ab0489355c40a047a823c5a3dda1eb26d3d69dbe6416cb4915825545"
+  }
+}

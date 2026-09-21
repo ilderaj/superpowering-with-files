@@ -1,0 +1,113 @@
+{
+  "backup": "/Users/jared/.agents/swf-adoption/backups/lifecycle-targeted-20260921123252",
+  "files": [
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/upstream-overlays/planning-with-files/SKILL.md",
+      "destination": "/Users/jared/.agents/skills/planning-with-files/SKILL.md",
+      "before": "e9709e447110cdc8b5863be923e465b115eb619d230c9479ae6f91b01d5acf66",
+      "after": "024061cfd42be1836345fe4a9eddd656ff055c9f1e07370da464ae809bc4b201"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/upstream-overlays/planning-with-files/scripts/init-session.sh",
+      "destination": "/Users/jared/.agents/skills/planning-with-files/scripts/init-session.sh",
+      "before": "0fb047318dc2d7c23e0c716e1505cb869e8d98f9c07b69de25887596d4b6de72",
+      "after": "f0fa0858ad637bbd3dfa6ea258d91eee37ed2c0382ea9a76357e89c98019b943"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/upstream-overlays/planning-with-files/scripts/linear_lifecycle_sync.py",
+      "destination": "/Users/jared/.agents/skills/planning-with-files/scripts/linear_lifecycle_sync.py",
+      "before": null,
+      "after": "5eccf63fff0572835a39b39788bd08a14014ee06375dd4fb197d8d48a9bb2c42"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/upstream-overlays/planning-with-files/scripts/planning_paths.py",
+      "destination": "/Users/jared/.agents/skills/planning-with-files/scripts/planning_paths.py",
+      "before": "365c06ff053e641477f857ddd628ae4ed6ce60ddf167c39e0baec7c357fbc77e",
+      "after": "fec648f62ab564b6e5611e08f0599a5c48ec38debd4cf61f4d8d4ad2b5deafd2"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/upstream-overlays/planning-with-files/scripts/reopen-task.py",
+      "destination": "/Users/jared/.agents/skills/planning-with-files/scripts/reopen-task.py",
+      "before": null,
+      "after": "d64dda76cb92e4fce08ac1f05709287fb6d59b5a383538d798776a3c4254b2e2"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/upstream-overlays/planning-with-files/scripts/close-task.py",
+      "destination": "/Users/jared/.agents/skills/planning-with-files/scripts/close-task.py",
+      "before": "c5a05f45d96cbe1d7af6e1eb0747461548e774e27a00a6d38e361e00299d2804",
+      "after": "c958d8ff1952e40359bf3d29acee66ee339b864685afaf11e951938e4c3b5503"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/upstream-overlays/planning-with-files/scripts/reopen-task.sh",
+      "destination": "/Users/jared/.agents/skills/planning-with-files/scripts/reopen-task.sh",
+      "before": null,
+      "after": "7e015eb900ecf52a5d8a8d37248c9b944380341b9e0edfe7ac10ff26a088646f"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/lifecycle.md",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/lifecycle.md",
+      "before": null,
+      "after": "7bbb4597f2bf0c330b2fdc428aaa26df7f23b486d31727d25d393a9fc97dfb5f"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/project-first.md",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/project-first.md",
+      "before": "7d899bcef4be2f39a1741d41be6939dd96bdf808a38ca3b7d0190d61be2997c4",
+      "after": "a1f171ca9c0580df1bfb19036bf2019324719b976212aa6838e2a76c11cad665"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/automation-workflows.md",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/automation-workflows.md",
+      "before": "8d1f8184a33f9be9db64bcb9d38ac9d6e3b5a75fb9d157765640e24840927a7b",
+      "after": "04d27556dba137febca54bbc7fbb34661aa7e3b79c683e6e17be8f39f3187cb9"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/SKILL.md",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/SKILL.md",
+      "before": "49af841644e17f922652ceb1064bd68fa674a5922e11ba3e4437dd2a8f1fdbf1",
+      "after": "bc5b6573bfd1985177f3ef78379d72452b3ebacfe3f308c8003cdb8668da3e66"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/scripts/linear-work-control.mjs",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/scripts/linear-work-control.mjs",
+      "before": "fefeb02e64613810292efb476022a7154c329a457eec87e52453dcc2532eeeaa",
+      "after": "513a97df4410476f2c87289acc16680ab65adb5c0a717434e0250fa8f4e6a402"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/scripts/linear-lifecycle.mjs",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/scripts/linear-lifecycle.mjs",
+      "before": null,
+      "after": "eda98975b27d30b3b4b905a2e01274a7b38c8c1d6d4bbce21eff080c8e1a1c34"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/scripts/project-routing.mjs",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/scripts/project-routing.mjs",
+      "before": "1d16b292a58bfc06c9ad9a4e1a02db9dcf91fad688260d6fe4fe614a9b5582ef",
+      "after": "f557e059c2cc0b6581c551facebf695eefb05e8802a37e944dbfaa6e14bca8ca"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/lib/project-bootstrap.mjs",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/lib/project-bootstrap.mjs",
+      "before": null,
+      "after": "ba958e4bb5a7d1a00b61fae177a7dadf985cd6f6e91e26552a56be9dad6c4a69"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/lib/linear-lifecycle.mjs",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/lib/linear-lifecycle.mjs",
+      "before": null,
+      "after": "3b990a19a91acdf481559816dab60e3830b32c145108f9bc218b5c66b1e43add"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/lib/project-routing.mjs",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/lib/project-routing.mjs",
+      "before": "bc3f9556d2cdc5801cb595a6c86736c691e9d72d3c8656a00ed205c60cc1840d",
+      "after": "7d3153e217ad0d2f1561508bb1f0764c310f75bd8f8cd22ef5c10d31e486af45"
+    },
+    {
+      "source": "/Users/jared/SuperpoweringWithFiles/harness/core/skills/linear-work-control/lib/linear-product-binding.mjs",
+      "destination": "/Users/jared/.agents/skills/linear-work-control/lib/linear-product-binding.mjs",
+      "before": "86af0ae51aa7bde8f8b84c19f9ecd214a0eca23be9c53b5172c699aab37d7821",
+      "after": "c114be4cbdbdbd421243b882671b21ac1a6e58b73b6e60ee1bb1ef83ab1eb911"
+    }
+  ]
+}
