@@ -1,7 +1,7 @@
 # Render-verify bounded implementation audit
 
 Date: 2026-09-22
-Worktree: `/Users/jared/.codex/worktrees/audit-render-fixes-20260922`
+Worktree: `isolated worktree codex/audit-render-fixes-20260922`
 Branch: `codex/audit-render-fixes-20260922`
 Base: `45f3fe81`
 

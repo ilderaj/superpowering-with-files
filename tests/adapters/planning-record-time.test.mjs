@@ -18,7 +18,7 @@ test('init-session.sh writes progress sessions with a UTC+8 timestamp', async ()
     await mkdir(path.join(root, 'planning/active'), { recursive: true });
 
     await execFileAsync('bash', [
-      path.join(root, 'harness/upstream/planning-with-files/scripts/init-session.sh'),
+      path.join(root, 'harness/core/upstream-overlays/planning-with-files/scripts/init-session.sh'),
       root,
       'timestamp-demo'
     ]);
@@ -64,7 +64,7 @@ test('init-session.sh keeps v3 gated mode through the Harness root entrypoint', 
 
 test('init-session.ps1 formats timestamps with an explicit UTC+8 offset', async () => {
   const script = await readFile(
-    path.join(process.cwd(), 'harness/upstream/planning-with-files/scripts/init-session.ps1'),
+    path.join(process.cwd(), 'harness/core/upstream-overlays/planning-with-files/scripts/init-session.ps1'),
     'utf8'
   );
 
@@ -72,7 +72,7 @@ test('init-session.ps1 formats timestamps with an explicit UTC+8 offset', async 
 });
 
 test('planning_record.py renders canonical progress and findings headings', async () => {
-  const scriptPath = path.join(process.cwd(), 'harness/upstream/planning-with-files/scripts/planning_record.py');
+  const scriptPath = path.join(process.cwd(), 'harness/core/upstream-overlays/planning-with-files/scripts/planning_record.py');
   const { stdout: progressHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'progress']);
   const { stdout: findingsHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'findings']);
   const { stdout: taskPlanHeading } = await execFileAsync('python3', [scriptPath, 'heading', 'task_plan']);
@@ -83,7 +83,7 @@ test('planning_record.py renders canonical progress and findings headings', asyn
 });
 
 test('planning chronology remains available through the overlay reference and templates', async () => {
-  const upstream = path.join(process.cwd(), 'harness/upstream/planning-with-files');
+  const upstream = path.join(process.cwd(), 'harness/upstream/planning-with-files/skills/planning-with-files');
   const overlay = path.join(process.cwd(), 'harness/core/upstream-overlays/planning-with-files');
   const skill = await readFile(path.join(overlay, 'SKILL.md'), 'utf8');
   const referenceLink = [...skill.matchAll(/\]\(([^)]+\.md)\)/g)]
@@ -95,14 +95,18 @@ test('planning chronology remains available through the overlay reference and te
     readFile(path.join(upstream, 'templates/progress.md'), 'utf8'),
     readFile(path.join(overlay, 'templates/progress.md'), 'utf8'),
   ]);
-  for (const document of [original, reference]) {
+  // The upstream snapshot retains upstream semantics; SWF's adopted overlay
+  // owns the stronger timestamp/chronology contract.
+  assert.match(original, /name: planning-with-files/);
+  assert.match(originalProgress, /## Session:/);
+  for (const document of [reference]) {
     const guidance = document.replace(/\s+/g, ' ');
     assert.match(guidance, /YYYY-MM-DD HH:mm:ss UTC\+8/, 'records retain explicit time and offset');
     assert.match(guidance, /(?:get|fetch)[^\n]*time[^\n]*tool/i, 'time comes from tooling');
     assert.match(guidance, /(?:append|keep)[^\n]*chronological/i, 'record ordering is explicit');
     assert.match(guidance, /(?:never|do not)[^\n]*(?:guess|invent)/i, 'timestamps cannot be fabricated');
   }
-  for (const template of [originalProgress, overlayProgress]) {
+  for (const template of [overlayProgress]) {
     assert.match(template, /chronological/i);
     assert.match(template, /YYYY-MM-DD HH:mm:ss UTC\+8/);
   }
