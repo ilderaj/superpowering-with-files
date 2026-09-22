@@ -884,7 +884,6 @@ async function assertReconvergeInventory(prepared, config, sources) {
       entry.targetId === descriptor.targetId && path.resolve(entry.path) === path.resolve(descriptor.destination)))) {
     throw trioBridgeError('Trio reconverge requires complete projection-manifest ownership.', 'ERR_TRIO_RECONVERGE_OWNERSHIP');
   }
-  const allowed = new Set(managed.map((descriptor) => path.resolve(descriptor.destination)));
   for (const descriptor of managed) {
     const destination = path.resolve(descriptor.destination);
     const info = await lstat(destination).catch((error) => error?.code === 'ENOENT' ? null : Promise.reject(error));
@@ -894,14 +893,24 @@ async function assertReconvergeInventory(prepared, config, sources) {
     if (conflicted.has(destination) && (await readFile(destination, 'utf8')) !== sources.get(descriptor.destination)) {
       throw trioBridgeError(`Trio reconverge rejects content drift: ${destination}.`, 'ERR_TRIO_RECONVERGE_CONTENT');
     }
-    if (!conflicted.has(destination)) continue;
-    for (const name of await readdir(path.dirname(destination))) {
-      const candidate = path.join(path.dirname(destination), name);
-      const candidateInfo = await lstat(candidate);
-      if (candidateInfo.isSymbolicLink() || !candidateInfo.isFile() || candidateInfo.nlink !== 1
-        || !allowed.has(path.resolve(candidate))) {
-        throw trioBridgeError(`Trio reconverge rejects unknown destination entry: ${candidate}.`, 'ERR_TRIO_RECONVERGE_UNKNOWN');
+  }
+}
+
+async function assertCapturedReconvergeProof(prepared, config, sources, captured) {
+  const conflicted = new Set(prepared.conflicts.map((conflict) => path.resolve(conflict.destination)));
+  for (const descriptor of prepared.descriptors.filter((entry) => entry.management === 'managed')) {
+    const snapshot = captured.snapshots.get(path.resolve(descriptor.destination));
+    const entry = config.ownership.entries.find((candidate) =>
+      candidate.targetId === descriptor.targetId && path.resolve(candidate.path) === path.resolve(descriptor.destination));
+    if (!snapshot?.exists || !entry) throw trioBridgeError(`Trio reconverge lost owned preimage proof: ${descriptor.destination}.`, 'ERR_TRIO_RECONVERGE_PROOF');
+    const actual = `sha256:${snapshot.sha256}`;
+    const source = sources.get(descriptor.destination);
+    if (conflicted.has(path.resolve(descriptor.destination))) {
+      if (source === undefined || actual !== `sha256:${hashText(source)}`) {
+        throw trioBridgeError(`Trio reconverge preimage no longer matches source: ${descriptor.destination}.`, 'ERR_TRIO_RECONVERGE_PROOF');
       }
+    } else if (actual !== entry.identity && (source === undefined || actual !== `sha256:${hashText(source)}`)) {
+      throw trioBridgeError(`Trio reconverge preimage is neither owned nor source-matching: ${descriptor.destination}.`, 'ERR_TRIO_RECONVERGE_PROOF');
     }
   }
 }
@@ -913,6 +922,7 @@ export async function reconvergeTrioProjection({ environment, config, statePreco
   const sources = await readTrioSources(conflicted);
   await assertReconvergeInventory(prepared, config, sources);
   const captured = await captureTrioTakeoverPreimages({ environment, descriptors: managed, statePrecondition });
+  await assertCapturedReconvergeProof(prepared, config, sources, captured);
   const backup = await publishTrioTakeoverBackup({
     environment, preimages: captured, ownership: config.ownership, recovery: config.recovery
   });
@@ -933,6 +943,10 @@ export async function reconvergeTrioProjection({ environment, config, statePreco
     expectedTargetIdentity: snapshot.exists ? { dev: snapshot.dev, ino: snapshot.ino, nlink: snapshot.nlink } : undefined,
     expectedParentIdentity: snapshot.parent
   });
+  const readback = await readFile(environment.stateFile, 'utf8');
+  if (readback !== `${JSON.stringify(state, null, 2)}\n`) {
+    throw trioBridgeError('Trio reconverge state readback differs from the settled state.', 'ERR_TRIO_RECONVERGE_READBACK');
+  }
   return Object.freeze({ mode: 'reconverge', backup: backup.rollbackRef });
 }
 
