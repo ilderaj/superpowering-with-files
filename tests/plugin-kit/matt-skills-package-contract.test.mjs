@@ -170,4 +170,3 @@ test('Matt companion plugin configurations match their package contracts', async
   assert.deepEqual(codexConfig, expectedCodexConfig);
   assert.deepEqual(portableConfig, expectedPortableConfig);
 });
-

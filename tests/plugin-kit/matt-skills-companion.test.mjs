@@ -115,4 +115,3 @@ test('companion archives carry truthful overlay provenance', async () => {
     assert.notEqual(grilling.overlaySha256, grilling.corpusSha256);
   }
 });
-

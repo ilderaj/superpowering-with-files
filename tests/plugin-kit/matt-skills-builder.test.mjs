@@ -52,4 +52,3 @@ test('Matt portable validation permits the full flat companion skill set', async
     invalid.errors.join('\n'),
   );
 });
-
