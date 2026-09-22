@@ -21,6 +21,7 @@
     "plugin:verify": "node --test tests/plugin-kit/*.test.mjs",
     "plugin:smoke": "node packages/plugin-kit/src/smoke.mjs",
     "release:pack": "node packages/plugin-kit/src/build-all.mjs --release",
-    "verify:render": "node --test --test-concurrency=1 tests/render-verify/*.test.mjs"
+    "verify:render": "node --test --test-concurrency=1 tests/render-verify/*.test.mjs",
+    "verify:dsh": "pnpm --dir plugins/dsh verify"
   }
 }
