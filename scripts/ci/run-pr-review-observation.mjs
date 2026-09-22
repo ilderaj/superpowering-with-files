@@ -12,6 +12,7 @@ import {
 const PR_JSON_FIELDS = [
   'number',
   'state',
+  'isDraft',
   'baseRefName',
   'baseRefOid',
   'headRefName',
@@ -300,7 +301,7 @@ export async function runPrReviewObservation({
 
   const { owner, name } = repositoryParts(binding.repository);
   try {
-    const authResult = await runCommand('gh', ['auth', 'status', '--hostname', 'github.com']);
+    const authResult = await runCommand('gh', ['auth', 'status', '--active', '--hostname', 'github.com']);
     if (commandExit(authResult) !== 0) {
       return resultForError('credentials_missing', 'A GitHub credential is required for read-only observation.', 'credentials');
     }

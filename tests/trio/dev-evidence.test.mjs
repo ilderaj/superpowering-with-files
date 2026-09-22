@@ -230,13 +230,15 @@ test('S1 limits dev evidence to explicit requiredCheckIds and preserves default 
   assert.throws(() => devEvidence({ requiredCheckIds: ['missing'], results: {} }), /Unknown dev evidence check id/);
 });
 
-test('S1 derives dev required scope from commands and retains timeout facts', async () => {
+test('S1 derives dev required scope from commands and retains timeout facts', async (t) => {
+  const clock = [1000, 1023];
+  t.mock.method(Date, 'now', () => clock.shift());
   const evidence = await collectDevEvidence({
     commands: [{ id: 'tests', command: 'npm test' }],
     run: async () => ({ timedOut: true })
   });
   assert.deepEqual(evidence.checks.map((check) => check.id), ['tests']);
-  assert.deepEqual(evidence.checks[0], { id: 'tests', status: 'unknown', reason: 'timed-out', timedOut: true, durationMs: 0, command: 'npm test' });
+  assert.deepEqual(evidence.checks[0], { id: 'tests', status: 'unknown', reason: 'timed-out', timedOut: true, durationMs: 23, command: 'npm test' });
 });
 
 test('S1 collector preserves a nonzero exit reported through runner rejection', async () => {

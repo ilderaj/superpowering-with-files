@@ -328,7 +328,9 @@ function summarizeStatus(observations, { pullRequest, reviews, checks, requiredC
     : checks.length > 0 && checks.every((check) => checkPassed(check, binding.headSha));
   const mergeable = String(pullRequest?.mergeable ?? '').toUpperCase() === 'MERGEABLE'
     || String(pullRequest?.mergeStateStatus ?? '').toUpperCase() === 'CLEAN';
-  const readyForConditionalNativeStatus = binding.autoMergePolicy === 'enabled'
+  const readyForConditionalNativeStatus = pullRequest.isDraft === false
+    && String(pullRequest.mergeStateStatus ?? '').toUpperCase() !== 'DRAFT'
+    && binding.autoMergePolicy === 'enabled'
     && currentApprover
     && required
     && mergeable
@@ -370,6 +372,10 @@ function lifecycleFor({ status, pullRequest, checks, requiredChecks, binding }) 
       exactCurrentHead: true,
       humanGateRequired: true
     };
+  }
+  if (status === 'awaiting_human' && (pullRequest.isDraft !== false
+    || String(pullRequest.mergeStateStatus ?? '').toUpperCase() === 'DRAFT')) {
+    return { decision: 'stop', reason: 'draft_state_human_gate', humanGateRequired: true };
   }
   if (status === 'awaiting_human' && pendingMachineState({
     pullRequest,
