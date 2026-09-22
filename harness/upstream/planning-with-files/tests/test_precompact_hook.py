@@ -1,11 +1,11 @@
 """Regression tests for the PreCompact reminder (v2.38.0, v3 dispatcher).
 
-PreCompact fires on Claude Code's autoCompact and manual /compact. It re-injects
-a planning reminder before context compaction. Contract:
+PreCompact fires on Claude Code's autoCompact and manual /compact. It prints
+a diagnostic reminder before context compaction. Contract:
   - Declared in the canonical SKILL.md frontmatter with a wildcard matcher so
     both manual and auto triggers fire.
-  - The scalar is a thin v3 dispatcher to scripts/inject-plan.sh (build decision
-    "hooks become thin dispatchers"); it carries the --context=precompact flag.
+  - The scalar dispatches to scripts/skill-hook.sh with --event=precompact,
+    preserving native session identity before calling the shared injector.
   - inject-plan.sh --context=precompact prints a reminder when task_plan.md
     exists, stays silent when absent, and surfaces Plan-SHA256 when an
     attestation is set.
@@ -65,15 +65,18 @@ class PreCompactHookDeclarationTests(unittest.TestCase):
         )
 
     def test_precompact_scalar_is_thin_dispatcher(self) -> None:
-        # The scalar must dispatch to inject-plan.sh with the precompact context,
+        # The scalar must dispatch to skill-hook.sh with the precompact event,
         # carry both install fallbacks, and contain no literal '---' (YAML
         # collision class, Discussion #153).
         scalar = extract_precompact_scalar(self.text)
         self.assertTrue(scalar, "Could not extract PreCompact scalar from SKILL.md")
-        self.assertIn("${CLAUDE_SKILL_DIR}/scripts/inject-plan.sh", scalar)
-        self.assertIn("--context=precompact", scalar)
+        self.assertIn("${CLAUDE_SKILL_DIR}/scripts/skill-hook.sh", scalar)
+        self.assertIn("--event=precompact", scalar)
         self.assertIn(
-            "$HOME/.claude/skills/planning-with-files/scripts/inject-plan.sh", scalar
+            "$HOME/.claude/skills/planning-with-files/scripts/skill-hook.sh", scalar
+        )
+        self.assertIn(
+            "$HOME/.claude/plugins/marketplaces/planning-with-files/scripts/skill-hook.sh", scalar
         )
         self.assertNotIn("---", scalar)
 

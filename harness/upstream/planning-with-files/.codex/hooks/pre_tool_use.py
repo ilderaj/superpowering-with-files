@@ -12,6 +12,8 @@ def main() -> None:
 
     if not adapter.is_session_attached(root, adapter.session_id_from_payload(payload)):
         return
+    if adapter.session_plan_requires_binding(root):
+        return
 
     stdout, stderr = adapter.run_shell_script(
         "pre-tool-use.sh",

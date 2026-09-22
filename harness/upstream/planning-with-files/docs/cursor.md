@@ -25,13 +25,36 @@ This copies the skill files, hooks config, and hook scripts to your project.
 
 ## Hooks Support
 
-Cursor now supports hooks natively via `.cursor/hooks.json`. This skill includes three hooks that mirror the Claude Code experience:
+Cursor now supports hooks natively via `.cursor/hooks.json`. This skill includes four hooks that mirror the Claude Code experience:
 
 | Hook | Purpose | Cursor Feature |
 |------|---------|----------------|
+| `userPromptSubmit` | Injects the selected plan and recent progress | Restores state on every prompt |
 | `preToolUse` | Re-reads task_plan.md before tool operations | Keeps goals in context |
 | `postToolUse` | Reminds to update plan after file edits | Prevents forgetting updates |
 | `stop` | Checks if all phases are complete | **Auto-continues** if incomplete |
+
+The native PowerShell hooks (`hooks.windows.json`) resolve the same selected
+plan directory as the planning scripts, through the shared
+`.cursor/skills/planning-with-files/scripts/resolve-plan-dir.ps1`, which must
+therefore be present next to the hooks. The rules are the ones every route
+applies: an explicit `PLAN_ID` is binding and fails closed when it names no
+plan; `PWF_PLAN_ROOT` pins the project and fails closed when it is not an
+absolute local directory; with one named plan, `.active_plan` or the newest
+plan selects it; with two or more named plans, `PLAN_ID` is required and
+nothing is injected until it is set; a stale pointer falls through to the
+root `task_plan.md` like `inject-plan.sh`, while a pointer that is a directory
+or a link fails closed. Each refusal prints one notice naming the cause.
+
+The bash hooks (`hooks.json`) read only the root `task_plan.md`; a plan created
+with `init-session.sh <name>` is not injected on that route.
+
+Two differences from the Claude Code and Codex routes are deliberate. Session
+isolation (`.planning/sessions/` with `.attached` markers) is not implemented on
+Cursor, which has no session identity to attach; an armed project injects the
+selected plan as if isolation were off. The stop hook answers only in JSON, so
+an explicit `PLAN_ID` or `PWF_PLAN_ROOT` that resolves to no plan lets the agent
+stop silently where `check-complete.sh` would print a notice.
 
 ### How the Stop Hook Works
 
@@ -48,19 +71,24 @@ This means the agent **cannot stop until all phases are done** (up to `loop_limi
 ```
 your-project/
 ├── .cursor/
-│   ├── hooks.json                  ← Hook configuration
+│   ├── hooks.json                  ← Hook configuration (bash scripts)
+│   ├── hooks.windows.json          ← Hook configuration (PowerShell scripts)
 │   ├── hooks/
+│   │   ├── user-prompt-submit.sh   ← Plan context injection (root plan only)
 │   │   ├── pre-tool-use.sh         ← Pre-tool-use script
 │   │   ├── post-tool-use.sh        ← Post-tool-use script
 │   │   ├── stop.sh                 ← Completion check script
-│   │   ├── pre-tool-use.ps1        ← PowerShell versions
+│   │   ├── user-prompt-submit.ps1  ← PowerShell versions (named plans too)
+│   │   ├── pre-tool-use.ps1
 │   │   ├── post-tool-use.ps1
-│   │   └── stop.ps1
+│   │   ├── stop.ps1
+│   │   └── resolve-plan-context.ps1 ← Shared PowerShell plan selection
 │   └── skills/
 │       └── planning-with-files/
 │           ├── SKILL.md
 │           ├── examples.md
 │           ├── reference.md
+│           ├── scripts/            ← incl. resolve-plan-dir.ps1, used by the .ps1 hooks
 │           └── templates/
 ├── task_plan.md                     ← Your planning files (created per task)
 ├── findings.md
@@ -94,7 +122,7 @@ The `.cursor/hooks.windows.json` file uses PowerShell to execute the `.ps1` hook
 
 **Triggers:** Before Write, Edit, Shell, or Read operations
 
-**What it does:** Reads the first 30 lines of `task_plan.md` and logs them to stderr for context. Always returns `{"decision": "allow"}` — it never blocks tools.
+**What it does:** Reads the first 30 lines of `task_plan.md` for context (the bash hook writes them to stderr, the PowerShell hook to the host output). Always returns `{"decision": "allow"}` — it never blocks tools, not even when its helper is missing.
 
 **Claude Code equivalent:** `cat task_plan.md 2>/dev/null | head -30 || true`
 
