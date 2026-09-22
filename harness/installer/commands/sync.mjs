@@ -957,12 +957,13 @@ export async function reconvergeTrioProjection({ environment, config, statePreco
   if (readback !== `${JSON.stringify(state, null, 2)}\n`) {
     throw trioBridgeError('Trio reconverge state readback differs from the settled state.', 'ERR_TRIO_RECONVERGE_READBACK');
   }
+  const reportPrepared = await prepareTrioProjection({ environment, config: state });
   return Object.freeze({
-    ...prepared,
+    ...reportPrepared,
     mode: 'reconverge',
     backup: backup.rollbackRef,
     repaired: conflicted.map((descriptor) => descriptor.destination),
-    manual_pending: prepared.descriptors.some((descriptor) => descriptor.management !== 'managed')
+    manual_pending: reportPrepared.descriptors.some((descriptor) => descriptor.management !== 'managed')
   });
 }
 
