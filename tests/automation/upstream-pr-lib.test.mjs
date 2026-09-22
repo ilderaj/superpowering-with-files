@@ -288,6 +288,7 @@ test('runOpenUpstreamPullRequest skips git and gh commands when there are no eli
     cwd: '/tmp/repo',
     readRefreshResult: async () => ({
       status: 'success',
+      lockPersistence: 'written',
       eligibleFiles: []
     }),
     runCommand: async (command) => {
@@ -390,6 +391,7 @@ test('runOpenUpstreamPullRequest commits, pushes, and creates a PR when no autom
     cwd,
     readRefreshResult: async () => ({
       status: 'success',
+      lockPersistence: 'written',
       eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
       sourceHeads: {}
     }),
@@ -438,6 +440,7 @@ test('runOpenUpstreamPullRequest forwards resolved metadata into the final PR bo
     cwd,
     readRefreshResult: async () => ({
       status: 'success',
+      lockPersistence: 'written',
       eligibleFiles: ['harness/upstream/.source-lock.json'],
       sourceHeads: {
         'planning-with-files': '1111111111111111111111111111111111111111'
@@ -510,6 +513,7 @@ test('runOpenUpstreamPullRequest creates a dev PR instead of updating a same-hea
     cwd: '/tmp/repo',
     readRefreshResult: async () => ({
       status: 'success',
+      lockPersistence: 'written',
       eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
       sourceHeads: {}
     }),
@@ -555,6 +559,7 @@ test('runOpenUpstreamPullRequest updates an existing automation PR branch and bo
     cwd,
     readRefreshResult: async () => ({
       status: 'success',
+      lockPersistence: 'written',
       eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
       sourceHeads: {}
     }),
@@ -602,6 +607,7 @@ test('runOpenUpstreamPullRequest force-pushes and creates a PR when the automati
     cwd: '/tmp/repo',
     readRefreshResult: async () => ({
       status: 'success',
+      lockPersistence: 'written',
       eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'],
       sourceHeads: {}
     }),
@@ -635,6 +641,7 @@ test('runOpenUpstreamPullRequest treats git commit failures as terminal errors',
       cwd: '/tmp/repo',
       readRefreshResult: async () => ({
         status: 'success',
+      lockPersistence: 'written',
         eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md']
       }),
       runCommand: async (command) => {
@@ -656,6 +663,7 @@ test('runOpenUpstreamPullRequest treats gh PR creation failures as terminal erro
       cwd: '/tmp/repo',
       readRefreshResult: async () => ({
         status: 'success',
+      lockPersistence: 'written',
         eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md']
       }),
       runCommand: async (command) => {
@@ -673,4 +681,16 @@ test('runOpenUpstreamPullRequest treats gh PR creation failures as terminal erro
     }),
     /gh pr create failed: GraphQL: pull request create failed/
   );
+});
+
+test('upstream PR rejects run-scoped or unknown lock persistence before any command', async () => {
+  const { runOpenUpstreamPullRequest } = await import('../../scripts/ci/open-upstream-pr.mjs');
+  for (const lockPersistence of ['skipped_due_to_run_override', 'not_needed', undefined]) {
+    const commands = [];
+    await assert.rejects(runOpenUpstreamPullRequest({
+      readRefreshResult: async () => ({ status: 'success', eligibleFiles: ['harness/upstream/planning-with-files/SKILL.md'], lockPersistence }),
+      runCommand: async command => { commands.push(command); throw new Error('unexpected command'); }
+    }), /authoritative source lock/);
+    assert.deepEqual(commands, []);
+  }
 });

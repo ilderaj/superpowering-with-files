@@ -181,6 +181,7 @@ test('upstream refresh workflow reads the guarded result path into refresh_resul
   assert.match(readResultBlock, new RegExp(`hashFiles\\('${escapeRegExp(resultPath)}'\\)`));
   assert.match(readResultBlock, new RegExp(`readFileSync\\('${escapeRegExp(resultPath)}', 'utf8'\\)`));
   assert.match(readResultBlock, /status=\$\{result\.status \?\? ''\}/);
+  assert.match(readResultBlock, /lock_persistence=\$\{result\.lockPersistence \?\? ''\}/);
   assert.match(readResultBlock, /eligible_count=\$\{eligibleCount\}/);
 });
 
@@ -190,7 +191,7 @@ test('upstream refresh workflow opens PRs only after successful non-empty refres
 
   assert.match(
     pullRequestBlock,
-    /^\s{8}if:\s*\$\{\{\s*success\(\)\s*&&\s*steps\.refresh_result\.outputs\.status\s*==\s*'success'\s*&&\s*steps\.refresh_result\.outputs\.eligible_count\s*!=\s*'0'\s*&&\s*\(github\.event_name\s*==\s*'schedule'\s*\|\|\s*\(inputs\.create_pr\s*==\s*true\s*&&\s*inputs\.dry_run\s*!=\s*true\s*&&\s*inputs\.validation_mode\s*!=\s*true\)\)\s*\}\}\s*$/m
+    /^\s{8}if:\s*\$\{\{\s*success\(\)\s*&&\s*steps\.refresh_result\.outputs\.status\s*==\s*'success'\s*&&\s*steps\.refresh_result\.outputs\.eligible_count\s*!=\s*'0'\s*&&\s*steps\.refresh_result\.outputs\.lock_persistence\s*==\s*'written'\s*&&\s*\(github\.event_name\s*==\s*'schedule'\s*\|\|\s*\(inputs\.create_pr\s*==\s*true\s*&&\s*inputs\.dry_run\s*!=\s*true\s*&&\s*inputs\.validation_mode\s*!=\s*true\)\)\s*\}\}\s*$/m
   );
   assert.match(pullRequestBlock, /^\s{8}run:\s*node scripts\/ci\/open-upstream-pr\.mjs\s*$/m);
 });
