@@ -119,9 +119,6 @@ export function planIntake({policy,snapshot,taskMarker,taskId,sliceKey,projectId
    if (parent) requireThat(existing.parent?.issueId === parent.issueId, 'marker parent conflict');
    return {ok:true,planOnly:true,action:'reuse',issueId:existing.issueId,projectId:target,taskMarker};
   }
-  const projectState=snapshot.projects.find(project=>project.id===target);
-  requireThat(projectState && projectState.workspaceId === p.workspaceId && projectState.teamId === p.teamId, 'target project metadata unknown or foreign');
-  requireThat(projectState.archived !== true && ['backlog','planned','started'].includes(projectState.statusType), 'closed project disallows new intake');
   return {ok:true,planOnly:true,action:'create',workspaceId:p.workspaceId,teamId:p.teamId,projectId:target,taskMarker,parentId:parent?.issueId || null,labels:[p.managedLabel,p.executorLabel,p.projects.find(project=>project.id===target).workstreamLabel]};
  } catch(error) {return deny(error);}
 }

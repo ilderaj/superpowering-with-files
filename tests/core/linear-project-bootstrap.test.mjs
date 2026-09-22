@@ -182,3 +182,16 @@ test('ownership keys are product scoped; same product under another team denies 
  delete x.request.stream;assert.equal(planProjectBootstrap(x).ok,false);
  for(const field of ['complete','paginationComplete','projectOwnershipComplete']) {const y=base();y.catalog[field]='true';assert.equal(planProjectBootstrap(y).ok,false);}
 });
+
+test('root evidence accepts POSIX, Windows drive and UNC paths and rejects relative or non-string paths', () => {
+  for (const root of ['/repo', 'C:\\repo', 'C:/repo', '\\\\server\\share\\repo']) {
+    const input = base();
+    input.rootEvidence = { canonicalRoot: root, gitCommonDir: `${root}/.git` };
+    assert.equal(planProjectBootstrap(input).ok, true, root);
+  }
+  for (const root of ['repo', 'C:repo', 'unknown', '', null, 42, {}]) {
+    const input = base();
+    input.rootEvidence.canonicalRoot = root;
+    assert.equal(planProjectBootstrap(input).ok, false, String(root));
+  }
+});

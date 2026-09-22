@@ -90,6 +90,46 @@ test('guard verifies exact issue/project and independent real Git family', async
  assert.equal(cli.status,0,cli.stdout); assert.equal(JSON.parse(cli.stdout).ok,true);
  } finally {await rm(dir,{recursive:true,force:true});}
 });
+test('preflight ALLOW then a moved issue denies the next write, and the caller stops writing', async () => {
+ const dir=await mkdtemp(path.join(os.tmpdir(),'routing-drift-'));
+ const git=(...args)=>execFileSync('git',args,{stdio:'pipe'});
+ try {
+ const root=path.join(dir,'root'); git('init',root); git('-C',root,'-c','user.name=Test','-c','user.email=test@example.com','commit','--allow-empty','-m','init');
+ const p={...policy,canonicalRoot:root,gitCommonDir:path.join(root,'.git')};
+ const expected={issueId:id(5),projectId:id(3),teamId:id(2)};
+ assert.equal((await guardTarget({policy:p,expected,observed:issue(),repoPath:root})).ok,true);
+ const moved=issue({projectId:id(4)});
+ const second=await guardTarget({policy:p,expected,observed:moved,repoPath:root});
+ assert.equal(second.ok,false); assert.match(second.error,/observed projectId differs from expected binding/);
+ assert.equal((await guardTarget({policy:p,expected:{...expected,projectId:id(4)},observed:moved,repoPath:root})).ok,true);
+ assert.equal((await guardTarget({policy:p,expected:{...expected,projectId:id(99)},observed:moved,repoPath:root})).ok,false);
+ assert.equal((await guardTarget({policy:p,expected,observed:moved,repoPath:root})).ok,false);
+ const ledger=[];
+ const write=async observedNow=>{const gate=await guardTarget({policy:p,expected,observed:observedNow,repoPath:root}); if(!gate.ok){ledger.push('stopped: '+gate.error); return false;} ledger.push('wrote'); return true;};
+ assert.equal(await write(issue()),true);
+ assert.equal(await write(moved),false);
+ assert.equal(await write(moved),false);
+ assert.deepEqual(ledger,['wrote','stopped: observed projectId differs from expected binding','stopped: observed projectId differs from expected binding']);
+ } finally {await rm(dir,{recursive:true,force:true});}
+});
+test('post-write readback reports drift on moved issue or reassigned comment', async () => {
+ const dir=await mkdtemp(path.join(os.tmpdir(),'routing-readback-'));
+ const git=(...args)=>execFileSync('git',args,{stdio:'pipe'});
+ try {
+ const root=path.join(dir,'root'); git('init',root); git('-C',root,'-c','user.name=Test','-c','user.email=test@example.com','commit','--allow-empty','-m','init');
+ const p={...policy,canonicalRoot:root,gitCommonDir:path.join(root,'.git')};
+ const expected={issueId:id(5),projectId:id(3),teamId:id(2),commentId:id(7)};
+ const own=id(7),foreign=id(8);
+ assert.equal((await guardTarget({policy:p,expected,observed:issue(),observedComment:{id:own,issueId:id(5),fullyRead:true},repoPath:root})).ok,true);
+ const reassigned=await guardTarget({policy:p,expected,observed:issue(),observedComment:{id:foreign,issueId:id(5),fullyRead:true},repoPath:root});
+ assert.equal(reassigned.ok,false); assert.match(reassigned.error,/observed comment does not match expected fully-read issue comment/);
+ const movedAfterWrite=await guardTarget({policy:p,expected,observed:issue({projectId:id(4)}),observedComment:{id:own,issueId:id(5),fullyRead:true},repoPath:root});
+ assert.equal(movedAfterWrite.ok,false); assert.match(movedAfterWrite.error,/projectId/);
+ const unread=await guardTarget({policy:p,expected,observed:issue(),observedComment:{id:own,issueId:id(5),fullyRead:false},repoPath:root});
+ assert.equal(unread.ok,false);
+ assert.equal((await guardTarget({policy:p,expected:{...expected,projectId:id(4)},observed:issue({projectId:id(4)}),observedComment:{id:own,issueId:id(5),fullyRead:true},repoPath:root})).ok,true);
+ } finally {await rm(dir,{recursive:true,force:true});}
+});
 test('CLI prints JSON denial and documents inputs', () => {
  const run=(args,value)=>spawnSync(process.execPath,['scripts/project-routing.mjs',...args],{input:value,encoding:'utf8'});
  assert.equal(run(['--help']).status,0);

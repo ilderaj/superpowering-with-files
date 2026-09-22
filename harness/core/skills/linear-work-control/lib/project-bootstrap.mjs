@@ -6,10 +6,12 @@
 // Projects and teams must be complete, fullyRead records; rootEvidence is
 // independently measured by the caller and is only checked for known absolute paths.
 
+import path from 'node:path';
+
 const ACTIVE = new Set(['backlog', 'planned', 'started']);
 const KEY = /^[a-z0-9][a-z0-9-]*$/;
 const MARKER = /^productKey: ([a-z0-9][a-z0-9-]*); projectKey: ([a-z0-9][a-z0-9-]*)$/;
-const ABSOLUTE = /^\//;
+const absolute = value => typeof value === 'string' && (path.posix.isAbsolute(value) || path.win32.isAbsolute(value));
 const text = v => typeof v === 'string' && v.trim() !== '';
 const object = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const fail = (...errors) => ({ ok: false, errors });
@@ -24,7 +26,7 @@ export function planProjectBootstrap(input = {}) {
   if (!object(request) || !KEY.test(request.productKey || '') || !text(request.productName)) errors.push('request productKey/productName invalid');
   if (request?.explicitEnrollment !== true) errors.push('explicit enrollment required');
   if (!object(policy) || !text(policy.workspaceId) || !text(policy.teamId)) errors.push('policy workspace/team required');
-  if (!object(root) || !ABSOLUTE.test(root.canonicalRoot || '') || !ABSOLUTE.test(root.gitCommonDir || '') || root.canonicalRoot === 'unknown' || root.gitCommonDir === 'unknown') errors.push('root evidence must be known absolute paths');
+  if (!object(root) || !absolute(root.canonicalRoot) || !absolute(root.gitCommonDir) || root.canonicalRoot === 'unknown' || root.gitCommonDir === 'unknown') errors.push('root evidence must be known absolute paths');
   if (!object(catalog) || catalog.complete !== true || catalog.paginationComplete !== true || catalog.projectOwnershipComplete !== true) errors.push('complete project catalog required');
   if (!Array.isArray(catalog?.projects) || !Array.isArray(catalog?.teams)) errors.push('catalog projects/teams required');
   if (catalog?.workspaceId !== policy?.workspaceId) errors.push('catalog workspace mismatch');
