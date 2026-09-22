@@ -15,9 +15,53 @@ test('navigation timeout is caught while the navigation command is still pending
 });
 
 test('failed navigation does not leave an unhandled load-event timeout', async () => {
-  const page = new CdpPage({ on() { return () => {}; }, async send() { return { errorText: 'failed' }; } }, 'test', 'test');
+  const page = new CdpPage({ on() { return () => {}; }, async send(method) { return method === 'Page.getFrameTree' ? { frameTree: { frame: { id: 'main' } } } : { errorText: 'failed' }; } }, 'test', 'test');
   await assert.rejects(page.navigate('http://localhost', 5), /Navigation failed/);
   await new Promise((resolve) => setTimeout(resolve, 20));
+});
+
+test('navigation response capture ignores iframe documents and keeps the main-frame final redirect response', async () => {
+  const listeners = new Map();
+  const connection = {
+    on(method, listener) { listeners.set(method, listener); return () => listeners.delete(method); },
+    async send(method) {
+      if (method === 'Page.getFrameTree') return { frameTree: { frame: { id: 'main' } } };
+      if (method === 'Page.navigate') {
+        listeners.get('Network.responseReceived')({ type: 'Document', frameId: 'iframe', response: { status: 404, url: 'http://target/frame' } });
+        listeners.get('Network.responseReceived')({ type: 'Document', frameId: 'main', response: { status: 302, url: 'http://target/start' } });
+        listeners.get('Network.responseReceived')({ type: 'Document', frameId: 'main', response: { status: 200, url: 'http://target/final' } });
+        listeners.get('Page.loadEventFired')({});
+        return {};
+      }
+      return {};
+    },
+  };
+  const page = new CdpPage(connection, 'test', 'test');
+  await page.navigate('http://target/start', 50);
+  assert.deepEqual(page.mainDocumentResponse, { status: 200, url: 'http://target/final' });
+});
+
+test('navigation response capture resets before a subsequent navigation', async () => {
+  const listeners = new Map();
+  let navigation = 0;
+  const connection = {
+    on(method, listener) { listeners.set(method, listener); return () => listeners.delete(method); },
+    async send(method) {
+      if (method === 'Page.getFrameTree') return { frameTree: { frame: { id: 'main' } } };
+      if (method === 'Page.navigate') {
+        navigation += 1;
+        if (navigation === 1) listeners.get('Network.responseReceived')({ type: 'Document', frameId: 'main', response: { status: 500, url: 'http://target/first' } });
+        listeners.get('Page.loadEventFired')({});
+        return {};
+      }
+      return {};
+    },
+  };
+  const page = new CdpPage(connection, 'test', 'test');
+  await page.navigate('http://target/first', 50);
+  assert.equal(page.mainDocumentResponse.status, 500);
+  await page.navigate('http://target/second', 50);
+  assert.equal(page.mainDocumentResponse, null);
 });
 
 // A responsive WebSocket can still leave a command unanswered.

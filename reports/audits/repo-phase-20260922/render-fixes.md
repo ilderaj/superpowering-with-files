@@ -39,3 +39,15 @@ node --test --test-concurrency=1 --test-name-pattern='no-clip accepts|shared ele
 Result: 4 passed, 0 failed, exit 0.
 
 No screenshot visibility policy, measurement contract invariant, dependency, Trio file, or root worktree content was changed. The implementation is limited to `packages/render-verify`, `tests/render-verify`, and `tests/fixtures/render-verify`, plus this report.
+
+## Follow-up review: f0a50469
+
+The follow-up tightens response attribution to the measured main frame returned by `Page.getFrameTree`. Each navigation clears the prior response; every matching main-frame Document response replaces it, so redirects retain the final response while iframe responses are ignored. The no-clip result now reports the actual dimension-fit OR visible-overflow predicate and records `overflowX`/`overflowY` in `measured`.
+
+Focused regression command:
+
+```sh
+node --test --test-concurrency=1 tests/render-verify/cdp-lifecycle.test.mjs tests/render-verify/render-verify.test.mjs --test-name-pattern='navigation response|subsequent navigation|visible overflow'
+```
+
+Result: 36 tests passed, 0 failed, exit 0. This includes the two new CDP navigation regressions and the no-clip report contract assertions.

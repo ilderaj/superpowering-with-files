@@ -131,6 +131,10 @@ test('no-clip accepts visible overflow while hidden overflow still fails', brows
   const result = await runCli(['--spec', specPath, '--file', join(fixtureRoot, 'no-clip-visible-overflow-pass.html'), '--json']);
   assert.equal(result.code, 0, result.stderr || result.stdout);
   assert.equal(JSON.parse(result.stdout).status, 'passed');
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.results[0].expected.dimensions, 'scrollHeight <= clientHeight AND scrollWidth <= clientWidth OR overflowX === visible AND overflowY === visible');
+  assert.equal(report.results[0].measured.overflowX, 'visible');
+  assert.equal(report.results[0].measured.overflowY, 'visible');
 });
 
 test('shared element selectors retain each check text selector', browserOptions, async () => {

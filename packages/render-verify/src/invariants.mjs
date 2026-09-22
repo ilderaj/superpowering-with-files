@@ -76,7 +76,7 @@ export function evaluateInvariants(checks, measurement, { pageErrors = [], viewp
       const fits = element.scrollHeight <= element.clientHeight + tolerance && element.scrollWidth <= element.clientWidth + tolerance;
       const visibleOverflow = element.overflowX === 'visible' && element.overflowY === 'visible';
       const passed = (fits || visibleOverflow) && element.textRects.count > 0 && element.textRects.missingNodes === 0;
-      return finish(result, { scrollHeight: element.scrollHeight, clientHeight: element.clientHeight, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth, textRects: element.textRects }, { scrollHeight: '<= clientHeight', scrollWidth: '<= clientWidth', textRects: '> 0 for every non-empty text node', missingTextRects: 0 }, passed, passed ? '' : 'content dimensions or text client rects indicate clipping');
+      return finish(result, { scrollHeight: element.scrollHeight, clientHeight: element.clientHeight, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth, overflowX: element.overflowX, overflowY: element.overflowY, textRects: element.textRects }, { dimensions: 'scrollHeight <= clientHeight AND scrollWidth <= clientWidth OR overflowX === visible AND overflowY === visible', overflowX: element.overflowX, overflowY: element.overflowY, textRects: '> 0 for every non-empty text node', missingTextRects: 0 }, passed, passed ? '' : 'content dimensions or text client rects indicate clipping');
     }
     if (check.invariant === 'single-layer') {
       const declared = check.ownership ?? {};
