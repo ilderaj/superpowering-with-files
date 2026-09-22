@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-22",
+  "scope": [
+    "plugins/dsh/assets",
+    "plugins/dsh/test/parity.test.ts",
+    "reports/audits/repo-phase-20260922/dsh-full-verify-repair.md",
+    "reports/audits/repo-phase-20260922/dsh-full-verify-repair.json"
+  ],
+  "priorFailureAggregation": {
+    "totalTestsFailed": 6,
+    "assetByteFailures": 3,
+    "parityFailures": 3,
+    "productionImplementationBugs": 0,
+    "diagnosis": "stale vendored projections and retired Corleone byte-parity expectations"
+  },
+  "assetDisposition": {
+    "updatedFromCurrentSources": [
+      "plugins/dsh/assets/skills/trio/SKILL.md",
+      "plugins/dsh/assets/skills/trio/office/SKILL.md",
+      "plugins/dsh/assets/skills/chiefops/SKILL.md"
+    ],
+    "retiredArchitectureRestored": false
+  },
+  "parityDisposition": {
+    "testUpdatedToCurrentContract": true,
+    "currentFailClosedBoundaries": [
+      "visible_observation_unknown",
+      "visible_model_controls_unbound",
+      "current visible-worker evidence",
+      "outer requested model conflict"
+    ],
+    "retiredCorleoneInterfaceRestored": false
+  },
+  "verification": {
+    "command": "CI=true pnpm --dir plugins/dsh verify",
+    "waitedForCompletion": true,
+    "versionLockPassed": true,
+    "buildPassed": true,
+    "testFilesPassed": 20,
+    "testsPassed": 299,
+    "testsFailed": 0,
+    "moduleLoadingGap": false
+  },
+  "integrationReview": {
+    "verifyAllIncludesDsh": false,
+    "repositoryWorkflowHasIndependentDshJob": false,
+    "recommendation": "keep dsh as an independent CI gate using its package-local pnpm lock and verify command",
+    "workflowChanged": false,
+    "verifyAllChanged": false
+  }
+}

@@ -5,6 +5,8 @@ description: Source-backed office artifacts with verification scaled to change a
 
 # Office
 
+Load [source-backed work](references/source-backed-work.md) when a deliverable depends on external sources, dated facts, project-owned taxonomy, or unresolved conflicts. Load [artifact and delivery](references/artifact-and-delivery.md) when native artifact checks or delivery evidence are part of the acceptance decision.
+
 Inspect intended audience, existing artifact, source/data basis, constraints, and delivery format before drafting. Route through the matching available Host-native capability:
 
 - documents: Host-native document creation, parsing, and layout inspection.

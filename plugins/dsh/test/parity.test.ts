@@ -193,8 +193,8 @@ describe('golden parity: model/effort policy', () => {
   });
 });
 
-describe('golden parity: fail-closed host operation routing', () => {
-  it('manual_pending routes are byte-identical', () => {
+describe('current dsh fail-closed host operation routing', () => {
+  it('manual_pending routes preserve current blockers and immutable packet evidence', () => {
     const cases = [
       {
         label: 'unauthenticated default topology',
@@ -242,19 +242,23 @@ describe('golden parity: fail-closed host operation routing', () => {
         }
       }
     ];
-    for (const { input } of cases) {
-      const run = (fn: (i: Record<string, unknown>) => unknown) => {
-        try {
-          return { ok: true, value: JSON.stringify(fn(input)) };
-        } catch (error) {
-          return { ok: false, message: (error as Error).message };
-        }
-      };
-      expect(run(ported.resolveHostOperation)).toEqual(run(original.resolveHostOperation));
+    for (const { label, input } of cases) {
+      if (label === 'child request outside flash profile') {
+        expect(() => ported.resolveHostOperation(input))
+          .toThrow('Outer requested model gpt-5.6-sol conflicts with the validated packet policy opencode-go/deepseek-v4-flash.');
+        continue;
+      }
+      const result = ported.resolveHostOperation(input);
+      expect(result.routeEvidence.routeKind).toBe('manual_pending');
+      expect(result.descriptor.executed).toBe(false);
+      expect(result.descriptor.writes).toEqual([]);
+      expect(result.descriptor.assignmentPacket).toEqual(input.assignmentPacket);
+      expect(result.descriptor.packetDigest).toBe(packetDigest(input.assignmentPacket));
+      expect(Object.isFrozen(result.descriptor.assignmentPacket)).toBe(true);
     }
   });
 
-  it('authenticated visible worker routes are byte-identical', () => {
+  it('authenticated visible worker routes use the current worker evidence contract', () => {
     const packet = makePacket();
     const digest = packetDigest(packet);
     const input = {
@@ -264,9 +268,20 @@ describe('golden parity: fail-closed host operation routing', () => {
       parentEnvelope: parentEnvelope(),
       observation: visibleWorkerObservation(digest)
     };
-    expect(JSON.stringify(ported.resolveHostOperation(input)))
-      .toBe(JSON.stringify(original.resolveHostOperation(input)));
-    expect(ported.resolveHostOperation(input).routeEvidence.routeKind).toBe('visible_worker');
+    const result = ported.resolveHostOperation(input);
+    expect(result.routeEvidence).toMatchObject({
+      routeKind: 'visible_worker',
+      requestedModel: 'opencode-go/deepseek-v4-flash',
+      requestedEffort: 'high',
+      actualModel: 'opencode-go/deepseek-v4-flash',
+      actualEffort: 'high',
+      workerId: 'w-1',
+      fallbackReason: null,
+      status: 'executing'
+    });
+    expect(result.descriptor.executed).toBe(false);
+    expect(result.descriptor.writes).toEqual([]);
+    expect(result.descriptor.packetDigest).toBe(digest);
   });
 
   it('native routes bind an owned packet snapshot and its digest', () => {
@@ -274,16 +289,12 @@ describe('golden parity: fail-closed host operation routing', () => {
     const input = nativeSpawnInput(packet);
 
     const portedResult = ported.resolveHostOperation(input);
-    const originalResult = original.resolveHostOperation(input);
-    expect(portedResult).toEqual(originalResult);
     expect(portedResult.routeEvidence.routeKind).toBe('native_subagent');
     expect(portedResult.descriptor.assignmentPacket).toEqual(packet);
     expect(portedResult.descriptor.packetDigest).toBe(packetDigest(packet));
     expect(Object.isFrozen(portedResult.descriptor.assignmentPacket)).toBe(true);
     expect(Object.isFrozen((portedResult.descriptor.assignmentPacket as { currentSlice: unknown }).currentSlice)).toBe(true);
     expect(Object.isFrozen((portedResult.descriptor.assignmentPacket as { allowedOperations: { files: unknown } }).allowedOperations.files)).toBe(true);
-    expect(Object.isFrozen(originalResult.descriptor.assignmentPacket)).toBe(true);
-
     (packet.currentSlice as { name: string }).name = 'caller-mutated-slice';
     expect((portedResult.descriptor.assignmentPacket as { currentSlice: { name: string } }).currentSlice.name)
       .toBe('slice-0');
@@ -296,8 +307,6 @@ describe('golden parity: fail-closed host operation routing', () => {
     delete input.assignmentPacket;
 
     const portedResult = ported.resolveHostOperation(input);
-    const originalResult = original.resolveHostOperation(input);
-    expect(portedResult).toEqual(originalResult);
     expect(portedResult.routeEvidence.routeKind).toBe('manual_pending');
     expect(portedResult.routeEvidence.fallbackReason).toBe('child_delegation_prohibited');
   });
@@ -312,11 +321,12 @@ describe('golden parity: fail-closed host operation routing', () => {
     delete input.assignmentPacket;
 
     const portedResult = ported.resolveHostOperation(input);
-    const originalResult = original.resolveHostOperation(input);
-    expect(portedResult).toEqual(originalResult);
     expect(portedResult.routeEvidence.routeKind).toBe('manual_pending');
     expect(portedResult.routeEvidence.fallbackReason)
       .toBe('visible_worker_required_unavailable:visible_model_controls_unbound');
+    expect(portedResult.routeEvidence.capabilityEvidence.nativeOperationSupport).toBe('supported');
+    expect(portedResult.descriptor.resumeCondition)
+      .toContain('Provide an authenticated Host visible worker');
   });
 
   it('resolveHostOperation throws identical messages', () => {

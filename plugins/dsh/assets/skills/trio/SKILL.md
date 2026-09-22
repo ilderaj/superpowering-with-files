@@ -13,6 +13,8 @@ Route before choosing effort or execution topology:
 - **Tracked:** create or restore the bound task's three planning files under `planning/active/<task-id>/`: `task_plan.md`, `findings.md`, and `progress.md`. They are the sole durable task authority; no fourth task-state surface.
 - **Deep:** a current-round reasoning choice for material uncertainty, not a durable task type.
 
+In a repository with `.harness/linear/routing.json`, tracked intake also follows `linear-work-control` Project-first enrollment, including direct execution without ChiefOps. Explicit opt-out remains local-only. Missing enrollment is visible setup-needed and not eligible for unattended execution; quick work remains exempt.
+
 Select exactly one capability family: `dev`, `office`, or `safety`. Read its SKILL and only the references needed for the current decision. ChiefOps is an optional governance companion for a selected Chief lane.
 
 Direct work may complete after relevant verification without Chief acceptance. Delegated primary work returns a candidate and needs Chief acceptance plus Trio writeback; an explicitly chosen governance lane may also require independent acceptance. Bounded helpers do not turn a direct executor into a delegated primary worker.
@@ -20,5 +22,7 @@ Direct work may complete after relevant verification without Chief acceptance. D
 Use bounded parallel delegation when beneficial and permitted by the Host and user. The selected topology and exact scope remain binding. Read [execution boundaries](references/execution.md) when selecting a different model or effort, delegating, freezing a slice, or recovering a worker.
 
 Human intent constrains model and effort choices; the agent recommends or selects supported intent, and the Host executes and attests. The Host owns worker lifecycle, continuation, permissions, and model evidence. Requested model and effort express intent; actual remains unknown without authenticated Host evidence. The shared contract prescribes no forced model roster.
+
+Define completion through the observable outcome, relevant verification, and stop conditions. Continue through authorized implementation, verification, and repair; a first implementation is not completion when agreed work remains. Stop dependent work at a user-requested review, missing authorization, or Host restriction; continue independent work within scope.
 
 Return the result, paths, verification evidence and limits. Use direct completion, delegated `candidate_done`, or a bounded blocker as appropriate; never imply an external action or human approval occurred from technical verification alone.
