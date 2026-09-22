@@ -4,7 +4,7 @@
 
 ## 规划与需求
 
-审计起点有 39 个历史 active Trio。已关闭归档 30 个，保留 9 个真实未完成或持续性任务；本次审计另计，交付完成后关闭。每项归档路径与保留原因见 [完整清单](planning-final-inventory.json)。
+审计起点有 39 个历史 active Trio。已关闭归档 30 个，保留 9 个真实未完成或持续性任务；本次审计另计，现已关闭归档并回读 SUP-54 为 Done。每项归档路径与保留原因见 [完整清单](planning-final-inventory.json)。
 
 归档区分“已完成”与“被当前架构取代”。没有把不可达的旧 worker commit 当作集成证据，也没有恢复退役的 Corleone、V0b overlay 或 tracked-lean 路由。此前已跟踪的两个 Trio 和 companion 保留在 Git 的 archive 路径中；其余本地规划按仓库既有忽略规则归档并完整备份。
 
@@ -71,4 +71,14 @@ PR #199 已合并；首轮 local/origin main/dev 与保留的 cloud-dev 同为 `
 
 最终全量 GitHub 查询补查了较早清单未覆盖的 12 张旧 issue。#170/143/141/140/135/131/126 对应退役架构，#129 由当前权限证据合同满足，#172 的原上游测试 4+5 项已通过，均据实关闭。现存 PR observer 的 #171/#174 补做 RED/GREEN：只核验活动账号，draft/未知 draft 状态停止于 human gate，24 项定向测试通过。#169 仍是真实上游 residual-lock 恢复缺口；SWF overlay 未采用该命令，保留开放且未伪造修复。
 
-完整 Linear 状态与队列见 [最终清单](linear-final-inventory.json)。本次 SUP-54 在交付全部完成后才关闭；终态以最终 receipt 为准。
+完整 Linear 状态与队列见 [最终清单](linear-final-inventory.json)。本次 SUP-54 已在代码交付、同步、adopt 和清理回读通过后关闭；archive lifecycle receipt 验证通过，pendingRetry=false。
+
+## 已验收的终态
+
+实现经 [PR #199](https://github.com/ilderaj/superpowering-with-files/pull/199) 和 [PR #200](https://github.com/ilderaj/superpowering-with-files/pull/200) 合并；后一 PR 的完整 CI 通过：Trio 503、eval 14、core 546、plugin 84、homepage 20、render 36，独立 DSH 299。两组受影响测试另以确定性时钟回归验证 39/39。
+
+本次 Trio 位于 `planning/archive/20260922-135554-repo-phase-audit-20260922/`，SUP-54 为 Done，生命周期回执与零同步债均已验证。历史 active 减少 30 项，现仅 9 项保留；本次审计不再占 active。相关 GitHub 问题已清理，唯一保留 #169 的真实上游缺口。
+
+源代码验收时，local/origin main/dev 与 cloud-dev 同为 `6def9c4841b078f24d23c3de98acf6cfc3a5e9cd`，主工作区 clean/dev，worktree=1、stash=0，本地只保留 main/dev、远端只保留 main/dev/cloud-dev。此后只提交本次关闭记录；记录 PR 合并后的最终 refs/clean 回读保存在本地 `.harness/backups/repo-phase-20260922/final-delivery-receipt.json` 并随用户交付，不用自引用 commit SHA 伪造记录提交后的状态。
+
+能力边界仍明确：SUP-15 需要人类验收；fallback 新路由须刷新 Host catalog 并观察真实运行；decision WP-10/11 仍需独立实证。插件化和目标分类报告没有实施新的架构。

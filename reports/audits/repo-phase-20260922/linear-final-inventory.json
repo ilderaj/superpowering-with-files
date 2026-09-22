@@ -70,12 +70,11 @@
     },
     {
       "id": "SUP-54",
-      "status": "In Progress",
+      "status": "Done",
       "labels": [
         "workstream:core",
         "swf-managed",
-        "executor:codex-local",
-        "agent-running"
+        "executor:codex-local"
       ]
     },
     {
@@ -503,5 +502,11 @@
   "humanReview": [
     "SUP-15"
   ],
-  "errors": []
+  "errors": [],
+  "auditClosure": {
+    "state": "Done",
+    "archivePath": "planning/archive/20260922-135554-repo-phase-audit-20260922",
+    "receiptVerified": true,
+    "pendingRetry": false
+  }
 }

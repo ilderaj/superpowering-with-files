@@ -155,12 +155,6 @@
       "reason": "Fallback is configured, but current Host must reload the provider catalog and a real successful scheduled fallback run must be observed."
     },
     {
-      "taskId": "repo-phase-audit-20260922",
-      "status": "active",
-      "disposition": "retain",
-      "reason": "Current audit; close only after final delivery and adoption readbacks."
-    },
-    {
       "taskId": "sup-15-render-verify-dogfood-20260918",
       "status": "waiting_review",
       "disposition": "retain",
@@ -184,5 +178,13 @@
       "disposition": "retain",
       "reason": "Recurring review authority remains active; one completed review is not completion of the ongoing automation."
     }
-  ]
+  ],
+  "auditTask": {
+    "taskId": "repo-phase-audit-20260922",
+    "status": "closed",
+    "archivePath": "planning/archive/20260922-135554-repo-phase-audit-20260922",
+    "linearIssue": "SUP-54",
+    "linearState": "Done",
+    "pendingRetry": false
+  }
 }

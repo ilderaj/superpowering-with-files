@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "verifiedOn": "2026-09-22",
-  "stage": "PR199 merged and adopted; final PR-observer follow-up and closure records in progress",
+  "stage": "Implementation, audit acceptance, source delivery and adoption complete; this change publishes closure metadata only",
   "checks": {
     "verify:all": {
       "exitCode": 0,
@@ -44,6 +44,19 @@
       "versionParity": 4,
       "pluginSurface": 5,
       "exitCode": 0
+    },
+    "postFollowUpCI": {
+      "head": "ad90896ddb8e5dd8a774c057f7aa5b4ea301d66d",
+      "run": "https://github.com/ilderaj/superpowering-with-files/actions/runs/35692270074",
+      "result": "passed",
+      "trio": 503,
+      "eval": 14,
+      "core": 546,
+      "plugin": 84,
+      "homepage": 20,
+      "render": 36,
+      "dsh": 299,
+      "focusedObserverAndEvidence": 39
     }
   },
   "localLogs": [
@@ -62,6 +75,10 @@
     {
       "path": ".harness/backups/repo-phase-20260922/final-plugin-smoke.log",
       "sha256": "f1871f580aa19d92d28c0660a9cb0f6fd2addb20c505745d12673384f0fb712a"
+    },
+    {
+      "path": ".harness/backups/repo-phase-20260922/pr200-green-ci.log",
+      "sha256": "401bbf131d8fe4728439e4604504fc14738a29b64d7f502c54784d2bfe99ccd5"
     }
   ],
   "delivery": {
@@ -81,7 +98,9 @@
       "skills": 24,
       "comparedFiles": 67
     },
-    "finalWorkspaceBranch": "pending final follow-up publication"
+    "finalWorkspaceBranch": "dev verified at source acceptance; closure-record branch will be removed after its PR",
+    "followUpPr": "https://github.com/ilderaj/superpowering-with-files/pull/200",
+    "sourceMergeSha": "6def9c4841b078f24d23c3de98acf6cfc3a5e9cd"
   },
   "limitations": [
     "No real model/provider equivalence or token-saving claim",
@@ -91,5 +110,12 @@
   "retainedGithubIssue": {
     "number": 169,
     "reason": "Upstream stale-lock recovery not implemented; command absent from adopted SWF overlay"
+  },
+  "auditClosure": {
+    "trio": "planning/archive/20260922-135554-repo-phase-audit-20260922",
+    "linearIssue": "SUP-54",
+    "linearState": "Done",
+    "receiptVerified": true,
+    "pendingRetry": false
   }
 }

@@ -19,11 +19,12 @@
     "repo-phase-audit-20260922": {
       "issueId": "eda72266-f88f-4786-83bb-bca9a8cca045",
       "identifier": "SUP-54",
-      "state": "running"
+      "state": "done"
     }
   },
   "sync": {
     "lastResult": "ok",
-    "pendingRetry": false
+    "pendingRetry": false,
+    "lastCheckpointAt": "2026-09-22"
   }
 }
