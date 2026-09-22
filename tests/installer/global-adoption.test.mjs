@@ -115,6 +115,18 @@ test('matching first adoption records ownership and executable mode changes are 
   assert.equal(await treeDigest(path.join(f.rootDir, source)), await treeDigest(path.join(f.homeDir, '.agents', 'skills', name)));
 });
 
+test('destination-only generated artifacts do not create a false conflict', async t => {
+  const f = await fixture(t);
+  await adoptGlobalSkills({ ...f, apply: true });
+  const destination = path.join(f.homeDir, '.agents', 'skills', INSTALLS[0][0]);
+  await mkdir(path.join(destination, 'scripts', '__pycache__'), { recursive: true });
+  await writeFile(path.join(destination, 'scripts', '__pycache__', 'generated.pyc'), 'runtime artifact');
+  const plan = await adoptGlobalSkills(f);
+  assert.equal(plan.entries.find(e => e.name === INSTALLS[0][0]).conflict, false);
+  assert.equal((await adoptGlobalSkills({ ...f, apply: true })).changed, 0);
+  assert.equal(await readFile(path.join(destination, 'scripts', '__pycache__', 'generated.pyc'), 'utf8'), 'runtime artifact');
+});
+
 test('show-me is adopted from the real source with its provenance and license, then is unchanged on repeat', async t => {
   const homeDir = await realpath(await mkdtemp(path.join(os.tmpdir(), 'swf-show-me-')));
   t.after(() => rm(homeDir, { recursive: true, force: true }));

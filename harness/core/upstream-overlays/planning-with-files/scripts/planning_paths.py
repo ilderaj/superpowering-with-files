@@ -190,19 +190,18 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
     source_dir = active_dir(project_path, task_id)
     if not source_dir.exists():
         raise FileNotFoundError(f"active planning directory does not exist: {source_dir}")
+    task_plan = source_dir / "task_plan.md"
+    text = task_plan.read_text(encoding="utf-8")
     try:
         stable_id = stable_task_id(source_dir)
     except RuntimeError as error:
         if "must contain an explicit stable Task ID" not in str(error):
             raise
-        task_plan = source_dir / "task_plan.md"
-        text = task_plan.read_text(encoding="utf-8")
         if re.search(r"^Task ID:", text, re.MULTILINE):
             raise
         stable_id = source_dir.name
-        if not SAFE_THREAD_ID_RE.fullmatch(stable_id):
+        if not TASK_ID_RE.fullmatch("Task ID: " + stable_id):
             raise RuntimeError(f"legacy task basename is unsafe as stable Task ID: {stable_id}") from error
-        task_plan.write_text("Task ID: " + stable_id + "\n" + text, encoding="utf-8")
     if task_id and task_id != stable_id:
         raise RuntimeError(f"requested task id {task_id!r} does not match stable Task ID {stable_id!r}")
 
@@ -219,6 +218,10 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
             "companion lifecycle metadata must be synchronized before archiving: "
             + "; ".join(companion_status["reasons"])
         )
+
+    # Migrate legacy identity only after every pre-move validation has passed.
+    if "Task ID:" not in text:
+        task_plan.write_text("Task ID: " + stable_id + "\n" + text, encoding="utf-8")
 
     companion_source = None
     companion_original_text = None
@@ -314,7 +317,9 @@ def reopen_task(project_path: Path, target: str) -> Path:
             block = re.sub(r"^Status:[ \t]*.*$", "Status: active", match.group(0), count=1, flags=re.MULTILINE)
             block = re.sub(r"^Archive Eligible:[ \t]*.*$", "Archive Eligible: no", block, count=1, flags=re.MULTILINE)
             return re.sub(r"^(Close Reason|Closed At):.*\n?", "", block, flags=re.MULTILINE)
-        text = re.sub(r"^## Current State\s*$[\s\S]*?(?=^## |\Z)", reopen_block, original_plan, count=1, flags=re.MULTILINE)
+        text, changed = re.subn(r"^##\s+Current State\s*$[\s\S]*?(?=^## |\Z)", reopen_block, original_plan, count=1, flags=re.MULTILINE)
+        if changed != 1 or not re.search(r"^Status:[ \t]*active\s*$", text, flags=re.MULTILINE):
+            raise RuntimeError("reopen could not update exactly one Current State block")
         if companion.exists():
             text = re.sub(r"^\s*(?:[-*]\s*)?Companion plan\s*:\s*.*$", "- Companion plan: `planning/active/%s/companion_plan.md`" % stable_id, text, count=1, flags=re.MULTILINE | re.IGNORECASE)
             companion_text = original_companion

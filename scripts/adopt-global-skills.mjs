@@ -41,19 +41,18 @@ export async function treeDigest(root, { source = false } = {}) {
   const hash = createHash('sha256');
   async function visit(dir) {
     for (const name of (await readdir(dir)).sort()) {
-      if (source && excluded(name)) continue;
       const p = path.join(dir, name), entry = await lstat(p);
+      const rel = path.relative(root, p);
+      if (source && rel.split(path.sep).some(excluded)) continue;
       if (entry.isSymbolicLink() || (!entry.isDirectory() && !entry.isFile()) || entry.nlink > 1 && entry.isFile()) {
         throw new Error(`Unsafe skill entry: ${p}`);
       }
-      const rel = path.relative(root, p);
       if (entry.isDirectory()) {
-        hash.update(JSON.stringify([rel, 'dir']) + '\n');
         await visit(p);
       } else {
         const bytes = await readFile(p);
         // Length framing prevents a file's content from impersonating another entry.
-        hash.update(JSON.stringify([rel, 'file', bytes.length, entry.mode & 0o111]) + '\n');
+        if (source) hash.update(JSON.stringify([rel, 'file', bytes.length, entry.mode & 0o111]) + '\n');
         hash.update(bytes);
       }
     }
@@ -76,7 +75,9 @@ export async function adoptGlobalSkills({ homeDir, rootDir = ROOT, apply = false
   const entries = [];
   for (const [name, source] of [...INSTALLS, ...RETIRED.map(name => [name, null])]) {
     const destination = path.join(skillRoot, name);
-    const before = await treeDigest(destination);
+    // Compare the same source-owned file set on both sides. Generated Python
+    // caches are destination-local artifacts and do not establish ownership.
+    const before = await treeDigest(destination, { source: true });
     const after = source ? await treeDigest(path.join(rootDir, source), { source: true }) : null;
     if (source && !after) throw new Error(`Missing skill source: ${source}`);
     const owned = prior.entries.find(e => e.name === name);
@@ -105,25 +106,25 @@ export async function adoptGlobalSkills({ homeDir, rootDir = ROOT, apply = false
     if (receiptInfo) await cp(receiptPath, path.join(backup, 'receipt.json'));
     for (const e of changes) {
       if (e.before) await cp(e.destination, path.join(backup, e.name), { recursive: true, errorOnExist: true, force: false });
-      if (await treeDigest(path.join(backup, e.name)) !== e.before) throw new Error(`Backup mismatch: ${e.name}`);
+      if (await treeDigest(path.join(backup, e.name), { source: true }) !== e.before) throw new Error(`Backup mismatch: ${e.name}`);
       if (e.source) {
         const sourceRoot = path.join(rootDir, e.source);
         await cp(sourceRoot, path.join(lock, e.name), {
           recursive: true,
           filter: candidate => !path.relative(sourceRoot, candidate).split(path.sep).some(excluded)
         });
-        if (await treeDigest(path.join(lock, e.name)) !== e.after) throw new Error(`Source changed: ${e.name}`);
+        if (await treeDigest(path.join(lock, e.name), { source: true }) !== e.after) throw new Error(`Source changed: ${e.name}`);
       }
     }
     await writeFile(path.join(backup, 'manifest.json'), JSON.stringify({ schemaVersion: 1, entries }, null, 2) + '\n', { flag: 'wx' });
     for (const e of changes) {
       await assertRealParents(path.dirname(e.destination));
-      if (await treeDigest(e.destination) !== e.before) throw new Error(`Destination changed: ${e.name}`);
+      if (await treeDigest(e.destination, { source: true }) !== e.before) throw new Error(`Destination changed: ${e.name}`);
       const old = path.join(lock, `${e.name}.previous`);
       if (e.before) await renamePath(e.destination, old);
       applied.push({ ...e, old });
       if (e.source) await renamePath(path.join(lock, e.name), e.destination);
-      if (await treeDigest(e.destination) !== e.after) throw new Error(`Readback mismatch: ${e.name}`);
+      if (await treeDigest(e.destination, { source: true }) !== e.after) throw new Error(`Readback mismatch: ${e.name}`);
     }
     const receipt = { schemaVersion: 1, sourceRoot: rootDir, backup, entries: entries.map(e => ({ name: e.name, digest: e.after })) };
     await writeFile(path.join(lock, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
