@@ -675,6 +675,12 @@ test('reconverge repairs two stale owned global files, preserves siblings, then 
       targets: [{
         ...productionTrioConfig(environment, 'both').targets[0],
         paths: [path.join(environment.homeDir, '.codex', 'AGENTS.md')]
+      }, {
+        id: 'cursor',
+        enabled: true,
+        paths: [path.join(environment.homeDir, 'manual', 'cursor', 'entry-policy.md')],
+        hostKind: 'generic',
+        mode: 'manual'
       }]
     });
     await applyTrioProjection({ environment, config: initial });
@@ -699,8 +705,11 @@ test('reconverge repairs two stale owned global files, preserves siblings, then 
         : entry.path.endsWith(`/.agents/skills/${candidate.relativePath}`));
       await writeFile(entry.path, await readFile(path.join(REPO_ROOT, surface.source), 'utf8'));
     }
-    const reconverged = await reconvergeTrioProjection({ environment, config: stateBefore });
+    const reconverged = await sync(['--reconverge'], { rootDir: roots.rootDir, homeDir: roots.homeDir });
     assert.equal(reconverged.mode, 'reconverge');
+    assert.equal(reconverged.manual_pending, true);
+    assert.equal(reconverged.repaired.length, 2);
+    assert.ok(reconverged.backup);
     const settled = JSON.parse(await readFile(environment.stateFile, 'utf8'));
     assert.equal(settled.ownership.entries.length, managed.length);
     assert.equal(settled.ownership.entries.find((entry) => entry.path === older.path).identity, older.identity);

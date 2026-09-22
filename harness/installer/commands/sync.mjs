@@ -787,7 +787,10 @@ function renderTrioSyncReport(prepared, mode) {
       execution: descriptor.execution,
       conflict: Boolean(descriptor.conflict)
     })),
-    conflicts: prepared.conflicts
+    conflicts: prepared.conflicts,
+    ...(prepared.backup ? { backup: prepared.backup } : {}),
+    ...(prepared.repaired ? { repaired: prepared.repaired } : {}),
+    ...(mode === 'reconverge' ? { manual_pending: Boolean(prepared.manual_pending) } : {})
   };
 }
 
@@ -894,7 +897,12 @@ async function assertReconvergeInventory(prepared, config, sources) {
 }
 
 async function assertCapturedReconvergeProof(prepared, config, sources, captured) {
-  const conflicted = new Set(prepared.conflicts.map((conflict) => path.resolve(conflict.destination)));
+  const managedDestinations = new Set(prepared.descriptors
+    .filter((descriptor) => descriptor.management === 'managed' && typeof descriptor.destination === 'string')
+    .map((descriptor) => path.resolve(descriptor.destination)));
+  const conflicted = new Set(prepared.conflicts
+    .filter((conflict) => typeof conflict.destination === 'string' && managedDestinations.has(path.resolve(conflict.destination)))
+    .map((conflict) => path.resolve(conflict.destination)));
   for (const descriptor of prepared.descriptors.filter((entry) => entry.management === 'managed')) {
     const snapshot = captured.snapshots.get(path.resolve(descriptor.destination));
     const entry = config.ownership.entries.find((candidate) =>
@@ -949,7 +957,13 @@ export async function reconvergeTrioProjection({ environment, config, statePreco
   if (readback !== `${JSON.stringify(state, null, 2)}\n`) {
     throw trioBridgeError('Trio reconverge state readback differs from the settled state.', 'ERR_TRIO_RECONVERGE_READBACK');
   }
-  return Object.freeze({ mode: 'reconverge', backup: backup.rollbackRef });
+  return Object.freeze({
+    ...prepared,
+    mode: 'reconverge',
+    backup: backup.rollbackRef,
+    repaired: conflicted.map((descriptor) => descriptor.destination),
+    manual_pending: prepared.descriptors.some((descriptor) => descriptor.management !== 'managed')
+  });
 }
 
 async function syncProduction(args, environment, config) {
