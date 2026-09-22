@@ -19,9 +19,9 @@ Scope: issues #191, #192, #193, #197, #198; bounded fixes in the independent wor
 - `git diff --check` passed.
 - Full `node --test tests/installer/*.test.mjs` — 161/161 passed in 49.1 seconds.
 
-## Candidate commit
+## Primary integration
 
-Candidate commit: `61e1b5a2` (`fix: harden planning lifecycle and skill adoption`); parent should cherry-pick it after review. Issue #197 now has an explicit `sync --reconverge` entry requiring complete projection-manifest ownership, source-byte equivalence only for conflicted managed files, real singly-owned files, state precondition, capture-time proof, readback, and a complete backup bundle. Unknown siblings remain untouched.
+The primary reviewed and integrated the planning/digest fixes and the final reconvergence implementation. The final public CLI regression additionally rejects missing ownership and hardlinks; its report is rebuilt from the state after publication. Root verification is recorded in `verification.json`; helper counts below remain candidate evidence.
 
 ## Second review corrections
 

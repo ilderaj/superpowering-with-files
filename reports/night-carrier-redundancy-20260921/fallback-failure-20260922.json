@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "automation": "swf-night-executor-fallback",
+  "startedAt": "2026-09-22T03:01:13+08:00",
+  "completedAt": "2026-09-22T03:01:19+08:00",
+  "durationMs": 6344,
+  "toolActions": 0,
+  "classification": "carrier gap, not a night gap",
+  "failureClass": "Host quota gate before first model call",
+  "primaryRun": "Completed independently; fallback failure did not invalidate primary results",
+  "rawEvidence": "Local prior-report-residue backup; private Host/session/account details omitted"
+}

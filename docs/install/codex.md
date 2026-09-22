@@ -78,7 +78,7 @@ When a durable authority root already holds a schema-v2 `user-global` Trio state
 ./scripts/harness install --takeover-chiefops
 ```
 
-Run it from the durable authority root — the checkout that owns `.harness/state.json` — not from a transient worktree, and when the applicable human authorization covers the global write. Ordinary `install` stays workspace-only, and normal `sync` keeps only `--dry-run` and `--check`; neither is a bypass for this migration.
+Run it from the durable authority root — the checkout that owns `.harness/state.json` — not from a transient worktree, and when the applicable human authorization covers the global write. Ordinary `install` stays workspace-only, and normal `sync` applies owned projections and supports `--dry-run` and `--check`; none bypass this migration.
 
 ### Eligibility (all must hold, otherwise the command fails before any write)
 
@@ -135,3 +135,9 @@ tar -xzf "$ARCHIVE" -C "$PLUGIN_ROOT"
 Create a local marketplace manifest that lists `harness-matt-skills-codex-plugin` at `./plugins/harness-matt-skills-codex-plugin-<version>`, then register that marketplace with `codex plugin marketplace add "$MATT_MARKETPLACE_ROOT"`. Confirm the companion `.codex-plugin/plugin.json`, `LICENSE`, `UPSTREAM.json`, `OVERLAYS.json`, and all 24 `skills/<name>/SKILL.md` files before enabling it. The separate package is opt-in at the skill level: every Matt skill is independently toggleable in the host, `grill-me` and `grilling` are explicit opt-in, `to-questionnaire` creates a local Markdown draft, and external delivery remains human-gated.
 
 See [plugin package installation](plugin-packages.md) for download, `SHA256SUMS`, and `manifest.json` verification steps.
+
+### Repairing a stale ownership digest
+
+If managed files already match the current canonical source but their recorded identities are stale, `./scripts/harness sync --reconverge` can repair the ownership record. It requires complete projection-manifest ownership, real singly-owned files, and exact source equality for every conflicted managed file. Custom edits, missing ownership, symlinks and hardlinks are rejected. Unrelated user files and manual targets are preserved.
+
+The command captures a verified rollback backup before atomically updating state; it does not overwrite projected file content. Follow it with ordinary `sync` to update any older, still-owned files, then `sync --check` and `doctor --check-only`. `--reconverge` cannot be combined with `--check` or `--dry-run`.

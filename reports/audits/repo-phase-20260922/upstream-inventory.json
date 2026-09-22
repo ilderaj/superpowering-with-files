@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "scope": "Repository-owned upstream sources; unrelated globally installed third-party plugins excluded",
+  "verifiedOn": "2026-09-22",
+  "accepted": {
+    "planning-with-files": {
+      "version": "v3.20.5",
+      "commit": "5ac39bcb41a9251d4253f7a2372b32147bfe6c2c",
+      "officialReleaseVerifiedByPrimary": true,
+      "overlayBehavior": "UTC+8 chronology and stable task identity preserved; test consumers use actual adopted overlay"
+    },
+    "mattpocock-skills": {
+      "version": "v1.2.3",
+      "commit": "6acc160e4e0cd062dbbbd7a1b26ae92855edf07e",
+      "skills": 24,
+      "files": 67,
+      "officialReleaseVerifiedByPrimary": true,
+      "existingPluginUpdate": "Pending post-merge local marketplace adoption"
+    },
+    "show-me": {
+      "reviewedOn": "2026-09-22",
+      "instructionBodyDelta": "none",
+      "invocationOnlyMetadata": "Excluded deliberately to preserve SWF context-driven selection",
+      "provenanceUpdated": true
+    },
+    "ux-design": "Source-informed SWF skill, not a versioned third-party implementation; no mechanical latest-version overwrite.",
+    "optional-methods": "SWF curated adaptations; local origin provenance stays explicit, not falsely called authenticated upstream."
+  },
+  "officialSources": [
+    {
+      "name": "planning-with-files",
+      "url": "https://github.com/OthmanAdi/planning-with-files",
+      "kind": null,
+      "provenance": null
+    },
+    {
+      "name": "mattpocock-skills",
+      "url": "https://github.com/mattpocock/skills",
+      "kind": null,
+      "provenance": "harness/optional-skills/mattpocock/v1.2.3/UPSTREAM.json"
+    },
+    {
+      "name": "optional-methods",
+      "url": null,
+      "kind": null,
+      "provenance": "harness/optional-skills/methods/PROVENANCE.json"
+    },
+    {
+      "name": "show-me",
+      "url": null,
+      "kind": "adaptation",
+      "provenance": "harness/optional-skills/show-me/PROVENANCE.json"
+    },
+    {
+      "name": "ux-design",
+      "url": null,
+      "kind": "source-informed adaptation",
+      "provenance": "harness/optional-skills/ux-design/PROVENANCE.json"
+    }
+  ],
+  "showMeComparison": {
+    "upstreamRepo": "https://github.com/humanlayer/skills",
+    "upstreamHead": "ca7c8088db69e315a8b2deea43820270457f8f3c",
+    "pinnedCommit": "3c2629142c5d437428269b1b722b08c0b87f574d",
+    "remoteHeadFileSha256": "434a2346cc95e313b0d367d477dda2e23ba642dd2181757415a09500664af100",
+    "localAdaptedFileSha256": "d37af9fe3225c1b1956f5e639811c6042ec486ef3ca96066c96ae698538fa4b4",
+    "action": "preserved adaptation; upstream metadata delta reviewed and not applied because it would alter intended autonomous/context-based routing",
+    "candidateStatus": "rejected_by_primary"
+  },
+  "rawBaseline": "Local audit backup publication-preimages/upstream-inventory.json"
+}

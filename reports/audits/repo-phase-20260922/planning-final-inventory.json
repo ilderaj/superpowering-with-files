@@ -1,0 +1,188 @@
+{
+  "initialHistoricalActive": 39,
+  "auditCreated": 1,
+  "archivedThisAudit": [
+    {
+      "taskId": "active-trio-full-audit-20260724",
+      "path": "planning/archive/20260922-121804-active-trio-full-audit-20260724"
+    },
+    {
+      "taskId": "chief-worker-session-routing-issue-20260709",
+      "path": "planning/archive/20260922-121804-chief-worker-session-routing-issue-20260709"
+    },
+    {
+      "taskId": "chiefops-goal-worker-analysis-20260728",
+      "path": "planning/archive/20260922-121804-chiefops-goal-worker-analysis-20260728"
+    },
+    {
+      "taskId": "dev-to-main-pr-closure-20260624",
+      "path": "planning/archive/20260922-121804-dev-to-main-pr-closure-20260624"
+    },
+    {
+      "taskId": "global-adopt-20260612",
+      "path": "planning/archive/20260922-121805-global-adopt-20260612"
+    },
+    {
+      "taskId": "issue-105-verification-command-prose",
+      "path": "planning/archive/20260922-121805-issue-105-verification-command-prose"
+    },
+    {
+      "taskId": "mode-aware-verification-contract-rollout-20260612",
+      "path": "planning/archive/20260922-121805-mode-aware-verification-contract-rollout-20260612"
+    },
+    {
+      "taskId": "ponytail-upstream-fit-analysis-20260619",
+      "path": "planning/archive/20260922-121805-ponytail-upstream-fit-analysis-20260619"
+    },
+    {
+      "taskId": "release-sync-pr-20260921",
+      "path": "planning/archive/20260922-121805-release-sync-pr-20260921"
+    },
+    {
+      "taskId": "roadmap-backlog-implementation-plan-20260628",
+      "path": "planning/archive/20260922-121806-roadmap-backlog-implementation-plan-20260628"
+    },
+    {
+      "taskId": "stash-absorption-minimal-risk-plan-20260630",
+      "path": "planning/archive/20260922-121806-stash-absorption-minimal-risk-plan-20260630"
+    },
+    {
+      "taskId": "swf-coding-harness-implementation-20260904",
+      "path": "planning/archive/20260922-121806-swf-coding-harness-implementation-20260904"
+    },
+    {
+      "taskId": "swf-show-me-adoption-20260906",
+      "path": "planning/archive/20260922-121806-swf-show-me-adoption-20260906"
+    },
+    {
+      "taskId": "swf-ux-design-method-20260911",
+      "path": "planning/archive/20260922-121806-swf-ux-design-method-20260911"
+    },
+    {
+      "taskId": "token-consumption-audit-20260614",
+      "path": "planning/archive/20260922-121928-token-consumption-audit-20260614"
+    },
+    {
+      "taskId": "project-isolation-adoption-20260921",
+      "path": "planning/archive/20260922-122008-project-isolation-adoption-20260921"
+    },
+    {
+      "taskId": "project-lifecycle-repair-20260921",
+      "path": "planning/archive/20260922-122008-project-lifecycle-repair-20260921"
+    },
+    {
+      "taskId": "chief-capability-audit-20260918",
+      "path": "planning/archive/20260922-122655-chief-capability-audit-20260918"
+    },
+    {
+      "taskId": "swf-skills-mcp-ecosystem-audit-20260911",
+      "path": "planning/archive/20260922-122655-swf-skills-mcp-ecosystem-audit-20260911"
+    },
+    {
+      "taskId": "upstream-refresh-pwf-mattpocock-20260901",
+      "path": "planning/archive/20260922-122655-upstream-refresh-pwf-mattpocock-20260901"
+    },
+    {
+      "taskId": "chiefops-night-day-handoff-audit-20260920",
+      "path": "planning/archive/20260922-123700-chiefops-night-day-handoff-audit-20260920"
+    },
+    {
+      "taskId": "swf-linear-control-plane-mvp-20260917",
+      "path": "planning/archive/20260922-123700-swf-linear-control-plane-mvp-20260917"
+    },
+    {
+      "taskId": "chiefops-native-goal-worker-20260728",
+      "path": "planning/archive/20260922-124325-chiefops-native-goal-worker-20260728"
+    },
+    {
+      "taskId": "github-issues-audit-remediation-20260627",
+      "path": "planning/archive/20260922-124325-github-issues-audit-remediation-20260627"
+    },
+    {
+      "taskId": "harness-backlog-roadmap-audit-20260628",
+      "path": "planning/archive/20260922-124325-harness-backlog-roadmap-audit-20260628"
+    },
+    {
+      "taskId": "swf-v14-controlled-acceptance-20260907",
+      "path": "planning/archive/20260922-124325-swf-v14-controlled-acceptance-20260907"
+    },
+    {
+      "taskId": "upstream-release-locking-implementation-plan-20260704",
+      "path": "planning/archive/20260922-124326-upstream-release-locking-implementation-plan-20260704"
+    },
+    {
+      "taskId": "goal-round-start-protocol",
+      "path": "planning/archive/20260922-125419-goal-round-start-protocol"
+    },
+    {
+      "taskId": "installer-artifact-surface-governance-plan-20260702",
+      "path": "planning/archive/20260922-125928-installer-artifact-surface-governance-plan-20260702"
+    },
+    {
+      "taskId": "matt-skills-absorption-reassessment-20260903",
+      "path": "planning/archive/20260922-125928-matt-skills-absorption-reassessment-20260903"
+    }
+  ],
+  "remaining": [
+    {
+      "taskId": "codex-seo-plugin-modernization-20260920",
+      "status": "waiting_review",
+      "disposition": "retain",
+      "reason": "Separate codex-seo repository; distribution license conflict requires human resolution. Retain cross-repository task and do not publish."
+    },
+    {
+      "taskId": "deepseek-context-recovery-diagnosis-20260917",
+      "status": "active",
+      "disposition": "retain",
+      "reason": "Retain recovery observation against original sessions and provider context behavior; synthetic tests do not prove original session recovery."
+    },
+    {
+      "taskId": "linear-multiproject-isolation-20260918",
+      "status": "active",
+      "disposition": "retain",
+      "reason": "Retain LMP04-LMP12 work and dependency gates; LMP03 accepted by this audit, ready successors can be queued after integration."
+    },
+    {
+      "taskId": "local-openai-app-network-20260728",
+      "status": "waiting_execution",
+      "disposition": "retain",
+      "reason": "External host/network decision and validation remain human-dependent; no unrelated network/account changes authorized by this repo audit."
+    },
+    {
+      "taskId": "night-carrier-redundancy-20260921",
+      "status": "active",
+      "disposition": "retain",
+      "reason": "Fallback is configured, but current Host must reload the provider catalog and a real successful scheduled fallback run must be observed."
+    },
+    {
+      "taskId": "repo-phase-audit-20260922",
+      "status": "active",
+      "disposition": "retain",
+      "reason": "Current audit; close only after final delivery and adoption readbacks."
+    },
+    {
+      "taskId": "sup-15-render-verify-dogfood-20260918",
+      "status": "waiting_review",
+      "disposition": "retain",
+      "reason": "Explicit human visual review remains; technical checks do not grant acceptance."
+    },
+    {
+      "taskId": "swf-decision-control-runtime-20260919",
+      "status": "active",
+      "disposition": "retain",
+      "reason": "WP10 requires independent real-provider/usage evaluation; WP11 depends on it. No benefit or gate activation is inferred from deterministic tests."
+    },
+    {
+      "taskId": "swf-render-verify-absorption-20260914",
+      "status": "active",
+      "disposition": "retain",
+      "reason": "Phases 3-5 product adoption/economics/governance remain valid future work; phases 1-2 are complete."
+    },
+    {
+      "taskId": "weekly-project-retrospective-automation",
+      "status": "active",
+      "disposition": "retain",
+      "reason": "Recurring review authority remains active; one completed review is not completion of the ongoing automation."
+    }
+  ]
+}

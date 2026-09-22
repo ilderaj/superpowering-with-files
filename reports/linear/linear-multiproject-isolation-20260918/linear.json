@@ -13,7 +13,7 @@
   "goalIssue": {
     "id": "d7508c53-989e-4578-b893-b2619052473a",
     "identifier": "SUP-22",
-    "url": "https://linear.app/ilderaj/issue/SUP-22/多项目-linear-隔离与-chief-自动化治理lmp"
+    "url": "https://linear.app/ilderaj/issue/SUP-22/\u591a\u9879\u76ee-linear-\u9694\u79bb\u4e0e-chief-\u81ea\u52a8\u5316\u6cbb\u7406lmp"
   },
   "statusComment": {
     "id": "6671e48e-e109-4624-9d06-7f00c6acb16c"
@@ -24,12 +24,12 @@
       "issueId": "d7508c53-989e-4578-b893-b2619052473a",
       "identifier": "SUP-22",
       "state": "running",
-      "nightSlice": "SUP-25",
-      "nightSliceState": "ready",
+      "nightSlice": null,
+      "nightSliceState": "idle",
       "subIssueStates": {
         "LMP-01": "done",
         "LMP-02": "done",
-        "LMP-03": "ready",
+        "LMP-03": "done",
         "LMP-04": "planned",
         "LMP-05": "planned",
         "LMP-06": "planned",
@@ -58,7 +58,7 @@
   },
   "sync": {
     "lastResult": "ok",
-    "lastCheckpointAt": "2026-09-19 01:40 UTC+8",
+    "lastCheckpointAt": "2026-09-22",
     "pendingRetry": false,
     "lastError": null
   }

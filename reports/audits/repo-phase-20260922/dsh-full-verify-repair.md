@@ -29,8 +29,6 @@ Result:
 
 The exact remaining-budget regression is included in the 299 tests and separately has RED/GREEN evidence in `exact-budget-boundary.md`.
 
-## Verify integration review
+## Accepted CI integration
 
-`package.json` currently defines `verify:all` with the root npm, Trio, homepage, and render surfaces. It does not invoke dsh. The existing GitHub repository workflow invokes `npm run verify:all` and has no dsh-specific job.
-
-Keeping dsh independent is appropriate for this repository state because dsh has its own `pnpm-lock.yaml`, package-local build/test contract, and pinned dependency graph. The dsh package should have a separate CI job running `pnpm --dir plugins/dsh verify` with pnpm setup and its lockfile cache. This audit did not edit root `verify:all` or workflow configuration; that would be a separate CI policy change.
+The primary added `verify:dsh` and a separate `dsh-verify` job in `.github/workflows/repo-verify.yml`, using pnpm 11.1.0 and the package lockfile. Root `verify:all` remains unchanged. This separates dependency graphs while making the optional adapter part of PR verification. CI completion is recorded separately in the final delivery receipt.

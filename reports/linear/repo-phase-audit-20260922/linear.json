@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "ilderaj"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
+  },
+  "project": {
+    "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d"
+  },
+  "goalIssue": {
+    "id": "eda72266-f88f-4786-83bb-bca9a8cca045",
+    "identifier": "SUP-54"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "repo-phase-audit-20260922": {
+      "issueId": "eda72266-f88f-4786-83bb-bca9a8cca045",
+      "identifier": "SUP-54",
+      "state": "running"
+    }
+  },
+  "sync": {
+    "lastResult": "ok",
+    "pendingRetry": false
+  }
+}

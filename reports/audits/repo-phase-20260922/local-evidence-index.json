@@ -1,0 +1,1002 @@
+{
+  "retention": "Local only; original bytes preserved before public curation",
+  "artifacts": [
+    {
+      "artifact": "closure-children52.json",
+      "sha256": "39947f0fbfcd4513a7d112aef680dd239b59147c34043097a2fe39c797773295",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-children52.json"
+    },
+    {
+      "artifact": "linear-initial-1.json",
+      "sha256": "cdc7924c80cb470bfc18bad5a336c5e5be1e7150ff4a06dd4093dc9bd99401f3",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/linear-initial-1.json"
+    },
+    {
+      "artifact": "ablation-mutant-projection.log",
+      "sha256": "6d212ff50c106989301c8395168f3b99cc16d1c7fc6c564b3238a000e182fabf",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-projection.log"
+    },
+    {
+      "artifact": "source-integrity.json",
+      "sha256": "4450cb6d08103ed68b7db0eade52d16cd88f90e46c80fdd27a1f43336de3fcdd",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/source-integrity.json"
+    },
+    {
+      "artifact": "closure-coreproject.json",
+      "sha256": "c67673dd7b1e7e5a656d7d8467552ee1d825c5558919a71ec66e35216fc7fcd4",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-coreproject.json"
+    },
+    {
+      "artifact": "pr179.json",
+      "sha256": "346fb71cd725d3b945873306a247099f9fbc8a4c00283ec4f06879f1a323621e",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/pr179.json"
+    },
+    {
+      "artifact": "ablation-mutant-plugin-preflight.log",
+      "sha256": "4f17aad84f2d4f634a296b7ec68db855d6b97f9e49c94d33ab08ff1d9b464940",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-plugin-preflight.log"
+    },
+    {
+      "artifact": "ablation-installer-results.json",
+      "sha256": "47b1f223e1d6f763d3f2e791c792ff9ba3cac7298fd5a4ef415e25e38dcfecf7",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-installer-results.json"
+    },
+    {
+      "artifact": "linear-full-issues.json",
+      "sha256": "b774352b7be1fd600e3675c21687624d11ea93ef96f24dc84fbfaf2d77016754",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/linear-full-issues.json"
+    },
+    {
+      "artifact": "closure-receipt47.json",
+      "sha256": "43c2c3bcd85fadf631bc80138173f005f6d42d9c4e013860c3446dae6a9041a7",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-receipt47.json"
+    },
+    {
+      "artifact": "ablation-mutant-render-server.log",
+      "sha256": "66edb804fb0741caea40bc9dc4fd4ec2952e33fc935756f493a0b7ac64893bdb",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-render-server.log"
+    },
+    {
+      "artifact": "closure-issue53.json",
+      "sha256": "352a6220154c340b7ef058648d704b410e49d176426054667bb55a59bfc23871",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-issue53.json"
+    },
+    {
+      "artifact": "upstream112-green.log",
+      "sha256": "45f4b0dc45691034e99bf7d6f814864d7be4864dac0f59b2c379d7dbb5dae94e",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/upstream112-green.log"
+    },
+    {
+      "artifact": "decision-review.md",
+      "sha256": "9935709f824c70eccfa64b10f2593b62f282c0c29bf9fbb7b083abb57f7210a0",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/decision-review.md"
+    },
+    {
+      "artifact": "ablation-mutant-night-queue.log",
+      "sha256": "da0a2d8c6389c904805df95ddb29bf1b22ff21e76e9f9ec3238af9903d2923ed",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-night-queue.log"
+    },
+    {
+      "artifact": "closure-workspace.json",
+      "sha256": "ea36662d35bcfc87501523b37c1c674055b97213904766819f106cc3584e7378",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-workspace.json"
+    },
+    {
+      "artifact": "lifecycle-issue-1.json",
+      "sha256": "699f5f855f97291127100c8b2e76c1fa8a6cb2730dbb01bc53addc970d04d715",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/lifecycle-issue-1.json"
+    },
+    {
+      "artifact": "ablation-mutant-installer-install.log",
+      "sha256": "6de2f56c3f08db339fad32f37c0a83edae1780d9bdba82ae442616150079b79e",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-installer-install.log"
+    },
+    {
+      "artifact": "ablation-mutant-config.log",
+      "sha256": "784dfbb867d2891faeed069ab990d17f1111f4e14d5b9ee7a8ead71cd43878b8",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-config.log"
+    },
+    {
+      "artifact": "ablation-baseline-read.log",
+      "sha256": "96d28f3b9aa5aab6ed926e3853c19166f056f22588accfc9c64c9be89322e4af",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-read.log"
+    },
+    {
+      "artifact": "ablation-baseline-global-adoption.log",
+      "sha256": "84b7e5ef35c0cc74d06486de913ad135313fcb1bb95d1d4e140e3b15c418e1d8",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-global-adoption.log"
+    },
+    {
+      "artifact": "ablation-mutant-codex-host.log",
+      "sha256": "7c10cc27e9a9665f613dacfd3f1c239b5efa23f695cdd111d8c5da1793e4b969",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-codex-host.log"
+    },
+    {
+      "artifact": "ablation-baseline-config.log",
+      "sha256": "c0e6a5ffe35c1fcef826cdbcbf20ceacd08347023c1c5b91cb36a4dc53022179",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-config.log"
+    },
+    {
+      "artifact": "project-lifecycle-repair-20260921-lifecycle.json",
+      "sha256": "961be16e26653e069115c4c669045790f865e02d9f9e6857c08ea4722aa082f3",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/project-lifecycle-repair-20260921-lifecycle.json"
+    },
+    {
+      "artifact": "closure-comments47.json",
+      "sha256": "24be463595e0856de89e102f8a71a702e1a940af77310ddfbde85c47fefbbfde",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-comments47.json"
+    },
+    {
+      "artifact": "ablation-installer-run.log",
+      "sha256": "1fe16ff6544e1eb8439c7d5498de79ebe102c525033564c304da579343d817fb",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-installer-run.log"
+    },
+    {
+      "artifact": "git-dispositions.md",
+      "sha256": "175922ebd30aae299bab62ef5fdab12608d3cce453a0e0121294c9c7e6dc1882",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/git-dispositions.md"
+    },
+    {
+      "artifact": "planning-archive-wave2.json",
+      "sha256": "9cb5d4059e4aa348093e7de12728879ceb2ba7a20b61b7a10c405c82632071fb",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/planning-archive-wave2.json"
+    },
+    {
+      "artifact": "closure-issue52.json",
+      "sha256": "b7ccb53860d88cbac5c2d5f67c00c0f2ad7e6d1588703289bb323e389dab2d5e",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-issue52.json"
+    },
+    {
+      "artifact": "historical-cleanup.log",
+      "sha256": "f858630078b8ce9e26fe3dbd9e7e0ec0700989712ea5ea16cf92b42d0e1909ed",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/historical-cleanup.log"
+    },
+    {
+      "artifact": "ablation-baseline-authority.log",
+      "sha256": "1dedad00153132d073f19120a635cd9130cb173f0e51e278bd1d41d249e9e547",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-authority.log"
+    },
+    {
+      "artifact": "ablation-mutant-global-adoption.log",
+      "sha256": "178da6b2f3dd46ed6f02cfc22db9574ae1d584aa7bee3036ea31614d27f3bcef",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-global-adoption.log"
+    },
+    {
+      "artifact": "ablation-baseline-plugin-preflight.log",
+      "sha256": "432a2e44b6dab997f42904e253c7e907bcc1589d3aefb59167180f2502ad0323",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-plugin-preflight.log"
+    },
+    {
+      "artifact": "planning-audit.md",
+      "sha256": "c43d13104b49fed1a25d041aa73425a5e9c0e2cdba7cd71fa72f524da19fbe1f",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/planning-audit.md"
+    },
+    {
+      "artifact": "ablation-baseline-render-server.log",
+      "sha256": "3a23ab7694ba6ed79b9a6c84c39e4a592288a80a4af8cbaacbdbb5ba4e798d53",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-render-server.log"
+    },
+    {
+      "artifact": "ablation-mutant-evidence.log",
+      "sha256": "c53616286cd4cedb826d73427b7e25ceb95bb25b0e5c331deabd0b04c617b618",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-evidence.log"
+    },
+    {
+      "artifact": "ablation-baseline-installer-sync.log",
+      "sha256": "8029bae1be0586da888f7fe6791295309ac4b327e911a5abace1431d6bd778a4",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-installer-sync.log"
+    },
+    {
+      "artifact": "linear-initial-0.json",
+      "sha256": "a81a5dad633eb45380f253c6c4bd842d4f07a021268fa8b272046de694474220",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/linear-initial-0.json"
+    },
+    {
+      "artifact": "ablation-mutant-routing.log",
+      "sha256": "a786b827f8c3ab36d25fd490ffc967046b63204f1b78140cc328fd249698361c",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-routing.log"
+    },
+    {
+      "artifact": "closure-children53.json",
+      "sha256": "39947f0fbfcd4513a7d112aef680dd239b59147c34043097a2fe39c797773295",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-children53.json"
+    },
+    {
+      "artifact": "git-dispositions-concise.md",
+      "sha256": "21afbbb948de53b7158c64c3de2af486b224fd24cbc1a58be0967ed7a55392d2",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/git-dispositions-concise.md"
+    },
+    {
+      "artifact": "modules-audit.md",
+      "sha256": "4f68e8034912ab0c1976f54ee093a07ddf7b543806385a64418581274fc95895",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/modules-audit.md"
+    },
+    {
+      "artifact": "planning-audit.json",
+      "sha256": "d9d3e101a622e9b05f16119979fde1823c5202606ce9f9231854ea159e0f88da",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/planning-audit.json"
+    },
+    {
+      "artifact": "baseline-decision-extra.log",
+      "sha256": "e6119be71be23be7a1a7771b1bf165b69e7531a66278ecee9ed0c80c63744ea9",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/baseline-decision-extra.log"
+    },
+    {
+      "artifact": "ablation-mutant-trio-command.log",
+      "sha256": "edb2cb635344cf372eca1c7a2eee76e700df74125aa3c3e5faa8db5fa661d951",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-trio-command.log"
+    },
+    {
+      "artifact": "ablation-mutant-plugin-build.log",
+      "sha256": "50a80ef9cb47b7b9a4bf6fa956fc8de0b17f844321f2f18eaec0bc9529f04e5d",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-plugin-build.log"
+    },
+    {
+      "artifact": "git-dispositions-concise.json",
+      "sha256": "2b4ddd6c4b8f2001fef8c21a4a4c05b62a50109ad056767254e2ba7e1b4b8fbe",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/git-dispositions-concise.json"
+    },
+    {
+      "artifact": "ablation-mutant-render-cdp.log",
+      "sha256": "765a394087eefc2a43c67c7143efa5a17c874e664a3aeb577e4271c136cb5408",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-render-cdp.log"
+    },
+    {
+      "artifact": "baseline-trio.log",
+      "sha256": "ef86b755786c943134a6cdd34d81c5cd498a9483d37e6b2b83d68df307d7b700",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/baseline-trio.log"
+    },
+    {
+      "artifact": "ablation-baseline-linear-guard.log",
+      "sha256": "a0e9c6ebbcef42b75b4c10eca6121831958b881375a803d8115f6e26fdb47cfe",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-linear-guard.log"
+    },
+    {
+      "artifact": "ablation-mutant-overengineering.log",
+      "sha256": "1b5d532837e8b3d4ea22685035f20ac5c61498749279c35f76c3c7c6e77dcd14",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-overengineering.log"
+    },
+    {
+      "artifact": "planning-archive-wave5.json",
+      "sha256": "830249ccfe6a7917ce8789d08d70f2ae9ea78f7e6d612255f698283a1c79f220",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/planning-archive-wave5.json"
+    },
+    {
+      "artifact": "ablation-mutant-simplification.log",
+      "sha256": "073a7d018ac4b07aecaf1de600e0c0dc6ec67c2f2e3ba5590f0cfefcaef4d0c4",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-simplification.log"
+    },
+    {
+      "artifact": "ablation-baseline-overengineering.log",
+      "sha256": "00f589b43ba34e8f0165741aa163fa20c61ea7f931d83c060cb762383841153d",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-overengineering.log"
+    },
+    {
+      "artifact": "closure-issue5.json",
+      "sha256": "3c3e85296c494b7b51f9f61a748afc8365411a6ac31579ef0bb21749c87eb3cb",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-issue5.json"
+    },
+    {
+      "artifact": "closure-comments5.json",
+      "sha256": "924d39ae72617bd7c6212d2c886e5d1788c407330a814f17b129999423e744f1",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-comments5.json"
+    },
+    {
+      "artifact": "ablation-baseline-night-budget.log",
+      "sha256": "698c79eac20182330e89a1d83f172dbbf07e8169622548c4fba9fb9b68f41fb5",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-night-budget.log"
+    },
+    {
+      "artifact": "ablation-mutant-render-cdp-integration.log",
+      "sha256": "a3e6a421225d35d2be7e527a6f61658a9c0adf1d3e99e62ca7f64f08b6fe11ca",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-render-cdp-integration.log"
+    },
+    {
+      "artifact": "intake-input.json",
+      "sha256": "bb545199f38ef5e905d8874cfd1d58f0c2c1b212f2697682248ed72bc176e2eb",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/intake-input.json"
+    },
+    {
+      "artifact": "verify-adoption-clean.log",
+      "sha256": "f4399ffe9584665fe88b9c58980c4e1c878b0bf54254e46d624f7e0edb00119e",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/verify-adoption-clean.log"
+    },
+    {
+      "artifact": "git-audit.md",
+      "sha256": "78eb178283ad1ef381e860bbb93715b16f1981ad0aeaf357ffdb6fd2584fe6a9",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/git-audit.md"
+    },
+    {
+      "artifact": "adopt-projection-dry-run.json",
+      "sha256": "b338147583cb90dc946ec8a154f27e9e01599ad4a23d2955d27544c1dc51f549",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/adopt-projection-dry-run.json"
+    },
+    {
+      "artifact": "ablation-baseline-decision.log",
+      "sha256": "c9e6ced0a2e776b93eb959d8d336f957d2b0fcf41b52f782e161ba5d1019a164",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-decision.log"
+    },
+    {
+      "artifact": "lmp03-acceptance.log",
+      "sha256": "3e5395fbe5d6d62a4ad299756e41b658abed38e55cc6a90f79e13a32173a850f",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/lmp03-acceptance.log"
+    },
+    {
+      "artifact": "ablation-mutant-upstream-apply.log",
+      "sha256": "d994a0cbc4d8ce82196086d0dc59bc63bb8451d95444657792f65169724ce046",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-upstream-apply.log"
+    },
+    {
+      "artifact": "final-homepage.log",
+      "sha256": "b284647ef2976eb22d6aedf5c598a6e8d9c6173f4b5283e175701330c97d631a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/final-homepage.log"
+    },
+    {
+      "artifact": "pr125.json",
+      "sha256": "cb9af1ca337ef8831629c9f8c84d5d0c15f1a102ead212b732454c19ff69a382",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/pr125.json"
+    },
+    {
+      "artifact": "ablation-baseline-sync-cli.log",
+      "sha256": "e9ea3fad698947d86d7355a3609a58b6de39bd1288bf436edc47c243d95093f0",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-sync-cli.log"
+    },
+    {
+      "artifact": "ablation-baseline-night-queue.log",
+      "sha256": "2abe8446e609ee99c1aa932ac7b37900c849fd79bc4ed4144b20d0271f08f2bc",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-night-queue.log"
+    },
+    {
+      "artifact": "planning-final-recommendations.json",
+      "sha256": "8864b596fd204521686808e08f06195602c929558db24a70fc0cd1153540f128",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/planning-final-recommendations.json"
+    },
+    {
+      "artifact": "planning-archive-wave4.json",
+      "sha256": "7bc021123cd27277912b9d25568c2e80d2f6a98cd6dd4aff9f66ffe04a7daf6f",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/planning-archive-wave4.json"
+    },
+    {
+      "artifact": "git-dispositions.json",
+      "sha256": "7b574066f9f26b95a7a267c78dde51c8ad02a4d218fa745a3f860cd6621018f5",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/git-dispositions.json"
+    },
+    {
+      "artifact": "ablation-baseline-installer-install.log",
+      "sha256": "746417c074e60add611c53c188ca0e0d84034b65233c50d27b9df5d630957a46",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-installer-install.log"
+    },
+    {
+      "artifact": "dsh-primary-baseline.log",
+      "sha256": "71f071ee4587f77be2f61925fc5f3cd03005ca0bbd30c7c8a8e83a00d1745ca1",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/dsh-primary-baseline.log"
+    },
+    {
+      "artifact": "ablation-installer-cli-results.json",
+      "sha256": "837efff217114bcaa887cc23137cb350fb6410c24294e4a5c0880c0009028340",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-installer-cli-results.json"
+    },
+    {
+      "artifact": "ablation-mutant-night-budget.log",
+      "sha256": "9fa22f82183b2a1ae071e5cf708ee12d51e105ac84d0ada08d531d4ace00a1ae",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-night-budget.log"
+    },
+    {
+      "artifact": "verify-core-bounded.log",
+      "sha256": "041bdb99cec708b1570b56be2266991cb1fd3b716722d0ecaa2e41f29b46a867",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/verify-core-bounded.log"
+    },
+    {
+      "artifact": "ablation-run.log",
+      "sha256": "80394ce5494a30f4fd013fea28a9e950b670333d4b3b4cf4084e66bac2c9311d",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-run.log"
+    },
+    {
+      "artifact": "adopt-skills-dry-run.json",
+      "sha256": "f79219716bd78d6d89a73daa30b05641a7a288525fcd6051f8430a809c114b63",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/adopt-skills-dry-run.json"
+    },
+    {
+      "artifact": "ablation-baseline-linear-lifecycle.log",
+      "sha256": "f605407293f938c9f56c04af793a4a60327a38f3468eca8ab4431ed4072e70d6",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-linear-lifecycle.log"
+    },
+    {
+      "artifact": "bootstrap-189-red.log",
+      "sha256": "74df39a67034ad8c282dcfa41592ff2a36ec88298e878cc02b663fafe0e32935",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/bootstrap-189-red.log"
+    },
+    {
+      "artifact": "ablation-baseline-shadow.log",
+      "sha256": "377404bb0a5693df0d9f49cc99506b3f948052456c92f269beeb5a5f1c0bddd7",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-shadow.log"
+    },
+    {
+      "artifact": "ablation-baseline-render-cdp.log",
+      "sha256": "4109953ab040a4b13775c0b8bd4dd17c4c763f9500167df40f9bc2139fd61cc8",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-render-cdp.log"
+    },
+    {
+      "artifact": "sup25-completion.json",
+      "sha256": "26d4e6be4157fff026be8878be33a4bce8d80db571f0351393d68a8391608f52",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/sup25-completion.json"
+    },
+    {
+      "artifact": "sup25-prewrite.json",
+      "sha256": "cf9128c9ce7e8a3675d900be8e2fa380429400cfcd6c4e3ccbb762c4f39b8011",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/sup25-prewrite.json"
+    },
+    {
+      "artifact": "upstream-plugin-feasibility.md",
+      "sha256": "5b33013f41a6eb684247993569f09dfd8f556043d3cbe6088c5fe408dec12391",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/upstream-plugin-feasibility.md"
+    },
+    {
+      "artifact": "ablation-mutant-installer-sync.log",
+      "sha256": "4f47ada935c941f575bb4d1c3b659c06a38b69f7b193dc0e2dc7c14f05ae9154",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-installer-sync.log"
+    },
+    {
+      "artifact": "ablation-installer-cli-run.log",
+      "sha256": "3706702ad7e0575ed36cd6e93bbfaaeec9c5ac8e3edecdebd58c7c991911ca0a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-installer-cli-run.log"
+    },
+    {
+      "artifact": "adopt-doctor-before.json",
+      "sha256": "4db99313cae3e38385ca9606cc892b986b5d2bf87a880099a5863b3991df97cf",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/adopt-doctor-before.json"
+    },
+    {
+      "artifact": "ablation-baseline-store.log",
+      "sha256": "8faea4bc6858974bf80501af33cc0d2620dd177a59a9e58724f7bbb054a57608",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-store.log"
+    },
+    {
+      "artifact": "git-audit.json",
+      "sha256": "52e03d27e762b486ffe2684d5dc2fb143e3a5ce9d10c4f2eb826c3d4ddeb38f0",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/git-audit.json"
+    },
+    {
+      "artifact": "ablation-mutant-upstream-update.log",
+      "sha256": "bf06e86b2b89e594511fcf2cd76f70aa13ea69269b6b28476b200f97f5c03b84",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-upstream-update.log"
+    },
+    {
+      "artifact": "ablation-mutant-linear-guard.log",
+      "sha256": "52d2165b09c699a63f22fb422c8a6464f35ba9fd5efbdedd589854b2534a608d",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-linear-guard.log"
+    },
+    {
+      "artifact": "dsh-primary-final.log",
+      "sha256": "b103e7a7c16bb125234a5b59a7591a3513f46609c2326836759fc16d39266360",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/dsh-primary-final.log"
+    },
+    {
+      "artifact": "ablation-baseline-plugin-build.log",
+      "sha256": "de5fee129c71c637fd20c54c913614d3a7bc9a7f6279e151ceac206f09c4a9fe",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-plugin-build.log"
+    },
+    {
+      "artifact": "ablation-baseline-trio-command.log",
+      "sha256": "68d1b43ab50ece7b31b9110c12e995436b7b6f2e8fa4ec8afac83ec45764fb02",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-trio-command.log"
+    },
+    {
+      "artifact": "ablation-mutant-legacy.log",
+      "sha256": "9e9b9c4285c4aca4dc0d8417e9899e1290a6136b5e2cd133aa23f91424645df5",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-legacy.log"
+    },
+    {
+      "artifact": "final-core-after-overlay.log",
+      "sha256": "f5cff231f8700cf5efe5004e5d15fe4b1b65a351e6a3502e50145edbf481e1fc",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/final-core-after-overlay.log"
+    },
+    {
+      "artifact": "ablation-baseline-upstream-update.log",
+      "sha256": "4e39000663cc83207c5dfc3ad6478af472befb7e716c0a607b1217f038d3a4f0",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-upstream-update.log"
+    },
+    {
+      "artifact": "simplification-accepted.log",
+      "sha256": "2b35b102d19a727d2d941eb02995d899544b01dcb77a5dc3ee54aae7d539435a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/simplification-accepted.log"
+    },
+    {
+      "artifact": "ablation-process-report.md",
+      "sha256": "d9a140a5886c74cc7cab4b5058ad877978c719116ff948c4e5fea109c618b9e5",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-process-report.md"
+    },
+    {
+      "artifact": "ablation-baseline-evidence.log",
+      "sha256": "a09b2994493be4bb368ab9d2d38ed61bca780b40d53e69248c07cdc38ed2323a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-evidence.log"
+    },
+    {
+      "artifact": "project-isolation-adoption-20260921-lifecycle.json",
+      "sha256": "2f0eacc944d936f82c72aad09a482d68943cd2b05dc6f67826164c7fef4529d1",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/project-isolation-adoption-20260921-lifecycle.json"
+    },
+    {
+      "artifact": "ablation-mutant-shadow.log",
+      "sha256": "6697e8a2a7a5a3ece926e1a33f2b63cb0c6cc537723d75a96c8f19a1248d7836",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-shadow.log"
+    },
+    {
+      "artifact": "planning-archive-wave6.json",
+      "sha256": "6d80489c732e91bb9f4f99d539e33f35349835d02a18175147b4827de27691f2",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/planning-archive-wave6.json"
+    },
+    {
+      "artifact": "ablation-mutant-linear-lifecycle.log",
+      "sha256": "1d5c99d21fac0e3fe7444f3700affdb4ab08d0c734c7ca930ef9da2f7aa93e73",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-linear-lifecycle.log"
+    },
+    {
+      "artifact": "ablation-mutant-store.log",
+      "sha256": "e8e356c1114e345d3e8298f649511121c12394e463f9e00881af0206aee5b293",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-store.log"
+    },
+    {
+      "artifact": "closure-children5.json",
+      "sha256": "e18cf0da0a807f5deb777ba7bdba2048fcf04c082c501825e7cc7c54ef1ce882",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-children5.json"
+    },
+    {
+      "artifact": "linear-actions.json",
+      "sha256": "9b789940d0a3cf7c26cbb22db897344084c524dac12b53ae81d7a2d65d5955e6",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/linear-actions.json"
+    },
+    {
+      "artifact": "pwf-overlay-consumer-green.log",
+      "sha256": "67a04e36eb94db5d4626aefb4ee0a4898b5e547403f4602560cdaea10097914f",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/pwf-overlay-consumer-green.log"
+    },
+    {
+      "artifact": "baseline-core.log",
+      "sha256": "4aeba60ba8dabdb7e44137ef5e15372922b2ac335d524620cde826b0d16ae79a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/baseline-core.log"
+    },
+    {
+      "artifact": "ablation-baseline-upstream-apply.log",
+      "sha256": "7209e9832ac4ac24e2374546e9987aee3116df0d8e64a87872898ad4541ba65b",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-upstream-apply.log"
+    },
+    {
+      "artifact": "ablation-baseline-projection.log",
+      "sha256": "37b9b5aeeea5a4a72a4f7b8e515f3d21d9aa3f2cbfb389354687c64f32a28601",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-projection.log"
+    },
+    {
+      "artifact": "ablation-baseline-installer-state.log",
+      "sha256": "4f22799131942f09e09143b2e6348121b09bccfe59b9fa350d5a83e348612b22",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-installer-state.log"
+    },
+    {
+      "artifact": "linear-full-projects.json",
+      "sha256": "30aa00d497d55c14dbafbde2f5b913ec3f419feefc26cbc03781520b79fdcfbc",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/linear-full-projects.json"
+    },
+    {
+      "artifact": "legacy-issue-closure.json",
+      "sha256": "dcfb80ada166e625f351accd0534ad3fa32ae53a39db79df26a2e17eeaeececf",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/legacy-issue-closure.json"
+    },
+    {
+      "artifact": "linear-initial-3.json",
+      "sha256": "d5eb7ad5efbbc1e349a44976f86e64592cdc83571d142d1c7bdbee2e58e3a0bb",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/linear-initial-3.json"
+    },
+    {
+      "artifact": "ablation-mutant-installer-state.log",
+      "sha256": "cf24f3c9ed81ed88477d44402511d5e6f659c183085f4d00649d54f0301440cb",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-installer-state.log"
+    },
+    {
+      "artifact": "upstream112-red.log",
+      "sha256": "7a85d847274d0f35afb5903697b9e0593536547c6c5c988e580d995ffadc8d67",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/upstream112-red.log"
+    },
+    {
+      "artifact": "final-verify-all.log",
+      "sha256": "9c83bcf4523a1276f723f0321ec51a636d0df139f863b12b406739934937cd45",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/final-verify-all.log"
+    },
+    {
+      "artifact": "ablation-mutant-render-invariants.log",
+      "sha256": "dcaf31ba04304bda13ec5d763833e45dc0c1b5aa57e5ea52cbb4f98a8aac8dd7",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-render-invariants.log"
+    },
+    {
+      "artifact": "closure-comments52.json",
+      "sha256": "943f3640eb764e6b7090c9fbfd3790e26f94109f7f4ff768bcc0ee9ebc3a2b09",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-comments52.json"
+    },
+    {
+      "artifact": "sup25-guard.json",
+      "sha256": "63586b8fc160f46a0fc2a81e442fc119c2a11e21e1765cac9523cefbf5aa6a19",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/sup25-guard.json"
+    },
+    {
+      "artifact": "ablation-mutant-render-measure.log",
+      "sha256": "dfc528591a2abe5a3671ae967f9007e98f8d3f66c0ed77027757fc4cb5567ce0",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-render-measure.log"
+    },
+    {
+      "artifact": "planning-archive-wave1.json",
+      "sha256": "4dc33cd4ede14c2d47137e3fc078783797fa818590f1bdee3126f5ce220eaaa4",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/planning-archive-wave1.json"
+    },
+    {
+      "artifact": "ablation-mutant-read.log",
+      "sha256": "865c0ca3948ce6dd33f08c2ed64fa8db42e7f4228879bd9001657dd5ddb60393",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-read.log"
+    },
+    {
+      "artifact": "audit-guard-input.json",
+      "sha256": "6eb24392daa559617104b959dbb203bd0839db6f905ffd509e8e20e0f26dc757",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/audit-guard-input.json"
+    },
+    {
+      "artifact": "ablation-cdp-run.log",
+      "sha256": "11b3841a2343ff2a9e7c955e8e6a6179b7e6bbcbdf41f5071b8fa9d62c99c22a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-cdp-run.log"
+    },
+    {
+      "artifact": "remaining-planning-acceptance.md",
+      "sha256": "dc4e73411783376aba732f13f88e5241126961b12f79ed2d5007f3aba6e57690",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/remaining-planning-acceptance.md"
+    },
+    {
+      "artifact": "initial-refs.txt",
+      "sha256": "d271aa0da0c2364efe1c1cd8ca361a2d27df858a091c89b43094184366107959",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/initial-refs.txt"
+    },
+    {
+      "artifact": "closure-issue47.json",
+      "sha256": "c75b17ad6538d376cfd7062f90f4b5907eadde70575cb81993cc5eb0c2ada877",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-issue47.json"
+    },
+    {
+      "artifact": "closure-receipt5.json",
+      "sha256": "a25f62490fc81cce703b2ea402391bf960234c69951c0b9aceb65b5faf0753d1",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-receipt5.json"
+    },
+    {
+      "artifact": "verify-plugin-bounded.log",
+      "sha256": "d75ce127146fb5275dfa1f78e8c616c940034825af342c9afe645a8d6295bd3a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/verify-plugin-bounded.log"
+    },
+    {
+      "artifact": "final-render.log",
+      "sha256": "e40e151548c59d4de0d85b9e7a901bb6d3ac2ca695dc40eb4285989f651a0f99",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/final-render.log"
+    },
+    {
+      "artifact": "initial-tracked.patch",
+      "sha256": "7ecc06bce54cd0c9df520b8b93b5dcaae4f1570e63417711012105ba2cbbc8bb",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/initial-tracked.patch"
+    },
+    {
+      "artifact": "ablation-mutant-render-settle.log",
+      "sha256": "659d04a0a199f7d970c09ac6f935f7e964aa35ac0d35971cc3c430a71dda3958",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-render-settle.log"
+    },
+    {
+      "artifact": "audit-issue-readback.json",
+      "sha256": "1f5f730495f674bc3aac3835ad9694cbc095b54a9ee7c3b09ab1cda1a17bd256",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/audit-issue-readback.json"
+    },
+    {
+      "artifact": "ablation-cdp-integration.json",
+      "sha256": "6d2b01ae65242717501509d416a4f1850d8c4fde67a74e738daa3a167b4fae80",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-cdp-integration.json"
+    },
+    {
+      "artifact": "linear-audit.md",
+      "sha256": "c4593afb96e571201ea6d6bf36d08b48fc680d9d12230faad7fe315e9e03a934",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/linear-audit.md"
+    },
+    {
+      "artifact": "ablation-mutant-generic-host.log",
+      "sha256": "031062d48cf745bcefc121cc0971f7e5bd56f3b9d18cf50606ccc0b9f482ed88",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-generic-host.log"
+    },
+    {
+      "artifact": "ablation-mutant-authority.log",
+      "sha256": "5d3b45684cbe024084f7ad88060b7677c815e8d60c1a49c255a3e4e3e591d03c",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-authority.log"
+    },
+    {
+      "artifact": "closure-comment-actions.json",
+      "sha256": "79e830ef693b79244a7877e8ea193733692b5ee25eabfbbc0fca7965a91f0cbe",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-comment-actions.json"
+    },
+    {
+      "artifact": "ablation-mutant-sync-cli.log",
+      "sha256": "e757b0d6f196e0ee7cf427fb56ddfc1cea53b9c95f32d0e12f78be7084bad43d",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-sync-cli.log"
+    },
+    {
+      "artifact": "lifecycle-issue-2.json",
+      "sha256": "6accde18b967f9c6a97c6a8d28b1252e2e88031bb11c796800b00ae6f48c514a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/lifecycle-issue-2.json"
+    },
+    {
+      "artifact": "closure-comments53.json",
+      "sha256": "0e3091385ed35ab76031a23fb25e3dbe7ebd85c4d8e71a92285ab4d44f3a3cc3",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-comments53.json"
+    },
+    {
+      "artifact": "ablation-baseline-codex-host.log",
+      "sha256": "2245992061cf39e6b50ab5e7a5aba75f067805d389f50b98eab3de9e49682a79",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-codex-host.log"
+    },
+    {
+      "artifact": "git-final-decisions.json",
+      "sha256": "569ad16ea0718ef0e5a6f252916f27cffe2b2b5acbc2c6e7a46db3ecd2714c5e",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/git-final-decisions.json"
+    },
+    {
+      "artifact": "ablation-results.json",
+      "sha256": "ff82ca0ddad0ddcd01af6c9929c409795af359f15ae37c634691871425c733f3",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-results.json"
+    },
+    {
+      "artifact": "linear-initial-2.json",
+      "sha256": "e50d305bc2ce212de8b2502709a6471361629ecff81c6e4880a58c792c1363bd",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/linear-initial-2.json"
+    },
+    {
+      "artifact": "bootstrap-189-green.log",
+      "sha256": "f5cb0678a42fe837a46af452806598b3ff252bfd958cfc7fb900753a1cabf031",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/bootstrap-189-green.log"
+    },
+    {
+      "artifact": "ablation-baseline-render-cdp-integration.log",
+      "sha256": "7df64244efedad9feeb65c9cfe7f06c8308dda4dc45620c5e435eee630598910",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-render-cdp-integration.log"
+    },
+    {
+      "artifact": "closure-children47.json",
+      "sha256": "39947f0fbfcd4513a7d112aef680dd239b59147c34043097a2fe39c797773295",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/closure-children47.json"
+    },
+    {
+      "artifact": "github-open-issues.json",
+      "sha256": "511bdee0db9d953ddbb9bfbaefe9f25cf51a17bab5be53a3bee956562e0653c9",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/github-open-issues.json"
+    },
+    {
+      "artifact": "ablation-mutant-decision.log",
+      "sha256": "085cb84fe86b9fe42f4b8fe34ce9eaa495170b8ee24d13148c62f730c51a6519",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-mutant-decision.log"
+    },
+    {
+      "artifact": "initial-status.txt",
+      "sha256": "7a644fd1c0c4f5314b648d833528e8654e58e6cc5a052a563b93c6fbcb8e7439",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/initial-status.txt"
+    },
+    {
+      "artifact": "ablation-baseline-routing.log",
+      "sha256": "725210558fea6912e44bdfbf6f81bc8a19df54539d01c1d156a23a46e97be625",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-routing.log"
+    },
+    {
+      "artifact": "simplification-experiment.json",
+      "sha256": "04a8aa333a65b1646f700d4bc77c28aefe4062d4ae8b99d235f7f9385fcd0fb9",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/simplification-experiment.json"
+    },
+    {
+      "artifact": "ablation-simplification-routing.log",
+      "sha256": "71384e6a367ac92b348f971bbd29d6d99202c9f6552b9c5cea058875f2e84696",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-simplification-routing.log"
+    },
+    {
+      "artifact": "ablation-baseline-simplification.log",
+      "sha256": "392d0ad520622fc5369453ced77e178e95fd4fce5ba4940e90f8b79526d48b4a",
+      "localPath": ".harness/backups/repo-phase-20260922/publication-preimages/ablation-baseline-simplification.log"
+    }
+  ],
+  "priorReportResidue": [
+    {
+      "original": "reports/audits/jev-swf-20260920/tracked.patch",
+      "sha256": "bee15cb9855ecc1e121a8e1f179aa0b0a97b92ce49e4686ed0f2b5d66b63d0ab",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/audits/jev-swf-20260920/tracked.patch"
+    },
+    {
+      "original": "reports/audits/night-day-20260920/verify-core.log",
+      "sha256": "f10b4b62a3db3e58fe8b7169afa055e013016250cdc669dda4c47b498d6e041a",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/audits/night-day-20260920/verify-core.log"
+    },
+    {
+      "original": "reports/audits/project-isolation-20260921/projections-before/linear-work-control/scripts/linear-work-control.mjs",
+      "sha256": "b0cda87396a23a83afbf4b900b3a9752c643cc706ada7edefe42149181ad09e9",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/audits/project-isolation-20260921/projections-before/linear-work-control/scripts/linear-work-control.mjs"
+    },
+    {
+      "original": "reports/audits/project-isolation-20260921/unknown-project-red.log",
+      "sha256": "53bb5d4db2f5374aa6ed412d2972855a204504cd5df30fae878e002b2dedf81d",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/audits/project-isolation-20260921/unknown-project-red.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/extra-final.log",
+      "sha256": "39db0050e55108be07bc05e0a3174807c63463a4b384eee35909e5398bae1d91",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/extra-final.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/extra-tests.log",
+      "sha256": "31617570b279db7eff7f83943b6a54fa29797ccd2dc9e731faad6e3161468954",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/extra-tests.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/final-checkpoint-input.json",
+      "sha256": "7ac2dc7e566ed6cb576ff536860aa60fe6d33c9447bce6e4756cb9524120dedf",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/final-checkpoint-input.json"
+    },
+    {
+      "original": "reports/decision-resume-20260922/final-checkpoint.md",
+      "sha256": "0d121008f6143472406b875acd4528f09bceb263bc56e885ec388a95450a7e4a",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/final-checkpoint.md"
+    },
+    {
+      "original": "reports/decision-resume-20260922/guard.mjs",
+      "sha256": "6c4a690522103588c95c07fef36fcc8087dfd7d8186a5a0c4e8653f8b022241b",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/guard.mjs"
+    },
+    {
+      "original": "reports/decision-resume-20260922/integration-tests.log",
+      "sha256": "61f7b72c35dc87a38a3c162e29c9ad19b52d574c2160414b97483ef0a73fd7c1",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/integration-tests.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/issue-inventory.json",
+      "sha256": "f91563a8ea0f5937106c6774ac60542812c4c336e74eafdc956dd2aaad86c0a5",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/issue-inventory.json"
+    },
+    {
+      "original": "reports/decision-resume-20260922/j02-chief-tests.log",
+      "sha256": "f97d0567e6841d6ea7ed94de0b9dc098da1913e4019c5840272a010c8954d431",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/j02-chief-tests.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/j02-reader-green.log",
+      "sha256": "492f665d5e46a82ad4a6c00919fb376d963d2d90af109a49f410b8f63406ed26",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/j02-reader-green.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/j02-reader-red.log",
+      "sha256": "bc3d6bb6c8018636ad44421a0d7c87670938f9e1fad4ad23962125a61e995059",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/j02-reader-red.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/j03-green.log",
+      "sha256": "f5eaf54f1d19997c22010d74134faa3e3a8721d82f17f1b59685cf05f11e88a3",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/j03-green.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/j03-j04-final.log",
+      "sha256": "d5bffb4cb642f813e8e5f78c0eec11b89897970ee8086e89d692dd6e33afd0cb",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/j03-j04-final.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/j03-red.log",
+      "sha256": "f1f7743f9f2877ac0d0350f1251c71493f92749f2f88494e43cebe5e75893770",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/j03-red.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/j03-targeted.log",
+      "sha256": "b18ca5f0e916aa1cb54b6f93cb60e1da82559ea60237b3f42d9ff9b65f194ad3",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/j03-targeted.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/j04-chief-tests.log",
+      "sha256": "406be904da0abcb567faf365d05486bb884f99e6daec046ffbb944572cb8b5dd",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/j04-chief-tests.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/live-checkpoint-input.json",
+      "sha256": "7fa444a1dab72f2110091d2434392540fbe666054ea08328cc70793a1e2ecc98",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/live-checkpoint-input.json"
+    },
+    {
+      "original": "reports/decision-resume-20260922/live-checkpoint.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/live-checkpoint.stderr"
+    },
+    {
+      "original": "reports/decision-resume-20260922/profile-final.log",
+      "sha256": "38bc53aab502eb5e3e80b001b5d722431fb6efd18d216e9990f75ceb1af7e8bb",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/profile-final.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/profile-green.log",
+      "sha256": "1ace4b0e9cf7696bc891bed3a433ce1bd50cb228aca6ba10d0d8a97d964b6360",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/profile-green.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/profile-red-regression.log",
+      "sha256": "e1e951dafd55089f86f2210c6737c25667017383b6db502e4f061af7d42c95f4",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/profile-red-regression.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/profile-review-red.log",
+      "sha256": "355aa0a1203b3915a149bdedec0d2bac9a4684937740298c8578dafba896d456",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/profile-review-red.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/profile-tests.log",
+      "sha256": "eae5b9150a395399e0cef7505d1cbb98a7b5efbb7ef9876721147086a6403c2b",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/profile-tests.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/t1.json",
+      "sha256": "a36586e1044d158a545e9e3d4c5860dd2a2dd505dc678d2ddd16f76b82ff4c17",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/t1.json"
+    },
+    {
+      "original": "reports/decision-resume-20260922/verify-core.log",
+      "sha256": "436e8fbc2a789639857cda47dc551e1d30f6b12549eb180bbc314a33a7b81de7",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/verify-core.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/verify-trio-final.log",
+      "sha256": "bb31b24dda6b6d4142ab615505d47090e2ad81f1d02b1b14a44d83cb50388372",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/verify-trio-final.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/verify-trio.log",
+      "sha256": "de57aed48f303b386fc35653092c160a479aaa664db8b2d13c1c4c40176b3b98",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/verify-trio.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/wp07-green.log",
+      "sha256": "ef557d35e55ee901e968496cd37ca6e058a5dd0fbb8cf65cb155ee6451fde7e7",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/wp07-green.log"
+    },
+    {
+      "original": "reports/decision-resume-20260922/wp07-red.log",
+      "sha256": "05d313ff213546005e7bbc2082df77b970c6d79201654e3f64955acd89f0c1a9",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/decision-resume-20260922/wp07-red.log"
+    },
+    {
+      "original": "reports/night-recovery-20260921/j02-green-tests.log",
+      "sha256": "3ef221ff927d50a67cfcd012004f32e6abe4b40df4b1b04cb064732048a491a5",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/night-recovery-20260921/j02-green-tests.log"
+    },
+    {
+      "original": "reports/night-recovery-20260921/j02-red-probe.log",
+      "sha256": "ece88c455ad53978cca6f91220c59d5b2a74a4092abb32536f7633e5ef1169c4",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/night-recovery-20260921/j02-red-probe.log"
+    },
+    {
+      "original": "reports/night-recovery-20260921/j02-red-tests.log",
+      "sha256": "fae000de65dffc34e9cd22e3cc904d815e14e9897f86ca4ffe2a082a7cc83115",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/night-recovery-20260921/j02-red-tests.log"
+    },
+    {
+      "original": "reports/night-recovery-20260921/j02-verify-core.log",
+      "sha256": "d335b4ff2d5af01918f1cf97442cb63897ce5aaa46c61ad3619e486ddf3a3077",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/night-recovery-20260921/j02-verify-core.log"
+    },
+    {
+      "original": "reports/night-recovery-20260921/j02-verify-trio.log",
+      "sha256": "7a9b655de226123d2db473ea20dff06437a07d451a4cfcf5241b3fbc334a78fc",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/night-recovery-20260921/j02-verify-trio.log"
+    },
+    {
+      "original": "reports/night-recovery-20260921/lmp03-guard-outcome.json",
+      "sha256": "80c269a67dd0414c8c93aa9e5126ad185717dabce5d0fc5dc530baccfe642a3a",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/night-recovery-20260921/lmp03-guard-outcome.json"
+    },
+    {
+      "original": "reports/night-recovery-20260921/lmp03-guard-preclaim.json",
+      "sha256": "80c269a67dd0414c8c93aa9e5126ad185717dabce5d0fc5dc530baccfe642a3a",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/night-recovery-20260921/lmp03-guard-preclaim.json"
+    },
+    {
+      "original": "reports/night-recovery-20260921/lmp03-verify-core.log",
+      "sha256": "92477ca6fb5393e8ff3021c91a62bd2d347b52a46ff765d7bf3e0fe7ea8744d2",
+      "preserved": ".harness/backups/repo-phase-20260922/prior-report-residue/reports/night-recovery-20260921/lmp03-verify-core.log"
+    }
+  ]
+}

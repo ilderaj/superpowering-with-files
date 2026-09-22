@@ -1,0 +1,14 @@
+{
+  "kind": "real-task-checkpoint-shadow",
+  "taskId": "swf-decision-control-runtime-20260919",
+  "recordedAt": "2026-09-22T02:41:03.983Z",
+  "outputSha256": "d4b1e2560d67dc3023d3f5d7b91430e0134243db0ef4ee114c3b179c889882a9",
+  "byteIdentical": true,
+  "traceRecords": 1,
+  "actualSemanticBackend": "operator",
+  "modelEvidence": "unknown",
+  "usage": null,
+  "scope": "frozen local remediation only",
+  "gateActivated": false,
+  "efficiencyProof": false
+}

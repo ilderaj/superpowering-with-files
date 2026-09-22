@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "date": "2026-09-22",
-  "sourceWorktree": "/Users/jared/.codex/worktrees/audit-render-fixes-20260922",
+  "sourceWorktree": "<isolated-audit-worktree>",
   "rootRepositoryReadOnly": true,
   "temporaryCopies": [
     {
-      "path": "/tmp/swf-dsh-ablation-u5fJ1U",
+      "path": "<temporary-dsh-copy>",
       "copyMode": "recursive real file copy",
       "hardlinks": false,
       "nonOwnedProcessesKilled": false
     },
     {
-      "path": "/tmp/swf-homepage-ablation-fC5xiV",
+      "path": "<temporary-homepage-copy>",
       "copyMode": "recursive real file copy",
       "hardlinks": false,
       "nonOwnedProcessesKilled": false

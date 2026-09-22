@@ -103,7 +103,7 @@ test('repo verify workflow keeps read-only permissions and the expected verifica
 test('repo verify workflow keeps the expected step order', async () => {
   const workflow = await readFile(workflowPath, 'utf8');
 
-  assert.deepEqual(extractStepNames(workflow), [
+  assert.deepEqual(extractStepNames(extractJobBlock(workflow, 'repo-verify')), [
     'Check out repository',
     'Set up Node.js',
     'Install root dependencies',
@@ -111,4 +111,12 @@ test('repo verify workflow keeps the expected step order', async () => {
     'Install Office verification tools',
     'Run repository verification'
   ]);
+});
+
+test('optional dsh verification installs its locked graph in a separate job', async () => {
+  const workflow = await readFile(workflowPath, 'utf8');
+  const job = extractJobBlock(workflow, 'dsh-verify');
+  assert.match(extractStepBlock(job, 'Install tested pnpm version'), /npm install --global pnpm@11\.1\.0/);
+  assert.match(extractStepBlock(job, 'Install isolated dsh dependencies'), /pnpm --dir plugins\/dsh install --frozen-lockfile/);
+  assert.match(extractStepBlock(job, 'Verify optional dsh adapter'), /npm run verify:dsh/);
 });

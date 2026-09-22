@@ -1,11 +1,11 @@
 # Supplemental dsh/homepage module ablation
 
 Date: 2026-09-22
-Source worktree: `/Users/jared/.codex/worktrees/audit-render-fixes-20260922`
+Source worktree: `<isolated-audit-worktree>`
 Root repository was read-only throughout. Ablations ran in real-copy temporary directories:
 
-- `/tmp/swf-dsh-ablation-u5fJ1U`
-- `/tmp/swf-homepage-ablation-fC5xiV`
+- `<temporary-dsh-copy>`
+- `<temporary-homepage-copy>`
 
 The copies were made with recursive file copies. No hardlinks were used and no non-owned process was killed. The initial dependency symlink was replaced by an offline pnpm install in the dsh copy because the existing root `node_modules` did not contain Vitest; no external provider or model execution occurred.
 
@@ -38,3 +38,7 @@ All mutation commands waited for process completion and every listed mutant exit
 - `plugins/dsh/src/core/constants.ts`, `core/index.ts`, `core/passthrough.ts`, `core/storeRead.ts`, `detect.ts`, `commands.ts`, `evidenceAudit.ts`, and `index.ts` were exercised only through the selected callers or existing suite execution; no separate mutant was added where no distinct behavioral seam was justified.
 - Homepage `worker.ts` was not mutated separately because its meaningful routing decision delegates to `normalizeHomepageRequestUrl`; duplicating an equivalent test would not add boundary evidence. Build/typecheck was not claimed because the root `node_modules` symlink lacked homepage's Vite toolchain.
 - No real model/provider dispatch, external write, deployment, or browser execution was performed.
+
+## Primary follow-up acceptance
+
+The temporary-copy gaps above describe the initial experiment only. The real root DSH suite subsequently passed all 299 tests after stale assets and the parity import were corrected. The exact remaining-budget mutant is now caught by a new RED/GREEN regression (`exact-budget-boundary.md`). The primary also completed homepage typecheck, 20 tests and production build. No real provider dispatch was performed.
