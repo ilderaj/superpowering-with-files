@@ -15,10 +15,16 @@ Scope: issues #191, #192, #193, #197, #198; bounded fixes in the independent wor
 ## Verification
 
 - RED observed for the new #198 regression before the digest fix: 1 failure, 14 passes in the targeted lifecycle/adoption run.
-- GREEN: `node --test tests/installer/planning-linear-lifecycle-paths.test.mjs tests/installer/global-adoption.test.mjs` — 15/15 passed.
+- GREEN: `node --test tests/installer/planning-linear-lifecycle-paths.test.mjs tests/installer/global-adoption.test.mjs` — 18/18 passed, including legacy receipts, unknown files, cache symlink/hardlink rejection, and framing collision checks.
 - `git diff --check` passed.
-- The full `tests/installer/*.test.mjs` run was started with low default concurrency; it exceeded the 30-second command window during checkpoint-push tests, so it is not claimed complete.
+- Full `node --test tests/installer/*.test.mjs` — 161/161 passed in 49.1 seconds.
 
 ## Candidate commit
 
 Candidate commit: `61e1b5a2` (`fix: harden planning lifecycle and skill adoption`); parent should cherry-pick it after review. Issue #197 remains explicitly open for a separately authorized, evidence-backed re-convergence design.
+
+## Second review corrections
+
+The source-mode digest retains the original length/path/mode framing and directory framing for included paths; only generated path components are omitted from the source-equivalence view. Full digests remain in backup and pre/post race checks. Unsafe entries are validated before generated-path filtering. Existing full-tree receipts remain accepted when only generated cache differs. Planning legacy migration uses an explicit `needs_migration` flag and occurs inside the move transaction with rollback.
+
+Issue #197 remains fail-closed: no content-only ownership inference was added. A safe no-content-change re-convergence requires the full manifest and matching projected source proof at the installer state seam; this candidate does not mutate ownership state or global destinations.

@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { chmod, cp, mkdtemp, mkdir, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises';
+import { link as linkCallback } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { adoptGlobalSkills, INSTALLS, RETIRED, treeDigest } from '../../scripts/adopt-global-skills.mjs';
+import { promisify } from 'node:util';
+const hardlink = promisify(linkCallback);
 
 async function fixture(t) {
   const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'swf-adopt-')));
@@ -70,6 +73,40 @@ test('ownership digests distinguish a file payload from an additional tree entry
   await writeFile(path.join(b, 'one'), '');
   await writeFile(path.join(b, 'two'), 'payload');
   assert.notEqual(await treeDigest(a), await treeDigest(b));
+  assert.notEqual(await treeDigest(a, { source: true }), await treeDigest(b, { source: true }));
+});
+
+test('legacy full-tree receipts remain accepted when only generated cache differs', async t => {
+  const f = await fixture(t);
+  await adoptGlobalSkills({ ...f, apply: true });
+  const name = INSTALLS[0][0], destination = path.join(f.homeDir, '.agents', 'skills', name);
+  const receiptPath = path.join(f.homeDir, '.agents', 'swf-adoption', 'receipt.json');
+  const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
+  receipt.entries.find(e => e.name === name).digest = await treeDigest(destination);
+  await writeFile(receiptPath, JSON.stringify(receipt));
+  await mkdir(path.join(destination, '__pycache__'));
+  await writeFile(path.join(destination, '__pycache__', 'x.pyc'), 'cache');
+  assert.equal((await adoptGlobalSkills({ ...f, apply: true })).changed, 0);
+});
+
+test('unknown destination files remain a conflict', async t => {
+  const f = await fixture(t);
+  await adoptGlobalSkills({ ...f, apply: true });
+  await writeFile(path.join(f.homeDir, '.agents', 'skills', INSTALLS[0][0], 'user.txt'), 'user');
+  const plan = await adoptGlobalSkills(f);
+  assert.equal(plan.entries.find(e => e.name === INSTALLS[0][0]).conflict, true);
+});
+
+test('generated cache symlinks and hardlinks remain unsafe', async t => {
+  const f = await fixture(t);
+  await adoptGlobalSkills({ ...f, apply: true });
+  const destination = path.join(f.homeDir, '.agents', 'skills', INSTALLS[0][0]);
+  await mkdir(path.join(destination, '__pycache__'));
+  await symlink(path.join(f.rootDir, INSTALLS[0][1], 'SKILL.md'), path.join(destination, '__pycache__', 'link.pyc'));
+  await assert.rejects(adoptGlobalSkills(f), /Unsafe skill entry/);
+  await rm(path.join(destination, '__pycache__', 'link.pyc'));
+  await hardlink(path.join(destination, 'SKILL.md'), path.join(destination, '__pycache__', 'hard.pyc'));
+  await assert.rejects(adoptGlobalSkills(f), /Unsafe skill entry/);
 });
 
 test('adoption rejects a backup-parent symlink without writing outside home', async t => {

@@ -192,6 +192,7 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
         raise FileNotFoundError(f"active planning directory does not exist: {source_dir}")
     task_plan = source_dir / "task_plan.md"
     text = task_plan.read_text(encoding="utf-8")
+    needs_migration = False
     try:
         stable_id = stable_task_id(source_dir)
     except RuntimeError as error:
@@ -202,6 +203,7 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
         stable_id = source_dir.name
         if not TASK_ID_RE.fullmatch("Task ID: " + stable_id):
             raise RuntimeError(f"legacy task basename is unsafe as stable Task ID: {stable_id}") from error
+        needs_migration = True
     if task_id and task_id != stable_id:
         raise RuntimeError(f"requested task id {task_id!r} does not match stable Task ID {stable_id!r}")
 
@@ -219,10 +221,6 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
             + "; ".join(companion_status["reasons"])
         )
 
-    # Migrate legacy identity only after every pre-move validation has passed.
-    if "Task ID:" not in text:
-        task_plan.write_text("Task ID: " + stable_id + "\n" + text, encoding="utf-8")
-
     companion_source = None
     companion_original_text = None
     task_plan_original_text = None
@@ -239,6 +237,10 @@ def archive_active_task(project_path: Path, task_id: Optional[str] = None) -> Pa
     shutil.move(str(source_dir), str(archive_dir))
 
     try:
+        # Move first; legacy identity migration is rolled back with the move
+        # transaction if any publication step fails.
+        if needs_migration:
+            (archive_dir / "task_plan.md").write_text("Task ID: " + stable_id + "\n" + text, encoding="utf-8")
         if companion_status["has_companion"]:
             archived_companion = archive_dir / "companion_plan.md"
             assert companion_source is not None
