@@ -31,6 +31,7 @@ const binding = {
 const pullRequest = {
   number: 168,
   state: 'OPEN',
+  isDraft: false,
   baseRefName: 'dev',
   baseRefOid: binding.baseSha,
   headRefName: 'codex/coding-harness-impl-wave6-20260904',
@@ -549,14 +550,16 @@ test('runner rejects absent binding or credentials without calling GitHub', asyn
   assert.equal(missingCredentials.status, 'rejected');
   assert.equal(missingCredentials.errors[0].code, 'credentials_missing');
   assert.deepEqual(missingCredentials.lifecycle, { decision: 'stop', reason: 'rejected_observation' });
-  assert.deepEqual(calls, [['gh', ['auth', 'status', '--hostname', 'github.com']]]);
+  assert.deepEqual(calls, [['gh', ['auth', 'status', '--active', '--hostname', 'github.com']]]);
 });
 
 test('runner accepts a successful local gh auth status without exported token fields', async () => {
   const calls = [];
   const runCommand = async (command, args) => {
     calls.push({ command, args });
-    if (args[0] === 'auth') return { stdout: 'authenticated\n', stderr: '', exitCode: 0 };
+    if (args[0] === 'auth') return args.includes('--active')
+      ? { stdout: 'active account authenticated\n', stderr: '', exitCode: 0 }
+      : { stdout: '', stderr: 'inactive account is stale', exitCode: 1 };
     if (args[0] === 'pr') return { stdout: JSON.stringify(pullRequest), stderr: '', exitCode: 0 };
     return {
       stdout: JSON.stringify({ data: { repository: { pullRequest: {
@@ -573,7 +576,7 @@ test('runner accepts a successful local gh auth status without exported token fi
   assert.equal(result.status, 'awaiting_human');
   assert.deepEqual(calls[0], {
     command: 'gh',
-    args: ['auth', 'status', '--hostname', 'github.com']
+    args: ['auth', 'status', '--active', '--hostname', 'github.com']
   });
 });
 
@@ -596,6 +599,7 @@ test('runner gathers only read-only gh PR and GraphQL snapshots and reduces them
   assert.equal(result.schema, 'swf/pr-review-feedback-result');
   assert.equal(result.status, 'awaiting_human');
   assert.ok(calls.length >= 2);
+  assert.ok(calls.find(({ args }) => args[0] === 'pr').args.at(-1).split(',').includes('isDraft'));
   assert.ok(calls.every(({ command }) => command === 'gh'));
   assert.ok(calls.every(({ args }) => !args.includes('merge') && !args.includes('push')));
   const graphQlQuery = calls.find(({ args }) => args[0] === 'api').args.find((value) => value.startsWith('query='));
@@ -626,7 +630,7 @@ test('runner addresses the bound PR with a numeric selector and explicit reposit
     '--repo',
     'ilderaj/superpowering-with-files',
     '--json',
-    'number,state,baseRefName,baseRefOid,headRefName,headRefOid,reviewDecision,mergeable,mergeStateStatus'
+    'number,state,isDraft,baseRefName,baseRefOid,headRefName,headRefOid,reviewDecision,mergeable,mergeStateStatus'
   ]);
 });
 
@@ -749,5 +753,22 @@ test('pure reducer and observer contain no direct mutation executor', async () =
     assert.doesNotMatch(source, /git\s+(merge|push|commit)/i);
     assert.doesNotMatch(source, /createReview|addComment|resolveReviewThread|enableAutoMerge/i);
     assert.doesNotMatch(source, /-X\s+(POST|PATCH|PUT|DELETE)/i);
+  }
+});
+
+test('draft and unknown draft state are terminal human gates even with approval or pending checks', () => {
+  for (const draftFields of [{ isDraft: true }, { isDraft: undefined }, { isDraft: false, mergeStateStatus: 'DRAFT' }]) {
+    for (const check of [{ conclusion: 'SUCCESS' }, { status: 'IN_PROGRESS' }]) {
+      const result = reducePrReviewFeedback({
+        binding: { ...binding, autoMergePolicy: 'enabled' },
+        pullRequest: { ...pullRequest, reviewDecision: 'APPROVED', mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN', ...draftFields },
+        reviews: [{ id: 'approval', state: 'APPROVED', commitOid: binding.headSha, author: { __typename: 'User', login: 'human-reviewer' } }],
+        checks: [{ name: 'repo-verify', headSha: binding.headSha, ...check }]
+      });
+      assert.equal(result.status, 'awaiting_human');
+      assert.equal(result.lifecycle.decision, 'stop');
+      assert.equal(result.lifecycle.humanGateRequired, true);
+      assert.equal(result.mergeExecuted, false);
+    }
   }
 });
