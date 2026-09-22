@@ -388,7 +388,10 @@ function settledConfigForWrites(config, writes, sources) {
     ...config,
     ownership: {
       ...config.ownership,
-      entries: writes.map((descriptor) => {
+      entries: config.ownership.entries.map((entry) => {
+        const descriptor = writes.find((candidate) =>
+          candidate.targetId === entry.targetId && candidate.destination === entry.path);
+        if (!descriptor) return entry;
         const contents = sources.get(descriptor.destination);
         if (typeof contents !== 'string') {
           throw trioBridgeError(`Missing settled source bytes for ${descriptor.destination}.`, 'ERR_TRIO_BRIDGE');
@@ -871,6 +874,9 @@ export async function assertTrioProjectionInSync(prepared, environment = prepare
 
 async function assertReconvergeInventory(prepared, config, sources) {
   const managed = prepared.descriptors.filter((descriptor) => descriptor.management === 'managed');
+  const conflicted = new Set(prepared.conflicts
+    .filter((conflict) => managed.some((descriptor) => descriptor.destination === conflict.destination))
+    .map((conflict) => path.resolve(conflict.destination)));
   const entries = config.ownership.entries;
   if (config.ownership.source !== 'projection-manifest' || !config.ownership.manifestRef
     || entries.length !== managed.length
@@ -885,9 +891,10 @@ async function assertReconvergeInventory(prepared, config, sources) {
     if (!info || info.isSymbolicLink() || !info.isFile() || info.nlink !== 1) {
       throw trioBridgeError(`Trio reconverge requires a real singly-owned file: ${destination}.`, 'ERR_TRIO_RECONVERGE_PHYSICAL');
     }
-    if ((await readFile(destination, 'utf8')) !== sources.get(descriptor.destination)) {
+    if (conflicted.has(destination) && (await readFile(destination, 'utf8')) !== sources.get(descriptor.destination)) {
       throw trioBridgeError(`Trio reconverge rejects content drift: ${destination}.`, 'ERR_TRIO_RECONVERGE_CONTENT');
     }
+    if (!conflicted.has(destination)) continue;
     for (const name of await readdir(path.dirname(destination))) {
       const candidate = path.join(path.dirname(destination), name);
       const candidateInfo = await lstat(candidate);
@@ -902,13 +909,23 @@ async function assertReconvergeInventory(prepared, config, sources) {
 export async function reconvergeTrioProjection({ environment, config, statePrecondition } = {}) {
   const prepared = await prepareTrioProjection({ environment, config });
   const managed = prepared.descriptors.filter((descriptor) => descriptor.management === 'managed');
-  const sources = await readTrioSources(managed);
+  const conflicted = managed.filter((descriptor) => prepared.conflicts.some((conflict) => conflict.destination === descriptor.destination));
+  const sources = await readTrioSources(conflicted);
   await assertReconvergeInventory(prepared, config, sources);
   const captured = await captureTrioTakeoverPreimages({ environment, descriptors: managed, statePrecondition });
   const backup = await publishTrioTakeoverBackup({
     environment, preimages: captured, ownership: config.ownership, recovery: config.recovery
   });
-  const settled = settledConfigForWrites(config, managed, sources);
+  const settled = parseV2Config({
+    ...config,
+    ownership: {
+      ...config.ownership,
+      entries: config.ownership.entries.map((entry) => {
+        const source = sources.get(entry.path);
+        return source === undefined ? entry : { ...entry, identity: `sha256:${hashText(source)}` };
+      })
+    }
+  });
   const state = parseV2Config({ ...settled, recovery: { ...settled.recovery, rollbackRef: backup.rollbackRef } });
   const snapshot = captured.stateSnapshot;
   await atomicWriteText(environment.stateFile, `${JSON.stringify(state, null, 2)}\n`, {

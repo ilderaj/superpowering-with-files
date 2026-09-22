@@ -31,7 +31,7 @@ import { doctor } from '../../harness/installer/commands/doctor.mjs';
 import { verify } from '../../harness/installer/commands/verify.mjs';
 import { resolveTrioFixture, resolveTrioProductionEnvironment } from '../../harness/installer/lib/state.mjs';
 import { atomicWriteText } from '../../harness/trio/core/store.mjs';
-import { applyTrioProjection, prepareTrioProjection } from '../../harness/installer/commands/sync.mjs';
+import { applyTrioProjection, prepareTrioProjection, reconvergeTrioProjection } from '../../harness/installer/commands/sync.mjs';
 import { parseTrioBackupV1Ref, captureTrioTakeoverPreimages } from '../../harness/installer/lib/trio-takeover-backup.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
