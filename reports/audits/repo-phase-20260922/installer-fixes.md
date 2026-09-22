@@ -21,10 +21,13 @@ Scope: issues #191, #192, #193, #197, #198; bounded fixes in the independent wor
 
 ## Candidate commit
 
-Candidate commit: `61e1b5a2` (`fix: harden planning lifecycle and skill adoption`); parent should cherry-pick it after review. Issue #197 now has an explicit `sync --reconverge` entry requiring complete projection-manifest ownership, source-byte equivalence, real singly-owned files, no unknown destination entries, state precondition, and a complete backup bundle.
+Candidate commit: `61e1b5a2` (`fix: harden planning lifecycle and skill adoption`); parent should cherry-pick it after review. Issue #197 now has an explicit `sync --reconverge` entry requiring complete projection-manifest ownership, source-byte equivalence only for conflicted managed files, real singly-owned files, state precondition, capture-time proof, readback, and a complete backup bundle. Unknown siblings remain untouched.
 
 ## Second review corrections
 
 The source-mode digest retains the original length/path/mode framing and directory framing for included paths; only generated path components are omitted from the source-equivalence view. Full digests remain in backup and pre/post race checks. Unsafe entries are validated before generated-path filtering. Existing full-tree receipts remain accepted when only generated cache differs. Planning legacy migration uses an explicit `needs_migration` flag and occurs inside the move transaction with rollback.
 
 Issue #197 reconverge never infers ownership from content alone; missing or incomplete manifest ownership, unknown files, symlinks, hardlinks, or source/content drift are rejected.
+
+
+#197 regression evidence: `tests/trio/install-upgrade.test.mjs` covers two stale global identities equal to new source, one owned older methods file updated by normal sync, preserved ownership entries, preserved unknown sibling, custom content rejection, and symlink rejection. Full install-upgrade: 64/64; full installer: 161/161.

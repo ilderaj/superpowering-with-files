@@ -388,10 +388,7 @@ function settledConfigForWrites(config, writes, sources) {
     ...config,
     ownership: {
       ...config.ownership,
-      entries: config.ownership.entries.map((entry) => {
-        const descriptor = writes.find((candidate) =>
-          candidate.targetId === entry.targetId && candidate.destination === entry.path);
-        if (!descriptor) return entry;
+      entries: writes.map((descriptor) => {
         const contents = sources.get(descriptor.destination);
         if (typeof contents !== 'string') {
           throw trioBridgeError(`Missing settled source bytes for ${descriptor.destination}.`, 'ERR_TRIO_BRIDGE');
@@ -919,7 +916,12 @@ export async function reconvergeTrioProjection({ environment, config, statePreco
   const prepared = await prepareTrioProjection({ environment, config });
   const managed = prepared.descriptors.filter((descriptor) => descriptor.management === 'managed');
   const conflicted = managed.filter((descriptor) => prepared.conflicts.some((conflict) => conflict.destination === descriptor.destination));
-  const sources = await readTrioSources(conflicted);
+  const sources = new Map();
+  for (const descriptor of conflicted) {
+    const source = TRIO_SURFACE_SOURCES.get(descriptor.surface);
+    if (!source) throw trioBridgeError(`Trio reconverge has no source for ${descriptor.surface}.`, 'ERR_TRIO_RECONVERGE_SOURCE');
+    sources.set(descriptor.destination, await readFile(path.join(SOURCE_ROOT, source), 'utf8'));
+  }
   await assertReconvergeInventory(prepared, config, sources);
   const captured = await captureTrioTakeoverPreimages({ environment, descriptors: managed, statePrecondition });
   await assertCapturedReconvergeProof(prepared, config, sources, captured);

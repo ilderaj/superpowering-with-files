@@ -665,6 +665,61 @@ test('production no-state defaults to Trio and uses one scope-aware environment 
   }
 });
 
+test('reconverge repairs two stale owned global files, preserves siblings, then sync updates an older owned method', async () => {
+  const roots = await createProductionRoots('reconverge-regression');
+  try {
+    const environment = await resolveTrioProductionEnvironment({ rootDir: roots.rootDir, homeDir: roots.homeDir });
+    const initial = parseV2Config({
+      ...productionTrioConfig(environment, 'both'),
+      scope: { kind: 'user-global' },
+      targets: [{
+        ...productionTrioConfig(environment, 'both').targets[0],
+        paths: [path.join(environment.homeDir, '.codex', 'AGENTS.md')]
+      }]
+    });
+    await applyTrioProjection({ environment, config: initial });
+    const stateBefore = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+    stateBefore.ownership.source = 'projection-manifest';
+    stateBefore.ownership.manifestRef = `sha256:${'a'.repeat(64)}`;
+    const managed = stateBefore.ownership.entries;
+    const conflicted = managed.slice(0, 2);
+    const older = managed.find((entry) => entry.path.endsWith('/dev/references/methods.md'));
+    assert.ok(older);
+    for (const entry of conflicted) entry.identity = `sha256:${'f'.repeat(64)}`;
+    const oldMethods = 'owned older methods\n';
+    await writeFile(older.path, oldMethods);
+    older.identity = `sha256:${sha256(Buffer.from(oldMethods))}`;
+    await writeFile(environment.stateFile, `${JSON.stringify(stateBefore, null, 2)}\n`);
+
+    const sibling = path.join(path.dirname(conflicted[0].path), 'config.toml');
+    await writeFile(sibling, 'user-owned config\n');
+    for (const entry of conflicted) {
+      const surface = PROJECTION_SURFACES.find((candidate) => candidate.id === 'entry'
+        ? entry.path.endsWith('/.codex/AGENTS.md')
+        : entry.path.endsWith(`/.agents/skills/${candidate.relativePath}`));
+      await writeFile(entry.path, await readFile(path.join(REPO_ROOT, surface.source), 'utf8'));
+    }
+    const reconverged = await reconvergeTrioProjection({ environment, config: stateBefore });
+    assert.equal(reconverged.mode, 'reconverge');
+    const settled = JSON.parse(await readFile(environment.stateFile, 'utf8'));
+    assert.equal(settled.ownership.entries.length, managed.length);
+    assert.equal(settled.ownership.entries.find((entry) => entry.path === older.path).identity, older.identity);
+    await applyTrioProjection({ environment, config: settled });
+    assert.notEqual(await readFile(older.path, 'utf8'), oldMethods);
+    assert.equal(await readFile(sibling, 'utf8'), 'user-owned config\n');
+
+    const custom = await readFile(conflicted[0].path, 'utf8');
+    await writeFile(conflicted[0].path, 'custom modified');
+    await assert.rejects(reconvergeTrioProjection({ environment, config: settled }), /content drift/);
+    await writeFile(conflicted[0].path, custom);
+    await rm(conflicted[0].path);
+    await symlink(path.join(REPO_ROOT, 'harness/trio/skill/SKILL.md'), conflicted[0].path);
+    await assert.rejects(reconvergeTrioProjection({ environment, config: settled }), /real singly-owned file|symbolic link/);
+  } finally {
+    await rm(roots.sandbox, { recursive: true, force: true });
+  }
+});
+
 test('Trio projection passes externally captured target and parent conditions to every publication', async () => {
   const before = await fixtureSnapshot();
   const fixtureRoot = await stageV1Fixture('upgrade-v1-standard');
