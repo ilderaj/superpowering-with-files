@@ -87,6 +87,7 @@ const cases = [
   ['no-overflow-fail.html', { invariant: 'no-horizontal-overflow', selector: 'body' }],
   ['no-clip-pass.html', { invariant: 'no-clip', selector: '#copy', textSelector: '#copy' }],
   ['no-clip-fail.html', { invariant: 'no-clip', selector: '#copy', textSelector: '#copy' }],
+  ['no-clip-visible-overflow-pass.html', { invariant: 'no-clip', selector: '#copy', textSelector: '#copy' }],
   ['single-layer-pass.html', { invariant: 'single-layer', selector: '#target', property: 'margin-top', ownership: { ownerLayer: 'base', owners: [{ layer: 'base', selector: '.layer-base' }], candidates: [{ layer: 'base', selector: '.layer-base' }, { layer: 'theme', selector: '.layer-theme' }] } }],
   ['single-layer-fail.html', { invariant: 'single-layer', selector: '#target', property: 'margin-top', ownership: { ownerLayer: null, owners: [{ layer: 'base', selector: '.layer-base' }, { layer: 'theme', selector: '.layer-theme' }], candidates: [{ layer: 'base', selector: '.layer-base' }, { layer: 'theme', selector: '.layer-theme' }] } }],
   ['min-size-pass.html', { invariant: 'min-size', selector: '#target', minWidth: 44, minHeight: 44 }],
@@ -122,6 +123,72 @@ for (const [fixtureName, check] of cases) {
     assert.match(result.stdout, /"status"\s*:/);
   });
 }
+
+test('no-clip accepts visible overflow while hidden overflow still fails', browserOptions, async () => {
+  const outputRoot = await mkdtemp('/tmp/swf-render-verify-visible-overflow-');
+  temporaryRoots.push(outputRoot);
+  const specPath = await writeSpec(outputRoot, 'no-clip-visible-overflow-pass.html', { invariant: 'no-clip', selector: '#copy', textSelector: '#copy' });
+  const result = await runCli(['--spec', specPath, '--file', join(fixtureRoot, 'no-clip-visible-overflow-pass.html'), '--json']);
+  assert.equal(result.code, 0, result.stderr || result.stdout);
+  assert.equal(JSON.parse(result.stdout).status, 'passed');
+});
+
+test('shared element selectors retain each check text selector', browserOptions, async () => {
+  const outputRoot = await mkdtemp('/tmp/swf-render-verify-text-selectors-');
+  temporaryRoots.push(outputRoot);
+  const specPath = join(outputRoot, 'text-selectors.json');
+  await writeFile(specPath, JSON.stringify({
+    file: join(fixtureRoot, 'no-page-errors-pass.html'),
+    viewport: { width: 800, height: 600 },
+    checks: [
+      { invariant: 'no-clip', selector: '#target', textSelector: '#visible' },
+      { invariant: 'no-clip', selector: '#target', textSelector: '#clipped' },
+    ],
+  }));
+  const result = await runCli(['--spec', specPath, '--file', join(fixtureRoot, 'shared-text-selectors.html'), '--json']);
+  assert.equal(result.code, 2, result.stderr || result.stdout);
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(report.results.map((item) => item.passed), [true, false]);
+});
+
+test('HTTP error targets fail closed', browserOptions, async () => {
+  const server = await startStaticServer(fixtureRoot);
+  try {
+    const result = await runCli(['--url', `${server.url}/does-not-exist.html`, '--json']);
+    assert.equal(result.code, 2, result.stderr || result.stdout);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.status, 'failed');
+    assert.equal(report.error, undefined);
+    assert.match(report.results[0].message, /HTTP|status|target/i);
+  } finally {
+    await server.close();
+  }
+});
+
+test('explicit URL overrides the file declared by a spec', browserOptions, async () => {
+  const outputRoot = await mkdtemp('/tmp/swf-render-verify-url-override-');
+  temporaryRoots.push(outputRoot);
+  const specPath = join(outputRoot, 'url-override.json');
+  await writeFile(specPath, JSON.stringify({
+    file: join(fixtureRoot, 'no-page-errors-pass.html'),
+    viewport: { width: 800, height: 600 },
+    checks: [{ invariant: 'no-page-errors' }],
+  }));
+  const server = await startStaticServer(fixtureRoot);
+  try {
+    const result = await runCli([
+      '--spec', specPath,
+      '--url', `${server.url}/no-page-errors-fail.html`,
+      '--json',
+    ]);
+    assert.equal(result.code, 2, result.stderr || result.stdout);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.target.url, `${server.url}/no-page-errors-fail.html`);
+    assert.equal(report.target.file, undefined);
+  } finally {
+    await server.close();
+  }
+});
 
 test('launch timeout is an independent knob and fails closed as environment-limited', browserOptions, async () => {
   const outputRoot = await mkdtemp('/tmp/swf-render-verify-launch-');
@@ -209,7 +276,7 @@ test('combined checks retain one selector measurement for multiple invariants', 
   const report = JSON.parse(await readFile(reportPath, 'utf8'));
   assert.equal(report.results.length, 2);
   assert.ok(report.results.every((record) => record.passed));
-  assert.deepEqual(Object.keys(report.measurement.elements), ['#target']);
+  assert.equal(Object.keys(report.measurement.elements).length, 2);
 });
 
 test('malformed explicit checks fail closed instead of defaulting to no-page-errors', async () => {

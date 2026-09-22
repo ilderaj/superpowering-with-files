@@ -86,8 +86,8 @@ async function writeOutput(outputPath, report) {
 
 async function run(values) {
   const spec = await readSpec(values.spec);
-  const requestedFile = values.file ? path.resolve(values.file) : spec.file ? path.resolve(spec.file) : null;
-  const requestedUrl = values.url ?? spec.url ?? null;
+  const requestedFile = values.file ? path.resolve(values.file) : values.url ? null : spec.file ? path.resolve(spec.file) : null;
+  const requestedUrl = values.url ?? (values.file ? null : spec.url) ?? null;
   if (!requestedFile && !requestedUrl) fail('the spec must provide file or url when --file/--url is absent');
   const target = requestedFile ?? requestedUrl;
   const checks = validateChecks(spec);
@@ -112,6 +112,35 @@ async function run(values) {
     page = await browser.newPage();
     await page.setViewport(view.width, view.height);
     await page.navigate(url, Math.max(2000, timeoutMs));
+    if (page.mainDocumentResponse?.status >= 400) {
+      const message = `target returned HTTP ${page.mainDocumentResponse.status}`;
+      const results = checks.map((check) => ({
+        invariant: check.invariant,
+        selector: check.selector ?? 'document',
+        measured: null,
+        expected: null,
+        unit: 'CSS px',
+        tolerance: Math.max(0, check.tolerance ?? 0),
+        observer: 'settled DOM in target host',
+        viewport: viewportLabel(view),
+        passed: false,
+        message,
+      }));
+      return {
+        schemaVersion: 1,
+        status: 'failed',
+        exitCode: 2,
+        target: requestedFile ? { file: requestedFile, url } : { url },
+        viewport: viewportLabel(view),
+        page: spec.page ?? path.basename(requestedFile ?? requestedUrl),
+        state: spec.state ?? 'default',
+        coverage: { page: spec.coverage?.page ?? spec.page ?? path.basename(requestedFile ?? requestedUrl), state: spec.coverage?.state ?? spec.state ?? 'default', viewport: viewportLabel(view), checked: checks.map((check) => check.invariant), unverified: spec.coverage?.unverified ?? [] },
+        targetResponse: page.mainDocumentResponse,
+        results,
+        pageErrors: page.pageErrors,
+        artifacts: { screenshot: null, json: values.out ? path.resolve(values.out) : null },
+      };
+    }
     const settled = await settlePage(page, { timeoutMs });
     const measurement = await measurePage(page, checks);
     const results = evaluateInvariants(checks, measurement, { pageErrors: page.pageErrors, viewport: viewportLabel(view) });

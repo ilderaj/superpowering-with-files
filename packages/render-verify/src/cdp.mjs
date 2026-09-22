@@ -177,10 +177,14 @@ export class CdpPage {
     this.sessionId = sessionId;
     this.targetId = targetId;
     this.pageErrors = [];
+    this.mainDocumentResponse = null;
     this.connection.on('Runtime.exceptionThrown', (params) => {
       const details = params?.exceptionDetails ?? {};
       const description = details.exception?.description ?? details.text ?? 'uncaught page exception';
       this.pageErrors.push({ description, url: details.url ?? null, lineNumber: details.lineNumber ?? null });
+    }, sessionId);
+    this.connection.on('Network.responseReceived', (params) => {
+      if (params?.type === 'Document' && !this.mainDocumentResponse) this.mainDocumentResponse = { status: params.response?.status ?? null, url: params.response?.url ?? null };
     }, sessionId);
   }
 
@@ -253,6 +257,7 @@ export async function launchChrome({ chromePath, timeoutMs = 10000 } = {}) {
         const { sessionId } = await connection.send('Target.attachToTarget', { targetId, flatten: true });
         const page = new CdpPage(connection, sessionId, targetId);
         await page.send('Page.enable');
+        await page.send('Network.enable');
         await page.send('Runtime.enable');
         await page.send('Log.enable').catch(() => {});
         return page;

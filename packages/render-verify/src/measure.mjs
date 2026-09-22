@@ -44,6 +44,7 @@ const MEASURE_EXPRESSION = `((input) => {
     for (const property of entry.properties || []) css[property] = style.getPropertyValue(property).trim();
     const text = entry.textSelector ? document.querySelector(entry.textSelector) : element;
     return {
+      key: entry.key,
       selector: entry.selector,
       missing: false,
       rect: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height },
@@ -84,7 +85,7 @@ const MEASURE_EXPRESSION = `((input) => {
     return { selector: entry.selector, property: entry.property, candidates };
   });
   return {
-    elements: Object.fromEntries((input.elements || []).map((entry) => [entry.selector, measureElement(entry)])),
+    elements: Object.fromEntries((input.elements || []).map((entry) => [entry.key, measureElement(entry)])),
     probes,
     ownership,
     stylesheets,
@@ -95,11 +96,10 @@ const MEASURE_EXPRESSION = `((input) => {
 export async function measurePage(page, checks) {
   const entriesBySelector = new Map();
   for (const check of checks.filter((entry) => entry.selector)) {
-    const current = entriesBySelector.get(check.selector) ?? { selector: check.selector, properties: [] };
-    current.parentSelector ||= check.parentSelector;
-    current.textSelector ||= check.textSelector;
+    const key = check.textSelector || check.parentSelector ? JSON.stringify([check.selector, check.textSelector ?? null, check.parentSelector ?? null]) : check.selector;
+    const current = entriesBySelector.get(key) ?? { key, selector: check.selector, properties: [], ...(check.parentSelector ? { parentSelector: check.parentSelector } : {}), ...(check.textSelector ? { textSelector: check.textSelector } : {}) };
     current.properties = [...new Set([...current.properties, check.property, ...(check.properties || [])].filter(Boolean))];
-    entriesBySelector.set(check.selector, current);
+    entriesBySelector.set(key, current);
   }
   const entries = [...entriesBySelector.values()];
   const probes = checks.filter((check) => typeof check.probe === 'string' && check.probe.startsWith('--')).map((check) => ({ name: check.probe, property: check.property ?? 'margin-top' }));
