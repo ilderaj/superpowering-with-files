@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import * as original from '../../harness/trio/core/routing.mjs';
+import * as original from '../../../harness/trio/core/routing.mjs';
 import * as ported from '../src/core/index.js';
 import {
   makePacket,
