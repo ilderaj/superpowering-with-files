@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-22",
+  "sourceWorktree": "<isolated-audit-worktree>",
+  "rootRepositoryReadOnly": true,
+  "temporaryCopies": [
+    {
+      "path": "<temporary-dsh-copy>",
+      "copyMode": "recursive real file copy",
+      "hardlinks": false,
+      "nonOwnedProcessesKilled": false
+    },
+    {
+      "path": "<temporary-homepage-copy>",
+      "copyMode": "recursive real file copy",
+      "hardlinks": false,
+      "nonOwnedProcessesKilled": false
+    }
+  ],
+  "baseline": {
+    "dshSelected": {
+      "command": "pnpm exec vitest run test/routing.test.ts test/binding.test.ts test/evidence.test.ts test/budget.test.ts test/dispatch-core.test.ts test/dispatch.test.ts test/packet.test.ts test/storeRead.test.ts test/detect.test.ts test/commands.test.ts",
+      "files": 10,
+      "testsPassed": 148,
+      "testsFailed": 0,
+      "exit": 0
+    },
+    "homepage": {
+      "command": "npm test",
+      "testsPassed": 20,
+      "testsFailed": 0,
+      "exit": 0
+    },
+    "dshFull": {
+      "attempted": true,
+      "passingFiles": 18,
+      "passingTests": 274,
+      "parityFailures": 10,
+      "fullPass": false,
+      "reason": "plugin-only copy lacks repo-root .agents and harness paths"
+    }
+  },
+  "mutants": [
+    {
+      "module": "routing",
+      "source": "plugins/dsh/src/core/routing.ts",
+      "tests": [
+        "test/routing.test.ts"
+      ],
+      "mutation": "explicit tracked/deep-reasoning classification returns quick",
+      "red": true,
+      "exit": 1
+    },
+    {
+      "module": "binding",
+      "source": "plugins/dsh/src/core/binding.ts",
+      "tests": [
+        "test/binding.test.ts",
+        "test/packet.test.ts"
+      ],
+      "mutation": "reverse SHA equality in bindingsMatch",
+      "red": true,
+      "exit": 1
+    },
+    {
+      "module": "evidence",
+      "source": "plugins/dsh/src/core/evidence.ts",
+      "tests": [
+        "test/evidence.test.ts",
+        "test/packet.test.ts"
+      ],
+      "mutation": "dispatch record becomes unknown and empty record host-claimed",
+      "red": true,
+      "exit": 1
+    },
+    {
+      "module": "budget",
+      "source": "plugins/dsh/src/budget.ts",
+      "tests": [
+        "test/budget.test.ts"
+      ],
+      "mutation": "worker cap > instead of >=",
+      "red": true,
+      "exit": 1
+    },
+    {
+      "module": "dispatch",
+      "source": "plugins/dsh/src/core/dispatch.ts",
+      "tests": [
+        "test/dispatch-core.test.ts",
+        "test/dispatch.test.ts"
+      ],
+      "mutation": "deep confirmation inverted",
+      "red": true,
+      "exit": 1
+    },
+    {
+      "module": "context",
+      "source": "plugins/dsh/src/context.ts",
+      "tests": [
+        "test/dispatch.test.ts"
+      ],
+      "mutation": "getProvider capability predicate inverted",
+      "red": true,
+      "exit": 1
+    },
+    {
+      "module": "packet",
+      "source": "plugins/dsh/src/packet.ts",
+      "tests": [
+        "test/packet.test.ts",
+        "test/dispatch.test.ts"
+      ],
+      "mutation": "packet budget binding guard inverted",
+      "red": true,
+      "exit": 1
+    },
+    {
+      "module": "homepage-routing",
+      "source": "homepage/src/route-utils.mjs",
+      "tests": [
+        "homepage/src/route-utils.test.mjs"
+      ],
+      "mutation": "homepage prefix asset match removed",
+      "red": true,
+      "exit": 1
+    },
+    {
+      "module": "homepage-content-app",
+      "source": "homepage/src/homepage-content.mjs",
+      "tests": [
+        "homepage/src/homepage-content.test.mjs"
+      ],
+      "mutation": "hero headline replaced",
+      "red": true,
+      "exit": 1
+    }
+  ],
+  "gaps": [
+    {
+      "source": "plugins/dsh/src/core/dispatch.ts",
+      "boundary": "exact remaining budget admission",
+      "evidence": "mutant changing > to >= survived selected tests",
+      "status": "real coverage gap"
+    },
+    {
+      "source": "plugins/dsh/test/assets.test.ts and test/parity.test.ts",
+      "boundary": "repo-root asset/parity integration",
+      "evidence": "plugin-only copy cannot resolve repo-root paths",
+      "status": "environmental coverage gap"
+    },
+    {
+      "source": "homepage/src/worker.ts",
+      "boundary": "worker delegation",
+      "evidence": "delegates directly to tested route utility; separate equivalent mutant omitted",
+      "status": "no distinct behavior gap claimed"
+    },
+    {
+      "source": "homepage build/typecheck",
+      "boundary": "toolchain build",
+      "evidence": "not run because available root node_modules lacks Vite toolchain",
+      "status": "unverified"
+    }
+  ],
+  "externalExecution": false
+}

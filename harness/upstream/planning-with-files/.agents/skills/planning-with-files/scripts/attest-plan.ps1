@@ -116,7 +116,13 @@ public static class PwfAttestationNative {
             handle, FileAttributeTagInfo, out tag,
             (uint)Marshal.SizeOf(typeof(FILE_ATTRIBUTE_TAG_INFO))))
             throw new Win32Exception(Marshal.GetLastWin32Error());
-        if ((tag.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0)
+        // Refuse only name-surrogate reparse points (symlinks, junctions, and any
+        // unknown tag with bit 29 set): those are what path parsing follows. A
+        // OneDrive Files On-Demand placeholder (tag 0x9000601A) is a regular file
+        // that every other route reads; refusing it broke attestation, --show
+        // and --clear in every project under OneDrive (#275).
+        if ((tag.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0 &&
+            (tag.ReparseTag & 0x20000000) != 0)
             throw new IOException("Refusing a reparse-point file.");
         if ((tag.FileAttributes & (uint)FileAttributes.Directory) != 0)
             throw new IOException("Refusing a directory where a regular file is required.");
@@ -218,8 +224,10 @@ if ($script:IsWindowsHost) {
     $securityRootPath = (Get-Location).Path
     if ($env:PWF_PLAN_ROOT) {
         $pin = $env:PWF_PLAN_ROOT
+        # Windows PowerShell 5.1 has no IsPathFullyQualified; a drive-qualified
+        # local path is the only accepted shape, as in resolve-plan-dir.ps1.
         $isUnc = $pin.StartsWith('\\') -or $pin.StartsWith('//')
-        if (-not [IO.Path]::IsPathFullyQualified($pin) -or $isUnc) {
+        if ($isUnc -or ($pin -notmatch '^[A-Za-z]:[\\/]')) {
             throw "[plan-attest] PWF_PLAN_ROOT must be an absolute local path."
         }
         $securityRootPath = $pin
@@ -404,6 +412,7 @@ function Resolve-PlanFile {
     $resolver = Join-Path $PSScriptRoot "resolve-plan-dir.ps1"
     if (-not (Test-Path -LiteralPath $resolver -PathType Leaf)) { return $null }
     $resolvedDir = @(& $resolver | Where-Object { $_ }) | Select-Object -First 1
+    if (-not $resolvedDir -and ((& $resolver -CheckAmbiguity) -eq "PWF_PLAN_AMBIGUOUS_V1")) { return $null }
     if ($resolvedDir) {
         $planFile = Join-Path $resolvedDir "task_plan.md"
         return (Resolve-ContainedPlanFile -Candidate $planFile -ExpectedDirectory $resolvedDir)

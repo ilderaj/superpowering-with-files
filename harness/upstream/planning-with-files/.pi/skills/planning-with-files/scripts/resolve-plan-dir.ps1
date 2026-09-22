@@ -13,7 +13,8 @@
 # junction/symlink escape; slug validation alone blocks textual traversal.
 
 param(
-    [string]$PlanRoot = (Join-Path (Get-Location) ".planning")
+    [string]$PlanRoot = (Join-Path (Get-Location) ".planning"),
+    [switch]$CheckAmbiguity
 )
 
 $projectRoot = (Get-Location).Path
@@ -76,6 +77,17 @@ function Get-FinalDirectoryPath {
     return (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
 }
 
+function Test-FullyQualifiedLocalPath {
+    param([string]$Path)
+    if (-not $Path -or $Path.StartsWith('\\') -or $Path.StartsWith('//')) {
+        return $false
+    }
+    if ($script:IsWindowsHost) {
+        return $Path -match '^[A-Za-z]:[\\/]'
+    }
+    return [System.IO.Path]::IsPathRooted($Path)
+}
+
 # PWF_PLAN_ROOT: absolute plan-root binding (issue #212), mirroring
 # resolve-plan-dir.sh. A thread whose cwd is a shared PARENT of the real
 # project resolves the parent's plan and never sees the nested one;
@@ -89,9 +101,8 @@ function Get-FinalDirectoryPath {
 # checked against the pinned root. Unset keeps legacy behavior unchanged.
 if ($env:PWF_PLAN_ROOT) {
     $pin = $env:PWF_PLAN_ROOT
-    $isUnc = $pin.StartsWith('\\') -or $pin.StartsWith('//')
-    $isAbsolute = [System.IO.Path]::IsPathFullyQualified($pin)
-    if ($isAbsolute -and -not $isUnc -and (Test-Path -LiteralPath $pin -PathType Container)) {
+    if ((Test-FullyQualifiedLocalPath $pin) -and
+        (Test-Path -LiteralPath $pin -PathType Container)) {
         $projectRoot = $pin
         $PlanRoot = Join-Path $pin ".planning"
     } else {
@@ -128,43 +139,104 @@ function Test-WithinRoot {
     return $candNorm.StartsWith($rootNorm + [System.IO.Path]::DirectorySeparatorChar, [System.StringComparison]::OrdinalIgnoreCase)
 }
 
+# A linked plan directory (symlink or junction) is never selectable: not by
+# PLAN_ID, not by the pointer, not by the newest scan, and it never counts
+# (#270). This is `[ -L ]` of resolve-plan-dir.sh and is_link of the Python
+# twin: LinkType names symlinks and junctions only. The ReparsePoint
+# attribute alone would also match OneDrive Files On-Demand placeholders,
+# which every synced directory and file carries and which are not links to
+# sh. The same predicate guards the pointer file below (#275).
+function Test-LinkedDirectory {
+    param($PathOrItem)
+    if ($PathOrItem -is [string]) {
+        $item = Get-Item -LiteralPath $PathOrItem -Force -ErrorAction SilentlyContinue
+    } else {
+        $item = $PathOrItem
+    }
+    if (-not $item) { return $false }
+    return ([string]$item.LinkType) -in @('SymbolicLink', 'Junction')
+}
+
 $activeFile = Join-Path $PlanRoot ".active_plan"
+
+# A set PLAN_ID is a BINDING, not a hint (issue #237). A selector that names
+# no directory, fails slug validation, or fails containment terminates
+# resolution instead of falling through to .active_plan and newest-by-mtime:
+# the fall-through let a one-character typo attest and inject a DIFFERENT plan
+# at rc=0. Emptiness is the fail-closed signal on this channel, matching
+# resolve-plan-dir.sh and the PWF_PLAN_ROOT pin. An empty $env:PLAN_ID is
+# falsy here and still means "unset".
+# The optional probe distinguishes ambiguity from a legacy-root fallback.
+# Multiple named plans require PLAN_ID even without a sessions directory.
+$planCount = 0
+if (-not $env:PLAN_ID) {
+    if ((Test-Path -LiteralPath (Join-Path $PlanRoot "sessions") -PathType Container) -and
+        (Test-Path -LiteralPath (Join-Path $projectRoot "task_plan.md") -PathType Leaf)) {
+        $planCount = 1
+    }
+    if (Test-Path -LiteralPath $PlanRoot -PathType Container) {
+        foreach ($entry in (Get-ChildItem -LiteralPath $PlanRoot -Directory -ErrorAction SilentlyContinue)) {
+            # A linked plan directory (symlink, junction) is not selectable and
+            # never counts, matching `[ -L ]` in resolve-plan-dir.sh (#270).
+            if (Test-LinkedDirectory $entry) { continue }
+            if ((Test-ValidSlug $entry.Name) -and
+                (Test-Path -LiteralPath (Join-Path $entry.FullName "task_plan.md") -PathType Leaf)) {
+                $planCount++
+                if ($planCount -gt 1) { break }
+            }
+        }
+    }
+}
+if ($CheckAmbiguity) {
+    if ($planCount -gt 1) { Write-Output "PWF_PLAN_AMBIGUOUS_V1" }
+    exit 0
+}
+if ($planCount -gt 1) { exit 0 }
 
 if ($env:PLAN_ID) {
     if (Test-ValidSlug $env:PLAN_ID) {
         $candidate = Join-Path $PlanRoot $env:PLAN_ID
-        if ((Test-Path $candidate -PathType Container) -and (Test-WithinRoot $candidate)) {
+        if ((Test-Path -LiteralPath $candidate -PathType Container) -and -not (Test-LinkedDirectory $candidate) -and (Test-WithinRoot $candidate)) {
             Write-Output $candidate
             exit 0
         }
     }
+    exit 0
 }
 
 # Get-Item observes the link object even when its target is missing, unlike
 # Test-Path which follows the target. An active pointer that is a directory or
-# reparse point is an unsafe/ambiguous selector and must terminate resolution;
+# a symlink is an unsafe/ambiguous selector and must terminate resolution;
 # falling through would silently select and expose the newest unrelated plan.
+# LinkType, not the ReparsePoint attribute: OneDrive Files On-Demand marks
+# every synced file as a reparse point, and such a pointer is a plain file
+# to every other route (#275).
 $activeItem = Get-Item -LiteralPath $activeFile -Force -ErrorAction SilentlyContinue
 if ($activeItem) {
-    if ($activeItem.PSIsContainer -or
-        (($activeItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)) {
+    if ($activeItem.PSIsContainer -or (Test-LinkedDirectory $activeItem)) {
         exit 0
     }
-    $planId = (Get-Content -LiteralPath $activeFile -Raw).Trim()
+    # Get-Content -Raw returns $null for a zero-byte pointer; an empty pointer
+    # falls through like an invalid one instead of raising inside a caller.
+    $planId = "$(Get-Content -LiteralPath $activeFile -Raw -ErrorAction SilentlyContinue)".Trim()
     if ($planId -and (Test-ValidSlug $planId)) {
         $candidate = Join-Path $PlanRoot $planId
-        if ((Test-Path $candidate -PathType Container) -and (Test-WithinRoot $candidate)) {
+        if ((Test-Path -LiteralPath $candidate -PathType Container) -and -not (Test-LinkedDirectory $candidate) -and (Test-WithinRoot $candidate)) {
             Write-Output $candidate
             exit 0
         }
     }
 }
 
-if (Test-Path $PlanRoot -PathType Container) {
-    $latest = Get-ChildItem -Path $PlanRoot -Directory |
+# Literal paths throughout: a project path containing [ or ] is a wildcard to
+# Test-Path and Get-ChildItem -Path, and a pattern that matches nothing turned a
+# valid selection into an empty result.
+if (Test-Path -LiteralPath $PlanRoot -PathType Container) {
+    $latest = Get-ChildItem -LiteralPath $PlanRoot -Directory |
         Where-Object { -not $_.Name.StartsWith('.') } |
+        Where-Object { -not (Test-LinkedDirectory $_) } |
         Where-Object { Test-ValidSlug $_.Name } |
-        Where-Object { Test-Path (Join-Path $_.FullName "task_plan.md") -PathType Leaf } |
+        Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName "task_plan.md") -PathType Leaf } |
         Where-Object { Test-WithinRoot $_.FullName } |
         Sort-Object LastWriteTime -Descending |
         Select-Object -First 1

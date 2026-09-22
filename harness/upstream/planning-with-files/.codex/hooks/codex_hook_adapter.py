@@ -15,6 +15,11 @@ from typing import Any
 
 HOOK_DIR = Path(__file__).resolve().parent
 _SAFE_LEGACY_SESSION_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
+_PLAN_SLUG = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*\Z")
+SESSION_PLAN_BINDING_NOTICE = (
+    "[planning-with-files] Multiple plans are available. "
+    "Set PLAN_ID=<slug> for this session; nothing injected."
+)
 _DARWIN_SYSTEM_ALIASES = {
     Path("/var"): Path("/private/var"),
     Path("/tmp"): Path("/private/tmp"),
@@ -83,6 +88,27 @@ def _is_reparse_or_link(path: Path) -> bool:
     attrs = getattr(info, "st_file_attributes", 0)
     reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
     return bool(attrs & reparse)
+
+
+_LINK_REPARSE_TAGS = (0xA000000C, 0xA0000003)  # IO_REPARSE_TAG_SYMLINK, _MOUNT_POINT
+
+
+def _is_linked_directory(path: Path) -> bool:
+    """`[ -L ]` of the shell scripts: a symlink, or a junction on Windows.
+
+    Narrower than _is_reparse_or_link on purpose: OneDrive Files On-Demand
+    marks every synced directory as a reparse point, and those are plans.
+    """
+    try:
+        info = path.lstat()
+    except OSError:
+        return False
+    if stat.S_ISLNK(info.st_mode):
+        return True
+    reparse = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    if getattr(info, "st_file_attributes", 0) & reparse:
+        return getattr(info, "st_reparse_tag", 0) in _LINK_REPARSE_TAGS
+    return False
 
 
 def _is_trusted_darwin_system_alias(path: Path) -> bool:
@@ -212,6 +238,43 @@ def is_session_attached(root: Path, session_id: str | None) -> bool:
         return False
     except (OSError, RuntimeError, ValueError):
         return False
+
+
+def session_plan_requires_binding(root: Path) -> bool:
+    """Require PLAN_ID when an attached session can resolve multiple plans.
+
+    Session sentinels admit a session to planning context. They do not select a
+    plan. Multiple named plans always require a pin. With isolation armed,
+    a legacy root plan also counts as a competing candidate.
+    """
+    if os.environ.get("PLAN_ID", ""):
+        return False
+
+    sessions_dir = root / ".planning" / "sessions"
+    armed = sessions_dir.exists() or sessions_dir.is_symlink()
+    planning_dir = root / ".planning"
+    if not planning_dir.exists():
+        return False
+
+    candidates = 0
+    try:
+        if armed and (root / "task_plan.md").is_file():
+            candidates += 1
+        planning_dir = root / ".planning"
+        for child in planning_dir.iterdir():
+            if not _PLAN_SLUG.fullmatch(child.name) or not child.is_dir():
+                continue
+            # A linked plan directory is not selectable and never counts,
+            # matching `[ -L ]` in the shell counters (#270).
+            if _is_linked_directory(child):
+                continue
+            if (child / "task_plan.md").is_file():
+                candidates += 1
+                if candidates > 1:
+                    return True
+    except (OSError, RuntimeError):
+        return True
+    return False
 
 
 def emit_json(payload: dict[str, Any]) -> None:

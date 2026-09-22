@@ -18,6 +18,8 @@ const SCRIPT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const DEFAULT_SHADOW_FIXTURE_ROOT = path.join(SCRIPT_ROOT, 'tests', 'fixtures', 'decision');
 export const SHADOW_RESULT_NAME = 'observed-shadow-result.json';
 export const SHADOW_RUNNER_ID = 'scripts/evaluate-decision-shadow.mjs';
+export const SHADOW_EQUIVALENCE = Object.freeze({ 'waiting-human': 'escalate', policy_gate: 'escalate' });
+const normalizedOld = value => SHADOW_EQUIVALENCE[value] ?? value;
 export const SHADOW_DISCLAIMER = Object.freeze([
   'This is deterministic shadow evidence, not a matched Host/model benchmark.',
   'No model or network call is made; operator answers are fixture inputs.',
@@ -99,6 +101,8 @@ export function evaluateShadowCase(entry) {
   const result = evaluateDecision(request, {
     operator: entry.operator ?? null,
     failure,
+    policyContext: entry.policyContext ?? null,
+    operation: entry.operation ?? null,
     authorization: entry.authorization ?? null
   });
   const classified = failure === null ? null : classifyFailure(failure);
@@ -112,7 +116,7 @@ export function evaluateShadowCase(entry) {
     failureClass: classified === null ? null : classified.class,
     failureTransition: classified === null ? null : classified.suggestedTransition,
     oldBehaviour: entry.oldBehaviour,
-    disagreement: result.transitionRecommendation !== entry.oldBehaviour
+    disagreement: result.transitionRecommendation !== null && normalizedOld(entry.oldBehaviour) !== null && result.transitionRecommendation !== normalizedOld(entry.oldBehaviour), oldBehaviourNormalized: normalizedOld(entry.oldBehaviour)
   };
 }
 

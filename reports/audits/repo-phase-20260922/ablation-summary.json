@@ -1,0 +1,853 @@
+{
+  "schemaVersion": 1,
+  "method": "Independent real file copies; reversible single-boundary mutations; only owned process groups controlled; public-consumer reruns replace wrong-seam survivors.",
+  "retainedBoundaries": 31,
+  "results": [
+    {
+      "id": "authority",
+      "file": "harness/trio/core/authority.mjs",
+      "function": "discoverAuthorityRoot",
+      "test": "tests/trio/authority-parity.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 3,
+        "pass": 3,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-authority.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 3,
+        "pass": 1,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-authority.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "read",
+      "file": "harness/trio/core/read.mjs",
+      "function": "readTrioTask",
+      "test": "tests/trio/read.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 21,
+        "pass": 21,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-read.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 21,
+        "pass": 3,
+        "fail": 18,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-read.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "routing",
+      "file": "harness/trio/core/routing.mjs",
+      "function": "routeTask",
+      "test": "tests/trio/routing.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 21,
+        "pass": 21,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-routing.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 21,
+        "pass": 17,
+        "fail": 4,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-routing.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "store",
+      "file": "harness/trio/core/store.mjs",
+      "function": "initializeTrioTask",
+      "test": "tests/trio/store.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 19,
+        "pass": 19,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-store.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 19,
+        "pass": 13,
+        "fail": 6,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-store.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "legacy",
+      "file": "harness/trio/compatibility/legacy-reader.mjs",
+      "function": "readLegacyTask",
+      "test": "tests/trio/read.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 21,
+        "pass": 21,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-read.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 21,
+        "pass": 20,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-legacy.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "codex-host",
+      "file": "harness/trio/hosts/codex.mjs",
+      "function": "resolveCodexPermissionIntent",
+      "test": "tests/trio/host-routing.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 61,
+        "pass": 61,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-codex-host.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 61,
+        "pass": 52,
+        "fail": 9,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-codex-host.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "config",
+      "file": "harness/trio/config.mjs",
+      "function": "validateV2Config",
+      "test": "tests/trio/install-upgrade.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 63,
+        "pass": 63,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-config.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 63,
+        "pass": 12,
+        "fail": 51,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-config.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "projection",
+      "file": "harness/trio/projection.mjs",
+      "function": "projectConfig",
+      "test": "tests/trio/projection.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 28,
+        "pass": 28,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-projection.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 28,
+        "pass": 11,
+        "fail": 17,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-projection.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "trio-command",
+      "file": "harness/installer/commands/trio.mjs",
+      "function": "trioCommand",
+      "test": "tests/trio/command-read.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 18,
+        "pass": 18,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-trio-command.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 18,
+        "pass": 1,
+        "fail": 17,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-trio-command.log",
+        "loadFailure": false
+      },
+      "disposition": "retain",
+      "interpretation": "JSON.parse SyntaxError from empty/null CLI response; modules loaded and behavioral assertions failed, not source parse/load failure."
+    },
+    {
+      "id": "decision",
+      "file": "harness/trio/core/decision.mjs",
+      "function": "evaluateDecision",
+      "test": "tests/trio/decision.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 20,
+        "pass": 20,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-decision.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 20,
+        "pass": 14,
+        "fail": 6,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-decision.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "evidence",
+      "file": "harness/trio/core/evidence.mjs",
+      "function": "collectDevEvidence",
+      "test": "tests/trio/dev-evidence.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 15,
+        "pass": 15,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-evidence.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 15,
+        "pass": 10,
+        "fail": 5,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-evidence.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "shadow",
+      "file": "harness/trio/core/shadow.mjs",
+      "function": "shadowAgreement",
+      "test": "tests/trio/shadow-gate.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 29,
+        "pass": 29,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-shadow.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 29,
+        "pass": 16,
+        "fail": 13,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-shadow.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "generic-host",
+      "file": "harness/trio/core/routing.mjs",
+      "function": "resolveHostOperation",
+      "test": "tests/trio/host-routing.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 61,
+        "pass": 61,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-codex-host.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 61,
+        "pass": 4,
+        "fail": 57,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-generic-host.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "linear-guard",
+      "file": "harness/core/skills/linear-work-control/lib/project-routing.mjs",
+      "function": "guardTarget",
+      "test": "tests/core/linear-project-routing.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 16,
+        "pass": 16,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-linear-guard.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 16,
+        "pass": 12,
+        "fail": 4,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-linear-guard.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "linear-lifecycle",
+      "file": "harness/core/skills/linear-work-control/lib/linear-lifecycle.mjs",
+      "function": "planLifecycle",
+      "test": "tests/core/linear-lifecycle.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 4,
+        "pass": 4,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-linear-lifecycle.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 4,
+        "pass": 0,
+        "fail": 4,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-linear-lifecycle.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "night-queue",
+      "file": "harness/core/skills/linear-work-control/lib/night-queue.mjs",
+      "function": "selectNightIssue",
+      "test": "tests/core/linear-night-queue.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 9,
+        "pass": 9,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-night-queue.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 9,
+        "pass": 0,
+        "fail": 9,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-night-queue.log",
+        "loadFailure": false
+      },
+      "disposition": "retain",
+      "interpretation": "JSON.parse SyntaxError from empty/null CLI response; modules loaded and behavioral assertions failed, not source parse/load failure."
+    },
+    {
+      "id": "night-budget",
+      "file": "harness/core/skills/linear-work-control/lib/night-n01.mjs",
+      "function": "evaluateRunBudget",
+      "test": "tests/core/linear-night-n01.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-night-budget.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 11,
+        "pass": 8,
+        "fail": 3,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-night-budget.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "overengineering",
+      "file": "harness/core/skills/overengineering-review/lib/evaluate-overengineering-review.mjs",
+      "function": "evaluateOutput",
+      "test": "tests/core/overengineering-review-eval.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 1,
+        "pass": 1,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-overengineering.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 1,
+        "pass": 0,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-overengineering.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "simplification",
+      "file": "harness/core/skills/simplification-ledger/lib/evaluate-simplification-ledger.mjs",
+      "function": "evaluateOutput",
+      "test": "tests/core/simplification-ledger-eval.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 1,
+        "pass": 1,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-simplification.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 1,
+        "pass": 0,
+        "fail": 1,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-simplification.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "plugin-build",
+      "file": "packages/plugin-kit/src/build-plugin.mjs",
+      "function": "buildPlugin",
+      "test": "tests/plugin-kit/build-plugin.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 8,
+        "pass": 8,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-plugin-build.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 8,
+        "pass": 1,
+        "fail": 7,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-plugin-build.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "plugin-preflight",
+      "file": "packages/plugin-kit/src/preflight.mjs",
+      "function": "validateBuiltPlugin",
+      "test": "tests/plugin-kit/preflight.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 20,
+        "pass": 20,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-plugin-preflight.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 20,
+        "pass": 16,
+        "fail": 4,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-plugin-preflight.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "render-cdp-integration",
+      "file": "packages/render-verify/src/cdp.mjs",
+      "function": "launchChrome",
+      "test": "tests/render-verify/render-verify.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 25,
+        "pass": 25,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-render-cdp-integration.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 25,
+        "pass": 2,
+        "fail": 23,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-render-cdp-integration.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "render-server",
+      "file": "packages/render-verify/src/static-server.mjs",
+      "function": "startStaticServer",
+      "test": "tests/render-verify/render-verify.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 25,
+        "pass": 25,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-render-server.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 25,
+        "pass": 1,
+        "fail": 24,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-render-server.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "render-settle",
+      "file": "packages/render-verify/src/settle.mjs",
+      "function": "settlePage",
+      "test": "tests/render-verify/render-verify.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 25,
+        "pass": 25,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-render-server.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 25,
+        "pass": 23,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-render-settle.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "render-measure",
+      "file": "packages/render-verify/src/measure.mjs",
+      "function": "measurePage",
+      "test": "tests/render-verify/render-verify.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 25,
+        "pass": 25,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-render-server.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 25,
+        "pass": 8,
+        "fail": 17,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-render-measure.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "render-invariants",
+      "file": "packages/render-verify/src/invariants.mjs",
+      "function": "evaluateInvariants",
+      "test": "tests/render-verify/render-verify.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 25,
+        "pass": 25,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-render-server.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 25,
+        "pass": 5,
+        "fail": 20,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-render-invariants.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "installer-install",
+      "file": "harness/installer/commands/install.mjs",
+      "function": "install",
+      "test": "tests/trio/install-upgrade.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 63,
+        "pass": 63,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-installer-install.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 63,
+        "pass": 24,
+        "fail": 39,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-installer-install.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "sync-cli",
+      "file": "harness/installer/commands/sync.mjs",
+      "function": "sync",
+      "test": "tests/installer/commands.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 22,
+        "pass": 22,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-sync-cli.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 22,
+        "pass": 20,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-sync-cli.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "upstream-update",
+      "file": "harness/installer/lib/upstream.mjs",
+      "function": "applyCandidate",
+      "test": "tests/installer/upstream-commands.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 18,
+        "pass": 18,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-upstream-update.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 18,
+        "pass": 7,
+        "fail": 11,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-upstream-update.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "installer-state",
+      "file": "harness/installer/lib/state.mjs",
+      "function": "writeState",
+      "test": "tests/installer/state.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 8,
+        "pass": 8,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-installer-state.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 8,
+        "pass": 6,
+        "fail": 2,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-installer-state.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    },
+    {
+      "id": "global-adoption",
+      "file": "scripts/adopt-global-skills.mjs",
+      "function": "adoptGlobalSkills",
+      "test": "tests/installer/global-adoption.test.mjs",
+      "baseline": {
+        "exit": 0,
+        "tests": 8,
+        "pass": 8,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-baseline-global-adoption.log",
+        "loadFailure": false
+      },
+      "ablated": {
+        "exit": 1,
+        "tests": 8,
+        "pass": 1,
+        "fail": 7,
+        "cancelled": 0,
+        "skipped": 0,
+        "log": "ablation-mutant-global-adoption.log",
+        "loadFailure": false
+      },
+      "disposition": "retain"
+    }
+  ],
+  "simplification": {
+    "path": "harness/core/skills/linear-work-control/lib/project-routing.mjs",
+    "removedLines": 3,
+    "reason": "Duplicate target identity/status validations were already enforced by complete inventory and admissionProject before the branch.",
+    "testsPassed": 16
+  },
+  "limits": "Boundary experiments establish tested behavior necessity, not proof of all possible inputs, live model economics, or equal capability across hosts. Supplemental DSH/homepage experiments are recorded separately."
+}

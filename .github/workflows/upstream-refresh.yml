@@ -89,10 +89,11 @@ jobs:
           const eligibleCount = Array.isArray(result.eligibleFiles) ? result.eligibleFiles.length : 0;
           appendFileSync(process.env.GITHUB_OUTPUT, `status=${result.status ?? ''}\n`);
           appendFileSync(process.env.GITHUB_OUTPUT, `eligible_count=${eligibleCount}\n`);
+          appendFileSync(process.env.GITHUB_OUTPUT, `lock_persistence=${result.lockPersistence ?? ''}\n`);
           NODE
 
       - name: Open upstream refresh pull request
-        if: ${{ success() && steps.refresh_result.outputs.status == 'success' && steps.refresh_result.outputs.eligible_count != '0' && (github.event_name == 'schedule' || (inputs.create_pr == true && inputs.dry_run != true && inputs.validation_mode != true)) }}
+        if: ${{ success() && steps.refresh_result.outputs.status == 'success' && steps.refresh_result.outputs.eligible_count != '0' && steps.refresh_result.outputs.lock_persistence == 'written' && (github.event_name == 'schedule' || (inputs.create_pr == true && inputs.dry_run != true && inputs.validation_mode != true)) }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/ci/open-upstream-pr.mjs

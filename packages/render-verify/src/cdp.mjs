@@ -177,10 +177,15 @@ export class CdpPage {
     this.sessionId = sessionId;
     this.targetId = targetId;
     this.pageErrors = [];
+    this.mainDocumentResponse = null;
+    this.mainFrameId = null;
     this.connection.on('Runtime.exceptionThrown', (params) => {
       const details = params?.exceptionDetails ?? {};
       const description = details.exception?.description ?? details.text ?? 'uncaught page exception';
       this.pageErrors.push({ description, url: details.url ?? null, lineNumber: details.lineNumber ?? null });
+    }, sessionId);
+    this.connection.on('Network.responseReceived', (params) => {
+      if (params?.type === 'Document' && params.frameId === this.mainFrameId) this.mainDocumentResponse = { status: params.response?.status ?? null, url: params.response?.url ?? null };
     }, sessionId);
   }
 
@@ -196,6 +201,9 @@ export class CdpPage {
   }
 
   async navigate(url, timeoutMs = 15000) {
+    this.mainDocumentResponse = null;
+    const frameTree = await this.send('Page.getFrameTree');
+    this.mainFrameId = frameTree.frameTree?.frame?.id ?? null;
     // Observe both promises immediately: the load event may time out before
     // the navigation response arrives, or navigation may fail before load.
     const loaded = this.waitForEvent('Page.loadEventFired', timeoutMs);
@@ -253,6 +261,7 @@ export async function launchChrome({ chromePath, timeoutMs = 10000 } = {}) {
         const { sessionId } = await connection.send('Target.attachToTarget', { targetId, flatten: true });
         const page = new CdpPage(connection, sessionId, targetId);
         await page.send('Page.enable');
+        await page.send('Network.enable');
         await page.send('Runtime.enable');
         await page.send('Log.enable').catch(() => {});
         return page;

@@ -1,9 +1,0 @@
-{
-  "name": "copilot-cloud",
-  "mode": "full",
-  "allowedHosts": ["127.0.0.1", "localhost"],
-  "allowedOrigins": ["http://127.0.0.1", "http://localhost"],
-  "requireAuth": true,
-  "allowUserGlobal": false,
-  "maxResponseBytes": 262144
-}

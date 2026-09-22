@@ -441,15 +441,24 @@ export function validateAuthorizationRecord(record) {
   return structuredClone(record);
 }
 
-// `authorizationProvenance` is the caller's explicit declaration of where the
-// authorization answer came from. It is never read out of the answer set, so a
-// response-shaped object cannot grant permission on its own.
-export function resolveReleaseState(answers, { authorizationProvenance } = {}) {
+// Policy context comes from the trusted caller boundary, not the model request.
+// Matching records are recommendations only; the Host still enforces permission.
+function matchingPolicy(context = {}) {
+  const p = context.policyContext;
+  return p && typeof p === 'object' && !Array.isArray(p)
+    && AUTHORIZATION_VALUES.includes(p.decision)
+    && typeof context.taskId === 'string' && p.taskId === context.taskId
+    && typeof context.operation === 'string' && context.operation.trim() !== ''
+    && p.operation === context.operation
+    && typeof p.evidenceRef === 'string' && p.evidenceRef.trim() !== '';
+}
+
+export function resolveReleaseState(answers, context = {}) {
   const map = answerValues(answers);
   const readiness = requireChoiceValue(map, 'readiness', ['not_ready', 'ready']);
-  const authorization = requireChoiceValue(map, 'authorization', ['not_authorized', 'allowed']);
+  requireChoiceValue(map, 'authorization', AUTHORIZATION_VALUES);
   if (readiness === 'not_ready') return 'not_ready';
-  return authorization === 'allowed' && authorizationProvenance === 'policy' ? 'allowed' : 'ready';
+  return matchingPolicy(context) && context.policyContext.decision === 'allowed' ? 'allowed' : 'ready';
 }
 
 export function resolveComposites(bundleName, answers, context = {}) {
@@ -462,7 +471,7 @@ export function resolveComposites(bundleName, answers, context = {}) {
   }
   if (bundle.composites.includes('next_state')) composites.next_state = resolveNextState(answers, context);
   if (bundle.composites.includes('release_state')) {
-    composites.release_state = resolveReleaseState(answers, { authorizationProvenance: context.authorizationProvenance });
+    composites.release_state = resolveReleaseState(answers, context);
   }
   return composites;
 }
@@ -554,6 +563,9 @@ export function answersFromOperator(request, supplied, authorization = null) {
     }
     const entry = supplied[frozen.id];
     const structured = entry !== null && typeof entry === 'object' && !Array.isArray(entry);
+    if (structured && entry.provenance !== undefined && entry.provenance !== 'operator') {
+      throw new Error('Operator answer provenance must be operator.');
+    }
     const value = structured ? entry.value : entry;
     assertAnswerValue(value, frozen, `operator.${frozen.id}`);
     answers.push({
@@ -568,13 +580,23 @@ export function answersFromOperator(request, supplied, authorization = null) {
   return { answers, unanswered };
 }
 
-export function evaluateDecision(request, { operator = null, failure = null, backendId = null, authorization = null } = {}) {
+export function evaluateDecision(request, { operator = null, failure = null, backendId = null, authorization = null, policyContext = null, operation = null } = {}) {
   const validated = validateDecisionRequest(request);
-  const authorizationRecord = authorization === null ? null : validateAuthorizationRecord(authorization);
+  if (authorization !== null) validateAuthorizationRecord(authorization); // Legacy readable, never an authority grant.
+  const context = { policyContext, operation, taskId: validated.subject.taskId };
+  const authorizationRecord = validated.bundle === 'release' ? {
+    value: matchingPolicy(context) ? policyContext.decision : 'not_authorized',
+    authority: 'caller-policy-context',
+    evidence: matchingPolicy(context) ? policyContext.evidenceRef : 'no-matching-policy'
+  } : null;
   const backend = backendId ?? (operator === null ? 'deterministic' : 'operator');
   if (!BACKEND_IDS.includes(backend)) throw new Error(`Unknown decision backend: ${String(backend)}`);
   if (backend === 'external') {
     throw new Error('The external decision backend is out of scope for this milestone; no network decision backend is available.');
+  }
+  if (backend === 'host') throw new Error('The host decision adapter is not available.');
+  if (backend !== (operator === null ? 'deterministic' : 'operator')) {
+    throw new Error('Decision backend does not match the actual answer path.');
   }
   const { answers, unanswered } = operator === null
     ? answersFromEvidence(validated, authorizationRecord)
@@ -592,7 +614,7 @@ export function evaluateDecision(request, { operator = null, failure = null, bac
   const composites = resolveComposites(validated.bundle, response.answers, {
     deterministic: validated.evidence.deterministic,
     failure,
-    authorizationProvenance: authorizationRecord === null ? null : 'policy'
+    ...context
   });
   return {
     response,
@@ -628,6 +650,18 @@ export const FORBIDDEN_TRACE_FIELDS = Object.freeze([
   'transcript'
 ]);
 
+// Additive trace fields a shadow recorder may attach. They stay outside
+// DECISION_TRACE_FIELDS so a record written before them is still valid, and a
+// reader treats a missing agreement as unknown rather than as agreement.
+export const DECISION_TRACE_OPTIONAL_FIELDS = Object.freeze([
+  'schemaVersion',
+  'shadowQuestionId',
+  'agreement',
+  'reason'
+]);
+
+export const DECISION_TRACE_SCHEMA_VERSION = 2;
+
 export function validateDecisionTraceRecord(record) {
   assertPlainObject(record, 'Decision trace record');
   for (const forbidden of FORBIDDEN_TRACE_FIELDS) {
@@ -635,7 +669,29 @@ export function validateDecisionTraceRecord(record) {
       throw new Error(`Decision trace record must not contain ${forbidden}.`);
     }
   }
-  assertExactKeys(record, DECISION_TRACE_FIELDS, 'Decision trace record');
+  const known = [...DECISION_TRACE_FIELDS, ...DECISION_TRACE_OPTIONAL_FIELDS];
+  const actual = Object.keys(record);
+  const unknownField = actual.find((key) => !known.includes(key));
+  const missingField = DECISION_TRACE_FIELDS.find((key) => !actual.includes(key));
+  if (unknownField !== undefined || missingField !== undefined) {
+    throw new Error(
+      `Decision trace record must have the exact field set: ${[...DECISION_TRACE_FIELDS].sort().join(', ')} (optional: ${[...DECISION_TRACE_OPTIONAL_FIELDS].sort().join(', ')}).`
+    );
+  }
+  if (Object.hasOwn(record, 'schemaVersion')
+    && (!Number.isInteger(record.schemaVersion) || record.schemaVersion < 1 || record.schemaVersion > DECISION_TRACE_SCHEMA_VERSION)) {
+    throw new Error(`Decision trace record schemaVersion must be an integer between 1 and ${DECISION_TRACE_SCHEMA_VERSION}.`);
+  }
+  if (Object.hasOwn(record, 'shadowQuestionId')) {
+    assertText(record.shadowQuestionId, 'Decision trace record shadowQuestionId');
+  }
+  if (Object.hasOwn(record, 'agreement')
+    && !(record.agreement === true || record.agreement === false || record.agreement === null)) {
+    throw new Error('Decision trace record agreement must be true, false or null.');
+  }
+  if (Object.hasOwn(record, 'reason') && record.reason !== null) {
+    assertText(record.reason, 'Decision trace record reason');
+  }
   assertSafeSegment(record.taskId, 'Decision trace record taskId');
   if (typeof record.ts !== 'string' || Number.isNaN(Date.parse(record.ts))) {
     throw new Error('Decision trace record ts must be an ISO-8601 timestamp.');

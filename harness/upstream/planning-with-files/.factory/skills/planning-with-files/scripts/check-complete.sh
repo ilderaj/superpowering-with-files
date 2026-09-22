@@ -21,8 +21,9 @@
 #     4. the block counter (<plan-dir>/.stop_blocks) is below cap (PWF_GATE_CAP, default 20)
 #     5. the ledger advanced since the last block (stall → allow stop)
 #   When all hold, it emits a single-line block-decision JSON on stdout and
-#   exits 0. Otherwise it falls back to advisory output and exits 0.
-#   Without --gate, or in non-gated mode, behavior is byte-equivalent to v2.43.
+#   exits 0. Otherwise it reports incomplete plans and exits 0; completed
+#   plans stay silent in --gate mode, including legacy plans without .mode.
+#   Without --gate, the explicit advisory report is unchanged.
 #
 # Stdin handling: the Claude Code Stop hook pipes a JSON payload on stdin. To
 # avoid hanging when nothing is piped, stdin is read ONLY when fd 0 is not a
@@ -56,10 +57,21 @@ else
     RESOLVED_DIR=""
     if [ -f "${RESOLVER}" ]; then
         RESOLVED_DIR="$(sh "${RESOLVER}" 2>/dev/null)"
+        if [ -z "$RESOLVED_DIR" ] && [ "$(sh "${RESOLVER}" --check-ambiguity 2>/dev/null)" = "PWF_PLAN_AMBIGUOUS_V1" ]; then
+            exit 0
+        fi
     fi
     if [ -n "${RESOLVED_DIR}" ] && [ -f "${RESOLVED_DIR}/task_plan.md" ]; then
         PLAN_FILE="${RESOLVED_DIR}/task_plan.md"
         PLAN_DIR="${RESOLVED_DIR}"
+    elif [ -n "${PLAN_ID:-}" ] || [ -n "${PWF_PLAN_ROOT:-}" ]; then
+        # Explicit selectors are bindings, not hints (issue #237). The shared
+        # resolver rejected one, so the legacy cwd fallback below must not run:
+        # answering a mistyped pin with the ROOT plan's completion state is the
+        # same wrong-plan harm the binding removes, and here it would decide
+        # whether an autonomous run is allowed to stop.
+        echo "[planning-with-files] An explicit PLAN_ID or PWF_PLAN_ROOT did not resolve to a plan; no completion state was read and no other plan was substituted."
+        exit 0
     else
         PLAN_FILE="task_plan.md"
         PLAN_DIR="."
@@ -108,9 +120,11 @@ if [ "$TOTAL" -eq 0 ]; then
     exit 0
 fi
 
-# advisory_report: the v2.43 status echo. Always exit 0 after calling.
+# Explicit status reports retain completion text. Automatic gate checks have
+# nothing to report on success; keep evaluating all gate guards before here.
 advisory_report() {
     if [ "$COMPLETE" -eq "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
+        [ "$GATE" -eq 1 ] && return 0
         echo "[planning-with-files] ALL PHASES COMPLETE ($COMPLETE/$TOTAL). If the user has additional work, add new phases to task_plan.md before starting."
     else
         echo "[planning-with-files] Task in progress ($COMPLETE/$TOTAL phases complete). Update progress.md before stopping."
@@ -131,10 +145,30 @@ fi
 
 # ---- Gate path (--gate). Resolves to advisory unless every guard says block. ----
 
-# Guard 1: gated mode. The .mode file must contain "gate". Absent or other
+# Guard 1: gated mode. A .mode file must contain "gate". Absent or other
 # content means advisory mode (legacy behavior preserved).
+#
+# The project's root .mode is a FLOOR, not a default that slug scope replaces
+# (issue #238). Reading only <plan-dir>/.mode let a slug plan with no .mode
+# drop a project-committed gate, the same way it dropped the attestation
+# requirement in inject-plan.sh. "gate" from EITHER file arms the gate; a slug
+# may raise strictness, never lower it. In root scope PLAN_DIR already IS the
+# project root, so the second source stays empty and behavior is unchanged.
 MODE_FILE="${PLAN_DIR}/.mode"
-if [ ! -f "${MODE_FILE}" ] || ! grep -q "gate" "${MODE_FILE}" 2>/dev/null; then
+ROOT_MODE_FILE=""
+_root_for_mode="${PWF_PLAN_ROOT:-.}"
+if [ "${PLAN_DIR}" != "${_root_for_mode}" ] && [ "${PLAN_DIR}" != "." ]; then
+    ROOT_MODE_FILE="${_root_for_mode}/.mode"
+fi
+GATED=0
+if [ -f "${MODE_FILE}" ] && grep -q "gate" "${MODE_FILE}" 2>/dev/null; then
+    GATED=1
+fi
+if [ "${GATED}" -eq 0 ] && [ -n "${ROOT_MODE_FILE}" ] && [ -f "${ROOT_MODE_FILE}" ] \
+    && grep -q "gate" "${ROOT_MODE_FILE}" 2>/dev/null; then
+    GATED=1
+fi
+if [ "${GATED}" -eq 0 ]; then
     advisory_report
     exit 0
 fi

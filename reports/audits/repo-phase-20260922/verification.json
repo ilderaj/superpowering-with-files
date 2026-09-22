@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "verifiedOn": "2026-09-22",
+  "stage": "Candidate validated; remote integration and global adoption remain to be verified",
+  "checks": {
+    "verify:all": {
+      "exitCode": 0,
+      "trioTests": 503,
+      "decisionEvalTests": 14,
+      "importBoundaryTests": 13,
+      "coreTests": 545,
+      "pluginTests": 84,
+      "homepageTests": 20,
+      "homepageTypecheck": "passed",
+      "homepageBuild": "passed",
+      "renderBrowserTests": 36
+    },
+    "verify:dsh": {
+      "exitCode": 0,
+      "testFiles": 20,
+      "tests": 299,
+      "versionLock": "passed",
+      "typescriptBuild": "passed"
+    },
+    "verify:upstream-refresh": {
+      "exitCode": 0,
+      "workflowTests": 68,
+      "fetchAndUpdateIntegration": "passed"
+    },
+    "release:pack": {
+      "exitCode": 0,
+      "artifacts": 4
+    },
+    "plugin:smoke": {
+      "exitCode": 0,
+      "targets": 4
+    }
+  },
+  "localLogs": [
+    {
+      "path": ".harness/backups/repo-phase-20260922/final-verify-all.log",
+      "sha256": "4b20eb771774813ab3d90595f13cffbab0549e931eaf8f29f347d640ef98c2d5"
+    },
+    {
+      "path": ".harness/backups/repo-phase-20260922/final-upstream-refresh.log",
+      "sha256": "4a8263cdf3ee443bb133ea2da196002de8c2059c424e4c941e42727fc45653ca"
+    },
+    {
+      "path": ".harness/backups/repo-phase-20260922/final-release-pack.log",
+      "sha256": "15b20e01839df8a52dc439da394a950b6df4ab97b57d7c3c938f8fbef89a6b2a"
+    },
+    {
+      "path": ".harness/backups/repo-phase-20260922/final-plugin-smoke.log",
+      "sha256": "f1871f580aa19d92d28c0660a9cb0f6fd2addb20c505745d12673384f0fb712a"
+    }
+  ],
+  "delivery": {
+    "pr": "pending",
+    "merged": false,
+    "globalAdoption": "pending",
+    "workspaceFinalBranch": "pending"
+  },
+  "limitations": [
+    "No real model/provider equivalence or token-saving claim",
+    "No new cross-IDE plugin architecture or skill classification implemented",
+    "Nine historical tasks retained for remaining evidence or work"
+  ]
+}

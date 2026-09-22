@@ -43,6 +43,27 @@ test('reopen rejects ambiguous identity, unsafe paths, and symlinks', async () =
   await assert.rejects(run('reopen-task.py', project, join(project, 'planning/archive/link')));
 });
 
+test('reopen updates accepted Current State heading variants', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'pwf-reopen-heading-'));
+  const archived = join(project, 'planning/archive/20260101-heading');
+  await mkdir(archived, { recursive: true });
+  await writeFile(join(archived, 'task_plan.md'), `# Task\n\n##  Current State\nTask ID: heading\nStatus: closed\nArchive Eligible: yes\nClose Reason: done\n\n## Goal\nKeep history.\n`);
+  await writeFile(join(archived, 'findings.md'), 'findings');
+  await writeFile(join(archived, 'progress.md'), 'progress');
+  await run('reopen-task.py', project, archived);
+  assert.match(await readFile(join(project, 'planning/active/heading/task_plan.md'), 'utf8'), /^Status: active$/m);
+});
+
+test('legacy archive validation does not mutate an unsafe task plan', async () => {
+  const project = await mkdtemp(join(tmpdir(), 'pwf-legacy-'));
+  const dir = join(project, 'planning/active/foo:bar');
+  await mkdir(dir, { recursive: true });
+  const original = `# Task\n\n## Current State\nStatus: active\nArchive Eligible: no\n\n## Goal\nKeep history.\n`;
+  await writeFile(join(dir, 'task_plan.md'), original);
+  await assert.rejects(run('archive-task.sh', project, 'foo:bar'));
+  assert.equal(await readFile(join(dir, 'task_plan.md'), 'utf8'), original);
+});
+
 test('archived preferred metadata uses explicit stable id and corrupt preferred fails closed', async () => {
   const project = await mkdtemp(join(tmpdir(), 'pwf-linear-'));
   const archived = join(project, 'planning/archive/20260101-task-alpha');

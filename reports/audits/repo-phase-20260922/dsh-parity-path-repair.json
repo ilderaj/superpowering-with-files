@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-22",
+  "changedPaths": [
+    "plugins/dsh/test/parity.test.ts",
+    "reports/audits/repo-phase-20260922/dsh-parity-path-repair.md",
+    "reports/audits/repo-phase-20260922/dsh-parity-path-repair.json"
+  ],
+  "oldImport": "../../harness/trio/core/routing.mjs",
+  "oldResolution": "plugins/harness/core/routing.mjs",
+  "correctImport": "../../../harness/trio/core/routing.mjs",
+  "pluginsHarnessCreated": false,
+  "baselineAuthority": "real repository-root harness/trio/core/routing.mjs",
+  "sharedParity": [
+    "task and route classification",
+    "assignment packet shape and digest",
+    "shared model and effort validation",
+    "permission adjudication",
+    "immutable packet handling"
+  ],
+  "independentDshHostContract": [
+    "current visible-worker evidence",
+    "visible_observation_unknown",
+    "visible_model_controls_unbound",
+    "native-subagent availability",
+    "strict outer model-policy conflicts"
+  ],
+  "retiredRouteRestored": false,
+  "optionalExperimentalAdapterTreatedAsCurrentTrioHost": false,
+  "verification": {
+    "command": "CI=true pnpm --dir plugins/dsh verify",
+    "worktreeRootStructureUsed": true,
+    "waitedForCompletion": true,
+    "exit": 0,
+    "versionLock": "passed",
+    "typescriptBuild": "passed",
+    "testFilesPassed": 20,
+    "testsPassed": 299,
+    "testsFailed": 0,
+    "moduleLoadingGap": false,
+    "lockfileChanged": false,
+    "externalProviderOrModelExecution": false
+  }
+}

@@ -142,6 +142,9 @@ test('buildAll creates core and Matt companion release artifacts, manifest, chec
     assert.match(stdout, /skills\/grill-me\/SKILL\.md/);
     assert.match(stdout, /skills\/grilling\/SKILL\.md/);
     assert.match(stdout, /skills\/to-questionnaire\/SKILL\.md/);
+    assert.match(stdout, /skills\/tdd\/tests\.md/);
+    assert.match(stdout, /skills\/teach\/GLOSSARY-FORMAT\.md/);
+    assert.match(stdout, /skills\/ask-matt\/agents\/openai\.yaml/);
     assert.doesNotMatch(stdout, /skills\/trio\/SKILL\.md/);
   }
 });

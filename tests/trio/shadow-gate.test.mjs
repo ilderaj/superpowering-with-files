@@ -6,6 +6,7 @@ import test from 'node:test';
 
 import {
   SHADOW_CURRENT_BEHAVIOURS,
+  SHADOW_ITEM_STATUSES,
   SHADOW_QUESTIONS,
   SHADOW_VERSION,
   CHECKPOINT_BEHAVIOURS,
@@ -269,6 +270,179 @@ test('the summary counts disagreements without judging a gate', async () => {
   }
 });
 
+// --- J02 / spec S2: observation isolation, identity and three-state statistics ---
+
+function validObservation(questionId, operatorFn = planOperator, overrides = {}) {
+  return {
+    questionId,
+    request: shadowRequestFor(questionId, { subject, requirement }),
+    operator: operatorFn(),
+    ...overrides
+  };
+}
+
+test('spec S2: an invalid observation is isolated and the later observations still run', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'shadow-isolate-'));
+  try {
+    const checkpoint = checkpointFixture();
+    const before = renderCheckpoint(checkpoint);
+    const attached = await recordCheckpointShadow({
+      checkpoint,
+      observations: [
+        null,
+        validObservation('plan_ready'),
+        { questionId: 'invented_question', request: {}, operator: planOperator() }
+      ],
+      directory
+    });
+    assert.equal(attached.results.length, 3);
+    assert.equal(attached.results[0].status, 'unevaluable');
+    assert.equal(attached.results[0].reason, 'invalid-observation');
+    assert.equal(attached.results[1].status, 'evaluated');
+    assert.equal(attached.results[1].agreement, true);
+    assert.equal(attached.results[2].status, 'unevaluable');
+    assert.equal(attached.results[2].reason, 'unknown-question');
+    assert.equal(attached.summary.total, 3);
+    assert.equal(attached.summary.agreements, 1);
+    assert.equal(attached.summary.unevaluable, 2);
+    assert.equal(renderCheckpoint(attached.checkpoint), before);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('spec S2: a bundle mismatch and a task mismatch are rejected without writing another task trace', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'shadow-mismatch-'));
+  try {
+    const attached = await recordCheckpointShadow({
+      checkpoint: checkpointFixture(),
+      observations: [
+        validObservation('plan_ready'),
+        { questionId: 'plan_ready', request: { ...shadowRequestFor('plan_ready', { subject, requirement }), bundle: 'verify' }, operator: planOperator() },
+        { questionId: 'plan_ready', request: shadowRequestFor('plan_ready', { subject: { ...subject, taskId: 'another-task' }, requirement }), operator: planOperator() }
+      ],
+      directory
+    });
+    assert.equal(attached.results[0].agreement, true);
+    assert.equal(attached.results[1].reason, 'bundle-mismatch');
+    assert.equal(attached.results[1].status, 'unevaluable');
+    assert.equal(attached.results[2].reason, 'task-mismatch');
+    assert.deepEqual(await readDecisionTrace({ directory, taskId: 'another-task' }), []);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('spec S2: an unmapped checkpoint state adds an incomparable item, never an agreement', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'shadow-unknown-state-'));
+  try {
+    const attached = await recordCheckpointShadow({
+      checkpoint: checkpointFixture({ state: 'not-a-state' }),
+      observations: [validObservation('plan_ready')],
+      directory
+    });
+    assert.equal(attached.currentBehaviour, 'unknown');
+    assert.equal(attached.results[0].agreement, null);
+    assert.equal(attached.results[0].status, 'incomparable');
+    assert.equal(attached.summary.agreements, 0);
+    assert.equal(attached.summary.incomparable, 1);
+    assert.equal(attached.summary.total, 1);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('spec S2: a missing answer counts as unevaluable and stays inside total', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'shadow-refused-'));
+  try {
+    const attached = await recordCheckpointShadow({
+      checkpoint: checkpointFixture(),
+      observations: [
+        { questionId: 'plan_ready', request: shadowRequestFor('plan_ready', { subject, requirement }), operator: { requirements_covered: true } },
+        validObservation('plan_ready')
+      ],
+      directory
+    });
+    assert.equal(attached.results[0].status, 'unevaluable');
+    assert.equal(attached.results[0].reason, 'unanswered');
+    assert.equal(attached.summary.total, 2);
+    assert.equal(attached.summary.unevaluable, 1);
+    assert.equal(attached.summary.agreements, 1);
+    assert.equal(
+      attached.summary.total,
+      attached.summary.agreements + attached.summary.disagreements + attached.summary.unevaluable + attached.summary.incomparable
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('spec S2: a trace write failure is counted apart and never blocks the renderer', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'shadow-tracefail-'));
+  try {
+    const checkpoint = checkpointFixture();
+    const before = renderCheckpoint(checkpoint);
+    const attached = await recordCheckpointShadow({
+      checkpoint,
+      observations: [validObservation('plan_ready')],
+      directory: path.join(directory, 'missing', '\u0000bad')
+    });
+    assert.equal(attached.results[0].traceFailed, true);
+    assert.equal(attached.results[0].persisted, false);
+    assert.equal(attached.results[0].status, 'evaluated');
+    assert.equal(attached.summary.traceFailures, 1);
+    assert.equal(renderCheckpoint(attached.checkpoint), before);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('spec S2 / F27: the alias map is local per question and never global', () => {
+  // intake false and plan true accept continue/proceed/execute.
+  assert.equal(shadowAgreement('plan_needed', false, 'continue'), true);
+  assert.equal(shadowAgreement('plan_needed', false, 'proceed'), true);
+  assert.equal(shadowAgreement('plan_ready', true, 'continue'), true);
+  assert.equal(shadowAgreement('execution_ready', true, 'execute'), true);
+  // goal_complete false accepts retry.
+  assert.equal(shadowAgreement('goal_complete', false, 'retry'), true);
+  // The same token is not globally equivalent to execution: for plan_ready it is
+  // a disagreement with the recorded replan, for intake it is an agreement.
+  assert.equal(shadowAgreement('plan_ready', false, 'continue'), false);
+  assert.equal(shadowAgreement('plan_needed', false, 'continue'), true);
+  assert.equal(shadowAgreement('verification_sufficient', false, 'done'), false);
+});
+
+test('spec S2: identity is preserved per shadow question in results and summary', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'shadow-identity-'));
+  try {
+    const attached = await recordCheckpointShadow({
+      checkpoint: checkpointFixture(),
+      observations: [validObservation('plan_ready'), validObservation('execution_ready')],
+      directory
+    });
+    assert.deepEqual(attached.results.map((entry) => entry.questionId), ['plan_ready', 'execution_ready']);
+    assert.deepEqual(Object.keys(attached.summary.byQuestion).sort(), ['execution_ready', 'plan_ready']);
+    const records = await readDecisionTrace({ directory, taskId: 'shadow-test' });
+    assert.deepEqual(records.map((entry) => entry.shadowQuestionId), ['plan_ready', 'execution_ready']);
+    assert.deepEqual(records.map((entry) => entry.agreement), [true, true]);
+    for (const record of records) assert.equal(record.schemaVersion, SHADOW_VERSION);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test('spec S2: a legacy v1 record without an explicit agreement is unknown, never an agreement', () => {
+  const summary = summarizeShadow([
+    { questionId: 'plan_ready', override: null },
+    { questionId: 'plan_ready', override: { provenance: 'current-behaviour', reason: 'x' }, agreement: false }
+  ]);
+  assert.equal(summary.total, 2);
+  assert.equal(summary.agreements, 0);
+  assert.equal(summary.disagreements, 1);
+  assert.equal(summary.unevaluable, 1);
+  assert.deepEqual([...SHADOW_ITEM_STATUSES], ['evaluated', 'unevaluable', 'incomparable']);
+});
+
 test('shadow records never carry chain-of-thought', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'shadow-cot-'));
   try {
@@ -297,7 +471,7 @@ test('the shadow module stays provider-neutral and versioned', async () => {
     'utf8'
   );
   assert.doesNotMatch(source, /deepseek|gpt-|luna|sol\b|terra|opencode|claude/i);
-  assert.equal(SHADOW_VERSION, 1);
+  assert.equal(SHADOW_VERSION, 2);
 });
 
 test('every gate defaults to shadow when no activation decision exists', () => {
@@ -451,12 +625,21 @@ test('a checkpoint gate failure never blocks the checkpoint', async () => {
     const checkpoint = checkpointFixture();
     const attached = await recordCheckpointShadow({
       checkpoint,
-      observations: [{ questionId: 'plan_ready', request: { broken: true }, operator: planOperator() }],
+      observations: [
+        { questionId: 'plan_ready', request: { broken: true }, operator: planOperator() },
+        { questionId: 'plan_ready', request: shadowRequestFor('plan_ready', { subject, requirement }), operator: 'not-an-operator' }
+      ],
       directory
     });
     assert.equal(attached.results[0].unevaluable, true);
-    assert.equal(attached.results[0].reason, 'gate-failed');
-    assert.equal(attached.summary.total, 0);
+    // A request that does not carry the question's bundle is refused before it is
+    // evaluated; a request that cannot be evaluated is a gate failure.
+    assert.equal(attached.results[0].reason, 'invalid-request');
+    assert.equal(attached.results[1].unevaluable, true);
+    assert.equal(attached.results[1].reason, 'gate-failed');
+    assert.equal(attached.summary.total, 2);
+    assert.equal(attached.summary.unevaluable, 2);
+    assert.equal(attached.summary.agreements, 0);
     assert.equal(renderCheckpoint(attached.checkpoint), renderCheckpoint(checkpoint));
     // An unmapped state produces a null agreement instead of a false one.
     const unmapped = await recordCheckpointShadow({
@@ -488,4 +671,13 @@ test('attaching to a checkpoint with no observations records nothing and changes
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('summary of persisted v2 traces retains distinct shadow consumer questions',()=>{
+ const s=summarizeShadow([
+  {questionId:'plan_ready',shadowQuestionId:'plan_ready',agreement:true},
+  {questionId:'plan_ready',shadowQuestionId:'execution_ready',agreement:false}
+ ]);
+ assert.equal(s.byQuestion.plan_ready.agreements,1);
+ assert.equal(s.byQuestion.execution_ready.disagreements,1);
 });

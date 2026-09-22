@@ -24,7 +24,12 @@ EXPECTED_EVENTS = {
     "PreCompact",
     "Stop",
 }
-WRITE_MATCHER = "Bash|apply_patch|Edit|Write"
+# PreToolUse and PostToolUse stopped sharing a matcher in v3.16.0 (#239):
+# a plan reminder BEFORE a shell command is wanted, a "record what you
+# changed" nudge AFTER `ls` is not.
+PRE_TOOL_MATCHER = "Bash|apply_patch|Edit|Write"
+POST_TOOL_MATCHER = "apply_patch|Edit|Write"
+EVENT_MATCHERS = {"PreToolUse": PRE_TOOL_MATCHER, "PostToolUse": POST_TOOL_MATCHER}
 WINDOWS_DISPATCH = (
     "& (Join-Path $env:PLUGIN_ROOT '.codex\\hooks\\pwf-hook.cmd') "
     "plugin_dispatch.py"
@@ -57,6 +62,9 @@ class CodexPluginOperationsTests(unittest.TestCase):
 
         self.assertEqual("planning-with-files", manifest["name"])
         self.assertEqual("./.agents/skills/", manifest["skills"])
+        # Omitting commands makes Codex migrate the top-level Claude commands
+        # into redundant source-command-* skills even with an explicit skills root.
+        self.assertEqual([], manifest.get("commands"), "Disable Codex's legacy command fallback")
         self.assertEqual("./hooks/codex-hooks.json", manifest["hooks"])
         self.assertNotIn("hooks/hooks.json", manifest.values())
 
@@ -70,9 +78,9 @@ class CodexPluginOperationsTests(unittest.TestCase):
 
         self.assertEqual(EXPECTED_EVENTS, set(plugin["hooks"]))
         self.assertEqual(EXPECTED_EVENTS, set(standalone["hooks"]))
-        for event in ("PreToolUse", "PostToolUse"):
-            self.assertEqual(WRITE_MATCHER, plugin["hooks"][event][0]["matcher"])
-            self.assertEqual(WRITE_MATCHER, standalone["hooks"][event][0]["matcher"])
+        for event, matcher in EVENT_MATCHERS.items():
+            self.assertEqual(matcher, plugin["hooks"][event][0]["matcher"])
+            self.assertEqual(matcher, standalone["hooks"][event][0]["matcher"])
 
     def test_plugin_commands_are_cache_rooted_and_do_not_fallback_to_standalone(self) -> None:
         descriptor = json.loads(PLUGIN_HOOKS.read_text(encoding="utf-8"))
@@ -166,16 +174,14 @@ class CodexPluginOperationsTests(unittest.TestCase):
         self.assertNotIn("decision", payload)
         self.assertIn("Task in progress", payload["systemMessage"])
 
-    def test_complete_gated_plan_allows_stop_with_advisory(self) -> None:
+    def test_complete_gated_plan_allows_stop_silently(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             self.write_plan(root, "complete", gated=True)
             result = self.run_stop(root, stop_hook_active=False)
 
         self.assertEqual(0, result.returncode, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertNotIn("decision", payload)
-        self.assertIn("ALL PHASES COMPLETE", payload["systemMessage"])
+        self.assertEqual("", result.stdout.strip())
 
     def test_stop_is_silent_without_plan(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -223,7 +229,10 @@ class CodexPluginOperationsTests(unittest.TestCase):
 
         self.assertEqual(0, result.returncode, result.stderr)
         payload = json.loads(result.stdout)
-        self.assertIn("progress.md", payload["systemMessage"])
+        # The post-tool nudge moved to additionalContext in v3.16.0 (#239).
+        block = payload["hookSpecificOutput"]
+        self.assertEqual("PostToolUse", block["hookEventName"])
+        self.assertIn("progress.md", block["additionalContext"])
 
 
 if __name__ == "__main__":

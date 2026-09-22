@@ -55,7 +55,7 @@ This repository does not manage, install, or sync anything into third-party clie
 
 ## Optional Matt companion
 
-For the opt-in companion, verify `harness-matt-skills-agent-plugins-<version>.tgz` against `SHA256SUMS` and `manifest.json`, then extract it to a separate local directory and use the client's own procedure. Its root `plugin.json` discovers exactly `skills/{grill-me,grilling,to-questionnaire}/SKILL.md`; it has no Trio skill and no Codex marketplace metadata. `grill-me` and `grilling` remain explicit opt-in, `to-questionnaire` creates a local Markdown draft, and external delivery remains human-gated. This is client-owned and not a remote-install claim.
+For the opt-in companion, verify `harness-matt-skills-agent-plugins-<version>.tgz` against `SHA256SUMS` and `manifest.json`, then extract it to a separate local directory and use the client's own procedure. Its root `plugin.json` discovers 24 flat skill directories covering the full official Matt catalog; it has no Trio skill and no Codex marketplace metadata. `grill-me` and `grilling` remain explicit opt-in, `to-questionnaire` creates a local Markdown draft, and external delivery remains human-gated. This is client-owned and not a remote-install claim.
 
 ## Related docs
 

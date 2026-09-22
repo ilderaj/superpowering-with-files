@@ -97,6 +97,11 @@ describe('budget decision (plan item 3)', () => {
     expect(decision.reason).toBeNull();
   });
 
+  it('allows a dispatch exactly up to the remaining budget', () => {
+    const decision = decideBudget({ spentTokens: 68_000, requestedTokens: 32_000, budget: TASK_TOKEN_BUDGET_DEFAULT, activeWorkers: 0 });
+    expect(decision).toEqual({ allowed: true, reason: null });
+  });
+
   it('fails closed with budget_exceeded over the cap', () => {
     const decision = decideBudget({ spentTokens: 90_000, requestedTokens: 32_000, budget: TASK_TOKEN_BUDGET_DEFAULT, activeWorkers: 0 });
     expect(decision.allowed).toBe(false);

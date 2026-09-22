@@ -6,6 +6,14 @@
 
 HOOK_DIR="$(cd "$(dirname "$0")" 2>/dev/null && pwd)"
 PLAN_DIR="$(sh "${HOOK_DIR}/resolve-plan-dir.sh" 2>/dev/null)"
+if [ -z "$PLAN_DIR" ] && [ "$(sh "${HOOK_DIR}/resolve-plan-dir.sh" --check-ambiguity 2>/dev/null)" = "PWF_PLAN_AMBIGUOUS_V1" ]; then
+    exit 0
+fi
+# An explicit PLAN_ID is a binding, not a hint (issue #237). When the shared
+# resolver rejected one it emits nothing, and the legacy-root fallback below
+# would decide whether this run may stop from a plan the operator never named.
+# Allow the stop rather than gating on the wrong plan.
+[ -z "$PLAN_DIR" ] && [ -n "${PLAN_ID:-}" ] && exit 0
 PLAN_FILE="${PLAN_DIR:+${PLAN_DIR}/}task_plan.md"
 
 if [ ! -f "$PLAN_FILE" ]; then
@@ -15,8 +23,8 @@ fi
 # Codex supports a native Stop continuation decision. Delegate the decision to
 # the existing v3 gate oracle so Codex and skill-frontmatter installs share the
 # same opt-in mode, in_progress, recursion, cap, and stall guards. Outside a
-# gated block the oracle is advisory, and the legacy message below remains the
-# public output for backward compatibility.
+# gated block the oracle is advisory. Incomplete plans retain their notice;
+# completed plans need no followup message.
 CHECK_COMPLETE="${HOOK_DIR}/../skills/planning-with-files/scripts/check-complete.sh"
 if [ "${1:-}" != "--stop-hook-active" ] && [ -f "${CHECK_COMPLETE}" ]; then
     GATE_OUTPUT="$(sh "${CHECK_COMPLETE}" --gate "${PLAN_FILE}")"
@@ -51,7 +59,6 @@ if [ "$TOTAL" -eq 0 ]; then
 fi
 
 if [ "$COMPLETE" -eq "$TOTAL" ] && [ "$TOTAL" -gt 0 ]; then
-    echo "{\"followup_message\": \"[planning-with-files] ALL PHASES COMPLETE ($COMPLETE/$TOTAL). If the user has additional work, add new phases to task_plan.md before starting.\"}"
     exit 0
 fi
 

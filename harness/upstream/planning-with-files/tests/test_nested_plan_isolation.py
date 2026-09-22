@@ -344,15 +344,16 @@ class NestedPlanIsolationTests(_WorkspaceFixtureTestCase):
                 check=False,
             )
 
-    def test_attached_session_is_explicit_and_beats_conflict_check(self) -> None:
-        # An attached session counts as EXPLICIT resolution: the nested project
-        # below does not suppress injection for a deliberately attached thread.
+    def test_attached_session_does_not_bypass_nested_conflict_check(self) -> None:
+        # Attachment admits the session to plan context but does not select a
+        # plan. A competing nested plan must still suppress the parent's plan.
         self.build_tree(nested=True)
         self._attach("sess-1")
         result = self._run("userprompt", env_extra={"PWF_SESSION_ID": "sess-1"})
         self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn(PLAN_A_TITLE, result.stdout)
-        self.assertNotIn("Ambiguous plan", result.stdout)
+        self.assertNotIn(PLAN_A_TITLE, result.stdout)
+        self.assertNotIn(PLAN_B_TITLE, result.stdout)
+        self.assertIn("Ambiguous plan", result.stdout)
 
     # -- 7. legacy invariant: no nesting = unchanged injection -------------
     def test_no_nested_plan_injects_exactly_as_before(self) -> None:

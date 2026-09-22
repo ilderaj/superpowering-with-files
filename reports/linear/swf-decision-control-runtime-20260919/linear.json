@@ -24,8 +24,8 @@
       "issueId": "7dd163a7-d206-4421-8a02-e11853b146e0",
       "identifier": "SUP-35",
       "state": "running",
-      "nightSlice": "2149158a-0251-4dbc-a909-9478aab9cdd5",
-      "nightSliceState": "ready",
+      "nightSlice": null,
+      "nightSliceState": null,
       "subIssueStates": {
         "WP-01": "done",
         "WP-02": "done",
@@ -33,15 +33,15 @@
         "WP-04": "done",
         "WP-05": "done",
         "WP-06": "done",
-        "WP-07": "planned",
+        "WP-07": "done",
         "WP-08": "done",
         "WP-09": "done",
         "WP-10": "planned",
         "WP-11": "planned",
         "J01": "done",
-        "J02": "ready",
-        "J03": "planned",
-        "J04": "planned"
+        "J02": "done",
+        "J03": "done",
+        "J04": "done"
       },
       "subIssues": {
         "WP-01": "318b4fb3-fa0a-4262-b741-135116ca2d83",
@@ -60,12 +60,13 @@
         "J03": "734d7b8c-a7d6-4eb5-96b9-a9c0900dd2ab",
         "J04": "f1f50085-d284-491d-92c4-a1e3d6588e60"
       },
-      "nightQueueNote": "2026-09-20 audit: J01 (SUP-48) only ready/nightly; J02->J03->J04->WP07->WP10->WP11 serial. Local fixes/offline tests authorized; promotion only after Chief acceptance and readiness. No live gate/global adoption/release. WP07 first real call must be Chief-observable."
+      "nightQueueNote": "2026-09-22 user requested day execution: J01-J04 and WP07 accepted. No remaining slice queued. WP10 requires real independent provider/usage evaluation; WP11 final closure follows WP10. Next-stage Jev primary/fallback and day/night proposal remains reviewable, no active gates.",
+      "note": "Chief accepted local remediation and observed real task shadow checkpoint; benefit remains unproven."
     }
   },
   "sync": {
     "lastResult": "ok",
-    "lastCheckpointAt": "2026-09-20",
+    "lastCheckpointAt": "2026-09-22",
     "pendingRetry": false,
     "lastError": null
   }

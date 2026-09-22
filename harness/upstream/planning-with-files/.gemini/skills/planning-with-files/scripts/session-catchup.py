@@ -407,9 +407,6 @@ def get_session_candidates(
     return 'claude', []
 
 
-PLANNING_LIKE_SQL = ('%task_plan.md', '%findings.md', '%progress.md')
-
-
 def get_opencode_db_path() -> Optional[Path]:
     """Resolve OpenCode SQLite path. Same on all OS per xdg-basedir."""
     xdg = os.environ.get('XDG_DATA_HOME')
@@ -471,13 +468,16 @@ def _opencode_state_annotation(state: Any) -> str:
 
 def _format_opencode_part(data: Dict[str, Any], session_id: str) -> Optional[Dict[str, Any]]:
     """Print-ready summary for one OpenCode part row."""
+    if not isinstance(data, dict):
+        return None
     ptype = data.get('type')
     short = safe_session_label(session_id)
     if ptype == 'tool':
-        tool = (data.get('tool') or '').lower()
+        tool_value = data.get('tool')
+        tool = tool_value.lower() if isinstance(tool_value, str) else ''
         state = data.get('state') or {}
         input_ = state.get('input') if isinstance(state, dict) else None
-        input_ = input_ or {}
+        input_ = input_ if isinstance(input_, dict) else {}
         outcome = _opencode_state_annotation(state)
         if tool in ('write', 'edit'):
             fp = input_.get('filePath', '')
@@ -489,7 +489,8 @@ def _format_opencode_part(data: Dict[str, Any], session_id: str) -> Optional[Dic
             return {'session': short, 'summary': f"Tool bash: {cmd}{outcome}"}
         return {'session': short, 'summary': f"Tool {tool}{outcome}"}
     if ptype == 'text':
-        text = (data.get('text') or '')[:300]
+        text_value = data.get('text')
+        text = text_value[:300] if isinstance(text_value, str) else ''
         if text.strip():
             return {'session': short, 'summary': f"text: {text}"}
     return None
@@ -576,28 +577,43 @@ def opencode_catchup(project_path: str, mode: str = 'no-history') -> None:
     update_time = None
     update_idx = -1
     for idx, (sid, _) in enumerate(previous_sessions):
-        params = (sid,) + PLANNING_LIKE_SQL
         cur.execute(
             """
-            SELECT time_created FROM part
+            SELECT time_created, data FROM part
             WHERE session_id = ?
+              AND json_valid(data)
               AND json_extract(data, '$.type') = 'tool'
               AND lower(json_extract(data, '$.tool')) IN ('write', 'edit', 'patch')
               AND (
-                json_extract(data, '$.state.input.filePath') LIKE ?
-                OR json_extract(data, '$.state.input.filePath') LIKE ?
-                OR json_extract(data, '$.state.input.filePath') LIKE ?
+                  replace(json_extract(data, '$.state.input.filePath'), char(92), '/')
+                      IN ('task_plan.md', 'findings.md', 'progress.md')
+                  OR replace(json_extract(data, '$.state.input.filePath'), char(92), '/')
+                      GLOB '*/task_plan.md'
+                  OR replace(json_extract(data, '$.state.input.filePath'), char(92), '/')
+                      GLOB '*/findings.md'
+                  OR replace(json_extract(data, '$.state.input.filePath'), char(92), '/')
+                      GLOB '*/progress.md'
               )
-            ORDER BY time_created DESC
-            LIMIT 1
+            ORDER BY time_created DESC, id DESC
             """,
-            params,
+            (sid,),
         )
-        row = cur.fetchone()
-        if row:
-            update_sid = sid
-            update_time = row[0]
-            update_idx = idx
+        # Iterate lazily: write parts carry whole file bodies, and fetchall
+        # would materialize every planning write of the session before the
+        # first validated row ends the loop.
+        for candidate_time, data_str in cur:
+            data = json_loads(data_str)
+            if not isinstance(data, dict):
+                continue
+            state = data.get('state')
+            input_ = state.get('input') if isinstance(state, dict) else None
+            file_path = input_.get('filePath') if isinstance(input_, dict) else None
+            if planning_file_from_path(file_path):
+                update_sid = sid
+                update_time = candidate_time
+                update_idx = idx
+                break
+        if update_sid:
             break
 
     if not update_sid:
@@ -685,12 +701,17 @@ def parse_session_messages(session_file: Path) -> List[Dict[str, Any]]:
 
 
 def planning_file_from_path(path_value: Any) -> Optional[str]:
+    """Return a planning filename only when it is the path's exact basename.
+
+    A suffix check treats lookalikes such as ``draft_task_plan.md`` as real
+    planning updates and can anchor catchup at unrelated transcript content.
+    Normalize separators so the same boundary rule works for Unix and Windows
+    session records.
+    """
     if not isinstance(path_value, str):
         return None
-    for pf in PLANNING_FILES:
-        if path_value.endswith(pf):
-            return pf
-    return None
+    basename = path_value.replace(chr(92), '/').rsplit('/', 1)[-1]
+    return basename if basename in PLANNING_FILES else None
 
 
 def planning_file_from_paths(paths: Iterable[Any]) -> Optional[str]:

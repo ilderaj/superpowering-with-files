@@ -1,4 +1,6 @@
 import { SURFACES, SUPPORT_SURFACES } from '../../../harness/trio/projection.mjs';
+import { LOCKED_SKILLS } from './matt-skills-lock.mjs';
+import { mattSkillsPackagedFiles } from './matt-skills-source.mjs';
 
 export const supportedPluginTargets = ['codex', 'agent-plugins'];
 
@@ -40,20 +42,11 @@ export const mattSkillsCompanionTargets = [
   'matt-skills-agent-plugins'
 ];
 
-const mattSkillsSkillSourceMap = [
-  {
-    name: 'grill-me',
-    source: 'harness/optional-skills/mattpocock/v1.2.3/grill-me/SKILL.md'
-  },
-  {
-    name: 'grilling',
-    source: 'harness/optional-skills/mattpocock/v1.2.3/grilling/SKILL.md'
-  },
-  {
-    name: 'to-questionnaire',
-    source: 'harness/optional-skills/mattpocock/v1.2.3/to-questionnaire/SKILL.md'
-  }
-];
+const mattSkillsSkillSourceMap = LOCKED_SKILLS.map(({ name }) => ({
+  name,
+  source: 'harness/optional-skills/mattpocock/v1.2.3/' + name,
+  directory: true
+}));
 
 export const mattSkillsCompanionFamily = {
   id: 'matt-skills',
@@ -83,11 +76,20 @@ const codexSkillDestinations = {
   'simplification-ledger': 'skills/simplification-ledger/SKILL.md'
 };
 
-const mattSkillsSkillDestinations = {
-  'grill-me': 'skills/grill-me/SKILL.md',
-  grilling: 'skills/grilling/SKILL.md',
-  'to-questionnaire': 'skills/to-questionnaire/SKILL.md'
-};
+const mattSkillsSkillDestinations = Object.fromEntries(
+  LOCKED_SKILLS.map(({ name }) => [name, 'skills/' + name])
+);
+
+function mattCompanionRequiredFiles(manifestPath) {
+  return [
+    manifestPath,
+    ...mattSkillsPackagedFiles(),
+    'LICENSE',
+    'UPSTREAM.json',
+    'OVERLAYS.json',
+    'README.md'
+  ];
+}
 
 export const platformContracts = {
   codex: {
@@ -152,16 +154,7 @@ export const mattSkillsPlatformContracts = {
     displayName: 'Matt Pocock Skills for Codex',
     packageName: 'harness-matt-skills-codex-plugin',
     manifestPath: '.codex-plugin/plugin.json',
-    requiredFiles: [
-      '.codex-plugin/plugin.json',
-      'skills/grill-me/SKILL.md',
-      'skills/grilling/SKILL.md',
-      'skills/to-questionnaire/SKILL.md',
-      'LICENSE',
-      'UPSTREAM.json',
-      'OVERLAYS.json',
-      'README.md'
-    ],
+    requiredFiles: mattCompanionRequiredFiles('.codex-plugin/plugin.json'),
     loadsRootInstructionFile: true,
     capabilities: {
       skills: true
@@ -173,16 +166,7 @@ export const mattSkillsPlatformContracts = {
     displayName: 'Matt Pocock Skills for Agent Plugins',
     packageName: 'harness-matt-skills-agent-plugins',
     manifestPath: 'plugin.json',
-    requiredFiles: [
-      'plugin.json',
-      'skills/grill-me/SKILL.md',
-      'skills/grilling/SKILL.md',
-      'skills/to-questionnaire/SKILL.md',
-      'LICENSE',
-      'UPSTREAM.json',
-      'OVERLAYS.json',
-      'README.md'
-    ],
+    requiredFiles: mattCompanionRequiredFiles('plugin.json'),
     loadsRootInstructionFile: false,
     capabilities: {
       skills: true

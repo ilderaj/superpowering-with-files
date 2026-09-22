@@ -6,6 +6,7 @@ import { atomicWriteText, withTrioPublicationLock } from '../../trio/core/store.
 import { parseV2Config } from '../../trio/config.mjs';
 import { projectConfig, PROJECTION_SURFACES } from '../../trio/projection.mjs';
 import { discoverAuthorityRoot } from '../../trio/core/authority.mjs';
+import { captureTrioTakeoverPreimages, publishTrioTakeoverBackup } from '../lib/trio-takeover-backup.mjs';
 import {
   assertProductionRuntimeSelector,
   assertInstallerStateEvidence,
@@ -786,7 +787,10 @@ function renderTrioSyncReport(prepared, mode) {
       execution: descriptor.execution,
       conflict: Boolean(descriptor.conflict)
     })),
-    conflicts: prepared.conflicts
+    conflicts: prepared.conflicts,
+    ...(prepared.backup ? { backup: prepared.backup } : {}),
+    ...(prepared.repaired ? { repaired: prepared.repaired } : {}),
+    ...(mode === 'reconverge' ? { manual_pending: Boolean(prepared.manual_pending) } : {})
   };
 }
 
@@ -820,9 +824,12 @@ function fixtureRuntimeRequired() {
 }
 
 function parseProductionSyncOptions(args) {
-  const options = parseTrioCommandOptions(args, { flags: ['dry-run', 'check'] });
+  const options = parseTrioCommandOptions(args, { flags: ['dry-run', 'check', 'reconverge'] });
   if (options['dry-run'] && options.check) {
     throw trioBridgeError('Trio --dry-run and --check cannot be combined.', 'ERR_TRIO_SYNC');
+  }
+  if (options.reconverge && (options.check || options['dry-run'])) {
+    throw trioBridgeError('Trio --reconverge cannot be combined with --check or --dry-run.', 'ERR_TRIO_RECONVERGE');
   }
   return options;
 }
@@ -865,20 +872,113 @@ export async function assertTrioProjectionInSync(prepared, environment = prepare
   return prepared;
 }
 
+async function assertReconvergeInventory(prepared, config, sources) {
+  const managed = prepared.descriptors.filter((descriptor) => descriptor.management === 'managed');
+  const conflicted = new Set(prepared.conflicts
+    .filter((conflict) => managed.some((descriptor) => descriptor.destination === conflict.destination))
+    .map((conflict) => path.resolve(conflict.destination)));
+  const entries = config.ownership.entries;
+  if (config.ownership.source !== 'projection-manifest' || !config.ownership.manifestRef
+    || entries.length !== managed.length
+    || managed.some((descriptor) => !entries.some((entry) =>
+      entry.targetId === descriptor.targetId && path.resolve(entry.path) === path.resolve(descriptor.destination)))) {
+    throw trioBridgeError('Trio reconverge requires complete projection-manifest ownership.', 'ERR_TRIO_RECONVERGE_OWNERSHIP');
+  }
+  for (const descriptor of managed) {
+    const destination = path.resolve(descriptor.destination);
+    const info = await lstat(destination).catch((error) => error?.code === 'ENOENT' ? null : Promise.reject(error));
+    if (!info || info.isSymbolicLink() || !info.isFile() || info.nlink !== 1) {
+      throw trioBridgeError(`Trio reconverge requires a real singly-owned file: ${destination}.`, 'ERR_TRIO_RECONVERGE_PHYSICAL');
+    }
+    if (conflicted.has(destination) && (await readFile(destination, 'utf8')) !== sources.get(descriptor.destination)) {
+      throw trioBridgeError(`Trio reconverge rejects content drift: ${destination}.`, 'ERR_TRIO_RECONVERGE_CONTENT');
+    }
+  }
+}
+
+async function assertCapturedReconvergeProof(prepared, config, sources, captured) {
+  const managedDestinations = new Set(prepared.descriptors
+    .filter((descriptor) => descriptor.management === 'managed' && typeof descriptor.destination === 'string')
+    .map((descriptor) => path.resolve(descriptor.destination)));
+  const conflicted = new Set(prepared.conflicts
+    .filter((conflict) => typeof conflict.destination === 'string' && managedDestinations.has(path.resolve(conflict.destination)))
+    .map((conflict) => path.resolve(conflict.destination)));
+  for (const descriptor of prepared.descriptors.filter((entry) => entry.management === 'managed')) {
+    const snapshot = captured.snapshots.get(path.resolve(descriptor.destination));
+    const entry = config.ownership.entries.find((candidate) =>
+      candidate.targetId === descriptor.targetId && path.resolve(candidate.path) === path.resolve(descriptor.destination));
+    if (!snapshot?.exists || !entry) throw trioBridgeError(`Trio reconverge lost owned preimage proof: ${descriptor.destination}.`, 'ERR_TRIO_RECONVERGE_PROOF');
+    const actual = `sha256:${snapshot.sha256}`;
+    const source = sources.get(descriptor.destination);
+    if (conflicted.has(path.resolve(descriptor.destination))) {
+      if (source === undefined || actual !== `sha256:${hashText(source)}`) {
+        throw trioBridgeError(`Trio reconverge preimage no longer matches source: ${descriptor.destination}.`, 'ERR_TRIO_RECONVERGE_PROOF');
+      }
+    } else if (actual !== entry.identity && (source === undefined || actual !== `sha256:${hashText(source)}`)) {
+      throw trioBridgeError(`Trio reconverge preimage is neither owned nor source-matching: ${descriptor.destination}.`, 'ERR_TRIO_RECONVERGE_PROOF');
+    }
+  }
+}
+
+export async function reconvergeTrioProjection({ environment, config, statePrecondition } = {}) {
+  const prepared = await prepareTrioProjection({ environment, config });
+  const managed = prepared.descriptors.filter((descriptor) => descriptor.management === 'managed');
+  const conflicted = managed.filter((descriptor) => prepared.conflicts.some((conflict) => conflict.destination === descriptor.destination));
+  const sources = new Map();
+  for (const descriptor of conflicted) {
+    const source = TRIO_SURFACE_SOURCES.get(descriptor.surface);
+    if (!source) throw trioBridgeError(`Trio reconverge has no source for ${descriptor.surface}.`, 'ERR_TRIO_RECONVERGE_SOURCE');
+    sources.set(descriptor.destination, await readFile(path.join(SOURCE_ROOT, source), 'utf8'));
+  }
+  await assertReconvergeInventory(prepared, config, sources);
+  const captured = await captureTrioTakeoverPreimages({ environment, descriptors: managed, statePrecondition });
+  await assertCapturedReconvergeProof(prepared, config, sources, captured);
+  const backup = await publishTrioTakeoverBackup({
+    environment, preimages: captured, ownership: config.ownership, recovery: config.recovery
+  });
+  const settled = parseV2Config({
+    ...config,
+    ownership: {
+      ...config.ownership,
+      entries: config.ownership.entries.map((entry) => {
+        const source = sources.get(entry.path);
+        return source === undefined ? entry : { ...entry, identity: `sha256:${hashText(source)}` };
+      })
+    }
+  });
+  const state = parseV2Config({ ...settled, recovery: { ...settled.recovery, rollbackRef: backup.rollbackRef } });
+  const snapshot = captured.stateSnapshot;
+  await atomicWriteText(environment.stateFile, `${JSON.stringify(state, null, 2)}\n`, {
+    expectedSha256: snapshot.exists ? snapshot.sha256 : null,
+    expectedTargetIdentity: snapshot.exists ? { dev: snapshot.dev, ino: snapshot.ino, nlink: snapshot.nlink } : undefined,
+    expectedParentIdentity: snapshot.parent
+  });
+  const readback = await readFile(environment.stateFile, 'utf8');
+  if (readback !== `${JSON.stringify(state, null, 2)}\n`) {
+    throw trioBridgeError('Trio reconverge state readback differs from the settled state.', 'ERR_TRIO_RECONVERGE_READBACK');
+  }
+  const reportPrepared = await prepareTrioProjection({ environment, config: state });
+  return Object.freeze({
+    ...reportPrepared,
+    mode: 'reconverge',
+    backup: backup.rollbackRef,
+    repaired: conflicted.map((descriptor) => descriptor.destination),
+    manual_pending: reportPrepared.descriptors.some((descriptor) => descriptor.management !== 'managed')
+  });
+}
+
 async function syncProduction(args, environment, config) {
   const options = parseProductionSyncOptions(args);
-  const mode = options.check ? 'check' : options['dry-run'] ? 'dry-run' : 'apply';
-  if (mode === 'apply') {
+  const mode = options.reconverge ? 'reconverge' : options.check ? 'check' : options['dry-run'] ? 'dry-run' : 'apply';
+  if (mode === 'apply' || mode === 'reconverge') {
     return withTrioPublicationLock(environment.authorityRoot, async () => {
       const current = await probeInstallerState(environment.authorityRoot);
       if (current.kind !== 'v2') {
         throw trioBridgeError('Trio sync requires a schema-v2 state while the publication lock is held.', 'ERR_TRIO_STATE');
       }
-      const result = await applyTrioProjection({
-        environment,
-        config: current.state,
-        statePrecondition: current.evidence
-      });
+      const result = mode === 'reconverge'
+        ? await reconvergeTrioProjection({ environment, config: current.state, statePrecondition: current.evidence })
+        : await applyTrioProjection({ environment, config: current.state, statePrecondition: current.evidence });
       const report = renderTrioSyncReport(result, mode);
       console.log(JSON.stringify(report, null, 2));
       return report;
@@ -898,11 +998,12 @@ function hasFlag(args, ...names) {
 
 function usage() {
   return [
-    'Usage: ./scripts/harness sync [--dry-run] [--check]',
+    'Usage: ./scripts/harness sync [--dry-run] [--check] [--reconverge]',
     '',
     'Options:',
     '  --dry-run                 Print the desired projection diff without writing files',
     '  --check                   Exit non-zero when sync would make changes',
+    '  --reconverge              Re-record stale owned state after complete manifest and source proof',
     '  --help, -h                Show this help message'
   ].join('\n');
 }

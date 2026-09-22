@@ -106,9 +106,50 @@ These amazing people have contributed code, documentation, or significant improv
 
 ### Other Contributors
 
-- **[Raymond Manaloto](https://github.com/sortakool)** - [Issue #234](https://github.com/OthmanAdi/planning-with-files/issues/234)
+- **[@ericshunhinglee-cloud](https://github.com/ericshunhinglee-cloud)**, [Issue #272](https://github.com/OthmanAdi/planning-with-files/issues/272)
+  - Reported and traced the Hermes 0.21.3 first-turn `TERMINAL_CWD` rewrite that made the Hermes plugin resolve the home directory as the project root, with a setter stack trace, on-the-wire token evidence and the upstream cross-references.
+
+- **[Shaun Lin](https://github.com/ShaunLinTW)**, [PR #245](https://github.com/OthmanAdi/planning-with-files/pull/245), [PR #247](https://github.com/OthmanAdi/planning-with-files/pull/247), [PR #263](https://github.com/OthmanAdi/planning-with-files/pull/263), [PR #271](https://github.com/OthmanAdi/planning-with-files/pull/271), [PR #280](https://github.com/OthmanAdi/planning-with-files/pull/280)
+  - Isolated Python calls in the Codex, Gemini, and GitHub Copilot shell adapters and added regression coverage for project-local import shadowing.
+  - Added named-plan slug mode to the PowerShell initializer with root-mode policy inheritance, host-aware attestation, and Windows PowerShell regression coverage.
+  - Made the OpenCode session catchup adapter skip malformed part rows instead of raising, with regression coverage for the string-state and invalid-JSON shapes.
+  - Made the shell several-plans counters skip symlinked and junctioned plan directories so they match the Hermes plugin, with a differential regression including the ambiguity probe.
+  - Made denied PowerShell planning-file writes fail explicitly and deferred named-plan activation until all three files are ready, with real Windows ACL regression coverage.
+
+- **[@TayfurYldz](https://github.com/TayfurYldz)**, [PR #265](https://github.com/OthmanAdi/planning-with-files/pull/265), [PR #266](https://github.com/OthmanAdi/planning-with-files/pull/266), [PR #273](https://github.com/OthmanAdi/planning-with-files/pull/273)
+  - Bound `PWF_PLAN_ROOT` to the current project around the attestation call in both initializers so an inherited pin cannot redirect attestation, with shell and PowerShell regressions.
+  - Made the shell slugifier single-line so a plan name with an embedded newline no longer creates an unusable plan directory.
+  - Guarded OpenCode replay against null and array rows, non-string tool names, and object-valued text while retaining healthy session rows.
+
+- **[@kuei51307-hub](https://github.com/kuei51307-hub)**, [PR #243](https://github.com/OthmanAdi/planning-with-files/pull/243), [PR #244](https://github.com/OthmanAdi/planning-with-files/pull/244), [PR #248](https://github.com/OthmanAdi/planning-with-files/pull/248), [PR #249](https://github.com/OthmanAdi/planning-with-files/pull/249), [PR #251](https://github.com/OthmanAdi/planning-with-files/pull/251), [PR #267](https://github.com/OthmanAdi/planning-with-files/pull/267), [PR #277](https://github.com/OthmanAdi/planning-with-files/pull/277), [PR #279](https://github.com/OthmanAdi/planning-with-files/pull/279)
+  - Fixed active-plan display and listing for UTF-8 BOM-prefixed pointers, with regression coverage across the synchronized shell helpers.
+  - Made IDE sync verification report missing canonical sources, with subprocess tests for read-only verification and unchanged sync behavior.
+  - Bounded session catchup to exact planning filenames across the canonical scanners and the Hermes, MastraCode, and OpenCode adapters, with lookalike regression coverage.
+  - Replaced the shell initializer's active-pointer write with the selector's contained atomic update and added hardlink, symlink, and junction regressions.
+  - Routed Cursor's native PowerShell hooks through the shared plan resolver so named plans are injected on Windows, and made the resolver's `PWF_PLAN_ROOT` check run on Windows PowerShell 5.1.
+  - Ported the several-plans rule into the Hermes plugin so two or more named plans without `PLAN_ID` get the selector notice instead of a pointer or timestamp guess.
+  - Made shell and PowerShell initialization report attestation failures with a recovery command, and added the missing analytics Next Step section across template copies with regression coverage.
+
+- **[@Dphoshoba](https://github.com/Dphoshoba)**, [PR #242](https://github.com/OthmanAdi/planning-with-files/pull/242)
+  - Proposed and implemented named-plan listing with phase counts and a shared active-pointer marker.
+
+- **[@sunznx](https://github.com/sunznx)**, [Issue #240](https://github.com/OthmanAdi/planning-with-files/issues/240), [Issue #241](https://github.com/OthmanAdi/planning-with-files/issues/241)
+  - Reported and reproduced named-plan crossover between Codex sessions sharing a working directory after compaction.
+  - Reported the 13 duplicate Codex command skills, traced the legacy command fallback, and proposed the native manifest setting that disables it.
+
+- **[@hzura](https://github.com/hzura)**, [Issue #50](https://github.com/OthmanAdi/planning-with-files/issues/50)
+  - Raised the same-repository parallel-task workflow that led to explicit plan selection and shared-file ownership guidance.
+
+- **[@wangxiaodong1021](https://github.com/wangxiaodong1021)**, [Issue #50](https://github.com/OthmanAdi/planning-with-files/issues/50)
+  - Reported session crossover during parallel Codex work, prompting reproduction with two attached sessions and separate plan pins.
+
+- **[Raymond Manaloto](https://github.com/sortakool)** - [Issue #234](https://github.com/OthmanAdi/planning-with-files/issues/234), [Issue #236](https://github.com/OthmanAdi/planning-with-files/issues/236), [Issue #237](https://github.com/OthmanAdi/planning-with-files/issues/237), [Issue #238](https://github.com/OthmanAdi/planning-with-files/issues/238), [Issue #239](https://github.com/OthmanAdi/planning-with-files/issues/239)
   - Reproduced the nested attestation failure and traced it to the fallback from slug mode to legacy mode when the helper runs inside `.planning/<slug>/`
-  - **Impact:** The shell and PowerShell helpers now update the slug's `.attestation` from either the project root or the slug directory, so the next root injection does not report a false tamper event
+  - Found that `plan-doctor.sh` matched its control strings against the injected plan body, so a plan quoting one of them reported a false tamper warning, and that a stale literal at `:92` made a fully dark-hooks state report PASS. Supplied the structural alternative that replaced the string matching, and the four test arms
+  - Showed that a `PLAN_ID` of valid slug shape naming no directory fell through to another plan, which then got attested at rc=0, with a control arm proving the probe could return the right plan
+  - Showed that a slug plan with no `.mode` bypassed a project's committed root `.mode`, with a control arm removing the slug directory to prove it was a bypass rather than a mode that was never armed
+  - Traced the PostToolUse progress reminder to `systemMessage`, a field Claude Code delivers to the user, so an instruction written for the model reached the person instead on every matching tool call, and checked the Codex adapter for the same defect before filing
+  - **Impact:** Attestation and injection follow the plan the operator named or refuse; a project's `.mode` is a floor a plan cannot start below; `/plan-doctor` classifies on the data framing, so a reworded banner degrades to a warning instead of a silent PASS; and the progress reminder reaches the model, once per turn, without firing on read-only shell commands
 
 - **[@lowmiaq-gmail](https://github.com/lowmiaq-gmail)** - [PR #233](https://github.com/OthmanAdi/planning-with-files/pull/233) / [Issue #232](https://github.com/OthmanAdi/planning-with-files/issues/232)
   - Reported that direct help flags were parsed as project names, then supplied a focused POSIX-shell fix and regression covering both `-h` and `--help` against an empty working directory
@@ -370,15 +411,16 @@ Thank you to everyone who reported issues, provided feedback, and helped test fi
 - [@tingles2233](https://github.com/tingles2233) - Issue #29 (Plugin update issues)
 - [@st01cs](https://github.com/st01cs) - Issue #28 (Devis fork discussion)
 - [@wqh17101](https://github.com/wqh17101) - Issue #11 testing and confirmation
-- [@luyanfeng](https://github.com/luyanfeng) - Issue #172 (OpenCode install/verify paths doubled the folder segment in docs/opencode.md; fixed in v2.43.0)
+- [@luyanfeng](https://github.com/luyanfeng) - Issue #172 (OpenCode install/verify paths doubled the folder segment in docs/opencode.md; fixed in v2.43.0) and Issue #235 (docs/opencode.md claimed `npx skills add -g` installs to `~/.config/opencode/skills/` while it installs to `~/.agents/skills/`; the report triggered the v3.14.0 OpenCode rewrite with the native plugin)
 - [@mixian939](https://github.com/mixian939) - Issue #191 (Codex hooks reporting a false "0/0 phases complete" status for an unstructured task_plan.md, with a full root-cause diagnosis and suggested fix; the audit this triggered found and fixed the same defect in the canonical scripts and two other IDE adapters, fixed in v3.2.0)
 - [@AvitalAviv](https://github.com/AvitalAviv) - Issue #188 (flagged that the repo had no private vulnerability disclosure channel; private vulnerability reporting is now enabled and documented in SECURITY.md)
+- [@loarland](https://github.com/loarland) - Issue #252 (DeepSeek Harness ran the skill but none of its lifecycle hooks, because DSH ignores the `hooks:` block in SKILL.md; the report led to the native `dsh-planning-with-files` plugin in v3.20.0)
 - [@lazyst](https://github.com/lazyst) - Issue #190 (feature request describing the Pi extension activating hooks on a draft plan before user confirmation, with the exact passive-until-confirmed behavior that shipped as `/plan-execute` in v3.3.0)
 - [@dubes394](https://github.com/dubes394) (Kunal Dubey) - Issue #217 (two agents sharing one plan directory can both write `task_plan.md` from the same read, and the later write silently discards the earlier one's work; the report's simpler option, a reread nudge rather than a lock, is what shipped as the parallel-write guard in v3.10.0)
 - [@popey](https://github.com/popey) (Alan Pope) - [PR #215](https://github.com/OthmanAdi/planning-with-files/pull/215) (bumped the pinned Tessl action SHA past a migration that had silently stopped reviews from running; the range it moves across also closes a marker-spoofing hole in the commit this repo had been pinned to)
 - [@SomSamantray](https://github.com/SomSamantray) (Som Samantray) - [PR #216](https://github.com/OthmanAdi/planning-with-files/pull/216) (audited the language variants against the canonical skill and proved the drift issue #130 predicted: 12 missing scripts, a missing Windows UTF-8 fix, and sync tooling that covered only 3 dispatch targets; that analysis is what v3.10.0 acted on, closing the gap additively instead of by deletion)
 - [@marcmuon](https://github.com/marcmuon) (Marc Kelechava) - Issue #195 (one-shot `codex exec` sessions sharing a cwd with an incomplete plan got hijacked and mutated orchestrator-owned plan files; the report's reproductions, root-cause file list, and acceptance criteria shipped directly as the `PLANNING_DISABLED=1` opt-out in v3.4.0)
-- [@mfehlhaber](https://github.com/mfehlhaber): Issue #220 (identified that the Codex POSIX `SessionStart` and `UserPromptSubmit` routes bypassed the JSON adapter, causing planning context beginning with `[` to be rejected as invalid event JSON; fixed in v3.10.1), Issue #231 (traced Pi's generic attestation failure to six CRLF shell scripts in the npm `3.10.2` tarball, separated the clean repository source from the broken package artifact, and identified the missing package-time validation boundary)
+- [@mfehlhaber](https://github.com/mfehlhaber): Issue #220 (identified that the Codex POSIX `SessionStart` and `UserPromptSubmit` routes bypassed the JSON adapter, causing planning context beginning with `[` to be rejected as invalid event JSON; fixed in v3.10.1), Issue #231 (traced Pi's generic attestation failure to six CRLF shell scripts in the npm `3.10.2` tarball, separated the clean repository source from the broken package artifact, and identified the missing package-time validation boundary); [Issue #278](https://github.com/OthmanAdi/planning-with-files/issues/278) (reported the missing Next Step section in generated analytics plans, fixed in v3.20.5)
 
 - [@Whxuan0701](https://github.com/Whxuan0701) (WeiHaoxuan) - [PR #223](https://github.com/OthmanAdi/planning-with-files/pull/223), [PR #222](https://github.com/OthmanAdi/planning-with-files/pull/222), [PR #224](https://github.com/OthmanAdi/planning-with-files/pull/224) (found that the `PLANNING_DISABLED=1` opt-out from #195 had never reached any of the ten GitHub Copilot hook entry points, that the #191 zero-phase guard was missing from the Copilot PowerShell stop hook, and that the Hermes determinism probe hardcoded `python` so it could not run where only `python3` exists; three single-commit PRs, each with a test that executes the real script. Auditing them surfaced three further defects fixed in the same release: the Cursor route had the same opt-out gap across all eight of its hooks, the disabled `PreToolUse` branch was widening Copilot's permissions rather than staying neutral, and `error-occurred.ps1` had never logged an error on Windows because it read stdin into PowerShell's automatic `$input` variable)
 
@@ -411,6 +453,6 @@ If you've contributed and don't see your name here, please open an issue! We wan
 
 ---
 
-**Total Contributors:** 56+ and growing!
+**Total Contributors:** 65+ and growing!
 
-*Last updated: August 31, 2026*
+*Last updated: 2026-09-21*

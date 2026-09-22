@@ -1,4 +1,0 @@
-^\s*git\s+(status|diff|show|log|branch|rev-parse|ls-files|fetch)\b
-^\s*(npm|pnpm|yarn)\s+(test|lint|typecheck)\b
-^\s*swift\s+(test|build)\b
-^\s*xcodebuild\s+test\b

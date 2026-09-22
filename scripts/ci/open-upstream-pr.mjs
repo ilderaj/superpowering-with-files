@@ -172,6 +172,10 @@ export async function runOpenUpstreamPullRequest({
     };
   }
 
+  if (refreshResult.lockPersistence !== 'written') {
+    throw new UpstreamPullRequestError('Cannot open upstream PR without a persisted authoritative source lock');
+  }
+
   await runCommands(buildBotGitIdentityCommands(), {
     cwd,
     env,

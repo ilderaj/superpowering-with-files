@@ -41,15 +41,22 @@ export async function treeDigest(root, { source = false } = {}) {
   const hash = createHash('sha256');
   async function visit(dir) {
     for (const name of (await readdir(dir)).sort()) {
-      if (source && excluded(name)) continue;
       const p = path.join(dir, name), entry = await lstat(p);
+      const rel = path.relative(root, p);
       if (entry.isSymbolicLink() || (!entry.isDirectory() && !entry.isFile()) || entry.nlink > 1 && entry.isFile()) {
         throw new Error(`Unsafe skill entry: ${p}`);
       }
-      const rel = path.relative(root, p);
+      if (source && rel.split(path.sep).some(excluded)) continue;
       if (entry.isDirectory()) {
-        hash.update(JSON.stringify([rel, 'dir']) + '\n');
-        await visit(p);
+        if (!source) {
+          hash.update(JSON.stringify([rel, 'dir']) + '\n');
+          await visit(p);
+        } else {
+          const before = hash.copy();
+          await visit(p);
+          // Generated-only directories contribute no bytes to source equivalence.
+          if (hash.copy().digest('hex') !== before.digest('hex')) hash.update(JSON.stringify([rel, 'dir']) + '\n');
+        }
       } else {
         const bytes = await readFile(p);
         // Length framing prevents a file's content from impersonating another entry.
@@ -76,12 +83,16 @@ export async function adoptGlobalSkills({ homeDir, rootDir = ROOT, apply = false
   const entries = [];
   for (const [name, source] of [...INSTALLS, ...RETIRED.map(name => [name, null])]) {
     const destination = path.join(skillRoot, name);
-    const before = await treeDigest(destination);
+    // Compare the same source-owned file set on both sides. Generated Python
+    // caches are destination-local artifacts and do not establish ownership.
+    const before = await treeDigest(destination, { source: true });
+    const beforeFull = await treeDigest(destination);
     const after = source ? await treeDigest(path.join(rootDir, source), { source: true }) : null;
+    const afterFull = source ? await treeDigest(path.join(rootDir, source)) : null;
     if (source && !after) throw new Error(`Missing skill source: ${source}`);
     const owned = prior.entries.find(e => e.name === name);
-    const conflict = before !== null && before !== after && before !== owned?.digest && !takeover;
-    entries.push({ name, source, destination, before, after, conflict, action: before === after ? 'unchanged' : source ? 'install' : 'retire' });
+    const conflict = before !== null && before !== after && before !== owned?.digest && beforeFull !== owned?.digest && !takeover;
+    entries.push({ name, source, destination, before, beforeFull, after, afterFull, conflict, action: before === after ? 'unchanged' : source ? 'install' : 'retire' });
   }
   if (!apply) return { mode: 'dry-run', entries };
   if (entries.some(e => e.conflict)) throw new Error('Unowned or modified optional skills; review the dry run before explicit --takeover.');
@@ -105,25 +116,26 @@ export async function adoptGlobalSkills({ homeDir, rootDir = ROOT, apply = false
     if (receiptInfo) await cp(receiptPath, path.join(backup, 'receipt.json'));
     for (const e of changes) {
       if (e.before) await cp(e.destination, path.join(backup, e.name), { recursive: true, errorOnExist: true, force: false });
-      if (await treeDigest(path.join(backup, e.name)) !== e.before) throw new Error(`Backup mismatch: ${e.name}`);
+      if (await treeDigest(path.join(backup, e.name)) !== e.beforeFull) throw new Error(`Backup mismatch: ${e.name}`);
       if (e.source) {
         const sourceRoot = path.join(rootDir, e.source);
         await cp(sourceRoot, path.join(lock, e.name), {
           recursive: true,
           filter: candidate => !path.relative(sourceRoot, candidate).split(path.sep).some(excluded)
         });
-        if (await treeDigest(path.join(lock, e.name)) !== e.after) throw new Error(`Source changed: ${e.name}`);
+        if (await treeDigest(path.join(lock, e.name), { source: true }) !== e.after) throw new Error(`Source changed: ${e.name}`);
+        e.afterFull = await treeDigest(path.join(lock, e.name));
       }
     }
     await writeFile(path.join(backup, 'manifest.json'), JSON.stringify({ schemaVersion: 1, entries }, null, 2) + '\n', { flag: 'wx' });
     for (const e of changes) {
       await assertRealParents(path.dirname(e.destination));
-      if (await treeDigest(e.destination) !== e.before) throw new Error(`Destination changed: ${e.name}`);
+      if (await treeDigest(e.destination) !== e.beforeFull) throw new Error(`Destination changed: ${e.name}`);
       const old = path.join(lock, `${e.name}.previous`);
       if (e.before) await renamePath(e.destination, old);
       applied.push({ ...e, old });
       if (e.source) await renamePath(path.join(lock, e.name), e.destination);
-      if (await treeDigest(e.destination) !== e.after) throw new Error(`Readback mismatch: ${e.name}`);
+      if (await treeDigest(e.destination) !== e.afterFull) throw new Error(`Readback mismatch: ${e.name}`);
     }
     const receipt = { schemaVersion: 1, sourceRoot: rootDir, backup, entries: entries.map(e => ({ name: e.name, digest: e.after })) };
     await writeFile(path.join(lock, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
@@ -135,7 +147,7 @@ export async function adoptGlobalSkills({ homeDir, rootDir = ROOT, apply = false
       try {
         if (await exists(e.destination)) {
           // Preserve unexpected concurrent bytes rather than deleting them during recovery.
-          try { if (await treeDigest(e.destination) !== e.after) retainStaging = true; }
+          try { if (await treeDigest(e.destination) !== e.afterFull) retainStaging = true; }
           catch { retainStaging = true; }
           await renamePath(e.destination, path.join(lock, `${e.name}.failed`));
         }

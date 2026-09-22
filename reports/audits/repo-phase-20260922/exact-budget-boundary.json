@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-22",
+  "scope": {
+    "source": "plugins/dsh/src/core/dispatch.ts",
+    "test": "plugins/dsh/test/dispatch-core.test.ts",
+    "rootRepositoryReadOnly": true,
+    "lockfileChanged": false,
+    "externalProviderOrModelExecution": false
+  },
+  "contract": {
+    "source": "plugins/dsh/README.md",
+    "rule": "strict > budget comparison; exact remaining budget is allowed; above-cap reserve is budget_exceeded"
+  },
+  "red": {
+    "mutation": "spentTokens + requestedTokens > budget changed to >=",
+    "command": "pnpm exec vitest run test/dispatch-core.test.ts",
+    "exit": 1,
+    "passed": 36,
+    "failed": 1,
+    "failure": "exact remaining budget incorrectly returned budget_exceeded"
+  },
+  "green": {
+    "mutationRestored": true,
+    "command": "pnpm exec vitest run test/dispatch-core.test.ts",
+    "exit": 0,
+    "passed": 37,
+    "failed": 0
+  },
+  "fullRepositoryVerification": {
+    "command": "CI=true pnpm --dir plugins/dsh verify",
+    "waitedForCompletion": true,
+    "versionLockExit": 0,
+    "buildExit": 0,
+    "vitestFilesPassed": 18,
+    "vitestTestsPassed": 293,
+    "semanticParityFailures": 3,
+    "assetByteFailures": 3,
+    "moduleLoadingGap": false,
+    "unresolved": "Current parity and vendored asset comparisons remain inconsistent; unrelated to this regression and unchanged."
+  },
+  "changedPaths": [
+    "plugins/dsh/test/dispatch-core.test.ts",
+    "reports/audits/repo-phase-20260922/exact-budget-boundary.md",
+    "reports/audits/repo-phase-20260922/exact-budget-boundary.json"
+  ]
+}

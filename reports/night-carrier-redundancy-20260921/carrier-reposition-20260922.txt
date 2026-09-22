@@ -1,0 +1,7 @@
+Carrier follow-up evidence — 2026-09-22
+
+The earlier authorized carrier task configured the fallback route as command-code/gpt-5.6-luna, effort high, after a provider probe. The primary night executor and morning handoff remain separate from fallback success.
+
+This audit preserved the original probe/configuration record locally, reviewed the canonical prompts, and retained the fallback task as active. Configuration and a successful provider probe do not prove a scheduled fallback run. The running Host catalog must be refreshed before the new route can be relied on; the audit did not restart active Host processes.
+
+Original record: .harness/backups/repo-phase-20260922/prior-report-residue/reports/night-carrier-redundancy-20260921/carrier-reposition-20260922.txt

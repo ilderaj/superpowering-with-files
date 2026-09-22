@@ -19,7 +19,10 @@ function base(check, viewport) {
 }
 
 function elementFor(measurement, check, result) {
-  const element = check.selector ? measurement.elements[check.selector] : null;
+  const key = check.selector && (check.textSelector || check.parentSelector)
+    ? JSON.stringify([check.selector, check.textSelector ?? null, check.parentSelector ?? null])
+    : check.selector;
+  const element = check.selector ? measurement.elements[key] : null;
   if (check.selector && (!element || element.missing)) result.message = `selector ${check.selector} was not found in the settled document`;
   return element;
 }
@@ -70,8 +73,10 @@ export function evaluateInvariants(checks, measurement, { pageErrors = [], viewp
     if (check.invariant === 'no-clip') {
       const textSupported = element.textRects?.supported;
       if (!textSupported) return finish(result, { scrollHeight: element.scrollHeight, clientHeight: element.clientHeight, textRects: null }, 'text client rect capability', false, 'text client rect observation is unavailable; result is unverified');
-      const passed = element.scrollHeight <= element.clientHeight + tolerance && element.scrollWidth <= element.clientWidth + tolerance && element.textRects.count > 0 && element.textRects.missingNodes === 0;
-      return finish(result, { scrollHeight: element.scrollHeight, clientHeight: element.clientHeight, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth, textRects: element.textRects }, { scrollHeight: '<= clientHeight', scrollWidth: '<= clientWidth', textRects: '> 0 for every non-empty text node', missingTextRects: 0 }, passed, passed ? '' : 'content dimensions or text client rects indicate clipping');
+      const fits = element.scrollHeight <= element.clientHeight + tolerance && element.scrollWidth <= element.clientWidth + tolerance;
+      const visibleOverflow = element.overflowX === 'visible' && element.overflowY === 'visible';
+      const passed = (fits || visibleOverflow) && element.textRects.count > 0 && element.textRects.missingNodes === 0;
+      return finish(result, { scrollHeight: element.scrollHeight, clientHeight: element.clientHeight, scrollWidth: element.scrollWidth, clientWidth: element.clientWidth, overflowX: element.overflowX, overflowY: element.overflowY, textRects: element.textRects }, { dimensions: 'scrollHeight <= clientHeight AND scrollWidth <= clientWidth OR overflowX === visible AND overflowY === visible', overflowX: element.overflowX, overflowY: element.overflowY, textRects: '> 0 for every non-empty text node', missingTextRects: 0 }, passed, passed ? '' : 'content dimensions or text client rects indicate clipping');
     }
     if (check.invariant === 'single-layer') {
       const declared = check.ownership ?? {};
