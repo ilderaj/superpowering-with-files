@@ -22,3 +22,4 @@ __pycache__/
 .test-fixtures/
 tests/installer/.artifacts/
 tests/hooks/.artifacts/
+tests/installer/.debug-*/
