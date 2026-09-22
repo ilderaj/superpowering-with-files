@@ -147,7 +147,7 @@ export async function adoptGlobalSkills({ homeDir, rootDir = ROOT, apply = false
       try {
         if (await exists(e.destination)) {
           // Preserve unexpected concurrent bytes rather than deleting them during recovery.
-          try { if (await treeDigest(e.destination) !== e.after) retainStaging = true; }
+          try { if (await treeDigest(e.destination) !== e.afterFull) retainStaging = true; }
           catch { retainStaging = true; }
           await renamePath(e.destination, path.join(lock, `${e.name}.failed`));
         }
