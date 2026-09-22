@@ -1,7 +1,7 @@
 {
   "owner": "SWF",
   "kind": "adaptation",
-  "reviewedOn": "2026-09-06",
+  "reviewedOn": "2026-09-22",
   "sources": [
     {
       "repository": "humanlayer/skills",
@@ -28,5 +28,19 @@
     "Replaced platform-specific delivery with capability-based delivery and readback.",
     "Kept optional method independent of Trio governance and renderer plugins."
   ],
-  "updates": "Manual review of pinned sources; no automatic upstream replacement."
+  "updates": "Manual review of pinned sources; no automatic upstream replacement.",
+  "latestComparison": {
+    "checkedOn": "2026-09-22",
+    "humanlayer": {
+      "revision": "ca7c8088db69e315a8b2deea43820270457f8f3c",
+      "sourceSha256": "434a2346cc95e313b0d367d477dda2e23ba642dd2181757415a09500664af100",
+      "delta": "Only adds disable-model-invocation: true; instruction body unchanged.",
+      "disposition": "Not applied: SWF intentionally permits context-driven capability selection; explicit-invocation-only metadata would reduce the adapted capability."
+    },
+    "anthropics": {
+      "revision": "a727be1c7bd6064419b6f60d71993a19198adc17",
+      "sourceSha256": "3bb95cd13852051c5a1862e8b94da1de7cfba7415d418ab0ca4d762527d1b9a5",
+      "delta": "No change to the referenced skill."
+    }
+  }
 }
