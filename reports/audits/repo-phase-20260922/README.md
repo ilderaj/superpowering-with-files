@@ -45,13 +45,13 @@
 
 覆盖 5 个 Project、17 个 label 和初始 53 个 issue；本次新增 SUP-54 后为 54 个。四个 SWF 交付流共享 Team，另一个 onboarding Project 为人类参考，不能当 agent 队列。共享且仍有真实工作的 Project 保留。
 
-SUP-25/LMP-03 已依据本地验收转 Done 并移除运行/排队标签。SUP-5/47/52/53 的关闭归档路径已更新到 description 和已有 status comment，逐项经过 workspace/Project/issue/comment guard 与写后回读。SUP-15 保留人类 review；WP-10/11 保留独立实证门槛。LMP-04/06 在依赖、整合和并发检查通过后才晋升后续队列。
+SUP-25/LMP-03 已依据本地验收转 Done 并移除运行/排队标签。SUP-5/47/52/53 的关闭归档路径已更新到 description 和已有 status comment，逐项经过 workspace/Project/issue/comment guard 与写后回读。SUP-15 保留人类 review；WP-10/11 保留独立实证门槛。LMP-04/06 已在依赖 Done、PR #199 主线整合和本地并发检查后晋升 Todo + agent-ready + nightly；执行时仍重新检查清洁根、锁与共享预算。当前四项可领取队列为 SUP-19/20/26/28。
 
 夜班主任务与晨间交接已有真实完成记录；fallback 新 provider 路由仍是 configured，当前 Host 需要重载 catalog 并观察真实成功执行。未把模型配置当作认证模型证据，也未因本次审计新建重复排班。
 
 ## Git 与恢复证据
 
-起点：24 个本地分支、40 个远端分支、18 个 worktree、13 个 stash；main/dev 与 origin 的共同基线为 `45f3fe81`。有效 dirty decision 与计划内代码已分别验收集成；旧 PWF PR125 被最新稳定版候选取代，PR179 的有效目录已选择性整合而未回退新 packaging。
+起点：23 个本地分支（创建审计分支后为 24）、39 个远端分支（另有 origin/HEAD 符号引用）、18 个 worktree、13 个 stash；main/dev 与 origin 的共同基线为 `45f3fe81`。有效 dirty decision 与计划内代码已分别验收集成；旧 PWF PR125 被最新稳定版候选取代，PR179 的有效目录已选择性整合而未回退新 packaging。
 
 [逐项 Git 判定](git-final-decisions.md) 明确区分 ancestry、内容等效、架构退役和备份。清理前分别保存全部 refs、13 个 stash 的全部历史父节点、17 个历史 worktree 的完整 tar。对 tar 做 SHA256、成员列表、当前 HEAD、patch 及逐文件字节回读后才删除工作副本。主工作区永久保留。
 
@@ -62,3 +62,13 @@ SUP-25/LMP-03 已依据本地验收转 Done 并移除运行/排队标签。SUP-5
 本报告提交时的验证和交付实况见 [verification.json](verification.json)。PR merge、四个 main/dev refs、workspace clean、全局 sync/adopt 与本地既有 Matt plugin 更新必须由最终回读确认，不能用“已提交候选”替代。最终交付 receipt 保存在本地审计备份，并回写 SUP-54 和最终用户答复。
 
 审计过程未接受子代理自报即完成：早期不隔离的实验、错误来源判断、弱化原有断言的候选均被拒绝或纠正；只有主执行复核与有效验证计入结果。
+
+## 交付回读与最终补查
+
+PR #199 已合并；首轮 local/origin main/dev 与保留的 cloud-dev 同为 `af5bd390ef2396a7f4b7bde716d8191acc34c42f`。13 个 stash、17 个历史 worktree、6 个审计辅助 worktree 已完整备份核验并移除；另外删除 36 个无效远端分支和 24 个本地旧/辅助分支。当前只保留主工作区及尚在交付的审计分支；交付分支随最终合并清理。
+
+全局 Trio sync/check/doctor 通过，optional skills 再次 dry-run 为 14 entries 零变化/零冲突（11 个现有技能和 3 个已退役条目）。已安装的 Matt 插件更新至 2.0.1，24 个技能/67 个文件与缓存逐字节一致；这不是新插件架构，也没有覆盖已发布的 GitHub release。manual IDE 目标仍无运行证明。
+
+最终全量 GitHub 查询补查了较早清单未覆盖的 12 张旧 issue。#170/143/141/140/135/131/126 对应退役架构，#129 由当前权限证据合同满足，#172 的原上游测试 4+5 项已通过，均据实关闭。现存 PR observer 的 #171/#174 补做 RED/GREEN：只核验活动账号，draft/未知 draft 状态停止于 human gate，24 项定向测试通过。#169 仍是真实上游 residual-lock 恢复缺口；SWF overlay 未采用该命令，保留开放且未伪造修复。
+
+完整 Linear 状态与队列见 [最终清单](linear-final-inventory.json)。本次 SUP-54 在交付全部完成后才关闭；终态以最终 receipt 为准。

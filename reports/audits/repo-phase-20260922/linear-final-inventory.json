@@ -1,0 +1,507 @@
+{
+  "scope": "Full team inventory, 54 issues, pagination complete; all 50 SWF-managed items checked against project/workstream identity and completed-state runtime labels. Four onboarding items retained for human reference.",
+  "issues": [
+    {
+      "id": "SUP-25",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-28",
+      "status": "Todo",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation",
+        "nightly",
+        "agent-ready"
+      ]
+    },
+    {
+      "id": "SUP-26",
+      "status": "Todo",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation",
+        "nightly",
+        "agent-ready"
+      ]
+    },
+    {
+      "id": "SUP-53",
+      "status": "Done",
+      "labels": [
+        "workstream:isolation",
+        "swf-managed",
+        "executor:codex-local"
+      ]
+    },
+    {
+      "id": "SUP-52",
+      "status": "Done",
+      "labels": [
+        "workstream:isolation",
+        "swf-managed",
+        "executor:codex-local"
+      ]
+    },
+    {
+      "id": "SUP-47",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-5",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-54",
+      "status": "In Progress",
+      "labels": [
+        "workstream:core",
+        "swf-managed",
+        "executor:codex-local",
+        "agent-running"
+      ]
+    },
+    {
+      "id": "SUP-35",
+      "status": "In Progress",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-46",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-45",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-42",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-51",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "Bug",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-50",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "Bug",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-49",
+      "status": "Done",
+      "labels": [
+        "workstream:decision",
+        "swf-managed",
+        "executor:codex-local",
+        "Bug"
+      ]
+    },
+    {
+      "id": "SUP-22",
+      "status": "In Progress",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-20",
+      "status": "Todo",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "nightly",
+        "agent-ready",
+        "workstream:render"
+      ]
+    },
+    {
+      "id": "SUP-19",
+      "status": "Todo",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "nightly",
+        "agent-ready",
+        "workstream:render"
+      ]
+    },
+    {
+      "id": "SUP-15",
+      "status": "In Review",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "ready-review",
+        "workstream:render"
+      ]
+    },
+    {
+      "id": "SUP-14",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-12",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-13",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-11",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-10",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-9",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-8",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-7",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-6",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:core"
+      ]
+    },
+    {
+      "id": "SUP-31",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-30",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-29",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-27",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-24",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-23",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-34",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-33",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-32",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:isolation"
+      ]
+    },
+    {
+      "id": "SUP-21",
+      "status": "Backlog",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:render"
+      ]
+    },
+    {
+      "id": "SUP-18",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:render"
+      ]
+    },
+    {
+      "id": "SUP-17",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:render"
+      ]
+    },
+    {
+      "id": "SUP-16",
+      "status": "In Progress",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:render"
+      ]
+    },
+    {
+      "id": "SUP-48",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "Bug",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-44",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-43",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-41",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-40",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-39",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-38",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-37",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-36",
+      "status": "Done",
+      "labels": [
+        "swf-managed",
+        "executor:codex-local",
+        "workstream:decision"
+      ]
+    },
+    {
+      "id": "SUP-1",
+      "status": "Todo",
+      "labels": [
+        "workstream:onboarding"
+      ]
+    },
+    {
+      "id": "SUP-3",
+      "status": "Todo",
+      "labels": [
+        "workstream:onboarding"
+      ]
+    },
+    {
+      "id": "SUP-4",
+      "status": "Todo",
+      "labels": [
+        "workstream:onboarding"
+      ]
+    },
+    {
+      "id": "SUP-2",
+      "status": "Todo",
+      "labels": [
+        "workstream:onboarding"
+      ]
+    }
+  ],
+  "readyQueue": [
+    "SUP-28",
+    "SUP-26",
+    "SUP-20",
+    "SUP-19"
+  ],
+  "humanReview": [
+    "SUP-15"
+  ],
+  "errors": []
+}

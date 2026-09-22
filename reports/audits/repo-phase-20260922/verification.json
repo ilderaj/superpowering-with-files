@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "verifiedOn": "2026-09-22",
-  "stage": "Candidate validated; remote integration and global adoption remain to be verified",
+  "stage": "PR199 merged and adopted; final PR-observer follow-up and closure records in progress",
   "checks": {
     "verify:all": {
       "exitCode": 0,
@@ -34,6 +34,16 @@
     "plugin:smoke": {
       "exitCode": 0,
       "targets": 4
+    },
+    "prObserverFollowUp": {
+      "tests": 24,
+      "redObserved": true,
+      "greenExitCode": 0
+    },
+    "upstream172": {
+      "versionParity": 4,
+      "pluginSurface": 5,
+      "exitCode": 0
     }
   },
   "localLogs": [
@@ -55,14 +65,31 @@
     }
   ],
   "delivery": {
-    "pr": "pending",
-    "merged": false,
-    "globalAdoption": "pending",
-    "workspaceFinalBranch": "pending"
+    "primaryPr": "https://github.com/ilderaj/superpowering-with-files/pull/199",
+    "merged": true,
+    "primaryMergeSha": "af5bd390ef2396a7f4b7bde716d8191acc34c42f",
+    "initialFourRefsAligned": true,
+    "cloudDevSynced": true,
+    "globalAdoption": "passed",
+    "globalSkillReadback": {
+      "entries": 14,
+      "changes": 0,
+      "conflicts": 0
+    },
+    "mattPlugin": {
+      "version": "2.0.1",
+      "skills": 24,
+      "comparedFiles": 67
+    },
+    "finalWorkspaceBranch": "pending final follow-up publication"
   },
   "limitations": [
     "No real model/provider equivalence or token-saving claim",
     "No new cross-IDE plugin architecture or skill classification implemented",
     "Nine historical tasks retained for remaining evidence or work"
-  ]
+  ],
+  "retainedGithubIssue": {
+    "number": 169,
+    "reason": "Upstream stale-lock recovery not implemented; command absent from adopted SWF overlay"
+  }
 }
