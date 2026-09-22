@@ -47,7 +47,7 @@ Each new Trio core module is registered deliberately in `tests/trio/import-bound
 
 Nothing must be migrated to keep working.
 
-1. **Additive only.** Every change is a new module, a new export, or a new test. No existing export changed shape or behaviour, so an existing installation keeps its current semantics.
+1. **Bounded behavior corrections.** J01 changes unknown-check handling and failure precedence; J02 adds isolated three-state shadow records; J03 requires scoped policy context for allowed. Legacy authorization records parse but no longer grant permission. These intentionally correct the new decision API; existing quick/tracked routing is unchanged.
 2. **Route vocabulary is unchanged.** `ROUTE_KINDS` is still `['quick','tracked']`; `deep-reasoning` still normalizes to `tracked`. The new `mode`/`intensity`/`topology` names are derived views over the enums that already existed.
 3. **Upstream compatibility is preserved.** The vendored upstream tree is untouched; the retired route vocabulary survives only there, which is upstream-owned content the SWF overlay already replaces.
 4. **Installation and projection are unaffected.** The new modules are runtime code under `harness/trio/core/`, not projected skill surfaces, so the six-entry governance inventory and its reference manifest are unchanged.
@@ -85,9 +85,15 @@ Both adapters record observed facts only. A failing command is a fact with an ex
 node scripts/evaluate-decision-shadow.mjs
 ```
 
-Deterministic replay over the 27 fixtures, written to `tests/fixtures/decision/observed-shadow-result.json`. Current result: 27 cases, **18** disagreements, 1 unevaluable.
+Deterministic replay over the 27 fixtures, written to `tests/fixtures/decision/observed-shadow-result.json`. Current contract replay: 27 cases, **15** comparable disagreements, 1 unevaluable (26 comparable). Null is not a disagreement; local legacy aliases are normalized.
 
-The count rose from 15 when the F23/F24 fix let the runtime express `plan` and `retry`, so in three more cases it now diverges from the recorded old behaviour: the four intake cases that recommend `plan` where the old path proceeded (+4), and `verify-infrastructure-failure`, which now recommends `retry` and agrees with its recorded old behaviour (−1). Disagreement with that column is not a quality measure in either direction.
+The old count18 included two vocabulary aliases and one unevaluable case. Disagreement with an author-recorded historical column is not a quality measure. T1 conditional agreement is26/26; coverage and correct-over-all are26/27. Independent model accuracy and efficiency remain unproven. See the current evaluation contract in `tests/evals/decision-control/contract.md`.
+
+### Repo-side checkpoint caller
+
+For this initiative use `node scripts/render-decision-checkpoint.mjs --input <file|-> --trace-dir <local-dir>` with `{checkpoint, observations}`. The wrapper renders through the existing Linear renderer, records shadow observations, and returns exactly the old stdout. Task/bundle/phase mismatch, a failed gate or an unwritable trace cannot change the valid rendered result. The caller neither publishes to Linear nor changes Trio or transitions. This is opt-in for the current initiative; global skills are not repointed.
+
+A real checkpoint of the 2026-09-22 remediation was invoked by the Chief: `reports/decision-resume-20260922/live-checkpoint-receipt.json` records byte identity and one persisted plan_ready observation. Answers came from the current operator; this establishes real checkpoint integration, not a Jev API call or savings.
 
 ### Gate activation
 
@@ -95,10 +101,10 @@ Every gate starts in `shadow` and stays there. `resolveGateActivations()` return
 
 ## Known limitations
 
-1. **The decision layer is inert.** No runtime path imports `decision.mjs`, `evidence.mjs` or `shadow.mjs`. Nothing in the live lifecycle calls a gate, so no existing checkpoint, transition or release path changed behaviour.
-2. **The shadow recorder is attached but not yet called by a checkpoint producer.** `recordCheckpointShadow()` accepts a checkpoint, evaluates the declared priority questions, records them, and returns the checkpoint object untouched — verified by tests that assert the rendered snapshot is byte-identical before and after attachment. What does not exist yet is a checkpoint *producer* that calls it, because the current checkpoint path is a CLI invoked with a hand-authored JSON file rather than a programmatic generator. The repository's one programmatic durable-state writer, `appendProgressEvent` (the `trio progress` command), is not that caller either: it records free-form progress text, not the runtime-state checkpoints the recorder compares against. Until such a caller exists, attachment is a library capability, not a live behaviour.
+1. **All gates remain shadow.** The repo-side opt-in checkpoint wrapper calls the recorder; no model output controls a lifecycle transition or release.
+2. **Integration is bounded.** One real task checkpoint has been observed. Global adoption and independent semantic backend calls have not occurred.
 3. **The replay is design evidence, not a model benchmark.** Fixture answers are operator inputs. The run proves the gates are internally consistent and total; it does not show how a live model would answer.
-4. **No live disagreement rate exists yet,** so no gate has measured benefit on the spec §18 list and none may be activated.
+4. **No representative live disagreement rate exists yet,** so no gate has measured benefit on the spec §18 list and none may be activated.
 5. **Trace storage is local and non-authoritative.** `.harness/decision-trace/` is gitignored, so a trace is intentionally not reviewable through git.
 6. **`execute` intensity is not widened to `low|medium`.** That would change `validateModelEffort` behaviour and needs its own slice and evidence.
 7. **The `host` and `external` decision backends are not implemented.** `external` throws by design; no network decision backend exists in this milestone.
@@ -112,7 +118,9 @@ Restated from spec §21 for the operator:
 * Commit, push, PR, merge, publish and deploy each follow current repository policy and explicit user authorization every time.
 * `release_state = allowed` is a policy output, never a schedule output. A model may judge readiness; only policy and recorded authorization may permit a release action.
 
-Readiness and permission are separated in the evaluator, not only in the prose. The `authorization` question is declared deterministic evidence, so an operator or model answer for it is refused outright, and the request payload may not record it either. Permission must arrive through the dedicated authorization channel as a record that names the authority and the evidence behind it — `{ value, authority, evidence }`, validated by `validateAuthorizationRecord` — and that channel is the only place the answer is tagged with `policy` provenance. `resolveReleaseState` never reads provenance out of an answer set, so a response-shaped object cannot manufacture permission. Readiness with no recorded policy decision is reported as an unanswered question, which leaves the release state `ready` with a `continue` recommendation. The module cannot authenticate the record itself; it refuses to infer the provenance instead.
+Readiness and permission are separated in the evaluator. Operator/model answers cannot set authorization. The dedicated legacy `{value, authority, evidence}` record remains readable but is not sufficient to grant permission. The caller supplies `policyContext: {decision, taskId, operation, evidenceRef}` and a separately selected `operation`; only an exact task/operation match may yield an `allowed` recommendation. Missing or mismatched policy yields `ready`, not permission. Bare `authorizationProvenance: 'policy'` is ignored. The Host must authenticate the source and enforce the permission again at the action boundary; this pure module cannot do that.
+
+The backend declaration must match the answer path. `host` and `external` currently reject execution. An operator cannot label answers as model/policy/deterministic provenance. All authorization and provenance hardening is local; no release action is executed.
 
 ## Verification
 
@@ -123,3 +131,7 @@ npm run verify:core
 ```
 
 Plus the targeted suites: `tests/trio/decision.test.mjs`, `tests/trio/vocabulary.test.mjs`, `tests/trio/dev-evidence.test.mjs`, `tests/trio/office-evidence.test.mjs`, `tests/trio/shadow-gate.test.mjs`.
+
+## Next phase
+
+The user's Jev-primary/cheap-cloud-fallback and day/night proposals are in [2026-09-22 plan](plans/2026-09-22-jev-default-and-day-night-plan.md). Default provider selection, fallback capability, independent T1.5 and scoped T2 intervention are next-phase work; the availability of a paid API account alone is not an integrated backend or evidence of benefit.

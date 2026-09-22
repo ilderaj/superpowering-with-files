@@ -104,8 +104,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": false,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": false
     },
     {
       "id": "intake-tracked-coding",
@@ -119,8 +118,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": true,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": true
     },
     {
       "id": "intake-plan-only",
@@ -134,8 +132,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": true,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": true
     },
     {
       "id": "intake-execute-existing-plan",
@@ -149,8 +146,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": false,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": false
     },
     {
       "id": "intake-office-artifact",
@@ -164,8 +160,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": true,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": true
     },
     {
       "id": "intake-high-uncertainty-architecture",
@@ -179,8 +174,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": true,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": true
     },
     {
       "id": "plan-ready",
@@ -194,8 +188,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": false,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": false
     },
     {
       "id": "plan-incomplete-requirements",
@@ -209,8 +202,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": true,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": true
     },
     {
       "id": "plan-unresolved-dependency",
@@ -224,8 +216,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": true,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": true
     },
     {
       "id": "plan-vague-acceptance",
@@ -239,8 +230,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": true,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": true
     },
     {
       "id": "verify-tests-pass-goal-not-satisfied",
@@ -254,8 +244,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "done",
-      "disagreement": true,
-      "oldBehaviourNormalized": "done"
+      "disagreement": true
     },
     {
       "id": "verify-goal-satisfied-sufficient-evidence",
@@ -269,8 +258,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "done",
-      "disagreement": false,
-      "oldBehaviourNormalized": "done"
+      "disagreement": false
     },
     {
       "id": "verify-local-repair-needed",
@@ -284,8 +272,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "repair",
-      "disagreement": false,
-      "oldBehaviourNormalized": "repair"
+      "disagreement": false
     },
     {
       "id": "verify-architecture-requires-replan",
@@ -299,8 +286,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "repair",
-      "disagreement": true,
-      "oldBehaviourNormalized": "repair"
+      "disagreement": true
     },
     {
       "id": "verify-infrastructure-failure",
@@ -314,8 +300,7 @@
       "failureClass": "infrastructure",
       "failureTransition": "retry",
       "oldBehaviour": "retry",
-      "disagreement": false,
-      "oldBehaviourNormalized": "retry"
+      "disagreement": false
     },
     {
       "id": "verify-deterministic-failure-blocks-done",
@@ -329,8 +314,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "done",
-      "disagreement": true,
-      "oldBehaviourNormalized": "done"
+      "disagreement": true
     },
     {
       "id": "night-clean-unattended-success",
@@ -344,8 +328,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "done",
-      "disagreement": false,
-      "oldBehaviourNormalized": "done"
+      "disagreement": false
     },
     {
       "id": "night-technical-provider-failure",
@@ -359,8 +342,7 @@
       "failureClass": "infrastructure",
       "failureTransition": "retry",
       "oldBehaviour": "retry",
-      "disagreement": false,
-      "oldBehaviourNormalized": "retry"
+      "disagreement": true
     },
     {
       "id": "night-blocker-requiring-human",
@@ -374,8 +356,7 @@
       "failureClass": "cognitive",
       "failureTransition": "think_escalation",
       "oldBehaviour": "waiting-human",
-      "disagreement": false,
-      "oldBehaviourNormalized": "escalate"
+      "disagreement": true
     },
     {
       "id": "night-unexpected-scope-expansion",
@@ -389,8 +370,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "done",
-      "disagreement": true,
-      "oldBehaviourNormalized": "done"
+      "disagreement": true
     },
     {
       "id": "night-verification-failure",
@@ -404,8 +384,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "done",
-      "disagreement": true,
-      "oldBehaviourNormalized": "done"
+      "disagreement": true
     },
     {
       "id": "office-deterministic-pass-semantic-fail",
@@ -419,8 +398,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "done",
-      "disagreement": true,
-      "oldBehaviourNormalized": "done"
+      "disagreement": true
     },
     {
       "id": "office-semantic-pass-deterministic-fail",
@@ -434,8 +412,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "done",
-      "disagreement": true,
-      "oldBehaviourNormalized": "done"
+      "disagreement": true
     },
     {
       "id": "action-destructive-write",
@@ -449,8 +426,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "policy_gate",
-      "disagreement": false,
-      "oldBehaviourNormalized": "escalate"
+      "disagreement": true
     },
     {
       "id": "release-ready-not-authorized",
@@ -464,8 +440,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": false,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": false
     },
     {
       "id": "release-ready-authorized",
@@ -479,8 +454,7 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": true,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": true
     },
     {
       "id": "release-not-ready",
@@ -494,13 +468,12 @@
       "failureClass": null,
       "failureTransition": null,
       "oldBehaviour": "continue",
-      "disagreement": false,
-      "oldBehaviourNormalized": "continue"
+      "disagreement": false
     }
   ],
   "summary": {
     "cases": 27,
-    "disagreements": 15,
+    "disagreements": 18,
     "unevaluable": 1,
     "byArea": {
       "action": 1,

@@ -840,7 +840,14 @@
       "evidence": "shadow fixture: readiness judged and authorization recorded"
     },
     "failure": null,
-    "oldBehaviour": "continue"
+    "oldBehaviour": "continue",
+    "policyContext": {
+      "decision": "allowed",
+      "taskId": "decision-shadow",
+      "operation": "commit",
+      "evidenceRef": "synthetic-policy:release-ready-authorized"
+    },
+    "operation": "commit"
   },
   {
     "id": "release-not-ready",

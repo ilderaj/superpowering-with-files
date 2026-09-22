@@ -242,7 +242,7 @@ test('resolveReleaseState never returns allowed from readiness or a bare value',
   // map, an operator declaration, nor a response-shaped answer set may grant it.
   assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'allowed' }), 'ready');
   assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'allowed' }, { authorizationProvenance: 'operator' }), 'ready');
-  assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'allowed' }, { authorizationProvenance: 'policy' }), 'allowed');
+  assert.equal(resolveReleaseState({ readiness: 'ready', authorization: 'allowed' }, { authorizationProvenance: 'policy' }), 'ready');
   assert.equal(resolveReleaseState([
     { id: 'readiness', value: 'ready', confidence: { level: 'medium', provenance: 'operator' } },
     { id: 'authorization', value: 'allowed', confidence: { level: 'medium', provenance: 'operator' } }
@@ -280,7 +280,7 @@ test('resolveComposites and transitionRecommendationOf dispatch per bundle', () 
   assert.deepEqual(resolveComposites('release', { readiness: 'ready', authorization: 'allowed' }), { release_state: 'ready' });
   assert.deepEqual(
     resolveComposites('release', { readiness: 'ready', authorization: 'allowed' }, { authorizationProvenance: 'policy' }),
-    { release_state: 'allowed' }
+    { release_state: 'ready' }
   );
 
   assert.equal(transitionRecommendationOf('verify', { next_state: 'repair' }), 'repair');
@@ -350,9 +350,9 @@ test('operator answers establish readiness but never release authorization', () 
 
   // Readiness without a recorded policy decision is unevaluable, never allowed.
   const unauthorised = evaluateDecision(releaseRequest(), { operator: { readiness: 'ready' } });
-  assert.equal(unauthorised.response, null);
-  assert.deepEqual(unauthorised.unanswered, ['authorization']);
-  assert.equal(unauthorised.transitionRecommendation, null);
+  assert.equal(unauthorised.composites.release_state, 'ready');
+  assert.deepEqual(unauthorised.unanswered, []);
+  assert.equal(unauthorised.transitionRecommendation, 'continue');
 
   // A malformed authorization record is refused rather than trusted.
   assert.throws(
@@ -374,7 +374,9 @@ test('operator answers establish readiness but never release authorization', () 
   // The dedicated authorization channel is the only source of allowed.
   const authorised = evaluateDecision(releaseRequest(), {
     operator: { readiness: 'ready' },
-    authorization: policyAuthorization('allowed')
+    authorization: policyAuthorization('allowed'),
+    policyContext: {decision:'allowed',taskId:'decision-test',operation:'commit',evidenceRef:'host:test'},
+    operation:'commit'
   });
   assert.equal(authorised.response.backend.id, 'operator');
   const authorization = authorised.response.answers.find((entry) => entry.id === 'authorization');
@@ -393,7 +395,9 @@ test('operator answers establish readiness but never release authorization', () 
   // The deterministic backend reads readiness from evidence and authorization
   // from the same dedicated channel.
   const deterministic = evaluateDecision(releaseRequest({ readiness: 'ready' }), {
-    authorization: policyAuthorization('allowed')
+    authorization: policyAuthorization('allowed'),
+    policyContext: {decision:'allowed',taskId:'decision-test',operation:'commit',evidenceRef:'host:test'},
+    operation:'commit'
   });
   assert.equal(deterministic.response.answers.find((entry) => entry.id === 'authorization').confidence.provenance, 'policy');
   assert.equal(deterministic.transitionRecommendation, 'done');
@@ -602,4 +606,27 @@ test('S1 known failure and broken scope dominate a separate infrastructure failu
 
 test('S1 an incomplete semantic verification still retries a measured timeout', () => {
   assert.equal(resolveNextState(verifyAnswers({verification_sufficient:false}), {deterministic:{checks:[{id:'tests',status:'unknown',reason:'timed-out'}]}}), 'retry');
+});
+
+
+test('release needs task and operation scoped policy context, not provenance strings', () => {
+  const answers = { readiness: 'ready', authorization: 'allowed' };
+  assert.equal(resolveReleaseState(answers, { authorizationProvenance: 'policy' }), 'ready');
+  const policyContext = { decision: 'allowed', taskId: 'decision-test', operation: 'commit', evidenceRef: 'host:explicit-user-scope' };
+  const context = { policyContext, taskId: 'decision-test', operation: 'commit' };
+  assert.equal(resolveReleaseState(answers, context), 'allowed');
+  for (const patch of [{taskId:'other'}, {operation:'push'}, {operation:undefined}]) {
+    assert.equal(resolveReleaseState(answers, {...context, ...patch}), 'ready');
+  }
+  assert.equal(resolveReleaseState(answers, {...context, policyContext:{...policyContext,evidenceRef:''}}), 'ready');
+  const result = evaluateDecision(requestFor('release'), {operator:{readiness:'ready'}, policyContext, operation:'commit'});
+  assert.equal(result.composites.release_state, 'allowed');
+  const denied = evaluateDecision(requestFor('release'), {operator:{readiness:'ready'}, policyContext, operation:'push'});
+  assert.equal(denied.composites.release_state, 'ready');
+});
+
+test('declared decision backend and answer provenance must match actual path', () => {
+  assert.throws(() => evaluateDecision(requestFor('verify'), {operator:verifyAnswers(),backendId:'deterministic'}), /backend.*path/i);
+  assert.throws(() => evaluateDecision(requestFor('verify'), {operator:verifyAnswers(),backendId:'host'}), /host.*adapter/i);
+  assert.throws(() => evaluateDecision(requestFor('verify'), {operator:verifyAnswers({goal_satisfied:{value:true,provenance:'policy'}})}), /provenance/i);
 });

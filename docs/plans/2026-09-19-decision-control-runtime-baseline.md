@@ -1,5 +1,7 @@
 # Decision-Control Runtime — Baseline Comparison and Gate Activation Decision
 
+> Current2026-09-22: J01–04 corrected contract replay.27 total,26 answered,26 correct; conditionalAgreement100%,coverage/correctOverAll96.3%; shadow15 disagreements among26 comparable. Risk: falseDone0/23 answered non-done cases (eligible24;coverage23/24); premature0/7. Old metrics below are historical, not live predictive evidence. WP07 now has a real operator checkpoint receipt, not a Jev inference receipt. WP10 remains incomplete until independent paired model/usage evidence exists.
+
 Companion to the [design spec](../superpowers/specs/2026-09-19-decision-control-runtime-design.md) and the [implementation plan](2026-09-19-decision-control-runtime-plan.md). This document is the reproducible comparison the activation decision rests on (plan WP-10).
 
 ## What was measured
@@ -22,7 +24,7 @@ It replays 27 fixture cases under the old behaviour and under the shadow gate an
 | action | 1 | risk class visible before a consequential step |
 | release | 3 | READY vs ALLOWED separation |
 
-Recorded result: **27 cases, 18 disagreements against the old behaviour, 1 unevaluable** (15 before the
+Recorded result: **27 cases, 15 disagreements against the old behaviour, 1 unevaluable** (15 before the
 F23/F24 fix; see the T1 accuracy addendum below for the three-case decomposition).
 
 ## What this evidence is not
@@ -133,3 +135,13 @@ distinct by design — one describes what the existing path did, the other what 
 the shared token `continue` means "proceed to the next phase" for intake/plan and "keep working" for
 verify, so the naming can be misread until a bundle-qualified vocabulary or an explicit translation table
 exists. Recorded as F27 in `findings.md`; nothing was changed for it here.
+
+
+## Historical report preservation (2026-09-22)
+
+The pre-J04 committed report bytes are preserved as `tests/fixtures/decision/historical-observed-accuracy-result.json` and `historical-observed-shadow-result.json`. Current reports are deterministic offline replays after J04/J03 policy-context support. Neither report is live model accuracy, production behavior, or an authorization receipt.
+
+
+## J04 scoped remediation metadata (2026-09-22)
+
+The accuracy runner owns an independent truth vocabulary, not derived from runtime enums; new nonempty truth labels are retained and classified as unsupported by the implementation rather than rejected. All answered outputs count in coverage; unsupported predictions cannot count as correct. Risk reports expose eligible, evaluated, numerator, denominator, and evaluated coverage separately. Premature execution eligibility includes intake cases requiring `plan` and plan bundle cases whose readiness truth is `replan`. Shadow `null` recommendations are unevaluable and never disagreements. These are offline contract metrics only; they do not establish live model accuracy or production behavior.

@@ -5,7 +5,10 @@ import { DECISION_BUNDLES, DECISION_OUTCOMES, appendDecisionTrace, evaluateDecis
 // transition: the existing path stays authoritative, and a gate that fails,
 // throws or cannot answer never blocks it.
 
-export const SHADOW_VERSION = 1;
+// 2 adds the three-state item status, the per-question identity and the explicit
+// agreement to the shadow trace; a version-1 record is still readable and its
+// missing agreement stays unknown.
+export const SHADOW_VERSION = 2;
 
 // The behaviour tokens the existing path may report. The set reuses the
 // decision outcome vocabulary for the outcomes it shares, so a comparison never
@@ -17,6 +20,11 @@ export const SHADOW_CURRENT_BEHAVIOURS = Object.freeze([
   'halt',
   'unknown'
 ]);
+
+// The three states one shadow observation can end in. A comparison that could
+// not be made is never counted as an agreement, and a comparison that could not
+// be attempted is never counted at all.
+export const SHADOW_ITEM_STATUSES = Object.freeze(['evaluated', 'unevaluable', 'incomparable']);
 
 // Priority shadow questions, in the order the spec fixes. Several are the same
 // underlying contract element observed by different consumers; that is stated
@@ -31,7 +39,7 @@ export const SHADOW_QUESTIONS = Object.freeze({
     kind: 'boolean',
     agreeWhen: Object.freeze({
       true: Object.freeze(['plan']),
-      false: Object.freeze(['proceed', 'execute'])
+      false: Object.freeze(['continue', 'proceed', 'execute'])
     })
   }),
   plan_ready: Object.freeze({
@@ -39,7 +47,7 @@ export const SHADOW_QUESTIONS = Object.freeze({
     target: 'plan_ready',
     kind: 'boolean',
     agreeWhen: Object.freeze({
-      true: Object.freeze(['proceed', 'execute']),
+      true: Object.freeze(['continue', 'proceed', 'execute']),
       false: Object.freeze(['replan', 'halt'])
     })
   }),
@@ -48,7 +56,7 @@ export const SHADOW_QUESTIONS = Object.freeze({
     target: 'plan_ready',
     kind: 'boolean',
     agreeWhen: Object.freeze({
-      true: Object.freeze(['proceed', 'execute']),
+      true: Object.freeze(['continue', 'proceed', 'execute']),
       false: Object.freeze(['replan', 'halt'])
     })
   }),
@@ -73,7 +81,7 @@ export const SHADOW_QUESTIONS = Object.freeze({
     kind: 'boolean',
     agreeWhen: Object.freeze({
       true: Object.freeze(['done']),
-      false: Object.freeze(['continue', 'repair', 'replan', 'escalate', 'halt'])
+      false: Object.freeze(['continue', 'repair', 'replan', 'retry', 'escalate', 'halt'])
     })
   })
 });
@@ -151,9 +159,32 @@ export function shadowAgreement(questionId, recommendation, currentBehaviour) {
   return agreeing.includes(currentBehaviour);
 }
 
-// Record one shadow decision. The existing path is never blocked: a gate that
-// throws, an unsatisfiable bundle or an unwritable trace all return a structured
-// result instead of propagating.
+// One shadow item plus its derived state. `unevaluable` is kept as a field for
+// callers written against the first shape; `status` is the declared three-state
+// vocabulary.
+function shadowItem(overrides = {}) {
+  const item = {
+    version: SHADOW_VERSION,
+    questionId: null,
+    bundle: null,
+    target: null,
+    currentBehaviour: 'unknown',
+    recommendation: null,
+    agreement: null,
+    status: 'unevaluable',
+    reason: null,
+    tracePath: null,
+    persisted: false,
+    traceFailed: false,
+    ...overrides
+  };
+  return Object.freeze({ ...item, unevaluable: item.status === 'unevaluable' });
+}
+
+// Record one shadow decision. The existing path is never blocked: a malformed
+// request, an unsatisfiable bundle or an unwritable trace all return a structured
+// item instead of propagating, and the item always ends in one of the three
+// declared statuses.
 export async function recordShadowDecision({
   questionId,
   request,
@@ -165,36 +196,34 @@ export async function recordShadowDecision({
   directory,
   timestamp = null
 } = {}) {
-  const declared = shadowQuestionOf(questionId);
-  assertText(currentBehaviour, 'Shadow current behaviour');
-  if (!SHADOW_CURRENT_BEHAVIOURS.includes(currentBehaviour)) {
-    throw new Error(`Unknown shadow current behaviour: ${String(currentBehaviour)}.`);
+  let declared;
+  try {
+    declared = shadowQuestionOf(questionId);
+  } catch {
+    return shadowItem({ questionId: typeof questionId === 'string' ? questionId : null, reason: 'unknown-question' });
   }
-  assertText(phase, 'Shadow phase');
+  const base = { questionId, bundle: declared.bundle, target: declared.target };
+  if (typeof currentBehaviour !== 'string' || !SHADOW_CURRENT_BEHAVIOURS.includes(currentBehaviour)) {
+    return shadowItem({ ...base, reason: 'invalid-current-behaviour' });
+  }
   if (eventualOutcome !== null && eventualOutcome !== undefined
     && ![...DECISION_OUTCOMES, 'unknown'].includes(eventualOutcome)) {
-    throw new Error(`Unknown shadow eventual outcome: ${String(eventualOutcome)}.`);
+    return shadowItem({ ...base, currentBehaviour, reason: 'invalid-eventual-outcome' });
   }
-  const result = {
-    version: SHADOW_VERSION,
-    questionId,
-    bundle: declared.bundle,
-    target: declared.target,
-    currentBehaviour,
-    recommendation: null,
-    agreement: null,
-    unevaluable: false,
-    reason: null,
-    tracePath: null
-  };
+  // A request naming another bundle would compare this question's answer against
+  // a contract it does not belong to, so it is refused before evaluation.
+  if (request && typeof request === 'object' && !Array.isArray(request)
+    && request.bundle !== undefined && request.bundle !== declared.bundle) {
+    return shadowItem({ ...base, currentBehaviour, reason: 'bundle-mismatch' });
+  }
   let evaluation;
   try {
     evaluation = evaluateDecision(request, { operator, failure });
-  } catch (error) {
-    return Object.freeze({ ...result, unevaluable: true, reason: 'gate-failed' });
+  } catch {
+    return shadowItem({ ...base, currentBehaviour, reason: 'gate-failed' });
   }
   if (!evaluation.response) {
-    return Object.freeze({ ...result, unevaluable: true, reason: 'unanswered' });
+    return shadowItem({ ...base, currentBehaviour, reason: 'unanswered' });
   }
   const recommendation = declared.target === 'next_state'
     ? evaluation.composites.next_state
@@ -205,14 +234,22 @@ export async function recordShadowDecision({
         : null));
   const answer = shadowAnswerOf(questionId, evaluation);
   const agreement = shadowAgreement(questionId, answer, currentBehaviour);
+  const status = agreement === true || agreement === false
+    ? 'evaluated'
+    : (answer === null || answer === undefined ? 'unevaluable' : 'incomparable');
+  const item = shadowItem({ ...base, currentBehaviour, recommendation, agreement, status });
   const record = {
+    schemaVersion: SHADOW_VERSION,
     ts: timestamp ?? new Date().toISOString(),
     taskId: request.subject.taskId,
     phase,
     bundle: declared.bundle,
     bundleVersion: DECISION_BUNDLES[declared.bundle].version,
     questionId: declared.target,
+    shadowQuestionId: questionId,
     answer,
+    agreement,
+    reason: null,
     confidenceProvenance: operator === null ? 'deterministic' : 'operator',
     backendId: operator === null ? 'deterministic' : 'operator',
     latencyMs: null,
@@ -222,14 +259,14 @@ export async function recordShadowDecision({
       : null,
     eventualOutcome: eventualOutcome ?? null
   };
-  let tracePath = null;
   try {
     const written = await appendDecisionTrace(record, { directory });
-    tracePath = written.path;
+    return Object.freeze({ ...item, tracePath: written.path, persisted: true });
   } catch {
-    return Object.freeze({ ...result, recommendation, agreement, reason: 'trace-unwritable' });
+    // The evaluation still stands; only its persistence failed, and the item
+    // says so instead of pretending the trace was written.
+    return Object.freeze({ ...item, reason: 'trace-unwritable', traceFailed: true });
   }
-  return Object.freeze({ ...result, recommendation, agreement, tracePath });
 }
 
 // Morning handoff reads the disagreement count without judging any single gate.
@@ -337,9 +374,62 @@ export function checkpointBehaviourOf(state) {
   return CHECKPOINT_BEHAVIOURS[state] ?? 'unknown';
 }
 
+// One checkpoint observation, isolated from the others. A malformed entry, an
+// unknown question or a request that belongs to another bundle or task is turned
+// into a structured failure here, so it can never abort the checkpoint or reach
+// another task's trace.
+async function recordCheckpointObservation({
+  observation,
+  checkpoint,
+  currentBehaviour,
+  phase,
+  eventualOutcome,
+  directory,
+  timestamp,
+  containerInvalid = false
+}) {
+  if (containerInvalid) return shadowItem({ currentBehaviour, reason: 'invalid-observations' });
+  if (!observation || typeof observation !== 'object' || Array.isArray(observation)) {
+    return shadowItem({ currentBehaviour, reason: 'invalid-observation' });
+  }
+  const questionId = observation.questionId;
+  if (typeof questionId !== 'string' || !Object.hasOwn(SHADOW_QUESTIONS, questionId)) {
+    return shadowItem({
+      questionId: typeof questionId === 'string' ? questionId : null,
+      currentBehaviour,
+      reason: 'unknown-question'
+    });
+  }
+  const declared = SHADOW_QUESTIONS[questionId];
+  const base = { questionId, bundle: declared.bundle, target: declared.target, currentBehaviour };
+  const request = observation.request;
+  if (!request || typeof request !== 'object' || Array.isArray(request) || request.bundle === undefined) {
+    return shadowItem({ ...base, reason: 'invalid-request' });
+  }
+  if (request.bundle !== declared.bundle) {
+    return shadowItem({ ...base, reason: 'bundle-mismatch' });
+  }
+  const taskId = request.subject && typeof request.subject === 'object' ? request.subject.taskId : null;
+  if (taskId !== checkpoint.taskId) {
+    return shadowItem({ ...base, reason: 'task-mismatch' });
+  }
+  return recordShadowDecision({
+    questionId,
+    request,
+    operator: observation.operator ?? null,
+    failure: observation.failure ?? null,
+    currentBehaviour,
+    phase,
+    eventualOutcome,
+    directory,
+    timestamp
+  });
+}
+
 // Attach shadow recording to one checkpoint. `observations` declares which
 // priority questions to evaluate; everything else about the checkpoint is left
-// alone. A gate that fails or cannot be recorded never blocks the checkpoint.
+// alone. An invalid checkpoint keeps its original failure semantics; on a valid
+// checkpoint a bad observation is recorded and the remaining ones still run.
 export async function recordCheckpointShadow({
   checkpoint,
   observations = [],
@@ -349,43 +439,40 @@ export async function recordCheckpointShadow({
 } = {}) {
   assertPlainObject(checkpoint, 'Checkpoint');
   assertText(checkpoint.taskId, 'Checkpoint taskId');
-  if (!Array.isArray(observations)) {
-    throw new Error('Checkpoint shadow observations must be an array.');
-  }
   const currentBehaviour = checkpointBehaviourOf(checkpoint.state);
   const phase = typeof checkpoint.phase === 'string' && checkpoint.phase.trim() !== ''
     ? checkpoint.phase
     : 'checkpoint';
+  const containerInvalid = !Array.isArray(observations);
+  const declared = containerInvalid ? [undefined] : observations;
   const results = [];
-  for (const observation of observations) {
-    assertPlainObject(observation, 'Checkpoint shadow observation');
-    results.push(await recordShadowDecision({
-      questionId: observation.questionId,
-      request: observation.request,
-      operator: observation.operator ?? null,
-      failure: observation.failure ?? null,
+  for (const observation of declared) {
+    results.push(await recordCheckpointObservation({
+      observation,
+      checkpoint,
       currentBehaviour,
       phase,
       eventualOutcome,
       directory,
-      timestamp
+      timestamp,
+      containerInvalid
     }));
   }
-  const evaluated = results.filter((entry) => !entry.unevaluable);
   return Object.freeze({
     version: SHADOW_VERSION,
     checkpoint,
     currentBehaviour,
     phase,
     results: Object.freeze(results),
-    summary: summarizeShadow(evaluated.map((entry) => ({
-      questionId: entry.questionId,
-      override: entry.agreement === false ? { provenance: 'current-behaviour' } : null
-    })))
+    summary: summarizeShadow(results)
   });
 }
 
-// Morning handoff reads the disagreement count without judging any single gate.
+// Morning handoff reads the counts without judging any single gate. Only an
+// explicit `agreement` of true or false is an agreement or a disagreement: an
+// item that could not answer is `unevaluable`, an item whose answer could not be
+// compared is `incomparable`, and a record written before the agreement field
+// existed stays unknown instead of being read as implicit agreement.
 export function summarizeShadow(records = []) {
   if (!Array.isArray(records)) throw new Error('Shadow records must be an array.');
   const summary = {
@@ -394,22 +481,25 @@ export function summarizeShadow(records = []) {
     agreements: 0,
     disagreements: 0,
     unevaluable: 0,
+    incomparable: 0,
+    traceFailures: 0,
     byQuestion: {}
   };
   for (const record of records) {
     assertPlainObject(record, 'Shadow record');
-    const questionId = record.questionId;
-    assertText(questionId, 'Shadow record questionId');
+    const identity = record.shadowQuestionId ?? record.questionId;
+    const questionId = typeof identity === 'string' && identity.trim() !== '' ? identity : '(unknown)';
     const bucket = summary.byQuestion[questionId]
-      ?? (summary.byQuestion[questionId] = { agreements: 0, disagreements: 0 });
+      ?? (summary.byQuestion[questionId] = { agreements: 0, disagreements: 0, unevaluable: 0, incomparable: 0 });
     summary.total += 1;
-    if (record.override && record.override.provenance === 'current-behaviour') {
-      summary.disagreements += 1;
-      bucket.disagreements += 1;
-    } else {
-      summary.agreements += 1;
-      bucket.agreements += 1;
-    }
+    let key;
+    if (record.agreement === true) key = 'agreements';
+    else if (record.agreement === false) key = 'disagreements';
+    else if (record.status === 'incomparable') key = 'incomparable';
+    else key = 'unevaluable';
+    summary[key] += 1;
+    bucket[key] += 1;
+    if (record.traceFailed === true || record.reason === 'trace-unwritable') summary.traceFailures += 1;
   }
   return Object.freeze(summary);
 }
