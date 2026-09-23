@@ -72,6 +72,17 @@ async function assertMeasurementContract(markdown) {
     toleranceRule: /abs\(measured - expected\)\s*<=\s*tolerance/i,
     noClipObservation: /for `no-clip`[\s\S]*range[\s\S]*unverified/i,
     failureContext: /unit[\s\S]*tolerance[\s\S]*observer[\s\S]*viewport/i,
+    cspStringIife: /unsafe-eval[\s\S]{0,240}string IIFE/i,
+    bundlerNameInjection: /__name[\s\S]{0,240}serializ/i,
+    brandedChromeExtension: /--load-extension[\s\S]{0,240}chromium/i,
+    fontsImagesSettle: /fonts?[\s\S]{0,160}images?[\s\S]{0,160}settle/i,
+    probeDerivedNotHardcoded: /probe[\s\S]{0,240}rather than hardcod/i,
+    perFixtureIsolation: /per-fixture[\s\S]{0,240}named failure/i,
+    heavySuiteOrdering: /heavy[\s\S]{0,200}last[\s\S]{0,320}skip/i,
+    missingArtifactActionable: /missing artifact[\s\S]{0,200}actionable/i,
+    noPixelBaseline: /no pixel baseline/i,
+    perceptualLayerOnlyWhenNeeded: /perceptual layer[\s\S]{0,160}only when/i,
+    suitesOrderedByCost: /suites? (?:are )?ordered by cost/i,
   })) assert.match(markdown, pattern, decision);
 }
 
