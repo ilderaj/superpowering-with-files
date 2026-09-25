@@ -1,89 +1,38 @@
 # Task Plan: [Brief Description]
 
-Use this file as the durable roadmap for the task. Create it before complex work and keep it current as phases change.
-
 ## Goal
+[Concrete end state and success criteria.]
 
-State the intended end result in one clear sentence.
+## Current State
+Status: active
+Archive Eligible: no
+Close Reason:
+Reconcile: open
 
-[One sentence describing the end state]
-
-## Next Step
-
-Record the single action that should happen next. Update it whenever the active phase or immediate action changes.
-
-[The single next action. Update whenever phase status changes.]
+## Scope and Authorization
+[Owned paths, non-goals, constraints, existing authorization, and any unresolved gate.]
 
 ## Current Phase
-
-Name the phase currently being worked on.
-
 Phase 1
 
 ## Phases
-
-Break the task into three to seven verifiable phases. Use only `pending`, `in_progress`, or `complete` for each status and update the value when work advances.
-
-### Phase 1: Requirements & Discovery
-
-- [ ] Understand user intent
-- [ ] Identify constraints and requirements
-- [ ] Document findings in findings.md
+<!-- Use only phases needed by this task; each has a concrete outcome. -->
+### Phase 1: [Outcome]
+- [ ] [Verifiable requirement]
 - **Status:** in_progress
 
-### Phase 2: Planning & Structure
+## Decisions and Dependencies
+[Material decisions, rationale, dependencies, and remaining unknowns.]
 
-- [ ] Define technical approach
-- [ ] Create project structure if needed
-- [ ] Document decisions with rationale
-- **Status:** pending
+## Verification
+[Risk-relevant commands or inspection, success criteria, and evidence location. Reuse unchanged applicable evidence.]
 
-### Phase 3: Implementation
+## Execution Boundary
+[Direct or delegated primary execution. If delegation is selected, bind exact slice, topology, frozen paths, authority hashes, stop conditions, and acceptance owner before dispatch.]
 
-- [ ] Execute the plan step by step
-- [ ] Write code to files before executing
-- [ ] Test incrementally
-- **Status:** pending
+## Recovery Notes
+[Important failed approaches, blockers, and next action.]
 
-### Phase 4: Testing & Verification
-
-- [ ] Verify all requirements met
-- [ ] Document test results in progress.md
-- [ ] Fix any issues found
-- **Status:** pending
-
-### Phase 5: Delivery
-
-- [ ] Review all output files
-- [ ] Ensure deliverables are complete
-- [ ] Deliver to user
-- **Status:** pending
-
-## Key Questions
-
-Record important questions and replace them with answers as they are resolved.
-
-1. [Question to answer]
-2. [Question to answer]
-
-## Decisions Made
-
-Record significant choices and the reason for each one.
-
-| Decision | Rationale |
-|----------|-----------|
-|          |           |
-
-## Errors Encountered
-
-Record each distinct error, the attempt number, and the resolution. Change the approach before retrying a failed action.
-
-| Error | Attempt | Resolution |
-|-------|---------|------------|
-|       | 1       |            |
-
-## Notes
-
-- Update phase status as work progresses: `pending` to `in_progress` to `complete`.
-- Re-read the goal and next step before major decisions.
-- Log errors promptly so failed approaches are not repeated.
+<!-- Update at material decisions/milestones. For dated blocks use tool-derived
+## Plan Record: YYYY-MM-DD HH:mm:ss UTC+8
+Append chronologically; no guessed timestamps. -->
