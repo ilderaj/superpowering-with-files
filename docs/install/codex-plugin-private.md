@@ -34,16 +34,21 @@ from pathlib import Path
 
 archive, market = map(Path, sys.argv[1:])
 expected = 'bc7cbe92742ea02777323956f9c84a52f038bc0a8021a7c6368d0a9cb08e581a'
-assert archive.is_absolute() and market.is_absolute()
-assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected
-assert not market.exists(), 'Choose a new marketplace path'
+if not archive.is_absolute() or not market.is_absolute():
+    raise SystemExit('Archive and marketplace paths must be absolute')
+if hashlib.sha256(archive.read_bytes()).hexdigest() != expected:
+    raise SystemExit('Archive digest mismatch')
+if market.exists():
+    raise SystemExit('Choose a new marketplace path')
 source = market / 'plugins/harness-codex-plugin'
-source.mkdir(parents=True)
 with tarfile.open(archive) as bundle:
     for member in bundle.getmembers():
         target = (source / member.name).resolve()
-        assert member.isfile() or member.isdir(), 'Unexpected archive entry'
-        assert target == source.resolve() or source.resolve() in target.parents, 'Unsafe archive path'
+        if not member.isfile() and not member.isdir():
+            raise SystemExit('Unexpected archive entry')
+        if target != source.resolve() and source.resolve() not in target.parents:
+            raise SystemExit('Unsafe archive path')
+    source.mkdir(parents=True)
     bundle.extractall(source)
 manifest = market / '.agents/plugins/marketplace.json'
 manifest.parent.mkdir(parents=True)
@@ -70,7 +75,21 @@ The project opt-in command appends a managed policy block to `AGENTS.md` while p
 
 ## Upgrade, rollback and removal
 
-For an existing installation, record its identity, source path, version, project policy and file hashes with `codex plugin list --json`. Back up the source and any managed legacy-skill migration receipts. Stage and verify the new archive in an isolated directory, compare it with the managed source and resolve user modifications before replacement. Keep the **same plugin identity** and refresh it with `codex plugin add <existing-plugin-id> --json`; verify the installed version and discovery from a new task. Do not edit the Codex plugin cache in place. On failure, restore the exact source backup, refresh the same identity and recheck discovery. `MIGRATION.md` describes receipt-based rollback of retired global skills; plugin rollback does not perform that restoration automatically.
+For an existing installation, use `codex plugin list --json` to identify its plugin ID, version and local source path. That command does not record project policy or file hashes. Set these paths to the actual source and project, and choose a new backup directory:
+
+```bash
+SWF_SOURCE='/absolute/path/to/existing-marketplace/plugins/harness-codex-plugin'
+SWF_PROJECT='/absolute/path/to/existing-project'
+SWF_BACKUP='/absolute/path/to/new-upgrade-backup'
+mkdir "$SWF_BACKUP"
+codex plugin list --json > "$SWF_BACKUP/plugin-list.json"
+node "$SWF_SOURCE/scripts/project.mjs" status "$SWF_PROJECT" > "$SWF_BACKUP/project-status.json"
+cp -p "$SWF_PROJECT/AGENTS.md" "$SWF_BACKUP/AGENTS.md.before"
+cp -a "$SWF_SOURCE" "$SWF_BACKUP/source"
+find "$SWF_SOURCE" -type f -exec shasum -a 256 {} + > "$SWF_BACKUP/source-sha256.txt"
+```
+
+If the project has no `AGENTS.md`, record that fact instead of running `cp`. Also retain any managed legacy-skill migration receipts. Stage and verify the new archive in an isolated directory, compare it with the managed source and resolve user modifications before replacement. Keep the **same plugin identity** and refresh it with `codex plugin add <existing-plugin-id> --json`; verify the installed version and discovery from a new task. Do not edit the Codex plugin cache in place. On failure, restore the exact source backup, refresh the same identity and recheck discovery. `MIGRATION.md` describes receipt-based rollback of retired global skills; plugin rollback does not perform that restoration automatically.
 
 To stop using the plugin in a project, run `node <plugin-root>/scripts/project.mjs disable <project-directory>`. Then remove the actual plugin identity with `codex plugin remove <plugin-id> --json`. Remove its marketplace only if nothing else uses it. Uninstalling does not delete project plans, output, credentials or preserved backups.
 
