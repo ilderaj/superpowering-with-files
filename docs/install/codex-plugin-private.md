@@ -10,9 +10,10 @@ It contains 42 ordinary skill entries, an explicit optional Pen entry, their bun
 
 ## Fresh installation
 
-Use a current Codex CLI, Node.js and Python 3. Sign in to GitHub with access to the private repository. Download and verify the exact archive:
+Use a current Codex CLI, Node.js and Python 3. Sign in to GitHub with access to the private repository. Run both blocks below in the same shell so their variables remain set. Download and verify the exact archive:
 
 ```bash
+set -euo pipefail
 SWF_VERSION='v2.0.1+codex.20260925230000'
 SWF_DOWNLOAD="$(mktemp -d)"
 gh release download "$SWF_VERSION" \
@@ -23,11 +24,23 @@ SWF_ARCHIVE="$SWF_DOWNLOAD/harness-codex-plugin-2.0.1+codex.20260925230000.tgz"
 shasum -a 256 "$SWF_ARCHIVE"
 ```
 
-Compare the output with the pinned SHA-256 above. Choose a **new absolute** local marketplace path and the project to enable. If `codex plugin list --json` already shows SWF, use the upgrade process below instead of creating a duplicate identity.
+Compare the output with the pinned SHA-256 above. Choose a **new absolute** local marketplace path and the project to enable. The preflight below checks both installed plugins and uninstalled plugins in configured marketplaces. If it finds this plugin or the reserved marketplace name, inspect that existing marketplace and use the upgrade process below or remove the unused marketplace before a fresh install.
 
 ```bash
 SWF_MARKET='/absolute/path/to/new-swf-marketplace'
 SWF_PROJECT='/absolute/path/to/existing-project'
+codex plugin marketplace list --json > "$SWF_DOWNLOAD/marketplaces.json"
+codex plugin list --available --json > "$SWF_DOWNLOAD/plugins.json"
+python3 - "$SWF_DOWNLOAD/marketplaces.json" "$SWF_DOWNLOAD/plugins.json" <<'PY'
+import json, sys
+from pathlib import Path
+
+marketplaces, plugins = (json.loads(Path(p).read_text()) for p in sys.argv[1:])
+if any(m['name'] == 'swf-harness-private' for m in marketplaces['marketplaces']):
+    raise SystemExit('Marketplace swf-harness-private already exists; inspect or remove it before a fresh install')
+if any(p['name'] == 'harness-codex-plugin' for state in ('installed', 'available') for p in plugins[state]):
+    raise SystemExit('SWF plugin already installed or available; use its existing marketplace or upgrade it')
+PY
 python3 - "$SWF_ARCHIVE" "$SWF_MARKET" <<'PY'
 import hashlib, json, sys, tarfile
 from pathlib import Path
