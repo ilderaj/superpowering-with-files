@@ -1,9 +1,9 @@
 # Private SWF Harness Codex plugin: operator guide
 
-The privately shared `v2.0.1+codex.20260925230000` package is a local-evaluation build. Access to the [private release](https://github.com/ilderaj/swf-harness-codex-plugin/releases/tag/v2.0.1%2Bcodex.20260925230000) requires authorization. The release archive's SHA-256 is:
+The privately shared `v2.1.0+codex.20260926` package is a local-evaluation build. Access to the [private release](https://github.com/ilderaj/swf-harness-codex-plugin/releases/tag/v2.1.0%2Bcodex.20260926) requires authorization. The release archive's SHA-256 is:
 
 ```text
-bc7cbe92742ea02777323956f9c84a52f038bc0a8021a7c6368d0a9cb08e581a
+72bbf7d0cd00855b75baca8c417b5d715453a3dfe366ad741a2abce65c087e43
 ```
 
 It contains 42 ordinary skill entries, an explicit optional Pen entry, their bundled references/resources and local helper programs. It does **not** bundle MCP connections, credentials, Codex login, Host-owned skills, external runtimes, or project task data. Read `DEPENDENCIES.md`, `MIGRATION.md`, and `LICENSES.json` in the installed package before relying on an optional capability or sharing the archive. Public redistribution has not been verified.
@@ -14,13 +14,13 @@ Use a current Codex CLI, Node.js and Python 3. Sign in to GitHub with access to 
 
 ```bash
 set -euo pipefail
-SWF_VERSION='v2.0.1+codex.20260925230000'
+SWF_VERSION='v2.1.0+codex.20260926'
 SWF_DOWNLOAD="$(mktemp -d)"
 gh release download "$SWF_VERSION" \
   --repo ilderaj/swf-harness-codex-plugin \
-  --pattern 'harness-codex-plugin-2.0.1+codex.20260925230000.tgz' \
+  --pattern 'harness-codex-plugin-2.1.0+codex.20260926.tgz' \
   --dir "$SWF_DOWNLOAD"
-SWF_ARCHIVE="$SWF_DOWNLOAD/harness-codex-plugin-2.0.1+codex.20260925230000.tgz"
+SWF_ARCHIVE="$SWF_DOWNLOAD/harness-codex-plugin-2.1.0+codex.20260926.tgz"
 shasum -a 256 "$SWF_ARCHIVE"
 ```
 
@@ -46,7 +46,7 @@ import hashlib, json, sys, tarfile
 from pathlib import Path
 
 archive, market = map(Path, sys.argv[1:])
-expected = 'bc7cbe92742ea02777323956f9c84a52f038bc0a8021a7c6368d0a9cb08e581a'
+expected = '72bbf7d0cd00855b75baca8c417b5d715453a3dfe366ad741a2abce65c087e43'
 if not archive.is_absolute() or not market.is_absolute():
     raise SystemExit('Archive and marketplace paths must be absolute')
 if hashlib.sha256(archive.read_bytes()).hexdigest() != expected:
@@ -85,6 +85,25 @@ The marketplace path must remain available for later upgrades. Open a **new Code
 In an enabled project, describe the work normally. Codex can select a relevant installed skill from its description and the project's managed `AGENTS.md` block; automatic selection is contextual, not a deterministic promise. For important work, request an exact skill such as `$harness-codex-plugin:trio`, `$harness-codex-plugin:simple-english`, or `$harness-codex-plugin:code-review`. There is no runtime command to “call the whole plugin.” Quick work remains direct; tracked work uses the three project planning files.
 
 The project opt-in command appends a managed policy block to `AGENTS.md` while preserving existing content. It refuses a changed managed block rather than overwriting it. The plugin's own root README or an `agents/openai.yaml` resource is not automatically a project policy or an installed Host agent. Connectors, MCP servers and their authorization stay in the Host; scripts bundled with individual skills run only when a task and its dependencies call for them.
+
+## Migrating an existing global policy
+
+`v2.1.0` adds `scripts/policy-migration.mjs`. Where a machine still carries the full legacy SWF Trio block in `~/.codex/AGENTS.md`, replace it instead of appending a second governance block:
+
+```bash
+SWF_RECEIPT_PARENT='/absolute/path/to/new-receipt-parent'
+SWF_RECEIPT="$SWF_RECEIPT_PARENT/receipt"
+mkdir -p "$SWF_RECEIPT_PARENT"
+node "$SWF_SOURCE/scripts/policy-migration.mjs" plan \
+  --global "$HOME/.codex/AGENTS.md" --receipt-dir "$SWF_RECEIPT" \
+  > "$SWF_RECEIPT_PARENT/plan.json"
+node "$SWF_SOURCE/scripts/policy-migration.mjs" apply --plan "$SWF_RECEIPT_PARENT/plan.json"
+node "$SWF_SOURCE/scripts/policy-migration.mjs" status --receipt "$SWF_RECEIPT/receipt.json"
+```
+
+The receipt directory must not already exist when `plan` runs. The tool stores an original-byte backup next to the receipt, replaces only the exact legacy block, and preserves surrounding user text. Undo with `rollback --receipt "$SWF_RECEIPT/receipt.json"`. It refuses unknown or mixed policy text, symlinks, hardlinks, invalid UTF-8, stale plans, altered backups, and edited rollback targets, so pause other writers while applying. A repository-owned project `AGENTS.md` is not migrated: `scripts/project.mjs status <dir>` reports `owner: repository`, and `enable` refuses an exact legacy block.
+
+Verified on 2026-09-26: this replaced the 1,096-byte legacy global block (sha256 `7bb533761991fb600a0f09b8c887d2b4bbc720ab596fe2907cf9f0636a540d5d`) with the 298-byte short entry (`cdec078e0daf94a4ec96af773ab18c90d122fa18288e53c603fef680da521f47`) and reduced model-visible `prompt-input` by 815 characters with no duplicated Trio text.
 
 ## Upgrade, rollback and removal
 
