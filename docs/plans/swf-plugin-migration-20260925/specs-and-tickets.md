@@ -27,7 +27,6 @@
 ## 顺序与停止条件
 
 PM-01 可立即执行；PM-02 的公开/私有文件边界按文件审查，不把目前脏工作区整批提交。PM-03 和 PM-04 可以在隔离分支实现与测试，但不在 PM-05 通过前切换 Host。PM-06 是实际运行切换；关键验收失败或 PR 人工门未满足时停止在候选状态，继续修复独立工作。已有文档 PR #203 独立等待其非作者审阅，不作为绕过 PM-05 的理由。
-+
 ## Linear 绑定
 
 父票：[SUP-80](https://linear.app/ilderaj/issue/SUP-80/swf-codex-插件完整迁移与验收)。以下子票已在 SWF Core Project 创建并逐一读回；本地绑定见 `reports/linear/swf-plugin-repository-release-20260925/linear.json`。
@@ -41,3 +40,5 @@ PM-01 可立即执行；PM-02 的公开/私有文件边界按文件审查，不�
 | PM-05 | [SUP-85](https://linear.app/ilderaj/issue/SUP-85/pm-05-容器与行为验收) |
 | PM-06 | [SUP-86](https://linear.app/ilderaj/issue/SUP-86/pm-06-本机切换与新版本) |
 | PM-07 | [SUP-87](https://linear.app/ilderaj/issue/SUP-87/pm-07-归档和维护说明) |
+
+2026-09-26 状态：PM-01 基线和 PM-02 双 SHA 源码重建已完成；PM-03 的项目投影退役候选在草稿 PR #207，旧安装功能留在显式 `legacy-projection` 兼容入口。PR #206 是其公开源码前置。以上均未切换 Host；PM-04 策略迁移和 PM-05 验收仍是运行切换门槛。

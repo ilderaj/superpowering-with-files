@@ -16,7 +16,11 @@ function harnessCommand(root, homeDir, ...args) {
   const options =
     maybeOptions && typeof maybeOptions === 'object' && !Array.isArray(maybeOptions) ? args.pop() : {};
 
-  return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...args], {
+  // These replays intentionally exercise the retained legacy projection in a fixture.
+  const commandArgs = ['install', 'sync', 'doctor', 'verify'].includes(args[0])
+    ? ['legacy-projection', ...args]
+    : args;
+  return execFileAsync('node', [path.join(root, 'harness/installer/commands/harness.mjs'), ...commandArgs], {
     cwd: options.cwd ?? root,
     env: {
       ...process.env,

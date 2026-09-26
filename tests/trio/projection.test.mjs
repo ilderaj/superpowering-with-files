@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import os from 'node:os';
@@ -36,7 +36,6 @@ const RUNTIME_TARGET_CONTRACT = JSON.parse(await readFile(
   path.join(REPO_ROOT, 'harness/trio/runtime-targets.json'),
   'utf8'
 ));
-const MATERIALIZED_TRIO_OUTPUTS = Object.freeze(PROJECTION_SURFACES.map((surface) => [surface.source, surface.id === 'entry' ? 'AGENTS.md' : `.agents/skills/${surface.relativePath}`]));
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex');
@@ -688,22 +687,16 @@ test('static target contract and entry policy expose the approved V2 surfaces', 
   assertEntryPolicyContract(entryPolicy);
 });
 
-test('materialized Trio entry and capability outputs match their authoritative source bytes', async () => {
-  const mismatches = [];
-  for (const [sourcePath, outputPath] of MATERIALIZED_TRIO_OUTPUTS) {
-    try {
-      const [source, output] = await Promise.all([
-        readFile(path.join(REPO_ROOT, sourcePath)),
-        readFile(path.join(REPO_ROOT, outputPath))
-      ]);
-      if (!output.equals(source)) {
-        mismatches.push(`${outputPath} must exactly match ${sourcePath}`);
-      }
-    } catch (error) {
-      mismatches.push(`${outputPath}: ${error.code ?? error.message}`);
-    }
+test('canonical Trio sources remain while project-local skill discovery is retired', async () => {
+  for (const surface of PROJECTION_SURFACES) {
+    assert.ok((await readFile(path.join(REPO_ROOT, surface.source))).length > 0);
   }
-  assert.deepEqual(mismatches, []);
+  for (const name of ['trio', 'chiefops']) {
+    await assert.rejects(access(path.join(REPO_ROOT, '.agents/skills', name)), /ENOENT/);
+  }
+  const projectPolicy = await readFile(path.join(REPO_ROOT, 'AGENTS.md'), 'utf8');
+  assert.match(projectPolicy, /\$harness-codex-plugin:trio/);
+  assert.match(projectPolicy, /\$harness-codex-plugin:chiefops/);
 });
 
 test('entry contract rejects removed authority, permission, topology and completion safeguards', async () => {

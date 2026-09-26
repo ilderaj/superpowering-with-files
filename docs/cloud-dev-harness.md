@@ -68,8 +68,8 @@ Use short, concrete issue text. Include enough detail for an agent to finish wit
 
 ## Verification
 - `npm run verify`
-- `./scripts/harness verify --output=.harness/verification`
-- `./scripts/harness doctor --check-only`
+- `npm run verify:trio`
+- `npm run plugin:verify`
 ```
 
 For ambiguous or high-risk work, use `agent:plan` first. Move to `agent:impl` only after a human has reviewed the plan.
@@ -138,8 +138,8 @@ Copilot should work on a scoped branch such as `cloud-dev/<issue>-<slug>` and op
 Require the normal verification evidence before merging:
 
 - `npm run verify`
-- `./scripts/harness verify --output=.harness/verification`
-- `./scripts/harness doctor --check-only`
+- `npm run verify:trio`
+- `npm run plugin:verify`
 
 For docs-only changes, a human may accept narrower verification, but the PR description should say why full verification was not run.
 
@@ -174,8 +174,8 @@ Treat direct assignment as a verified override path: it can preserve the `cloud-
 Every cloud-dev task branch and promotion step should pass these checks before review or merge:
 
 - `npm run verify`
-- `./scripts/harness verify --output=.harness/verification`
-- `./scripts/harness doctor --check-only`
+- `npm run verify:trio`
+- `npm run plugin:verify`
 
 ## Promotion
 
