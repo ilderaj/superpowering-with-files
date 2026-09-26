@@ -93,9 +93,8 @@ enable 只追加一段受管块，保留原有内容；如果项目里已经是�
     codex plugin list --json          # 记录当前版本与来源路径
     codex plugin add harness-codex-plugin@personal
 
-本机来源目录是 `/Users/jared/plugins/harness-codex-plugin`。升级前先备份该目录、全局与项目 `AGENTS.md`、`codex plugin list --json` 输出和受管迁移收据。升级后新开一个 Codex 任务确认技能可发现。回滚时把来源目录恢复成备份内容，再刷新同一身份，不要手改插件缓存。
+本机来源目录是 `~/plugins/harness-codex-plugin`。升级前先备份该目录、全局与项目 `AGENTS.md`、`codex plugin list --json` 输出和受管迁移收据。升级后新开一个 Codex 任务确认技能可发现。回滚时把来源目录恢复成备份内容，再刷新同一身份，不要手改插件缓存。
 
 ## 哪些情况该停下来确认
 
 出现下面任一情况，先别继续，保留现场：技能清单里同时出现裸名和 `harness-codex-plugin:` 前缀的同名技能；提示词里出现两份 Trio 正文；项目 `AGENTS.md` 被追加了受管块但已有完整旧规则；插件装好了但新任务里看不到技能。这四种都对应可测量的重复或缺失，不属于正常状态。
-
