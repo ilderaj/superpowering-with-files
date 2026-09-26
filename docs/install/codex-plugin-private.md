@@ -91,6 +91,7 @@ The project opt-in command appends a managed policy block to `AGENTS.md` while p
 `v2.1.0` adds `scripts/policy-migration.mjs`. Where a machine still carries the full legacy SWF Trio block in `~/.codex/AGENTS.md`, replace it instead of appending a second governance block:
 
 ```bash
+SWF_SOURCE='/absolute/path/to/installed-marketplace/plugins/harness-codex-plugin'
 SWF_RECEIPT_PARENT='/absolute/path/to/new-receipt-parent'
 SWF_RECEIPT="$SWF_RECEIPT_PARENT/receipt"
 mkdir -p "$SWF_RECEIPT_PARENT"
