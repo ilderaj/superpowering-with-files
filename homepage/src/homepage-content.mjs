@@ -48,7 +48,7 @@ export const homepageContent = {
         { tone: 'hot', text: 'task_plan.md · findings.md · progress.md' },
         { tone: 'hot', text: 'one selected pack: dev / office / safety' },
         { tone: 'break' },
-        { tone: 'cmd', prefix: '$', text: './scripts/harness verify' },
+        { tone: 'cmd', prefix: '$', text: 'npm run plugin:verify' },
         { tone: 'dim', text: 'Requested model and effort are intent; actual is unknown without Host evidence.' }
       ]
     },
@@ -178,15 +178,14 @@ export const homepageContent = {
     kicker: 'Start here',
     title: 'Start with Codex and the Trio.',
     body:
-      'Read the source and workflow docs first, then use the small public command surface when it fits your task.',
+      'Install the private Codex plugin, then use the small task command surface when it fits your work.',
     quickStartTitle: 'Public commands',
     quickStartBody: 'The command names stay explicit so each step remains easy to inspect before use.',
     commands: [
-      './scripts/harness install',
-      './scripts/harness sync',
-      './scripts/harness doctor',
+      'codex plugin list --json',
+      'npm run plugin:verify',
+      'npm run verify:trio',
       './scripts/harness trio',
-      './scripts/harness verify',
       './scripts/harness checkpoint',
       './scripts/harness token-audit'
     ],

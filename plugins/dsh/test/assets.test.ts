@@ -8,10 +8,10 @@ const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const ASSET_SOURCES: Record<string, string> = {
-  'assets/skills/trio/SKILL.md': '.agents/skills/trio/SKILL.md',
-  'assets/skills/trio/dev/SKILL.md': '.agents/skills/trio/dev/SKILL.md',
-  'assets/skills/trio/office/SKILL.md': '.agents/skills/trio/office/SKILL.md',
-  'assets/skills/trio/safety/SKILL.md': '.agents/skills/trio/safety/SKILL.md',
+  'assets/skills/trio/SKILL.md': 'harness/trio/skill/SKILL.md',
+  'assets/skills/trio/dev/SKILL.md': 'harness/trio/capabilities/dev/SKILL.md',
+  'assets/skills/trio/office/SKILL.md': 'harness/trio/capabilities/office/SKILL.md',
+  'assets/skills/trio/safety/SKILL.md': 'harness/trio/capabilities/safety/SKILL.md',
   'assets/skills/chiefops/SKILL.md': 'harness/trio/governance/chiefops/SKILL.md',
   'assets/templates/entry-policy.md': 'harness/trio/templates/entry-policy.md',
   'assets/templates/task_plan.md': 'harness/trio/templates/task_plan.md',

@@ -18,6 +18,9 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+# Installed plugin resources must not receive import caches.
+sys.dont_write_bytecode = True
+
 from planning_paths import planning_file_map, resolve_plan_dir
 
 try:

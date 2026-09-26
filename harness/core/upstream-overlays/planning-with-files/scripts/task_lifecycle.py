@@ -38,7 +38,7 @@ def _extract_section(markdown: str, heading: str) -> str:
 
 def _parse_field(section: str, name: str) -> Optional[str]:
     pattern = re.compile(
-        rf"^\s*(?:[-*]\s*)?{re.escape(name)}\s*:\s*(.*?)\s*$",
+        rf"^[ \t]*(?:[-*][ \t]*)?{re.escape(name)}[ \t]*:[ \t]*(.*?)[ \t\r]*$",
         re.IGNORECASE | re.MULTILINE,
     )
     match = pattern.search(section)

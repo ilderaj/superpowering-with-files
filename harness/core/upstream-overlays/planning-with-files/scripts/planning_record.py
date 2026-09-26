@@ -8,6 +8,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
+# Installed plugin resources must not receive import caches.
+sys.dont_write_bytecode = True
+
 from planning_paths import active_dir
 
 UTC8 = timezone(timedelta(hours=8))

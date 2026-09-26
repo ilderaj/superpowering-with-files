@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "workspace": {
+    "name": "ilderaj"
+  },
+  "team": {
+    "id": "454e02a0-89de-4a17-b06b-b18a4842986e"
+  },
+  "project": {
+    "id": "fbabc28b-ff1b-4e06-9786-058dbc3ed36d"
+  },
+  "goalIssue": {
+    "id": "c58a1c38-a12e-4b59-8dda-0117c11db7ed",
+    "identifier": "SUP-80"
+  },
+  "executor": "executor:codex-local",
+  "taskMap": {
+    "swf-plugin-repository-release-20260925": {
+      "issueId": "c58a1c38-a12e-4b59-8dda-0117c11db7ed",
+      "identifier": "SUP-80",
+      "state": "running",
+      "subIssues": {
+        "PM-01": {
+          "issueId": "b1a8f261-1e54-45dd-b9af-4c43e27ee8e5",
+          "identifier": "SUP-81"
+        },
+        "PM-02": {
+          "issueId": "7d1b6336-fa94-4a25-8ece-390bee1b5531",
+          "identifier": "SUP-82"
+        },
+        "PM-03": {
+          "issueId": "4cda0b9b-470c-46c2-99ee-7eea3407babe",
+          "identifier": "SUP-83"
+        },
+        "PM-04": {
+          "issueId": "26f5d7e6-57ca-414a-82aa-fa1763d89d32",
+          "identifier": "SUP-84"
+        },
+        "PM-05": {
+          "issueId": "3e7d987e-46f1-4293-b89b-39e9bb8957e0",
+          "identifier": "SUP-85"
+        },
+        "PM-06": {
+          "issueId": "61e39163-95f6-4a1b-a37a-775a08959c35",
+          "identifier": "SUP-86"
+        },
+        "PM-07": {
+          "issueId": "20522294-60bb-4198-8373-13b58654ea93",
+          "identifier": "SUP-87"
+        }
+      }
+    }
+  },
+  "sync": {
+    "lastResult": "ok",
+    "pendingRetry": false
+  }
+}

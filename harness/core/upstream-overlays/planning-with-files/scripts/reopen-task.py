@@ -2,6 +2,9 @@
 """Reopen an exact archived or closed active planning task by stable identity."""
 from pathlib import Path
 import sys
+# Installed plugin resources must not receive import caches.
+sys.dont_write_bytecode = True
+
 import planning_paths
 
 if len(sys.argv) != 3:

@@ -8,6 +8,9 @@ import json
 import sys
 from pathlib import Path
 
+# Installed plugin resources must not receive import caches.
+sys.dont_write_bytecode = True
+
 from companion_sync import inspect_companion_sync
 import planning_paths
 from task_lifecycle import format_summary, inspect_plan_dir

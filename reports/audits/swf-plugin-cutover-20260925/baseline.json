@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "global": {
+      "exists": true,
+      "regular": true,
+      "sha256": "7bb533761991fb600a0f09b8c887d2b4bbc720ab596fe2907cf9f0636a540d5d"
+    },
+    "project": {
+      "exists": true,
+      "regular": true,
+      "sha256": "7bb533761991fb600a0f09b8c887d2b4bbc720ab596fe2907cf9f0636a540d5d"
+    },
+    "identical": true
+  },
+  "plugin": {
+    "version": "2.0.1+codex.20260925230000"
+  },
+  "skills": [
+    {
+      "name": "trio",
+      "sourcePath": "trio",
+      "local": {
+        "exists": true,
+        "regular": true,
+        "sha256": "ec1989aec5df952fbcfcde2e0690a26e9b1d9da3b95f19461d708a3911a32f3d"
+      },
+      "installed": {
+        "exists": true,
+        "regular": true,
+        "sha256": "ec1989aec5df952fbcfcde2e0690a26e9b1d9da3b95f19461d708a3911a32f3d"
+      },
+      "globalStandalone": false,
+      "localAndPluginIdentical": true
+    },
+    {
+      "name": "dev",
+      "sourcePath": "trio/dev",
+      "local": {
+        "exists": true,
+        "regular": true,
+        "sha256": "77eac924d8c3062362c9f45017c2f6407c214eb5137e05c6adcd1af549581654"
+      },
+      "installed": {
+        "exists": true,
+        "regular": true,
+        "sha256": "77eac924d8c3062362c9f45017c2f6407c214eb5137e05c6adcd1af549581654"
+      },
+      "globalStandalone": false,
+      "localAndPluginIdentical": true
+    },
+    {
+      "name": "office",
+      "sourcePath": "trio/office",
+      "local": {
+        "exists": true,
+        "regular": true,
+        "sha256": "64c936eee137bb5b1926130478d33002b26984dd2d7adba3707ba4ddb997704a"
+      },
+      "installed": {
+        "exists": true,
+        "regular": true,
+        "sha256": "64c936eee137bb5b1926130478d33002b26984dd2d7adba3707ba4ddb997704a"
+      },
+      "globalStandalone": false,
+      "localAndPluginIdentical": true
+    },
+    {
+      "name": "safety",
+      "sourcePath": "trio/safety",
+      "local": {
+        "exists": true,
+        "regular": true,
+        "sha256": "8f5826cd7efc1b39cef9dc4184ee6c6fabbfd0ecfcce57aad42017678b75f987"
+      },
+      "installed": {
+        "exists": true,
+        "regular": true,
+        "sha256": "8f5826cd7efc1b39cef9dc4184ee6c6fabbfd0ecfcce57aad42017678b75f987"
+      },
+      "globalStandalone": false,
+      "localAndPluginIdentical": true
+    },
+    {
+      "name": "chiefops",
+      "sourcePath": "chiefops",
+      "local": {
+        "exists": true,
+        "regular": true,
+        "sha256": "eac9657675a893b539f156a6ede9a7a230d632ef0c8dbe80f4e6e6cb4f469726"
+      },
+      "installed": {
+        "exists": true,
+        "regular": true,
+        "sha256": "eac9657675a893b539f156a6ede9a7a230d632ef0c8dbe80f4e6e6cb4f469726"
+      },
+      "globalStandalone": false,
+      "localAndPluginIdentical": true
+    }
+  ],
+  "prompt": {
+    "developerChars": 28795,
+    "userChars": 3583,
+    "duplicatedSkillNames": [
+      "trio",
+      "dev",
+      "office",
+      "safety",
+      "chiefops"
+    ]
+  }
+}

@@ -40,10 +40,9 @@ Use this contract after `./scripts/harness fetch` / `./scripts/harness update` a
 Choose checks based on the changed files:
 
 ```bash
-./scripts/harness sync --dry-run
-./scripts/harness doctor --check-only
-npm run test:core
-npm run test:mcp
+npm run verify:trio
+npm run verify:core
+npm run plugin:verify
 ```
 
 If skills, hooks, adapters, or projection metadata changed, add focused adapter/projection checks or the full suite:

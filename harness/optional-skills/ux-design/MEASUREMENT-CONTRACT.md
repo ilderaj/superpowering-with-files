@@ -55,6 +55,27 @@ Every failure names the invariant, the selector, the measured value, the expecte
 { "invariant": "no-horizontal-overflow", "selector": ".hero-copy", "measured": 412, "expected": 390, "unit": "CSS px", "tolerance": 0, "observer": "settled DOM in target host", "viewport": "390x844", "passed": false }
 ```
 
++## Browser-verification pitfalls
+
+Each entry below is a failure mode observed in a real run. Localize them; a pitfall that costs a measurement cycle once should never cost it twice.
+
+- **Content Security Policy**: a page whose policy forbids `unsafe-eval` cannot evaluate an injected function source. Pass the in-page probe as a string IIFE rather than a serialized function.
+- **Bundler-injected helpers**: a compiled bundle may inject a `__name` helper, so a compiled function is not serializable into the page. Keep page-side probes self-contained strings.
+- **Branded Chrome**: the branded Google Chrome channel refuses `--load-extension`; use a Chromium channel when the measurement needs an extension.
+- **Settle first**: wait for fonts and images to settle before reading geometry, or the run measures the loading state.
+- **Expectations**: resolve every expected value with a probe rather than hardcoding a constant.
+- **Isolation**: run each fixture in per-fixture isolation and report a named failure for each fixture, so one broken fixture cannot mask the rest.
+- **Cost ordering**: order the suite by cost and run the heavy perceptual suite last, behind an explicit skip switch.
+- **Missing artifacts**: a missing artifact produces an actionable error naming the missing path, never a silent pass.
+
+## Economics discipline
+
+Measurement is cheap; perception is expensive, and a stored baseline is a maintenance liability.
+
+- Default to no pixel baseline. A structural predicate catches the drift a baseline would catch, without the storage and review cost.
+- Use the perceptual layer only when a structural predicate cannot express the concern, and say so in the coverage record.
+- Suites are ordered by cost, heavy last, so a cheap structural failure is reported before an expensive perceptual run starts.
+
 ## Platform-neutral mechanism
 
 The mechanism belongs to the host. A browser-capability CLI, a renderer export, or another host tool can supply the measurements; this contract fixes what must be measured, not which tool measures it. When no host capability can render the artifact, record a verification limit and stop at the structure you can defend - a missing capability is never a pass.

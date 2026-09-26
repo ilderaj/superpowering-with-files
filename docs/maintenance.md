@@ -10,9 +10,8 @@ Use the public commands and repository checks that match the scope:
 
 ```bash
 ./scripts/harness trio
-./scripts/harness doctor --check-only
-./scripts/harness sync --dry-run
-./scripts/harness verify
+npm run verify:trio
+npm run plugin:verify
 ./scripts/harness checkpoint <exact-target>
 ./scripts/harness token-audit
 ```
@@ -29,7 +28,7 @@ Use this review when changing skill triggers, repository instructions, task temp
 - Describe repository-specific facts and completion criteria. Reuse existing verification and authority rules instead of copying them into each skill. Remove stale instructions only after checking the failure they prevented and the models that consume them.
 - For changed decision rules, check both the intended action and the retained stop boundary. Text checks establish contract coverage; representative runs on the intended models establish behavior. Record missing model evidence as unknown.
 
-Maintain canonical source and the affected workspace projection together. Global adoption and plugin release have separate receipts. Compare actual catalog/context measurements before claiming savings; installed file counts and source bytes measure different things.
+Maintain canonical source and the affected plugin package together. Old workspace projection checks are available only through the explicit `legacy-projection` CLI recovery path. Global adoption and plugin release have separate receipts. Compare actual catalog/context measurements before claiming savings; installed file counts and source bytes measure different things.
 
 Background and scope: [Astra absorption notes](astra-harness-upgrade.md#2026-09-12-article-absorption).
 
