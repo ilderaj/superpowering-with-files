@@ -2,6 +2,12 @@
 
 A lean, model-flexible harness for completing work accurately and efficiently. Human intent sets the outcome and boundaries; the agent chooses the smallest useful process, model, reasoning effort, and execution topology. The Host supplies tools, permissions, worker lifecycle, and authenticated runtime evidence.
 
+## Codex plugin delivery (2026-09-25)
+
+The complete Codex skill bundle is available as a **private local-evaluation release**, [`v2.0.1+codex.20260925230000`](https://github.com/ilderaj/swf-harness-codex-plugin/releases/tag/v2.0.1%2Bcodex.20260925230000). Authorized GitHub access is required. Its 42 ordinary skill entries and explicit optional Pen entry, resources, scripts, dependencies, and provenance are in the private package. Public redistribution of bundled third-party material has not been cleared, so this public repository does not contain that exact package source or release asset. See the [Codex plugin operator guide](docs/install/codex-plugin-private.md) for installation, upgrade, rollback, usage, and limitations.
+
+Installing the plugin makes its skills discoverable; it does not replace every Harness surface. Each project must opt in separately through the package's `scripts/project.mjs` if it wants the managed `AGENTS.md` routing block. This repository currently retains its source and project-local Trio entry for development; the legacy source has not been archived. The plugin does not install or authenticate MCP connectors, Host-owned skills, external runtimes, model access, or other IDE settings. In an enabled Codex project, request a skill explicitly (for example, `$harness-codex-plugin:simple-english`) or describe the task normally; automatic selection is model-driven and should be checked on important work. There is no single runtime command that invokes the entire plugin.
+
 ## What changed for Astra
 
 - **Short entries, details on demand.** `AGENTS.md` and skill descriptions carry routing and completion rules. Detailed methods and governance live in referenced files, installed and checked with their owning skill.
@@ -107,7 +113,9 @@ Load durable context at task entry, after compaction, or when scope, evidence, o
 
 Scope, sandbox permissions, and approval are separate checks. User authorization persists within the authorized action and scope; routing or a skill cannot manufacture authorization. Repository protections and Host permissions remain effective. “Stop at a draft PR” and “implement, merge, and adopt” are different completion contracts.
 
-## Install, update, and verify
+## Repository source workflow
+
+The following commands maintain this public repository's existing source/projection workflow. They do not install the private complete Codex plugin release above.
 
 Current Codex skill delivery uses the privately distributed `harness-codex-plugin`. Confirm it with `codex plugin list --json` and validate the source package with `npm run plugin:verify`. The repository CLI retains `trio`, `checkpoint`, and `token-audit` for task work. See [plugin packages](docs/install/plugin-packages.md) and [release artifacts](docs/release-plugin-artifacts.md); [Codex projection installation](docs/install/codex.md) documents compatibility and recovery only.
 
@@ -126,7 +134,7 @@ node scripts/adopt-global-skills.mjs --home /absolute/home --apply
 
 A first takeover of existing, unowned copies requires `--takeover` after reviewing the dry run. The command verifies backups and destination hashes, writes an installation receipt, and preserves unrelated skills. It does not install the Matt companion or modify plugin caches. Install the rebuilt Matt companion through its Host plugin manager and remove duplicate standalone copies only after validating that installation.
 
-Packaged artifacts include the native `harness-codex-plugin-<version>.tgz`, portable `harness-agent-plugins-<version>.tgz`, and two opt-in Matt companion packages. Core packages include five skills (`trio`, `dev`, `office`, `safety`, `chiefops`), their references, and three additional SWF skills (`planning-with-files`, `overengineering-review`, `simplification-ledger`). Optional methods and the SWF-owned `show-me` and `ux-design` skills are independently adopted. Codex is the only managed native target; other clients own their generic/manual setup.
+This repository's historical package build includes the native `harness-codex-plugin-<version>.tgz`, portable `harness-agent-plugins-<version>.tgz`, and opt-in Matt companion packages. Its eight-skill core package is not the 42-entry private release. The latter internalizes retained Matt methods and additional specialists; do not use the public build as an exact substitute. Codex is the only managed native target for the private release.
 
 ```sh
 npm run verify:all
