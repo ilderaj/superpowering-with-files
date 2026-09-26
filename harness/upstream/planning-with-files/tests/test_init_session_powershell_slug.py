@@ -226,6 +226,42 @@ class InitSessionPowerShellSlugTests(unittest.TestCase):
             expected = f"{date.today().isoformat()}-hardlink-test"
             self.assertEqual(expected, pointer.read_text(encoding="utf-8-sig").strip())
 
+    @unittest.skipUnless(os.name == "nt", "requires Windows read-only file attributes")
+    @unittest.skipUnless(os.name == "nt", "requires Windows read-only file attributes")
+    def test_slug_init_rejects_readonly_pointer_before_creating_plan(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first = self.run_init(root, "First")
+            self.assertEqual(0, first.returncode, first.stdout + first.stderr)
+            pointer = root / ".planning" / ".active_plan"
+            readonly = subprocess.run(
+                [
+                    POWERSHELL,
+                    "-NoProfile",
+                    "-Command",
+                    "(Get-Item -LiteralPath '.planning\\.active_plan').IsReadOnly=$true",
+                ],
+                cwd=str(root), text=True, encoding="utf-8-sig",
+                capture_output=True, check=False, env=child_env(),
+            )
+            self.assertEqual(0, readonly.returncode, readonly.stdout + readonly.stderr)
+            try:
+                result = self.run_init(root, "Second")
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertIn("active plan pointer", flat(result.stderr))
+                self.assertFalse((root / ".planning" / f"{date.today().isoformat()}-second").exists())
+            finally:
+                subprocess.run(
+                    [
+                        POWERSHELL,
+                        "-NoProfile",
+                        "-Command",
+                        "(Get-Item -LiteralPath '.planning\\.active_plan').IsReadOnly=$false",
+                    ],
+                    cwd=str(root), text=True, encoding="utf-8-sig",
+                    capture_output=True, check=False, env=child_env(),
+                )
+
     def test_slug_init_rejects_symlink_pointer_without_following_it(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -284,6 +320,156 @@ class InitSessionPowerShellSlugTests(unittest.TestCase):
             self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
             self.assertEqual([], list(outside.iterdir()))
             self.assertIn("outside the project", flat(result.stderr))
+
+    def test_concurrent_named_inits_all_replace_pointer_cleanly(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            processes = [
+                subprocess.Popen(
+                    [
+                        POWERSHELL,
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        str(INIT_PS1),
+                        f"Race Case {index}",
+                    ],
+                    cwd=str(root), text=True, encoding="utf-8-sig",
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=child_env(),
+                )
+                for index in range(4)
+            ]
+            results = [process.communicate(timeout=30) + (process.returncode,) for process in processes]
+            for stdout, stderr, returncode in results:
+                self.assertEqual(0, returncode, stdout + stderr)
+            planning = root / ".planning"
+            self.assertTrue((planning / ".active_plan").is_file())
+            self.assertEqual([], list(planning.glob(".active_plan~RF*.TMP")))
+
+    def test_transient_pointer_inspection_retries_after_root_verification(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "project"
+            root.mkdir()
+            scripts = base / "skill" / "scripts"
+            scripts.mkdir(parents=True)
+            shutil.copy2(INIT_PS1, scripts / "init-session.ps1")
+            shutil.copy2(REPO_ROOT / "scripts" / "set-active-plan.ps1",
+                         scripts / "set-active-plan-real.ps1")
+            (scripts / "set-active-plan.ps1").write_text(
+                r"""
+param([string]$PlanId = "", [switch]$VerifyRoot)
+$real = Join-Path $PSScriptRoot 'set-active-plan-real.ps1'
+if ($VerifyRoot) { & $real -VerifyRoot *> $null; exit $LASTEXITCODE }
+$marker = Join-Path (Get-Location).Path 'attempts.txt'
+if (-not (Test-Path -LiteralPath $marker)) {
+    [IO.File]::WriteAllText($marker, '1')
+    Write-Error 'Error: could not set the active plan pointer: the active plan pointer became unsafe during replacement'
+    exit 1
+}
+[IO.File]::AppendAllText($marker, '2')
+& $real $PlanId *> $null
+exit $LASTEXITCODE
+""",
+                encoding="ascii",
+            )
+
+            result = subprocess.run(
+                [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", str(scripts / "init-session.ps1"), "Retry Case"],
+                cwd=root, text=True, encoding="utf-8-sig",
+                capture_output=True, check=False, env=child_env(),
+            )
+
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual("12", (root / "attempts.txt").read_text(encoding="ascii"))
+            expected = f"{date.today().isoformat()}-retry-case"
+            self.assertEqual(expected, (root / ".planning" / ".active_plan").read_text())
+
+    def test_pointer_retry_stops_when_pointer_becomes_readonly(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "project"
+            root.mkdir()
+            scripts = base / "skill" / "scripts"
+            scripts.mkdir(parents=True)
+            shutil.copy2(INIT_PS1, scripts / "init-session.ps1")
+            shutil.copy2(REPO_ROOT / "scripts" / "set-active-plan.ps1",
+                         scripts / "set-active-plan-real.ps1")
+            (scripts / "set-active-plan.ps1").write_text(
+                r"""
+param([string]$PlanId = "", [switch]$VerifyRoot)
+$real = Join-Path $PSScriptRoot 'set-active-plan-real.ps1'
+if ($VerifyRoot) { & $real -VerifyRoot *> $null; exit $LASTEXITCODE }
+$marker = Join-Path (Get-Location).Path 'attempts.txt'
+if (-not (Test-Path -LiteralPath $marker)) {
+    [IO.File]::WriteAllText($marker, '1')
+    $pointer = Join-Path (Join-Path (Get-Location).Path '.planning') '.active_plan'
+    [IO.File]::WriteAllText($pointer, 'KEEP')
+    (Get-Item -LiteralPath $pointer).IsReadOnly = $true
+    Write-Error 'Error: could not set the active plan pointer: the active plan pointer became unsafe during replacement'
+    exit 1
+}
+[IO.File]::AppendAllText($marker, '2')
+& $real $PlanId *> $null
+exit $LASTEXITCODE
+""",
+                encoding="ascii",
+            )
+            pointer = root / ".planning" / ".active_plan"
+            try:
+                result = subprocess.run(
+                    [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
+                     "-File", str(scripts / "init-session.ps1"), "Readonly Race"],
+                    cwd=root, text=True, encoding="utf-8-sig",
+                    capture_output=True, check=False, env=child_env(),
+                )
+                self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+                self.assertEqual("1", (root / "attempts.txt").read_text(encoding="ascii"))
+                self.assertEqual(b"KEEP", pointer.read_bytes())
+            finally:
+                if pointer.exists():
+                    pointer.chmod(0o666)
+
+    def test_pointer_retry_does_not_repeat_other_selector_failures(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            root = base / "project"
+            root.mkdir()
+            scripts = base / "skill" / "scripts"
+            scripts.mkdir(parents=True)
+            shutil.copy2(INIT_PS1, scripts / "init-session.ps1")
+            shutil.copy2(REPO_ROOT / "scripts" / "set-active-plan.ps1",
+                         scripts / "set-active-plan-real.ps1")
+            (scripts / "set-active-plan.ps1").write_text(
+                r"""
+param([string]$PlanId = "", [switch]$VerifyRoot)
+$real = Join-Path $PSScriptRoot 'set-active-plan-real.ps1'
+if ($VerifyRoot) { & $real -VerifyRoot *> $null; exit $LASTEXITCODE }
+$marker = Join-Path (Get-Location).Path 'attempts.txt'
+if (-not (Test-Path -LiteralPath $marker)) {
+    [IO.File]::WriteAllText($marker, '1')
+    Write-Error 'Error: another selector failure'
+    exit 1
+}
+[IO.File]::AppendAllText($marker, '2')
+& $real $PlanId *> $null
+exit $LASTEXITCODE
+""",
+                encoding="ascii",
+            )
+
+            result = subprocess.run(
+                [POWERSHELL, "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", str(scripts / "init-session.ps1"), "No Retry Case"],
+                cwd=root, text=True, encoding="utf-8-sig",
+                capture_output=True, check=False, env=child_env(),
+            )
+
+            self.assertNotEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual("1", (root / "attempts.txt").read_text(encoding="ascii"))
+            self.assertFalse((root / ".planning" / ".active_plan").exists())
 
     def test_slug_from_non_ascii_letters_stays_ascii(self) -> None:
         # A dotted capital I survives a case-insensitive -replace; the plan id
@@ -406,6 +592,20 @@ exit $LASTEXITCODE
             self.assertTrue(plan_dir.is_dir())
             for name in ("task_plan.md", "findings.md", "progress.md"):
                 self.assertFalse((plan_dir / name).exists(), name)
+
+    def test_windows_powershell_recovers_bracketed_project_cwd(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "proj [v2]"
+            root.mkdir()
+            result = self.run_init(root, "Bracket Plan")
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            plan_dir = root / ".planning" / f"{date.today().isoformat()}-bracket-plan"
+            for name in ("task_plan.md", "findings.md", "progress.md"):
+                self.assertTrue((plan_dir / name).is_file(), name)
+            self.assertEqual(
+                plan_dir.name,
+                (root / ".planning" / ".active_plan").read_text(encoding="utf-8-sig").strip(),
+            )
 
     @unittest.skipUnless(PWSH, "requires pwsh")
     def test_pwsh_writes_plan_files_inside_bracketed_project_path(self) -> None:

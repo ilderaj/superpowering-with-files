@@ -1,58 +1,17 @@
 # Progress Log
 
-Use this file as the chronological record of work performed, files changed, validation results, and errors.
+## Session: [TIMESTAMP]
+<!-- Use tool-derived YYYY-MM-DD HH:mm:ss UTC+8; append chronologically. -->
 
-## Session: [DATE]
+### Work and Results
+[Completed slice, changed paths, outcome, and remaining work.]
 
-Replace `[DATE]` with the date of this work session.
+### Verification Evidence
+| Command / inspection | Result and counts | Scope / evidence |
+|---|---|---|
 
-### Phase 1: [Title]
+### Blockers and Recovery
+[Important failed approach, what changed, and next action or exact resume condition.]
 
-- **Status:** in_progress
-- **Started:** [timestamp]
-- Actions taken:
-  -
-- Files created/modified:
-  -
-
-Use the same status values as `task_plan.md`: `pending`, `in_progress`, or `complete`. Add concrete actions and paths as the phase advances.
-
-### Phase 2: [Title]
-
-- **Status:** pending
-- Actions taken:
-  -
-- Files created/modified:
-  -
-
-## Test Results
-
-Record each validation command or scenario, its expected result, and the observed outcome.
-
-| Test | Input | Expected | Actual | Status |
-|------|-------|----------|--------|--------|
-|      |       |          |        |        |
-
-## Error Log
-
-Record errors promptly, including the attempt number and resolution. Change the approach before retrying a failed action.
-
-| Timestamp | Error | Attempt | Resolution |
-|-----------|-------|---------|------------|
-|           |       | 1       |            |
-
-## 5-Question Reboot Check
-
-Use this table when resuming to confirm the current phase, destination, goal, findings, and completed work.
-
-| Question | Answer |
-|----------|--------|
-| Where am I? | Phase X |
-| Where am I going? | Remaining phases |
-| What's the goal? | [goal statement] |
-| What have I learned? | See findings.md |
-| What have I done? | See above |
-
----
-
-*Update this file after completing a phase, running validation, or encountering an error.*
+### Completion
+[Direct verified result or delegated candidate pending Chief acceptance. Record actual external delivery separately from local verification.]
