@@ -1,5 +1,7 @@
 # Linear Work Control — protocol reference
 
+Run the commands below from the target project directory. Set `SWF_LINEAR_SKILL_DIR` to the absolute directory containing the loaded `linear-work-control/SKILL.md` (the installed plugin skill directory, or the source skill directory when developing SWF). Keep this path quoted; do not change into the plugin directory, because relative task and binding paths belong to the target project.
+
 This file is the detailed half of the `linear-work-control` skill. The skill entry holds the short workflow; this reference holds the schemas, the mapping, the publish protocol, and the capability boundary a session must respect.
 
 ## 1. Separation of concerns
@@ -70,10 +72,10 @@ The resolver checks the preferred `reports/linear` task binding first and requir
 Use the public helper for local checks and atomic writes:
 
 ```bash
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs validate-product-config .harness/linear/project.json
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs validate-task-binding reports/linear/<task-id>/linear.json
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs resolve-product-binding --repo-root <repo> --task-id <task-id> --json
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs write-product-config --file .harness/linear/project.json --input <candidate.json>
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" validate-product-config .harness/linear/project.json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" validate-task-binding reports/linear/<task-id>/linear.json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" resolve-product-binding --repo-root <repo> --task-id <task-id> --json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" write-product-config --file .harness/linear/project.json --input <candidate.json>
 ```
 
 `migrate-binding --dry-run` prints a proposed v2 task binding and writes nothing. Automatic upgrade and live migration are disabled; the proposal is rejected when the independent root product, legacy Team, or legacy Project is incompatible with the v2 product config. All v2 validators reuse the existing credential-shaped-key rejection; duplicate product keys in the local or explicitly supplied registry fail closed.
@@ -83,7 +85,7 @@ node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs wri
 The guard is a required feature, not a one-time check. Before any Linear write:
 
 ```bash
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs guard --binding <binding> --observed-workspace <slug-read-from-the-mcp>
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" guard --binding <binding> --observed-workspace <slug-read-from-the-mcp>
 ```
 
 | Code | Meaning | Action |
@@ -123,8 +125,8 @@ The `humanActionRequired` flag from `map-state` is the blocking signal: it is tr
 Verify status names with `linear_list_issue_statuses` for the target team before the first write; if a team renamed a stock status, map to the closest equivalent and record the substitution in the local task files (`task_plan.md` / `findings.md`) rather than creating a new workflow status or inventing a binding field. A read-only probe of the connected workspace on 2026-09-17 returned `Backlog / Todo / In Progress / In Review / Done / Canceled / Duplicate`, which confirms the stock names above; the table stays an assumption until a session re-reads it for the team it is about to write into.
 
 ```bash
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs map-state waiting_human --json
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs labels
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" map-state waiting_human --json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" labels
 ```
 
 ## 4a. Recovery readiness
@@ -157,7 +159,7 @@ Local first, Linear second. Every meaningful checkpoint runs the same six steps:
 6. publish or update the Linear checkpoint.
 
 ```bash
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs render --kind checkpoint --input checkpoint.json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" render --kind checkpoint --input checkpoint.json
 ```
 
 A checkpoint answers, in this order: current state, how much is complete, what just completed, what is happening now, what is next, whether the human must act, and the latest validation result. Publish it by updating the stored status comment (`linear_save_comment` with `id`), together with the status and labels from section 4. Never mirror the worklog. Never publish per tool call.
@@ -175,7 +177,7 @@ Write every blocker into the task's local ledger with one machine-readable state
 `resume-brief` counts an entry as open unless its state is `resolved`, `canceled`, or `done`. The marker may be plain, indented, or decorated as a list item, ordered-list item, task checkbox, blockquote, emphasis, or inline code. A lookalike spelling of the token is still detected and fails closed as unreadable: different case or width, invisible and format characters (zero-width space/joiner, soft hyphen), hyphen variants, a homoglyph letter of the token, a stray space anywhere inside the token, or a line break that splits it. A marker-looking spelling within two edits of the token is treated as a marker candidate as well. **Any line that mentions the token, or a near-miss of it, without parsing as a well-formed marker, also counts as open**, so a published blocker can never look answered by accident. Detection is deliberately best-effort beyond that envelope, and the two mechanisms do not compose: several arbitrary substitutions can still be dropped, and an un-mapped homoglyph combined with a stray space inside the token defeats both the prefix scan and the edit-distance window. The candidate scan also matches the `swf:block` prefix anywhere on a whitespace-stripped line, so it over-matches by design: prose containing `swf:blockchain` reads as a malformed marker and counts as open. That is why the ledger keeps one well-formed marker per blocker, and why ledger prose must not contain the `swf:block` prefix — describe the convention instead. Publishing to Linear does not close an entry: verified prerequisite evidence may resolve a dependency blocker within existing authorization; a human decision blocker still requires the recorded human decision. Update the local marker and evidence before projecting the resolution.
 
 ```bash
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs render --kind blocker --input blocker.json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" render --kind blocker --input blocker.json
 ```
 
 A published blocker contains context, the exact question, options when they exist, the impact of staying unanswered, and the resume condition. Set the task to `waiting_human` (a decision the agent cannot make) or `blocked` (an external condition), and give it the matching label so the `Needs Human` view can find it.
@@ -194,7 +196,7 @@ On resuming a bound task:
 Reconciliation is mechanical, not interpretive:
 
 ```bash
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs parse-human-input --file comment.md --json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" parse-human-input --file comment.md --json
 ```
 
 The parser returns recognized decisions, replans, priorities, and control verbs, plus every unrecognized line. `summarizeHumanInput` reports whether the resume condition is met; `PAUSE` and `CANCEL` keep it closed. Unrecognized prose is never upgraded into a decision mechanically.
@@ -227,7 +229,7 @@ The MCP surface exposes no view-creation tool, so a human creates these eight vi
 Linear `Done` means validated completion, never merely "implementation looks finished".
 
 ```bash
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs completion-gate --input completion.json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" completion-gate --input completion.json
 ```
 
 The gate requires all three: the goal's `done when` conditions are satisfied, required validation ran and passed, and no blocking condition is unresolved. Anything else keeps the issue open in `review` with `ready-review`. The final update records what changed, the validation result, important artifacts, and remaining follow-ups.

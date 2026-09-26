@@ -11,6 +11,8 @@ metadata:
 
 Use for user-requested planning or routed tracked work; quick questions and bounded edits do not acquire planning ceremony from tool-call counts. Honor user intent and existing authorization. This shared Markdown contract works across Hosts without relying on frontmatter hooks.
 
+For a known Host thread ID, run `python3 <installed-planning-with-files>/scripts/planning_paths.py bound-task <project-root> <thread-id>`. If it returns an active task directory, read its three files and do not rebind the thread. Call `bind-thread <project-root> <task-id> <thread-id>` only when no valid binding exists and the exact active Task ID is independently known. Inspect the helper source only if its result is insufficient.
+
 Bind one task under `planning/active/<task-id>/`. Keep exactly three durable planning files: `task_plan.md` (goal, scope, phases, decisions), `findings.md` (source-backed facts and unknowns), and `progress.md` (work, verification, blockers, next action). Do not overwrite another task or create a fourth authority. Companion artifacts are optional deliverables, not prerequisites or parallel task state.
 
 At entry, resume, or recovery after compaction, read the three existing files and reconcile relevant workspace changes. When context is stale or scope changes, refresh the relevant planning sections before deciding. A current in-context plan needs no repeated read before each action.

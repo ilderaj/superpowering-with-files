@@ -31,6 +31,8 @@ Follow [project-first intake and execution](project-first.md) for adopted reposi
 
 ## Binding
 
+Run the commands below from the target project directory. Set `SWF_LINEAR_SKILL_DIR` to the absolute directory containing the loaded `linear-work-control/SKILL.md` (the installed plugin skill directory, or the source skill directory when developing SWF). Keep this path quoted; do not change into the plugin directory, because relative task and binding paths belong to the target project.
+
 Resolve the binding before anything else. Prefer, in order:
 
 1. `reports/linear/<task-id>/linear.json` — external metadata beside the task, so a tracked task directory keeps exactly `task_plan.md`, `findings.md`, and `progress.md`.
@@ -41,8 +43,8 @@ Resolve the binding before anything else. Prefer, in order:
 A path that exists but cannot be read or parsed fails closed with `**Binding:** invalid`; it is never treated as "no binding". Outside adopted/requested Linear management, a missing binding remains local-only. In an adopted repository or requested enrollment, follow project-first.md automatic intake; a failed setup stays visible as setup-needed and cannot enter unattended execution.
 
 ```bash
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs validate-binding reports/linear/<task-id>/linear.json
-node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs resume-brief --dir planning/active/<task-id> --observed-workspace <slug>
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" validate-binding reports/linear/<task-id>/linear.json
+node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" resume-brief --dir planning/active/<task-id> --observed-workspace <slug>
 ```
 
 The binding schema, including the fields that must never appear, is in [reference.md](reference.md).
@@ -51,13 +53,13 @@ The binding schema, including the fields that must never appear, is in [referenc
 
 1. **Guard the workspace.** Read the authenticated workspace with the Linear MCP, then decide:
    ```bash
-   node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs guard --binding <binding> --observed-workspace <slug>
+   node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" guard --binding <binding> --observed-workspace <slug>
    ```
    `DENY` for any reason means finish every local-only task, record the mismatch, and report the exact human action needed. Never write to the wrong workspace.
 2. **Read local state first.** Goal, plan, progress, blockers, validation, and the binding, then the bound issue plus comments. A resumed session must not need the original chat.
 3. **Reconcile human intent.** Turn an unambiguous comment into a durable local decision; a `DECISION:` line is durable local state, not a chat message. A material scope change triggers the repository's replan path rather than a silent rewrite.
    ```bash
-   node harness/core/skills/linear-work-control/scripts/linear-work-control.mjs parse-human-input --file <comment file>
+   node "$SWF_LINEAR_SKILL_DIR/scripts/linear-work-control.mjs" parse-human-input --file <comment file>
    ```
    The parser reports unrecognized lines instead of inferring intent. An exact prefix is not required: when natural-language intent is unambiguous, act on it and record the quoted line plus your interpretation in the local files. Vague commentary is never a decision.
 4. **Work locally, publish at checkpoints only.** Follow the local-first order in [reference.md](reference.md). Do not publish every tool call.

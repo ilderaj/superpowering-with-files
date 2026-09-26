@@ -10,6 +10,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
+import sys
+# Installed plugin resources must not receive import caches.
+sys.dont_write_bytecode = True
+
 import planning_paths
 from task_lifecycle import inspect_plan_dir
 
