@@ -55,8 +55,8 @@ export function buildCopilotPrompt({ issueNumber, issueTitle, taskKind }) {
     '',
     'Required verification:',
     '- `npm run verify`',
-    '- `./scripts/harness verify --output=.harness/verification`',
-    '- `./scripts/harness doctor --check-only`',
+    '- `npm run verify:trio`',
+    '- `npm run plugin:verify`',
     '',
     'Open a pull request only after the focused work is complete and verified.'
   ].join('\n');

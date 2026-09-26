@@ -109,9 +109,9 @@ Scope, sandbox permissions, and approval are separate checks. User authorization
 
 ## Install, update, and verify
 
-Public commands: `install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, and `token-audit`. See [Codex installation](docs/install/codex.md), [plugin packages](docs/install/plugin-packages.md), and [release artifacts](docs/release-plugin-artifacts.md).
+Current Codex skill delivery uses the privately distributed `harness-codex-plugin`. Confirm it with `codex plugin list --json` and validate the source package with `npm run plugin:verify`. The repository CLI retains `trio`, `checkpoint`, and `token-audit` for task work. See [plugin packages](docs/install/plugin-packages.md) and [release artifacts](docs/release-plugin-artifacts.md); [Codex projection installation](docs/install/codex.md) documents compatibility and recovery only.
 
-For an existing managed installation, review `./scripts/harness sync --dry-run`, apply `./scripts/harness sync`, then run `./scripts/harness sync --check` and `./scripts/harness doctor --check-only`. Source changes and user-global adoption are separately verified. Legacy `install --takeover-chiefops` remains a narrowly scoped, backed-up migration for the previously unowned ChiefOps companion.
+Ordinary `./scripts/harness install`, `sync`, `doctor`, and `verify` reject the retired local projection path. For an intentional old-installation recovery, use `./scripts/harness legacy-projection <install|sync|doctor|verify>` and the original options. This compatibility path does not install or update the Codex plugin.
 
 Optional methods and redundant legacy wrappers have a separate, explicit adoption command:
 

@@ -110,9 +110,9 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 ## 红线
 
-**做**: 输入用自然语言讲清目标/影响面/约束/验收;任务开始前确认三件套存在且 hash 一致;packet 永远随派单一起给 worker;worker 结果一律先当 candidate;验收证据要"命令 + 退出码 + 计数 + 变更路径";全局投影用 `./scripts/harness sync --check` / `doctor --check-only` 自检。
+**做**: 输入用自然语言讲清目标/影响面/约束/验收;任务开始前确认三件套存在且 hash 一致;packet 永远随派单一起给 worker;worker 结果一律先当 candidate;验收证据要"命令 + 退出码 + 计数 + 变更路径";当前插件源码用 `npm run plugin:verify` 自检。旧全局投影的恢复检查才使用 `./scripts/harness legacy-projection sync --check` / `legacy-projection doctor --check-only`。
 
-**不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 legacy input 路径下让 Chief inline 改生产代码或让 native 顶包;不把静态角色配置当成动态 child 权限;不声称 actual model/role/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口;不把 Host 的 user-owned 独立任务冒充 Root internal route 或 bridge;不以 Full Access / 用户审批 / auto-review / 可写沙箱为扩权手段(范围先决,越界一律 blocked 在 scope 层);不直接写物化输出(`AGENTS.md`、`.agents/**`)——改源 + 投影 proof 是唯一受支持的工作流。
+**不做**: 不建第四份任务权威文件(Trio 只有三个文件);不在 legacy input 路径下让 Chief inline 改生产代码或让 native 顶包;不把静态角色配置当成动态 child 权限;不声称 actual model/role/effort(无 authenticated 证据就是 unknown);不跳过人类 gate 自行 merge/push/release;不把 `manual_pending` 当失败——它是设计内的诚实出口;不把 Host 的 user-owned 独立任务冒充 Root internal route 或 bridge;不以 Full Access / 用户审批 / auto-review / 可写沙箱为扩权手段(范围先决,越界一律 blocked 在 scope 层);不手改受管的旧全局投影,改源并在明确兼容路径验证。项目 `AGENTS.md` 的插件入口变更须走代码评审和可逆策略迁移。
 
 ## worker 本地 goal 契约(`worker_self_goal`)
 
@@ -141,7 +141,7 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 当持久化 authority root 已持有 schema-v2 `user-global` 状态、且只差全局 ChiefOps 目标未被托管时,唯一的 V2 迁移路径是:
 
 ```sh
-./scripts/harness install --takeover-chiefops
+./scripts/harness legacy-projection install --takeover-chiefops
 ```
 
 严格资格(全部满足才执行,否则在任何写入前失败):
@@ -158,7 +158,7 @@ merge / push(除已授权的分支内提交)、release / deploy / publish(含 PR
 
 - 备份是恢复证据,不是日志:本命令**不承诺**崩溃/SIGKILL/断电级别的整体原子性。
 - 只能从 durable authority root(持有 `.harness/state.json` 的 checkout)运行,不能从临时 worktree 运行;实际全局运行需要单独的人类 gate。
-- 命令不自动 merge/push/发布/采纳;运行后请用 `./scripts/harness sync --check` 与 `./scripts/harness doctor --check-only` 复核。本仓库测试只在临时 fixture 上演练该命令,未执行真实全局接管。
+- 命令不自动 merge/push/发布/采纳;运行后请用 `./scripts/harness legacy-projection sync --check` 与 `./scripts/harness legacy-projection doctor --check-only` 复核。本仓库测试只在临时 fixture 上演练该命令,未执行真实全局接管。
 
 ## 当前边界与限制(截至 2026-08-10)
 

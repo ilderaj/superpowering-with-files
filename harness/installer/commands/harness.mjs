@@ -13,12 +13,8 @@ import { tokenAudit } from './token-audit.mjs';
 import { trioCommand } from './trio.mjs';
 
 const commands = {
-  install,
-  doctor,
-  sync,
   fetch: fetchCommand,
   update: updateCommand,
-  verify,
   checkpoint: checkpointCommand,
   'checkpoint-push': checkpointPushCommand,
   'worktree-preflight': worktreePreflight,
@@ -32,11 +28,12 @@ function usage() {
     'Usage: ./scripts/harness <command>',
     '',
     'Commands:',
-    '  install  Configure Harness projections',
-    '  sync     Reproject core into installed targets',
-    '  doctor   Check Harness installation health',
+  '  install  Use the managed Codex plugin installer (legacy projection retired)',
+  '  sync     Use the managed Codex plugin update path (legacy projection retired)',
+  '  legacy-projection install|sync|doctor|verify  Explicit compatibility path for old installations',
+  '  doctor   Use plugin-native discovery for current Codex health',
     '  trio     Inspect a Trio, plan its next action, or explicitly write its lifecycle',
-    '  verify   Check projection sync and report structure to stdout',
+  '  verify   Use plugin verification for current Codex health',
     '  checkpoint  Create a safety checkpoint',
     '  token-audit  Print a weekly cross-session token audit'
   ].join('\n');
@@ -49,7 +46,20 @@ if (!commandName || commandName === '--help' || commandName === '-h') {
   process.exit(0);
 }
 
-const command = commands[commandName];
+if (['install', 'sync', 'doctor', 'verify'].includes(commandName)) {
+  console.error(`The old Harness ${commandName} projection is retired from the normal Codex path. Use the installed harness-codex-plugin; for an intentional old-installation recovery, run legacy-projection ${commandName} with the same options.`);
+  process.exit(1);
+}
+
+let command = commands[commandName];
+if (commandName === 'legacy-projection') {
+  const [action, ...legacyArgs] = args;
+  if (!['install', 'sync', 'doctor', 'verify'].includes(action)) {
+    console.error('legacy-projection requires install, sync, doctor, or verify.');
+    process.exit(1);
+  }
+  command = () => ({ install, sync, doctor, verify })[action](legacyArgs);
+}
 if (!command) {
   console.error(`Unknown command: ${commandName}`);
   console.error(usage());

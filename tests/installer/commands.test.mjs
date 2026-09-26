@@ -179,11 +179,12 @@ test('harness --help prints top-level usage', async () => {
       .trimEnd()
       .split('\n')
       .filter(Boolean);
-    assert.equal(commandLines.length, 7);
+    assert.equal(commandLines.length, 8);
     const commandNames = commandLines.map((line) => line.trim().split(/\s+/)[0]);
     assert.deepEqual(commandNames, [
       'install',
       'sync',
+      'legacy-projection',
       'doctor',
       'trio',
       'verify',
@@ -324,10 +325,28 @@ test('harness public dispatcher rejects retired cloud-bootstrap', async () => {
   }
 });
 
-test('sync --help prints usage without executing sync', async () => {
+test('normal installer and health commands cannot read or write legacy Codex projections', async () => {
   const root = await createHarnessFixture();
   try {
-    const { stdout } = await harnessCommand(root, 'sync', '--help');
+    for (const command of ['install', 'sync', 'doctor', 'verify']) {
+      await assert.rejects(harnessCommand(root, command), (error) => {
+        assert.equal(error.code, 1);
+        assert.match(error.stderr, /old Harness .* projection is retired/);
+        assert.match(error.stderr, /legacy-projection/);
+        return true;
+      });
+    }
+    await assert.rejects(access(path.join(root, '.harness/state.json')), /ENOENT/);
+    await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
+  } finally {
+    await removeHarnessFixture(root);
+  }
+});
+
+test('legacy-projection sync --help prints usage without executing sync', async () => {
+  const root = await createHarnessFixture();
+  try {
+    const { stdout } = await harnessCommand(root, 'legacy-projection', 'sync', '--help');
     assert.match(stdout, /Usage: \.\/scripts\/harness sync/);
     await assert.rejects(access(path.join(root, '.harness/projections.json')), /ENOENT/);
   } finally {
@@ -335,10 +354,10 @@ test('sync --help prints usage without executing sync', async () => {
   }
 });
 
-test('install --help prints usage without writing state', async () => {
+test('legacy-projection install --help prints usage without writing state', async () => {
   const root = await createHarnessFixture();
   try {
-    const { stdout } = await harnessCommand(root, 'install', '--help');
+    const { stdout } = await harnessCommand(root, 'legacy-projection', 'install', '--help');
     assert.match(stdout, /Usage: .* install/);
     assert.match(stdout, /--upgrade/);
     assert.match(stdout, /--recovery <path>/);
@@ -419,7 +438,7 @@ test('workspace-skills source control plane is physically retired', async () => 
 test('verify --help prints usage without writing reports', async () => {
   const root = await createHarnessFixture();
   try {
-    const { stdout } = await harnessCommand(root, 'verify', '--help');
+    const { stdout } = await harnessCommand(root, 'legacy-projection', 'verify', '--help');
     assert.match(stdout, /Usage: \.\/scripts\/harness verify/);
     await assert.rejects(access(path.join(root, 'reports/verification/latest.md')), /ENOENT/);
   } finally {
@@ -486,12 +505,12 @@ test('token-audit rejects invalid explicit audit windows', async () => {
   }
 });
 
-test('persisted V1 public commands require upgrade and leave the authority root unchanged', async () => {
+test('persisted V1 compatibility commands require upgrade and leave the authority root unchanged', async () => {
   const commands = [
-    ['install'],
-    ['sync'],
-    ['doctor', '--check-only'],
-    ['verify', '--output=.harness/v1-report']
+    ['legacy-projection', 'install'],
+    ['legacy-projection', 'sync'],
+    ['legacy-projection', 'doctor', '--check-only'],
+    ['legacy-projection', 'verify', '--output=.harness/v1-report']
   ];
 
   for (const args of commands) {

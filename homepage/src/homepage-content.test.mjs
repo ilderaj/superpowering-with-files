@@ -76,11 +76,10 @@ test('captures every required Trio v2 public boundary without retired claims', (
   assert.equal(homepageContent.footer.github.label, 'View source');
   assert.deepEqual(homepageContent.system.lanes, ['quick', 'tracked', 'deep']);
   assert.deepEqual(homepageContent.start.commands, [
-    './scripts/harness install',
-    './scripts/harness sync',
-    './scripts/harness doctor',
+    'codex plugin list --json',
+    'npm run plugin:verify',
+    'npm run verify:trio',
     './scripts/harness trio',
-    './scripts/harness verify',
     './scripts/harness checkpoint',
     './scripts/harness token-audit'
   ]);

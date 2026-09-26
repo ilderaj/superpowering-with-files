@@ -2,6 +2,8 @@
 
 Codex is the only managed native Trio target. Install the packaged `harness-codex-plugin-<version>.tgz` through a local Codex marketplace.
 
+The installed plugin is the current skill delivery path. The old repository projection commands below are compatibility and recovery procedures only; invoke them through `./scripts/harness legacy-projection` with the stated action. Ordinary `install`, `sync`, `doctor`, and `verify` no longer read or write local Trio skill projections.
+
 Releases also include a separate portable Agent Plugins package (`harness-agent-plugins-<version>.tgz`) for non-Codex clients that implement the standard; it is not installed through this Codex marketplace flow. See [Agent Plugins installation](agent-plugins.md).
 
 Two independent, opt-in Matt companion archives are also available: `harness-matt-skills-codex-plugin-<version>.tgz` and `harness-matt-skills-agent-plugins-<version>.tgz`. They make no change to Trio or its projection. `grill-me` and `grilling` are explicit opt-in; `to-questionnaire` creates a local Markdown draft; external delivery remains human-gated. Verify every archive with `SHA256SUMS` and its digest record in `manifest.json` before extraction.
@@ -75,10 +77,10 @@ This local package procedure does not migrate an existing user-global installati
 When a durable authority root already holds a schema-v2 `user-global` Trio state that owns the five core surfaces (entry plus `trio`, `dev`, `office`, `safety`) but leaves the global ChiefOps destination unowned, the exact migration command is:
 
 ```sh
-./scripts/harness install --takeover-chiefops
+./scripts/harness legacy-projection install --takeover-chiefops
 ```
 
-Run it from the durable authority root — the checkout that owns `.harness/state.json` — not from a transient worktree, and when the applicable human authorization covers the global write. Ordinary `install` stays workspace-only, and normal `sync` applies owned projections and supports `--dry-run` and `--check`; none bypass this migration.
+Run it from the durable authority root — the checkout that owns `.harness/state.json` — not from a transient worktree, and when the applicable human authorization covers the global write. In the explicit compatibility lane, `install` stays workspace-only and `sync` applies owned projections with `--dry-run` and `--check`; none bypass this migration.
 
 ### Eligibility (all must hold, otherwise the command fails before any write)
 
@@ -105,7 +107,7 @@ Absent state, V1 state, workspace or both scope, a wrong placement, an already-o
 ### Limits
 
 - The backup is durable recovery evidence, not a journal: this command makes no crash, SIGKILL, or power-loss atomicity claim for the overall migration.
-- The command never merges, pushes, publishes, or auto-adopts anything. After the run, verify with `./scripts/harness sync --check` and `./scripts/harness doctor --check-only`.
+- The command never merges, pushes, publishes, or auto-adopts anything. After the run, verify with `./scripts/harness legacy-projection sync --check` and `./scripts/harness legacy-projection doctor --check-only`.
 - The actual global run requires applicable human authorization at a durable authority root. Automated tests exercise temporary fixtures; a live adoption must be verified separately.
 
 See [plugin package installation](plugin-packages.md) for download and checksum steps.
@@ -138,6 +140,6 @@ See [plugin package installation](plugin-packages.md) for download, `SHA256SUMS`
 
 ### Repairing a stale ownership digest
 
-If managed files already match the current canonical source but their recorded identities are stale, `./scripts/harness sync --reconverge` can repair the ownership record. It requires complete projection-manifest ownership, real singly-owned files, and exact source equality for every conflicted managed file. Custom edits, missing ownership, symlinks and hardlinks are rejected. Unrelated user files and manual targets are preserved.
+If managed files already match the current canonical source but their recorded identities are stale, `./scripts/harness legacy-projection sync --reconverge` can repair the ownership record. It requires complete projection-manifest ownership, real singly-owned files, and exact source equality for every conflicted managed file. Custom edits, missing ownership, symlinks and hardlinks are rejected. Unrelated user files and manual targets are preserved.
 
-The command captures a verified rollback backup before atomically updating state; it does not overwrite projected file content. Follow it with ordinary `sync` to update any older, still-owned files, then `sync --check` and `doctor --check-only`. `--reconverge` cannot be combined with `--check` or `--dry-run`.
+The command captures a verified rollback backup before atomically updating state; it does not overwrite projected file content. Follow it with `legacy-projection sync` to update any older, still-owned files, then `legacy-projection sync --check` and `legacy-projection doctor --check-only`. `--reconverge` cannot be combined with `--check` or `--dry-run`.

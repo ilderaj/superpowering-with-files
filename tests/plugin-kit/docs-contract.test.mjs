@@ -172,17 +172,17 @@ test('Agent Plugins install doc explains portable manual client-owned semantics'
   assert.doesNotMatch(doc, /hooks\.json|mcp\.json/i);
 });
 
-test('README names the Trio as the sole durable authority and only seven public commands', async () => {
+test('README keeps Trio task authority and routes Codex skill delivery through the plugin', async () => {
   const readme = await readFile('README.md', 'utf8');
 
   for (const file of ['task_plan.md', 'findings.md', 'progress.md']) {
     assert.match(readme, new RegExp(`planning/active/<task-id>/${file}`));
   }
   assert.doesNotMatch(readme, /reconciliation\.md|companion[- ]plan|\[ChiefOps\]\(chiefops\.md\)|harness_chiefops_board|registry/i);
-  assert.match(
-    readme,
-    /`install`, `sync`, `doctor`, `trio`, `verify`, `checkpoint`, (?:and )?`token-audit`/
-  );
+  assert.match(readme, /harness-codex-plugin/);
+  assert.match(readme, /codex plugin list --json/);
+  assert.match(readme, /npm run plugin:verify/);
+  assert.match(readme, /legacy-projection <install\|sync\|doctor\|verify>/);
   assert.match(readme, /installation receipts[\s\S]*not additional task-state authorities/);
   assert.doesNotMatch(readme, /`(?:status|update|fetch|active-summary|summary|record|worktree-preflight|worktree-name)`/);
   assert.doesNotMatch(readme, /(?:profile|hooks|MCP)\s+(?:is|are|stays|remains|supports|projects)/i);

@@ -112,7 +112,7 @@ test('completion requires authorized verification and repair while preserving re
   for (const pattern of Object.values(rules)) {
     assert.throws(() => has(text.replace(new RegExp(pattern.source, pattern.flags + 'g'), ''), rules));
   }
-  assert.equal(await read('.agents/skills/trio/SKILL.md'), text);
+  await assert.rejects(() => read('.agents/skills/trio/SKILL.md'), /ENOENT/);
 });
 
 test('entry template delegates detail and retains only routing and authority boundaries', async () => {
