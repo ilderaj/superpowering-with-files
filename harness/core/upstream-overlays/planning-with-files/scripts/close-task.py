@@ -8,6 +8,10 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import sys
+# Installed plugin resources must not receive import caches.
+sys.dont_write_bytecode = True
+
 from companion_sync import inspect_companion_sync, read_text, sync_close_state
 import planning_paths
 

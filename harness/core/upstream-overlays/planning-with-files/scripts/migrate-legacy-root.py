@@ -18,6 +18,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Installed plugin resources must not receive import caches.
+sys.dont_write_bytecode = True
+
 from planning_paths import archive_active_task, ensure_active_layout, resolve_task_id
 
 PLANNING_FILES = ("task_plan.md", "findings.md", "progress.md")

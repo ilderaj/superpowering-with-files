@@ -109,7 +109,8 @@ test('night and morning preserve run-bound model evidence and provider unknowns'
 test('the ladder requires carrier independence in provider and accounting domain', () => {
   assert.match(doc, /Carrier independence has two dimensions/);
   assert.match(doc, /upstream provider path and the accounting domain/);
-  assert.match(doc, /never spends the ChatGPT account's Codex quota/);
+  assert.match(doc, /shares command-code with one L1 target/);
+  assert.match(doc, /shared local proxy/);
   assert.match(doc, /usage_limit_exceeded/);
   assert.match(doc, /2026-09-22/);
   assert.match(doc, /carrier gap, not a night gap/);
@@ -121,6 +122,9 @@ test('morning reports the fallback carrier liveness separately from a night gap'
   assert.match(morning, /not-triggered/);
   assert.match(morning, /usage_limit_exceeded/);
   assert.match(morning, /carrier gap, not a night gap/);
-  assert.match(morning, /no terminal outcome is a night gap/);
+  assert.match(morning, /unreadable or incomplete evidence is unknown/);
+  assert.match(morning, /failed-after-start/);
+  assert.match(morning, /completed-noop/);
+  assert.match(morning, /Never report a successful no-op as a coverage gap/);
   assert.match(morning, /Never present a missing fallback record as the primary pass having failed/);
 });

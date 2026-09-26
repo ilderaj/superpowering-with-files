@@ -18,6 +18,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
+# Installed plugin resources are read-only; keep import caches out of the package.
+sys.dont_write_bytecode = True
+
 from task_lifecycle import inspect_plan_dir
 
 PLANNING_FILES = ("task_plan.md", "findings.md", "progress.md")

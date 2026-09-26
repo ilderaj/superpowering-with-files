@@ -7,6 +7,10 @@ import re
 from pathlib import Path
 from typing import Iterable
 
+import sys
+# Installed plugin resources must not receive import caches.
+sys.dont_write_bytecode = True
+
 import planning_paths
 
 
