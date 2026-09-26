@@ -1,6 +1,6 @@
 # SWF Codex plugin cutover baseline (PM-01)
 
-Captured 2026-09-25 on the Host before any runtime switch. `baseline.json` is the output of `scripts/audit-plugin-cutover.mjs` against `/Users/jared/SuperpoweringWithFiles`, the active global policy, the installed `harness-codex-plugin` package and `codex debug prompt-input`. Only aggregate prompt lengths and matched entry names are retained; the full prompt is not committed.
+Captured 2026-09-25 on the Host before any runtime switch. `baseline.json` is the output of `scripts/audit-plugin-cutover.mjs` against the local SWF checkout, the active global policy, the installed `harness-codex-plugin` package and `codex debug prompt-input`. Only aggregate prompt lengths and matched entry names are retained; the full prompt is not committed.
 
 The global and project `AGENTS.md` files have identical SHA-256. All five project-local Trio/ChiefOps skill entry files are byte-equal to their installed-plugin counterparts and appear under both local and plugin names in the prompt preview. `diff -qr` also found no difference between the full projected `trio/` and installed `skills/trio/` trees, or between projected and installed `chiefops/` trees (12 regular files total, all Git-tracked in the project). No standalone copy of those five was found in the two user-global skill roots. The installed version is `2.0.1+codex.20260925230000`.
 
