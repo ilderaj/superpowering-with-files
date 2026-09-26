@@ -41,4 +41,8 @@ PM-01 可立即执行；PM-02 的公开/私有文件边界按文件审查，不�
 | PM-06 | [SUP-86](https://linear.app/ilderaj/issue/SUP-86/pm-06-本机切换与新版本) |
 | PM-07 | [SUP-87](https://linear.app/ilderaj/issue/SUP-87/pm-07-归档和维护说明) |
 
-2026-09-26 状态：PM-01 基线和 PM-02 双 SHA 源码重建已完成；PM-03 的项目投影退役候选在草稿 PR #207，旧安装功能留在显式 `legacy-projection` 兼容入口。PR #206 是其公开源码前置。以上均未切换 Host；PM-04 策略迁移和 PM-05 验收仍是运行切换门槛。
+## 执行状态（2026-09-26）
+
+PM-01–04 的源码、旧投影退役和可逆策略迁移已落地；公开 PR #203、#206、#207、#209、#211 已合入 `dev`，并经 PR #208、#210、#212 提升到 `main`。私有规范源码的 PR #1、#2 已合入，稳定版 [`v2.1.0+codex.20260926`](https://github.com/ilderaj/swf-harness-codex-plugin/releases/tag/v2.1.0%2Bcodex.20260926) 已发布。Host 已从校验过的归档升级到同一插件身份；全局旧规则经原字节收据迁移，项目旧 Trio/ChiefOps 投影已退出当前发现路径。README、[日常操作说明](../../codex-plugin-daily-workflow.md)和[私有安装说明](../../install/codex-plugin-private.md)按此状态更新。仅本迁移拥有且已合并的分支已清理；其他任务的 worktree/分支保留。
+
+PM-05 的无模型部分已通过干净 Container 安装、升级、发现和回滚验证。真实模型场景与计费 token 效果仍未验收：Container 测试账号报告额度到 2026-09-30 才恢复；同日 Host 的 Sol high 只读路由探针返回 429，未产生任务结果。此前的 Host 切换有备份和回滚收据，不能把它当作 PM-S4 的行为/成本通过证据。待模型访问恢复后，补齐 Trio、任务恢复、权限、代码、Office、缺能力场景和用量对照，再关闭 PM-05 与整体效果评价。
